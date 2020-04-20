@@ -61,11 +61,20 @@ namespace AnyLayout.RawInput
         public struct RawKeyboard
         {
             public ushort MakeCode;
-            public ushort Flags;
+            public RawInputKeyboardFlags Flags;
             public ushort Reserved;
-            public ushort VKey;
+            public ushort VirtualKey;
             public uint Message;
             public uint ExtraInformation;
+        }
+
+        [Flags]
+        public enum RawInputKeyboardFlags : ushort
+        {
+            Make = 0,
+            Break = 1,
+            E0 = 2,
+            E1 = 4,
         }
 
         [StructLayout(LayoutKind.Sequential)]

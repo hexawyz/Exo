@@ -65,7 +65,11 @@ namespace AnyLayout
             if (msg == WM_INPUT)
             {
                 var data = NativeMethods.GetRawInputData(lParam);
-                _viewModel.ScanCode = data.Data.Keyboard.MakeCode;
+                if ((data.Data.Keyboard.Flags & NativeMethods.RawInputKeyboardFlags.Break) != 0)
+                {
+                    _viewModel.ScanCode = data.Data.Keyboard.MakeCode;
+                    _viewModel.Key = (VirtualKey)data.Data.Keyboard.VirtualKey;
+                }
                 handled = true;
                 return default;
             }
