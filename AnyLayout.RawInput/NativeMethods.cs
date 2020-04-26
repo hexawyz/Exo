@@ -4,11 +4,13 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security;
 using Microsoft.Win32.SafeHandles;
 
 namespace AnyLayout.RawInput
 {
-    public static partial class NativeMethods
+    [SuppressUnmanagedCodeSecurity]
+    public static class NativeMethods
     {
         [StructLayout(LayoutKind.Sequential)]
         public struct RawInputDevice
