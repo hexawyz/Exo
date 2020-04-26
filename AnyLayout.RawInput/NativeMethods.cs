@@ -8,7 +8,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace AnyLayout.RawInput
 {
-    public static class NativeMethods
+    public static partial class NativeMethods
     {
         [StructLayout(LayoutKind.Sequential)]
         public struct RawInputDevice
@@ -107,13 +107,6 @@ namespace AnyLayout.RawInput
         {
             Header = 0x10000005,
             Input = 0x10000003,
-        }
-
-        public enum RawInputDeviceType : uint
-        {
-            Mouse = 0,
-            Keyboard = 1,
-            Hid = 2,
         }
 
         [StructLayout(LayoutKind.Sequential)]

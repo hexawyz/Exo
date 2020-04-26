@@ -8,7 +8,7 @@
         Vr = 0x03,
         Sport = 0x04,
         Game = 0x05,
-        GenericDevice = 0x05,
+        GenericDevice = 0x06,
         Keyboard = 0x07,
         Led = 0x08,
         Button = 0x09,
