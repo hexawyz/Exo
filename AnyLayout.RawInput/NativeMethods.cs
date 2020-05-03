@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
 namespace AnyLayout.RawInput
@@ -77,6 +78,10 @@ namespace AnyLayout.RawInput
             Break = 1,
             E0 = 2,
             E1 = 4,
+            TerminalServerSetLed = 8,
+            TerminalServerShadow = 0x10,
+            TerminalServerVkPacket = 0x20,
+            RawInputMessageVkey = 0x40,
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -200,6 +205,7 @@ namespace AnyLayout.RawInput
             Remove = 0x00000001,
         }
 
+        [StructLayout(LayoutKind.Sequential)]
         public struct HidParsingCaps
         {
             public ushort Usage;
@@ -227,16 +233,137 @@ namespace AnyLayout.RawInput
             private readonly ushort _reserved15;
             private readonly ushort _reserved16;
 #pragma warning restore CS0169, IDE0051, RCS1213
-            public ushort NumberLinkCollectionNodes;
-            public ushort NumberInputButtonCaps;
-            public ushort NumberInputValueCaps;
-            public ushort NumberInputDataIndices;
-            public ushort NumberOutputButtonCaps;
-            public ushort NumberOutputValueCaps;
-            public ushort NumberOutputDataIndices;
-            public ushort NumberFeatureButtonCaps;
-            public ushort NumberFeatureValueCaps;
-            public ushort NumberFeatureDataIndices;
+            public ushort LinkCollectionNodesCount;
+            public ushort InputButtonCapsCount;
+            public ushort InputValueCapsCount;
+            public ushort InputDataIndicesCount;
+            public ushort OutputButtonCapsCount;
+            public ushort OutputValueCapsCount;
+            public ushort OutputDataIndicesCount;
+            public ushort FeatureButtonCapsCount;
+            public ushort FeatureValueCapsCount;
+            public ushort FeatureDataIndicesCount;
+        }
+
+        // NB: Win32 boolean are mapped to C# bool here. Provided the only two possible values of TRUE (1) and FALSE (0) are used, this should work fine.
+        [StructLayout(LayoutKind.Explicit)]
+        public struct HidParsingButtonCaps
+        {
+            [FieldOffset(0)]
+            public HidUsagePage UsagePage;
+            [FieldOffset(2)]
+            public byte ReportID;
+            [FieldOffset(3)]
+            public bool IsAlias;
+            [FieldOffset(4)]
+            public ushort BitField;
+            [FieldOffset(6)]
+            public ushort LinkCollection;
+            [FieldOffset(8)]
+            public ushort LinkUsage;
+            [FieldOffset(10)]
+            public HidUsagePage LinkUsagePage;
+            [FieldOffset(12)]
+            public bool IsRange;
+            [FieldOffset(13)]
+            public bool IsStringRange;
+            [FieldOffset(14)]
+            public bool IsDesignatorRange;
+            [FieldOffset(15)]
+            public bool IsAbsolute;
+
+            // There are currently 10 reserved / undocumented values in the middle of the structure.
+
+            [FieldOffset(56)]
+            public RangeButtonCaps Range;
+            [FieldOffset(56)]
+            public NotRangeButtonCaps NotRange;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RangeButtonCaps
+        {
+            public ushort UsageMin;
+            public ushort UsageMax;
+            public ushort StringMin;
+            public ushort StringMax;
+            public ushort DesignatorMin;
+            public ushort DesignatorMax;
+            public ushort DataIndexMin;
+            public ushort DataIndexMax;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NotRangeButtonCaps
+        {
+            // A few fields are left unused compared to the alternative Range structure.
+#pragma warning disable CS0169, IDE0051, RCS1213
+            private readonly ushort _reserved1;
+            public ushort Usage;
+            public ushort StringIndex;
+            private readonly ushort _reserved2;
+            public ushort DesignatorIndex;
+            private readonly ushort _reserved3;
+            public ushort DataIndex;
+            private readonly ushort _reserved4;
+#pragma warning restore CS0169, IDE0051, RCS1213
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HidParsingLinkCollectionNode
+        {
+            private static readonly byte IsAliasMask = BitConverter.IsLittleEndian ? (byte)0x01 : (byte)0x80;
+
+            public ushort LinkUsage;
+            public HidUsagePage LinkUsagePage;
+            public ushort Parent;
+            public ushort ChildCount;
+            public ushort NextSibling;
+            public ushort FirstChild;
+
+            // The following fields are declared as C++ bitfields, which means that the layout slightly differs between little & big endian… great ! 😣
+            // NB: The bitfield should be aligned as an uint. (The sequential layout is already sufficently packed in that regard)
+            public HidCollectionType CollectionType; // The first byte-sized field should be mostly unaffected.
+            private byte _isAlias; // However, this following one bit-sized field would be 0x80 on big endian, and 0x01 on little endian.
+            private readonly ushort _reserved; // Thankfully, nothing else is used for now…
+
+            public bool IsAlias
+            {
+                get => (_isAlias & IsAliasMask) != 0;
+                set => _isAlias = value ? (byte)(_isAlias | IsAliasMask) : (byte)(_isAlias & ~IsAliasMask);
+            }
+
+            public IntPtr UserContext;
+        }
+
+        public enum HidParsingReportType
+        {
+            Input = 0,
+            Output = 1,
+            Feature = 2,
+        }
+
+        public enum HidParsingResult : uint
+        {
+            Success = 0x00110000,
+            Null = 0x80110001,
+            InvalidPreparsedData = 0xC0110001,
+            InvalidReportType = 0xC0110002,
+            InvalidReportLength = 0xC0110003,
+            UsageNotFound = 0xC0110004,
+            ValueOutOfRange = 0xC0110005,
+            BadLogPhyValues = 0xC0110006,
+            BufferTooSmall = 0xC0110007,
+            InternalError = 0xC0110008,
+            I8042_TRANS_UNKNOWN = 0xC0110009,
+            IncompatibleReportId = 0xC011000A,
+            NotValueArray = 0xC011000B,
+            IsValueArray = 0xC011000C,
+            DataIndexNotFound = 0xC011000D,
+            DataIndexOutOfRange = 0xC011000E,
+            ButtonNotPressed = 0xC011000F,
+            ReportDoesNotExist = 0xC0110010,
+            NotImplemented = 0xC0110020,
         }
 
         [DllImport("user32", EntryPoint = "GetRawInputDeviceList", SetLastError = true)]
@@ -246,10 +373,16 @@ namespace AnyLayout.RawInput
         public static extern uint GetRawInputDeviceList(ref RawInputDevice rawInputDeviceList, ref uint deviceCount, uint deviceSize);
 
         [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, IntPtr zero, ref uint pcbSize);
+
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, out RawInputDeviceInfo deviceInfo, ref uint pcbSize);
 
         [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, ref char firstLetter, ref uint pcbSize);
+
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, ref byte firstByte, ref uint pcbSize);
 
         [DllImport("user32", EntryPoint = "RegisterRawInputDevices", SetLastError = true)]
         public static extern int RegisterRawInputDevices(RawInputDeviceRegisgtration[] rawInputDevices, uint deviceCount, uint deviceSize);
@@ -272,8 +405,23 @@ namespace AnyLayout.RawInput
         [DllImport("hid", EntryPoint = "HidD_GetProductString", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int HidDiscoveryGetProductString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
-        [DllImport("hid", EntryPoint = "HidP_GetCaps", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int HidParsingGetCaps(IntPtr preparsedData, out HidParsingCaps capabilities);
+        [DllImport("hid", EntryPoint = "HidP_GetCaps", CharSet = CharSet.Unicode)]
+        public static extern HidParsingResult HidParsingGetCaps(IntPtr preparsedData, out HidParsingCaps capabilities);
+
+        [DllImport("hid", EntryPoint = "HidP_GetCaps", CharSet = CharSet.Unicode)]
+        public static extern HidParsingResult HidParsingGetCaps(ref byte preparsedData, out HidParsingCaps capabilities);
+
+        [DllImport("hid", EntryPoint = "HidP_GetButtonCaps", CharSet = CharSet.Unicode)]
+        public static extern HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, IntPtr preparsedData);
+
+        [DllImport("hid", EntryPoint = "HidP_GetButtonCaps", CharSet = CharSet.Unicode)]
+        public static extern HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData);
+
+        [DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", CharSet = CharSet.Unicode)]
+        public static extern HidParsingResult HidParsingGetLinkCollectionNodes(ref HidParsingLinkCollectionNode firstNode, ref uint linkCollectionNodesLength, IntPtr preparsedData);
+
+        [DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", CharSet = CharSet.Unicode)]
+        public static extern HidParsingResult HidParsingGetLinkCollectionNodes(ref HidParsingLinkCollectionNode firstNode, ref uint linkCollectionNodesLength, ref byte preparsedData);
 
         [DllImport("kernel32", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern SafeFileHandle CreateFile(string fileName, FileAccess desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
@@ -392,6 +540,33 @@ namespace AnyLayout.RawInput
                 uint.MaxValue => throw new Win32Exception(Marshal.GetLastWin32Error()),
                 _ => result
             };
+        }
+
+        public static byte[] GetPreparsedData(IntPtr deviceHandle)
+        {
+            int bufferLength = 0;
+            uint count;
+            byte[] buffer;
+            // Usually, this code should succeed at first try. The risk of allocating multiple "big" arrays should be pretty low.
+            do
+            {
+                GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoCommand.PreparsedData, default, ref Unsafe.As<int, uint>(ref bufferLength));
+
+                // Don't know when or why this would happen, but
+                if (bufferLength == 0) return Array.Empty<byte>();
+
+                buffer = new byte[bufferLength];
+                count = GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoCommand.PreparsedData, ref buffer[0], ref Unsafe.As<int, uint>(ref bufferLength));
+            }
+            while (count == uint.MaxValue);
+
+            if ((int)count < buffer.Length)
+            {
+                // In the event where the buffer would actually not have been used up entirely, despite having queryed for the correct size beforehand…
+                Array.Resize(ref buffer, (int)count);
+            }
+
+            return buffer;
         }
     }
 }

@@ -50,15 +50,36 @@ namespace AnyLayout.Cli
                             break;
                     }
 
-                    PrintUsage(device.UsagePage, device.Usage);
+                    PrintUsage("Device", device.UsagePage, device.Usage);
+
+                    var nodes = device.GetLinkCollectionNodes();
+
+                    Console.WriteLine($"Link Collection Nodes: {nodes.Length}");
+
+                    for (int i = 0; i < nodes.Length; i++)
+                    {
+                        var node = nodes[i];
+
+                        Console.WriteLine($"════ Node #{i}");
+                        Console.WriteLine($"Collection Type: {node.CollectionType}");
+                        PrintUsage("Node", node.LinkUsagePage, node.LinkUsage);
+                        Console.WriteLine($"Is Alias: {node.IsAlias}");
+                        Console.WriteLine($"Parent: {node.Parent}");
+                        if (node.ChildCount != 0)
+                        {
+                            Console.WriteLine($"Child Count: {node.ChildCount}");
+                            Console.WriteLine($"First Child: #{node.FirstChild}");
+                        }
+                        Console.WriteLine($"Next Sibling: {node.NextSibling}");
+                    }
                 }
             }
         }
 
-        private static void PrintUsage(HidUsagePage usagePage, ushort usage)
+        private static void PrintUsage(string prefix, HidUsagePage usagePage, ushort usage)
         {
-            Console.WriteLine($"Device Usage Page: {usagePage}");
-            Console.WriteLine($@"Device Usage: {usagePage switch
+            Console.WriteLine($"{prefix} Usage Page: {usagePage}");
+            Console.WriteLine($@"{prefix} Usage: {usagePage switch
             {
                 HidUsagePage.GenericDesktop => (HidGenericDesktopUsage)usage,
                 HidUsagePage.Simulation => (HidSimulationUsage)usage,

@@ -44,7 +44,7 @@ namespace AnyLayout.RawInput
     {
         // Most fields of this class are lazy-initialized in order to avoid useless allocations.
 
-        internal static RawInputDevice Create(RawInputDeviceCollection collection, IntPtr handle, RawInputDeviceType deviceType)
+        internal static RawInputDevice Create(RawInputDeviceCollection collection, IntPtr handle)
         {
             // We need to request device info for all HID devices that are not mouse or keyboard.
             // So, we can as well do it for mouse and keyboard and retrieve associated info pre-emptively…
@@ -91,6 +91,7 @@ namespace AnyLayout.RawInput
         private string? _deviceName;
         private string? _productName;
         private string? _manufacturerName;
+        private byte[]? _preparsedData;
         private SafeFileHandle? _fileHandle;
 
         private object Lock => _owner._lock;
@@ -168,6 +169,64 @@ namespace AnyLayout.RawInput
 
             // Give priority to the previously assigned value, if any.
             return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
+        }
+
+        // TODO: How should this be exposed?
+        protected byte[] PreparsedData => _preparsedData ?? SlowGetPreparsedData();
+
+        protected byte[] SlowGetPreparsedData()
+        {
+            if (Volatile.Read(ref _preparsedData) is byte[] value) return value;
+
+            // We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
+            value = NativeMethods.GetPreparsedData(Handle);
+
+            // Give priority to the previously assigned value, if any.
+            return Interlocked.CompareExchange(ref _preparsedData, value, null) ?? value;
+        }
+
+        // TODO: Wrap this in a high level structure.
+        public NativeMethods.HidParsingLinkCollectionNode[] GetLinkCollectionNodes()
+        {
+            var preparsedData = PreparsedData;
+
+            // It seems that Raw Input won't return the preparsed data for top level collection opened by Windows for exclusive access…
+            // Thankfully, we still have the more reliable HID library at hand, which will not deny us this information.
+            if (preparsedData.Length == 0)
+            {
+                if (NativeMethods.HidDiscoveryGetPreparsedData(FileHandle, out var nativeAllocatedPreparsedData) == 0)
+                {
+                    return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
+                }
+
+                try
+                {
+                    NativeMethods.HidParsingGetCaps(nativeAllocatedPreparsedData, out var caps);
+
+                    if (caps.LinkCollectionNodesCount == 0)
+                    {
+                        return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
+                    }
+
+                    var nodes = new NativeMethods.HidParsingLinkCollectionNode[caps.LinkCollectionNodesCount];
+                    uint count = caps.LinkCollectionNodesCount;
+                    NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, nativeAllocatedPreparsedData);
+
+                    return nodes;
+                }
+                finally
+                {
+                    NativeMethods.HidDiscoveryFreePreparsedData(nativeAllocatedPreparsedData);
+                }
+            }
+            else
+            {
+                NativeMethods.HidParsingGetCaps(ref preparsedData[0], out var caps);
+                var nodes = new NativeMethods.HidParsingLinkCollectionNode[caps.LinkCollectionNodesCount];
+                uint count = caps.LinkCollectionNodesCount;
+                NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, ref preparsedData[0]);
+                return nodes;
+            }
         }
     }
 

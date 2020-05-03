@@ -66,21 +66,20 @@ namespace AnyLayout.RawInput
             {
                 EnsureNotDisposed();
                 var nativeDevices = NativeMethods.GetDevices();
-                var oldDevices = new Dictionary<IntPtr, RawInputDevice>();
+                var oldDevices = _devices;
                 var devices = new Dictionary<IntPtr, RawInputDevice>();
 
                 // Track changes to the collection when necessary.
                 var collectionChanged = CollectionChanged;
                 var propertyChanged = PropertyChanged;
                 var addedDevices = collectionChanged is object ? new List<RawInputDevice>() : null;
-                var removedDevices = collectionChanged is object ? new List<RawInputDevice>() : null;
 
                 for (int i = 0; i < nativeDevices.Length; i++)
                 {
                     var nativeDevice = nativeDevices[i];
                     if (!oldDevices.TryGetValue(nativeDevice.Handle, out var device))
                     {
-                        device = RawInputDevice.Create(this, nativeDevice.Handle, nativeDevice.Type);
+                        device = RawInputDevice.Create(this, nativeDevice.Handle);
                         addedDevices?.Add(device);
                     }
                     devices.Add(nativeDevice.Handle, device);
@@ -88,17 +87,19 @@ namespace AnyLayout.RawInput
 
                 Volatile.Write(ref _devices, devices);
 
-                foreach (var device in oldDevices.Values)
-                {
-                    if (!devices.ContainsKey(device.Handle))
-                    {
-                        removedDevices?.Add(device);
-                    }
-                }
-
                 if (collectionChanged is object)
                 {
-                    if (removedDevices!.Count > 0)
+                    var removedDevices = new List<RawInputDevice>();
+
+                    foreach (var device in oldDevices.Values)
+                    {
+                        if (!devices.ContainsKey(device.Handle))
+                        {
+                            removedDevices.Add(device);
+                        }
+                    }
+
+                    if (removedDevices.Count > 0)
                     {
                         if (removedDevices.Count == 1)
                         {
@@ -122,9 +123,58 @@ namespace AnyLayout.RawInput
                     }
                 }
 
+                // Dispose the devices once CollectionChanged notifications have been emitted.
+                foreach (var device in oldDevices.Values)
+                {
+                    if (!devices.ContainsKey(device.Handle))
+                    {
+                        device.Dispose();
+                    }
+                }
+
                 if (propertyChanged is object && devices.Count != oldDevices.Count)
                 {
                     propertyChanged(this, CountChangedEventArgs);
+                }
+            }
+        }
+
+        internal void OnDeviceAdded(IntPtr handle)
+        {
+            lock (_lock)
+            {
+                if (!_devices.ContainsKey(handle))
+                {
+                    var devices = new Dictionary<IntPtr, RawInputDevice>(_devices);
+                    var device = RawInputDevice.Create(this, handle);
+
+                    devices.Add(handle, device);
+
+                    Volatile.Write(ref _devices, devices);
+
+                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, device));
+                    PropertyChanged?.Invoke(this, CountChangedEventArgs);
+                }
+            }
+        }
+
+        internal void OnDeviceRemoved(IntPtr handle)
+        {
+            lock (_lock)
+            {
+                if (_devices.TryGetValue(handle, out var device))
+                {
+                    var devices = new Dictionary<IntPtr, RawInputDevice>(_devices);
+
+                    devices.Remove(handle);
+
+                    Volatile.Write(ref _devices, devices);
+
+                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, device));
+
+                    device.Dispose();
+
+                    PropertyChanged?.Invoke(this, CountChangedEventArgs);
                 }
             }
         }
