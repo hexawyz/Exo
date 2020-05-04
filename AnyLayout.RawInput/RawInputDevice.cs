@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
@@ -92,6 +95,10 @@ namespace AnyLayout.RawInput
         private string? _productName;
         private string? _manufacturerName;
         private byte[]? _preparsedData;
+        // It seems that RawInput won't return the preparsed data for top level collection opened by Windows for exclusive access…
+        // Thankfully, we still have the lower-level HID (discovery) library at hand, which will not deny us this information.
+        // That's kind of dumb, though, as we can't allocate the byte array ourselves in that case… (Or can we?)
+        private IntPtr _preparsedDataPointer;
         private SafeFileHandle? _fileHandle;
 
         private object Lock => _owner._lock;
@@ -105,7 +112,18 @@ namespace AnyLayout.RawInput
             => (_owner, Handle) = (owner, handle);
 
         // Only called from RawInputDeviceCollection within the lock.
-        internal void Dispose() => _fileHandle?.Dispose();
+        internal void Dispose()
+        {
+            if (FileHandle is SafeFileHandle fileHandle)
+            {
+                fileHandle.Dispose();
+                // Preparsed data always requires accessing the file handle.
+                if (_preparsedDataPointer != IntPtr.Zero)
+                {
+                    NativeMethods.HidDiscoveryFreePreparsedData(_preparsedDataPointer);
+                }
+            }
+        }
 
         private void EnsureNotDisposed()
         {
@@ -172,9 +190,9 @@ namespace AnyLayout.RawInput
         }
 
         // TODO: How should this be exposed?
-        protected byte[] PreparsedData => _preparsedData ?? SlowGetPreparsedData();
+        private byte[] PreparsedData => _preparsedData ?? SlowGetPreparsedData();
 
-        protected byte[] SlowGetPreparsedData()
+        private byte[] SlowGetPreparsedData()
         {
             if (Volatile.Read(ref _preparsedData) is byte[] value) return value;
 
@@ -185,48 +203,115 @@ namespace AnyLayout.RawInput
             return Interlocked.CompareExchange(ref _preparsedData, value, null) ?? value;
         }
 
+        // TODO: How should this be exposed?
+        private IntPtr PreparsedDataPointer
+        {
+            get
+            {
+                var preparsedData = _preparsedDataPointer;
+                if (preparsedData != IntPtr.Zero) return preparsedData;
+                return SlowGetNativeAllocatedPreparsedData();
+            }
+        }
+
+        private IntPtr SlowGetNativeAllocatedPreparsedData()
+        {
+            var preparsedData = Volatile.Read(ref _preparsedDataPointer);
+
+            if (preparsedData != IntPtr.Zero) return preparsedData;
+
+            // We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
+            if (NativeMethods.HidDiscoveryGetPreparsedData(FileHandle, out preparsedData) == 0)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            if (preparsedData == default)
+            {
+                throw new InvalidOperationException();
+            }
+
+            // Give priority to the previously assigned value, if any.
+            {
+                var previousPreparsedData = Interlocked.CompareExchange(ref _preparsedDataPointer, preparsedData, default);
+
+                // Free the preparsed data we just allocated because it is now redundant.
+                if (previousPreparsedData != default)
+                {
+                    NativeMethods.HidDiscoveryFreePreparsedData(preparsedData);
+                    preparsedData = previousPreparsedData;
+                }
+            }
+
+            return preparsedData;
+        }
+
+        private ref byte PreparsedDataFirstByte
+        {
+            get
+            {
+                var preparsedData = PreparsedData;
+
+                if (preparsedData.Length == 0)
+                {
+                    // FIXME: Is there a better way to get "ref null" ?
+                    // Basically, the code below is converting "IntPtr" to "ref byte", so that we can have an equivalent API ignoring the origin of preparsed data.
+                    return ref Unsafe.Add(ref default(Span<byte>).GetPinnableReference(), PreparsedDataPointer);
+                }
+
+                return ref preparsedData[0];
+            }
+        }
+
         // TODO: Wrap this in a high level structure.
         public NativeMethods.HidParsingLinkCollectionNode[] GetLinkCollectionNodes()
         {
-            var preparsedData = PreparsedData;
+            ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
 
-            // It seems that Raw Input won't return the preparsed data for top level collection opened by Windows for exclusive access…
-            // Thankfully, we still have the more reliable HID library at hand, which will not deny us this information.
-            if (preparsedData.Length == 0)
+            NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
+
+            uint count = caps.LinkCollectionNodesCount;
+
+            if (caps.LinkCollectionNodesCount == 0)
             {
-                if (NativeMethods.HidDiscoveryGetPreparsedData(FileHandle, out var nativeAllocatedPreparsedData) == 0)
-                {
-                    return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
-                }
-
-                try
-                {
-                    NativeMethods.HidParsingGetCaps(nativeAllocatedPreparsedData, out var caps);
-
-                    if (caps.LinkCollectionNodesCount == 0)
-                    {
-                        return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
-                    }
-
-                    var nodes = new NativeMethods.HidParsingLinkCollectionNode[caps.LinkCollectionNodesCount];
-                    uint count = caps.LinkCollectionNodesCount;
-                    NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, nativeAllocatedPreparsedData);
-
-                    return nodes;
-                }
-                finally
-                {
-                    NativeMethods.HidDiscoveryFreePreparsedData(nativeAllocatedPreparsedData);
-                }
+                return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
             }
-            else
+
+            var nodes = new NativeMethods.HidParsingLinkCollectionNode[count];
+            if (NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, ref preparsedDataFirstByte) != NativeMethods.HidParsingResult.Success)
             {
-                NativeMethods.HidParsingGetCaps(ref preparsedData[0], out var caps);
-                var nodes = new NativeMethods.HidParsingLinkCollectionNode[caps.LinkCollectionNodesCount];
-                uint count = caps.LinkCollectionNodesCount;
-                NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, ref preparsedData[0]);
-                return nodes;
+                throw new InvalidOperationException();
             }
+            return nodes;
+        }
+
+        // TODO: Wrap this in a high level structure.
+        public NativeMethods.HidParsingButtonCaps[] GetButtonCapabilities(NativeMethods.HidParsingReportType reportType)
+        {
+            ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
+
+            NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
+
+            ushort count = reportType switch
+            {
+                NativeMethods.HidParsingReportType.Input => caps.InputButtonCapsCount,
+                NativeMethods.HidParsingReportType.Output => caps.OutputButtonCapsCount,
+                NativeMethods.HidParsingReportType.Feature => caps.FeatureButtonCapsCount,
+                _ => throw new ArgumentOutOfRangeException(nameof(reportType))
+            };
+
+            if (count == 0)
+            {
+                return Array.Empty<NativeMethods.HidParsingButtonCaps>();
+            }
+
+            var buttonCaps = new NativeMethods.HidParsingButtonCaps[count];
+
+            if (NativeMethods.HidParsingGetButtonCaps(reportType, ref buttonCaps[0], ref count, ref preparsedDataFirstByte) != NativeMethods.HidParsingResult.Success)
+            {
+                throw new InvalidOperationException();
+            }
+            return buttonCaps;
         }
     }
 

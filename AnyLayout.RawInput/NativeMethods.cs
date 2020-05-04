@@ -272,7 +272,7 @@ namespace AnyLayout.RawInput
             [FieldOffset(15)]
             public bool IsAbsolute;
 
-            // There are currently 10 reserved / undocumented values in the middle of the structure.
+            // There are currently 10 reserved / undocumented uint values in the middle of the structure.
 
             [FieldOffset(56)]
             public RangeButtonCaps Range;
@@ -366,64 +366,59 @@ namespace AnyLayout.RawInput
             NotImplemented = 0xC0110020,
         }
 
-        [DllImport("user32", EntryPoint = "GetRawInputDeviceList", SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceList", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceList(IntPtr zero, ref uint deviceCount, uint deviceSize);
 
-        [DllImport("user32", EntryPoint = "GetRawInputDeviceList", SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceList", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceList(ref RawInputDevice rawInputDeviceList, ref uint deviceCount, uint deviceSize);
 
-        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, IntPtr zero, ref uint pcbSize);
 
-        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, out RawInputDeviceInfo deviceInfo, ref uint pcbSize);
 
-        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, ref char firstLetter, ref uint pcbSize);
 
-        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputDeviceInfoW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputDeviceInfo(IntPtr hDevice, RawInputDeviceInfoCommand uiCommand, ref byte firstByte, ref uint pcbSize);
 
-        [DllImport("user32", EntryPoint = "RegisterRawInputDevices", SetLastError = true)]
+        [DllImport("user32", EntryPoint = "RegisterRawInputDevices", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegisterRawInputDevices(RawInputDeviceRegisgtration[] rawInputDevices, uint deviceCount, uint deviceSize);
 
-        [DllImport("user32", EntryPoint = "GetRawInputData", SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputData", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputData(IntPtr rawInputHandle, RawInputDataCommand command, IntPtr zero, ref uint dataSizeInBytes, uint headerSizeInBytes);
 
-        [DllImport("user32", EntryPoint = "GetRawInputData", SetLastError = true)]
+        [DllImport("user32", EntryPoint = "GetRawInputData", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern uint GetRawInputData(IntPtr rawInputHandle, RawInputDataCommand command, ref byte firstByte, ref uint dataSizeInBytes, uint headerSizeInBytes);
 
-        [DllImport("hid", EntryPoint = "HidD_GetPreparsedData", SetLastError = true)]
+        [DllImport("hid", EntryPoint = "HidD_GetPreparsedData", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int HidDiscoveryGetPreparsedData(SafeFileHandle deviceFileHandle, out IntPtr preparsedData);
 
-        [DllImport("hid", EntryPoint = "HidD_FreePreparsedData", SetLastError = true)]
+        [DllImport("hid", EntryPoint = "HidD_FreePreparsedData", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int HidDiscoveryFreePreparsedData(IntPtr preparsedData);
 
-        [DllImport("hid", EntryPoint = "HidD_GetManufacturerString", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("hid", EntryPoint = "HidD_GetManufacturerString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int HidDiscoveryGetManufacturerString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
-        [DllImport("hid", EntryPoint = "HidD_GetProductString", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("hid", EntryPoint = "HidD_GetProductString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int HidDiscoveryGetProductString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
-        [DllImport("hid", EntryPoint = "HidP_GetCaps", CharSet = CharSet.Unicode)]
-        public static extern HidParsingResult HidParsingGetCaps(IntPtr preparsedData, out HidParsingCaps capabilities);
-
-        [DllImport("hid", EntryPoint = "HidP_GetCaps", CharSet = CharSet.Unicode)]
+        [DllImport("hid", EntryPoint = "HidP_GetCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern HidParsingResult HidParsingGetCaps(ref byte preparsedData, out HidParsingCaps capabilities);
 
-        [DllImport("hid", EntryPoint = "HidP_GetButtonCaps", CharSet = CharSet.Unicode)]
-        public static extern HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, IntPtr preparsedData);
+        [DllImport("hid", EntryPoint = "HidP_GetButtonCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
+        private static extern HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref /* HidParsingButtonCaps */ byte firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData);
 
-        [DllImport("hid", EntryPoint = "HidP_GetButtonCaps", CharSet = CharSet.Unicode)]
-        public static extern HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData);
+        // Work around P/Invoke refusing to consider bool as blittable…
+        public static HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData)
+            => HidParsingGetButtonCaps(reportType, ref Unsafe.As<HidParsingButtonCaps, byte>(ref firstButtonCap), ref buttonCapsLength, ref preparsedData);
 
-        [DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", CharSet = CharSet.Unicode)]
-        public static extern HidParsingResult HidParsingGetLinkCollectionNodes(ref HidParsingLinkCollectionNode firstNode, ref uint linkCollectionNodesLength, IntPtr preparsedData);
-
-        [DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", CharSet = CharSet.Unicode)]
+        [DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern HidParsingResult HidParsingGetLinkCollectionNodes(ref HidParsingLinkCollectionNode firstNode, ref uint linkCollectionNodesLength, ref byte preparsedData);
 
-        [DllImport("kernel32", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("kernel32", EntryPoint = "CreateFileW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern SafeFileHandle CreateFile(string fileName, FileAccess desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
 
         public delegate int HidGetStringFunction(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
@@ -466,6 +461,7 @@ namespace AnyLayout.RawInput
             while (true)
             {
                 var buffer = ArrayPool<char>.Shared.Rent(bufferLength);
+                buffer[0] = '\0';
                 try
                 {
                     if (getHidString(deviceHandle, ref buffer[0], (uint)buffer.Length * 2) == 0)
