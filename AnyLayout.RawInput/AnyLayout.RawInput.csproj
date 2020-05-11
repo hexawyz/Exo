@@ -6,6 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="AnyLayout.RawInput %28netstandard2.0%29\**" />
+    <EmbeddedResource Remove="AnyLayout.RawInput %28netstandard2.0%29\**" />
+    <None Remove="AnyLayout.RawInput %28netstandard2.0%29\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.5.4" />
     <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />

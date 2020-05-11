@@ -82,6 +82,8 @@ namespace AnyLayout.Cli
                         Console.WriteLine("║ ╘═══════");
                     }
 
+                    var physicalDescriptorSets = device.GetPhysicalDescriptorSets();
+
                     foreach (var reportType in new[] { NativeMethods.HidParsingReportType.Input, NativeMethods.HidParsingReportType.Output, NativeMethods.HidParsingReportType.Feature })
                     {
                         var buttons = device.GetButtonCapabilities(reportType);
@@ -107,11 +109,11 @@ namespace AnyLayout.Cli
                             }
                             if (button.IsStringRange)
                             {
-                                Console.WriteLine($"║ │ String Index: {button.Range.StringMin} .. {button.Range.StringMax}");
+                                Console.WriteLine($@"║ │ String #{button.Range.StringMin} .. #{button.Range.StringMax}: ""{device.GetString(button.Range.StringMin)}"" .. ""{device.GetString(button.Range.StringMax)}""");
                             }
-                            else
+                            else if (button.NotRange.StringIndex > 0)
                             {
-                                Console.WriteLine($"║ │ String Index: {button.NotRange.StringIndex}");
+                                Console.WriteLine($@"║ │ String #{button.NotRange.StringIndex}: ""{device.GetString(button.NotRange.StringIndex)}""");
                             }
                             if (button.IsDesignatorRange)
                             {

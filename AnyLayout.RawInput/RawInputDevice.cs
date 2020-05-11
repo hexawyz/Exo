@@ -156,7 +156,13 @@ namespace AnyLayout.RawInput
                 if (!(_fileHandle is SafeFileHandle fileHandle))
                 {
                     EnsureNotDisposed();
-                    fileHandle = NativeMethods.CreateFile(DeviceName, 0, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+                    // Try to acquire the device as R/W shared.
+                    fileHandle = NativeMethods.CreateFile(DeviceName, FileAccess.ReadWrite, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+                    // Collections opened in exclusive mode by the OS (e.g. Keyboard and Mouse) can still be accessed without requesting read or write.
+                    if (fileHandle.IsInvalid)
+                    {
+                        fileHandle = NativeMethods.CreateFile(DeviceName, 0, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+                    }
                     Volatile.Write(ref _fileHandle, fileHandle);
                 }
                 return fileHandle;
@@ -313,6 +319,13 @@ namespace AnyLayout.RawInput
             }
             return buttonCaps;
         }
+
+        // TODO: Wrap this in a high level structure.
+        public string GetString(int index)
+            => NativeMethods.GetIndexedString(FileHandle, (uint)index);
+
+        public PhysicalDescriptorSetCollection GetPhysicalDescriptorSets()
+            => NativeMethods.GetPhysicalDescriptor(FileHandle);
     }
 
     public sealed class RawInputMouseDevice : RawInputDevice

@@ -13,6 +13,10 @@ namespace AnyLayout.RawInput
     [SuppressUnmanagedCodeSecurity]
     public static class NativeMethods
     {
+        private const int ErrorGenFailure = 0x0000001F;
+        private const int ErrorInvalidUserBuffer = 0x000006F8;
+        private const int ErrorNoAccess = 0x000003E6;
+
         [StructLayout(LayoutKind.Sequential)]
         public struct RawInputDevice
         {
@@ -405,6 +409,12 @@ namespace AnyLayout.RawInput
         [DllImport("hid", EntryPoint = "HidD_GetProductString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int HidDiscoveryGetProductString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
+        [DllImport("hid", EntryPoint = "HidD_GetIndexedString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern int HidDiscoveryGetIndexedString(SafeFileHandle deviceFileHandle, uint StringIndex, ref char firstChar, uint bufferLength);
+
+        [DllImport("hid", EntryPoint = "HidD_GetPhysicalDescriptor", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern int HidDiscoveryGetPhysicalDescriptor(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
+
         [DllImport("hid", EntryPoint = "HidP_GetCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern HidParsingResult HidParsingGetCaps(ref byte preparsedData, out HidParsingCaps capabilities);
 
@@ -563,6 +573,127 @@ namespace AnyLayout.RawInput
             }
 
             return buffer;
+        }
+
+        public static string GetIndexedString(SafeFileHandle deviceHandle, uint stringIndex)
+            => GetIndexedStringOnStack(deviceHandle, stringIndex) ?? GetIndexedStringInPooledArray(deviceHandle, stringIndex);
+
+        private static string? GetIndexedStringOnStack(SafeFileHandle deviceHandle, uint stringIndex)
+        {
+            // From the docs: USB devices shouldn't return more than 126+1 characters. Other devices could return more.
+            Span<char> text = stackalloc char[127];
+            if (HidDiscoveryGetIndexedString(deviceHandle, stringIndex, ref text.GetPinnableReference(), (uint)text.Length) == 0)
+            {
+                switch (Marshal.GetLastWin32Error())
+                {
+                    case ErrorInvalidUserBuffer:
+                        return null;
+                    case int code:
+                        throw new Win32Exception(code);
+                }
+            }
+
+            return (text.IndexOf('\0') is int endIndex && endIndex >= 0 ? text.Slice(0, endIndex) : text).ToString();
+        }
+
+        private static string GetIndexedStringInPooledArray(SafeFileHandle deviceHandle, uint stringIndex)
+        {
+            const int MaxLength = 65536; // Arbitrary limit on the size we allow ourselves to request.
+            int length = 256;
+
+            // The loop will either exit by returning a valid string, or by throwing an exception.
+            while (true)
+            {
+                var text = ArrayPool<char>.Shared.Rent(length);
+                try
+                {
+                    length = text.Length;
+
+                    if (HidDiscoveryGetIndexedString(deviceHandle, stringIndex, ref text[0], (uint)text.Length) != 0)
+                    {
+                        return (Array.IndexOf(text, '\0', 0) is int endIndex && endIndex >= 0 ? text.AsSpan(0, endIndex) : text.AsSpan()).ToString();
+                    }
+
+                    switch (Marshal.GetLastWin32Error())
+                    {
+                        case ErrorInvalidUserBuffer when length < MaxLength:
+                            length = Math.Min(2 * length, MaxLength);
+                            continue;
+                        case int code:
+                            throw new Win32Exception(code);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(text);
+                }
+            }
+        }
+
+        public static PhysicalDescriptorSetCollection GetPhysicalDescriptor(SafeFileHandle deviceHandle)
+            => GetPhysicalDescriptorOnStack(deviceHandle) ?? GetPhysicalDescriptorInPooledArray(deviceHandle);
+
+        private static PhysicalDescriptorSetCollection? GetPhysicalDescriptorOnStack(SafeFileHandle deviceHandle)
+        {
+            Span<byte> data = stackalloc byte[256];
+            if (HidDiscoveryGetPhysicalDescriptor(deviceHandle, ref data.GetPinnableReference(), (uint)data.Length) == 0)
+            {
+                switch (Marshal.GetLastWin32Error())
+                {
+                    // Assume that ERROR_GEN_FAILURE means that the device has no physical descriptor. (Should be the most common case)
+                    // Not sure yet what is the cause of ERROR_NO_ACCESS, but it might be returned for buggy devices.
+                    case ErrorGenFailure:
+                    case ErrorNoAccess:
+                        return PhysicalDescriptorSetCollection.Empty;
+                    case ErrorInvalidUserBuffer:
+                        return null;
+                    case int code:
+                        throw new Win32Exception(code);
+                }
+            }
+
+            return new PhysicalDescriptorSetCollection(data, false);
+        }
+
+        private static PhysicalDescriptorSetCollection GetPhysicalDescriptorInPooledArray(SafeFileHandle deviceHandle)
+        {
+            // The absolute maximum data length of the physical descriptor set collection is around 32 MB (With 255 descriptor sets of 65535 descriptors each)
+            const int MaxLength = 3 + 255 * (1 + 2 * 65535);
+            // Start with a 4k buffer, which should hopefully be a reasonable size for most physical descriptors.
+            int length = 4096;
+
+            // The loop will either exit by returning a valid collection, or by throwing an exception.
+            while (true)
+            {
+                var data = ArrayPool<byte>.Shared.Rent(length);
+                try
+                {
+                    length = data.Length;
+
+                    if (HidDiscoveryGetPhysicalDescriptor(deviceHandle, ref data[0], (uint)data.Length) != 0)
+                    {
+                        return new PhysicalDescriptorSetCollection(data, false);
+                    }
+
+                    switch (Marshal.GetLastWin32Error())
+                    {
+                        // Assume that ERROR_GEN_FAILURE means that the device has no physical descriptor. (Should be the most common case)
+                        // Not sure yet what is the cause of ERROR_NO_ACCESS, but it might be returned for buggy devices.
+                        case ErrorGenFailure:
+                        case ErrorNoAccess:
+                            return PhysicalDescriptorSetCollection.Empty;
+                        case ErrorInvalidUserBuffer when length < MaxLength:
+                            length = Math.Min(2 * length, MaxLength);
+                            continue;
+                        case int code:
+                            throw new Win32Exception(code);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(data);
+                }
+            }
         }
     }
 }
