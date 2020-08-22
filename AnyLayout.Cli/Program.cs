@@ -21,8 +21,10 @@ namespace AnyLayout.Cli
                     //Console.WriteLine($"Device Handle: {device.Handle:X16}");
                     Console.WriteLine($"║ Device Type: {device.DeviceType}");
                     Console.WriteLine($"║ Device Name: {device.DeviceName}");
-                    Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}");
-                    Console.WriteLine($"║ Device Product Name: {device.ProductName}");
+                    try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
+                    catch { Console.WriteLine($"║ Device Manufacturer: <Unknowkn>"); }
+                    try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
+                    catch { Console.WriteLine($"║ Device Product Name: <Unknown>"); }
 
                     //IntPtr preparsedData = IntPtr.Zero;
                     //NativeMethods.HidParsingCaps caps = default;
@@ -82,7 +84,10 @@ namespace AnyLayout.Cli
                         Console.WriteLine("║ ╘═══════");
                     }
 
-                    var physicalDescriptorSets = device.GetPhysicalDescriptorSets();
+                    PhysicalDescriptorSetCollection physicalDescriptorSets;
+
+                    try { physicalDescriptorSets = device.GetPhysicalDescriptorSets(); }
+                    catch { }
 
                     foreach (var reportType in new[] { NativeMethods.HidParsingReportType.Input, NativeMethods.HidParsingReportType.Output, NativeMethods.HidParsingReportType.Feature })
                     {
@@ -128,6 +133,62 @@ namespace AnyLayout.Cli
                         }
 
                         if (buttons.Length > 0)
+                        {
+                            Console.WriteLine("║ ╘═══════");
+                        }
+
+                        var values = device.GetValueCapabilities(reportType);
+
+                        for (int i = 0; i < values.Length; i++)
+                        {
+                            var value = values[i];
+                            Console.WriteLine($"║ {(i == 0 ? "╒" : "╞")}═══════ {reportType} Value #{i}");
+                            Console.WriteLine($"║ │ Report ID: {value.ReportID}");
+                            Console.WriteLine($"║ │ Collection Index: {value.LinkCollection}");
+                            PrintUsageAndPage("║ │ Collection", value.LinkUsagePage, value.LinkUsage);
+                            Console.WriteLine("║ ├───────");
+                            Console.WriteLine($"║ │ Is Nullable: {value.HasNull}");
+                            Console.WriteLine($"║ │ Value Length: {value.BitSize} bits");
+                            Console.WriteLine($"║ │ Report Count: {value.ReportCount}");
+                            Console.WriteLine($"║ │ Units Exponent: {value.UnitsExp}");
+                            Console.WriteLine($"║ │ Units: {value.Units}");
+                            Console.WriteLine($"║ │ Logical Min: {value.LogicalMin}");
+                            Console.WriteLine($"║ │ Logical Max: {value.LogicalMax}");
+                            Console.WriteLine($"║ │ Physical Min: {value.PhysicalMin}");
+                            Console.WriteLine($"║ │ Physical Max: {value.PhysicalMax}");
+                            Console.WriteLine("║ ├───────");
+                            if (value.IsRange)
+                            {
+                                PrintUsagePage("║ │ Value", value.UsagePage);
+                                Console.WriteLine($"║ │ Button Usage: {MapToKnownUsage(value.UsagePage, value.Range.UsageMin)} .. {MapToKnownUsage(value.UsagePage, value.Range.UsageMax)}");
+                                Console.WriteLine($"║ │ Data Index: {value.Range.DataIndexMin} .. {value.Range.DataIndexMax}");
+                            }
+                            else
+                            {
+                                PrintUsageAndPage("║ │ Value", value.UsagePage, value.NotRange.Usage);
+                                Console.WriteLine($"║ │ Data Index: {value.NotRange.DataIndex}");
+                            }
+                            if (value.IsStringRange)
+                            {
+                                Console.WriteLine($@"║ │ String #{value.Range.StringMin} .. #{value.Range.StringMax}: ""{device.GetString(value.Range.StringMin)}"" .. ""{device.GetString(value.Range.StringMax)}""");
+                            }
+                            else if (value.NotRange.StringIndex > 0)
+                            {
+                                Console.WriteLine($@"║ │ String #{value.NotRange.StringIndex}: ""{device.GetString(value.NotRange.StringIndex)}""");
+                            }
+                            if (value.IsDesignatorRange)
+                            {
+                                Console.WriteLine($"║ │ Designator Index: {value.Range.DesignatorMin} .. {value.Range.DesignatorMax}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"║ │ Designator Index: {value.NotRange.DesignatorIndex}");
+                            }
+                            Console.WriteLine($"║ │ Is Absolute: {value.IsAbsolute}");
+                            Console.WriteLine($"║ │ Is Alias: {value.IsAlias}");
+                        }
+
+                        if (values.Length > 0)
                         {
                             Console.WriteLine("║ ╘═══════");
                         }

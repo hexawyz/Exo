@@ -157,7 +157,7 @@ namespace AnyLayout.RawInput
                 {
                     EnsureNotDisposed();
                     // Try to acquire the device as R/W shared.
-                    fileHandle = NativeMethods.CreateFile(DeviceName, FileAccess.ReadWrite, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+                    fileHandle = NativeMethods.CreateFile(DeviceName, 0, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
                     // Collections opened in exclusive mode by the OS (e.g. Keyboard and Mouse) can still be accessed without requesting read or write.
                     if (fileHandle.IsInvalid)
                     {
@@ -318,6 +318,35 @@ namespace AnyLayout.RawInput
                 throw new InvalidOperationException();
             }
             return buttonCaps;
+        }
+
+        // TODO: Wrap this in a high level structure.
+        public NativeMethods.HidParsingValueCaps[] GetValueCapabilities(NativeMethods.HidParsingReportType reportType)
+        {
+            ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
+
+            NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
+
+            ushort count = reportType switch
+            {
+                NativeMethods.HidParsingReportType.Input => caps.InputValueCapsCount,
+                NativeMethods.HidParsingReportType.Output => caps.OutputValueCapsCount,
+                NativeMethods.HidParsingReportType.Feature => caps.FeatureValueCapsCount,
+                _ => throw new ArgumentOutOfRangeException(nameof(reportType))
+            };
+
+            if (count == 0)
+            {
+                return Array.Empty<NativeMethods.HidParsingValueCaps>();
+            }
+
+            var valueCaps = new NativeMethods.HidParsingValueCaps[count];
+
+            if (NativeMethods.HidParsingGetValueCaps(reportType, ref valueCaps[0], ref count, ref preparsedDataFirstByte) != NativeMethods.HidParsingResult.Success)
+            {
+                throw new InvalidOperationException();
+            }
+            return valueCaps;
         }
 
         // TODO: Wrap this in a high level structure.

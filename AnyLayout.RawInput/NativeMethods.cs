@@ -279,13 +279,70 @@ namespace AnyLayout.RawInput
             // There are currently 10 reserved / undocumented uint values in the middle of the structure.
 
             [FieldOffset(56)]
-            public RangeButtonCaps Range;
+            public RangeCaps Range;
             [FieldOffset(56)]
-            public NotRangeButtonCaps NotRange;
+            public NotRangeCaps NotRange;
+        }
+
+        // NB: Win32 boolean are mapped to C# bool here. Provided the only two possible values of TRUE (1) and FALSE (0) are used, this should work fine.
+        [StructLayout(LayoutKind.Explicit)]
+        public struct HidParsingValueCaps
+        {
+            [FieldOffset(0)]
+            public HidUsagePage UsagePage;
+            [FieldOffset(2)]
+            public byte ReportID;
+            [FieldOffset(3)]
+            public bool IsAlias;
+            [FieldOffset(4)]
+            public ushort BitField;
+            [FieldOffset(6)]
+            public ushort LinkCollection;
+            [FieldOffset(8)]
+            public ushort LinkUsage;
+            [FieldOffset(10)]
+            public HidUsagePage LinkUsagePage;
+            [FieldOffset(12)]
+            public bool IsRange;
+            [FieldOffset(13)]
+            public bool IsStringRange;
+            [FieldOffset(14)]
+            public bool IsDesignatorRange;
+            [FieldOffset(15)]
+            public bool IsAbsolute;
+            [FieldOffset(16)]
+            public bool HasNull;
+
+            // There is one reserved byte for padding
+
+            [FieldOffset(18)]
+            public ushort BitSize;
+            [FieldOffset(20)]
+            public ushort ReportCount;
+
+            // There are currently 5 reserved / undocumented ushort values in the middle of the structure.
+
+            [FieldOffset(32)]
+            public uint UnitsExp;
+            [FieldOffset(36)]
+            public uint Units;
+            [FieldOffset(40)]
+            public int LogicalMin;
+            [FieldOffset(44)]
+            public int LogicalMax;
+            [FieldOffset(48)]
+            public int PhysicalMin;
+            [FieldOffset(52)]
+            public int PhysicalMax;
+
+            [FieldOffset(56)]
+            public RangeCaps Range;
+            [FieldOffset(56)]
+            public NotRangeCaps NotRange;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct RangeButtonCaps
+        public struct RangeCaps
         {
             public ushort UsageMin;
             public ushort UsageMax;
@@ -298,7 +355,7 @@ namespace AnyLayout.RawInput
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct NotRangeButtonCaps
+        public struct NotRangeCaps
         {
             // A few fields are left unused compared to the alternative Range structure.
 #pragma warning disable CS0169, IDE0051, RCS1213
@@ -424,6 +481,13 @@ namespace AnyLayout.RawInput
         // Work around P/Invoke refusing to consider bool as blittable…
         public static HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData)
             => HidParsingGetButtonCaps(reportType, ref Unsafe.As<HidParsingButtonCaps, byte>(ref firstButtonCap), ref buttonCapsLength, ref preparsedData);
+
+        [DllImport("hid", EntryPoint = "HidP_GetValueCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
+        private static extern HidParsingResult HidParsingGetValueCaps(HidParsingReportType reportType, ref /* HidParsingValueCaps */ byte firstValueCap, ref ushort valueCapsLength, ref byte preparsedData);
+
+        // Work around P/Invoke refusing to consider bool as blittable…
+        public static HidParsingResult HidParsingGetValueCaps(HidParsingReportType reportType, ref HidParsingValueCaps firstValueCap, ref ushort buttonCapsLength, ref byte preparsedData)
+            => HidParsingGetValueCaps(reportType, ref Unsafe.As<HidParsingValueCaps, byte>(ref firstValueCap), ref buttonCapsLength, ref preparsedData);
 
         [DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern HidParsingResult HidParsingGetLinkCollectionNodes(ref HidParsingLinkCollectionNode firstNode, ref uint linkCollectionNodesLength, ref byte preparsedData);
