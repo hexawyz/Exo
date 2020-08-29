@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup>
+    <PackageReference Update="System.Memory" Version="4.5.4" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
+  </ItemGroup>
+</Project>

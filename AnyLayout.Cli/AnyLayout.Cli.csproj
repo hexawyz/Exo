@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AnyLayout.DeviceIds.Usb\AnyLayout.DeviceIds.Usb.csproj" />
     <ProjectReference Include="..\AnyLayout.RawInput\AnyLayout.RawInput.csproj" />
   </ItemGroup>
 

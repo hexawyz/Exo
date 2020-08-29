@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp22</TargetFrameworks>
+    <LangVersion>preview</LangVersion>
+    <AllowUnsafeBlocks Condition="'$(TargetFramework)' == 'netstandard2.0'">true</AllowUnsafeBlocks>
+    <RootNamespace>AnyLayout</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AnyLayout.SourceGenerators\AnyLayout.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="usb.ids" />
+    <AdditionalFiles Include="usb.ids" />
+  </ItemGroup>
+
+  <Target Name="DownloadUsbIds">
+    <!-- Try to download the latest usb.ids file if available, but ignore errors, as we still have a local copy of this file.-->
+    <DownloadFile SourceUrl="http://www.linux-usb.org/usb.ids" DestinationFolder="$(BaseIntermediateOutputPath)" SkipUnchangedFiles="true" ContinueOnError="true">
+      <Output TaskParameter="DownloadedFile" ItemName="FileWrites" />
+    </DownloadFile>
+  </Target>
+
+  <Target Name="UpdateUsbIds" Inputs="$(BaseIntermediateOutputPath)usb.ids" Outputs="usb.ids">
+    <Copy SourceFiles="$(BaseIntermediateOutputPath)usb.ids" DestinationFiles="usb.ids" SkipUnchangedFiles="true" UseHardlinksIfPossible="true" UseSymboliclinksIfPossible="false" />
+  </Target>
+
+  <Target Name="DownloadAndUpdateUsbIds" DependsOnTargets="DownloadUsbIds;UpdateUsbIds" BeforeTargets="BeforeBuild" />
+
+</Project>
