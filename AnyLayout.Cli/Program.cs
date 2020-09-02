@@ -16,6 +16,22 @@ namespace AnyLayout.Cli
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 
+			foreach (var device in HidDevice.All())
+			{
+				Console.WriteLine($"Device Name: {device.DeviceName}");
+
+				var names = UsbProductNameDatabase.LookupVendorAndProductName(device.VendorId, device.ProductId);
+
+				if (names.VendorName.Length > 0)
+				{
+					Console.WriteLine($"Device Vendor Name: {names.VendorName.ToString()}");
+					if (names.ProductName.Length > 0)
+					{
+						Console.WriteLine($"Device Product Name: {names.ProductName.ToString()}");
+					}
+				}
+			}
+
 			using (var collection = new RawInputDeviceCollection())
 			{
 				collection.Refresh();
@@ -31,20 +47,14 @@ namespace AnyLayout.Cli
 					try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
 					catch { Console.WriteLine($"║ Device Product Name: <Unknown>"); }
 
-					if (Regex.Match(device.DeviceName, "VID_(?<VendorId>[0-9A-Fa-f]{4})&PID_(?<ProductId>[0-9A-Fa-f]{4})") is var match and { Success: true })
+					var names = UsbProductNameDatabase.LookupVendorAndProductName(device.VendorId, device.ProductId);
+
+					if (names.VendorName.Length > 0)
 					{
-						ushort vendorId = ushort.Parse(match.Groups["VendorId"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-						ushort productId = ushort.Parse(match.Groups["ProductId"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-
-						var names = UsbProductNameDatabase.LookupVendorAndProductName(vendorId, productId);
-
-						if (names.VendorName.Length > 0)
+						Console.WriteLine($"║ Device Vendor Name: {names.VendorName.ToString()}");
+						if (names.ProductName.Length > 0)
 						{
-							Console.WriteLine($"║ Device Vendor Name: {names.VendorName.ToString()}");
-							if (names.ProductName.Length > 0)
-							{
-								Console.WriteLine($"║ Device Product Name: {names.ProductName.ToString()}");
-							}
+							Console.WriteLine($"║ Device Product Name: {names.ProductName.ToString()}");
 						}
 					}
 

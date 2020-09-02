@@ -128,7 +128,7 @@ namespace AnyLayout.RawInput
                 {
                     if (!devices.ContainsKey(device.Handle))
                     {
-                        device.Dispose();
+                        device.OnCollectionDisposed();
                     }
                 }
 
@@ -172,7 +172,7 @@ namespace AnyLayout.RawInput
 
                     CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, device));
 
-                    device.Dispose();
+                    device.OnCollectionDisposed();
 
                     PropertyChanged?.Invoke(this, CountChangedEventArgs);
                 }
@@ -187,7 +187,7 @@ namespace AnyLayout.RawInput
                 {
                     foreach (var device in _devices.Values)
                     {
-                        device.Dispose();
+                        device.OnCollectionDisposed();
                     }
                 }
 
