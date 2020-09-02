@@ -465,6 +465,12 @@ namespace AnyLayout.RawInput
 			public UIntPtr Reserved;
 		}
 
+		public enum GetDeviceInterfaceListSizeFlags : uint
+		{
+			Present = 0,
+			All = 1,
+		}
+
 		[DllImport("user32", EntryPoint = "GetRawInputDeviceList", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern uint GetRawInputDeviceList(IntPtr zero, ref uint deviceCount, uint deviceSize);
 
@@ -591,6 +597,12 @@ namespace AnyLayout.RawInput
 			out uint requiredSize,
 			IntPtr zero
 		);
+
+		[DllImport("CfgMgr32", EntryPoint = "CM_Get_Device_Interface_ListW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+		public static extern uint CM_Get_Device_Interface_List(in Guid interfaceClassGuid, [In] string? deviceID, ref char buffer, uint bufferLen, GetDeviceInterfaceListSizeFlags flags);
+
+		[DllImport("CfgMgr32", EntryPoint = "CM_Get_Device_Interface_List_SizeW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+		public static extern uint CM_Get_Device_Interface_List_Size(out uint length, in Guid interfaceClassGuid, [In] string? deviceID, GetDeviceInterfaceListSizeFlags flags);
 
 		public delegate int HidGetStringFunction(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 

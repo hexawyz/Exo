@@ -171,7 +171,7 @@ namespace AnyLayout.RawInput
 			return Interlocked.CompareExchange(ref _preparsedData, value, null) ?? value;
 		}
 
-		private ref byte PreparsedDataFirstByte
+		private protected override ref byte PreparsedDataFirstByte
 		{
 			get
 			{
@@ -179,101 +179,12 @@ namespace AnyLayout.RawInput
 
 				if (preparsedData.Length == 0)
 				{
-					// FIXME: Is there a better way to get "ref null" ?
-					// Basically, the code below is converting "IntPtr" to "ref byte", so that we can have an equivalent API ignoring the origin of preparsed data.
-					return ref Unsafe.Add(ref default(Span<byte>).GetPinnableReference(), PreparsedDataPointer);
+					return ref base.PreparsedDataFirstByte;
 				}
 
 				return ref preparsedData[0];
 			}
 		}
-
-		// TODO: Wrap this in a high level structure.
-		public NativeMethods.HidParsingLinkCollectionNode[] GetLinkCollectionNodes()
-		{
-			ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
-
-			NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
-
-			uint count = caps.LinkCollectionNodesCount;
-
-			if (caps.LinkCollectionNodesCount == 0)
-			{
-				return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
-			}
-
-			var nodes = new NativeMethods.HidParsingLinkCollectionNode[count];
-			if (NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, ref preparsedDataFirstByte) != NativeMethods.HidParsingResult.Success)
-			{
-				throw new InvalidOperationException();
-			}
-			return nodes;
-		}
-
-		// TODO: Wrap this in a high level structure.
-		public NativeMethods.HidParsingButtonCaps[] GetButtonCapabilities(NativeMethods.HidParsingReportType reportType)
-		{
-			ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
-
-			NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
-
-			ushort count = reportType switch
-			{
-				NativeMethods.HidParsingReportType.Input => caps.InputButtonCapsCount,
-				NativeMethods.HidParsingReportType.Output => caps.OutputButtonCapsCount,
-				NativeMethods.HidParsingReportType.Feature => caps.FeatureButtonCapsCount,
-				_ => throw new ArgumentOutOfRangeException(nameof(reportType))
-			};
-
-			if (count == 0)
-			{
-				return Array.Empty<NativeMethods.HidParsingButtonCaps>();
-			}
-
-			var buttonCaps = new NativeMethods.HidParsingButtonCaps[count];
-
-			if (NativeMethods.HidParsingGetButtonCaps(reportType, ref buttonCaps[0], ref count, ref preparsedDataFirstByte) != NativeMethods.HidParsingResult.Success)
-			{
-				throw new InvalidOperationException();
-			}
-			return buttonCaps;
-		}
-
-		// TODO: Wrap this in a high level structure.
-		public NativeMethods.HidParsingValueCaps[] GetValueCapabilities(NativeMethods.HidParsingReportType reportType)
-		{
-			ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
-
-			NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
-
-			ushort count = reportType switch
-			{
-				NativeMethods.HidParsingReportType.Input => caps.InputValueCapsCount,
-				NativeMethods.HidParsingReportType.Output => caps.OutputValueCapsCount,
-				NativeMethods.HidParsingReportType.Feature => caps.FeatureValueCapsCount,
-				_ => throw new ArgumentOutOfRangeException(nameof(reportType))
-			};
-
-			if (count == 0)
-			{
-				return Array.Empty<NativeMethods.HidParsingValueCaps>();
-			}
-
-			var valueCaps = new NativeMethods.HidParsingValueCaps[count];
-
-			if (NativeMethods.HidParsingGetValueCaps(reportType, ref valueCaps[0], ref count, ref preparsedDataFirstByte) != NativeMethods.HidParsingResult.Success)
-			{
-				throw new InvalidOperationException();
-			}
-			return valueCaps;
-		}
-
-		// TODO: Wrap this in a high level structure.
-		public string GetString(int index)
-			=> NativeMethods.GetIndexedString(FileHandle, (uint)index);
-
-		public PhysicalDescriptorSetCollection GetPhysicalDescriptorSets()
-			=> NativeMethods.GetPhysicalDescriptor(FileHandle);
 	}
 
 	/// <summary>Represents a device that is either a mouse or a keyboard.</summary>
