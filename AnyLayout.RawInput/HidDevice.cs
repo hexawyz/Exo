@@ -177,6 +177,14 @@ namespace AnyLayout.RawInput
 			}
 		}
 
+		public void SendFeatureReport(ReadOnlySpan<byte> data)
+		{
+			if (NativeMethods.HidDiscoverySetFeature(FileHandle, ref MemoryMarshal.GetReference(data), (uint)data.Length) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+		}
+
 		// TODO: How should this be exposed?
 		private protected IntPtr PreparsedDataPointer
 		{

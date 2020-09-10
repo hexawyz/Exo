@@ -516,6 +516,9 @@ namespace AnyLayout.RawInput
 		[DllImport("hid", EntryPoint = "HidD_GetPhysicalDescriptor", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryGetPhysicalDescriptor(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
 
+		[DllImport("hid", EntryPoint = "HidD_SetFeature", ExactSpelling = true, CharSet = CharSet.Unicode)]
+		public static extern uint HidDiscoverySetFeature(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
+
 		[DllImport("hid", EntryPoint = "HidP_GetCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
 		public static extern HidParsingResult HidParsingGetCaps(ref byte preparsedData, out HidParsingCaps capabilities);
 
