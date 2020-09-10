@@ -20,6 +20,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout.DeviceIds.Usb", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout.SourceGenerators", "AnyLayout.SourceGenerators\AnyLayout.SourceGenerators.csproj", "{90C2B7AF-165E-484B-86AD-C91C96D9F08E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RgbFusionControl", "RgbFusionControl\RgbFusionControl.csproj", "{C2885B64-FCA4-44DC-8AD8-BA16A921B371}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8BFF-41F1-8589-922D8BE1B233}"
+	ProjectSection(SolutionItems) = preProject
+		Apple USB Keyboard.md = Apple USB Keyboard.md
+		Corsair HX1200i.md = Corsair HX1200i.md
+		Gigabyte Z490 Vision D.md = Gigabyte Z490 Vision D.md
+		NZXT Kraken Z63.md = NZXT Kraken Z63.md
+		Razer Mamba Chroma.md = Razer Mamba Chroma.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +57,10 @@ Global
 		{90C2B7AF-165E-484B-86AD-C91C96D9F08E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90C2B7AF-165E-484B-86AD-C91C96D9F08E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{90C2B7AF-165E-484B-86AD-C91C96D9F08E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2885B64-FCA4-44DC-8AD8-BA16A921B371}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2885B64-FCA4-44DC-8AD8-BA16A921B371}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2885B64-FCA4-44DC-8AD8-BA16A921B371}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2885B64-FCA4-44DC-8AD8-BA16A921B371}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
