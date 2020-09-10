@@ -18,11 +18,14 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <TextBlock Grid.Column="0" Grid.Row="0" Text="Scan Code" />
         <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding ScanCode}" />
         <TextBlock Grid.Column="0" Grid.Row="1" Text="Key" />
         <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Path=Key}" />
+        <TextBlock Grid.Column="0" Grid.Row="2" Text="Extra Information" />
+        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding Path=ExtraInformation}" />
     </Grid>
 </Window>

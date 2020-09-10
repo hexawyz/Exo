@@ -1,5 +1,4 @@
-﻿using System.Windows.Input;
-using AnyLayout.RawInput;
+﻿using AnyLayout.RawInput;
 
 namespace AnyLayout
 {
@@ -7,6 +6,7 @@ namespace AnyLayout
     {
         private ushort _scanCode;
         private VirtualKey _key;
+        private uint _extraInformation;
 
         public ushort ScanCode
         {
@@ -18,6 +18,12 @@ namespace AnyLayout
         {
             get => _key;
             set => SetValue(ref _key, value);
+        }
+
+        public uint ExtraInformation
+        {
+            get => _extraInformation;
+            set => SetValue(ref _extraInformation, value);
         }
     }
 }

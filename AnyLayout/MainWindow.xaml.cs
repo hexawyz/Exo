@@ -52,7 +52,21 @@ namespace AnyLayout
                         TargetHandle = hwndSource.Handle,
                         UsagePage = HidUsagePage.GenericDesktop,
                         Usage = (ushort)HidGenericDesktopUsage.Keyboard,
-                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys
+                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys | NativeMethods.RawInputDeviceFlags.NoHotKeys
+                    },
+                    new NativeMethods.RawInputDeviceRegisgtration
+                    {
+                        TargetHandle = hwndSource.Handle,
+                        UsagePage = HidUsagePage.Consumer,
+                        Usage = (ushort)HidConsumerUsage.ConsumerControl,
+                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys | NativeMethods.RawInputDeviceFlags.NoHotKeys
+                    },
+                    new NativeMethods.RawInputDeviceRegisgtration
+                    {
+                        TargetHandle = hwndSource.Handle,
+                        UsagePage = HidUsagePage.Consumer,
+                        Usage = 0,
+                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys | NativeMethods.RawInputDeviceFlags.NoHotKeys | NativeMethods.RawInputDeviceFlags.PageOnly
                     }
                 },
                 1,
@@ -65,13 +79,19 @@ namespace AnyLayout
             if (msg == WM_INPUT)
             {
                 var data = NativeMethods.GetRawInputData(lParam);
-                if ((data.Data.Keyboard.Flags & NativeMethods.RawInputKeyboardFlags.Break) != 0)
+                if (data.Header.Type == RawInputDeviceType.Keyboard)
                 {
-                    _viewModel.ScanCode = data.Data.Keyboard.MakeCode;
-                    _viewModel.Key = (VirtualKey)data.Data.Keyboard.VirtualKey;
+                    if ((data.Data.Keyboard.Flags & NativeMethods.RawInputKeyboardFlags.Break) != 0)
+                    {
+                        _viewModel.ScanCode = data.Data.Keyboard.MakeCode;
+                        _viewModel.Key = (VirtualKey)data.Data.Keyboard.VirtualKey;
+                        _viewModel.ExtraInformation = data.Data.Keyboard.ExtraInformation;
+                    }
+                }
+                else if (data.Header.Type == RawInputDeviceType.Hid)
+                {
                 }
                 handled = true;
-                return default;
             }
             return default;
         }
