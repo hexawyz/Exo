@@ -24,24 +24,30 @@ Instead, I'll list interesting codes one by one taking info from the app and try
 Reverse engineering most codes is easy when you can compare your settings with the value displayed.
 
 Code | Official Description   | RE Description          | Values
-
+-----+------------------------+-------------------------+----------------------------------------------
 10   | Brightness             | Brightness              | 0 to 100
 1D   |                        | PIP Source ?            | 241 21 15 17 18 23 (Value changed from 0 to 241 when enabling PIP… But changing the value manually seems to do nothing)
 23   |                        | Low Input Lag           | 1 2 3 (Off, Advanced, Ultra Fast)
 25   |                        | Response Time           | 1 2 3 (Off, Advanced, Ultra Fast)
+60   | Input Source           | Input Source            | 21 15 17 18 23
 62   | Audio speaker volume   | Audio speaker volume    | 0 to 100
 96   | Window Position (TL_Y) | PIP Window Position X:Y | 0 to 25700 => Actually to combined bytes from hex 00 to 64
 97   | Window Position (BR_X) | PIP Window Size         | 0 to 10 (Smallest to largest size; largest is about 1/9 of the screen)
 E1   |                        | Advanced DCR            | 0 25 50 75 100
 E2   |                        | Blue light Filter       | 0 to 100
 E8   |                        | Multi Picture mode      | 1 2 3 4 5 (Disabled; PIP; Left/Right; Top/Bottom; Quad) (ClickMonitorDDC has trouble reading back the value, maybe because of screen switching modes)
+F3   |                        | Window Select           | 0 1 2 3 (TL; BL; TR; BR) (At least allows to change the source; did not find yet how to change the associated color preset)
 
 
 Source IDs <=> Name mapping
-241 DisplayPort ?
+241
 21
 15
 17
 18
 23 USB-C
 
+The VCP codes used for PIP/Multi Picture are not standard, despite MCCS defining a few codes that could have been used. (e.g A for Window Select)
+Finding how to manage color profiles in PIP mode may prove more difficult, as associated VCP codes are essentially forced to 255 when this mode is enabled.
+
+Still, this gives hope as to what could be douable with a nicely integrated application. 😊
