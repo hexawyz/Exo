@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Text.RegularExpressions;
 using AnyLayout.RawInput;
+using DeviceTools.DisplayDevices;
+using System;
+using System.Linq;
+using System.Text;
 
 namespace AnyLayout.Cli
 {
@@ -16,46 +12,35 @@ namespace AnyLayout.Cli
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 
-			Console.WriteLine("* All devices from SetupAPI");
-
-			foreach (var device in HidDevice.GetAllFromSetupApi())
+			foreach (var monitor in LogicalMonitor.GetAll())
 			{
-				Console.WriteLine($"Device Name: {device.DeviceName}");
-
-				var names = UsbProductNameDatabase.LookupVendorAndProductName(device.VendorId, device.ProductId);
-
-				if (names.VendorName.Length > 0)
-				{
-					Console.WriteLine($"Device Vendor Name: {names.VendorName.ToString()}");
-					if (names.ProductName.Length > 0)
-					{
-						Console.WriteLine($"Device Product Name: {names.ProductName.ToString()}");
-					}
-				}
+				Console.WriteLine($"Logical monitor name: {monitor.Name}");
 			}
 
-			Console.WriteLine("* All devices from Configuration Manager");
-
-			foreach (var device in HidDevice.GetAllFromConfigurationManager())
+			foreach (var adapter in DisplayAdapterDevice.GetAll(false))
 			{
-				Console.WriteLine($"Device Name: {device.DeviceName}");
-
-				var names = UsbProductNameDatabase.LookupVendorAndProductName(device.VendorId, device.ProductId);
-
-				if (names.VendorName.Length > 0)
+				Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
+				Console.WriteLine($"Adapter Device Description: {adapter.Description}");
+				Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
+				Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
+				Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
+				Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
+				foreach (var monitor in adapter.GetMonitors(false))
 				{
-					Console.WriteLine($"Device Vendor Name: {names.VendorName.ToString()}");
-					if (names.ProductName.Length > 0)
-					{
-						Console.WriteLine($"Device Product Name: {names.ProductName.ToString()}");
-					}
+					Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
+					Console.WriteLine($"Monitor Device Description: {monitor.Description}");
+					Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
+					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
+					Console.WriteLine($"Adapter is Active: {monitor.IsActive}");
+					Console.WriteLine($"Adapter is Attached: {monitor.IsAttached}");
+					Console.WriteLine($"Adapter is Primary Device: {monitor.IsPrimaryDevice}");
 				}
 			}
 
 			using (var collection = new RawInputDeviceCollection())
 			{
 				collection.Refresh();
-				foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i)))
+				foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i))) // new[] { rgbFusionDevice1, rgbFusionDevice2 })
 				{
 					//if (index > 0) Console.ReadKey(true);
 					Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
@@ -110,7 +95,7 @@ namespace AnyLayout.Cli
 
 					PrintUsageAndPage("║ Device", device.UsagePage, device.Usage);
 
-					//PrintDeviceInfo(device);
+					PrintDeviceInfo(device);
 				}
 
 				if (collection.Count > 0)

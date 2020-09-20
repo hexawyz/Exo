@@ -16,7 +16,11 @@ namespace AnyLayout.SourceGenerators
 	[Generator]
 	public sealed class UsbIdDatabaseGenerator : ISourceGenerator
 	{
-		public void Execute(SourceGeneratorContext context)
+		public void Initialize(GeneratorInitializationContext context)
+		{
+		}
+
+		public void Execute(GeneratorExecutionContext context)
 		{
 			if (!(context.AdditionalFiles.Where(at => Path.GetFileName(at.Path) == "usb.ids").SingleOrDefault()?.GetText() is SourceText text))
 			{
@@ -215,10 +219,6 @@ namespace AnyLayout.SourceGenerators
 			AddFile("VendorIndexData", MemoryMarshal.Cast<VendorIndexEntry, byte>(vendorIndexData));
 			AddFile("ProductIndexData", deviceIndexData);
 			AddFile("StringData", stringData, "internal");
-		}
-
-		public void Initialize(InitializationContext context)
-		{
 		}
 
 		private static void AppendHeader(StringBuilder sb)
