@@ -261,6 +261,24 @@ For Internal keyboards:
 Names or descriptions for the IOCTL were kindly provided by Bootcamp.exe's error message. (Thank you people @Apple, I guess 🙂)
 Should be obvious, but there might be some other IOCTL operations available in the driver, that I haven't found yet.
 
+Example:
+
+````csharp
+const uint IOCTL_KEYBOARD_SET_OSX_FN_BEHAVIOR = 0xb403201c;
+const uint IOCTL_ACPI_BRIGHTNESS_AVAILABLE = 0xb4032048;
+
+using var device = Device.OpenHandle(@"\\.\AppleKeyboard", DeviceAccess.ReadWrite);
+
+// Enables OSX fn key behavior (function keys defaults to multimedia functions)
+device.IoControl(IOCTL_KEYBOARD_SET_OSX_FN_BEHAVIOR, new byte[] { 1, 0, 0, 0 }, default);
+// Disables OSX fn key behavior
+device.IoControl(IOCTL_KEYBOARD_SET_OSX_FN_BEHAVIOR, new byte[] { 0, 0, 0, 0 }, default);
+// Enable brightness control on F1/F2 keys. (Even if not a laptop. Saldy, still not wired to external monitor DDC by Windows 😕)
+device.IoControl(IOCTL_ACPI_BRIGHTNESS_AVAILABLE, new byte[] { 1, 0, 0, 0 }, default);
+// Disable brightness control on F1/F2 keys.
+device.IoControl(IOCTL_ACPI_BRIGHTNESS_AVAILABLE, new byte[] { 0, 0, 0, 0 }, default);
+````
+
 # HID Extract from Windows APIs
 
 ## Without Apple Driver

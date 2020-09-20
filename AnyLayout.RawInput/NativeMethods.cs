@@ -471,6 +471,44 @@ namespace AnyLayout.RawInput
 			All = 1,
 		}
 
+		[Flags]
+		public enum FileAccessMask : uint
+		{
+			FileListDirectory = 0x00000001,
+			FileReadData = 0x00000001,
+			FileWriteData = 0x00000002,
+			FileAddFile = 0x00000002,
+			FileAddSubdirectory = 0x00000004,
+			FileAppendData = 0x00000004,
+			FileCreatePipeInstance = 0x00000004,
+			FileReadExtendedAttributes = 0x00000008,
+			FileWriteExtendedAttributes = 0x00000010,
+			FileExecute = 0x00000020,
+			FileTraverse = 0x00000020,
+			FileDeleteChild = 0x00000040,
+			FileReadAttributes = 0x00000080,
+			FileWriteAttributes = 0x00000100,
+			Delete = 0x00010000,
+			ReadControl = 0x00020000,
+			WriteDac = 0x00040000,
+			WriteOwner = 0x00080000,
+			Synchronize = 0x00100000,
+			StandardRightsRequired = 0x000F0000,
+			StandardRightsRead = ReadControl,
+			StandardRightsWrite = ReadControl,
+			StandardRightsExecute = ReadControl,
+			AccessSystemSecurity = 0x01000000,
+			MaximumAllowed = 0x02000000,
+			GenericAll = 0x10000000,
+			GenericExecute = 0x20000000,
+			GenericWrite = 0x40000000,
+			GenericRead = 0x80000000,
+			FileAllAccess = StandardRightsRequired | Synchronize | 0x1FF,
+			FileGenericRead = StandardRightsRead | FileReadData | FileReadAttributes | FileReadExtendedAttributes | Synchronize,
+			FileGenericWrite = StandardRightsWrite | FileWriteData | FileWriteAttributes | FileWriteExtendedAttributes | FileAppendData | Synchronize,
+			FileGenericExecute = StandardRightsExecute | FileReadAttributes | FileExecute | Synchronize,
+		}
+
 		[DllImport("user32", EntryPoint = "GetRawInputDeviceList", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern uint GetRawInputDeviceList(IntPtr zero, ref uint deviceCount, uint deviceSize);
 
@@ -540,7 +578,7 @@ namespace AnyLayout.RawInput
 		public static extern HidParsingResult HidParsingGetLinkCollectionNodes(ref HidParsingLinkCollectionNode firstNode, ref uint linkCollectionNodesLength, ref byte preparsedData);
 
 		[DllImport("kernel32", EntryPoint = "CreateFileW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-		public static extern SafeFileHandle CreateFile(string fileName, FileAccess desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+		public static extern SafeFileHandle CreateFile(string fileName, FileAccessMask desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
 
 		[DllImport("SetupAPI", EntryPoint = "SetupDiGetClassDevsW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern SafeDeviceInfoListHandle SetupDiGetClassDevs(in Guid classGuid, string enumerator, IntPtr hwndParent, GetClassDeviceFlags flags);
@@ -572,7 +610,8 @@ namespace AnyLayout.RawInput
 		);
 
 		[DllImport("SetupAPI", EntryPoint = "SetupDiGetDeviceInterfaceDetailW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-		public static extern int SetupDiGetDeviceInterfaceDetail(
+		public static extern int SetupDiGetDeviceInterfaceDetail
+		(
 			SafeDeviceInfoListHandle deviceInfoSet,
 			ref DeviceInterfaceData deviceInterfaceData,
 			IntPtr zero1,
@@ -582,7 +621,8 @@ namespace AnyLayout.RawInput
 		);
 
 		[DllImport("SetupAPI", EntryPoint = "SetupDiGetDeviceInterfaceDetailW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-		public static extern int SetupDiGetDeviceInterfaceDetail(
+		public static extern int SetupDiGetDeviceInterfaceDetail
+		(
 			SafeDeviceInfoListHandle deviceInfoSet,
 			ref DeviceInterfaceData deviceInterfaceData,
 			ref uint deviceInterfaceDetailData, // uint Size + char[] Data
@@ -592,7 +632,8 @@ namespace AnyLayout.RawInput
 		);
 
 		[DllImport("SetupAPI", EntryPoint = "SetupDiGetDeviceInterfaceDetailW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-		public static extern int SetupDiGetDeviceInterfaceDetail(
+		public static extern int SetupDiGetDeviceInterfaceDetail
+		(
 			SafeDeviceInfoListHandle deviceInfoSet,
 			ref DeviceInterfaceData deviceInterfaceData,
 			ref uint deviceInterfaceDetailData, // uint Size + char[] Data
@@ -606,6 +647,19 @@ namespace AnyLayout.RawInput
 
 		[DllImport("CfgMgr32", EntryPoint = "CM_Get_Device_Interface_List_SizeW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern uint CM_Get_Device_Interface_List_Size(out uint length, in Guid interfaceClassGuid, [In] string? deviceID, GetDeviceInterfaceListSizeFlags flags);
+
+		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+		public static extern uint DeviceIoControl
+		(
+			SafeFileHandle deviceHandle,
+			uint ioControlCode,
+			in byte inputBufferFirstByte,
+			uint inputBufferSize,
+			ref byte outputBufferFirstByte,
+			uint outputBufferSize,
+			out uint bytesReturned,
+			IntPtr overlapped
+		);
 
 		public delegate int HidGetStringFunction(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
