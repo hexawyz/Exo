@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeviceTools.DisplayDevices.Mccs;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -46,6 +47,32 @@ namespace DeviceTools.DisplayDevices
 			}
 
 			return buffer.AsSpan(0, buffer.Length - 1);
+		}
+
+		public void SetVcpFeature(byte vcpCode, uint value)
+		{
+			if (NativeMethods.SetVcpFeature(Handle, vcpCode, value) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+		}
+
+		public VcpFeatureReply GetVcpFeature(byte vcpCode)
+		{
+			if (NativeMethods.GetVcpFeatureAndVcpFeatureReply(Handle, vcpCode, out var type, out uint currentValue, out uint maximumValue) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+
+			return new VcpFeatureReply(currentValue, maximumValue);
+		}
+
+		public void SaveCurrentSettings()
+		{
+			if (NativeMethods.SaveCurrentSettings(Handle) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
 		}
 	}
 }

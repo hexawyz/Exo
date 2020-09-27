@@ -42,16 +42,28 @@ namespace AnyLayout.Cli
 							Console.Write($"Command {vcpCommand.VcpCode:X2}");
 							if (vcpCommand.Name is { Length: not 0 })
 							{
-								Console.Write($" {vcpCommand.Name}");
+								Console.Write($" - {vcpCommand.Name}");
 							}
 							Console.WriteLine();
+
+							try
+							{
+								var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
+
+								Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
+								Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
+							}
+							catch
+							{
+								Console.WriteLine("Failed to query the VCP code.");
+							}
 
 							foreach (var value in vcpCommand.NonContinuousValues)
 							{
 								Console.Write($"Value {value.Value:X2}");
 								if (value.Name is { Length: not 0 })
 								{
-									Console.Write($" {value.Name}");
+									Console.Write($" - {value.Name}");
 								}
 								Console.WriteLine();
 							}

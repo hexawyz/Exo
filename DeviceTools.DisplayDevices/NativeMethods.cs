@@ -58,6 +58,12 @@ namespace DeviceTools.DisplayDevices
 #pragma warning restore CS0649
 		}
 
+		public enum VcpCodeType
+		{
+			Momentary,
+			SetParameter,
+		}
+
 		private static ReadOnlySpan<char> TruncateToFirstNull(ReadOnlySpan<char> characters)
 			=> characters.IndexOf('\0') is int i and >= 0 ? characters.Slice(0, i) : characters;
 
@@ -111,5 +117,14 @@ namespace DeviceTools.DisplayDevices
 
 		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
 		public static extern uint CapabilitiesRequestAndCapabilitiesReply(SafePhysicalMonitorHandle physicalMonitorHandle, ref byte asciiCapabilitiesStringFirstCharacter, uint capabilitiesStringLength);
+
+		[DllImport("Dxva2", EntryPoint = "GetVCPFeatureAndVCPFeatureReply", ExactSpelling = true, SetLastError = true)]
+		public static extern uint GetVcpFeatureAndVcpFeatureReply(SafePhysicalMonitorHandle physicalMonitorHandle, byte vcpCode, out VcpCodeType vcpCodeType, out uint currentValue, out uint maximumValue);
+
+		[DllImport("Dxva2", EntryPoint = "SetVCPFeature", ExactSpelling = true, SetLastError = true)]
+		public static extern uint SetVcpFeature(SafePhysicalMonitorHandle physicalMonitorHandle, byte vcpCode, uint newValue);
+
+		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
+		public static extern uint SaveCurrentSettings(SafePhysicalMonitorHandle physicalMonitorHandle);
 	}
 }
