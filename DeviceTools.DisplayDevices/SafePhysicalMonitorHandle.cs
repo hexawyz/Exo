@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DeviceTools.DisplayDevices
 {
-	internal class SafePhysicalMonitorHandle : SafeHandleZeroOrMinusOneIsInvalid
+	public sealed class SafePhysicalMonitorHandle : SafeHandleZeroOrMinusOneIsInvalid
 	{
 		public SafePhysicalMonitorHandle(IntPtr handle)
 			: base(true)

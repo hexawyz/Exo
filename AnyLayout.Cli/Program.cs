@@ -3,6 +3,7 @@ using DeviceTools.DisplayDevices;
 using System;
 using System.Linq;
 using System.Text;
+using System.Text.Unicode;
 
 namespace AnyLayout.Cli
 {
@@ -15,6 +16,52 @@ namespace AnyLayout.Cli
 			foreach (var monitor in LogicalMonitor.GetAll())
 			{
 				Console.WriteLine($"Logical monitor name: {monitor.Name}");
+
+				foreach (var physicalMonitor in monitor.GetPhysicalMonitors())
+				{
+					Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
+
+					var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
+					Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString)}");
+
+					if (MonitorCapabilities.TryParse(capabilitiesString, out var capabilities))
+					{
+						Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
+						Console.WriteLine($"Physical monitor model: {capabilities.Model}");
+						Console.WriteLine($"Physical monitor MCCS Version: {capabilities.MccsVersion}");
+
+						Console.WriteLine($"Supported DDC/CI commands: {capabilities.SupportedMonitorCommands.Length}");
+						foreach (var ddcCiCommand in capabilities.SupportedMonitorCommands)
+						{
+							Console.WriteLine($"{(byte)ddcCiCommand:X2} {ddcCiCommand}");
+						}
+
+						Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
+						foreach (var vcpCommand in capabilities.SupportedVcpCommands)
+						{
+							Console.Write($"Command {vcpCommand.VcpCode:X2}");
+							if (vcpCommand.Name is { Length: not 0 })
+							{
+								Console.Write($" {vcpCommand.Name}");
+							}
+							Console.WriteLine();
+
+							foreach (var value in vcpCommand.NonContinuousValues)
+							{
+								Console.Write($"Value {value.Value:X2}");
+								if (value.Name is { Length: not 0 })
+								{
+									Console.Write($" {value.Name}");
+								}
+								Console.WriteLine();
+							}
+						}
+					}
+					else
+					{
+						Console.WriteLine("Failed to parse capabilities.");
+					}
+				}
 			}
 
 			foreach (var adapter in DisplayAdapterDevice.GetAll(false))
@@ -33,7 +80,6 @@ namespace AnyLayout.Cli
 					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
 					Console.WriteLine($"Adapter is Active: {monitor.IsActive}");
 					Console.WriteLine($"Adapter is Attached: {monitor.IsAttached}");
-					Console.WriteLine($"Adapter is Primary Device: {monitor.IsPrimaryDevice}");
 				}
 			}
 

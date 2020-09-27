@@ -52,12 +52,14 @@ namespace DeviceTools.DisplayDevices
 
 		public readonly struct PhysicalMonitor
 		{
+#pragma warning disable CS0649
 			public readonly IntPtr Handle;
 			public readonly FixedString128 Description;
+#pragma warning restore CS0649
 		}
 
 		private static ReadOnlySpan<char> TruncateToFirstNull(ReadOnlySpan<char> characters)
-			=> characters.IndexOf('\0') is int i && i >= 0 ? characters.Slice(0, i) : characters;
+			=> characters.IndexOf('\0') is int i and >= 0 ? characters.Slice(0, i) : characters;
 
 		private static string StructToString<T>(in T value)
 			where T : struct
@@ -77,7 +79,7 @@ namespace DeviceTools.DisplayDevices
 			public override string ToString() => StructToString(this);
 		}
 
-		[DllImport("User32", EntryPoint = "EnumDisplayDevicesW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+		[DllImport("User32", EntryPoint = "EnumDisplayDevicesW", ExactSpelling = true, CharSet = CharSet.Unicode)]
 		public static extern unsafe uint EnumDisplayDevices
 		(
 			[In] string? device,
@@ -92,16 +94,22 @@ namespace DeviceTools.DisplayDevices
 		[DllImport("User32", EntryPoint = "GetMonitorInfoW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern unsafe uint GetMonitorInfo(IntPtr monitor, ref LogicalMonitorInfoEx monitorInfo);
 
-		[DllImport("User32", ExactSpelling = true, SetLastError = true)]
+		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
 		public static extern uint GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr monitorHandle, out uint numberOfPhysicalMonitors);
 
-		[DllImport("User32", ExactSpelling = true, SetLastError = true)]
-		public static extern uint GetPhysicalMonitorsFromHMONITOR(IntPtr monitorHandle, uint physicalMonitorArraySize, [Out] FixedString128[] physicalMonitors);
+		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
+		public static extern uint GetPhysicalMonitorsFromHMONITOR(IntPtr monitorHandle, uint physicalMonitorArraySize, [Out] PhysicalMonitor[] physicalMonitors);
 
 		//[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
 		//public static extern uint DestroyPhysicalMonitors(uint physicalMonitorArraySize, PhysicalMonitorDescription[] physicalMonitors);
 
 		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
 		public static extern uint DestroyPhysicalMonitor(IntPtr physicalMonitorHandle);
+
+		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
+		public static extern uint GetCapabilitiesStringLength(SafePhysicalMonitorHandle physicalMonitorHandle, out uint capabilitiesStringLength);
+
+		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
+		public static extern uint CapabilitiesRequestAndCapabilitiesReply(SafePhysicalMonitorHandle physicalMonitorHandle, ref byte asciiCapabilitiesStringFirstCharacter, uint capabilitiesStringLength);
 	}
 }

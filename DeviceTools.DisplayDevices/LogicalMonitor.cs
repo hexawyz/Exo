@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -65,6 +66,30 @@ namespace DeviceTools.DisplayDevices
 			}
 			IsPrimary = (info.Flags & NativeMethods.MonitorInfoFlags.Primary) != 0;
 			Name = info.DeviceName.ToString();
+		}
+
+		public ImmutableArray<PhysicalMonitor> GetPhysicalMonitors()
+		{
+			if (NativeMethods.GetNumberOfPhysicalMonitorsFromHMONITOR(Handle, out uint physicalMonitorCount) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+
+			var physicalMonitors = new NativeMethods.PhysicalMonitor[physicalMonitorCount];
+
+			if (NativeMethods.GetPhysicalMonitorsFromHMONITOR(Handle, physicalMonitorCount, physicalMonitors) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+
+			var builder = ImmutableArray.CreateBuilder<PhysicalMonitor>(physicalMonitors.Length);
+
+			foreach (var physicalMonitor in physicalMonitors)
+			{
+				builder.Add(new PhysicalMonitor(new SafePhysicalMonitorHandle(physicalMonitor.Handle), physicalMonitor.Description.ToString()));
+			}
+
+			return builder.MoveToImmutable();
 		}
 	}
 }

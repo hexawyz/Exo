@@ -20,8 +20,6 @@ namespace DeviceTools.DisplayDevices
 		private protected bool HasFlag(DisplayDeviceFlags flag)
 			=> (Flags & flag) == flag;
 
-		public bool IsPrimaryDevice => HasFlag(DisplayDeviceFlags.PrimaryDevice);
-
 		private protected DisplayDevice(string deviceName, string description, string deviceId, string registryKey, DisplayDeviceFlags flags)
 		{
 			DeviceName = deviceName;
@@ -65,6 +63,7 @@ namespace DeviceTools.DisplayDevices
 		}
 
 		public bool IsAttachedToDesktop => HasFlag(DisplayDeviceFlags.AttachedToDesktop);
+		public bool IsPrimaryDevice => HasFlag(DisplayDeviceFlags.PrimaryDevice);
 
 		public IEnumerable<MonitorDevice> GetMonitors(bool onlyActiveAndAttached = true)
 			=> MonitorDevice.GetAll(DeviceName, onlyActiveAndAttached);
