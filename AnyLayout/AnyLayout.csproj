@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AnyLayout.RawInput\AnyLayout.RawInput.csproj" />
+    <ProjectReference Include="..\DeviceTools.RawInput\DeviceTools.RawInput.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30001.183
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout", "AnyLayout\AnyLayout.csproj", "{2796EC08-660C-4223-B715-B02BA20AE2A6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout.RawInput", "AnyLayout.RawInput\AnyLayout.RawInput.csproj", "{44C7D63A-D185-480A-BB51-10F0D35336D4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.RawInput", "DeviceTools.RawInput\DeviceTools.RawInput.csproj", "{44C7D63A-D185-480A-BB51-10F0D35336D4}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{355E12EE-3C82-4B68-B800-448487790C0E}"
 	ProjectSection(SolutionItems) = preProject
@@ -14,11 +14,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Useful Bits.md = Useful Bits.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout.Cli", "AnyLayout.Cli\AnyLayout.Cli.csproj", "{6912E342-533E-4A26-9C07-D95B752E94CF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Cli", "DeviceTools.Cli\DeviceTools.Cli.csproj", "{6912E342-533E-4A26-9C07-D95B752E94CF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout.DeviceIds.Usb", "AnyLayout.DeviceIds.Usb\AnyLayout.DeviceIds.Usb.csproj", "{B089488B-0DE0-467B-897D-3941397F7124}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.DeviceIds.Usb", "DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj", "{B089488B-0DE0-467B-897D-3941397F7124}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnyLayout.SourceGenerators", "AnyLayout.SourceGenerators\AnyLayout.SourceGenerators.csproj", "{90C2B7AF-165E-484B-86AD-C91C96D9F08E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.SourceGenerators", "DeviceTools.SourceGenerators\DeviceTools.SourceGenerators.csproj", "{90C2B7AF-165E-484B-86AD-C91C96D9F08E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RgbFusionControl", "RgbFusionControl\RgbFusionControl.csproj", "{C2885B64-FCA4-44DC-8AD8-BA16A921B371}"
 EndProject
@@ -34,9 +34,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.DisplayDevices", "DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj", "{066B767B-6335-4AD0-98C6-3B313A8A0689}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.DisplayDevices.Tests", "DeviceTools.DisplayDevices.Tests\DeviceTools.DisplayDevices.Tests.csproj", "{D1DCAD46-5791-4637-8566-82A05C537E13}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.DisplayDevices.Tests", "DeviceTools.DisplayDevices.Tests\DeviceTools.DisplayDevices.Tests.csproj", "{D1DCAD46-5791-4637-8566-82A05C537E13}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Core", "DeviceTools.Core\DeviceTools.Core.csproj", "{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Core", "DeviceTools.Core\DeviceTools.Core.csproj", "{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

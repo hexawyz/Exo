@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="DeviceTools.RawInput %28netstandard2.0%29\**" />
+    <EmbeddedResource Remove="DeviceTools.RawInput %28netstandard2.0%29\**" />
+    <None Remove="DeviceTools.RawInput %28netstandard2.0%29\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Buffers" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+  </ItemGroup>
+
+</Project>
