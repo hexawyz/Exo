@@ -1,9 +1,11 @@
-﻿using Microsoft.Win32.SafeHandles;
+﻿using DeviceTools;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,88 +16,12 @@ namespace AnyLayout.RawInput
 {
 	public abstract class HidDevice : IDisposable
 	{
-		public static IEnumerable<HidDevice> GetAllFromSetupApi(bool onlyPresent = true)
+		public static IEnumerable<HidDevice> GetAll(bool includeAll = false)
 		{
-			using var handle = NativeMethods.SetupDiGetClassDevs
-			(
-				NativeMethods.HidDeviceInterfaceClassGuid,
-				IntPtr.Zero,
-				IntPtr.Zero,
-				onlyPresent ?
-					NativeMethods.GetClassDeviceFlags.DeviceInterface | NativeMethods.GetClassDeviceFlags.Present :
-					NativeMethods.GetClassDeviceFlags.DeviceInterface
-			);
-
 			var @lock = new object();
-
-			var interfaceData = new NativeMethods.DeviceInterfaceData
+			foreach (string name in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid, includeAll))
 			{
-				Size = (uint)Marshal.SizeOf<NativeMethods.DeviceInterfaceData>()
-			};
-
-			uint index = 0;
-			while (true)
-			{
-				if (NativeMethods.SetupDiEnumDeviceInterfaces(handle, IntPtr.Zero, NativeMethods.HidDeviceInterfaceClassGuid, index++, ref interfaceData) == 0)
-				{
-					int lastError = Marshal.GetLastWin32Error();
-
-					if (lastError == NativeMethods.ErrorNoMoreItems)
-					{
-						break;
-					}
-
-					throw new Win32Exception(lastError);
-				}
-
-				yield return new GenericHidDevice(NativeMethods.SetupDiGetDeviceInterfaceDetail(handle, ref interfaceData), @lock);
-			}
-		}
-
-		public static IEnumerable<HidDevice> GetAllFromConfigurationManager(bool onlyPresent = true)
-		{
-			var flag = onlyPresent ? NativeMethods.GetDeviceInterfaceListSizeFlags.Present : NativeMethods.GetDeviceInterfaceListSizeFlags.All;
-
-			uint charCount;
-
-			{
-				uint result = NativeMethods.CM_Get_Device_Interface_List_Size(out charCount, NativeMethods.HidDeviceInterfaceClassGuid, null, flag);
-				if (result != 0)
-				{
-					throw new InvalidOperationException();
-				}
-			}
-
-			var @lock = new object();
-			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)(charCount * 2)));
-			try
-			{
-				uint result = NativeMethods.CM_Get_Device_Interface_List(NativeMethods.HidDeviceInterfaceClassGuid, null, ref MemoryMarshal.Cast<byte, char>(buffer)[0], charCount, flag);
-				if (result != 0)
-				{
-					throw new InvalidOperationException();
-				}
-
-				int position = 0;
-				while (position < charCount)
-				{
-					var chars = MemoryMarshal.Cast<byte, char>(buffer).Slice(position);
-					int endIndex = chars.IndexOf('\0');
-
-					// Last string will be empty (It seems that the buffer is terminated by double null chars)
-					if (endIndex <= 0)
-					{
-						yield break;
-					}
-
-					yield return new GenericHidDevice(chars.Slice(0, endIndex).ToString(), @lock);
-
-					position += endIndex + 1;
-				}
-			}
-			finally
-			{
-				ArrayPool<byte>.Shared.Return(buffer);
+				yield return new GenericHidDevice(name, @lock);
 			}
 		}
 
@@ -150,26 +76,17 @@ namespace AnyLayout.RawInput
 			// The file handle should not be opened more than once. We can't use optimistic lazy initialization like in the other cases here.
 			lock (Lock)
 			{
-				if (!(_fileHandle is SafeFileHandle fileHandle))
+				if (_fileHandle is not SafeFileHandle fileHandle)
 				{
 					EnsureNotDisposed();
 					// Try to acquire the device as R/W shared.
-					fileHandle = NativeMethods.CreateFile(DeviceName, 0, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
-					// Collections opened in exclusive mode by the OS (e.g. Keyboard and Mouse) can still be accessed without requesting read or write.
-					if (fileHandle.IsInvalid)
+					try
 					{
-						int errorCode = Marshal.GetLastWin32Error();
-
-						//if (errorCode != ???)
-						//{
-						//	throw new Win32Exception(errorCode);
-						//}
-
-						fileHandle = NativeMethods.CreateFile(DeviceName, 0, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
-						if (fileHandle.IsInvalid)
-						{
-							throw new Win32Exception(Marshal.GetLastWin32Error());
-						}
+						fileHandle = Device.OpenHandle(DeviceName, DeviceAccess.ReadWrite);
+					}
+					catch (Win32Exception ex) // when (ex.NativeErrorCode == ??)
+					{
+						fileHandle = Device.OpenHandle(DeviceName, DeviceAccess.None);
 					}
 					Volatile.Write(ref _fileHandle, fileHandle);
 				}

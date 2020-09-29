@@ -5,7 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace AnyLayout.RawInput
+namespace DeviceTools
 {
 	public static class FileStreamExtensions
 	{

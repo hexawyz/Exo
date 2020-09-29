@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace AnyLayout.RawInput
+namespace DeviceTools
 {
 	public enum DeviceAccess
 	{

@@ -34,6 +34,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.DisplayDevices", "DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj", "{066B767B-6335-4AD0-98C6-3B313A8A0689}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.DisplayDevices.Tests", "DeviceTools.DisplayDevices.Tests\DeviceTools.DisplayDevices.Tests.csproj", "{D1DCAD46-5791-4637-8566-82A05C537E13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Core", "DeviceTools.Core\DeviceTools.Core.csproj", "{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,6 +72,14 @@ Global
 		{066B767B-6335-4AD0-98C6-3B313A8A0689}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{066B767B-6335-4AD0-98C6-3B313A8A0689}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{066B767B-6335-4AD0-98C6-3B313A8A0689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1DCAD46-5791-4637-8566-82A05C537E13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1DCAD46-5791-4637-8566-82A05C537E13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1DCAD46-5791-4637-8566-82A05C537E13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1DCAD46-5791-4637-8566-82A05C537E13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA47CCA3-B07B-47D3-87E3-23C1C2246A14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

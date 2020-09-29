@@ -1,4 +1,5 @@
 using AnyLayout.RawInput;
+using DeviceTools;
 using DeviceTools.DisplayDevices;
 using System;
 using System.Linq;
@@ -12,6 +13,40 @@ namespace AnyLayout.Cli
 		private static void Main(string[] args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
+
+			foreach (var adapter in DisplayAdapterDevice.GetAll(false))
+			{
+				Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
+				Console.WriteLine($"Adapter Device Description: {adapter.Description}");
+				Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
+				Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
+				Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
+				Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
+				foreach (var monitor in adapter.GetMonitors(false))
+				{
+					Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
+					Console.WriteLine($"Monitor Device Description: {monitor.Description}");
+					Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
+					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
+					Console.WriteLine($"Adapter is Active: {monitor.IsActive}");
+					Console.WriteLine($"Adapter is Attached: {monitor.IsAttached}");
+				}
+			}
+
+			foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Display))
+			{
+				Console.WriteLine(s);
+			}
+
+			foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Monitor))
+			{
+				Console.WriteLine(s);
+			}
+
+			foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Monitor))
+			{
+				Console.WriteLine(s);
+			}
 
 			foreach (var monitor in LogicalMonitor.GetAll())
 			{
@@ -73,25 +108,6 @@ namespace AnyLayout.Cli
 					{
 						Console.WriteLine("Failed to parse capabilities.");
 					}
-				}
-			}
-
-			foreach (var adapter in DisplayAdapterDevice.GetAll(false))
-			{
-				Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
-				Console.WriteLine($"Adapter Device Description: {adapter.Description}");
-				Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
-				Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
-				Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
-				Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
-				foreach (var monitor in adapter.GetMonitors(false))
-				{
-					Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
-					Console.WriteLine($"Monitor Device Description: {monitor.Description}");
-					Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
-					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
-					Console.WriteLine($"Adapter is Active: {monitor.IsActive}");
-					Console.WriteLine($"Adapter is Attached: {monitor.IsAttached}");
 				}
 			}
 

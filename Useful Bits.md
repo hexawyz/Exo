@@ -31,6 +31,9 @@ https://drive.google.com/viewerng/viewer?url=https://www.usb.org/sites/default/f
    `$1$2 $3,`
 3. Detect ALLCAPS
    `(<!0x[0-9A-F]*)[A-Z][A-Z]`
+4. WiN32 GUIDs
+   `DEFINE_GUID\(GUID_DEVCLASS_([^,]+),\s+`
+   `public static readonly Guid $1 = new Guid(`
 
 ## Enum template
 
