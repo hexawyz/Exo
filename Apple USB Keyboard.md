@@ -136,7 +136,7 @@ Keymaps seem to be a slightly different beast, though.
 
 After having read quite a bit of the USB HID specifications, this one actually seems easy enough.
 
-This key is an array of paris of bytes, where each byte is a HID Keyboard Scan code.
+This key is an array of pairs of bytes, where each byte is a HID Keyboard Scan code.
 
 ````csharp
 // The Keymap key would be equivalent to this, except that usages are stored as bytes and not dword.

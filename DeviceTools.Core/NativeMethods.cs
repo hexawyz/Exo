@@ -261,7 +261,7 @@ namespace DeviceTools
 				// DWORD cbSize;
 				// CHAR DevicePath[ANYSIZE_ARRAY];
 				ref uint size = ref Unsafe.As<byte, uint>(ref buffer[0]);
-				size = IntPtr.Size == 4 ? 6 : 8; // sizeof(SP_DeviceInterfaceDETAIL_DATA) in C accounts for the padding between cbSize and DevicePath.
+				size = IntPtr.Size == 4 ? 6U : 8U; // sizeof(SP_DeviceInterfaceDETAIL_DATA) in C accounts for the padding between cbSize and DevicePath.
 				if (NativeMethods.SetupDiGetDeviceInterfaceDetail(handle, ref interfaceData, ref size, (uint)buffer.Length, out requiredTotalSize, IntPtr.Zero) == 0)
 				{
 					throw new Win32Exception(Marshal.GetLastWin32Error());

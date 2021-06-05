@@ -33,7 +33,7 @@ namespace DeviceTools.DisplayDevices
 					(
 						IntPtr.Zero,
 						MemoryMarshal.GetReference(default(Span<NativeMethods.Rectangle>)),
-						(delegate* unmanaged<IntPtr, IntPtr, IntPtr, IntPtr, uint>)(delegate*<IntPtr, IntPtr, IntPtr, IntPtr, uint>)&EnumDisplayMonitorsCallback,
+						(delegate* unmanaged<IntPtr, IntPtr, IntPtr, IntPtr, uint>)&EnumDisplayMonitorsCallback,
 						GCHandle.ToIntPtr(handle)
 					) == 0
 				)

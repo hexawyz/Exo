@@ -29,13 +29,17 @@ Code | Official Description   | RE Description          | Values
 1D   |                        | PIP Source ?            | 241 21 15 17 18 23 (Value changed from 0 to 241 when enabling PIP… But changing the value manually seems to do nothing)
 23   |                        | Low Input Lag           | 1 2 3 (Off, Advanced, Ultra Fast)
 25   |                        | Response Time           | 1 2 3 (Off, Advanced, Ultra Fast)
+2B   |                        | Power Indicator         | 1 2 (Off, On)
 60   | Input Source           | Input Source            | 21 15 17 18 23
 62   | Audio speaker volume   | Audio speaker volume    | 0 to 100
+67   |                        | Presence Sensor         | 0 1 2 3 (Off, Level 1, Level 2, Level 3)
 96   | Window Position (TL_Y) | PIP Window Position X:Y | 0 to 25700 => Actually to combined bytes from hex 00 to 64
 97   | Window Position (BR_X) | PIP Window Size         | 0 to 10 (Smallest to largest size; largest is about 1/9 of the screen)
 E1   |                        | Advanced DCR            | 0 25 50 75 100
 E2   |                        | Blue light Filter       | 0 to 100
 E8   |                        | Multi Picture mode      | 1 2 3 4 5 (Disabled; PIP; Left/Right; Top/Bottom; Quad) (ClickMonitorDDC has trouble reading back the value, maybe because of screen switching modes)
+ED   |                        | USB 3.1                 | 1 2 (Off 4K 60Hz, On 4K 30Hz)
+EF   |                        | Resolution Notice       | 0 2 (On, Off) (Seems to be buggy, value 0 is not advertised, and value 1 can make the monitor behave weirdly)
 F3   |                        | Window Select           | 0 1 2 3 (TL; BL; TR; BR) (At least allows to change the source; did not find yet how to change the associated color preset)
 
 
@@ -50,4 +54,4 @@ Source IDs <=> Name mapping
 The VCP codes used for PIP/Multi Picture are not standard, despite MCCS defining a few codes that could have been used. (e.g A for Window Select)
 Finding how to manage color profiles in PIP mode may prove more difficult, as associated VCP codes are essentially forced to 255 when this mode is enabled.
 
-Still, this gives hope as to what could be douable with a nicely integrated application. 😊
+Still, this gives hope as to what could be doable with a nicely integrated application. 😊
