@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32.SafeHandles;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
 using System.ComponentModel;
@@ -192,8 +192,8 @@ namespace DeviceTools
 			SafeDeviceInfoListHandle deviceInfoSet,
 			ref DeviceInfoData deviceInfoData,
 			in Guid interfaceClassGuid,
-			uint MemberIndex,
-			ref DeviceInterfaceData DeviceInterfaceData
+			uint memberIndex,
+			ref DeviceInterfaceData deviceInterfaceData
 		);
 
 		[DllImport("SetupAPI", EntryPoint = "SetupDiEnumDeviceInterfaces", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
@@ -202,8 +202,8 @@ namespace DeviceTools
 			SafeDeviceInfoListHandle deviceInfoSet,
 			IntPtr zero,
 			in Guid interfaceClassGuid,
-			uint MemberIndex,
-			ref DeviceInterfaceData DeviceInterfaceData
+			uint memberIndex,
+			ref DeviceInterfaceData deviceInterfaceData
 		);
 
 		[DllImport("SetupAPI", EntryPoint = "SetupDiGetDeviceInterfaceDetailW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
