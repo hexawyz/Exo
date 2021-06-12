@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -57,7 +57,7 @@ namespace DeviceTools.DisplayDevices
 
 		private LogicalMonitor(IntPtr handle)
 		{
-			this.Handle = handle;
+			Handle = handle;
 			var info = new NativeMethods.LogicalMonitorInfoEx { Size = Unsafe.SizeOf<NativeMethods.LogicalMonitorInfoEx>() };
 			// TODO: Avoid throwing exceptions in the constructor, which is (indirectly) called from unmanaged code.
 			if (NativeMethods.GetMonitorInfo(handle, ref info) == 0)

@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Text.Unicode;
+using DeviceTools.DisplayDevices.Mccs;
 
 namespace DeviceTools.Cli
 {
@@ -28,8 +29,8 @@ namespace DeviceTools.Cli
 					Console.WriteLine($"Monitor Device Description: {monitor.Description}");
 					Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
 					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
-					Console.WriteLine($"Adapter is Active: {monitor.IsActive}");
-					Console.WriteLine($"Adapter is Attached: {monitor.IsAttached}");
+					Console.WriteLine($"Monitor is Active: {monitor.IsActive}");
+					Console.WriteLine($"Monitor is Attached: {monitor.IsAttached}");
 				}
 			}
 
@@ -113,6 +114,10 @@ namespace DeviceTools.Cli
 					{
 						Console.WriteLine("Failed to parse capabilities.");
 					}
+
+					//physicalMonitor.SetVcpFeature((byte)VcpCode.InputSelect, 17 /* HDMI 1 */);
+					//System.Threading.Thread.Sleep(10_000);
+					//physicalMonitor.SetVcpFeature((byte)VcpCode.InputSelect, 23 /* USB-C */ );
 				}
 			}
 
