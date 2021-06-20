@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.RawInput
+namespace DeviceTools.RawInput.Usages
 {
     public enum HidConsumerUsage : ushort
     {

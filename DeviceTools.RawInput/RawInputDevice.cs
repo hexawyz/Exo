@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
+using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Win32.SafeHandles;
+using DeviceTools.RawInput.Usages;
 
 namespace DeviceTools.RawInput
 {
@@ -86,6 +82,8 @@ namespace DeviceTools.RawInput
 				HidUsagePage.Keyboard => new RawInputHidDevice<HidKeyboardUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 				HidUsagePage.Digitizer => new RawInputHidDevice<HidDigitizerUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 				HidUsagePage.Consumer => new RawInputHidDevice<HidConsumerUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
+				HidUsagePage.PowerDevice => new RawInputHidDevice<HidPowerDeviceUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
+				HidUsagePage.BatterySystem => new RawInputHidDevice<HidBatterySystemUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 				_ => new RawInputHidDevice(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 			};
 		}
