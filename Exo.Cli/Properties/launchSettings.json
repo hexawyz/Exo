@@ -1,8 +1,8 @@
 {
   "profiles": {
     "Exo.Cli": {
-      "commandName": "Project",
-      "commandLineArgs": "--monitor-name VSC7F34 --change-source Hdmi1"
+        "commandName": "Project",
+        "commandLineArgs": "--monitor-name VSC7F34 --change-source Hdmi1"
     }
   }
 }

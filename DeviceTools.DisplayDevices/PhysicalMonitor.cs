@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices.Mccs;
@@ -41,7 +41,8 @@ namespace DeviceTools.DisplayDevices
 				throw new Win32Exception(Marshal.GetLastWin32Error());
 			}
 
-			return buffer.AsSpan(0, buffer.Length - 1);
+			// Some capabilities string seem to be returned with trailing null characters, so we trim them to be sure 😑
+			return buffer.AsSpan(0, buffer.Length - 1).TrimEnd((byte)0);
 		}
 
 		public void SetVcpFeature(byte vcpCode, uint value)

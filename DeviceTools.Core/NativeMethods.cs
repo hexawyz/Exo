@@ -5,9 +5,11 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security;
 
 namespace DeviceTools
 {
+	[SuppressUnmanagedCodeSecurity]
 	internal static class NativeMethods
 	{
 		private const int ErrorGenFailure = 0x0000001F;

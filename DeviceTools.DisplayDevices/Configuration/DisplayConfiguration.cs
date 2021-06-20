@@ -380,8 +380,14 @@ namespace DeviceTools.DisplayDevices.Configuration
 		public EdidManufacturerNameId EdidManufacturerNameId => new EdidManufacturerNameId(_deviceName.EdidManufactureId);
 		public ushort EdidProductCodeId => _deviceName.EdidProductCodeId;
 
-		public string GetFriendlyDeviceName() => _deviceName.MonitorFriendlyDeviceName.ToString();
-		public string GetDeviceName() => _deviceName.MonitorDevicePath.ToString();
+		public int ConnectorInstance => (int)_deviceName.ConnectorInstance;
+
+		public bool IsEdidValid => (_deviceName.Flags & NativeMethods.DisplayConfigTargetDeviceNameFlags.EdidIdsValid) != 0;
+		public bool IsFriendlyNameFromEdid => (_deviceName.Flags & NativeMethods.DisplayConfigTargetDeviceNameFlags.FriendlyNameFromEdid) != 0;
+		public bool IsFriendlyNameForced => (_deviceName.Flags & NativeMethods.DisplayConfigTargetDeviceNameFlags.FriendlyNameForced) != 0;
+
+		public string GetMonitorFriendlyDeviceName() => _deviceName.MonitorFriendlyDeviceName.ToString();
+		public string GetMonitorDeviceName() => _deviceName.MonitorDevicePath.ToString();
 	}
 
 	public readonly struct MonitorName : IEquatable<MonitorName>

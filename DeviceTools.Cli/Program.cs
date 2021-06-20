@@ -14,110 +14,110 @@ namespace DeviceTools.Cli
 		private static void Main(string[] args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
+			bool enumerateMonitors = false;
 
-			foreach (var adapter in DisplayAdapterDevice.GetAll(false))
+			if (enumerateMonitors)
 			{
-				Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
-				Console.WriteLine($"Adapter Device Description: {adapter.Description}");
-				Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
-				Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
-				Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
-				Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
-				foreach (var monitor in adapter.GetMonitors(false))
+				foreach (var adapter in DisplayAdapterDevice.GetAll(false))
 				{
-					Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
-					Console.WriteLine($"Monitor Device Description: {monitor.Description}");
-					Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
-					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
-					Console.WriteLine($"Monitor is Active: {monitor.IsActive}");
-					Console.WriteLine($"Monitor is Attached: {monitor.IsAttached}");
-				}
-			}
-
-			foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Display))
-			{
-				Console.WriteLine(s);
-			}
-
-			foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Monitor))
-			{
-				Console.WriteLine(s);
-			}
-
-			foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
-			{
-				Console.WriteLine(s);
-			}
-
-			foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Monitor))
-			{
-				Console.WriteLine(s);
-			}
-
-			foreach (var monitor in LogicalMonitor.GetAll())
-			{
-				Console.WriteLine($"Logical monitor name: {monitor.Name}");
-
-				foreach (var physicalMonitor in monitor.GetPhysicalMonitors())
-				{
-					Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
-
-					var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
-					Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString)}");
-
-					if (MonitorCapabilities.TryParse(capabilitiesString, out var capabilities))
+					Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
+					Console.WriteLine($"Adapter Device Description: {adapter.Description}");
+					Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
+					Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
+					Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
+					Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
+					foreach (var monitor in adapter.GetMonitors(false))
 					{
-						Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
-						Console.WriteLine($"Physical monitor model: {capabilities.Model}");
-						Console.WriteLine($"Physical monitor MCCS Version: {capabilities.MccsVersion}");
+						Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
+						Console.WriteLine($"Monitor Device Description: {monitor.Description}");
+						Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
+						Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
+						Console.WriteLine($"Monitor is Active: {monitor.IsActive}");
+						Console.WriteLine($"Monitor is Attached: {monitor.IsAttached}");
+					}
+				}
 
-						Console.WriteLine($"Supported DDC/CI commands: {capabilities.SupportedMonitorCommands.Length}");
-						foreach (var ddcCiCommand in capabilities.SupportedMonitorCommands)
+				//foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Display))
+				//{
+				//	Console.WriteLine(s);
+				//}
+
+				//foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Monitor))
+				//{
+				//	Console.WriteLine(s);
+				//}
+
+				//foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
+				//{
+				//	Console.WriteLine(s);
+				//}
+
+				//foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Monitor))
+				//{
+				//	Console.WriteLine(s);
+				//}
+
+				foreach (var monitor in LogicalMonitor.GetAll())
+				{
+					Console.WriteLine($"Logical monitor name: {monitor.Name}");
+
+					foreach (var physicalMonitor in monitor.GetPhysicalMonitors())
+					{
+						Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
+
+						var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
+						Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString)}");
+
+						if (MonitorCapabilities.TryParse(capabilitiesString, out var capabilities))
 						{
-							Console.WriteLine($"{(byte)ddcCiCommand:X2} {ddcCiCommand}");
-						}
+							Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
+							Console.WriteLine($"Physical monitor model: {capabilities.Model}");
+							Console.WriteLine($"Physical monitor MCCS Version: {capabilities.MccsVersion}");
 
-						Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
-						foreach (var vcpCommand in capabilities.SupportedVcpCommands)
-						{
-							Console.Write($"Command {vcpCommand.VcpCode:X2}");
-							if (vcpCommand.Name is { Length: not 0 })
+							Console.WriteLine($"Supported DDC/CI commands: {capabilities.SupportedMonitorCommands.Length}");
+							foreach (var ddcCiCommand in capabilities.SupportedMonitorCommands)
 							{
-								Console.Write($" - {vcpCommand.Name}");
-							}
-							Console.WriteLine();
-
-							try
-							{
-								var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
-
-								Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
-								Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
-							}
-							catch
-							{
-								Console.WriteLine("Failed to query the VCP code.");
+								Console.WriteLine($"{(byte)ddcCiCommand:X2} {ddcCiCommand}");
 							}
 
-							foreach (var value in vcpCommand.NonContinuousValues)
+							Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
+							foreach (var vcpCommand in capabilities.SupportedVcpCommands)
 							{
-								Console.Write($"Value {value.Value:X2}");
-								if (value.Name is { Length: not 0 })
+								Console.Write($"Command {vcpCommand.VcpCode:X2}");
+								if (vcpCommand.Name is { Length: not 0 })
 								{
-									Console.Write($" - {value.Name}");
+									Console.Write($" - {vcpCommand.Name}");
 								}
 								Console.WriteLine();
+
+								try
+								{
+									var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
+
+									Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
+									Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
+								}
+								catch
+								{
+									Console.WriteLine("Failed to query the VCP code.");
+								}
+
+								foreach (var value in vcpCommand.NonContinuousValues)
+								{
+									Console.Write($"Value {value.Value:X2}");
+									if (value.Name is { Length: not 0 })
+									{
+										Console.Write($" - {value.Name}");
+									}
+									Console.WriteLine();
+								}
 							}
 						}
+						else
+						{
+							Console.WriteLine("Failed to parse capabilities.");
+						}
 					}
-					else
-					{
-						Console.WriteLine("Failed to parse capabilities.");
-					}
-
-					//physicalMonitor.SetVcpFeature((byte)VcpCode.InputSelect, 17 /* HDMI 1 */);
-					//System.Threading.Thread.Sleep(10_000);
-					//physicalMonitor.SetVcpFeature((byte)VcpCode.InputSelect, 23 /* USB-C */ );
 				}
 			}
 
@@ -146,13 +146,6 @@ namespace DeviceTools.Cli
 							Console.WriteLine($"║ Device Product Name: {names.ProductName.ToString()}");
 						}
 					}
-
-					//IntPtr preparsedData = IntPtr.Zero;
-					//NativeMethods.HidParsingCaps caps = default;
-					//NativeMethods.HidDiscoveryGetPreparsedData(file, out preparsedData);
-					//NativeMethods.HidParsingGetCaps(preparsedData, out caps);
-					//NativeMethods.HidDiscoveryFreePreparsedData(preparsedData);
-					//PrintUsage(caps.UsagePage, caps.Usage);
 
 					switch (device)
 					{
