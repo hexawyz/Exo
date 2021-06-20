@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.RawInput
+namespace DeviceTools.RawInput
 {
     public enum HidUsagePage : ushort
     {
@@ -19,7 +19,9 @@
         Unicode = 0x10,
         AlphanumericDisplay = 0x14,
         Sensor = 0x20,
-        BarcodeScanner = 0x8C,
+		PowerDevice = 0x84,
+		BatterySystem = 0x85,
+		BarcodeScanner = 0x8C,
         WeighingDevice = 0x8D,
         MagneticStripeReader = 0x8E,
         CameraControl = 0x90,

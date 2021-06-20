@@ -342,6 +342,8 @@ namespace DeviceTools.Cli
 				HidUsagePage.Keyboard => (HidKeyboardUsage)usage,
 				HidUsagePage.Consumer => (HidConsumerUsage)usage,
 				HidUsagePage.Digitizer => (HidDigitizerUsage)usage,
+				HidUsagePage.PowerDevice => (HidPowerDeviceUsage)usage,
+				HidUsagePage.BatterySystem => (HidBatterySystemUsage)usage,
 				_ => usage.ToString("X2")
 			};
 	}

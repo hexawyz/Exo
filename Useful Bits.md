@@ -34,6 +34,11 @@ https://drive.google.com/viewerng/viewer?url=https://www.usb.org/sites/default/f
 4. WiN32 GUIDs
    `DEFINE_GUID\(GUID_DEVCLASS_([^,]+),\s+`
    `public static readonly Guid $1 = new Guid(`
+5. Bulk transformation of table lines for HID Power Devices
+   `([0-9A-Z]{2}) (\b(?:\w|\d)+(?: (?!C[ALP]|D[FV]|S[FV])(?:\w|\d)+)*) (?:C[ALP]|D[FV]|S[FV])(?: x){0,3} (?:N\/A|R(?:\/[OW])?)(?: x)? (?:\d+\.\d+\.\d+)`
+   `$2 = 0x$1,`
+6. Find identifiers to fix (Two uppercase letters or one lowercase initial)
+   `([A-Z]{2}|\b[a-z])`
 
 ## Enum template
 
