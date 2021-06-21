@@ -1,4 +1,4 @@
-namespace DeviceTools.RawInput.Usages
+namespace DeviceTools.HumanInterfaceDevices.Usages
 {
     public enum HidGameUsage : ushort
     {

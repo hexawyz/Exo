@@ -1,4 +1,4 @@
-﻿using DeviceTools;
+using DeviceTools;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-namespace DeviceTools.RawInput
+namespace DeviceTools.HumanInterfaceDevices
 {
 	public abstract class HidDevice : IDisposable
 	{
@@ -52,7 +52,7 @@ namespace DeviceTools.RawInput
 
 		public virtual void Dispose()
 		{
-			if (FileHandle is SafeFileHandle fileHandle)
+			if (_fileHandle is SafeFileHandle fileHandle)
 			{
 				fileHandle.Dispose();
 				// Preparsed data always requires accessing the file handle.

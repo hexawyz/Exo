@@ -4,6 +4,6 @@ namespace Exo.Core.Services
 	{
 		bool OnDeviceQueryRemove() => true;
 
-		bool OnDevice
+		bool OnDeviceRemoved();
 	}
 }

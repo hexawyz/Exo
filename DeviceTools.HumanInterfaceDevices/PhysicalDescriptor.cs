@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace DeviceTools.RawInput
+namespace DeviceTools.HumanInterfaceDevices
 {
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct PhysicalDescriptor : IEquatable<PhysicalDescriptor>

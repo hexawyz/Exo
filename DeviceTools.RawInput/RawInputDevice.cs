@@ -1,7 +1,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using DeviceTools.RawInput.Usages;
+using DeviceTools.HumanInterfaceDevices;
+using DeviceTools.HumanInterfaceDevices.Usages;
 
 namespace DeviceTools.RawInput
 {
@@ -136,7 +137,7 @@ namespace DeviceTools.RawInput
 			if (Volatile.Read(ref _productName) is string value) return value;
 
 			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
-			value = NativeMethods.GetProductString(FileHandle);
+			value = HumanInterfaceDevices.NativeMethods.GetProductString(FileHandle);
 
 			// Give priority to the previously assigned value, if any.
 			return Interlocked.CompareExchange(ref _productName, value, null) ?? value;
@@ -149,7 +150,7 @@ namespace DeviceTools.RawInput
 			if (Volatile.Read(ref _manufacturerName) is string value) return value;
 
 			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
-			value = NativeMethods.GetManufacturerString(FileHandle);
+			value = HumanInterfaceDevices.NativeMethods.GetManufacturerString(FileHandle);
 
 			// Give priority to the previously assigned value, if any.
 			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;

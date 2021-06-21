@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -13,13 +13,13 @@ namespace DeviceTools
 		internal static ReadOnlySpan<byte> StringData => new byte[] { 0 };
 #endif
 
-		private interface IndexEntry
+		private interface IIndexEntry
 		{
 			ushort Id { get; }
 		}
 
 		[StructLayout(LayoutKind.Sequential, Pack = 2)]
-		private readonly struct VendorIndexEntry : IndexEntry
+		private readonly struct VendorIndexEntry : IIndexEntry
 		{
 			// Public ID of this vendor.
 			public ushort Id { get; }
@@ -31,7 +31,7 @@ namespace DeviceTools
 		}
 
 		[StructLayout(LayoutKind.Sequential, Pack = 2)]
-		private readonly struct ProductIndexEntry : IndexEntry
+		private readonly struct ProductIndexEntry : IIndexEntry
 		{
 			// Public ID of this device.
 			public ushort Id { get; }
@@ -41,7 +41,7 @@ namespace DeviceTools
 		}
 
 		private static int IndexOfId<T>(ReadOnlySpan<T> items, ushort id)
-			where T : IndexEntry
+			where T : IIndexEntry
 		{
 			int min = 0;
 			int max = id < items.Length ? id : items.Length - 1;

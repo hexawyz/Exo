@@ -229,4 +229,3 @@ namespace Exo.DeviceNotifications
 		}
 	}
 }
-}

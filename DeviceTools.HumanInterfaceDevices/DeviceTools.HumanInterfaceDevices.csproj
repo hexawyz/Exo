@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>DeviceTools.RawInput</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.Memory" />
+		<PackageReference Include="System.Buffers" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace DeviceTools.RawInput
+namespace DeviceTools.HumanInterfaceDevices
 {
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct PhysicalDescriptorSet : IReadOnlyList<PhysicalDescriptor>, IList<PhysicalDescriptor>, IEquatable<PhysicalDescriptorSet>
@@ -19,8 +19,8 @@ namespace DeviceTools.RawInput
 
             internal Enumerator(PhysicalDescriptorSet set)
             {
-                _collection = set.Collection;
-                _startIndex = set.StartIndex + 1;
+                _collection = set._collection;
+                _startIndex = set._startIndex + 1;
                 _index = 0xFFFF;
                 _count = (byte)_collection.PhysicalDescriptorCount;
             }
@@ -31,7 +31,7 @@ namespace DeviceTools.RawInput
                 {
                     if (_index >= _count) throw new InvalidOperationException();
 
-                    return Unsafe.As<byte, PhysicalDescriptor>(ref _collection.Data[_startIndex + _index * 2]);
+                    return Unsafe.As<byte, PhysicalDescriptor>(ref _collection._data[_startIndex + _index * 2]);
                 }
             }
 
@@ -55,23 +55,23 @@ namespace DeviceTools.RawInput
             void IEnumerator.Reset() => _index = 0xFFFF;
         }
 
-        internal readonly PhysicalDescriptorSetCollection Collection;
-        internal readonly int StartIndex;
+        internal readonly PhysicalDescriptorSetCollection _collection;
+        internal readonly int _startIndex;
 
         internal PhysicalDescriptorSet(PhysicalDescriptorSetCollection collection, int startIndex)
         {
-            Collection = collection;
-            StartIndex = startIndex;
+            _collection = collection;
+            _startIndex = startIndex;
         }
 
-        public PhysicalDescriptorSetBias Bias => (PhysicalDescriptorSetBias)(Collection.Data[StartIndex] >> 5);
-        public byte Preference => (byte)(Collection.Data[StartIndex] & 0x1F);
+        public PhysicalDescriptorSetBias Bias => (PhysicalDescriptorSetBias)(_collection._data[_startIndex] >> 5);
+        public byte Preference => (byte)(_collection._data[_startIndex] & 0x1F);
 
-        public int Count => Collection.PhysicalDescriptorCount;
+        public int Count => _collection.PhysicalDescriptorCount;
 
         public PhysicalDescriptor this[int index]
-            => (uint)index <= (uint)Collection.PhysicalDescriptorCount ?
-                Unsafe.As<byte, PhysicalDescriptor>(ref Collection.Data[StartIndex + 1 + index * 2]) :
+            => (uint)index <= (uint)_collection.PhysicalDescriptorCount ?
+                Unsafe.As<byte, PhysicalDescriptor>(ref _collection._data[_startIndex + 1 + index * 2]) :
                 throw new ArgumentOutOfRangeException(nameof(index));
 
         PhysicalDescriptor IList<PhysicalDescriptor>.this[int index]
@@ -83,7 +83,7 @@ namespace DeviceTools.RawInput
         bool ICollection<PhysicalDescriptor>.IsReadOnly => true;
 
         public ReadOnlySpan<PhysicalDescriptor> AsSpan()
-            => MemoryMarshal.Cast<byte, PhysicalDescriptor>(Collection.Data.AsSpan(StartIndex, Collection.PhysicalDescriptorCount * Unsafe.SizeOf<PhysicalDescriptor>()));
+            => MemoryMarshal.Cast<byte, PhysicalDescriptor>(_collection._data.AsSpan(_startIndex, _collection.PhysicalDescriptorCount * Unsafe.SizeOf<PhysicalDescriptor>()));
 
         public Enumerator GetEnumerator() => new Enumerator(this);
 
@@ -95,13 +95,13 @@ namespace DeviceTools.RawInput
         public void CopyTo(PhysicalDescriptor[] array, int arrayIndex) => AsSpan().CopyTo(array.AsSpan(arrayIndex));
 
         public override bool Equals(object? obj) => obj is PhysicalDescriptorSet set && Equals(set);
-        public bool Equals(PhysicalDescriptorSet other) => Collection.Equals(other.Collection) && StartIndex == other.StartIndex;
+        public bool Equals(PhysicalDescriptorSet other) => _collection.Equals(other._collection) && _startIndex == other._startIndex;
 
         public override int GetHashCode()
         {
             int hashCode = -2061011458;
-            hashCode = hashCode * -1521134295 + Collection.GetHashCode();
-            hashCode = hashCode * -1521134295 + StartIndex.GetHashCode();
+            hashCode = hashCode * -1521134295 + _collection.GetHashCode();
+            hashCode = hashCode * -1521134295 + _startIndex.GetHashCode();
             return hashCode;
         }
 

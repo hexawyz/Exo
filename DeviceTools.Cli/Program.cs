@@ -1,11 +1,10 @@
-using DeviceTools.RawInput;
-using DeviceTools;
-using DeviceTools.DisplayDevices;
 using System;
 using System.Linq;
 using System.Text;
-using System.Text.Unicode;
-using DeviceTools.DisplayDevices.Mccs;
+using DeviceTools.DisplayDevices;
+using DeviceTools.HumanInterfaceDevices;
+using DeviceTools.HumanInterfaceDevices.Usages;
+using DeviceTools.RawInput;
 
 namespace DeviceTools.Cli
 {
@@ -215,7 +214,7 @@ namespace DeviceTools.Cli
 			try { physicalDescriptorSets = device.GetPhysicalDescriptorSets(); }
 			catch { }
 
-			foreach (var reportType in new[] { NativeMethods.HidParsingReportType.Input, NativeMethods.HidParsingReportType.Output, NativeMethods.HidParsingReportType.Feature })
+			foreach (var reportType in new[] { HumanInterfaceDevices.NativeMethods.HidParsingReportType.Input, HumanInterfaceDevices.NativeMethods.HidParsingReportType.Output, HumanInterfaceDevices.NativeMethods.HidParsingReportType.Feature })
 			{
 				var buttons = device.GetButtonCapabilities(reportType);
 

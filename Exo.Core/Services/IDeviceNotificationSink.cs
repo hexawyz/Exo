@@ -6,7 +6,7 @@ namespace Exo.Core.Services
 	{
 		void OnDeviceArrival(Guid deviceInterfaceClassGuid, string deviceName) { }
 		void OnDeviceQueryRemoveFailed(Guid deviceInterfaceClassGuid, string deviceName) { }
-		void OnDeviceQueryRemoveFailed(Guid deviceInterfaceClassGuid, string deviceName) { }
+		//void OnDeviceQueryRemoveFailed(Guid deviceInterfaceClassGuid, string deviceName) { }
 
 		bool OnDeviceQueryRemove(Guid deviceInterfaceClassGuid, string deviceName) => true;
 	}

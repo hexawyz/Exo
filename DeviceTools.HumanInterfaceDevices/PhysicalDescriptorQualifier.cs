@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.RawInput
+﻿namespace DeviceTools.HumanInterfaceDevices
 {
     public enum PhysicalDescriptorQualifier : byte
     {

@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text;
 
-namespace DeviceTools.RawInput
+namespace DeviceTools.HumanInterfaceDevices
 {
 	// TODO: make public with a nicer API
 	internal static class DeviceNameParser

@@ -116,6 +116,14 @@ dotnet_naming_rule.local_naming.severity                                 = error
 dotnet_naming_rule.local_naming.symbols                                  = locals
 dotnet_naming_rule.local_naming.style                                    = camel_case
 
+# Constant naming
+dotnet_naming_symbols.const_locals.applicable_kinds                      = local
+dotnet_naming_symbols.const_locals.required_modifiers                    = const
+
+dotnet_naming_rule.const_local_naming.severity                           = error
+dotnet_naming_rule.const_local_naming.symbols                            = const_locals
+dotnet_naming_rule.const_local_naming.style                              = pascal_case
+
 # Private field naming
 dotnet_naming_symbols.non_public_fields.applicable_kinds                 = field
 dotnet_naming_symbols.non_public_fields.applicable_accessibilities       = private, internal

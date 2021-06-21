@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
-namespace DeviceTools.RawInput
+namespace DeviceTools.HumanInterfaceDevices
 {
 	// As opposed to Raw
 	internal sealed class GenericHidDevice : HidDevice

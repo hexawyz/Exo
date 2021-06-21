@@ -1,6 +1,5 @@
-﻿using DeviceTools.RawInput;
 using System;
-using System.Linq;
+using DeviceTools.HumanInterfaceDevices;
 
 namespace RgbFusionControl
 {

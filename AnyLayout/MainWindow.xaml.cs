@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -14,7 +14,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using DeviceTools.HumanInterfaceDevices;
+using DeviceTools.HumanInterfaceDevices.Usages;
 using DeviceTools.RawInput;
+using static DeviceTools.RawInput.NativeMethods;
 
 namespace AnyLayout
 {
@@ -43,34 +46,34 @@ namespace AnyLayout
 
             hwndSource.AddHook(WindowProc);
 
-            NativeMethods.RegisterRawInputDevices
+            RegisterRawInputDevices
             (
                 new[]
                 {
-                    new NativeMethods.RawInputDeviceRegisgtration
+                    new RawInputDeviceRegisgtration
                     {
                         TargetHandle = hwndSource.Handle,
                         UsagePage = HidUsagePage.GenericDesktop,
                         Usage = (ushort)HidGenericDesktopUsage.Keyboard,
-                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys | NativeMethods.RawInputDeviceFlags.NoHotKeys
+                        Flags = RawInputDeviceFlags.NoLegacy | RawInputDeviceFlags.AppKeys | RawInputDeviceFlags.NoHotKeys
                     },
-                    new NativeMethods.RawInputDeviceRegisgtration
+                    new RawInputDeviceRegisgtration
                     {
                         TargetHandle = hwndSource.Handle,
                         UsagePage = HidUsagePage.Consumer,
                         Usage = (ushort)HidConsumerUsage.ConsumerControl,
-                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys | NativeMethods.RawInputDeviceFlags.NoHotKeys
+                        Flags = RawInputDeviceFlags.NoLegacy | RawInputDeviceFlags.AppKeys | RawInputDeviceFlags.NoHotKeys
                     },
-                    new NativeMethods.RawInputDeviceRegisgtration
+                    new RawInputDeviceRegisgtration
                     {
                         TargetHandle = hwndSource.Handle,
                         UsagePage = HidUsagePage.Consumer,
                         Usage = 0,
-                        Flags = NativeMethods.RawInputDeviceFlags.NoLegacy | NativeMethods.RawInputDeviceFlags.AppKeys | NativeMethods.RawInputDeviceFlags.NoHotKeys | NativeMethods.RawInputDeviceFlags.PageOnly
+                        Flags = RawInputDeviceFlags.NoLegacy | RawInputDeviceFlags.AppKeys | RawInputDeviceFlags.NoHotKeys | RawInputDeviceFlags.PageOnly
                     }
                 },
                 1,
-                (uint)Marshal.SizeOf<NativeMethods.RawInputDeviceRegisgtration>()
+                (uint)Marshal.SizeOf<RawInputDeviceRegisgtration>()
             );
         }
 
@@ -78,10 +81,10 @@ namespace AnyLayout
         {
             if (msg == WM_INPUT)
             {
-                var data = NativeMethods.GetRawInputData(lParam);
+                var data = GetRawInputData(lParam);
                 if (data.Header.Type == RawInputDeviceType.Keyboard)
                 {
-                    if ((data.Data.Keyboard.Flags & NativeMethods.RawInputKeyboardFlags.Break) != 0)
+                    if ((data.Data.Keyboard.Flags & RawInputKeyboardFlags.Break) != 0)
                     {
                         _viewModel.ScanCode = data.Data.Keyboard.MakeCode;
                         _viewModel.Key = (VirtualKey)data.Data.Keyboard.VirtualKey;
