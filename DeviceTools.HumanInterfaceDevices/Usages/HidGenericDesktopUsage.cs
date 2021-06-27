@@ -11,12 +11,18 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
         Keyboard = 0x06,
         Keypad = 0x07,
         MultiAxisController = 0x08,
-
         TabletPcSystemControls = 0x09,
+        WaterCoolingDevice = 0x0A,
+		ComputerChassisDevice = 0x0B,
+		WirelessRadioControl = 0x0C,
+		PortableDeviceControl = 0x0D,
+        SystemMultiAxisController = 0x0E,
+        SpatialController = 0x0F,
+        AssistiveControl = 0x10,
+		DeviceDock = 0x11,
+		DockabelDevice = 0x12,
 
-        PortableDeviceControl = 0x0D,
-
-        X = 0x30,
+		X = 0x30,
         Y = 0x31,
         Z = 0x32,
         Rx = 0x33,
@@ -46,7 +52,12 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 
         ResolutionMultiplier = 0x48,
 
-        SystemControl = 0x80,
+		Qx = 0x49,
+		Qy = 0x4A,
+		Qz = 0x4B,
+		Qw = 0x4C,
+
+		SystemControl = 0x80,
         SystemPower = 0x81,
         SystemSleep = 0x82,
         SystemWake = 0x83,
@@ -68,7 +79,17 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
         DirectionPadRight = 0x92,
         DirectionPadLeft = 0x93,
 
-        SystemDock = 0xA0,
+        IndexTrigger = 0x94,
+        PalmTrigger = 0x95,
+        Thumbstick = 0x96,
+
+		SystemFunctionShift = 0x97,
+		SystemFunctionShiftLock = 0x98,
+		SystemFunctionShiftLockIndicator = 0x99,
+		SystemDismissNotification = 0x9A,
+		SystemDoNotDisturb = 0x9B,
+
+		SystemDock = 0xA0,
         SystemUndock = 0xA1,
         SystemSetup = 0xA2,
         SystemBreak = 0xA3,
@@ -87,8 +108,28 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
         SystemDisplaySwapPrimarySecondary = 0xB6,
         SystemDisplayLcdAutoscale = 0xB7,
 
-        SystemDisplayRotationLockButton = 0xC9,
+		SensorZone = 0xC0,
+		Rpm = 0xC1,
+		CoolantLevel = 0xC3,
+		CoolantCriticalLevel = 0xC3,
+		CoolantPump = 0xC4,
+		ChassisEnclosure = 0xC5,
+
+		WirelessRadioButton = 0xC6,
+		WirelessRadioLed = 0xC7,
+		WirelessRadioSliderSwitch = 0xC8,
+
+		SystemDisplayRotationLockButton = 0xC9,
         SystemDisplayRotationLockSliderSwitch = 0xCA,
         ControlEnable = 0xCB,
+
+		DockableDeviceUniqueId = 0xD0,
+		DockableDeviceVendorId = 0xD1,
+		DockableDevicePrimaryUsagePage = 0xD2,
+		DockableDevicePrimaryUsageId = 0xD3,
+		DockableDeviceDockingState = 0xD4,
+		DockableDeviceDisplayOcclusion = 0xD5,
+		DockableDeviceObjectType = 0xD6,
+
     }
 }

@@ -31,6 +31,8 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
         GunAutomatic = 0x35,
         GunSafety = 0x36,
         GamepadFireJump = 0x37,
+
         GamepadTrigger = 0x39,
+		FormFittingGamepad = 0x3A,
     }
 }

@@ -338,11 +338,23 @@ namespace DeviceTools.Cli
 				HidUsagePage.Vr => (HidVrUsage)usage,
 				HidUsagePage.Sport => (HidSportUsage)usage,
 				HidUsagePage.Game => (HidGameUsage)usage,
+				HidUsagePage.GenericDevice => (HidGenericDeviceUsage)usage,
 				HidUsagePage.Keyboard => (HidKeyboardUsage)usage,
+				HidUsagePage.Led => (HidLedUsage)usage,
+				HidUsagePage.Telephony => (HidTelephonyUsage)usage,
 				HidUsagePage.Consumer => (HidConsumerUsage)usage,
 				HidUsagePage.Digitizer => (HidDigitizerUsage)usage,
+				HidUsagePage.Haptics => (HidHapticUsage)usage,
+				HidUsagePage.EyeAndHeadTrackers => (HidEyeAndHeadTrackerUsage)usage,
+				HidUsagePage.AuxiliaryDisplay => (HidAuxiliaryDisplayUsage)usage,
+				HidUsagePage.Sensor => (HidSensorUsage)usage,
+				HidUsagePage.MedicalInstrument => (HidMedicalInstrumentUsage)usage,
+				HidUsagePage.BrailleDisplay => (HidBrailleDisplayUsage)usage,
+				HidUsagePage.LightingAndIllumination => (HidLightingAndIlluminationUsage)usage,
+				HidUsagePage.CameraControl => (HidCameraControlUsage)usage,
 				HidUsagePage.PowerDevice => (HidPowerDeviceUsage)usage,
 				HidUsagePage.BatterySystem => (HidBatterySystemUsage)usage,
+				HidUsagePage.FidoAlliance => (HidFidoAllianceUsage)usage,
 				_ => usage.ToString("X2")
 			};
 	}

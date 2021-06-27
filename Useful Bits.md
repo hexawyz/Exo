@@ -24,10 +24,10 @@ https://drive.google.com/viewerng/viewer?url=https://www.usb.org/sites/default/f
 ## Regex replacements to quickly transform text from HID Usage tables to C# enums
 
 1. Bulk transformation of table lines
-   `^([0-9A-F]{1,3}) ((?:[^ \.\r\n]+ )+)[^ \.\r\n]{2,4} \d+(?:\.\d+)+`
+   `^([0-9A-F]{1,4}) ((?:[^ \[\.\r\n]+ )+)(?:\[\d+\] )?[^ \.\r\n]{2,4}(?:/[^ \.\r\n]{2,4})? \d+(?:\.\d+)+`
    `$2 = 0x$1,`
 2. Remove spaces between words
-   `([^ \r\n]+) ([^ \r\n]+) *(= 0x[0-9A-F]+),`
+   `([^ :\r\n]+):? ([^ \r\n]+) *(= 0x[0-9A-F]+),`
    `$1$2 $3,`
 3. Detect ALLCAPS
    `(<!0x[0-9A-F]*)[A-Z][A-Z]`
@@ -39,6 +39,11 @@ https://drive.google.com/viewerng/viewer?url=https://www.usb.org/sites/default/f
    `$2 = 0x$1,`
 6. Find identifiers to fix (Two uppercase letters or one lowercase initial)
    `([A-Z]{2}|\b[a-z])`
+7. Clear reserved lines
+   `^[0-9A-F]{1,4}-[0-9A-F]{1,4} Reserved[^\r\n]*`
+8. Transform enumerations
+   `^(\b[^ ]+) ((?:[^ \r\n]+(?!\r?$) )+)([0-9A-F]{2})(\r?$)`
+   `/// <summary>$2</summary>$4$1 = 0x$3,`
 
 ## Enum template
 
