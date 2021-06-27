@@ -148,6 +148,8 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		StartOrStopGameBroadcast = 0xD7,
 		StartOrStopVoiceDictationSession = 0xD8,
 
+		InvokeOrDismissEmojiPicker = 0xD9,
+
 		Volume = 0xE0,
 		Balance = 0xE1,
 		Mute = 0xE2,

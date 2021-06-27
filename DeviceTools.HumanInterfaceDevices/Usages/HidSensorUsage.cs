@@ -178,6 +178,7 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		PropertyFlushFifoEvents = 0x31C,
 		PropertyMaximumPowerConsumption = 0x31D,
 		PropertyIsPrimary = 0x31E,
+		PropertyHumanPresenceDetectionType = 0x31F,
 
 		DataFieldLocation = 0x400,
 
@@ -711,6 +712,11 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		HingeFoldTypeUnknown = 0x9B4,
 		HingeFoldTypeIncreasing = 0x9B5,
 		HingeFoldTypeDecreasing = 0x9B6,
+
+		HumanPresenceDetectionTypeVendorDefinedNonBiometric = 0x9C0,
+		HumanPresenceDetectionTypeVendorDefinedBiometric = 0x9C1,
+		HumanPresenceDetectionTypeFacialBiometric = 0x9C2,
+		HumanPresenceDetectionTypeAudioBiometric = 0x9C3,
 
 		ModifierChangeSensitivityAbsolute = 0x1000,
 
