@@ -5,4 +5,8 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
+  </ItemGroup>
+
 </Project>

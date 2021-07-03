@@ -1,9 +1,14 @@
+using System;
+using Microsoft.Win32.SafeHandles;
+
 namespace Exo.Core.Services
 {
-	interface IDeviceHandleNotificationSink
+	public interface IDeviceHandleNotificationSink<T>
 	{
-		bool OnDeviceQueryRemove() => true;
-
-		bool OnDeviceRemoved();
+		void OnDeviceArrival(SafeFileHandle deviceFileHandle, T state, IDisposable registration) { }
+		bool OnDeviceQueryRemove(SafeFileHandle deviceFileHandle, T state, IDisposable registration) => true;
+		void OnDeviceQueryRemoveFailed(SafeFileHandle deviceFileHandle, T state, IDisposable registration) { }
+		void OnDeviceRemovePending(SafeFileHandle deviceFileHandle, T state, IDisposable registration) { }
+		void OnDeviceRemoveComplete(SafeFileHandle deviceFileHandle, T state, IDisposable registration) { }
 	}
 }

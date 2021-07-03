@@ -20,7 +20,7 @@ namespace Exo.DeviceNotifications
 		{
 			public int Size;
 			public BroadcastDeviceType DeviceType;
-			private int _reserved;
+			private readonly int _reserved;
 			public Guid ClassGuid;
 			//private char Name; // First character of a null-terminated string
 		}
@@ -30,7 +30,7 @@ namespace Exo.DeviceNotifications
 		{
 			public int Size;
 			public BroadcastDeviceType DeviceType;
-			private int _reserved;
+			private readonly int _reserved;
 			public IntPtr DeviceHandle;
 			public IntPtr DeviceNotifyHandle;
 			public Guid EventGuid;
@@ -43,7 +43,7 @@ namespace Exo.DeviceNotifications
 		{
 			public int Size;
 			public BroadcastDeviceType DeviceType;
-			private int _reserved;
+			private readonly int _reserved;
 		}
 
 		[Flags]
@@ -67,10 +67,10 @@ namespace Exo.DeviceNotifications
 		}
 
 		[DllImport("User32", ExactSpelling = true, SetLastError = true)]
-		public static extern SafeDeviceNotificationHandle RegisterDeviceNotificationW(IntPtr hRecipient, DeviceBrodcastDeviceInterface notificationFilter, DeviceNotificationFlags flags);
+		public static extern IntPtr RegisterDeviceNotificationW(IntPtr hRecipient, DeviceBrodcastDeviceInterface notificationFilter, DeviceNotificationFlags flags);
 
 		[DllImport("User32", ExactSpelling = true, SetLastError = true)]
-		public static extern SafeDeviceNotificationHandle RegisterDeviceNotificationW(IntPtr hRecipient, DeviceBroadcastHandle notificationFilter, DeviceNotificationFlags flags);
+		public static extern IntPtr RegisterDeviceNotificationW(IntPtr hRecipient, DeviceBroadcastHandle notificationFilter, DeviceNotificationFlags flags);
 
 		[DllImport("User32", ExactSpelling = true)]
 		public static extern bool UnregisterDeviceNotification(IntPtr handle);
@@ -78,9 +78,10 @@ namespace Exo.DeviceNotifications
 
 	internal sealed class SafeDeviceNotificationHandle : SafeHandle
 	{
-		internal SafeDeviceNotificationHandle() : base(IntPtr.Zero, true)
-		{
-		}
+		internal SafeDeviceNotificationHandle() : base(IntPtr.Zero, true) { }
+
+		internal SafeDeviceNotificationHandle(IntPtr handle) : this()
+			=> SetHandle(handle);
 
 		protected override bool ReleaseHandle()
 		{
