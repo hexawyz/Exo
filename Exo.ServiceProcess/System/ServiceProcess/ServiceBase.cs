@@ -8,7 +8,8 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-
+using Exo.Core.Services;
+using Exo.DeviceNotifications;
 using static Interop.Advapi32;
 
 namespace System.ServiceProcess
@@ -32,6 +33,7 @@ namespace System.ServiceProcess
         private bool _disposed;
         private bool _initialized;
         private EventLog? _eventLog;
+        private DeviceNotificationEngine? _deviceNotificationEngine;
 
         /// <summary>
         /// Indicates the maximum size for a service name.
@@ -715,6 +717,15 @@ namespace System.ServiceProcess
         {
             switch (command)
             {
+                case ControlOptions.CONTROL_DEVICEEVENT:
+                    {
+                        if (_deviceNotificationEngine is DeviceNotificationEngine deviceNotificationEngine)
+                        {
+                            return deviceNotificationEngine.HandleNotification(eventType, eventData);
+                        }
+                        break;
+                    }
+
                 case ControlOptions.CONTROL_POWEREVENT:
                     {
                         ThreadPool.QueueUserWorkItem(_ => DeferredPowerEvent(eventType, eventData));
@@ -955,6 +966,29 @@ namespace System.ServiceProcess
             {
                 // Do nothing.  Not having the event log is bad, but not starting the service as a result is worse.
             }
+        }
+
+        /// <summary>Gets the device notification service associated with this instance.</summary>
+        /// <remarks>The first call to this method will initialize the notification service.</remarks>
+        public IDeviceNotificationService GetDeviceNotificationService()
+        {
+            var deviceNotificationEngine = Volatile.Read(ref _deviceNotificationEngine);
+            if (deviceNotificationEngine is null)
+            {
+                var newDeviceNotificationEngine = DeviceNotificationEngine.CreateForService(ServiceHandle);
+                deviceNotificationEngine = Interlocked.CompareExchange(ref _deviceNotificationEngine, deviceNotificationEngine, null);
+                if (deviceNotificationEngine is not null)
+                {
+                    newDeviceNotificationEngine.Dispose();
+                }
+                else
+                {
+                    deviceNotificationEngine = newDeviceNotificationEngine;
+                }
+            }
+            // NB: Directly returning the reference to DeviceNotificationEngine will indirectly expose
+            // the HandleNotification method, but this not something harmful to the service itself.
+            return deviceNotificationEngine;
         }
     }
 }

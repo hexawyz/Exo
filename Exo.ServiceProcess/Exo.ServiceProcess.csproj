@@ -9,4 +9,8 @@
     <PackageReference Include="System.Diagnostics.EventLog" Version="5.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Exo.DeviceNotifications\Exo.DeviceNotifications.csproj" />
+  </ItemGroup>
+
 </Project>
