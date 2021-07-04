@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Exo.ServiceProcess\Exo.ServiceProcess.csproj" />
+    <ProjectReference Include="..\Exo.ServiceProcess.ServiceController\Exo.ServiceProcess.ServiceController.csproj" />
   </ItemGroup>
 
 </Project>

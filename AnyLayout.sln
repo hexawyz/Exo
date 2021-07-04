@@ -56,7 +56,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.HumanInterfaceD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.DeviceNotifications.Tester", "Exo.DeviceNotifications.Tester\Exo.DeviceNotifications.Tester.csproj", "{180EB404-59D7-475F-A18F-34383FED39DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.ServiceProcess", "Exo.ServiceProcess\Exo.ServiceProcess.csproj", "{46F77CFD-8A0B-4843-8F08-05809B73291D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.ServiceProcess.ServiceController", "Exo.ServiceProcess.ServiceController\Exo.ServiceProcess.ServiceController.csproj", "{46F77CFD-8A0B-4843-8F08-05809B73291D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Extensions.Hosting.WindowsServices", "Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj", "{52E8FC5E-8576-4AF3-BBDE-8ADEB0B6B695}"
 EndProject
