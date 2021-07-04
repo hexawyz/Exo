@@ -22,7 +22,7 @@ namespace Exo.DeviceNotifications
 	/// A separate piece of code must be used to forward the device notifications from the window procedure or the service control handler.
 	/// </para>
 	/// </remarks>
-	public sealed class DeviceNotificationEngine : IDeviceNotificationService
+	public sealed class DeviceNotificationEngine : IDeviceNotificationService, IDisposable
 	{
 		// Keep mappings from raw handle values to the device notification object.
 		// This is required for two reasons:
@@ -58,6 +58,11 @@ namespace Exo.DeviceNotifications
 		{
 			_targetHandle = targetHandle;
 			_isServiceHandle = isServiceHandle;
+		}
+
+		public void Dispose()
+		{
+			// TODO: Unregisters for all notifications and prevent further registration for notifications.
 		}
 
 		/// <summary>Registers to receive device notifications for the specified device file handle.</summary>
@@ -116,12 +121,15 @@ namespace Exo.DeviceNotifications
 		/// <para>Windows should intercept the WM_DEVICECHANGE (<c>0x0219</c>) message and forward the <c>lParam</c> and <c>wParam</c> parameters.</para>
 		/// <para>Services should receive SERVICE_CONTROL_DEVICEEVENT messages and forward the <c>dwEventType</c> and <c>lpEventData</c> parameters.</para>
 		/// </remarks>
-		/// <param name="eventType">The raw event type. (lParam for windows, </param>
+		/// <param name="eventType">The raw event type.</param>
 		/// <param name="eventData">The raw event data.</param>
 		/// <returns>This method returns <c>0</c> if messages were processed correctly, or a <c>BROADCAST_QUERY_DENY</c> if the event was a device removal query that was denied by one of the registered sinks.</returns>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public unsafe int HandleNotification(int eventType, IntPtr eventData)
 		{
+			// Filter events that this code does not handle. (e.g. DBT_DEVNODES_CHANGED, DBT_QUERYCHANGECONFIG, DBT_CONFIGCHANGED, DBT_CONFIGCHANEGCANCELED)
+			if (eventType < 0x8000 || eventType > 0x8006 && eventType != 0xFFFF) return 0;
+
 			switch (((DeviceBroadcastHeader*)eventData)->DeviceType)
 			{
 			case BroadcastDeviceType.DeviceInterface:
@@ -141,14 +149,15 @@ namespace Exo.DeviceNotifications
 					deviceName = nameSpan.ToString();
 				}
 
-				return (_globalDeviceInterfaceClassRegistration is null || DispatchNotification((DeviceBroadcastType)eventType, _globalDeviceInterfaceClassRegistration, broadcastDevInterface->ClassGuid, deviceName)) ?
+				return (_globalDeviceInterfaceClassRegistration is null || DispatchNotification((DeviceBroadcastType)eventType, _globalDeviceInterfaceClassRegistration, broadcastDevInterface->ClassGuid, deviceName))
+					& (!_deviceInterfaceClassNotificationRegistrations.TryGetValue(broadcastDevInterface->ClassGuid, out var deviceInterfaceRegistration) || DispatchNotification((DeviceBroadcastType)eventType, deviceInterfaceRegistration, broadcastDevInterface->ClassGuid, deviceName)) ?
 					0 :
 					BROADCAST_QUERY_DENY;
 			case BroadcastDeviceType.Handle:
 				var broadcastHandle = (DeviceBroadcastHandle*)eventData;
 
-				return GetNotificationRegistration(broadcastHandle->DeviceNotifyHandle, broadcastHandle->DeviceHandle) is not null and var registration
-					&& DispatchNotification((DeviceBroadcastType)eventType, registration) ?
+				return GetNotificationRegistration(broadcastHandle->DeviceNotifyHandle, broadcastHandle->DeviceHandle) is not null and var deviceRegistration
+					&& DispatchNotification((DeviceBroadcastType)eventType, deviceRegistration) ?
 						0 :
 						BROADCAST_QUERY_DENY;
 			default:
