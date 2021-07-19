@@ -1,4 +1,4 @@
-﻿# The device
+# The device
 
 Vendor ID: 05AC (Apple)
 Product ID: 0221
@@ -47,7 +47,7 @@ The byte 0x28 is used to mark the end of a sequence of updates: It seems LEDs ar
 => In fact, it seems updating a single led can be done as a batch of a single command (plus 0x28ff)
 
 The third byte is correlated with the value of the second byte. If second byte is 0x28, third byte must be 0xFF to complete a "transaction". (It seems this will also clear invalid inputs and allow to send a new valid transaction)
-For values 0x20 to 0x26, the thrid byte will be equal to (1 << LedIndex), assuming the second byte is (0x20 + LedIndex). What happens if we set it to other values has not been tested yet.
+For values 0x20 to 0x26, the third byte will be equal to (1 << LedIndex), assuming the second byte is (0x20 + LedIndex). What happens if we set it to other values has not been tested yet.
 
 Later on in the packet, a byte will indicate the effect type:
 
@@ -105,11 +105,11 @@ struct ColorEffect
 struct PulseEffect
 {
 	[FieldOffset(0)]
-	publuc ushort FadeInTicks;
+	public ushort FadeInTicks;
 	[FieldOffset(2)]
-	publuc ushort FadeOutTicks;
+	public ushort FadeOutTicks;
 	[FieldOffset(4)]
-	publuc ushort DurationTicks;
+	public ushort DurationTicks;
 	[FieldOffset(9)]
 	public byte One; // Set to 1
 }
@@ -118,11 +118,11 @@ struct PulseEffect
 struct FlashEffect
 {
 	[FieldOffset(0)]
-	publuc ushort FadeInTicks; // Set to 0x64 … Not sure how to use it otherwise
+	public ushort FadeInTicks; // Set to 0x64 … Not sure how to use it otherwise
 	[FieldOffset(2)]
-	publuc ushort FadeOutTicks; // Set to 0x64 … Not sure how to use it otherwise
+	public ushort FadeOutTicks; // Set to 0x64 … Not sure how to use it otherwise
 	[FieldOffset(4)]
-	publuc ushort DurationTicks;
+	public ushort DurationTicks;
 	[FieldOffset(9)]
 	public byte One; // Set to 1
 	[FieldOffset(10)]
@@ -133,11 +133,11 @@ struct FlashEffect
 struct ColorCycleEffect
 {
 	[FieldOffset(0)]
-	publuc ushort ColorDurationInTicks; // Set to 0x64 … Not sure how to use it otherwise
+	public ushort ColorDurationInTicks;
 	[FieldOffset(2)]
-	publuc ushort TransitionDurationInTicks; // Set to 0x64 … Not sure how to use it otherwise
-	[FieldOffset(7)]
-	public byte ColorCount; // Set to 1
+	public ushort TransitionDurationInTicks;
+	[FieldOffset(8)]
+	public byte ColorCount; // Number of colors to include in the cycle: 0 to 7
 }
 
 ````
@@ -404,7 +404,7 @@ S3 d007
 S4 0807
 S5 4006
 
-Color cycle
+### Color cycle
 
 cc200100000000000000000464000000ff00000000007805b0040000000007000000000000000000000000000000000000000000000000000000000000000000
 cc200100000000000000000464000000ff00000000007e041a040000000007000000000000000000000000000000000000000000000000000000000000000000
