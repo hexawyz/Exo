@@ -46,7 +46,7 @@ From what we know, the controller exposes 7 LED controls, which are referenced b
 The byte 0x28 is used to mark the end of a sequence of updates: It seems LEDs are always updated as a consecutive sequence of commands to update each led, then completed by a 0x28 command.
 => In fact, it seems updating a single led can be done as a batch of a single command (plus 0x28ff)
 
-The third byte is correlated with the value of the second byte. If second byte is 0x28, third byte must be 0xFF to complete a "transaction". (It seems this will also clear invalid inputs and allow to send a new valid transaction)
+The third byte is usually correlated with the value of the second byte. If second byte is 0x28, third byte must be 0xFF to complete a "transaction". (It seems this will also clear invalid inputs and allow to send a new valid transaction)
 For values 0x20 to 0x26, the third byte will be equal to (1 << LedIndex), assuming the second byte is (0x20 + LedIndex). What happens if we set it to other values has not been tested yet.
 
 Later on in the packet, a byte will indicate the effect type:
@@ -148,6 +148,27 @@ There are obviously other commands:
 0x32 Enable ARGB LED effect on DLED1 or DLED2 or both (mask)
 0x34 Seen only once, so I don't know what this is.
 0x58/0x59 Seemingly used to send a sequence of colors to ARGB LED strip (Hard to verify but this seems pretty straightforward)
+
+## Reason for the seemingly correlated command and LED mask
+
+Looking only at the raw extracts, and due to the quite naive way RGB Fusion is implemented, it is a bit hard to decrypt how things work, but setting RGB Fusion in "Sync" mode with a mode such as music can help verifying a simple assertion.
+It seems that a single command can be used to set all leds a the same time.
+
+e.g. the following sequence could be used to set all leds to white at once
+```
+cc20FF0000000000000000015A00FFFFFF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+cc28FF00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+```
+
+This also gives a reason as to why RGB fusion is always sending "empty packets" between batches of commands.
+
+Similarly to RGB RAM, the chip has an "apply settings" command (0x28 here) to apply the settings pushed with commands 0x20-0x27.
+As it turns out, although there is at least one command id per led, any command ID can be used to update *any* LED.
+The **actual** protocol used by the chip seems to be a command buffer that is applied upon demand.
+As such, every command between 0x20 and 0x27 include, are in fact generic led command buffer slots. These slots **must** be filled in order, and any empty command ends the chain.
+These slots are not cleared automatically, thus explaining why RGB Fusion is constantly outputing many empty commands. These could very certainly be optimized away, as clearing the first command before updating it is probably always useless.
+
+Also, it would seem that setting an effect on multiple zones *at once* could produce a different result than setting the same effect on each zone, one at a time.
 
 ## Sending a stream of colors on a DLED
 
