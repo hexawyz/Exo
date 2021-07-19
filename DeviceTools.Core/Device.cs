@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32.SafeHandles;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -210,7 +210,6 @@ namespace DeviceTools
 				}
 			}
 
-			var @lock = new object();
 			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)(charCount * 2)));
 			try
 			{

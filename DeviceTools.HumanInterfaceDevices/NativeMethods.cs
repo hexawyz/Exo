@@ -247,14 +247,20 @@ namespace DeviceTools.HumanInterfaceDevices
 		[DllImport("hid", EntryPoint = "HidD_GetProductString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryGetProductString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
+		[DllImport("hid", EntryPoint = "HidD_GetSerialNumberString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+		public static extern int HidDiscoveryGetSerialNumberString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
+
 		[DllImport("hid", EntryPoint = "HidD_GetIndexedString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryGetIndexedString(SafeFileHandle deviceFileHandle, uint stringIndex, ref char firstChar, uint bufferLength);
 
 		[DllImport("hid", EntryPoint = "HidD_GetPhysicalDescriptor", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryGetPhysicalDescriptor(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
 
-		[DllImport("hid", EntryPoint = "HidD_SetFeature", ExactSpelling = true, CharSet = CharSet.Unicode)]
+		[DllImport("hid", EntryPoint = "HidD_SetFeature", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern uint HidDiscoverySetFeature(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
+
+		[DllImport("hid", EntryPoint = "HidD_GetFeature", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+		public static extern uint HidDiscoveryGetFeature(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
 
 		[DllImport("hid", EntryPoint = "HidP_GetCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
 		public static extern HidParsingResult HidParsingGetCaps(ref byte preparsedData, out HidParsingCaps capabilities);
@@ -280,12 +286,16 @@ namespace DeviceTools.HumanInterfaceDevices
 
 		private static readonly HidGetStringFunction HidGetManufacturerStringFunction = HidDiscoveryGetManufacturerString;
 		private static readonly HidGetStringFunction HidGetProductStringFunction = HidDiscoveryGetProductString;
+		private static readonly HidGetStringFunction HidGetSerialNumberStringFunction = HidDiscoveryGetSerialNumberString;
 
 		public static string GetManufacturerString(SafeFileHandle deviceHandle)
 			=> GetHidString(deviceHandle, HidGetManufacturerStringFunction, "HidD_GetManufacturerString");
 
 		public static string GetProductString(SafeFileHandle deviceHandle)
 			=> GetHidString(deviceHandle, HidGetProductStringFunction, "HidD_GetProductString");
+
+		public static string GetSerialNumberString(SafeFileHandle deviceHandle)
+			=> GetHidString(deviceHandle, HidGetSerialNumberStringFunction, "HidD_GetSerialNumberString");
 
 		private static string GetHidString(SafeFileHandle deviceHandle, HidGetStringFunction getHidString, string functionName)
 		{
@@ -296,12 +306,15 @@ namespace DeviceTools.HumanInterfaceDevices
 				buffer[0] = '\0';
 				try
 				{
-					if (getHidString(deviceHandle, ref buffer[0], (uint)buffer.Length * 2) == 0)
+					// Buffer length should not exceed 4093 bytes (so 4092 bytes because of wide chars ?)
+					int length = Math.Min(buffer.Length, 2046);
+
+					if (getHidString(deviceHandle, ref buffer[0], (uint)length * 2) == 0)
 					{
 						throw new Win32Exception(Marshal.GetLastWin32Error());
 					}
 
-					return Array.IndexOf(buffer, '\0') is int endIndex && endIndex >= 0 ?
+					return buffer.AsSpan(0, length).IndexOf('\0') is int endIndex && endIndex >= 0 ?
 						buffer.AsSpan(0, endIndex).ToString() :
 						throw new Exception($"The string received from {functionName} was not null-terminated.");
 				}

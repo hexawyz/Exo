@@ -1,16 +1,10 @@
-using DeviceTools;
-using Microsoft.Win32.SafeHandles;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeviceTools.HumanInterfaceDevices
 {
@@ -30,6 +24,9 @@ namespace DeviceTools.HumanInterfaceDevices
 
 		private SafeFileHandle? _fileHandle;
 		private IntPtr _preparsedDataPointer;
+		private string? _productName;
+		private string? _manufacturerName;
+		private string? _serialNumber;
 
 		// As RawInput is (seems to be) a layer over the regular HID APIs, that core information is pretty much the only one we can share.
 		/// <summary>Gets the name of the device, useable by the file APIs to access the device.</summary>
@@ -94,9 +91,56 @@ namespace DeviceTools.HumanInterfaceDevices
 			}
 		}
 
+		public string ProductName => _productName ?? SlowGetProductName();
+
+		private string SlowGetProductName()
+		{
+			if (Volatile.Read(ref _productName) is string value) return value;
+
+			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
+			value = HumanInterfaceDevices.NativeMethods.GetProductString(FileHandle);
+
+			// Give priority to the previously assigned value, if any.
+			return Interlocked.CompareExchange(ref _productName, value, null) ?? value;
+		}
+
+		public string ManufacturerName => _manufacturerName ?? SlowGetManufacturerName();
+
+		private string SlowGetManufacturerName()
+		{
+			if (Volatile.Read(ref _manufacturerName) is string value) return value;
+
+			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
+			value = HumanInterfaceDevices.NativeMethods.GetManufacturerString(FileHandle);
+
+			// Give priority to the previously assigned value, if any.
+			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
+		}
+
+		public string SerialNumber => _serialNumber ?? SlowGetSerialNumber();
+
+		private string SlowGetSerialNumber()
+		{
+			if (Volatile.Read(ref _serialNumber) is string value) return value;
+
+			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
+			value = HumanInterfaceDevices.NativeMethods.GetSerialNumberString(FileHandle);
+
+			// Give priority to the previously assigned value, if any.
+			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
+		}
+
 		public void SendFeatureReport(ReadOnlySpan<byte> data)
 		{
 			if (NativeMethods.HidDiscoverySetFeature(FileHandle, ref MemoryMarshal.GetReference(data), (uint)data.Length) == 0)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+		}
+
+		public void ReceiveFeatureReport(Span<byte> buffer)
+		{
+			if (NativeMethods.HidDiscoveryGetFeature(FileHandle, ref MemoryMarshal.GetReference(buffer), (uint)buffer.Length) == 0)
 			{
 				throw new Win32Exception(Marshal.GetLastWin32Error());
 			}

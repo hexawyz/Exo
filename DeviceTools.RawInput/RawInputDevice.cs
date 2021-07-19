@@ -103,8 +103,6 @@ namespace DeviceTools.RawInput
 		private readonly RawInputDeviceCollection _owner;
 		internal IntPtr Handle { get; }
 		private string? _deviceName;
-		private string? _productName;
-		private string? _manufacturerName;
 		// It seems that RawInput won't return the preparsed data for top level collection opened by Windows for exclusive access…
 		// Thankfully, we still have the lower-level HID (discovery) library at hand, which will not deny us this information.
 		// That's kind of dumb, though, as we can't allocate the byte array ourselves in that case… (Or can we?)
@@ -139,32 +137,6 @@ namespace DeviceTools.RawInput
 
 			// Give priority to the previously assigned value, if any.
 			return Interlocked.CompareExchange(ref _deviceName, value, null) ?? value;
-		}
-
-		public string ProductName => _productName ?? SlowGetProductName();
-
-		private string SlowGetProductName()
-		{
-			if (Volatile.Read(ref _productName) is string value) return value;
-
-			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
-			value = HumanInterfaceDevices.NativeMethods.GetProductString(FileHandle);
-
-			// Give priority to the previously assigned value, if any.
-			return Interlocked.CompareExchange(ref _productName, value, null) ?? value;
-		}
-
-		public string ManufacturerName => _manufacturerName ?? SlowGetManufacturerName();
-
-		private string SlowGetManufacturerName()
-		{
-			if (Volatile.Read(ref _manufacturerName) is string value) return value;
-
-			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
-			value = HumanInterfaceDevices.NativeMethods.GetManufacturerString(FileHandle);
-
-			// Give priority to the previously assigned value, if any.
-			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
 		}
 
 		// TODO: How should this be exposed?
