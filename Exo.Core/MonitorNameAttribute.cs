@@ -3,6 +3,7 @@ using DeviceTools.DisplayDevices.Configuration;
 
 namespace Exo.Core
 {
+	[AttributeUsage(AttributeTargets.Class)]
 	public sealed class MonitorNameAttribute : Attribute
 	{
 		public MonitorName MonitorName { get; }

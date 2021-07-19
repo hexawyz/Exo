@@ -4,11 +4,15 @@ using DeviceTools.DisplayDevices.Mccs;
 
 namespace Exo.Core.Features.MonitorFeatures
 {
-	public interface IMonitorCapabilitiesFeature : IFeature
+	public interface IMonitorDeviceFeature : IDeviceFeature
 	{
 	}
 
-	public interface IRawVcpFeature : IFeature
+	public interface IMonitorCapabilitiesFeature : IMonitorDeviceFeature
+	{
+	}
+
+	public interface IRawVcpFeature : IMonitorDeviceFeature
 	{
 		void SetVcpFeature(byte vcpCode, uint value);
 		VcpFeatureReply GetVcpFeature(byte vcpCode);
@@ -35,13 +39,13 @@ namespace Exo.Core.Features.MonitorFeatures
 		public static bool operator !=(ContinuousValue left, ContinuousValue right) => !(left == right);
 	}
 
-	public interface IBrightnessFeature : IFeature
+	public interface IBrightnessFeature : IMonitorDeviceFeature
 	{
 		ContinuousValue GetBrightness();
 		void SetBrightness(uint value);
 	}
 
-	public interface IContrastFeature : IFeature
+	public interface IContrastFeature : IMonitorDeviceFeature
 	{
 		ContinuousValue GetContrast();
 		void SetContrast(uint value);
@@ -53,7 +57,7 @@ namespace Exo.Core.Features.MonitorFeatures
 		public string Name { get; }
 	}
 
-	public interface IInputSelectFeature : IFeature
+	public interface IInputSelectFeature : IMonitorDeviceFeature
 	{
 		ImmutableArray<InputSourceDescription> InputSources { get; }
 		byte GetCurrentSourceId();

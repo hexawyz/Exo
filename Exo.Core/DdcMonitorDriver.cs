@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DeviceTools.SystemControl
 {
-	public class DdcMonitorDriver : MonitorDriver
+	public abstract class DdcMonitorDriver : MonitorDriver
 	{
 		protected DdcMonitorDriver(long adapterId, long id, string deviceName)
 		{
