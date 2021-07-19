@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+    <ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
     <ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
   </ItemGroup>
 
