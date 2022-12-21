@@ -10,7 +10,14 @@ namespace DeviceTools.HumanInterfaceDevices
 		public GenericHidDevice(string deviceName, object @lock)
 		{
 			DeviceName = deviceName;
-			(VendorId, ProductId) = DeviceNameParser.ParseDeviceName(deviceName);
+			if (DeviceNameParser.TryParseDeviceName(deviceName, out var ids))
+			{
+				(VendorId, ProductId) = (ids.VendorId, ids.ProductId);
+			}
+			else
+			{
+				(VendorId, ProductId) = (0xFFFF, 0xFFFF);
+			}
 			Lock = @lock;
 		}
 

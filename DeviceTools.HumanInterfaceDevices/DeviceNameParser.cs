@@ -1,15 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
-using System.Text;
 
 namespace DeviceTools.HumanInterfaceDevices
 {
 	// TODO: make public with a nicer API
 	internal static class DeviceNameParser
 	{
-		public static (ushort VendorId, ushort ProductId) ParseDeviceName(string deviceName)
+		public static bool TryParseDeviceName(string deviceName, out DeviceId value)
 		{
 			// Very naive parser looking for the substring VID_XXXX&PID_XXXX. (Manually because Regex would be more allocatey)
 			int indexOfVendorId = deviceName.IndexOf("VID_", StringComparison.OrdinalIgnoreCase);
@@ -28,10 +25,22 @@ namespace DeviceTools.HumanInterfaceDevices
 #endif
 			)
 			{
+				value = default;
+				return false;
+			}
+
+			value = new DeviceId(vendorId, productId);
+			return true;
+		}
+
+		public static DeviceId ParseDeviceName(string deviceName)
+		{
+			if (TryParseDeviceName(deviceName, out var deviceId))
+			{
 				throw new ArgumentException("The specified device name does not seem to contain Vendor ID and Product ID information.");
 			}
 
-			return (vendorId, productId);
+			return deviceId;
 		}
 
 #if NETSTANDARD2_0

@@ -173,14 +173,22 @@ namespace DeviceTools.RawInput
 	/// <remarks>These HID collections are reserved by the system and exposed slightly differently by Raw Input than other HID devices.</remarks>
 	public abstract class RawInputSystemDevice : RawInputDevice
 	{
-		private (ushort VendorId, ushort ProductId)? _vendorAndProductId;
-		private (ushort VendorId, ushort ProductId) VendorAndProductId => _vendorAndProductId ?? SlowGetVendorAndProductId();
+		private DeviceId? _vendorAndProductId;
+		private DeviceId VendorAndProductId => _vendorAndProductId ?? SlowGetVendorAndProductId();
 
-		private (ushort VendorId, ushort ProductId) SlowGetVendorAndProductId()
+		private DeviceId SlowGetVendorAndProductId()
 		{
-			var vendorAndProductId = DeviceNameParser.ParseDeviceName(DeviceName);
-			_vendorAndProductId = vendorAndProductId;
-			return vendorAndProductId;
+			if (!DeviceNameParser.TryParseDeviceName(DeviceName, out var ids))
+			{
+				_vendorAndProductId = ids;
+				return ids;
+			}
+			else
+			{
+				ids = new DeviceId(0xFFFF, 0xFFFF);
+				_vendorAndProductId = ids;
+				return ids;
+			}
 		}
 
 		public override ushort VendorId => VendorAndProductId.VendorId;
