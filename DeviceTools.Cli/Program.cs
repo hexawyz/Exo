@@ -120,20 +120,33 @@ namespace DeviceTools.Cli
 				}
 			}
 
-			using (var collection = new RawInputDeviceCollection())
+			//foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.HidClass))
+			//{
+			//	Console.WriteLine(s);
+			//}
+
+			//foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
+			//{
+			//	Console.WriteLine(s);
+			//}
+
+			//using (var collection = new RawInputDeviceCollection())
+			var collection = (from dn in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid) select HidDevice.FromPath(dn)).ToArray();
 			{
-				collection.Refresh();
-				foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i))) // new[] { rgbFusionDevice1, rgbFusionDevice2 })
+				//collection.Refresh();
+				foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i)))
 				{
 					//if (index > 0) Console.ReadKey(true);
 					Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
 					//Console.WriteLine($"Device Handle: {device.Handle:X16}");
-					Console.WriteLine($"║ Device Type: {device.DeviceType}");
+					//Console.WriteLine($"║ Device Type: {device.DeviceType}");
 					Console.WriteLine($"║ Device Name: {device.DeviceName}");
 					try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
 					catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
 					try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
 					catch { Console.WriteLine($"║ Device Product Name: <Unknown>"); }
+					try { Console.WriteLine($"║ Device Serial Number: {device.SerialNumber}"); }
+					catch { Console.WriteLine($"║ Device Serial Number: <Unknown>"); }
 
 					var names = UsbProductNameDatabase.LookupVendorAndProductName(device.VendorId, device.ProductId);
 
@@ -148,33 +161,37 @@ namespace DeviceTools.Cli
 
 					switch (device)
 					{
-						case RawInputMouseDevice mouse:
-							Console.WriteLine($"║ Mouse Id: {mouse.Id}");
-							Console.WriteLine($"║ Mouse Button Count: {mouse.ButtonCount}");
-							Console.WriteLine($"║ Mouse Sample Rate: {mouse.SampleRate}");
-							Console.WriteLine($"║ Mouse has Horizontal Wheel: {mouse.HasHorizontalWheel}");
-							break;
-						case RawInputKeyboardDevice keyboard:
-							Console.WriteLine($"║ Keyboard Type: {keyboard.KeyboardType}");
-							Console.WriteLine($"║ Keyboard SubType: {keyboard.KeyboardSubType}");
-							Console.WriteLine($"║ Keyboard Key Count: {keyboard.KeyCount}");
-							Console.WriteLine($"║ Keyboard Indicator Count: {keyboard.IndicatorCount}");
-							Console.WriteLine($"║ Keyboard Function Key Count: {keyboard.FunctionKeyCount}");
-							Console.WriteLine($"║ Keyboard Mode: {keyboard.KeyboardMode}");
-							break;
-						case RawInputHidDevice hid:
-							Console.WriteLine($"║ Device Vendor ID: {hid.VendorId:X4}");
-							Console.WriteLine($"║ Device Product ID: {hid.ProductId:X4}");
-							Console.WriteLine($"║ Device Version Number: {hid.VersionNumber:X2}");
-							break;
+					case RawInputMouseDevice mouse:
+						Console.WriteLine($"║ Mouse Id: {mouse.Id}");
+						Console.WriteLine($"║ Mouse Button Count: {mouse.ButtonCount}");
+						Console.WriteLine($"║ Mouse Sample Rate: {mouse.SampleRate}");
+						Console.WriteLine($"║ Mouse has Horizontal Wheel: {mouse.HasHorizontalWheel}");
+						break;
+					case RawInputKeyboardDevice keyboard:
+						Console.WriteLine($"║ Keyboard Type: {keyboard.KeyboardType}");
+						Console.WriteLine($"║ Keyboard SubType: {keyboard.KeyboardSubType}");
+						Console.WriteLine($"║ Keyboard Key Count: {keyboard.KeyCount}");
+						Console.WriteLine($"║ Keyboard Indicator Count: {keyboard.IndicatorCount}");
+						Console.WriteLine($"║ Keyboard Function Key Count: {keyboard.FunctionKeyCount}");
+						Console.WriteLine($"║ Keyboard Mode: {keyboard.KeyboardMode}");
+						break;
+					case RawInputHidDevice hid:
+						Console.WriteLine($"║ Device Vendor ID: {hid.VendorId:X4}");
+						Console.WriteLine($"║ Device Product ID: {hid.ProductId:X4}");
+						Console.WriteLine($"║ Device Version Number: {hid.VersionNumber:X2}");
+						break;
+					default:
+						Console.WriteLine($"║ Device Vendor ID: {device.VendorId:X4}");
+						Console.WriteLine($"║ Device Product ID: {device.ProductId:X4}");
+						break;
 					}
 
-					PrintUsageAndPage("║ Device", device.UsagePage, device.Usage);
+					//PrintUsageAndPage("║ Device", device.UsagePage, device.Usage);
 
 					PrintDeviceInfo(device);
 				}
 
-				if (collection.Count > 0)
+				if (collection.Length > 0)
 				{
 					Console.WriteLine("╚" + new string('═', 39));
 				}
