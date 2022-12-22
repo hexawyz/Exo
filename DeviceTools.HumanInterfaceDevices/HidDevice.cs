@@ -33,13 +33,12 @@ namespace DeviceTools.HumanInterfaceDevices
 		public abstract string DeviceName { get; }
 
 		// Kinda hoping there are no HID devices without a VID_XXXX&PID_XXXX there…
-		/// <summary>Gets the Vendor ID (VID) associated with this device.</summary>
-		/// <remarks>This information can usually be found inside the <see cref="DeviceName"/>.</remarks>
-		public abstract ushort VendorId { get; }
-
-		/// <summary>Gets the Product ID (PID) associated with this device.</summary>
-		/// <remarks>This information can usually be found inside the <see cref="DeviceName"/>.</remarks>
-		public abstract ushort ProductId { get; }
+		/// <summary>Gets the device ID associated with this device.</summary>
+		/// <remarks>
+		/// The device ID information allows to uniquely identify hardware, but not a specific hardware instance.
+		/// This information can usually be found inside the <see cref="DeviceName"/>.
+		/// </remarks>
+		public abstract DeviceId DeviceId { get; }
 
 		// A lock object used to protect restricted operations on the class, such as opening the device file.
 		private protected abstract object Lock { get; }

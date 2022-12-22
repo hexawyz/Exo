@@ -148,15 +148,30 @@ namespace DeviceTools.Cli
 					try { Console.WriteLine($"║ Device Serial Number: {device.SerialNumber}"); }
 					catch { Console.WriteLine($"║ Device Serial Number: <Unknown>"); }
 
-					var names = UsbProductNameDatabase.LookupVendorAndProductName(device.VendorId, device.ProductId);
+					var deviceId = device.DeviceId;
 
-					if (names.VendorName.Length > 0)
+					// TODO: Add a database for BT Vendor IDs (They are publicly available)
+					if (deviceId.VendorIdSource == VendorIdSource.Usb)
 					{
-						Console.WriteLine($"║ Device Vendor Name: {names.VendorName.ToString()}");
-						if (names.ProductName.Length > 0)
+						var names = UsbProductNameDatabase.LookupVendorAndProductName(deviceId.VendorId, deviceId.ProductId);
+
+						if (names.VendorName.Length > 0)
 						{
-							Console.WriteLine($"║ Device Product Name: {names.ProductName.ToString()}");
+							Console.WriteLine($"║ Device Vendor Name: {names.VendorName}");
+							if (names.ProductName.Length > 0)
+							{
+								Console.WriteLine($"║ Device Product Name: {names.ProductName}");
+							}
 						}
+					}
+
+					Console.WriteLine($"║ Device Enumerator: {deviceId.Source}");
+					Console.WriteLine($"║ Device Vendor ID Source: {deviceId.VendorIdSource}");
+					Console.WriteLine($"║ Device Vendor ID: {deviceId.VendorId:X4}");
+					Console.WriteLine($"║ Device Product ID: {deviceId.ProductId:X4}");
+					if (deviceId.Version != 0xFFFF)
+					{
+						Console.WriteLine($"║ Device Version Number: {deviceId.Version:X4}");
 					}
 
 					switch (device)
@@ -176,17 +191,14 @@ namespace DeviceTools.Cli
 						Console.WriteLine($"║ Keyboard Mode: {keyboard.KeyboardMode}");
 						break;
 					case RawInputHidDevice hid:
-						Console.WriteLine($"║ Device Vendor ID: {hid.VendorId:X4}");
-						Console.WriteLine($"║ Device Product ID: {hid.ProductId:X4}");
-						Console.WriteLine($"║ Device Version Number: {hid.VersionNumber:X2}");
-						break;
 					default:
-						Console.WriteLine($"║ Device Vendor ID: {device.VendorId:X4}");
-						Console.WriteLine($"║ Device Product ID: {device.ProductId:X4}");
 						break;
 					}
 
-					//PrintUsageAndPage("║ Device", device.UsagePage, device.Usage);
+					if (device is RawInputDevice rawInptuDevice)
+					{
+						PrintUsageAndPage("║ Device", rawInptuDevice.UsagePage, rawInptuDevice.Usage);
+					}
 
 					PrintDeviceInfo(device);
 				}

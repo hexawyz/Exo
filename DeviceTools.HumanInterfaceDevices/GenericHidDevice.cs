@@ -10,22 +10,16 @@ namespace DeviceTools.HumanInterfaceDevices
 		public GenericHidDevice(string deviceName, object @lock)
 		{
 			DeviceName = deviceName;
-			if (DeviceNameParser.TryParseDeviceName(deviceName, out var ids))
-			{
-				(VendorId, ProductId) = (ids.VendorId, ids.ProductId);
-			}
-			else
-			{
-				(VendorId, ProductId) = (0xFFFF, 0xFFFF);
-			}
+			DeviceId = DeviceNameParser.TryParseDeviceName(deviceName, out var deviceId) ?
+				deviceId :
+				DeviceId.Invalid;
 			Lock = @lock;
 		}
 
 		public override string DeviceName { get; }
 		private protected override object Lock { get; }
 
-		public override ushort VendorId { get; }
-		public override ushort ProductId { get; }
+		public override DeviceId DeviceId { get; }
 
 		public override bool IsDisposed => Volatile.Read(ref _isDisposed) != 0;
 

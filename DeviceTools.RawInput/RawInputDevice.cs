@@ -173,26 +173,24 @@ namespace DeviceTools.RawInput
 	/// <remarks>These HID collections are reserved by the system and exposed slightly differently by Raw Input than other HID devices.</remarks>
 	public abstract class RawInputSystemDevice : RawInputDevice
 	{
-		private DeviceId? _vendorAndProductId;
-		private DeviceId VendorAndProductId => _vendorAndProductId ?? SlowGetVendorAndProductId();
+		private DeviceId? _deviceId;
 
-		private DeviceId SlowGetVendorAndProductId()
+		private DeviceId SlowGetDeviceId()
 		{
-			if (!DeviceNameParser.TryParseDeviceName(DeviceName, out var ids))
+			if (DeviceNameParser.TryParseDeviceName(DeviceName, out var deviceId))
 			{
-				_vendorAndProductId = ids;
-				return ids;
+				_deviceId = deviceId;
+				return deviceId;
 			}
 			else
 			{
-				ids = new DeviceId(0xFFFF, 0xFFFF);
-				_vendorAndProductId = ids;
-				return ids;
+				deviceId = DeviceId.Invalid;
+				_deviceId = deviceId;
+				return deviceId;
 			}
 		}
 
-		public override ushort VendorId => VendorAndProductId.VendorId;
-		public override ushort ProductId => VendorAndProductId.ProductId;
+		public override DeviceId DeviceId => _deviceId ?? SlowGetDeviceId();
 
 		private protected RawInputSystemDevice(RawInputDeviceCollection owner, IntPtr handle) : base(owner, handle)
 		{
@@ -252,24 +250,42 @@ namespace DeviceTools.RawInput
 	{
 		private readonly HidUsagePage _usagePage;
 		private readonly ushort _usage;
-		public override ushort VendorId { get; }
-		public override ushort ProductId { get; }
-		public uint VersionNumber { get; }
+		private bool _isDeviceIdDetected;
+		private DeviceId _deviceId;
+
+		public override DeviceId DeviceId => _isDeviceIdDetected ? _deviceId : SlowGetDeviceId();
 
 		internal RawInputHidDevice(RawInputDeviceCollection owner, IntPtr handle, HidUsagePage usagePage, ushort usage, ushort vendorId, ushort productId, uint versionNumber)
 			: base(owner, handle)
 		{
 			_usagePage = usagePage;
 			_usage = usage;
-			VendorId = vendorId;
-			ProductId = productId;
-			VersionNumber = versionNumber;
+			// TODO: Remove the checked() once it has been battle-tested.
+			_deviceId = new DeviceId(DeviceIdSource.Unknown, VendorIdSource.Unknown, vendorId, productId, checked((ushort)versionNumber));
 		}
 
 		public override RawInputDeviceType DeviceType => RawInputDeviceType.Hid;
 
 		public override HidUsagePage UsagePage => _usagePage;
 		protected sealed override ushort GetRawUsage() => _usage;
+
+		private DeviceId SlowGetDeviceId()
+		{
+			// RawInput information should always come from the USB stack, but it is hard to guarantee.
+			// So, in all cases, we'll overwrite this information with what we can find in the device name if we find anything.
+			// NB: Information that we overwrite here should have the same VID & PID. What should we do if it differs?
+			if (DeviceNameParser.TryParseDeviceName(DeviceName, out var deviceId))
+			{
+				_deviceId = deviceId;
+				_isDeviceIdDetected = true;
+				return deviceId;
+			}
+			else
+			{
+				_isDeviceIdDetected = true;
+				return _deviceId;
+			}
+		}
 	}
 
 	/// <summary>Base class for raw input HID devices whose usage is constrained by an enum.</summary>
