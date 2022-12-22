@@ -177,7 +177,7 @@ namespace DeviceTools.RawInput
 
 		private DeviceId SlowGetDeviceId()
 		{
-			if (DeviceNameParser.TryParseDeviceName(DeviceName, out var deviceId))
+			if (TryResolveDeviceIdFromNames(out var deviceId))
 			{
 				_deviceId = deviceId;
 				return deviceId;
@@ -274,7 +274,7 @@ namespace DeviceTools.RawInput
 			// RawInput information should always come from the USB stack, but it is hard to guarantee.
 			// So, in all cases, we'll overwrite this information with what we can find in the device name if we find anything.
 			// NB: Information that we overwrite here should have the same VID & PID. What should we do if it differs?
-			if (DeviceNameParser.TryParseDeviceName(DeviceName, out var deviceId))
+			if (TryResolveDeviceIdFromNames(out var deviceId))
 			{
 				_deviceId = deviceId;
 				_isDeviceIdDetected = true;

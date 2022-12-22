@@ -8,6 +8,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace DeviceTools.HumanInterfaceDevices
 {
+	// TODO: Maybe split some properties in a cache that is lazily-allocated.
 	public abstract class HidDevice : IDisposable
 	{
 		public static IEnumerable<HidDevice> GetAll(bool includeAll = false)
@@ -27,6 +28,7 @@ namespace DeviceTools.HumanInterfaceDevices
 		private string? _productName;
 		private string? _manufacturerName;
 		private string? _serialNumber;
+		private string? _deviceInstanceId;
 
 		// As RawInput is (seems to be) a layer over the regular HID APIs, that core information is pretty much the only one we can share.
 		/// <summary>Gets the name of the device, useable by the file APIs to access the device.</summary>
@@ -128,6 +130,10 @@ namespace DeviceTools.HumanInterfaceDevices
 			// Give priority to the previously assigned value, if any.
 			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
 		}
+
+		public string DeviceInstanceId => _deviceInstanceId ?? SlowGetDeviceInstanceId();
+
+		private string SlowGetDeviceInstanceId() => _deviceInstanceId = Device.GetDeviceInstanceId(DeviceName);
 
 		public void SendFeatureReport(ReadOnlySpan<byte> data)
 		{
@@ -279,5 +285,50 @@ namespace DeviceTools.HumanInterfaceDevices
 
 		public PhysicalDescriptorSetCollection GetPhysicalDescriptorSets()
 			=> NativeMethods.GetPhysicalDescriptor(FileHandle);
+
+		/// <summary>Tries to locate the best information source for <see cref="DeviceId"/> based on the device name.</summary>
+		/// <remarks>
+		/// <para>
+		/// This method should only be called after <see cref="DeviceName"/> is properly accessible.
+		/// It may or may not load <see cref="DeviceInstanceId"/> depending on wether its contents are needed.
+		/// </para>
+		/// <para>
+		/// For the most complete information possible, we want to look ath the Hardware IDs, that may or may not contain more information than the device interface name.
+		/// We are looking for a string containing VID, PID and REV if possible.
+		/// </para>
+		/// </remarks>
+		/// <param name="deviceId">The resolved device ID.</param>
+		/// <returns>true if the name was succesfully resolved; otherwise false.</returns>
+		protected bool TryResolveDeviceIdFromNames(out DeviceId deviceId)
+		{
+			// For Bluetooth devices at least, device interface names should contain the REV field,
+			// so we don't need to look up to the hardware IDs to get this information.
+			if (DeviceName.IndexOf("REV", StringComparison.OrdinalIgnoreCase) >= 0 && DeviceNameParser.TryParseDeviceName(DeviceName, out deviceId))
+			{
+				return true;
+			}
+
+			try
+			{
+				uint deviceNode = Device.LocateDeviceNode(DeviceInstanceId);
+				var hardwareIds = Device.GetDeviceHardwareIds(deviceNode);
+
+				// Hardware IDs seem to be ordered from most precise to least precise, so this should ideally match on the first one if any of them is valid.
+				// If they are not ordered in that way, the risk is only to miss the "REV" field.
+				foreach (var hardwareId in hardwareIds)
+				{
+					if (DeviceNameParser.TryParseDeviceName(hardwareId, out deviceId))
+					{
+						return true;
+					}
+				}
+			}
+			catch (ConfigurationManagerException)
+			{
+				// Ignore potential errors here, as we have a fallback.
+			}
+
+			return DeviceNameParser.TryParseDeviceName(DeviceName, out deviceId);
+		}
 	}
 }

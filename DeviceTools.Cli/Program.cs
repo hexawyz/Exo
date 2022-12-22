@@ -141,6 +141,7 @@ namespace DeviceTools.Cli
 					//Console.WriteLine($"Device Handle: {device.Handle:X16}");
 					//Console.WriteLine($"║ Device Type: {device.DeviceType}");
 					Console.WriteLine($"║ Device Name: {device.DeviceName}");
+					Console.WriteLine($"║ Device Instance ID: {device.DeviceInstanceId}");
 					try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
 					catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
 					try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }

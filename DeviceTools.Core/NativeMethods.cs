@@ -179,6 +179,122 @@ namespace DeviceTools
 			FileGenericExecute = StandardRightsExecute | FileReadAttributes | FileExecute | Synchronize,
 		}
 
+		[StructLayout(LayoutKind.Sequential)]
+		public readonly struct DevicePropertyKey
+		{
+			public readonly Guid CategoryId;
+			public readonly uint PropertyId;
+
+			public DevicePropertyKey(Guid categoryId, uint propertyId)
+			{
+				CategoryId = categoryId;
+				PropertyId = propertyId;
+			}
+		}
+
+		// Not really a flags enum, but can combine some values.
+		public enum DevicePropertyType
+		{
+			Empty = 0x00000000,
+			Null = 0x00000001,
+			SByte = 0x00000002,
+			Byte = 0x00000003,
+			Int16 = 0x00000004,
+			UInt16 = 0x00000005,
+			Int32 = 0x00000006,
+			UInt32 = 0x00000007,
+			Int64 = 0x00000008,
+			UInt64 = 0x00000009,
+			Float = 0x0000000A,
+			Double = 0x0000000B,
+			Decimal = 0x0000000C,
+			Guid = 0x0000000D,
+			Currency = 0x0000000E,
+			Date = 0x0000000F,
+			FileTime = 0x00000010,
+			Boolean = 0x00000011,
+			String = 0x00000012,
+			SecurityDescriptor = 0x00000013,
+			SecurityDescriptorString = 0x00000014,
+			DevicePropertyKey = 0x00000015,
+			DevicePropertyType = 0x00000016,
+			Error = 0x00000017,
+			NtStatus = 0x00000018,
+			StringResource = 0x00000019,
+
+			Array = 0x00001000,
+			List = 0x00002000,
+
+			StringList = String | List,
+			Binary = Byte | Array,
+		}
+
+		public static class ShellPropertyGuids
+		{
+			// Names of those Guids were mostly reverse-engineered. Some of them may be wrong.
+			public static readonly Guid Storage = new(0xb725f130, 0x47ef, 0x101a, 0xa5, 0xf1, 0x02, 0x60, 0x8c, 0x9e, 0xeb, 0xac);
+			public static readonly Guid Device = new(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0);
+			public static readonly Guid DeviceDriver = new(0xa8b865dd, 0x2e3d, 0x4094, 0xad, 0x97, 0xe5, 0x93, 0xa7, 0xc, 0x75, 0xd6);
+			public static readonly Guid DeviceClass = new(0x259abffc, 0x50a7, 0x47ce, 0xaf, 0x8, 0x68, 0xc9, 0xa7, 0xd7, 0x33, 0x66);
+			public static readonly Guid DeviceInterface = new(0x026e516e, 0xb814, 0x414b, 0x83, 0xcd, 0x85, 0x6d, 0x6f, 0xef, 0x48, 0x22);
+			public static readonly Guid DeviceInterfaceClass = new(0x14c83a99, 0x0b3f, 0x44b7, 0xbe, 0x4c, 0xa1, 0x78, 0xd3, 0x99, 0x05, 0x64);
+			public static readonly Guid DeviceContainer = new(0x78c34fc8, 0x104a, 0x4aca, 0x9e, 0xa4, 0x52, 0x4d, 0x52, 0x99, 0x6e, 0x57);
+		}
+
+		public static class DevicePropertyKeys
+		{
+			public static readonly DevicePropertyKey ItemNameDisplay = new(ShellPropertyGuids.Storage, 10);
+
+			public static readonly DevicePropertyKey DeviceDescription = new(ShellPropertyGuids.Device, 2);
+			public static readonly DevicePropertyKey DeviceHardwareIds = new(ShellPropertyGuids.Device, 3);
+			public static readonly DevicePropertyKey DeviceCompatibleIds = new(ShellPropertyGuids.Device, 4);
+			public static readonly DevicePropertyKey DeviceService = new(ShellPropertyGuids.Device, 6);
+			public static readonly DevicePropertyKey DeviceClass = new(ShellPropertyGuids.Device, 9);
+			public static readonly DevicePropertyKey DeviceClassGuid = new(ShellPropertyGuids.Device, 10);
+			public static readonly DevicePropertyKey DeviceDriver = new(ShellPropertyGuids.Device, 11);
+			public static readonly DevicePropertyKey DeviceConfigFlags = new(ShellPropertyGuids.Device, 12);
+			public static readonly DevicePropertyKey DeviceManufacturer = new(ShellPropertyGuids.Device, 13);
+			public static readonly DevicePropertyKey DeviceFriendlyName = new(ShellPropertyGuids.Device, 14);
+			public static readonly DevicePropertyKey DeviceLocationInfo = new(ShellPropertyGuids.Device, 15);
+			public static readonly DevicePropertyKey DevicePhysicalDeviceObjectName = new(ShellPropertyGuids.Device, 16);
+			public static readonly DevicePropertyKey DeviceCapabilities = new(ShellPropertyGuids.Device, 17);
+			public static readonly DevicePropertyKey DeviceUiNumber = new(ShellPropertyGuids.Device, 18);
+			public static readonly DevicePropertyKey DeviceUpperFilters = new(ShellPropertyGuids.Device, 19);
+			public static readonly DevicePropertyKey DeviceLowerFilters = new(ShellPropertyGuids.Device, 20);
+			public static readonly DevicePropertyKey DeviceBusTypeGuid = new(ShellPropertyGuids.Device, 21);
+			public static readonly DevicePropertyKey DeviceLegacyBusType = new(ShellPropertyGuids.Device, 22);
+			public static readonly DevicePropertyKey DeviceBusNumber = new(ShellPropertyGuids.Device, 23);
+			public static readonly DevicePropertyKey DeviceEnumeratorName = new(ShellPropertyGuids.Device, 24);
+			public static readonly DevicePropertyKey DeviceSecurity = new(ShellPropertyGuids.Device, 25);
+			public static readonly DevicePropertyKey DeviceSecurityDescriptorString = new(ShellPropertyGuids.Device, 26);
+			public static readonly DevicePropertyKey DeviceDeviceType = new(ShellPropertyGuids.Device, 27);
+			public static readonly DevicePropertyKey DeviceExclusive = new(ShellPropertyGuids.Device, 28);
+			public static readonly DevicePropertyKey DeviceCharacteristics = new(ShellPropertyGuids.Device, 29);
+			public static readonly DevicePropertyKey DeviceAddress = new(ShellPropertyGuids.Device, 30);
+			public static readonly DevicePropertyKey DeviceUiNumberPrintfFormat = new(ShellPropertyGuids.Device, 31);
+			public static readonly DevicePropertyKey DevicePowerData = new(ShellPropertyGuids.Device, 32);
+			public static readonly DevicePropertyKey DeviceRemovalPolicy = new(ShellPropertyGuids.Device, 33);
+			public static readonly DevicePropertyKey DeviceRemovalPolicyDefault = new(ShellPropertyGuids.Device, 34);
+			public static readonly DevicePropertyKey DeviceRemovalPolicyOverride = new(ShellPropertyGuids.Device, 35);
+			public static readonly DevicePropertyKey DeviceInstallState = new(ShellPropertyGuids.Device, 36);
+			public static readonly DevicePropertyKey DeviceLocationPaths = new(ShellPropertyGuids.Device, 37);
+			public static readonly DevicePropertyKey DeviceBaseContainerId = new(ShellPropertyGuids.Device, 38);
+
+			public static readonly DevicePropertyKey DeviceInterfaceFriendlyName = new(ShellPropertyGuids.DeviceInterface, 2);
+			public static readonly DevicePropertyKey DeviceInterfaceClassGuid = new(ShellPropertyGuids.DeviceInterface, 2);
+
+			public static readonly DevicePropertyKey Model = new(ShellPropertyGuids.DeviceContainer, 39);
+			public static readonly DevicePropertyKey DeviceInstanceId = new(ShellPropertyGuids.DeviceContainer, 256);
+		}
+
+		public enum LocateDeviceNodeFlags
+		{
+			Normal = 0x00000000,
+			Phantom = 0x00000001,
+			CancelRemove = 0x00000002,
+			NoValidation = 0x00000004,
+		}
+
 		[DllImport("SetupAPI", EntryPoint = "SetupDiGetClassDevsW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern SafeDeviceInfoListHandle SetupDiGetClassDevs(in Guid classGuid, string enumerator, IntPtr hwndParent, GetClassDeviceFlags flags);
 
@@ -285,10 +401,19 @@ namespace DeviceTools
 		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceIdListSize(out uint length, in char filter, GetDeviceIdListFlags flags);
 
 		[DllImport("CfgMgr32", EntryPoint = "CM_Get_Device_Interface_ListW", ExactSpelling = true, CharSet = CharSet.Unicode)]
-		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceInterfaceList(in Guid interfaceClassGuid, [In] string? deviceID, ref char buffer, uint bufferLength, GetDeviceInterfaceListFlags flags);
+		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceInterfaceList(in Guid interfaceClassGuid, [In] string? deviceInstanceId, ref char buffer, uint bufferLength, GetDeviceInterfaceListFlags flags);
 
 		[DllImport("CfgMgr32", EntryPoint = "CM_Get_Device_Interface_List_SizeW", ExactSpelling = true, CharSet = CharSet.Unicode)]
-		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceInterfaceListSize(out uint length, in Guid interfaceClassGuid, [In] string? deviceID, GetDeviceInterfaceListFlags flags);
+		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceInterfaceListSize(out uint length, in Guid interfaceClassGuid, [In] string? deviceInstanceId, GetDeviceInterfaceListFlags flags);
+
+		[DllImport("CfgMgr32", EntryPoint = "CM_Locate_DevNodeW", ExactSpelling = true, CharSet = CharSet.Unicode)]
+		public static extern ConfigurationManagerResult ConfigurationManagerLocateDeviceNode(out uint deviceInstanceHandle, [In] string? deviceInstanceId, LocateDeviceNodeFlags flags);
+
+		[DllImport("CfgMgr32", EntryPoint = "CM_Get_Device_Interface_PropertyW", ExactSpelling = true, CharSet = CharSet.Unicode)]
+		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceInterfaceProperty([In] string? deviceInterfaceId, in DevicePropertyKey propertyKey, out DevicePropertyType propertyType, byte[]? buffer, ref uint bufferSize, uint flags);
+
+		[DllImport("CfgMgr32", EntryPoint = "CM_Get_DevNode_PropertyW", ExactSpelling = true, CharSet = CharSet.Unicode)]
+		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceNodeProperty(uint deviceInstanceHandle, in DevicePropertyKey propertyKey, out DevicePropertyType propertyType, byte[]? buffer, ref uint bufferSize, uint flags);
 
 		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
 		public static extern uint DeviceIoControl

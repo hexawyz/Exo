@@ -241,5 +241,93 @@ namespace DeviceTools
 				ArrayPool<byte>.Shared.Return(buffer);
 			}
 		}
+
+		public static IEnumerable<string> GetDeviceHardwareIds(uint deviceInstanceHandle)
+		{
+			uint dataLength = 0;
+
+			{
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, null, ref dataLength, 0);
+				if (result != NativeMethods.ConfigurationManagerResult.BufferSmall)
+				{
+					throw new ConfigurationManagerException(result);
+				}
+			}
+
+
+			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)dataLength));
+			try
+			{
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, buffer, ref dataLength, 0);
+				if (result != 0)
+				{
+					throw new ConfigurationManagerException(result);
+				}
+
+				int position = 0;
+				int charCount = (int)(dataLength / 2);
+				while (position < charCount)
+				{
+					var chars = MemoryMarshal.Cast<byte, char>(buffer).Slice(position);
+					int endIndex = chars.IndexOf('\0');
+
+					// Last string will be empty (It seems that the buffer is terminated by double null chars)
+					if (endIndex <= 0)
+					{
+						yield break;
+					}
+
+					yield return chars.Slice(0, endIndex).ToString();
+
+					position += endIndex + 1;
+				}
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buffer);
+			}
+		}
+
+		public static string GetDeviceInstanceId(string? deviceInterface)
+		{
+			uint dataLength = 0;
+
+			{
+				var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(deviceInterface, NativeMethods.DevicePropertyKeys.DeviceInstanceId, out _, null, ref dataLength, 0);
+				if (result != NativeMethods.ConfigurationManagerResult.BufferSmall)
+				{
+					throw new ConfigurationManagerException(result);
+				}
+			}
+
+			// TODO: string.Create
+			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)dataLength));
+			try
+			{
+				var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(deviceInterface, NativeMethods.DevicePropertyKeys.DeviceInstanceId, out _, buffer, ref dataLength, 0);
+				if (result != 0)
+				{
+					throw new ConfigurationManagerException(result);
+				}
+
+				var span = MemoryMarshal.Cast<byte, char>(buffer.AsSpan(0, (int)dataLength));
+				return span.Slice(0, span.Length - 1).ToString();
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buffer);
+			}
+		}
+
+		public static uint LocateDeviceNode(string deviceInstanceId)
+		{
+			uint deviceInstanceHandle = 0;
+			var result = NativeMethods.ConfigurationManagerLocateDeviceNode(out deviceInstanceHandle, deviceInstanceId, NativeMethods.LocateDeviceNodeFlags.Normal);
+			if (result != 0)
+			{
+				throw new ConfigurationManagerException(result);
+			}
+			return deviceInstanceHandle;
+		}
 	}
 }

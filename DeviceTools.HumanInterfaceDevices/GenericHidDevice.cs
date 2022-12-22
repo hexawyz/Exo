@@ -10,10 +10,12 @@ namespace DeviceTools.HumanInterfaceDevices
 		public GenericHidDevice(string deviceName, object @lock)
 		{
 			DeviceName = deviceName;
-			DeviceId = DeviceNameParser.TryParseDeviceName(deviceName, out var deviceId) ?
+			Lock = @lock;
+
+			// Must be called last, as it depends on DeviceName
+			DeviceId = TryResolveDeviceIdFromNames(out var deviceId) ?
 				deviceId :
 				DeviceId.Invalid;
-			Lock = @lock;
 		}
 
 		public override string DeviceName { get; }
