@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -102,7 +103,7 @@ namespace DeviceTools
 		public static IEnumerable<string> EnumerateAllDevices(bool enumerateAll)
 			=> EnumerateAllDevices
 			(
-				default(ReadOnlyMemory<char>),
+				default,
 				enumerateAll ? NativeMethods.GetDeviceIdListFlags.FilterNone : NativeMethods.GetDeviceIdListFlags.FilterPresent
 			);
 
@@ -247,7 +248,7 @@ namespace DeviceTools
 			uint dataLength = 0;
 
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, null, ref dataLength, 0);
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, ref Unsafe.NullRef<byte>(), ref dataLength, 0);
 				if (result != NativeMethods.ConfigurationManagerResult.BufferSmall)
 				{
 					throw new ConfigurationManagerException(result);
@@ -258,7 +259,7 @@ namespace DeviceTools
 			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)dataLength));
 			try
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, buffer, ref dataLength, 0);
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, ref buffer[0], ref dataLength, 0);
 				if (result != 0)
 				{
 					throw new ConfigurationManagerException(result);
@@ -288,23 +289,31 @@ namespace DeviceTools
 			}
 		}
 
-		public static string GetDeviceInstanceId(string? deviceInterface)
+		public static string GetDeviceInstanceId(string deviceInterface) => GetDeviceInterfaceStringProperty(deviceInterface, NativeMethods.DevicePropertyKeys.DeviceInstanceId);
+
+		public static string GetDisplayName(uint deviceInstanceHandle) => GetStringProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.ItemNameDisplay);
+
+		public static string GetFriendlyName(uint deviceInstanceHandle) => GetStringProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceFriendlyName);
+
+		public static Guid GetContainerId(uint deviceInstanceHandle) => GetGuidProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.ContainerId);
+
+		private static string GetDeviceInterfaceStringProperty(string deviceInterface, in NativeMethods.PropertyKey propertyKey)
 		{
 			uint dataLength = 0;
 
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(deviceInterface, NativeMethods.DevicePropertyKeys.DeviceInstanceId, out _, null, ref dataLength, 0);
+				var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(deviceInterface, propertyKey, out _, ref Unsafe.NullRef<byte>(), ref dataLength, 0);
 				if (result != NativeMethods.ConfigurationManagerResult.BufferSmall)
 				{
 					throw new ConfigurationManagerException(result);
 				}
 			}
 
-			// TODO: string.Create
+#if NETSTANDARD2_0
 			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)dataLength));
 			try
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(deviceInterface, NativeMethods.DevicePropertyKeys.DeviceInstanceId, out _, buffer, ref dataLength, 0);
+				var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(deviceInterface, propertyKey, out _, ref buffer[0], ref dataLength, 0);
 				if (result != 0)
 				{
 					throw new ConfigurationManagerException(result);
@@ -317,6 +326,85 @@ namespace DeviceTools
 			{
 				ArrayPool<byte>.Shared.Return(buffer);
 			}
+#else
+			return string.Create
+			(
+				checked((int)dataLength) / 2 - 1,
+				(DeviceInterface: deviceInterface, PropertyKey: propertyKey),
+				static (span, state) =>
+				{
+					uint dataLength = ((uint)span.Length + 1) * 2;
+					// NB: This will technically overwrite the internal null terminator of the string. This implementation detail of strings is unlikely to change, but at least you know.
+					var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(state.DeviceInterface, state.PropertyKey, out _, ref MemoryMarshal.AsBytes(span)[0], ref dataLength, 0);
+					if (result != 0)
+					{
+						throw new ConfigurationManagerException(result);
+					}
+				}
+			);
+#endif
+		}
+
+		private static string GetStringProperty(uint deviceInstanceHandle, in NativeMethods.PropertyKey propertyKey)
+		{
+			uint dataLength = 0;
+
+			{
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, propertyKey, out _, ref Unsafe.NullRef<byte>(), ref dataLength, 0);
+				if (result != NativeMethods.ConfigurationManagerResult.BufferSmall)
+				{
+					throw new ConfigurationManagerException(result);
+				}
+			}
+
+#if NETSTANDARD2_0
+			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)dataLength));
+			try
+			{
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, propertyKey, out _, ref buffer[0], ref dataLength, 0);
+				if (result != 0)
+				{
+					throw new ConfigurationManagerException(result);
+				}
+
+				var span = MemoryMarshal.Cast<byte, char>(buffer.AsSpan(0, (int)dataLength));
+				return span.Slice(0, span.Length - 1).ToString();
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buffer);
+			}
+#else
+			return string.Create
+			(
+				checked((int)dataLength) / 2 - 1,
+				(DeviceInstanceHandle: deviceInstanceHandle, PropertyKey: propertyKey),
+				static (span, state) =>
+				{
+					uint dataLength = ((uint)span.Length + 1) * 2;
+					// NB: This will technically overwrite the internal null terminator of the string. This implementation detail of strings is unlikely to change, but at least you know.
+					var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(state.DeviceInstanceHandle, state.PropertyKey, out _, ref MemoryMarshal.AsBytes(span)[0], ref dataLength, 0);
+					if (result != 0)
+					{
+						throw new ConfigurationManagerException(result);
+					}
+				}
+			);
+#endif
+		}
+
+		private static Guid GetGuidProperty(uint deviceInstanceHandle, in NativeMethods.PropertyKey propertyKey)
+		{
+			Guid guid = default;
+			uint dataLength = 16;
+
+			var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, propertyKey, out _, ref Unsafe.As<Guid, byte>(ref guid), ref dataLength, 0);
+			if (result != 0)
+			{
+				throw new ConfigurationManagerException(result);
+			}
+
+			return guid;
 		}
 
 		public static uint LocateDeviceNode(string deviceInstanceId)

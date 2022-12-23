@@ -28,7 +28,8 @@ namespace DeviceTools.HumanInterfaceDevices
 		private string? _productName;
 		private string? _manufacturerName;
 		private string? _serialNumber;
-		private string? _deviceInstanceId;
+		private string? _instanceId;
+		private Guid? _containerId;
 
 		// As RawInput is (seems to be) a layer over the regular HID APIs, that core information is pretty much the only one we can share.
 		/// <summary>Gets the name of the device, useable by the file APIs to access the device.</summary>
@@ -131,9 +132,19 @@ namespace DeviceTools.HumanInterfaceDevices
 			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
 		}
 
-		public string DeviceInstanceId => _deviceInstanceId ?? SlowGetDeviceInstanceId();
+		public string InstanceId => _instanceId ?? SlowGetInstanceId();
 
-		private string SlowGetDeviceInstanceId() => _deviceInstanceId = Device.GetDeviceInstanceId(DeviceName);
+		private string SlowGetInstanceId() => _instanceId = Device.GetDeviceInstanceId(DeviceName);
+
+		public Guid ContainerId => _containerId ?? SlowGetContainerId();
+
+		private Guid SlowGetContainerId()
+		{
+			uint deviceNode = Device.LocateDeviceNode(InstanceId);
+			var containerId = Device.GetContainerId(deviceNode);
+			_containerId = containerId;
+			return containerId;
+		}
 
 		public void SendFeatureReport(ReadOnlySpan<byte> data)
 		{
@@ -290,7 +301,7 @@ namespace DeviceTools.HumanInterfaceDevices
 		/// <remarks>
 		/// <para>
 		/// This method should only be called after <see cref="DeviceName"/> is properly accessible.
-		/// It may or may not load <see cref="DeviceInstanceId"/> depending on wether its contents are needed.
+		/// It may or may not load <see cref="InstanceId"/> depending on wether its contents are needed.
 		/// </para>
 		/// <para>
 		/// For the most complete information possible, we want to look ath the Hardware IDs, that may or may not contain more information than the device interface name.
@@ -310,7 +321,7 @@ namespace DeviceTools.HumanInterfaceDevices
 
 			try
 			{
-				uint deviceNode = Device.LocateDeviceNode(DeviceInstanceId);
+				uint deviceNode = Device.LocateDeviceNode(InstanceId);
 				var hardwareIds = Device.GetDeviceHardwareIds(deviceNode);
 
 				// Hardware IDs seem to be ordered from most precise to least precise, so this should ideally match on the first one if any of them is valid.

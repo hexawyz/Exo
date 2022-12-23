@@ -120,9 +120,12 @@ namespace DeviceTools.Cli
 				}
 			}
 
-			//foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.HidClass))
+			//foreach (string s in Device.EnumerateAllDevices())
 			//{
 			//	Console.WriteLine(s);
+			//	var deviceInstanceId = Device.LocateDeviceNode(s);
+			//	var containerGuid = Device.GetContainerId(deviceInstanceId);
+			//	Console.WriteLine(containerGuid.ToString("B"));
 			//}
 
 			//foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
@@ -141,7 +144,8 @@ namespace DeviceTools.Cli
 					//Console.WriteLine($"Device Handle: {device.Handle:X16}");
 					//Console.WriteLine($"║ Device Type: {device.DeviceType}");
 					Console.WriteLine($"║ Device Name: {device.DeviceName}");
-					Console.WriteLine($"║ Device Instance ID: {device.DeviceInstanceId}");
+					Console.WriteLine($"║ Device Instance ID: {device.InstanceId}");
+					Console.WriteLine($"║ Device Container ID: {device.ContainerId}");
 					try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
 					catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
 					try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
