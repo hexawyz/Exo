@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using DeviceTools;
 using Exo.Core.Services;
 using Exo.DeviceNotifications;
 using Microsoft.Win32.SafeHandles;
@@ -70,25 +71,25 @@ namespace Exo.Service
 			public int Y;
 		}
 
-		[DllImport("user32", ExactSpelling = true, SetLastError = true)]
+		[DllImport("user32", EntryPoint = "GetMessageW", ExactSpelling = true, SetLastError = true)]
 		[SuppressUnmanagedCodeSecurity]
 		private static extern uint GetMessage(out Message message, IntPtr windowHandle, uint messageFilterMin, uint messageFilterMax);
 
-		[DllImport("user32", ExactSpelling = true, SetLastError = true)]
+		[DllImport("user32", EntryPoint = "TranslateMessage", ExactSpelling = true, SetLastError = true)]
 		[SuppressUnmanagedCodeSecurity]
 		private static extern uint TranslateMessage(ref Message message);
 
-		[DllImport("user32", ExactSpelling = true, SetLastError = true)]
+		[DllImport("user32", EntryPoint = "DispatchMessageW", ExactSpelling = true, SetLastError = true)]
 		[SuppressUnmanagedCodeSecurity]
 		private static extern IntPtr DispatchMessage(ref Message message);
 
-		[DllImport("user32", ExactSpelling = true, SetLastError = true)]
+		[DllImport("user32", EntryPoint = "PostMessageW", ExactSpelling = true, SetLastError = true)]
 		[SuppressUnmanagedCodeSecurity]
-		private static extern uint PostMessageW(IntPtr windowHandle, uint message, IntPtr wParam, IntPtr lParam);
+		private static extern uint PostMessage(IntPtr windowHandle, uint message, IntPtr wParam, IntPtr lParam);
 
-		[DllImport("user32", ExactSpelling = true, SetLastError = true)]
+		[DllImport("user32", EntryPoint = "PostQuitMessage", ExactSpelling = true, SetLastError = true)]
 		[SuppressUnmanagedCodeSecurity]
-		private static extern void PostQuitMessage(int exitCode)
+		private static extern void PostQuitMessage(int exitCode);
 
 		private static readonly ConcurrentDictionary<IntPtr, WeakReference<NotificationWindow>> NotificationWindows = new();
 
@@ -199,6 +200,8 @@ namespace Exo.Service
 
 			Volatile.Write(ref _handle, handle);
 
+			taskCompletionSource.TrySetResult();
+
 			return true;
 		}
 
@@ -223,7 +226,7 @@ namespace Exo.Service
 			{
 				NotificationWindows.TryRemove(_handle, out _);
 				// WM_CLOSE will trigger DestroyWindow which will send WM_DESTROY which will send WM_QUIT which will end the message loop.
-				PostMessageW(_handle, WmClose, IntPtr.Zero, IntPtr.Zero);
+				PostMessage(_handle, WmClose, IntPtr.Zero, IntPtr.Zero);
 				// We could wait for the thread to end here, but not in all cases, so that's not woth it.
 			}
 		}
