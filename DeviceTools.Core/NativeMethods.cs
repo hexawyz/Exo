@@ -6,11 +6,12 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.Cryptography;
 
 namespace DeviceTools
 {
 	[SuppressUnmanagedCodeSecurity]
-	internal static class NativeMethods
+	internal static partial class NativeMethods
 	{
 		private const int ErrorGenFailure = 0x0000001F;
 		private const int ErrorInsufficientBuffer = 0x0000007A;
@@ -364,7 +365,11 @@ namespace DeviceTools
 			public static readonly PropertyKey DeviceInterfaceFriendlyName = new(ShellPropertyCategoryGuids.DeviceInterface, 2);
 			public static readonly PropertyKey DeviceInterfaceClassGuid = new(ShellPropertyCategoryGuids.DeviceInterface, 2);
 
-			public static readonly PropertyKey Model = new(ShellPropertyCategoryGuids.DeviceContainer, 39);
+			public static readonly PropertyKey DeviceModel = new(ShellPropertyCategoryGuids.DeviceContainer, 39);
+			// For a relatively old list of categories, see: https://learn.microsoft.com/en-us/previous-versions/windows/hardware/metadata/dn465876(v=vs.85)
+			public static readonly PropertyKey DeviceContainerCategory = new(ShellPropertyCategoryGuids.DeviceContainer, 90);
+			public static readonly PropertyKey DeviceContainerCategoryIcon = new(ShellPropertyCategoryGuids.DeviceContainer, 93);
+			public static readonly PropertyKey DeviceContainerPrimaryCategory = new(ShellPropertyCategoryGuids.DeviceContainer, 97);
 			public static readonly PropertyKey DeviceContainerFriendlyName = new(ShellPropertyCategoryGuids.DeviceContainer, 12288);
 			public static readonly PropertyKey DeviceContainerManufacturer = new(ShellPropertyCategoryGuids.DeviceContainer, 8192);
 			public static readonly PropertyKey DeviceContainerModelName = new(ShellPropertyCategoryGuids.DeviceContainer, 8192);

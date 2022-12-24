@@ -146,6 +146,10 @@ namespace DeviceTools.Cli
 					Console.WriteLine($"║ Device Name: {device.DeviceName}");
 					Console.WriteLine($"║ Device Instance ID: {device.InstanceId}");
 					Console.WriteLine($"║ Device Container ID: {device.ContainerId}");
+					try { Console.WriteLine($"║ Device Container Display Name: {Device.GetDeviceContainerDisplayName(device.ContainerId)}"); }
+					catch { Console.WriteLine($"║ Device Container Display Name: <Unknown>"); }
+					try { Console.WriteLine($"║ Device Container Primary Category: {Device.GetDeviceContainerPrimaryCategory(device.ContainerId)}"); }
+					catch { Console.WriteLine($"║ Device Container Primary Category: <Unknown>"); }
 					try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
 					catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
 					try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }

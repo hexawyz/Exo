@@ -417,5 +417,54 @@ namespace DeviceTools
 			}
 			return deviceInstanceHandle;
 		}
+
+		public static unsafe string GetDeviceContainerDisplayName(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, NativeMethods.DevicePropertyKeys.ItemNameDisplay);
+		public static unsafe string GetDeviceContainerPrimaryCategory(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, NativeMethods.DevicePropertyKeys.DeviceContainerPrimaryCategory);
+
+		private static unsafe string GetDeviceContainerStringProperty(Guid deviceContainerId, in NativeMethods.PropertyKey property)
+		{
+#if NETSTANDARD2_0
+			var objectId = deviceContainerId.ToString().AsSpan();
+#else
+			Span<char> objectId = stackalloc char[37];
+			deviceContainerId.TryFormat(objectId, out _);
+			objectId[^1] = '\0';
+#endif
+
+			var displayNameProperty = new NativeMethods.DevicePropertyCompoundKey
+			{
+				Key = property,
+				Store = NativeMethods.DevicePropertyStore.Sytem
+			};
+
+			ref var firstProperty = ref NativeMethods.DeviceGetObjectProperties
+			(
+				NativeMethods.DeviceObjectType.DeviceContainer,
+				ref MemoryMarshal.GetReference(objectId),
+				NativeMethods.DeviceQueryFlags.None,
+				1,
+				ref displayNameProperty,
+				out int propertyCount
+			);
+
+			//#if NETSTANDARD2_0
+			//			var properties = new Span<NativeMethods.DeviceProperty>(Unsafe.AsPointer(ref firstProperty), propertyCount);
+			//#else
+			//			var properties = MemoryMarshal.CreateReadOnlySpan(ref firstProperty, propertyCount);
+			//#endif
+			try
+			{
+				if (firstProperty.Type == NativeMethods.DevicePropertyType.String && firstProperty.BufferLength > 2)
+				{
+					var text = new ReadOnlySpan<char>((void*)firstProperty.Buffer, (int)(firstProperty.BufferLength / 2) - 1);
+					return text.ToString();
+				}
+				return string.Empty;
+			}
+			finally
+			{
+				NativeMethods.DeviceFreeObjectProperties(propertyCount, ref firstProperty);
+			}
+		}
 	}
 }
