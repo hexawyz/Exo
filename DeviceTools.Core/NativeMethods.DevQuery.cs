@@ -1,29 +1,67 @@
 using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using System.ComponentModel;
+using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace DeviceTools
 {
 	partial class NativeMethods
 	{
-		public enum DeviceObjectType
+		// This is a struct we (have to) use to communicate with our native helper.
+		// Apparently, for async queries, Cfgmgr32 likes to do a check on the HMODULE for some reason,
+		// which for sadly obvious reasons, doesn't work for C# code that is JITted.
+		// If I understand correctly, the DevQuery API will call GetModuleHandleExW to increment the reference count on the library,
+		// then call FreeLibraryWhenCallbackReturns later on. The former is what is (sadly) causing the C# code to fail on its own.
+		// This could probably be avoided if MS chanegd the way DevQuery worked by simply acknowledging callbacks not tied to a physical module,
+		// however, as the status of the API is unclear, this might not be successful. (The API is available in the SDK, but undocumented. It is also available to Rust.)
+		[StructLayout(LayoutKind.Sequential)]
+#if NET5_0_OR_GREATER
+		public unsafe struct DevQueryHelperContext
+#else
+		public struct DevQueryHelperContext
+#endif
 		{
-			Unknown = 0,
-			DeviceInterface = 1,
-			DeviceContainer = 2,
-			Device = 3,
-			DeviceInterfaceClass = 4,
-			AssociationEndpoint = 5,
-			AssociationEndpointContainer = 6,
-			DeviceInstallerClass = 7,
-			DeviceInterfaceDisplay = 8,
-			DeviceContainerDisplay = 9,
-			AssociationEndpointService = 10,
-			DevicePanel = 11,
+#if NET5_0_OR_GREATER
+			public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void> Callback;
+#else
+			public DeviceQueryCallback Callback;
+#endif
+			public IntPtr Context;
 		}
+
+		// TODO: This shouldn't even be needed fot .NET Native. Inestigate how to conditionally avoid this mess.
+		public static readonly IntPtr NativeDevQueryCallback = GetNativeDevQueryCallback();
+
+		private static IntPtr GetNativeDevQueryCallback()
+		{
+			// TODO: Future-proof this so that ARM becomes supported based on the presence of the DLL.
+			var directoryName = RuntimeInformation.ProcessArchitecture switch
+			{
+				Architecture.X86 => "x86",
+				Architecture.X64 => "x64",
+				_ => throw new NotSupportedException($"The architecture {RuntimeInformation.ProcessArchitecture} is currently not supported."),
+			};
+
+			string filename = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(NativeMethods).Assembly.Location)!, directoryName, "DeviceTools.DevQueryHelper.dll"));
+
+			var module = LoadLibrary(filename);
+			//var module = LoadLibrary(@"C:\Users\Fabien\Source\Repos\AnyLayout\DeviceTools.DevQueryHelper\bin\x64\Debug\DeviceTools.DevQueryHelper.dll");
+			if (module == IntPtr.Zero)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+
+			var procAddress = GetProcAddress(module, "DevQueryCallback");
+			if (procAddress == IntPtr.Zero)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+
+			return procAddress;
+		}
+
+		private const string DevQueryLibrary = "api-ms-win-devices-query-l1-1-0";
+		private const string DevQueryExLibrary = "api-ms-win-devices-query-l1-1-1";
 
 		[Flags]
 		public enum DeviceQueryFlags
@@ -141,7 +179,7 @@ namespace DeviceTools
 		[StructLayout(LayoutKind.Sequential)]
 		public struct DeviceQueryParameter
 		{
-			public PropertyKey CompoundKey;
+			public PropertyKey Key;
 			public DevicePropertyType Type;
 			public uint BufferLength;
 			public IntPtr Buffer;
@@ -150,56 +188,63 @@ namespace DeviceTools
 		[StructLayout(LayoutKind.Sequential)]
 		public unsafe struct DeviceObject
 		{
-			public DeviceObjectType ObjectType;
+			public DeviceObjectKind ObjectType;
 			public char* ObjectId;
 			public uint PropertyCount;
 			public DeviceProperty* Properties;
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
-		public struct DeviceQueryResultActionData
+		public struct DeviceQueryStateOrObject
 		{
 			[FieldOffset(0)]
-			public DeviceQueryResultAction Action;
-			[FieldOffset(4)]
 			public DeviceQueryState State;
-			[FieldOffset(4)]
+			[FieldOffset(0)]
 			public DeviceObject DeviceObject;
 		}
 
+		[StructLayout(LayoutKind.Sequential)]
+		public struct DeviceQueryResultActionData
+		{
+			public DeviceQueryResultAction Action;
+			public DeviceQueryStateOrObject StateOrObject;
+		}
+
 #if !NET5_0_OR_GREATER
-		public delegate void DeviceQueryCallback(SafeDeviceQueryHandle queryHandle, IntPtr context, in DeviceQueryResultActionData ActionData);
+		public unsafe delegate void DeviceQueryCallback(IntPtr queryHandle, IntPtr context, DeviceQueryResultActionData* actionData);
 #endif
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCreateObjectQuery", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevCreateObjectQuery", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQuery
 #else
 		public static extern SafeDeviceQueryHandle DeviceCreateObjectQuery
 #endif
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
 			ref DevicePropertyCompoundKey requestedProperties,
 			int filterExpressionCount,
 			ref DevicePropertyFilterExpression filters,
 #if NET5_0_OR_GREATER
-			delegate* unmanaged<SafeDeviceQueryHandle, IntPtr, in DeviceQueryResultActionData, void> callback,
+			delegate* unmanaged[Stdcall]<IntPtr, IntPtr, DeviceQueryResultActionData*, void> callback,
+#elif true
+			IntPtr callback,
 #else
 			DeviceQueryCallback callback,
 #endif
 			IntPtr context
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCreateObjectQueryEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryExLibrary, EntryPoint = "DevCreateObjectQueryEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQueryEx
 #else
 		public static extern SafeDeviceQueryHandle DeviceCreateObjectQueryEx
 #endif
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
 			ref DevicePropertyCompoundKey requestedProperties,
@@ -208,21 +253,23 @@ namespace DeviceTools
 			int extendedParameterCount,
 			ref DeviceQueryParameter extendedParameters,
 #if NET5_0_OR_GREATER
-			delegate* unmanaged<SafeDeviceQueryHandle, IntPtr, in DeviceQueryResultActionData, void> callback,
+			delegate* unmanaged[Stdcall]<IntPtr, IntPtr, DeviceQueryResultActionData*, void> callback,
+#elif true
+			IntPtr callback,
 #else
 			DeviceQueryCallback callback,
 #endif
 			IntPtr context
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCreateObjectQueryFromId", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevCreateObjectQueryFromId", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromId
 #else
 		public static extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromId
 #endif
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			ref char objectId,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
@@ -230,21 +277,23 @@ namespace DeviceTools
 			int filterExpressionCount,
 			ref DevicePropertyFilterExpression filters,
 #if NET5_0_OR_GREATER
-			delegate* unmanaged<SafeDeviceQueryHandle, IntPtr, in DeviceQueryResultActionData, void> callback,
+			delegate* unmanaged[Stdcall]<IntPtr, IntPtr, DeviceQueryResultActionData*, void> callback,
+#elif true
+			IntPtr callback,
 #else
 			DeviceQueryCallback callback,
 #endif
 			IntPtr context
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCreateObjectQueryFromIdEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryExLibrary, EntryPoint = "DevCreateObjectQueryFromIdEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIdEx
 #else
 		public static extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIdEx
 #endif
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			ref char objectId,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
@@ -254,21 +303,23 @@ namespace DeviceTools
 			int extendedParameterCount,
 			ref DeviceQueryParameter extendedParameters,
 #if NET5_0_OR_GREATER
-			delegate* unmanaged<SafeDeviceQueryHandle, IntPtr, in DeviceQueryResultActionData, void> callback,
+			delegate* unmanaged[Stdcall]<IntPtr, IntPtr, DeviceQueryResultActionData*, void> callback,
+#elif true
+			IntPtr callback,
 #else
 			DeviceQueryCallback callback,
 #endif
 			IntPtr context
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCreateObjectQueryFromId", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevCreateObjectQueryFromId", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIds
 #else
 		public static extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIds
 #endif
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			ref char objectIds,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
@@ -276,21 +327,23 @@ namespace DeviceTools
 			int filterExpressionCount,
 			ref DevicePropertyFilterExpression filters,
 #if NET5_0_OR_GREATER
-			delegate* unmanaged<SafeDeviceQueryHandle, IntPtr, in DeviceQueryResultActionData, void> callback,
+			delegate* unmanaged[Stdcall]<IntPtr, IntPtr, DeviceQueryResultActionData*, void> callback,
+#elif true
+			IntPtr callback,
 #else
 			DeviceQueryCallback callback,
 #endif
 			IntPtr context
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCreateObjectQueryFromIdsEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryExLibrary, EntryPoint = "DevCreateObjectQueryFromIdsEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIdsEx
 #else
 		public static extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIdsEx
 #endif
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			ref char objectIds,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
@@ -300,17 +353,19 @@ namespace DeviceTools
 			int extendedParameterCount,
 			ref DeviceQueryParameter extendedParameters,
 #if NET5_0_OR_GREATER
-			delegate* unmanaged<SafeDeviceQueryHandle, IntPtr, in DeviceQueryResultActionData, void> callback,
+			delegate* unmanaged[Stdcall]<IntPtr, IntPtr, DeviceQueryResultActionData*, void> callback,
+#elif true
+			IntPtr callback,
 #else
 			DeviceQueryCallback callback,
 #endif
 			IntPtr context
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevGetObjects", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevGetObjects", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern ref DeviceObject DeviceGetObjects
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
 			ref DevicePropertyCompoundKey requestedProperties,
@@ -319,10 +374,10 @@ namespace DeviceTools
 			out int objectCount
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevGetObjectsEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevGetObjectsEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern ref DeviceObject DeviceGetObjectsEx
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
 			ref DevicePropertyCompoundKey requestedProperties,
@@ -333,10 +388,10 @@ namespace DeviceTools
 			out int objectCount
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevGetObjectProperties", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevGetObjectProperties", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern ref DeviceProperty DeviceGetObjectProperties
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			ref char objectId,
 			DeviceQueryFlags queryFlags,
 			uint requestedPropertyCount,
@@ -344,10 +399,10 @@ namespace DeviceTools
 			out int propertyCount
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevGetObjectPropertiesEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryExLibrary, EntryPoint = "DevGetObjectPropertiesEx", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern ref DeviceProperty DeviceGetObjectPropertiesEx
 		(
-			DeviceObjectType objectType,
+			DeviceObjectKind objectType,
 			ref char objectId,
 			DeviceQueryFlags queryFlags,
 			int requestedPropertyCount,
@@ -357,7 +412,7 @@ namespace DeviceTools
 			out int propertyCount
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevFindProperty", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevFindProperty", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern ref DeviceProperty DeviceFindProperty
 		(
 			in PropertyKey key,
@@ -367,13 +422,13 @@ namespace DeviceTools
 			ref DeviceProperty properties
 		);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevCloseObjectQuery", PreserveSig = true, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevCloseObjectQuery", PreserveSig = true, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern void DeviceCloseObjectQuery(IntPtr hDevQuery);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevFreeObjects", PreserveSig = true, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevFreeObjects", PreserveSig = true, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern void DeviceFreeObjects(int objectCount, ref DeviceObject deviceObjects);
 
-		[DllImport("cfgmgr32", EntryPoint = "DevFreeObjectProperties", PreserveSig = true, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevFreeObjectProperties", PreserveSig = true, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		public static extern void DeviceFreeObjectProperties(int propertyCount, ref DeviceProperty properties);
 	}
 }

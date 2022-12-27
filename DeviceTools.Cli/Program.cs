@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using DeviceTools.DisplayDevices;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
@@ -10,6 +12,7 @@ namespace DeviceTools.Cli
 {
 	internal static class Program
 	{
+		[MTAThread]
 		private static void Main(string[] args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
@@ -216,6 +219,21 @@ namespace DeviceTools.Cli
 				{
 					Console.WriteLine("╚" + new string('═', 39));
 				}
+			}
+
+			Task.Run(() => Z()).Wait();
+		}
+
+		private static async Task Z()
+		{
+			//foreach (var device in await Windows.Devices.Enumeration.DeviceInformation.FindAllAsync("System.Devices.InterfaceClassGuid:=\"{4D1E55B2-F16F-11CF-88CB-001111000030}\" AND System.Devices.InterfaceEnabled:=System.StructuredQueryType.Boolean#True"))
+			//{
+			//	Console.WriteLine($"{device.Kind}: {device.Id}");
+			//}
+
+			await foreach (var device in DeviceQuery.FindAllAsync(DeviceInterfaceClassGuids.Hid, default))
+			{
+				Console.WriteLine($"{device.Kind}: {device.Id}");
 			}
 		}
 

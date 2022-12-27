@@ -180,19 +180,6 @@ namespace DeviceTools
 			FileGenericExecute = StandardRightsExecute | FileReadAttributes | FileExecute | Synchronize,
 		}
 
-		[StructLayout(LayoutKind.Sequential)]
-		public readonly struct PropertyKey
-		{
-			public readonly Guid CategoryId;
-			public readonly uint PropertyId;
-
-			public PropertyKey(Guid categoryId, uint propertyId)
-			{
-				CategoryId = categoryId;
-				PropertyId = propertyId;
-			}
-		}
-
 		// Not really a flags enum, but can combine some values.
 		public enum DevicePropertyType
 		{
@@ -363,7 +350,8 @@ namespace DeviceTools
 			public static readonly PropertyKey DeviceBaseContainerId = new(ShellPropertyCategoryGuids.Device, 38);
 
 			public static readonly PropertyKey DeviceInterfaceFriendlyName = new(ShellPropertyCategoryGuids.DeviceInterface, 2);
-			public static readonly PropertyKey DeviceInterfaceClassGuid = new(ShellPropertyCategoryGuids.DeviceInterface, 2);
+			public static readonly PropertyKey DeviceInterfaceEnabled = new(ShellPropertyCategoryGuids.DeviceInterface, 3);
+			public static readonly PropertyKey DeviceInterfaceClassGuid = new(ShellPropertyCategoryGuids.DeviceInterface, 4);
 
 			public static readonly PropertyKey DeviceModel = new(ShellPropertyCategoryGuids.DeviceContainer, 39);
 			// For a relatively old list of categories, see: https://learn.microsoft.com/en-us/previous-versions/windows/hardware/metadata/dn465876(v=vs.85)

@@ -4,12 +4,26 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1;net7.0</TargetFrameworks>
     <RootNamespace>DeviceTools</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Memory" />
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
-  </ItemGroup>
+		<PackageReference Include="System.Threading.Channels" />
+		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+	</ItemGroup>
+	
+	<Target Name="BuildDevQueryHelperProject" BeforeTargets="AssignTargetPaths">
+		<MSBuild Projects="../DeviceTools.DevQueryHelper/DeviceTools.DevQueryHelper.vcxproj" Properties="Platform=x64;PlatformTarget=x64" RemoveProperties="TargetFramework;TargetPlatformVersion" RunEachTargetSeparately="true" />
+		<MSBuild Projects="../DeviceTools.DevQueryHelper/DeviceTools.DevQueryHelper.vcxproj" Properties="Platform=Win32;PlatformTarget=x86" RemoveProperties="TargetFramework;TargetPlatformVersion" RunEachTargetSeparately="true" />
 
+		<ItemGroup>
+			<None Include="../DeviceTools.DevQueryHelper/bin/x64/$(Configuration)/DeviceTools.DevQueryHelper.dll" Link="x64/DeviceTools.DevQueryHelper.dll" CopyToOutputDirectory="PreserveNewest" />
+			<None Include="../DeviceTools.DevQueryHelper/bin/x64/$(Configuration)/DeviceTools.DevQueryHelper.pdb" Link="x64/DeviceTools.DevQueryHelper.pdb" CopyToOutputDirectory="PreserveNewest" />
+			<None Include="../DeviceTools.DevQueryHelper/bin/Win32/$(Configuration)/DeviceTools.DevQueryHelper.dll" Link="x86/DeviceTools.DevQueryHelper.dll" CopyToOutputDirectory="PreserveNewest" />
+			<None Include="../DeviceTools.DevQueryHelper/bin/Win32/$(Configuration)/DeviceTools.DevQueryHelper.pdb" Link="x86/DeviceTools.DevQueryHelper.pdb" CopyToOutputDirectory="PreserveNewest" />
+		</ItemGroup>
+	</Target>
 </Project>

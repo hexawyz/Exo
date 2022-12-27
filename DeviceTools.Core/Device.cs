@@ -297,7 +297,7 @@ namespace DeviceTools
 
 		public static Guid GetContainerId(uint deviceInstanceHandle) => GetGuidProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.ContainerId);
 
-		private static string GetDeviceInterfaceStringProperty(string deviceInterface, in NativeMethods.PropertyKey propertyKey)
+		private static string GetDeviceInterfaceStringProperty(string deviceInterface, in PropertyKey propertyKey)
 		{
 			uint dataLength = 0;
 
@@ -345,7 +345,7 @@ namespace DeviceTools
 #endif
 		}
 
-		private static string GetStringProperty(uint deviceInstanceHandle, in NativeMethods.PropertyKey propertyKey)
+		private static string GetStringProperty(uint deviceInstanceHandle, in PropertyKey propertyKey)
 		{
 			uint dataLength = 0;
 
@@ -393,7 +393,7 @@ namespace DeviceTools
 #endif
 		}
 
-		private static Guid GetGuidProperty(uint deviceInstanceHandle, in NativeMethods.PropertyKey propertyKey)
+		private static Guid GetGuidProperty(uint deviceInstanceHandle, in PropertyKey propertyKey)
 		{
 			Guid guid = default;
 			uint dataLength = 16;
@@ -421,7 +421,7 @@ namespace DeviceTools
 		public static unsafe string GetDeviceContainerDisplayName(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, NativeMethods.DevicePropertyKeys.ItemNameDisplay);
 		public static unsafe string GetDeviceContainerPrimaryCategory(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, NativeMethods.DevicePropertyKeys.DeviceContainerPrimaryCategory);
 
-		private static unsafe string GetDeviceContainerStringProperty(Guid deviceContainerId, in NativeMethods.PropertyKey property)
+		private static unsafe string GetDeviceContainerStringProperty(Guid deviceContainerId, in PropertyKey property)
 		{
 #if NETSTANDARD2_0
 			var objectId = deviceContainerId.ToString().AsSpan();
@@ -439,7 +439,7 @@ namespace DeviceTools
 
 			ref var firstProperty = ref NativeMethods.DeviceGetObjectProperties
 			(
-				NativeMethods.DeviceObjectType.DeviceContainer,
+				DeviceObjectKind.DeviceContainer,
 				ref MemoryMarshal.GetReference(objectId),
 				NativeMethods.DeviceQueryFlags.None,
 				1,
