@@ -231,7 +231,7 @@ namespace DeviceTools.Cli
 			//	Console.WriteLine($"{device.Kind}: {device.Id}");
 			//}
 
-			await foreach (var device in DeviceQuery.FindAllAsync(DeviceInterfaceClassGuids.Hid, default))
+			await foreach (var device in DeviceQuery.EnumerateAllAsync(Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
 			{
 				Console.WriteLine($"{device.Kind}: {device.Id}");
 			}

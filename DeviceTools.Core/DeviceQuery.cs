@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Channels;
+using DeviceTools.FilterExpressions;
 
 namespace DeviceTools
 {
@@ -24,7 +25,7 @@ namespace DeviceTools
 #if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 #endif
-		private static unsafe void FindAllCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
+		private static unsafe void EnumerateAllCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
 		{
 			var writer = Unsafe.As<ChannelWriter<DeviceObjectInformation>>(GCHandle.FromIntPtr(context).Target)!;
 			switch (action->Action)
@@ -46,26 +47,80 @@ namespace DeviceTools
 			}
 		}
 
-		public static async IAsyncEnumerable<DeviceObjectInformation> FindAllAsync(Guid deviceInterfaceClassGuid, [EnumeratorCancellation] CancellationToken cancellationToken)
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceFilterExpression filter, CancellationToken cancellationToken)
 		{
-			var channel = Channel.CreateUnbounded<DeviceObjectInformation>(FindAllChannelOptions);
-			var reader = channel.Reader;
-			var contextHandle = GCHandle.Alloc(channel.Writer);
+			int count = filter.GetFilterElementCount(true);
+			Span<NativeMethods.DevicePropertyFilterExpression> filterExpressions = count <= 4 ?
+				stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
+				new NativeMethods.DevicePropertyFilterExpression[count];
 
+			GCHandle contextHandle;
+			IntPtr helperContext;
+			SafeDeviceQueryHandle query;
+			ChannelReader<DeviceObjectInformation> reader;
+
+			filter.FillExpressions(filterExpressions, true, out count);
 			try
 			{
-				// Wrap the context in a helper that *needs* to be freed.
-				var helperContext = CreateHelperContext(contextHandle);
+				var channel = Channel.CreateUnbounded<DeviceObjectInformation>(FindAllChannelOptions);
+				reader = channel.Reader;
 
+				contextHandle = GCHandle.Alloc(channel.Writer);
 				try
 				{
-					using var query = CreateObjectQuery(DeviceObjectKind.DeviceInterface, deviceInterfaceClassGuid, helperContext);
-					while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+					// Wrap the context in a helper that *needs* to be freed.
+					helperContext = CreateHelperContext(contextHandle);
+
+					try
 					{
-						while (reader.TryRead(out var info))
+						query = CreateObjectQuery(DeviceObjectKind.DeviceInterface, filterExpressions, helperContext);
+					}
+					catch
+					{
+						Marshal.FreeHGlobal(helperContext);
+						throw;
+					}
+				}
+				catch
+				{
+					contextHandle.Free();
+					throw;
+				}
+			}
+			finally
+			{
+				filter.ReleaseExpressionResources();
+			}
+
+			return EnumerateAllAsync(query, reader, helperContext, contextHandle, cancellationToken);
+		}
+
+		private static async IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync
+		(
+			SafeDeviceQueryHandle queryHandle,
+			ChannelReader<DeviceObjectInformation> reader,
+			IntPtr helperContext,
+			GCHandle contextHandle,
+			[EnumeratorCancellation] CancellationToken cancellationToken
+		)
+		{
+			try
+			{
+				try
+				{
+					try
+					{
+						while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
 						{
-							yield return info;
+							while (reader.TryRead(out var info))
+							{
+								yield return info;
+							}
 						}
+					}
+					finally
+					{
+						queryHandle.Dispose();
 					}
 				}
 				finally
@@ -94,7 +149,7 @@ namespace DeviceTools
 #else
 			var helperContext = new NativeMethods.DevQueryHelperContext()
 			{
-				Callback = FindAllCallback,
+				Callback = EnumerateAllCallback,
 				Context = GCHandle.ToIntPtr(contextHandle),
 			};
 
@@ -104,46 +159,8 @@ namespace DeviceTools
 #endif
 		}
 
-		private static unsafe SafeDeviceQueryHandle CreateObjectQuery(DeviceObjectKind kind, Guid guid, IntPtr context)
+		private static unsafe SafeDeviceQueryHandle CreateObjectQuery(DeviceObjectKind kind, Span<NativeMethods.DevicePropertyFilterExpression> filters, IntPtr context)
 		{
-			//Span<NativeMethods.DevicePropertyFilterExpression> filters = stackalloc NativeMethods.DevicePropertyFilterExpression[1];
-			var filters = new Span<NativeMethods.DevicePropertyFilterExpression>((void*)Marshal.AllocHGlobal(2 * sizeof(NativeMethods.DevicePropertyFilterExpression)), 2);
-			var guidData = Marshal.AllocHGlobal(16);
-			*(Guid*)guidData = guid;
-			var trueData = Marshal.AllocHGlobal(1);
-			*(sbyte*)trueData = -1;
-
-			filters[0] = new NativeMethods.DevicePropertyFilterExpression
-			{
-				Operator = NativeMethods.DevPropertyOperator.Equals,
-				Property =
-				{
-					CompoundKey =
-					{
-						Key = NativeMethods.DevicePropertyKeys.DeviceInterfaceClassGuid,
-						Store = NativeMethods.DevicePropertyStore.Sytem
-					},
-					Type = NativeMethods.DevicePropertyType.Guid,
-					Buffer = guidData,
-					BufferLength = 16,
-				}
-			};
-			filters[1] = new NativeMethods.DevicePropertyFilterExpression
-			{
-				Operator = NativeMethods.DevPropertyOperator.Equals,
-				Property =
-				{
-					CompoundKey =
-					{
-						Key = NativeMethods.DevicePropertyKeys.DeviceInterfaceEnabled,
-						Store = NativeMethods.DevicePropertyStore.Sytem
-					},
-					Type = NativeMethods.DevicePropertyType.Boolean,
-					Buffer = trueData,
-					BufferLength = 1,
-				}
-			};
-
 			return NativeMethods.DeviceCreateObjectQuery
 			(
 				kind,
@@ -152,8 +169,6 @@ namespace DeviceTools
 				ref Unsafe.NullRef<NativeMethods.DevicePropertyCompoundKey>(),
 				filters.Length,
 				ref MemoryMarshal.GetReference(filters),
-				//0,
-				//ref Unsafe.NullRef<NativeMethods.DevicePropertyFilterExpression>(),
 #if NET5_0_OR_GREATER
 				(delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)NativeMethods.NativeDevQueryCallback,
 #else
@@ -162,34 +177,5 @@ namespace DeviceTools
 				context
 			);
 		}
-	}
-
-	public enum DeviceObjectKind
-	{
-		Unknown = 0,
-		DeviceInterface = 1,
-		DeviceContainer = 2,
-		Device = 3,
-		DeviceInterfaceClass = 4,
-		AssociationEndpoint = 5,
-		AssociationEndpointContainer = 6,
-		DeviceInstallerClass = 7,
-		DeviceInterfaceDisplay = 8,
-		DeviceContainerDisplay = 9,
-		AssociationEndpointService = 10,
-		DevicePanel = 11,
-	}
-
-	public sealed class DeviceObjectInformation
-	{
-		public DeviceObjectInformation(DeviceObjectKind kind, string id)
-		{
-			Kind = kind;
-			Id = id;
-		}
-
-		public DeviceObjectKind Kind { get; }
-
-		public string Id { get; }
 	}
 }

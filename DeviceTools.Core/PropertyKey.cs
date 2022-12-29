@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace DeviceTools
@@ -14,16 +14,5 @@ namespace DeviceTools
 			CategoryId = categoryId;
 			PropertyId = propertyId;
 		}
-	}
-
-	public abstract class Property
-	{
-		private readonly PropertyKey _key;
-		public ref readonly PropertyKey Key => ref _key;
-	}
-
-	public static class Properties
-	{
-
 	}
 }
