@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -12,115 +13,16 @@ namespace DeviceTools.Cli
 {
 	internal static class Program
 	{
-		[MTAThread]
-		private static void Main(string[] args)
+		private static async Task Main(string[] args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			bool enumerateMonitors = false;
 
 			if (enumerateMonitors)
 			{
-				foreach (var adapter in DisplayAdapterDevice.GetAll(false))
-				{
-					Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
-					Console.WriteLine($"Adapter Device Description: {adapter.Description}");
-					Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
-					Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
-					Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
-					Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
-					foreach (var monitor in adapter.GetMonitors(false))
-					{
-						Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
-						Console.WriteLine($"Monitor Device Description: {monitor.Description}");
-						Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
-						Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
-						Console.WriteLine($"Monitor is Active: {monitor.IsActive}");
-						Console.WriteLine($"Monitor is Attached: {monitor.IsAttached}");
-					}
-				}
+				PrintAdapters();
 
-				//foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Display))
-				//{
-				//	Console.WriteLine(s);
-				//}
-
-				//foreach (string s in Device.EnumerateAllDevices(DeviceClassGuids.Monitor))
-				//{
-				//	Console.WriteLine(s);
-				//}
-
-				//foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
-				//{
-				//	Console.WriteLine(s);
-				//}
-
-				//foreach (string s in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Monitor))
-				//{
-				//	Console.WriteLine(s);
-				//}
-
-				foreach (var monitor in LogicalMonitor.GetAll())
-				{
-					Console.WriteLine($"Logical monitor name: {monitor.Name}");
-
-					foreach (var physicalMonitor in monitor.GetPhysicalMonitors())
-					{
-						Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
-
-						var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
-						Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString)}");
-
-						if (MonitorCapabilities.TryParse(capabilitiesString, out var capabilities))
-						{
-							Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
-							Console.WriteLine($"Physical monitor model: {capabilities.Model}");
-							Console.WriteLine($"Physical monitor MCCS Version: {capabilities.MccsVersion}");
-
-							Console.WriteLine($"Supported DDC/CI commands: {capabilities.SupportedMonitorCommands.Length}");
-							foreach (var ddcCiCommand in capabilities.SupportedMonitorCommands)
-							{
-								Console.WriteLine($"{(byte)ddcCiCommand:X2} {ddcCiCommand}");
-							}
-
-							Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
-							foreach (var vcpCommand in capabilities.SupportedVcpCommands)
-							{
-								Console.Write($"Command {vcpCommand.VcpCode:X2}");
-								if (vcpCommand.Name is { Length: not 0 })
-								{
-									Console.Write($" - {vcpCommand.Name}");
-								}
-								Console.WriteLine();
-
-								try
-								{
-									var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
-
-									Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
-									Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
-								}
-								catch
-								{
-									Console.WriteLine("Failed to query the VCP code.");
-								}
-
-								foreach (var value in vcpCommand.NonContinuousValues)
-								{
-									Console.Write($"Value {value.Value:X2}");
-									if (value.Name is { Length: not 0 })
-									{
-										Console.Write($" - {value.Name}");
-									}
-									Console.WriteLine();
-								}
-							}
-						}
-						else
-						{
-							Console.WriteLine("Failed to parse capabilities.");
-						}
-					}
-				}
+				PrintMonitors();
 			}
 
 			//foreach (string s in Device.EnumerateAllDevices())
@@ -137,103 +39,197 @@ namespace DeviceTools.Cli
 			//}
 
 			//using (var collection = new RawInputDeviceCollection())
-			var collection = (from dn in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid) select HidDevice.FromPath(dn)).ToArray();
+			//{
+			//	collection.Refresh();
+			//}
+
+			//PrintHidDevices((from dn in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid) select HidDevice.FromPath(dn)).ToArray());
+
+			int index = 0;
+			await foreach (var device in DeviceQuery.EnumerateAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
 			{
-				//collection.Refresh();
-				foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i)))
+				PrintHidDevice(HidDevice.FromPath(device.Id), index++);
+			}
+
+			if (index > 0)
+			{
+				Console.WriteLine("╚" + new string('═', 39));
+			}
+		}
+
+		private static void PrintHidDevices(HidDevice[] collection)
+		{
+			foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i)))
+			{
+				PrintHidDevice(device, index);
+			}
+
+			if (collection.Length > 0)
+			{
+				Console.WriteLine("╚" + new string('═', 39));
+			}
+		}
+
+		private static void PrintHidDevice(HidDevice device, int index)
+		{
+			//if (index > 0) Console.ReadKey(true);
+			Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
+			//Console.WriteLine($"Device Handle: {device.Handle:X16}");
+			//Console.WriteLine($"║ Device Type: {device.DeviceType}");
+			Console.WriteLine($"║ Device Name: {device.DeviceName}");
+			Console.WriteLine($"║ Device Instance ID: {device.InstanceId}");
+			Console.WriteLine($"║ Device Container ID: {device.ContainerId}");
+			try { Console.WriteLine($"║ Device Container Display Name: {Device.GetDeviceContainerDisplayName(device.ContainerId)}"); }
+			catch { Console.WriteLine($"║ Device Container Display Name: <Unknown>"); }
+			try { Console.WriteLine($"║ Device Container Primary Category: {Device.GetDeviceContainerPrimaryCategory(device.ContainerId)}"); }
+			catch { Console.WriteLine($"║ Device Container Primary Category: <Unknown>"); }
+			try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
+			catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
+			try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
+			catch { Console.WriteLine($"║ Device Product Name: <Unknown>"); }
+			try { Console.WriteLine($"║ Device Serial Number: {device.SerialNumber}"); }
+			catch { Console.WriteLine($"║ Device Serial Number: <Unknown>"); }
+
+			var deviceId = device.DeviceId;
+
+			// TODO: Add a database for BT Vendor IDs (They are publicly available)
+			if (deviceId.VendorIdSource == VendorIdSource.Usb)
+			{
+				var names = UsbProductNameDatabase.LookupVendorAndProductName(deviceId.VendorId, deviceId.ProductId);
+
+				if (names.VendorName.Length > 0)
 				{
-					//if (index > 0) Console.ReadKey(true);
-					Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
-					//Console.WriteLine($"Device Handle: {device.Handle:X16}");
-					//Console.WriteLine($"║ Device Type: {device.DeviceType}");
-					Console.WriteLine($"║ Device Name: {device.DeviceName}");
-					Console.WriteLine($"║ Device Instance ID: {device.InstanceId}");
-					Console.WriteLine($"║ Device Container ID: {device.ContainerId}");
-					try { Console.WriteLine($"║ Device Container Display Name: {Device.GetDeviceContainerDisplayName(device.ContainerId)}"); }
-					catch { Console.WriteLine($"║ Device Container Display Name: <Unknown>"); }
-					try { Console.WriteLine($"║ Device Container Primary Category: {Device.GetDeviceContainerPrimaryCategory(device.ContainerId)}"); }
-					catch { Console.WriteLine($"║ Device Container Primary Category: <Unknown>"); }
-					try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
-					catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
-					try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
-					catch { Console.WriteLine($"║ Device Product Name: <Unknown>"); }
-					try { Console.WriteLine($"║ Device Serial Number: {device.SerialNumber}"); }
-					catch { Console.WriteLine($"║ Device Serial Number: <Unknown>"); }
-
-					var deviceId = device.DeviceId;
-
-					// TODO: Add a database for BT Vendor IDs (They are publicly available)
-					if (deviceId.VendorIdSource == VendorIdSource.Usb)
+					Console.WriteLine($"║ Device Vendor Name: {names.VendorName}");
+					if (names.ProductName.Length > 0)
 					{
-						var names = UsbProductNameDatabase.LookupVendorAndProductName(deviceId.VendorId, deviceId.ProductId);
-
-						if (names.VendorName.Length > 0)
-						{
-							Console.WriteLine($"║ Device Vendor Name: {names.VendorName}");
-							if (names.ProductName.Length > 0)
-							{
-								Console.WriteLine($"║ Device Product Name: {names.ProductName}");
-							}
-						}
+						Console.WriteLine($"║ Device Product Name: {names.ProductName}");
 					}
-
-					Console.WriteLine($"║ Device Enumerator: {deviceId.Source}");
-					Console.WriteLine($"║ Device Vendor ID Source: {deviceId.VendorIdSource}");
-					Console.WriteLine($"║ Device Vendor ID: {deviceId.VendorId:X4}");
-					Console.WriteLine($"║ Device Product ID: {deviceId.ProductId:X4}");
-					if (deviceId.Version != 0xFFFF)
-					{
-						Console.WriteLine($"║ Device Version Number: {deviceId.Version:X4}");
-					}
-
-					switch (device)
-					{
-					case RawInputMouseDevice mouse:
-						Console.WriteLine($"║ Mouse Id: {mouse.Id}");
-						Console.WriteLine($"║ Mouse Button Count: {mouse.ButtonCount}");
-						Console.WriteLine($"║ Mouse Sample Rate: {mouse.SampleRate}");
-						Console.WriteLine($"║ Mouse has Horizontal Wheel: {mouse.HasHorizontalWheel}");
-						break;
-					case RawInputKeyboardDevice keyboard:
-						Console.WriteLine($"║ Keyboard Type: {keyboard.KeyboardType}");
-						Console.WriteLine($"║ Keyboard SubType: {keyboard.KeyboardSubType}");
-						Console.WriteLine($"║ Keyboard Key Count: {keyboard.KeyCount}");
-						Console.WriteLine($"║ Keyboard Indicator Count: {keyboard.IndicatorCount}");
-						Console.WriteLine($"║ Keyboard Function Key Count: {keyboard.FunctionKeyCount}");
-						Console.WriteLine($"║ Keyboard Mode: {keyboard.KeyboardMode}");
-						break;
-					case RawInputHidDevice hid:
-					default:
-						break;
-					}
-
-					if (device is RawInputDevice rawInptuDevice)
-					{
-						PrintUsageAndPage("║ Device", rawInptuDevice.UsagePage, rawInptuDevice.Usage);
-					}
-
-					PrintDeviceInfo(device);
-				}
-
-				if (collection.Length > 0)
-				{
-					Console.WriteLine("╚" + new string('═', 39));
 				}
 			}
 
-			Task.Run(() => Z()).Wait();
+			Console.WriteLine($"║ Device Enumerator: {deviceId.Source}");
+			Console.WriteLine($"║ Device Vendor ID Source: {deviceId.VendorIdSource}");
+			Console.WriteLine($"║ Device Vendor ID: {deviceId.VendorId:X4}");
+			Console.WriteLine($"║ Device Product ID: {deviceId.ProductId:X4}");
+			if (deviceId.Version != 0xFFFF)
+			{
+				Console.WriteLine($"║ Device Version Number: {deviceId.Version:X4}");
+			}
+
+			switch (device)
+			{
+			case RawInputMouseDevice mouse:
+				Console.WriteLine($"║ Mouse Id: {mouse.Id}");
+				Console.WriteLine($"║ Mouse Button Count: {mouse.ButtonCount}");
+				Console.WriteLine($"║ Mouse Sample Rate: {mouse.SampleRate}");
+				Console.WriteLine($"║ Mouse has Horizontal Wheel: {mouse.HasHorizontalWheel}");
+				break;
+			case RawInputKeyboardDevice keyboard:
+				Console.WriteLine($"║ Keyboard Type: {keyboard.KeyboardType}");
+				Console.WriteLine($"║ Keyboard SubType: {keyboard.KeyboardSubType}");
+				Console.WriteLine($"║ Keyboard Key Count: {keyboard.KeyCount}");
+				Console.WriteLine($"║ Keyboard Indicator Count: {keyboard.IndicatorCount}");
+				Console.WriteLine($"║ Keyboard Function Key Count: {keyboard.FunctionKeyCount}");
+				Console.WriteLine($"║ Keyboard Mode: {keyboard.KeyboardMode}");
+				break;
+			case RawInputHidDevice hid:
+			default:
+				break;
+			}
+
+			if (device is RawInputDevice rawInptuDevice)
+			{
+				PrintUsageAndPage("║ Device", rawInptuDevice.UsagePage, rawInptuDevice.Usage);
+			}
+
+			PrintDeviceInfo(device);
 		}
 
-		private static async Task Z()
+		private static void PrintAdapters()
 		{
-			//foreach (var device in await Windows.Devices.Enumeration.DeviceInformation.FindAllAsync("System.Devices.InterfaceClassGuid:=\"{4D1E55B2-F16F-11CF-88CB-001111000030}\" AND System.Devices.InterfaceEnabled:=System.StructuredQueryType.Boolean#True"))
-			//{
-			//	Console.WriteLine($"{device.Kind}: {device.Id}");
-			//}
-
-			await foreach (var device in DeviceQuery.EnumerateAllAsync(Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
+			foreach (var adapter in DisplayAdapterDevice.GetAll(false))
 			{
-				Console.WriteLine($"{device.Kind}: {device.Id}");
+				Console.WriteLine($"Adapter Device Name: {adapter.DeviceName}");
+				Console.WriteLine($"Adapter Device Description: {adapter.Description}");
+				Console.WriteLine($"Adapter Device Id: {adapter.DeviceId}");
+				Console.WriteLine($"Adapter Device Key: {adapter.RegistryPath}");
+				Console.WriteLine($"Adapter is Attached to Desktop: {adapter.IsAttachedToDesktop}");
+				Console.WriteLine($"Adapter is Primary Device: {adapter.IsPrimaryDevice}");
+				foreach (var monitor in adapter.GetMonitors(false))
+				{
+					Console.WriteLine($"Monitor Device Name: {monitor.DeviceName}");
+					Console.WriteLine($"Monitor Device Description: {monitor.Description}");
+					Console.WriteLine($"Monitor Device Id: {monitor.DeviceId}");
+					Console.WriteLine($"Monitor Device Key: {monitor.RegistryPath}");
+					Console.WriteLine($"Monitor is Active: {monitor.IsActive}");
+					Console.WriteLine($"Monitor is Attached: {monitor.IsAttached}");
+				}
+			}
+		}
+
+		private static void PrintMonitors()
+		{
+			foreach (var monitor in LogicalMonitor.GetAll())
+			{
+				Console.WriteLine($"Logical monitor name: {monitor.Name}");
+
+				foreach (var physicalMonitor in monitor.GetPhysicalMonitors())
+				{
+					Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
+
+					var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
+					Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString)}");
+
+					if (MonitorCapabilities.TryParse(capabilitiesString, out var capabilities))
+					{
+						Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
+						Console.WriteLine($"Physical monitor model: {capabilities.Model}");
+						Console.WriteLine($"Physical monitor MCCS Version: {capabilities.MccsVersion}");
+
+						Console.WriteLine($"Supported DDC/CI commands: {capabilities.SupportedMonitorCommands.Length}");
+						foreach (var ddcCiCommand in capabilities.SupportedMonitorCommands)
+						{
+							Console.WriteLine($"{(byte)ddcCiCommand:X2} {ddcCiCommand}");
+						}
+
+						Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
+						foreach (var vcpCommand in capabilities.SupportedVcpCommands)
+						{
+							Console.Write($"Command {vcpCommand.VcpCode:X2}");
+							if (vcpCommand.Name is { Length: not 0 })
+							{
+								Console.Write($" - {vcpCommand.Name}");
+							}
+							Console.WriteLine();
+
+							try
+							{
+								var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
+
+								Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
+								Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
+							}
+							catch
+							{
+								Console.WriteLine("Failed to query the VCP code.");
+							}
+
+							foreach (var value in vcpCommand.NonContinuousValues)
+							{
+								Console.Write($"Value {value.Value:X2}");
+								if (value.Name is { Length: not 0 })
+								{
+									Console.Write($" - {value.Name}");
+								}
+								Console.WriteLine();
+							}
+						}
+					}
+					else
+					{
+						Console.WriteLine("Failed to parse capabilities.");
+					}
+				}
 			}
 		}
 

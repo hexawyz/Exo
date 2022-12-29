@@ -47,11 +47,19 @@ namespace DeviceTools
 			}
 		}
 
-		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceFilterExpression filter, CancellationToken cancellationToken)
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceFilterExpression filter, CancellationToken cancellationToken) =>
+			EnumerateAllAsync(DeviceObjectKind.Unknown, filter, cancellationToken);
+
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, CancellationToken cancellationToken) =>
+			EnumerateAllAsync(objectKind, null, cancellationToken);
+
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, DeviceFilterExpression? filter, CancellationToken cancellationToken)
 		{
-			int count = filter.GetFilterElementCount(true);
+			int count = filter?.GetFilterElementCount(true) ?? 0;
 			Span<NativeMethods.DevicePropertyFilterExpression> filterExpressions = count <= 4 ?
-				stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
+				count == 0 ?
+					new Span<NativeMethods.DevicePropertyFilterExpression>() :
+					stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
 				new NativeMethods.DevicePropertyFilterExpression[count];
 
 			GCHandle contextHandle;
@@ -59,7 +67,8 @@ namespace DeviceTools
 			SafeDeviceQueryHandle query;
 			ChannelReader<DeviceObjectInformation> reader;
 
-			filter.FillExpressions(filterExpressions, true, out count);
+			filter?.FillExpressions(filterExpressions, true, out count);
+
 			try
 			{
 				var channel = Channel.CreateUnbounded<DeviceObjectInformation>(FindAllChannelOptions);
@@ -73,7 +82,7 @@ namespace DeviceTools
 
 					try
 					{
-						query = CreateObjectQuery(DeviceObjectKind.DeviceInterface, filterExpressions, helperContext);
+						query = CreateObjectQuery(objectKind, filterExpressions, helperContext);
 					}
 					catch
 					{
@@ -89,7 +98,7 @@ namespace DeviceTools
 			}
 			finally
 			{
-				filter.ReleaseExpressionResources();
+				filter?.ReleaseExpressionResources();
 			}
 
 			return EnumerateAllAsync(query, reader, helperContext, contextHandle, cancellationToken);
@@ -141,7 +150,7 @@ namespace DeviceTools
 
 			*(NativeMethods.DevQueryHelperContext*)storage = new NativeMethods.DevQueryHelperContext
 			{
-				Callback = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)&FindAllCallback,
+				Callback = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)&EnumerateAllCallback,
 				Context = GCHandle.ToIntPtr(contextHandle),
 			};
 
