@@ -34,11 +34,12 @@ namespace DeviceTools
 
 		private static IntPtr GetNativeDevQueryCallback()
 		{
-			// TODO: Future-proof this so that ARM becomes supported based on the presence of the DLL.
 			var directoryName = RuntimeInformation.ProcessArchitecture switch
 			{
 				Architecture.X86 => "x86",
 				Architecture.X64 => "x64",
+				Architecture.Arm => "arm32",
+				Architecture.Arm64 => "arm64",
 				_ => throw new NotSupportedException($"The architecture {RuntimeInformation.ProcessArchitecture} is currently not supported."),
 			};
 
