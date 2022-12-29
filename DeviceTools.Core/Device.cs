@@ -248,7 +248,7 @@ namespace DeviceTools
 			uint dataLength = 0;
 
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, ref Unsafe.NullRef<byte>(), ref dataLength, 0);
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, Properties.System.Devices.HardwareIds.Key, out _, ref Unsafe.NullRef<byte>(), ref dataLength, 0);
 				if (result != NativeMethods.ConfigurationManagerResult.BufferSmall)
 				{
 					throw new ConfigurationManagerException(result);
@@ -259,7 +259,7 @@ namespace DeviceTools
 			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)dataLength));
 			try
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceHardwareIds, out _, ref buffer[0], ref dataLength, 0);
+				var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(deviceInstanceHandle, Properties.System.Devices.HardwareIds.Key, out _, ref buffer[0], ref dataLength, 0);
 				if (result != 0)
 				{
 					throw new ConfigurationManagerException(result);
@@ -289,13 +289,13 @@ namespace DeviceTools
 			}
 		}
 
-		public static string GetDeviceInstanceId(string deviceInterface) => GetDeviceInterfaceStringProperty(deviceInterface, NativeMethods.DevicePropertyKeys.DeviceInstanceId);
+		public static string GetDeviceInstanceId(string deviceInterface) => GetDeviceInterfaceStringProperty(deviceInterface, Properties.System.Devices.DeviceInstanceId.Key);
 
-		public static string GetDisplayName(uint deviceInstanceHandle) => GetStringProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.ItemNameDisplay);
+		public static string GetDisplayName(uint deviceInstanceHandle) => GetStringProperty(deviceInstanceHandle, Properties.System.ItemNameDisplay.Key);
 
-		public static string GetFriendlyName(uint deviceInstanceHandle) => GetStringProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.DeviceFriendlyName);
+		public static string GetFriendlyName(uint deviceInstanceHandle) => GetStringProperty(deviceInstanceHandle, Properties.System.Devices.FriendlyName.Key);
 
-		public static Guid GetContainerId(uint deviceInstanceHandle) => GetGuidProperty(deviceInstanceHandle, NativeMethods.DevicePropertyKeys.ContainerId);
+		public static Guid GetContainerId(uint deviceInstanceHandle) => GetGuidProperty(deviceInstanceHandle, Properties.System.Devices.ContainerId.Key);
 
 		private static string GetDeviceInterfaceStringProperty(string deviceInterface, in PropertyKey propertyKey)
 		{
@@ -418,7 +418,7 @@ namespace DeviceTools
 			return deviceInstanceHandle;
 		}
 
-		public static unsafe string GetDeviceContainerDisplayName(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, NativeMethods.DevicePropertyKeys.ItemNameDisplay);
+		public static unsafe string GetDeviceContainerDisplayName(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, Properties.System.ItemNameDisplay.Key);
 		public static unsafe string GetDeviceContainerPrimaryCategory(Guid deviceContainerId) => GetDeviceContainerStringProperty(deviceContainerId, NativeMethods.DevicePropertyKeys.DeviceContainerPrimaryCategory);
 
 		private static unsafe string GetDeviceContainerStringProperty(Guid deviceContainerId, in PropertyKey property)

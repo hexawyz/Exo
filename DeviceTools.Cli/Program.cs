@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using DeviceTools.DisplayDevices;
 using DeviceTools.HumanInterfaceDevices;
@@ -50,6 +48,11 @@ namespace DeviceTools.Cli
 			foreach (var device in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
 			{
 				PrintHidDevice(HidDevice.FromPath(device.Id), index++);
+
+				foreach (var p in device.Properties)
+				{
+					Console.WriteLine(FormattableString.Invariant($"║ {p.Key.GetName()}={p.Value ?? "null"}"));
+				}
 			}
 
 			if (index > 0)

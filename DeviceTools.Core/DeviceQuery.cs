@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -35,9 +35,9 @@ namespace DeviceTools
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
 				ref var @object = ref action->StateOrObject.DeviceObject;
 #if NET6_0_OR_GREATER
-				writer.TryWrite(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString()));
+				writer.TryWrite(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object)));
 #else
-				writer.TryWrite(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!));
+				writer.TryWrite(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object)));
 #endif
 				break;
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
@@ -83,9 +83,9 @@ namespace DeviceTools
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
 				ref var @object = ref action->StateOrObject.DeviceObject;
 #if NET6_0_OR_GREATER
-				list.Add(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString()));
+				list.Add(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object)));
 #else
-				list.Add(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!));
+				list.Add(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object)));
 #endif
 				break;
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
@@ -115,13 +115,115 @@ namespace DeviceTools
 			}
 		}
 
-		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceFilterExpression filter, CancellationToken cancellationToken) =>
-			EnumerateAllAsync(DeviceObjectKind.Unknown, filter, cancellationToken);
+		private static readonly object False = false;
+		private static readonly object True = true;
+
+		private static unsafe Dictionary<PropertyKey, object?>? ParseProperties(ref NativeMethods.DeviceObject device)
+		{
+			int count = (int)device.PropertyCount;
+
+			if (count < 0) return null;
+
+			var dictionary = new Dictionary<PropertyKey, object?>(count);
+			List<string>? stringList = null;
+
+			for (int i = 0; i < count; i++)
+			{
+				ref var property = ref device.Properties[i];
+				object? value;
+				switch (property.Type)
+				{
+				case NativeMethods.DevicePropertyType.Null:
+					value = null;
+					break;
+				case NativeMethods.DevicePropertyType.Boolean:
+					value = *(sbyte*)property.Buffer != 0 ? True : False;
+					break;
+				case NativeMethods.DevicePropertyType.SByte:
+					value = *(sbyte*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Byte:
+					value = *(byte*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Int16:
+					value = *(short*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.UInt16:
+					value = *(ushort*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Int32:
+					value = *(int*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.UInt32:
+					value = *(uint*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Int64:
+					value = *(long*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.UInt64:
+					value = *(ulong*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Float:
+					value = *(float*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Double:
+					value = *(double*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.Guid:
+					value = *(Guid*)property.Buffer;
+					break;
+				case NativeMethods.DevicePropertyType.FileTime:
+					value = DateTime.FromFileTimeUtc(*(long*)property.Buffer);
+					break;
+				case NativeMethods.DevicePropertyType.String:
+					value = property.BufferLength == 0 ? string.Empty : Marshal.PtrToStringUni(property.Buffer, (int)(property.BufferLength / 2) - 1)!;
+					break;
+				case NativeMethods.DevicePropertyType.StringList:
+					stringList ??= new();
+
+					var remaining = new ReadOnlySpan<char>((void*)property.Buffer, (int)property.BufferLength);
+
+					int end = remaining.IndexOf('\0');
+
+					while (remaining.Length > 0 && end > 0)
+					{
+						stringList.Add(remaining.Slice(0, end).ToString());
+						remaining = remaining.Slice(end + 1);
+					}
+
+					value = stringList.ToArray();
+					stringList.Clear();
+					break;
+				case NativeMethods.DevicePropertyType.Binary:
+					value = property.BufferLength == 0 ? Array.Empty<byte>() : new ReadOnlySpan<byte>((void*)property.Buffer, (int)property.BufferLength).ToArray();
+					break;
+				default:
+					// Skip properties with unknown data types.
+					continue;
+				}
+
+				dictionary.Add(property.CompoundKey.Key, value);
+			}
+
+			return dictionary;
+		}
 
 		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, CancellationToken cancellationToken) =>
-			EnumerateAllAsync(objectKind, null, cancellationToken);
+			EnumerateAllAsync(objectKind, null, null, cancellationToken);
 
-		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, DeviceFilterExpression? filter, CancellationToken cancellationToken)
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, DeviceFilterExpression filter, CancellationToken cancellationToken) =>
+			EnumerateAllAsync(objectKind, null, filter, cancellationToken);
+
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
+			EnumerateAllAsync(objectKind, properties, null, cancellationToken);
+
+		public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync
+		(
+			DeviceObjectKind objectKind,
+			IEnumerable<Property>? properties,
+			DeviceFilterExpression? filter,
+			CancellationToken cancellationToken
+		)
 		{
 			int count = filter?.GetFilterElementCount(true) ?? 0;
 			Span<NativeMethods.DevicePropertyFilterExpression> filterExpressions = count <= 4 ?
@@ -129,6 +231,10 @@ namespace DeviceTools
 					new Span<NativeMethods.DevicePropertyFilterExpression>() :
 					stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
 				new NativeMethods.DevicePropertyFilterExpression[count];
+
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
+					new Span<NativeMethods.DevicePropertyCompoundKey>() :
+					properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
 
 			GCHandle contextHandle;
 			IntPtr helperContext;
@@ -150,7 +256,14 @@ namespace DeviceTools
 
 					try
 					{
-						query = CreateObjectQuery(objectKind, filterExpressions, helperContext);
+						query = CreateObjectQuery
+						(
+							objectKind,
+							properties is null ? NativeMethods.DeviceQueryFlags.AllProperties : NativeMethods.DeviceQueryFlags.None,
+							propertyKeys,
+							filterExpressions,
+							helperContext
+						);
 					}
 					catch
 					{
@@ -211,13 +324,16 @@ namespace DeviceTools
 			}
 		}
 
-		public static Task<DeviceObjectInformation[]> FindAllAsync(DeviceFilterExpression filter, CancellationToken cancellationToken) =>
-			FindAllAsync(DeviceObjectKind.Unknown, filter, cancellationToken);
-
 		public static Task<DeviceObjectInformation[]> FindAllAsync(DeviceObjectKind objectKind, CancellationToken cancellationToken) =>
-			FindAllAsync(objectKind, null, cancellationToken);
+			FindAllAsync(objectKind, null, null, cancellationToken);
 
-		public static Task<DeviceObjectInformation[]> FindAllAsync(DeviceObjectKind objectKind, DeviceFilterExpression? filter, CancellationToken cancellationToken)
+		public static Task<DeviceObjectInformation[]> FindAllAsync(DeviceObjectKind objectKind, DeviceFilterExpression filter, CancellationToken cancellationToken) =>
+			FindAllAsync(objectKind, null, filter, cancellationToken);
+
+		public static Task<DeviceObjectInformation[]> FindAllAsync(DeviceObjectKind objectKind, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
+			FindAllAsync(objectKind, properties, null, cancellationToken);
+
+		public static Task<DeviceObjectInformation[]> FindAllAsync(DeviceObjectKind objectKind, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken)
 		{
 			int count = filter?.GetFilterElementCount(true) ?? 0;
 			Span<NativeMethods.DevicePropertyFilterExpression> filterExpressions = count <= 4 ?
@@ -225,6 +341,10 @@ namespace DeviceTools
 					new Span<NativeMethods.DevicePropertyFilterExpression>() :
 					stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
 				new NativeMethods.DevicePropertyFilterExpression[count];
+
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
+					new Span<NativeMethods.DevicePropertyCompoundKey>() :
+					properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
 
 			GCHandle contextHandle;
 			IntPtr helperContext;
@@ -241,9 +361,9 @@ namespace DeviceTools
 			try
 			{
 #if NET5_0_OR_GREATER
-				tcs = new TaskCompletionSource();
+				tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 #else
-				tcs = new TaskCompletionSource<bool>();
+				tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 #endif
 				list = new List<DeviceObjectInformation>();
 
@@ -255,7 +375,14 @@ namespace DeviceTools
 
 					try
 					{
-						query = CreateObjectQuery(objectKind, filterExpressions, helperContext);
+						query = CreateObjectQuery
+						(
+							objectKind,
+							properties is null ? NativeMethods.DeviceQueryFlags.AllProperties : NativeMethods.DeviceQueryFlags.None,
+							propertyKeys,
+							filterExpressions,
+							helperContext
+						);
 					}
 					catch
 					{
@@ -370,14 +497,14 @@ namespace DeviceTools
 #endif
 		}
 
-		private static unsafe SafeDeviceQueryHandle CreateObjectQuery(DeviceObjectKind kind, Span<NativeMethods.DevicePropertyFilterExpression> filters, IntPtr context)
+		private static unsafe SafeDeviceQueryHandle CreateObjectQuery(DeviceObjectKind kind, NativeMethods.DeviceQueryFlags flags, Span<NativeMethods.DevicePropertyCompoundKey> properties, Span<NativeMethods.DevicePropertyFilterExpression> filters, IntPtr context)
 		{
 			return NativeMethods.DeviceCreateObjectQuery
 			(
 				kind,
-				NativeMethods.DeviceQueryFlags.UpdateResults,
-				0,
-				ref Unsafe.NullRef<NativeMethods.DevicePropertyCompoundKey>(),
+				flags,
+				properties.Length,
+				ref MemoryMarshal.GetReference(properties),
 				filters.Length,
 				ref MemoryMarshal.GetReference(filters),
 #if NET5_0_OR_GREATER
