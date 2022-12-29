@@ -32,10 +32,10 @@ namespace DeviceTools
 			{
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
 				ref var @object = ref action->StateOrObject.DeviceObject;
-#if NET5_0_OR_GREATER
+#if NET6_0_OR_GREATER
 				writer.TryWrite(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString()));
 #else
-				writer.TryWrite(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)));
+				writer.TryWrite(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!));
 #endif
 				break;
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
