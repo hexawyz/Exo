@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,16 +27,13 @@ namespace DeviceTools.Cli
 			int index = 0;
 			foreach (var device in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default))
 			{
-				if (index == 0)
-				{
-					Console.WriteLine("╔" + new string('═', 39));
-				}
+				Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
 
 				Console.WriteLine($"║ Device ID: {device.Id}");
 
 				foreach (var p in device.Properties)
 				{
-					Console.WriteLine(FormattableString.Invariant($"║ {p.Key}={p.Value ?? "null"}"));
+					PrintProperty("║ ", p);
 				}
 
 				if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
@@ -44,20 +42,7 @@ namespace DeviceTools.Cli
 					//foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default)) // For some reason, this doesn't work and I have no idea why.
 					foreach (var p in (await DeviceQuery.FindAllAsync(DeviceObjectKind.Device, Properties.System.Devices.ClassGuid == DeviceClassGuids.Monitor & Properties.System.Devices.DeviceInstanceId.EqualsIgnoreCase(deviceId), default)).First().Properties)
 					{
-						if (p.Value is string[] list)
-						{
-							Console.WriteLine(FormattableString.Invariant($"║ │ {p.Key}="));
-							Console.WriteLine("║ │ ╒");
-							foreach (var item in list)
-							{
-								Console.WriteLine($"║ │ │ {item}");
-							}
-							Console.WriteLine("║ │ ╘");
-						}
-						else
-						{
-							Console.WriteLine(FormattableString.Invariant($"║ │ {p.Key}={p.Value ?? "null"}"));
-						}
+						PrintProperty("║ │ ", p);
 					}
 					Console.WriteLine("║ ╘");
 				}
@@ -67,28 +52,17 @@ namespace DeviceTools.Cli
 					Console.WriteLine("║ ╒");
 					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
 					{
-						if (p.Value is string[] list)
-						{
-							Console.WriteLine(FormattableString.Invariant($"║ │ {p.Key}="));
-							Console.WriteLine("║ │ ╒");
-							foreach (var item in list)
-							{
-								Console.WriteLine($"║ │ │ {item}");
-							}
-							Console.WriteLine("║ │ ╘");
-						}
-						else
-						{
-							Console.WriteLine(FormattableString.Invariant($"║ │ {p.Key}={p.Value ?? "null"}"));
-						}
+						PrintProperty("║ │ ", p);
 					}
 					Console.WriteLine("║ ╘");
 				}
 
-				if (++index > 0)
-				{
-					Console.WriteLine("╚" + new string('═', 39));
-				}
+				++index;
+			}
+
+			if (index > 0)
+			{
+				Console.WriteLine("╚" + new string('═', 39));
 			}
 
 			//using (var collection = new RawInputDeviceCollection())
@@ -106,28 +80,32 @@ namespace DeviceTools.Cli
 
 				foreach (var p in device.Properties)
 				{
-					Console.WriteLine(FormattableString.Invariant($"║ {p.Key}={p.Value ?? "null"}"));
+					PrintProperty("║ ", p);
 				}
 
-				if (device.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out var value) && value is Guid containerId)
+				if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
+				{
+					Console.WriteLine("║ ╒");
+					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, Properties.System.Devices.ClassGuid == DeviceClassGuids.HidClass, default)) // For some reason, this doesn't work and I have no idea why.	foreach (var p in device.Properties)
+					{
+						PrintProperty("║ │ ", p);
+					}
+					//if ((await DeviceQuery.FindAllAsync(DeviceObjectKind.Device, Properties.System.Devices.ClassGuid == DeviceClassGuids.HidClass & Properties.System.Devices.DeviceInstanceId.EqualsIgnoreCase(deviceId), default)).FirstOrDefault() is { } deviceInstance)
+					//{
+					//	foreach (var p in deviceInstance.Properties)
+					//	{
+					//		PrintProperty("║ │ ", p);
+					//	}
+					//}
+					Console.WriteLine("║ ╘");
+				}
+
+				if (device.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
 				{
 					Console.WriteLine("║ ╒");
 					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
 					{
-						if (p.Value is string[] list)
-						{
-							Console.WriteLine(FormattableString.Invariant($"║ │ {p.Key}="));
-							Console.WriteLine("║ │ ╒");
-							foreach (var item in list)
-							{
-								Console.WriteLine($"║ │ │ {item}");
-							}
-							Console.WriteLine("║ │ ╘");
-						}
-						else
-						{
-							Console.WriteLine(FormattableString.Invariant($"║ │ {p.Key}={p.Value ?? "null"}"));
-						}
+						PrintProperty("║ │ ", p);
 					}
 					Console.WriteLine("║ ╘");
 				}
@@ -136,6 +114,24 @@ namespace DeviceTools.Cli
 			if (index > 0)
 			{
 				Console.WriteLine("╚" + new string('═', 39));
+			}
+		}
+
+		private static void PrintProperty(string indent, KeyValuePair<PropertyKey, object> p)
+		{
+			if (p.Value is string[] list)
+			{
+				Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}="));
+				Console.WriteLine($"{indent}╒");
+				foreach (var item in list)
+				{
+					Console.WriteLine($"{indent}│ {item}");
+				}
+				Console.WriteLine($"{indent}╘");
+			}
+			else
+			{
+				Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}={p.Value ?? "null"}"));
 			}
 		}
 

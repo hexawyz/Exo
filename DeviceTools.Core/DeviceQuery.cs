@@ -31,40 +31,42 @@ namespace DeviceTools
 #endif
 		private static unsafe void EnumerateAllCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
 		{
-			var writer = Unsafe.As<ChannelWriter<DeviceObjectInformation>>(GCHandle.FromIntPtr(context).Target)!;
+			var ctx = Unsafe.As<DevQueryCallbackContext<ChannelWriter<DeviceObjectInformation>>>(GCHandle.FromIntPtr(context).Target)!;
 			switch (action->Action)
 			{
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
 				ref var @object = ref action->StateOrObject.DeviceObject;
 #if NET6_0_OR_GREATER
-				writer.TryWrite(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object)));
+				ctx.State.TryWrite(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object)));
 #else
-				writer.TryWrite(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object)));
+				ctx.State.TryWrite(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object)));
 #endif
 				break;
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
 				var state = action->StateOrObject.State;
 				if (state is NativeMethods.DeviceQueryState.DevQueryStateEnumCompleted)
 				{
-					writer.TryComplete(null);
+					ctx.State.TryComplete(null);
 				}
 				else if (state is NativeMethods.DeviceQueryState.DevQueryStateAborted)
 				{
 #if NET5_0_OR_GREATER
-					writer.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
+					ctx.State.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
 #else
 					try { new Exception("The query was aborted."); }
-					catch (Exception ex) { writer.TryComplete(ex); }
+					catch (Exception ex) { ctx.State.TryComplete(ex); }
 #endif
+					ctx.Dispose();
 				}
 				else if (state is NativeMethods.DeviceQueryState.DevQueryStateClosed)
 				{
 #if NET5_0_OR_GREATER
-					writer.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new OperationCanceledException()));
+					ctx.State.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new OperationCanceledException()));
 #else
 					try { new OperationCanceledException(); }
-					catch (Exception ex) { writer.TryComplete(ex); }
+					catch (Exception ex) { ctx.State.TryComplete(ex); }
 #endif
+					ctx.Dispose();
 				}
 				break;
 			}
@@ -76,18 +78,19 @@ namespace DeviceTools
 		private static unsafe void FindAllCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
 		{
 #if NET5_0_OR_GREATER
-			var (tcs, list) = Unsafe.As<Tuple<TaskCompletionSource, List<DeviceObjectInformation>>>(GCHandle.FromIntPtr(context).Target)!;
+			var ctx = Unsafe.As<DevQueryCallbackContext<TaskCompletionSource, List<DeviceObjectInformation>>>(GCHandle.FromIntPtr(context).Target)!;
 #else
-			var (tcs, list) = Unsafe.As<Tuple<TaskCompletionSource<bool>, List<DeviceObjectInformation>>>(GCHandle.FromIntPtr(context).Target)!;
+			var ctx = Unsafe.As<DevQueryCallbackContext<TaskCompletionSource<bool>, List<DeviceObjectInformation>>>(GCHandle.FromIntPtr(context).Target)!;
 #endif
 			switch (action->Action)
 			{
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
 				ref var @object = ref action->StateOrObject.DeviceObject;
+				ctx.Value ??= new();
 #if NET6_0_OR_GREATER
-				list.Add(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object)));
+				ctx.Value!.Add(new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object)));
 #else
-				list.Add(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object)));
+				ctx.Value!.Add(new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object)));
 #endif
 				break;
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
@@ -95,23 +98,25 @@ namespace DeviceTools
 				if (state is NativeMethods.DeviceQueryState.DevQueryStateEnumCompleted)
 				{
 #if NET5_0_OR_GREATER
-					tcs.TrySetResult();
+					ctx.State.TrySetResult();
 #else
-					tcs.TrySetResult(true);
+					ctx.State.TrySetResult(true);
 #endif
 				}
 				else if (state is NativeMethods.DeviceQueryState.DevQueryStateAborted)
 				{
 #if NET5_0_OR_GREATER
-					tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
+					ctx.State.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
 #else
 					try { new Exception("The query was aborted."); }
-					catch (Exception ex) { tcs.TrySetException(ex); }
+					catch (Exception ex) { ctx.State.TrySetException(ex); }
 #endif
+					ctx.Dispose();
 				}
 				else if (state is NativeMethods.DeviceQueryState.DevQueryStateClosed)
 				{
-					tcs.TrySetCanceled();
+					ctx.State.TrySetCanceled();
+					ctx.Dispose();
 				}
 				break;
 			}
@@ -122,51 +127,96 @@ namespace DeviceTools
 #endif
 		private static unsafe void GetObjectPropertiesCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
 		{
-			var ctx = Unsafe.As<GetPropertiesContext>(GCHandle.FromIntPtr(context).Target)!;
+#if NET5_0_OR_GREATER
+			var ctx = Unsafe.As<DevQueryCallbackContext<TaskCompletionSource, Dictionary<PropertyKey, object?>?>>(GCHandle.FromIntPtr(context).Target)!;
+#else
+			var ctx = Unsafe.As<DevQueryCallbackContext<TaskCompletionSource<bool>, Dictionary<PropertyKey, object?>?>>(GCHandle.FromIntPtr(context).Target)!;
+#endif
 
 			switch (action->Action)
 			{
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
 				ref var @object = ref action->StateOrObject.DeviceObject;
-				ctx.Properties = ParseProperties(ref @object);
+				ctx.Value = ParseProperties(ref @object);
 				break;
 			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
 				var state = action->StateOrObject.State;
 				if (state is NativeMethods.DeviceQueryState.DevQueryStateEnumCompleted)
 				{
 #if NET5_0_OR_GREATER
-					ctx.TaskCompletionSource.TrySetResult();
+					ctx.State.TrySetResult();
 #else
-					ctx.TaskCompletionSource.TrySetResult(true);
+					ctx.State.TrySetResult(true);
 #endif
 				}
 				else if (state is NativeMethods.DeviceQueryState.DevQueryStateAborted)
 				{
 #if NET5_0_OR_GREATER
-					ctx.TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
+					ctx.State.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
 #else
 					try { new Exception("The query was aborted."); }
-					catch (Exception ex) { ctx.TaskCompletionSource.TrySetException(ex); }
+					catch (Exception ex) { ctx.State.TrySetException(ex); }
 #endif
+					ctx.Dispose();
 				}
 				else if (state is NativeMethods.DeviceQueryState.DevQueryStateClosed)
 				{
-					ctx.TaskCompletionSource.TrySetCanceled();
+					ctx.State.TrySetCanceled();
+					ctx.Dispose();
 				}
 				break;
 			}
 		}
 
-		private sealed class GetPropertiesContext
+		private enum Method
 		{
-#if NET5_0_OR_GREATER
-			public TaskCompletionSource TaskCompletionSource { get; }
-#else
-			public TaskCompletionSource<bool> TaskCompletionSource { get; }
-#endif
-			public Dictionary<PropertyKey, object?>? Properties { get; set; }
+			EnumerateAll = 1,
+			FindAll,
+			GetObjectProperties
+		}
 
-			public GetPropertiesContext() => TaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		// We only need to have this class to keep track of the data for the native helper and be able to release it… 
+		private class DevQueryCallbackContext : IDisposable
+		{
+			private readonly IntPtr _helperContext;
+
+			public DevQueryCallbackContext(Method method)
+			{
+				var gcHandle = GCHandle.Alloc(this);
+				try
+				{
+					_helperContext = CreateHelperContext(gcHandle, method);
+				}
+				catch
+				{
+					gcHandle.Free();
+					throw;
+				}
+			}
+
+			public unsafe void Dispose()
+			{
+				GCHandle.FromIntPtr(((NativeMethods.DevQueryHelperContext*)_helperContext)->Context).Free();
+				Marshal.FreeHGlobal(_helperContext);
+			}
+
+			internal IntPtr GetHandle() => _helperContext;
+		}
+
+		private class DevQueryCallbackContext<TState> : DevQueryCallbackContext
+			where TState : class
+		{
+			public TState State { get; }
+
+			public DevQueryCallbackContext(Method method, TState state) : base(method) => State = state;
+		}
+
+		private class DevQueryCallbackContext<TState, TValue> : DevQueryCallbackContext<TState>
+			where TState : class
+		{
+			public TValue? Value { get; set; }
+
+			public DevQueryCallbackContext(Method method, TState state) : base(method, state) { }
 		}
 
 		private static readonly object False = false;
@@ -291,44 +341,30 @@ namespace DeviceTools
 					new Span<NativeMethods.DevicePropertyCompoundKey>() :
 					properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
 
-			GCHandle contextHandle;
-			IntPtr helperContext;
 			SafeDeviceQueryHandle query;
-			ChannelReader<DeviceObjectInformation> reader;
+			DevQueryCallbackContext<ChannelReader<DeviceObjectInformation>> context;
 
 			filter?.FillExpressions(filterExpressions, true, out count);
 
 			try
 			{
 				var channel = Channel.CreateUnbounded<DeviceObjectInformation>(EnumerateAllChannelOptions);
-				reader = channel.Reader;
+				context = new(Method.EnumerateAll, channel.Reader);
 
-				contextHandle = GCHandle.Alloc(channel.Writer);
 				try
 				{
-					// Wrap the context in a helper that *needs* to be freed.
-					helperContext = CreateFindAllHelperContext(contextHandle);
-
-					try
-					{
-						query = CreateObjectQuery
-						(
-							objectKind,
-							properties is null ? NativeMethods.DeviceQueryFlags.AllProperties : NativeMethods.DeviceQueryFlags.None,
-							propertyKeys,
-							filterExpressions,
-							helperContext
-						);
-					}
-					catch
-					{
-						Marshal.FreeHGlobal(helperContext);
-						throw;
-					}
+					query = CreateObjectQuery
+					(
+						objectKind,
+						properties is null ? NativeMethods.DeviceQueryFlags.AllProperties | NativeMethods.DeviceQueryFlags.AsyncClose : NativeMethods.DeviceQueryFlags.AsyncClose,
+						propertyKeys,
+						filterExpressions,
+						context.GetHandle()
+					);
 				}
 				catch
 				{
-					contextHandle.Free();
+					context.Dispose();
 					throw;
 				}
 			}
@@ -337,45 +373,29 @@ namespace DeviceTools
 				filter?.ReleaseExpressionResources();
 			}
 
-			return EnumerateAllAsync(query, reader, helperContext, contextHandle, cancellationToken);
+			return EnumerateAllAsync(query, context, cancellationToken);
 		}
 
 		private static async IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync
 		(
 			SafeDeviceQueryHandle queryHandle,
-			ChannelReader<DeviceObjectInformation> reader,
-			IntPtr helperContext,
-			GCHandle contextHandle,
+			DevQueryCallbackContext<ChannelReader<DeviceObjectInformation>> context,
 			[EnumeratorCancellation] CancellationToken cancellationToken
 		)
 		{
 			try
 			{
-				try
+				while (await context.State.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
 				{
-					try
+					while (context.State.TryRead(out var info))
 					{
-						while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
-						{
-							while (reader.TryRead(out var info))
-							{
-								yield return info;
-							}
-						}
+						yield return info;
 					}
-					finally
-					{
-						queryHandle.Dispose();
-					}
-				}
-				finally
-				{
-					Marshal.FreeHGlobal(helperContext);
 				}
 			}
 			finally
 			{
-				contextHandle.Free();
+				queryHandle.Dispose();
 			}
 		}
 
@@ -401,105 +421,60 @@ namespace DeviceTools
 				new Span<NativeMethods.DevicePropertyCompoundKey>() :
 				properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
 
-			GCHandle contextHandle;
-			IntPtr helperContext;
 			SafeDeviceQueryHandle query;
 #if NET5_0_OR_GREATER
-			TaskCompletionSource tcs;
+			DevQueryCallbackContext<TaskCompletionSource, List<DeviceObjectInformation>> context;
 #else
-			TaskCompletionSource<bool> tcs;
+			DevQueryCallbackContext<TaskCompletionSource<bool>, List<DeviceObjectInformation>> context;
 #endif
-			List<DeviceObjectInformation> list;
 
 			filter?.FillExpressions(filterExpressions, true, out count);
 
 			try
 			{
-#if NET5_0_OR_GREATER
-				tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-#else
-				tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-#endif
-				list = new List<DeviceObjectInformation>();
+				context = new(Method.FindAll, new(TaskCreationOptions.RunContinuationsAsynchronously));
 
-				contextHandle = GCHandle.Alloc(Tuple.Create(tcs, list));
-				try
-				{
-					// Wrap the context in a helper that *needs* to be freed.
-					helperContext = CreateFindAllHelperContext(contextHandle);
-
-					try
-					{
-						query = CreateObjectQuery
-						(
-							objectKind,
-							properties is null ? NativeMethods.DeviceQueryFlags.AllProperties : NativeMethods.DeviceQueryFlags.None,
-							propertyKeys,
-							filterExpressions,
-							helperContext
-						);
-					}
-					catch
-					{
-						Marshal.FreeHGlobal(helperContext);
-						throw;
-					}
-				}
-				catch
-				{
-					contextHandle.Free();
-					throw;
-				}
+				query = CreateObjectQuery
+				(
+					objectKind,
+					properties is null ? NativeMethods.DeviceQueryFlags.AllProperties | NativeMethods.DeviceQueryFlags.AsyncClose : NativeMethods.DeviceQueryFlags.AsyncClose,
+					propertyKeys,
+					filterExpressions,
+					context.GetHandle()
+				);
 			}
 			finally
 			{
 				filter?.ReleaseExpressionResources();
 			}
 
-			return FindAllAsync(query, tcs, list, helperContext, contextHandle, cancellationToken);
+			return FindAllAsync(query, context, cancellationToken);
 		}
 
 		private static async Task<DeviceObjectInformation[]> FindAllAsync
 		(
 			SafeDeviceQueryHandle queryHandle,
 #if NET5_0_OR_GREATER
-			TaskCompletionSource tcs,
+			DevQueryCallbackContext<TaskCompletionSource, List<DeviceObjectInformation>> context,
 #else
-			TaskCompletionSource<bool> tcs,
+			DevQueryCallbackContext<TaskCompletionSource<bool>, List<DeviceObjectInformation>> context,
 #endif
-			List<DeviceObjectInformation> list,
-			IntPtr helperContext,
-			GCHandle contextHandle,
 			CancellationToken cancellationToken
 		)
 		{
 			try
 			{
-				try
-				{
-					try
-					{
-						using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
+				using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
 
-						await tcs.Task.ConfigureAwait(false);
-					}
-					finally
-					{
-						// Could lead to a double dispose… is that a problem ?
-						queryHandle.Dispose();
-					}
-				}
-				finally
-				{
-					Marshal.FreeHGlobal(helperContext);
-				}
+				await context.State.Task.ConfigureAwait(false);
 			}
 			finally
 			{
-				contextHandle.Free();
+				// Could lead to a double dispose… is that a problem ?
+				queryHandle.Dispose();
 			}
 
-			return list.ToArray();
+			return context.Value.ToArray();
 		}
 
 		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, CancellationToken cancellationToken) =>
@@ -563,102 +538,78 @@ namespace DeviceTools
 				throw new ArgumentException("At least one property should be specified.");
 			}
 
-			GCHandle contextHandle;
-			IntPtr helperContext;
 			SafeDeviceQueryHandle query;
-			GetPropertiesContext context;
+#if NET5_0_OR_GREATER
+			DevQueryCallbackContext<TaskCompletionSource, Dictionary<PropertyKey, object?>?> context;
+#else
+			DevQueryCallbackContext<TaskCompletionSource<bool>, Dictionary<PropertyKey, object?>?> context;
+#endif
 
 			filter?.FillExpressions(filterExpressions, true, out count);
 
 			try
 			{
-				context = new();
-				contextHandle = GCHandle.Alloc(context);
-				try
-				{
-					// Wrap the context in a helper that *needs* to be freed.
-					helperContext = CreateGetObjectPropertiesHelperContext(contextHandle);
-
-					try
-					{
-						query = CreateObjectIdQuery
-						(
-							objectKind,
-							objectId,
-							properties is null ? NativeMethods.DeviceQueryFlags.AllProperties : NativeMethods.DeviceQueryFlags.None,
-							propertyKeys,
-							filterExpressions,
-							helperContext
-						);
-					}
-					catch
-					{
-						Marshal.FreeHGlobal(helperContext);
-						throw;
-					}
-				}
-				catch
-				{
-					contextHandle.Free();
-					throw;
-				}
+				context = new(Method.GetObjectProperties, new(TaskCreationOptions.RunContinuationsAsynchronously));
+				query = CreateObjectIdQuery
+				(
+					objectKind,
+					objectId,
+					properties is null ? NativeMethods.DeviceQueryFlags.AllProperties | NativeMethods.DeviceQueryFlags.AsyncClose : NativeMethods.DeviceQueryFlags.AsyncClose,
+					propertyKeys,
+					filterExpressions,
+					context.GetHandle()
+				);
 			}
 			finally
 			{
 				filter?.ReleaseExpressionResources();
 			}
 
-			return GetObjectPropertiesAsync(query, context, helperContext, contextHandle, cancellationToken);
+			return GetObjectPropertiesAsync(query, context, cancellationToken);
 		}
 
 		private static async Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync
 		(
 			SafeDeviceQueryHandle queryHandle,
-			GetPropertiesContext context,
-			IntPtr helperContext,
-			GCHandle contextHandle,
+#if NET5_0_OR_GREATER
+			DevQueryCallbackContext<TaskCompletionSource, Dictionary<PropertyKey, object?>?> context,
+#else
+			DevQueryCallbackContext<TaskCompletionSource<bool>, Dictionary<PropertyKey, object?>?> context,
+#endif
 			CancellationToken cancellationToken
 		)
 		{
 			try
 			{
-				try
-				{
-					try
-					{
-						using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
+				using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
 
-						await context.TaskCompletionSource.Task.ConfigureAwait(false);
-					}
-					finally
-					{
-						// Could lead to a double dispose… is that a problem ?
-						queryHandle.Dispose();
-					}
-				}
-				finally
-				{
-					Marshal.FreeHGlobal(helperContext);
-				}
+				await context.State.Task.ConfigureAwait(false);
 			}
 			finally
 			{
-				contextHandle.Free();
+				// Could lead to a double dispose… is that a problem ?
+				queryHandle.Dispose();
 			}
 
-			return context.Properties is not null ?
-				new ReadOnlyDictionary<PropertyKey, object?>(context.Properties) :
+			return context.Value is not null ?
+				new ReadOnlyDictionary<PropertyKey, object?>(context.Value) :
 				DeviceObjectInformation.EmptyProperties;
 		}
 
-		private static unsafe IntPtr CreateEnumerateAllHelperContext(GCHandle contextHandle)
+		private static unsafe IntPtr CreateHelperContext(GCHandle contextHandle, Method method)
 		{
 #if NET5_0_OR_GREATER
 			var storage = Marshal.AllocHGlobal(sizeof(NativeMethods.DevQueryHelperContext));
 
 			*(NativeMethods.DevQueryHelperContext*)storage = new NativeMethods.DevQueryHelperContext
 			{
-				Callback = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)&EnumerateAllCallback,
+				Callback = method switch
+				{
+					Method.EnumerateAll => &EnumerateAllCallback,
+					Method.FindAll => &FindAllCallback,
+					Method.GetObjectProperties => &GetObjectPropertiesCallback,
+					_ => throw new InvalidOperationException()
+				},
 				Context = GCHandle.ToIntPtr(contextHandle),
 			};
 
@@ -666,57 +617,13 @@ namespace DeviceTools
 #else
 			var helperContext = new NativeMethods.DevQueryHelperContext()
 			{
-				Callback = EnumerateAllCallback,
-				Context = GCHandle.ToIntPtr(contextHandle),
-			};
-
-			var storage = Marshal.AllocHGlobal(Marshal.SizeOf<NativeMethods.DevQueryHelperContext>());
-			Marshal.StructureToPtr(helperContext, storage, false);
-			return storage;
-#endif
-		}
-
-		private static unsafe IntPtr CreateFindAllHelperContext(GCHandle contextHandle)
-		{
-#if NET5_0_OR_GREATER
-			var storage = Marshal.AllocHGlobal(sizeof(NativeMethods.DevQueryHelperContext));
-
-			*(NativeMethods.DevQueryHelperContext*)storage = new NativeMethods.DevQueryHelperContext
-			{
-				Callback = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)&FindAllCallback,
-				Context = GCHandle.ToIntPtr(contextHandle),
-			};
-
-			return storage;
-#else
-			var helperContext = new NativeMethods.DevQueryHelperContext()
-			{
-				Callback = FindAllCallback,
-				Context = GCHandle.ToIntPtr(contextHandle),
-			};
-
-			var storage = Marshal.AllocHGlobal(Marshal.SizeOf<NativeMethods.DevQueryHelperContext>());
-			Marshal.StructureToPtr(helperContext, storage, false);
-			return storage;
-#endif
-		}
-
-		private static unsafe IntPtr CreateGetObjectPropertiesHelperContext(GCHandle contextHandle)
-		{
-#if NET5_0_OR_GREATER
-			var storage = Marshal.AllocHGlobal(sizeof(NativeMethods.DevQueryHelperContext));
-
-			*(NativeMethods.DevQueryHelperContext*)storage = new NativeMethods.DevQueryHelperContext
-			{
-				Callback = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)&GetObjectPropertiesCallback,
-				Context = GCHandle.ToIntPtr(contextHandle),
-			};
-
-			return storage;
-#else
-			var helperContext = new NativeMethods.DevQueryHelperContext()
-			{
-				Callback = GetObjectPropertiesCallback,
+				Callback = method switch
+				{
+					Method.EnumerateAll => EnumerateAllCallback,
+					Method.FindAll => FindAllCallback,
+					Method.GetObjectProperties => GetObjectPropertiesCallback,
+					_ => throw new InvalidOperationException()
+				},
 				Context = GCHandle.ToIntPtr(contextHandle),
 			};
 
