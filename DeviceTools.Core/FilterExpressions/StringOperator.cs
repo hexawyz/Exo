@@ -1,9 +1,9 @@
-﻿namespace DeviceTools.FilterExpressions
+namespace DeviceTools.FilterExpressions
 {
 	public enum StringOperator
 	{
-		EqualToIgnoreCase = 0x00000002 | 0x00020000,
-		NotEqualToIgnoreCase = 0x00000002 | 0x00020000 | 0x00010000,
+		EqualsIgnoreCase = 0x00000002 | 0x00020000,
+		NotEqualsIgnoreCase = 0x00000002 | 0x00020000 | 0x00010000,
 
 		StartsWith = 0x00000009,
 		EndsWith = 0x0000000a,

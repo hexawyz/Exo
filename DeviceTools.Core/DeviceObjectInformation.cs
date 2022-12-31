@@ -5,7 +5,7 @@ namespace DeviceTools
 {
 	public sealed class DeviceObjectInformation
 	{
-		private static readonly ReadOnlyDictionary<PropertyKey, object?> EmptyProperties = new ReadOnlyDictionary<PropertyKey, object?>(new Dictionary<PropertyKey, object?>());
+		internal static readonly ReadOnlyDictionary<PropertyKey, object?> EmptyProperties = new ReadOnlyDictionary<PropertyKey, object?>(new Dictionary<PropertyKey, object?>());
 
 		public DeviceObjectInformation(DeviceObjectKind kind, string id, Dictionary<PropertyKey, object?>? properties)
 		{

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
@@ -115,6 +117,58 @@ namespace DeviceTools
 			}
 		}
 
+#if NET5_0_OR_GREATER
+		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+#endif
+		private static unsafe void GetObjectPropertiesCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
+		{
+			var ctx = Unsafe.As<GetPropertiesContext>(GCHandle.FromIntPtr(context).Target)!;
+
+			switch (action->Action)
+			{
+			case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
+				ref var @object = ref action->StateOrObject.DeviceObject;
+				ctx.Properties = ParseProperties(ref @object);
+				break;
+			case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
+				var state = action->StateOrObject.State;
+				if (state is NativeMethods.DeviceQueryState.DevQueryStateEnumCompleted)
+				{
+#if NET5_0_OR_GREATER
+					ctx.TaskCompletionSource.TrySetResult();
+#else
+					ctx.TaskCompletionSource.TrySetResult(true);
+#endif
+				}
+				else if (state is NativeMethods.DeviceQueryState.DevQueryStateAborted)
+				{
+#if NET5_0_OR_GREATER
+					ctx.TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
+#else
+					try { new Exception("The query was aborted."); }
+					catch (Exception ex) { ctx.TaskCompletionSource.TrySetException(ex); }
+#endif
+				}
+				else if (state is NativeMethods.DeviceQueryState.DevQueryStateClosed)
+				{
+					ctx.TaskCompletionSource.TrySetCanceled();
+				}
+				break;
+			}
+		}
+
+		private sealed class GetPropertiesContext
+		{
+#if NET5_0_OR_GREATER
+			public TaskCompletionSource TaskCompletionSource { get; }
+#else
+			public TaskCompletionSource<bool> TaskCompletionSource { get; }
+#endif
+			public Dictionary<PropertyKey, object?>? Properties { get; set; }
+
+			public GetPropertiesContext() => TaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		}
+
 		private static readonly object False = false;
 		private static readonly object True = true;
 
@@ -183,10 +237,11 @@ namespace DeviceTools
 
 					var remaining = new ReadOnlySpan<char>((void*)property.Buffer, (int)property.BufferLength);
 
-					int end = remaining.IndexOf('\0');
-
-					while (remaining.Length > 0 && end > 0)
+					while (remaining.Length > 0)
 					{
+						int end = remaining.IndexOf('\0');
+						if (end < 1) break;
+
 						stringList.Add(remaining.Slice(0, end).ToString());
 						remaining = remaining.Slice(end + 1);
 					}
@@ -343,8 +398,8 @@ namespace DeviceTools
 				new NativeMethods.DevicePropertyFilterExpression[count];
 
 			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
-					new Span<NativeMethods.DevicePropertyCompoundKey>() :
-					properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
+				new Span<NativeMethods.DevicePropertyCompoundKey>() :
+				properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
 
 			GCHandle contextHandle;
 			IntPtr helperContext;
@@ -447,6 +502,155 @@ namespace DeviceTools
 			return list.ToArray();
 		}
 
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId, null, null, cancellationToken);
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, DeviceFilterExpression filter, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId, null, filter, cancellationToken);
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId, properties, null, cancellationToken);
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken)
+		{
+			// We do not stricly need to do this check, but it will be more helpful than just returning nothing.
+			// Anyway, if there is an error in this code, it will do no harm, as the string version will still work, maybe just less efficiently.
+			if (objectKind is not (DeviceObjectKind.DeviceContainer or DeviceObjectKind.DeviceInterfaceClass or DeviceObjectKind.AssociationEndpointContainer or DeviceObjectKind.DeviceInterfaceClass or DeviceObjectKind.DeviceContainerDisplay))
+			{
+				throw new ArgumentException($"GUID object IDs are not valid for objects of type {objectKind}.");
+			}
+
+#if !NETSTANDARD2_0
+			Span<char> guidString = stackalloc char[39];
+
+			objectId.TryFormat(guidString, out _, "B");
+			guidString[38] = '\0';
+#else
+			var guidString = objectId.ToString("B", CultureInfo.InvariantCulture).AsSpan();
+#endif
+
+			return GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(guidString), properties, filter, cancellationToken);
+		}
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId[0], null, null, cancellationToken);
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, DeviceFilterExpression filter, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId[0], null, filter, cancellationToken);
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId[0], properties, null, cancellationToken);
+
+		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken) =>
+			GetObjectPropertiesAsync(objectKind, objectId[0], properties, filter, cancellationToken);
+
+		// NB: objectId must be null-terminated, which is the case for .NET strings.
+		private static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, in char objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken)
+		{
+			int count = filter?.GetFilterElementCount(true) ?? 0;
+			Span<NativeMethods.DevicePropertyFilterExpression> filterExpressions = count <= 4 ?
+				count == 0 ?
+					new Span<NativeMethods.DevicePropertyFilterExpression>() :
+					stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
+				new NativeMethods.DevicePropertyFilterExpression[count];
+
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
+				new Span<NativeMethods.DevicePropertyCompoundKey>() :
+				properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
+
+			if (properties is not null && propertyKeys.Length == 0)
+			{
+				throw new ArgumentException("At least one property should be specified.");
+			}
+
+			GCHandle contextHandle;
+			IntPtr helperContext;
+			SafeDeviceQueryHandle query;
+			GetPropertiesContext context;
+
+			filter?.FillExpressions(filterExpressions, true, out count);
+
+			try
+			{
+				context = new();
+				contextHandle = GCHandle.Alloc(context);
+				try
+				{
+					// Wrap the context in a helper that *needs* to be freed.
+					helperContext = CreateGetObjectPropertiesHelperContext(contextHandle);
+
+					try
+					{
+						query = CreateObjectIdQuery
+						(
+							objectKind,
+							objectId,
+							properties is null ? NativeMethods.DeviceQueryFlags.AllProperties : NativeMethods.DeviceQueryFlags.None,
+							propertyKeys,
+							filterExpressions,
+							helperContext
+						);
+					}
+					catch
+					{
+						Marshal.FreeHGlobal(helperContext);
+						throw;
+					}
+				}
+				catch
+				{
+					contextHandle.Free();
+					throw;
+				}
+			}
+			finally
+			{
+				filter?.ReleaseExpressionResources();
+			}
+
+			return GetObjectPropertiesAsync(query, context, helperContext, contextHandle, cancellationToken);
+		}
+
+		private static async Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync
+		(
+			SafeDeviceQueryHandle queryHandle,
+			GetPropertiesContext context,
+			IntPtr helperContext,
+			GCHandle contextHandle,
+			CancellationToken cancellationToken
+		)
+		{
+			try
+			{
+				try
+				{
+					try
+					{
+						using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
+
+						await context.TaskCompletionSource.Task.ConfigureAwait(false);
+					}
+					finally
+					{
+						// Could lead to a double dispose… is that a problem ?
+						queryHandle.Dispose();
+					}
+				}
+				finally
+				{
+					Marshal.FreeHGlobal(helperContext);
+				}
+			}
+			finally
+			{
+				contextHandle.Free();
+			}
+
+			return context.Properties is not null ?
+				new ReadOnlyDictionary<PropertyKey, object?>(context.Properties) :
+				DeviceObjectInformation.EmptyProperties;
+		}
+
 		private static unsafe IntPtr CreateEnumerateAllHelperContext(GCHandle contextHandle)
 		{
 #if NET5_0_OR_GREATER
@@ -497,11 +701,64 @@ namespace DeviceTools
 #endif
 		}
 
+		private static unsafe IntPtr CreateGetObjectPropertiesHelperContext(GCHandle contextHandle)
+		{
+#if NET5_0_OR_GREATER
+			var storage = Marshal.AllocHGlobal(sizeof(NativeMethods.DevQueryHelperContext));
+
+			*(NativeMethods.DevQueryHelperContext*)storage = new NativeMethods.DevQueryHelperContext
+			{
+				Callback = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)&GetObjectPropertiesCallback,
+				Context = GCHandle.ToIntPtr(contextHandle),
+			};
+
+			return storage;
+#else
+			var helperContext = new NativeMethods.DevQueryHelperContext()
+			{
+				Callback = GetObjectPropertiesCallback,
+				Context = GCHandle.ToIntPtr(contextHandle),
+			};
+
+			var storage = Marshal.AllocHGlobal(Marshal.SizeOf<NativeMethods.DevQueryHelperContext>());
+			Marshal.StructureToPtr(helperContext, storage, false);
+			return storage;
+#endif
+		}
+
 		private static unsafe SafeDeviceQueryHandle CreateObjectQuery(DeviceObjectKind kind, NativeMethods.DeviceQueryFlags flags, Span<NativeMethods.DevicePropertyCompoundKey> properties, Span<NativeMethods.DevicePropertyFilterExpression> filters, IntPtr context)
 		{
 			return NativeMethods.DeviceCreateObjectQuery
 			(
 				kind,
+				flags,
+				properties.Length,
+				ref MemoryMarshal.GetReference(properties),
+				filters.Length,
+				ref MemoryMarshal.GetReference(filters),
+#if NET5_0_OR_GREATER
+				(delegate* unmanaged[Stdcall]<IntPtr, IntPtr, NativeMethods.DeviceQueryResultActionData*, void>)NativeMethods.NativeDevQueryCallback,
+#else
+				NativeMethods.NativeDevQueryCallback,
+#endif
+				context
+			);
+		}
+
+		private static unsafe SafeDeviceQueryHandle CreateObjectIdQuery
+		(
+			DeviceObjectKind kind,
+			in char objectId,
+			NativeMethods.DeviceQueryFlags flags,
+			Span<NativeMethods.DevicePropertyCompoundKey> properties,
+			Span<NativeMethods.DevicePropertyFilterExpression> filters,
+			IntPtr context
+		)
+		{
+			return NativeMethods.DeviceCreateObjectQueryFromId
+			(
+				kind,
+				ref Unsafe.AsRef(objectId),
 				flags,
 				properties.Length,
 				ref MemoryMarshal.GetReference(properties),

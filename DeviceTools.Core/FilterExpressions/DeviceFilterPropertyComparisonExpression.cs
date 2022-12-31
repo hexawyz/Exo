@@ -270,7 +270,8 @@ namespace DeviceTools.FilterExpressions
 					return IntPtr.Zero;
 				}
 
-				return (IntPtr)Unsafe.AsPointer(ref Unsafe.AsRef(Unsafe.As<string>(_value)[0]));
+				// Assuming this is still faster than GCHandle.AddrOfPinnedObject because it doesn't need to query the GC.
+				return (IntPtr)Unsafe.AsPointer(ref MemoryMarshal.GetReference(Unsafe.As<string>(_value).AsSpan()));
 			}
 			else if (state == StateCachedValue)
 			{
@@ -321,7 +322,8 @@ namespace DeviceTools.FilterExpressions
 					if (state == StateUninitialized)
 					{
 						// We pin the value object no matter what its type is, as it is either a string or a StrongBox<TValue>.
-						_gcHandleOrMemoryAddress = GCHandle.ToIntPtr(GCHandle.Alloc(Value, GCHandleType.Pinned));
+						_gcHandleOrMemoryAddress = GCHandle.ToIntPtr(GCHandle.Alloc(_value, GCHandleType.Pinned));
+						_state = StatePinnedObject;
 						GC.ReRegisterForFinalize(this);
 					}
 				}
