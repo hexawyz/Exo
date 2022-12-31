@@ -39,8 +39,7 @@ namespace DeviceTools.Cli
 				if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
 				{
 					Console.WriteLine("║ ╒");
-					//foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default)) // For some reason, this doesn't work and I have no idea why.
-					foreach (var p in (await DeviceQuery.FindAllAsync(DeviceObjectKind.Device, Properties.System.Devices.ClassGuid == DeviceClassGuids.Monitor & Properties.System.Devices.DeviceInstanceId.EqualsIgnoreCase(deviceId), default)).First().Properties)
+					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
 					{
 						PrintProperty("║ │ ", p);
 					}
@@ -86,17 +85,10 @@ namespace DeviceTools.Cli
 				if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
 				{
 					Console.WriteLine("║ ╒");
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, Properties.System.Devices.ClassGuid == DeviceClassGuids.HidClass, default)) // For some reason, this doesn't work and I have no idea why.	foreach (var p in device.Properties)
+					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
 					{
 						PrintProperty("║ │ ", p);
 					}
-					//if ((await DeviceQuery.FindAllAsync(DeviceObjectKind.Device, Properties.System.Devices.ClassGuid == DeviceClassGuids.HidClass & Properties.System.Devices.DeviceInstanceId.EqualsIgnoreCase(deviceId), default)).FirstOrDefault() is { } deviceInstance)
-					//{
-					//	foreach (var p in deviceInstance.Properties)
-					//	{
-					//		PrintProperty("║ │ ", p);
-					//	}
-					//}
 					Console.WriteLine("║ ╘");
 				}
 

@@ -508,16 +508,16 @@ namespace DeviceTools
 		}
 
 		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, CancellationToken cancellationToken) =>
-			GetObjectPropertiesAsync(objectKind, objectId[0], null, null, cancellationToken);
+			GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), null, null, cancellationToken);
 
 		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, DeviceFilterExpression filter, CancellationToken cancellationToken) =>
-			GetObjectPropertiesAsync(objectKind, objectId[0], null, filter, cancellationToken);
+			GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), null, filter, cancellationToken);
 
 		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
-			GetObjectPropertiesAsync(objectKind, objectId[0], properties, null, cancellationToken);
+			GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), properties, null, cancellationToken);
 
 		public static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, string objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken) =>
-			GetObjectPropertiesAsync(objectKind, objectId[0], properties, filter, cancellationToken);
+			GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), properties, filter, cancellationToken);
 
 		// NB: objectId must be null-terminated, which is the case for .NET strings.
 		private static Task<ReadOnlyDictionary<PropertyKey, object?>> GetObjectPropertiesAsync(DeviceObjectKind objectKind, in char objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken)
