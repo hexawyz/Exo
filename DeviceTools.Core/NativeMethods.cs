@@ -307,16 +307,19 @@ namespace DeviceTools
 			// Names of those Guids were mostly reverse-engineered. Some of them may be wrong, but it is close to impossible to find a good source.
 			public static readonly Guid Storage = new(0xb725f130, 0x47ef, 0x101a, 0xa5, 0xf1, 0x02, 0x60, 0x8c, 0x9e, 0xeb, 0xac);
 			public static readonly Guid Device = new(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0);
+			public static readonly Guid DeviceOther = new(0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2);
 			public static readonly Guid DeviceDriver = new(0xa8b865dd, 0x2e3d, 0x4094, 0xad, 0x97, 0xe5, 0x93, 0xa7, 0xc, 0x75, 0xd6);
 			public static readonly Guid DeviceClass = new(0x259abffc, 0x50a7, 0x47ce, 0xaf, 0x8, 0x68, 0xc9, 0xa7, 0xd7, 0x33, 0x66);
 			public static readonly Guid DeviceInterface = new(0x026e516e, 0xb814, 0x414b, 0x83, 0xcd, 0x85, 0x6d, 0x6f, 0xef, 0x48, 0x22);
 			public static readonly Guid DeviceInterfaceClassGuid = new(0xcbf38310, 0x4a17, 0x4310, 0xa1, 0xeb, 0x24, 0x7f, 0xb, 0x67, 0x59, 0x3b);
 			public static readonly Guid DeviceInterfaceClass = new(0x14c83a99, 0x0b3f, 0x44b7, 0xbe, 0x4c, 0xa1, 0x78, 0xd3, 0x99, 0x05, 0x64);
 			public static readonly Guid DeviceContainer = new(0x78c34fc8, 0x104a, 0x4aca, 0x9e, 0xa4, 0x52, 0x4d, 0x52, 0x99, 0x6e, 0x57);
+			public static readonly Guid DeviceContainer2 = new(0x656a3bb3, 0xecc0, 0x43fd, 0x84, 0x77, 0x4a, 0xe0, 0x40, 0x4a, 0x96, 0xcd);
 			public static readonly Guid DeviceContainerMapping = new(0x8c7ed206, 0x3f8a, 0x4827, 0xb3, 0xab, 0xae, 0x9e, 0x1f, 0xae, 0xfc, 0x6c);
 			public static readonly Guid Bluetooth = new(0x2bd67d8b, 0x8beb, 0x48d5, 0x87, 0xe0, 0x6c, 0xda, 0x34, 0x28, 0x04, 0x0a);
 			public static readonly Guid Serial = new(0x4c6bf15c, 0x4c03, 0x4aac, 0x91, 0xf5, 0x64, 0xc0, 0xf8, 0x52, 0xbc, 0xf4);
 			public static readonly Guid WinUsb = new(0x95e127b5, 0x79cc, 0x4e83, 0x9c, 0x9e, 0x84, 0x22, 0x18, 0x7b, 0x3e, 0x0e);
+			public static readonly Guid Smartphone = new(0x49cd1f76, 0x5626, 0x4b17, 0xa4, 0xe8, 0x18, 0xb4, 0xaa, 0x1a, 0x22, 0x13);
 		}
 
 		public static class DevicePropertyKeys
@@ -326,14 +329,11 @@ namespace DeviceTools
 			public static readonly PropertyKey DeviceInterfaceClassGuid = new(ShellPropertyCategoryGuids.DeviceInterface, 4);
 
 			public static readonly PropertyKey DeviceModel = new(ShellPropertyCategoryGuids.DeviceContainer, 39);
-			// For a relatively old list of categories, see: https://learn.microsoft.com/en-us/previous-versions/windows/hardware/metadata/dn465876(v=vs.85)
-			public static readonly PropertyKey DeviceContainerCategory = new(ShellPropertyCategoryGuids.DeviceContainer, 90);
+			// For a relatively old list of categories, see: https://learn.microsoft.com/en-us/previous-versions/windows/hardware/metadata/dn465876%28v=vs.85%29
 			public static readonly PropertyKey DeviceContainerCategoryIcon = new(ShellPropertyCategoryGuids.DeviceContainer, 93);
 			public static readonly PropertyKey DeviceContainerPrimaryCategory = new(ShellPropertyCategoryGuids.DeviceContainer, 97);
-			public static readonly PropertyKey DeviceContainerFriendlyName = new(ShellPropertyCategoryGuids.DeviceContainer, 12288);
-			public static readonly PropertyKey DeviceContainerManufacturer = new(ShellPropertyCategoryGuids.DeviceContainer, 8192);
-			public static readonly PropertyKey DeviceContainerModelName = new(ShellPropertyCategoryGuids.DeviceContainer, 8192);
-			public static readonly PropertyKey DeviceContainerModelNumber = new(ShellPropertyCategoryGuids.DeviceContainer, 8195);
+
+			public static readonly PropertyKey DeviceContainerModelName = new(ShellPropertyCategoryGuids.DeviceContainer2, 8194);
 
 			public static readonly PropertyKey InLocalMachineContainer = new(ShellPropertyCategoryGuids.DeviceContainerMapping, 4);
 		}
