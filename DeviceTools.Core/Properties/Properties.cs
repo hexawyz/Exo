@@ -23,18 +23,18 @@ namespace DeviceTools.Properties
 				public static readonly UInt16Property VendorId = new(ShellPropertyCategoryGuids.Bluetooth, 7);
 				public static readonly UInt16Property ProductId = new(ShellPropertyCategoryGuids.Bluetooth, 8);
 				public static readonly UInt16Property ProductVersion = new(ShellPropertyCategoryGuids.Bluetooth, 9);
-				public static readonly UInt32Property ClassOfDevice = new(ShellPropertyCategoryGuids.Bluetooth, 10);
+				//public static readonly UInt32Property ClassOfDevice = new(ShellPropertyCategoryGuids.Bluetooth, 10);
 				public static readonly FileTimeProperty LastConnectedTime = new(ShellPropertyCategoryGuids.Bluetooth, 11);
 			}
 
 			public static class Hid
 			{
-				public static readonly UInt16Property UsagePage = new(DeviceInterfaceClassGuids.Hid, 2);
-				public static readonly UInt16Property UsageId = new(DeviceInterfaceClassGuids.Hid, 3);
-				public static readonly BooleanProperty IsReadOnly = new(DeviceInterfaceClassGuids.Hid, 4);
-				public static readonly UInt16Property VendorId = new(DeviceInterfaceClassGuids.Hid, 5);
-				public static readonly UInt16Property ProductId = new(DeviceInterfaceClassGuids.Hid, 6);
-				public static readonly UInt16Property VersionNumber = new(DeviceInterfaceClassGuids.Hid, 7);
+				public static readonly UInt16Property UsagePage = new(ShellPropertyCategoryGuids.DeviceInterfaceClassGuid, 2);
+				public static readonly UInt16Property UsageId = new(ShellPropertyCategoryGuids.DeviceInterfaceClassGuid, 3);
+				public static readonly BooleanProperty IsReadOnly = new(ShellPropertyCategoryGuids.DeviceInterfaceClassGuid, 4);
+				public static readonly UInt16Property VendorId = new(ShellPropertyCategoryGuids.DeviceInterfaceClassGuid, 5);
+				public static readonly UInt16Property ProductId = new(ShellPropertyCategoryGuids.DeviceInterfaceClassGuid, 6);
+				public static readonly UInt16Property VersionNumber = new(ShellPropertyCategoryGuids.DeviceInterfaceClassGuid, 7);
 			}
 
 			public static readonly StringProperty PrinterDriverDirectory = new(new(0x847c66de, 0xb8d6, 0x4af9, 0xab, 0xc3, 0x6f, 0x4f, 0x92, 0x6b, 0xc0, 0x39), 14);
@@ -172,7 +172,7 @@ namespace DeviceTools.Properties
 			//public static readonly StringProperty FriendlyName = new(ShellPropertyCategoryGuids.Device, 14);
 			//public static readonly StringProperty LocationInfo = new(ShellPropertyCategoryGuids.Device, 15);
 			//public static readonly StringProperty PhysicalDeviceObjectName = new(ShellPropertyCategoryGuids.Device, 16);
-			public static readonly UInt32Property StringProperty = new(ShellPropertyCategoryGuids.Device, 17);
+			public static readonly UInt32Property DeviceCapabilities = new(ShellPropertyCategoryGuids.Device, 17);
 			//public static readonly UInt32Property UiNumber = new(ShellPropertyCategoryGuids.Device, 18);
 			//public static readonly StringListProperty UpperFilters = new(ShellPropertyCategoryGuids.Device, 19);
 			//public static readonly StringListProperty LowerFilters = new(ShellPropertyCategoryGuids.Device, 20);
