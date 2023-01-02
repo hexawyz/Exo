@@ -280,7 +280,16 @@ namespace DeviceTools
 					value = DateTime.FromFileTimeUtc(*(long*)property.Buffer);
 					break;
 				case NativeMethods.DevicePropertyType.String:
-					value = property.BufferLength == 0 ? string.Empty : Marshal.PtrToStringUni(property.Buffer, (int)(property.BufferLength / 2) - 1)!;
+				case NativeMethods.DevicePropertyType.StringResource:
+					string text = property.BufferLength == 0 ? string.Empty : Marshal.PtrToStringUni(property.Buffer, (int)(property.BufferLength / 2) - 1)!;
+					if (property.Type == NativeMethods.DevicePropertyType.StringResource)
+					{
+						value = new StringResource(text);
+					}
+					else
+					{
+						value = text;
+					}
 					break;
 				case NativeMethods.DevicePropertyType.StringList:
 					stringList ??= new();

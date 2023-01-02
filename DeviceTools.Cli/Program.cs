@@ -22,46 +22,46 @@ namespace DeviceTools.Cli
 				PrintAdapters();
 
 				PrintMonitors();
-			}
 
-			int index = 0;
-			foreach (var device in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default))
-			{
-				Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
-
-				Console.WriteLine($"║ Device ID: {device.Id}");
-
-				foreach (var p in device.Properties)
+				int index = 0;
+				foreach (var device in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default))
 				{
-					PrintProperty("║ ", p);
-				}
+					Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
 
-				if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
-				{
-					Console.WriteLine("║ ╒");
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
+					Console.WriteLine($"║ Device ID: {device.Id}");
+
+					foreach (var p in device.Properties)
 					{
-						PrintProperty("║ │ ", p);
+						PrintProperty("║ ", p);
 					}
-					Console.WriteLine("║ ╘");
-				}
 
-				if (device.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
-				{
-					Console.WriteLine("║ ╒");
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
+					if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
 					{
-						PrintProperty("║ │ ", p);
+						Console.WriteLine("║ ╒");
+						foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
+						{
+							PrintProperty("║ │ ", p);
+						}
+						Console.WriteLine("║ ╘");
 					}
-					Console.WriteLine("║ ╘");
+
+					if (device.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
+					{
+						Console.WriteLine("║ ╒");
+						foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
+						{
+							PrintProperty("║ │ ", p);
+						}
+						Console.WriteLine("║ ╘");
+					}
+
+					++index;
 				}
 
-				++index;
-			}
-
-			if (index > 0)
-			{
-				Console.WriteLine("╚" + new string('═', 39));
+				if (index > 0)
+				{
+					Console.WriteLine("╚" + new string('═', 39));
+				}
 			}
 
 			//using (var collection = new RawInputDeviceCollection())
@@ -71,41 +71,43 @@ namespace DeviceTools.Cli
 
 			//PrintHidDevices((from dn in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid) select HidDevice.FromPath(dn)).ToArray());
 
-			index = 0;
-			//await foreach (var device in DeviceQuery.EnumerateAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
-			foreach (var device in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
 			{
-				PrintHidDevice(HidDevice.FromPath(device.Id), index++);
-
-				foreach (var p in device.Properties)
+				int index = 0;
+				//await foreach (var device in DeviceQuery.EnumerateAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
+				foreach (var device in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid & Properties.System.Devices.InterfaceEnabled == true, default))
 				{
-					PrintProperty("║ ", p);
-				}
+					PrintHidDevice(HidDevice.FromPath(device.Id), index++);
 
-				if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
-				{
-					Console.WriteLine("║ ╒");
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
+					foreach (var p in device.Properties)
 					{
-						PrintProperty("║ │ ", p);
+						PrintProperty("║ ", p);
 					}
-					Console.WriteLine("║ ╘");
-				}
 
-				if (device.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
-				{
-					Console.WriteLine("║ ╒");
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
+					if (device.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
 					{
-						PrintProperty("║ │ ", p);
+						Console.WriteLine("║ ╒");
+						foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
+						{
+							PrintProperty("║ │ ", p);
+						}
+						Console.WriteLine("║ ╘");
 					}
-					Console.WriteLine("║ ╘");
-				}
-			}
 
-			if (index > 0)
-			{
-				Console.WriteLine("╚" + new string('═', 39));
+					if (device.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
+					{
+						Console.WriteLine("║ ╒");
+						foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
+						{
+							PrintProperty("║ │ ", p);
+						}
+						Console.WriteLine("║ ╘");
+					}
+				}
+
+				if (index > 0)
+				{
+					Console.WriteLine("╚" + new string('═', 39));
+				}
 			}
 		}
 
