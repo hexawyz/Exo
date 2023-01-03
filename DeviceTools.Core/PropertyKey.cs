@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
@@ -28,7 +29,36 @@ namespace DeviceTools
 						Marshal.ThrowExceptionForHR((int)result);
 					}
 
-					string canonicalName = Marshal.PtrToStringUni(canonicalNamePointer)!;
+					string canonicalName;
+					ReadOnlySpan<char> canonicalNameSpan;
+
+#if NET6_0_OR_GREATER
+					unsafe
+					{
+						canonicalNameSpan = MemoryMarshal.CreateReadOnlySpanFromNullTerminated((char*)canonicalNamePointer);
+					}
+#else
+					// We could do better here but… Hey, just update your target framework.
+					canonicalName = Marshal.PtrToStringUni(canonicalNamePointer)!;
+					canonicalNameSpan = canonicalName.AsSpan();
+#endif
+
+					// Property names should be case insensitive (ASQ is case insensitive), but we use an exact match here in case we want to recase some properties. (Hello PrinterURL ?)
+					// In such a case, we'd still want to return the true unaltered canonical name.
+					// Anyway, what we do here is akin to string interning. We avoid having two different string instances with the same data.
+					// As many properties with a canonical name will already be materialized in the object model, we'll already have a string straight out of the assembly metadata.
+					if (key.TryGetKnownName(out string? knownName) && canonicalNameSpan.Equals(knownName.AsSpan(), StringComparison.Ordinal))
+					{
+						canonicalName = knownName;
+					}
+#if NET6_0_OR_GREATER
+					else
+					{
+						// In the case of .NET 6.0+, we'll even have avoided allocating a new CLR string up to this moment.
+						canonicalName = canonicalNameSpan.ToString();
+					}
+#endif
+
 					Marshal.FreeCoTaskMem(canonicalNamePointer);
 					return canonicalName;
 				}
@@ -45,11 +75,30 @@ namespace DeviceTools
 
 		public string? GetCanonicalName() => GetCanonicalName(this);
 
+		/// <summary>Gets the name of the property, as it is known within the library.</summary>
+		/// <remarks>
+		/// For properties with an official canonical name, this should return the same value as <see cref="GetCanonicalName"/>, provided the property is materialized in the object model.
+		/// </remarks>
+		/// <param name="name">The name of the property, if known.</param>
+		/// <returns></returns>
+#if !NETSTANDARD2_0
+		public bool TryGetKnownName([NotNullWhen(true)] out string? name) =>
+#else
+		public bool TryGetKnownName(out string? name) =>
+#endif
+			Properties.TryGetName(this, out name);
+
+		// TODO: Have different format strings to choose between "any valid name", "canonical name" and "just raw name"
 		public override string ToString()
 		{
-			if (GetCanonicalName(this) is string name)
+			if (TryGetKnownName(out var name))
 			{
 				return name;
+			}
+
+			if (GetCanonicalName(this) is string canonicalName)
+			{
+				return canonicalName;
 			}
 
 #if !NETSTANDARD2_0
