@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net7.0</TargetFrameworks>
     <RootNamespace>DeviceTools</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<EnableDynamicLoading>true</EnableDynamicLoading>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +13,15 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
 		<PackageReference Include="System.Threading.Channels" />
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DeviceTools.Core.SourceGenerators\DeviceTools.Core.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Remove="properties.csv" />
+		<AdditionalFiles Include="properties.csv" />
 	</ItemGroup>
 	
 	<Target Name="BuildDevQueryHelperProject" BeforeTargets="AssignTargetPaths">

@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
     <ProjectReference Include="..\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" />
     <ProjectReference Include="..\DeviceTools.RawInput\DeviceTools.RawInput.csproj" />
     <ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
