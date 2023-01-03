@@ -65,31 +65,44 @@ public class DevicePropertiesGenerator : ISourceGenerator
 		var sb = new StringBuilder();
 
 		sb.AppendLine("using System;");
+		sb.AppendLine("using System.Collections.Generic;");
 		sb.AppendLine("using System.Runtime.CompilerServices;");
 		sb.AppendLine("using DeviceTools.FilterExpressions;");
 		sb.AppendLine();
 		sb.AppendLine("namespace DeviceTools;");
 		sb.AppendLine();
-		sb.AppendLine("public static class Properties");
+		sb.AppendLine("partial class Properties");
 		sb.AppendLine("{");
-		sb.AppendLine("\tprivate static readonly Property[] AllProperties = InitAllProperties();");
-		sb.AppendLine();
-		sb.AppendLine("\tprivate static Property[] InitAllProperties()");
+		sb.AppendLine("\tprivate static class Data");
 		sb.AppendLine("\t{");
-		sb.AppendLine($"\t\tvar properties = new Property[{propertyCount.ToString(CultureInfo.InvariantCulture)}];");
-		sb.AppendLine("\t\tGuid guid;");
+		sb.AppendLine("\t\tinternal static readonly Property[] AllProperties;");
+		sb.AppendLine("\t\tinternal static readonly Dictionary<string, Property> PropertiesByName;");
+		sb.AppendLine("\t\tinternal static readonly Dictionary<PropertyKey, string> PropertyNames;");
+		sb.AppendLine();
+		sb.AppendLine("\t\tstatic Data()");
+		sb.AppendLine("\t\t{");
+		sb.AppendLine($"\t\t\tvar properties = new Property[{propertyCount.ToString(CultureInfo.InvariantCulture)}];");
+		sb.AppendLine("\t\t\tvar propertiesByName = new Dictionary<string, Property>(StringComparer.OrdinalIgnoreCase);");
+		sb.AppendLine("\t\t\tvar namesByKey = new Dictionary<PropertyKey, string>();");
+		sb.AppendLine("\t\t\tGuid guid;");
+		sb.AppendLine("\t\t\tProperty property;");
+		sb.AppendLine("\t\t\tstring name;");
 
 		int index = 0;
 		foreach (var kvp in data)
 		{
 			var guid = kvp.Key;
-			sb.AppendLine($"\t\tguid = new({guid.ToString("X").Replace("{", "").Replace("}", "")});");
+			sb.AppendLine($"\t\t\tguid = new({guid.ToString("X").Replace("{", "").Replace("}", "")});");
 
 			kvp.Value.Sort((x, y) => Comparer<int>.Default.Compare(x.PropertyIndex, y.PropertyIndex));
 
 			foreach (var property in kvp.Value)
 			{
-				sb.AppendLine($"\t\tproperties[{index.ToString(CultureInfo.InvariantCulture)}] = new {property.Type}Property(guid, {property.PropertyIndex.ToString(CultureInfo.InvariantCulture)});");
+				sb.AppendLine($"\t\t\tproperty = new {property.Type}Property(guid, {property.PropertyIndex.ToString(CultureInfo.InvariantCulture)});");
+				sb.AppendLine($"\t\t\tproperties[{index.ToString(CultureInfo.InvariantCulture)}] = property;");
+				sb.AppendLine($"\t\t\tname = \"{property.Name}\";");
+				sb.AppendLine($"\t\t\tpropertiesByName.Add(name, property);");
+				sb.AppendLine($"\t\t\tnamesByKey.Add(property.Key, name);");
 
 				var parts = property.Name.Split('.');
 
@@ -119,7 +132,10 @@ public class DevicePropertiesGenerator : ISourceGenerator
 			}
 		}
 
-		sb.AppendLine("\t\treturn properties;");
+		sb.AppendLine("\t\t\tAllProperties = properties;");
+		sb.AppendLine("\t\t\tPropertiesByName = propertiesByName;");
+		sb.AppendLine("\t\t\tPropertyNames = namesByKey;");
+		sb.AppendLine("\t\t}");
 		sb.AppendLine("\t}");
 		sb.AppendLine();
 
@@ -133,7 +149,7 @@ public class DevicePropertiesGenerator : ISourceGenerator
 			}
 			foreach (var p in ns.Properties)
 			{
-				sb.AppendLine($"{indent}\tpublic static readonly {p.Type}Property {p.Name} = Unsafe.As<{p.Type}Property>(AllProperties[{p.ArrayIndex}]);");
+				sb.AppendLine($"{indent}\tpublic static readonly {p.Type}Property {p.Name} = Unsafe.As<{p.Type}Property>(Data.AllProperties[{p.ArrayIndex}]);");
 			}
 			sb.AppendLine($"{indent}}}");
 		}

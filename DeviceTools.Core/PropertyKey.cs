@@ -10,7 +10,7 @@ namespace DeviceTools
 	{
 		private static readonly ConcurrentDictionary<PropertyKey, string> CanonicalNames = new();
 
-		private static string? GetPropertyName(in PropertyKey key) =>
+		private static string? GetCanonicalName(in PropertyKey key) =>
 			CanonicalNames.GetOrAdd
 			(
 				key,
@@ -43,11 +43,11 @@ namespace DeviceTools
 			PropertyId = propertyId;
 		}
 
-		public string? GetName() => GetPropertyName(this);
+		public string? GetCanonicalName() => GetCanonicalName(this);
 
 		public override string ToString()
 		{
-			if (GetPropertyName(this) is string name)
+			if (GetCanonicalName(this) is string name)
 			{
 				return name;
 			}

@@ -26,7 +26,7 @@ public class PropertiesTest
 	[MemberData(nameof(AllPropertiesData))]
 	public void CanonicalNameShouldMatchTypeName(string name, Property property)
 	{
-		Assert.Equal(property.Key.GetName(), name);
+		Assert.Equal(property.Key.GetCanonicalName(), name);
 	}
 
 	// Not really a test, but useful to generate an export of all properties.
