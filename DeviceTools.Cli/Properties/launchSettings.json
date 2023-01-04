@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DeviceTools.Cli": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

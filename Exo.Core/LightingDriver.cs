@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Exo.Core;
 using Exo.Core.Features.LightingFeatures;
+using Exo.Core.Lighting;
 
 namespace DeviceTools.SystemControl
 {
@@ -11,5 +13,6 @@ namespace DeviceTools.SystemControl
 		void ILightingControllerFeature.ApplyChanges() => ApplyChanges();
 
 		protected abstract void ApplyChanges();
+		public IReadOnlyCollection<ILightZone> GetLightZones() => throw new System.NotImplementedException();
 	}
 }
