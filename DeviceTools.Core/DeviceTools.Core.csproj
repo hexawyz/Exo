@@ -5,12 +5,14 @@
     <RootNamespace>DeviceTools</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<NoWarn>CA1416;$(NoWarn)</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Memory" />
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+		<PackageReference Include="System.Security.AccessControl" />
 		<PackageReference Include="System.Threading.Channels" />
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
 	</ItemGroup>

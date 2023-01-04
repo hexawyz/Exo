@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -281,7 +282,12 @@ namespace DeviceTools
 					break;
 				case NativeMethods.DevicePropertyType.String:
 				case NativeMethods.DevicePropertyType.StringResource:
+				case NativeMethods.DevicePropertyType.SecurityDescriptorString:
 					string text = property.BufferLength == 0 ? string.Empty : Marshal.PtrToStringUni(property.Buffer, (int)(property.BufferLength / 2) - 1)!;
+					if (property.Type == NativeMethods.DevicePropertyType.SecurityDescriptorString)
+					{
+						value = new RawSecurityDescriptor(text);
+					}
 					if (property.Type == NativeMethods.DevicePropertyType.StringResource)
 					{
 						value = new StringResource(text);
@@ -308,8 +314,18 @@ namespace DeviceTools
 					value = stringList.ToArray();
 					stringList.Clear();
 					break;
+				case NativeMethods.DevicePropertyType.SecurityDescriptor:
 				case NativeMethods.DevicePropertyType.Binary:
-					value = property.BufferLength == 0 ? Array.Empty<byte>() : new ReadOnlySpan<byte>((void*)property.Buffer, (int)property.BufferLength).ToArray();
+					var bytes = property.BufferLength == 0 ? Array.Empty<byte>() : new ReadOnlySpan<byte>((void*)property.Buffer, (int)property.BufferLength).ToArray();
+
+					if (property.Type == NativeMethods.DevicePropertyType.SecurityDescriptor)
+					{
+						value = new RawSecurityDescriptor(bytes, 0);
+					}
+					else
+					{
+						value = bytes;
+					}
 					break;
 				default:
 					// Skip properties with unknown data types.

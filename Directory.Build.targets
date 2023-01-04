@@ -6,6 +6,7 @@
 		<PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 		<PackageReference Condition="'$(TargetFramework)' != 'net7.0'" Update="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
 		<PackageReference Condition="'$(TargetFramework)' == 'netcoreapp2.2'" Update="System.Runtime.CompilerServices.Unsafe" Version="[4.7.1, 5.0.0]" />
+		<PackageReference Update="System.Security.AccessControl" Version="6.0.0" />
 		<PackageReference Update="System.Threading.Channels" Version="7.0.0" />
 		<PackageReference Update="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
     <PackageReference Update="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.4.0" />

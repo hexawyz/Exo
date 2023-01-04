@@ -23,8 +23,8 @@ namespace DeviceTools
 		public static DevicePropertyType FileTime => new(NativeMethods.DevicePropertyType.FileTime);
 		public static DevicePropertyType Boolean => new(NativeMethods.DevicePropertyType.Boolean);
 		public static DevicePropertyType String => new(NativeMethods.DevicePropertyType.String);
-		//public static DevicePropertyType SecurityDescriptor => new(NativeMethods.DevicePropertyType.SecurityDescriptor);
-		//public static DevicePropertyType SecurityDescriptoyString => new(NativeMethods.DevicePropertyType.SecurityDescriptorString);
+		public static DevicePropertyType SecurityDescriptor => new(NativeMethods.DevicePropertyType.SecurityDescriptor);
+		public static DevicePropertyType SecurityDescriptorString => new(NativeMethods.DevicePropertyType.SecurityDescriptorString);
 		public static DevicePropertyType PropertyKey => new(NativeMethods.DevicePropertyType.DevicePropertyKey);
 		public static DevicePropertyType PropertyType => new(NativeMethods.DevicePropertyType.DevicePropertyType);
 		public static DevicePropertyType Win32Error => new(NativeMethods.DevicePropertyType.Error);
