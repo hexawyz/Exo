@@ -9,7 +9,7 @@ namespace DeviceTools
 	[StructLayout(LayoutKind.Sequential)]
 	public readonly struct PropertyKey : IEquatable<PropertyKey>
 	{
-		private static readonly ConcurrentDictionary<PropertyKey, string> CanonicalNames = new();
+		private static readonly ConcurrentDictionary<PropertyKey, string?> CanonicalNames = new();
 
 		private static string? GetCanonicalName(in PropertyKey key) =>
 			CanonicalNames.GetOrAdd
