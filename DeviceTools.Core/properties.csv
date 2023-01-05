@@ -202,3 +202,8 @@ System.Devices.GenericDriverInstalled,{a8b865dd-2e3d-4094-ad97-e593a70c75d6},18,
 System.Devices.AdditionalSoftwareRequested,{a8b865dd-2e3d-4094-ad97-e593a70c75d6},19,Boolean,False
 System.Devices.Reported,{80497100-8c73-48b9-aad9-ce387e19c56e},2,Boolean,False
 System.Devices.Legacy,{80497100-8c73-48b9-aad9-ce387e19c56e},3,Boolean,False
+System.Hardware.Name,{5eaf3ef2-e0ca-4598-bf06-71ed1d9dd953},2,String,True
+System.Hardware.Icon,{5eaf3ef2-e0ca-4598-bf06-71ed1d9dd953},3,String,True
+System.Hardware.Manufacturer,{5eaf3ef2-e0ca-4598-bf06-71ed1d9dd953},6,String,True
+System.Hardware.Model,{5eaf3ef2-e0ca-4598-bf06-71ed1d9dd953},7,String,True
+System.Hardware.SerialNumber,{5eaf3ef2-e0ca-4598-bf06-71ed1d9dd953},8,String,True
