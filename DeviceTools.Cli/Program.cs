@@ -407,6 +407,7 @@ namespace DeviceTools.Cli
 					}
 					Console.WriteLine($"║ │ Is Absolute: {button.IsAbsolute}");
 					Console.WriteLine($"║ │ Is Alias: {button.IsAlias}");
+					Console.WriteLine($"║ │ Bit Field: {button.BitField}");
 				}
 
 				if (buttons.Length > 0)
@@ -463,6 +464,7 @@ namespace DeviceTools.Cli
 					}
 					Console.WriteLine($"║ │ Is Absolute: {value.IsAbsolute}");
 					Console.WriteLine($"║ │ Is Alias: {value.IsAlias}");
+					Console.WriteLine($"║ │ Bit Field: {value.BitField}");
 				}
 
 				if (values.Length > 0)

@@ -14,4 +14,9 @@ namespace Exo.Core.Lighting.Effects
 	{
 		public RgbColor Color { get; set; }
 	}
+
+	public struct AddressableColorEffect : IApplicableColorEffect
+	{
+		private readonly RgbColor[] _color;
+	}
 }
