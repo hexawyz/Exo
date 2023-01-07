@@ -29,6 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 		Apple USB Keyboard.md = Apple USB Keyboard.md
 		Corsair HX1200i.md = Corsair HX1200i.md
 		Gigabyte Z490 Vision D.md = Gigabyte Z490 Vision D.md
+		Logitech MX Keys.md = Logitech MX Keys.md
 		NZXT Kraken Z63.md = NZXT Kraken Z63.md
 		Razer Mamba Chroma.md = Razer Mamba Chroma.md
 		ViewSonic VP2785-4K.md = ViewSonic VP2785-4K.md
@@ -68,7 +69,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceTools.DevQueryHelper"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Core.Tests", "DeviceTools.Core.Tests\DeviceTools.Core.Tests.csproj", "{514202E6-F5E2-4220-AD44-829ED84AC850}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Core.SourceGenerators", "DeviceTools.Core.SourceGenerators\DeviceTools.Core.SourceGenerators.csproj", "{0EB5AC29-1F4F-463A-BCBE-AB4B25E7A083}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Core.SourceGenerators", "DeviceTools.Core.SourceGenerators\DeviceTools.Core.SourceGenerators.csproj", "{0EB5AC29-1F4F-463A-BCBE-AB4B25E7A083}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Logitech", "Exo.Devices.Logitech\Exo.Devices.Logitech.csproj", "{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -466,6 +469,22 @@ Global
 		{0EB5AC29-1F4F-463A-BCBE-AB4B25E7A083}.Release|x64.Build.0 = Release|Any CPU
 		{0EB5AC29-1F4F-463A-BCBE-AB4B25E7A083}.Release|x86.ActiveCfg = Release|Any CPU
 		{0EB5AC29-1F4F-463A-BCBE-AB4B25E7A083}.Release|x86.Build.0 = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|arm64.Build.0 = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|x64.Build.0 = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Debug|x86.Build.0 = Debug|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|arm64.ActiveCfg = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|arm64.Build.0 = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|x64.ActiveCfg = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|x64.Build.0 = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|x86.ActiveCfg = Release|Any CPU
+		{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
