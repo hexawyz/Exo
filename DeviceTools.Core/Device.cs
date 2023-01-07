@@ -53,6 +53,8 @@ namespace DeviceTools
 			return handle;
 		}
 
+		// TODO: Disable all this code and its dependencies. Unless disproven, we should now be able to rely on DevQuery. If it works out, entirely remove the code.
+#if true
 		// Implementations from SetupAPI might be unnecessary: Although finding info on the recommended API to use is difficult:
 		// - Both Setup API and Configuration Manager API seem to produce the same results in the current use case. (Minus casing)
 		// - Some features of CM_ are implemented by setupapi.dll, and setupapi.dll depends on cfgmgr32.dll…
@@ -466,5 +468,6 @@ namespace DeviceTools
 				NativeMethods.DeviceFreeObjectProperties(propertyCount, ref firstProperty);
 			}
 		}
+#endif
 	}
 }

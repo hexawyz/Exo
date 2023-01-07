@@ -11,9 +11,9 @@ namespace Exo.Core
 	/// </para>
 	/// </remarks>
 	public interface IDeviceFeatureCollection<TFeature> : IEnumerable<KeyValuePair<Type, TFeature>>
-		where TFeature : IDeviceFeature
+		where TFeature : class, IDeviceFeature
 	{
 		TFeature? this[Type type] { get; }
-		T GetFeature<T>();
+		T? GetFeature<T>() where T : class, TFeature;
 	}
 }

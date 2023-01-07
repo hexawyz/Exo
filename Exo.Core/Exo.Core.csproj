@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
+    <ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
   </ItemGroup>
 
 </Project>
