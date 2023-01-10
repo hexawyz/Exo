@@ -78,15 +78,8 @@ namespace DeviceTools.HumanInterfaceDevices
 				if (_fileHandle is not SafeFileHandle fileHandle)
 				{
 					EnsureNotDisposed();
-					// Try to acquire the device as R/W shared.
-					try
-					{
-						fileHandle = Device.OpenHandle(DeviceName, DeviceAccess.ReadWrite);
-					}
-					catch (Win32Exception ex) // when (ex.NativeErrorCode == ??)
-					{
-						fileHandle = Device.OpenHandle(DeviceName, DeviceAccess.None);
-					}
+					// Always open the device without specific access, as the goal of this class is not to read or write to the device.
+					fileHandle = Device.OpenHandle(DeviceName, DeviceAccess.None);
 					Volatile.Write(ref _fileHandle, fileHandle);
 				}
 				return fileHandle;
@@ -144,22 +137,6 @@ namespace DeviceTools.HumanInterfaceDevices
 			var containerId = Device.GetContainerId(deviceNode);
 			_containerId = containerId;
 			return containerId;
-		}
-
-		public void SendFeatureReport(ReadOnlySpan<byte> data)
-		{
-			if (NativeMethods.HidDiscoverySetFeature(FileHandle, ref MemoryMarshal.GetReference(data), (uint)data.Length) == 0)
-			{
-				throw new Win32Exception(Marshal.GetLastWin32Error());
-			}
-		}
-
-		public void ReceiveFeatureReport(Span<byte> buffer)
-		{
-			if (NativeMethods.HidDiscoveryGetFeature(FileHandle, ref MemoryMarshal.GetReference(buffer), (uint)buffer.Length) == 0)
-			{
-				throw new Win32Exception(Marshal.GetLastWin32Error());
-			}
 		}
 
 		// TODO: How should this be exposed?

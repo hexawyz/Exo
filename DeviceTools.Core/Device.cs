@@ -12,6 +12,11 @@ namespace DeviceTools
 {
 	public static class Device
 	{
+		// This flag is not explicitly listed in FileOptions because it has very strict usage conditions, but it is supported.
+		// In the case of HID devices, input reports are already buffered in the ring buffer allocated by the HID infrastrcuture, and we want our read/writes to be as quick as possible.
+		// Worst case, this flag does nothing because the HID path is already optimized without it. But we don't know that.
+		private const FileOptions NoBuffering = (FileOptions)0x20000000;
+
 		/// <summary>Opens a device file.</summary>
 		/// <remarks>
 		/// <para>
@@ -27,21 +32,70 @@ namespace DeviceTools
 		/// <returns>A safe file handle, that can be used to issue IO control, or to create a <see cref="FileStream"/> instance if required.</returns>
 		public static SafeFileHandle OpenHandle(string deviceName, DeviceAccess access)
 		{
+			// File.OpenHandle was added in .NET 6.0 for Random file access, so we should be able to directly rely on it instead of doing manual interop.
+#if NET6_0_OR_GREATER
+			// We still need interop to open the file without any specific access 🙁
+			if (access == DeviceAccess.None)
+			{
+				return OpenHandleNoAccess(deviceName);
+			}
+
+			FileAccess fileAccess;
+			FileOptions fileOptions;
+
+			switch (access)
+			{
+			case DeviceAccess.None: (fileAccess, fileOptions) = (0, 0); break;
+			case DeviceAccess.Read: (fileAccess, fileOptions) = (FileAccess.Read, FileOptions.Asynchronous | FileOptions.SequentialScan | NoBuffering); break;
+			case DeviceAccess.Write: (fileAccess, fileOptions) = (FileAccess.Write, FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.WriteThrough | NoBuffering); break;
+			case DeviceAccess.ReadWrite: (fileAccess, fileOptions) = (FileAccess.ReadWrite, FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.WriteThrough | NoBuffering); break;
+			default: throw new ArgumentOutOfRangeException(nameof(access));
+			}
+
+			// In other cases, opening the file with File.OpenHandle should still lead to better results, as the handle will cache FileOptions.
+			return File.OpenHandle
+			(
+				deviceName,
+				FileMode.Open,
+				fileAccess,
+				FileShare.ReadWrite,
+				fileOptions,
+				0
+			);
+#else
+			NativeMethods.FileAccessMask fileAccess;
+			FileOptions fileOptions;
+
+			switch (access)
+			{
+			case DeviceAccess.None:
+				fileAccess = 0;
+				fileOptions = 0;
+				break;
+			case DeviceAccess.Read:
+				fileAccess = NativeMethods.FileAccessMask.GenericRead;
+				fileOptions = FileOptions.Asynchronous | FileOptions.SequentialScan | NoBuffering;
+				break;
+			case DeviceAccess.Write:
+				fileAccess = NativeMethods.FileAccessMask.GenericWrite;
+				fileOptions = FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.WriteThrough | NoBuffering;
+				break;
+			case DeviceAccess.ReadWrite:
+				fileAccess = NativeMethods.FileAccessMask.GenericRead | NativeMethods.FileAccessMask.GenericWrite;
+				fileOptions = FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.WriteThrough | NoBuffering;
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(access));
+			}
+
 			var handle = NativeMethods.CreateFile
 			(
 				deviceName,
-				access switch
-				{
-					DeviceAccess.None => 0,
-					DeviceAccess.Read => NativeMethods.FileAccessMask.GenericRead,
-					DeviceAccess.Write => NativeMethods.FileAccessMask.GenericWrite,
-					DeviceAccess.ReadWrite => NativeMethods.FileAccessMask.GenericRead | NativeMethods.FileAccessMask.GenericWrite,
-					_ => throw new ArgumentOutOfRangeException(nameof(access))
-				},
+				fileAccess,
 				FileShare.ReadWrite,
 				IntPtr.Zero,
 				FileMode.Open,
-				0,
+				fileOptions,
 				IntPtr.Zero
 			);
 
@@ -51,7 +105,22 @@ namespace DeviceTools
 			}
 
 			return handle;
+#endif
 		}
+
+#if NET6_0_OR_GREATER
+		private static SafeFileHandle OpenHandleNoAccess(string deviceName)
+		{
+			var handle = NativeMethods.CreateFile(deviceName, 0, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+
+			if (handle.IsInvalid)
+			{
+				throw new Win32Exception(Marshal.GetLastWin32Error());
+			}
+
+			return handle;
+		}
+#endif
 
 		// TODO: Disable all this code and its dependencies. Unless disproven, we should now be able to rely on DevQuery. If it works out, entirely remove the code.
 #if true

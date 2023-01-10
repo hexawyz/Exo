@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
     <ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
     <ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
   </ItemGroup>

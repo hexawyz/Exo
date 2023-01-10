@@ -517,7 +517,7 @@ namespace DeviceTools
 		);
 
 		[DllImport("kernel32", EntryPoint = "CreateFileW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-		public static extern SafeFileHandle CreateFile(string fileName, FileAccessMask desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+		public static extern SafeFileHandle CreateFile(string fileName, FileAccessMask desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, FileOptions dwFlagsAndAttributes, IntPtr hTemplateFile);
 
 		[DllImport("shell32", EntryPoint = "SHGetPropertyStoreFromParsingName", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Interface)]

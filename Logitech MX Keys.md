@@ -9,6 +9,45 @@ The device seem more complex than a traditional keyboard, as it can be accessed 
 It exposes 4 different HID collections, and the 4th one (Report ID 17(0x11) / Usage page FF43 / Usage 00CA) seems to be used to expose advanced features.
 Upon startup, the Logitech Options Software will configure the keyboard in different ways and change the behavior of some keys. It leads the keyboard to emit quite a few informations that need yet to
 be decoded.
+It seems the custom protocol is more or less openly documented as HID++ 2.0: https://lekensteyn.nl/files/logitech/logitech_hidpp_2.0_specification_draft_2012-06-04.pdf
+We can find information on some feature names here: https://github.com/Logitech/cpg-docs/blob/master/hidpp20/README.rst & https://pwr-solaar.github.io/Solaar/features.html
+And libratbag could be of some help to understand some details: https://github.com/libratbag/libratbag
+
+## Supported HID++ features
+
+Features manually listed from the device, and name from external sources when available:
+
+01:0001 IFeatureSet
+02:0003 Device Information
+03:0005 Device Name and Type
+04:1D4B Wireless Device Status
+05:0020 Config Change
+06:0007 Device Friendly Name
+07:1004 UNIFIED_BATTERY
+08:1B04 Keyboard reprogrammable Keys and Mouse buttons 5
+09:1814 Change Host
+0A:1815 HOSTS_INFO
+0B:1982 Backlight 2
+0C:40A3 Fn Inversion, for multi-host devices
+0D:4220 Lock Key State
+0E:4521 Disable Keys
+0F:4531 MULTIPLATFORM
+10:00C3
+11:1802 DEVICE_RESET
+12:1803
+13:1806 CONFIG_DEVICE_PROPS
+14:1816
+15:1805 OOBSTATE
+16:1830
+17:1891
+18:18A1
+19:1E00
+1A:1E02
+1B:1602
+1C:1EB0
+1D:1861
+1E:1A20
+1F:18B0
 
 ## HID APIs
 
@@ -205,7 +244,7 @@ FN+U to swap @/# and <>: No feedback apart from FN key UP/DOWN
 11FF032B00000000000000000000000000000000
 11FF001B04056E00000000000000000000000000
 11FF000B01000200000000000000000000000000
-11FF010B1F000000000000000000000000000000
+11FF010B1F000000000000000000000000000000 # IFeatureSet.Count() = 31 features ?
 11FF001B04057400000000000000000000000000
 11FF000B00000000000000000000000000000000
 11FF030B14000000000000000000000000000000
@@ -220,7 +259,7 @@ FN+U to swap @/# and <>: No feedback apart from FN key UP/DOWN
 
 11FF070064080301000000000000000000000000 # First command sent on initialization
 
-11FF001B04053900000000000000000000000000
+11FF001B04053900000000000000000000000000 # Get protocol version => 4.5
 11FF020B0348052C670002B36A00000000000100
 11FF021B0052424B7400000401B36A5518BD9100
 11FF090B03000000000000000000000000000000
