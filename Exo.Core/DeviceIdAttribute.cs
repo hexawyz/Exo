@@ -1,5 +1,5 @@
 using System;
-using DeviceTools.HumanInterfaceDevices;
+using DeviceTools;
 
 namespace Exo.Core;
 

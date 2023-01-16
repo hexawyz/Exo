@@ -1,9 +1,11 @@
+using Exo.Core.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service
 {
@@ -26,6 +28,26 @@ namespace Exo.Service
 				sp => sp.GetRequiredService<IHostLifetime>() is WindowsServiceLifetime windowsService ?
 					windowsService.GetDeviceNotificationService() :
 					new NotificationWindow()
+			);
+			services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
+			services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
+			services.AddSingleton<DriverRegistry>();
+			services.AddSingleton<ISystemDeviceDriverRegistry, SystemDeviceDriverRegistry>();
+			services.AddHostedService<HidDeviceManager>
+			(
+				sp =>
+				{
+					var assemblyLoader = sp.GetRequiredService<IAssemblyLoader>();
+					return new HidDeviceManager
+					(
+						sp.GetRequiredService<ILogger<HidDeviceManager>>(),
+						assemblyLoader,
+						new AssemblyParsedDataCache<HidAssembyDetails>(assemblyLoader),
+						sp.GetRequiredService<ISystemDeviceDriverRegistry>(),
+						sp.GetRequiredService<DriverRegistry>(),
+						sp.GetRequiredService<IDeviceNotificationService>()
+					);
+				}
 			);
 		}
 

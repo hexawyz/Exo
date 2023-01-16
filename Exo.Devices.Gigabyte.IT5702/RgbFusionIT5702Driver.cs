@@ -1,11 +1,11 @@
 using System;
-using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
+using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.SystemControl;
 using Exo.Core;
 using Exo.Core.Features.LightingFeatures;
-using Microsoft.Win32.SafeHandles;
 
 namespace Exo.Devices.Gigabyte.IT5702
 {
@@ -97,12 +97,12 @@ namespace Exo.Devices.Gigabyte.IT5702
 		ColorCycle = 4,
 	}
 
-	[DeviceId(VendorIdSource.Usb, 0x048D, 0x5702)]
+	[DeviceId(VendorIdSource.Usb, 0x048D, 0x5702, "RGB Fusion IT5702")]
 	public sealed class RgbFusionIT5702Driver : LightingDriver
 	{
 		public string FriendlyName => "RGB Fusion IT5702";
 
-		private readonly HidDevice _device;
+		private readonly HidFullDuplexStream _device;
 		private int _changedLeds;
 		private readonly FeatureReport[] _zoneSettings;
 		private readonly byte[] _rgb = new byte[2 * 3 * 32];

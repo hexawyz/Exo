@@ -9,7 +9,7 @@ public sealed class GenericKeyboardDriver : Driver, IDeviceDriver<IKeyboardDevic
 {
 	public override string FriendlyName => "Keyboard";
 
-	protected override string GetConfigurationKey() => throw new System.NotImplementedException();
+	protected override DeviceConfigurationKey ConfigurationKey => throw new System.NotImplementedException();
 
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection<IDeviceFeature>.Empty();
 

@@ -1,4 +1,4 @@
-using DeviceTools.HumanInterfaceDevices;
+using DeviceTools;
 using Exo.Core;
 using Exo.Core.Features;
 
@@ -14,7 +14,7 @@ public class LogitechUniversalDriver : Driver, IDeviceDriver<IKeyboardDeviceFeat
 
 	public override string FriendlyName { get; }
 
-	protected override string GetConfigurationKey() => throw new NotImplementedException();
+	protected override DeviceConfigurationKey ConfigurationKey => new DeviceConfigurationKey("logi", "", "Logitech_XXX", "XXXX");
 
 	public static ValueTask<LogitechUniversalDriver> CreateAsync(string path) => throw new NotImplementedException();
 }

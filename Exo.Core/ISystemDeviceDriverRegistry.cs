@@ -1,11 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
-using Exo.Core;
 
-namespace Exo.Service
+namespace Exo.Service;
+
+public interface ISystemDeviceDriverRegistry
 {
-	public interface ISystemDeviceDriverRegistry
-	{
-		void RegisterDriver(Driver driver, string deviceName);
-		bool TryGetDriver(string deviceName, [NotNullWhen(true)] out Driver? driver);
-	}
+	bool TryGetDriver(string deviceName, [NotNullWhen(true)] out ISystemDeviceDriver? driver);
+	bool TryRegisterDriver(ISystemDeviceDriver driver);
+	bool TryUnregisterDriver(ISystemDeviceDriver driver);
 }

@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-  </PropertyGroup>
+		<EnableDynamicLoading>true</EnableDynamicLoading>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
+	<ItemGroup>
+		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
   </ItemGroup>
 
 </Project>

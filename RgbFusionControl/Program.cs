@@ -7,8 +7,8 @@ namespace RgbFusionControl
 	{
 		static void Main(string[] args)
 		{
-			var rgbFusionDevice1 = HidDevice.FromPath(@"\\?\HID#VID_048D&PID_5702&Col01#6&b086894&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}");
-			var rgbFusionDevice2 = HidDevice.FromPath(@"\\?\HID#VID_048D&PID_5702&Col02#6&b086894&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}");
+			var rgbFusionDevice1 = new HidFullDuplexStream(@"\\?\HID#VID_048D&PID_5702&Col01#6&b086894&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}");
+			var rgbFusionDevice2 = new HidFullDuplexStream(@"\\?\HID#VID_048D&PID_5702&Col02#6&b086894&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}");
 
 
 			var data = new byte[64];
