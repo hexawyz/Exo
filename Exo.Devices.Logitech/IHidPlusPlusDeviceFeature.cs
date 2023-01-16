@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Exo.Core;
 using Exo.Devices.Logitech.HidPlusPlus;
 
 namespace Exo.Devices.Logitech;

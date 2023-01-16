@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Win32.SafeHandles;
 
-namespace Exo.Core.Services
+namespace Exo.Services
 {
 	public interface IDeviceNotificationService
 	{

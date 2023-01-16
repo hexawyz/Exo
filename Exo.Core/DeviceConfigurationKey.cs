@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DeviceTools.HumanInterfaceDevices;
 
-namespace Exo.Core;
+namespace Exo;
 
 // TODO: Make the key into a builder pattern providing priority rules for comaptibility keys ?
 // Whatever, the idea is to always have the main key be <Driver>:<DeviceName>, and other keys being indirections towards that key.

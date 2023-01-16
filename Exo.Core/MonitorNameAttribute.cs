@@ -1,7 +1,7 @@
 using System;
 using DeviceTools.DisplayDevices.Configuration;
 
-namespace Exo.Core
+namespace Exo
 {
 	[AttributeUsage(AttributeTargets.Class)]
 	public sealed class MonitorNameAttribute : Attribute

@@ -35,14 +35,14 @@ public interface IAssemblyLoader
 	/// <returns></returns>
 	Assembly LoadAssembly(AssemblyName assemblyName);
 
-	/// <summary>Loads the specified assembly for reflection only.</summary>
+	/// <summary>Creates a context to be used for reflection on the specified assembly.</summary>
 	/// <remarks>
 	/// <para>
 	/// This is the method that should be used when scanning for plugins, as it will avoid running code from the assembly when it might not be needed.
 	/// As such, it is always preferable over <see cref="LoadAssembly(AssemblyName)"/> when running code is not required.
 	/// </para>
 	/// <para>
-	/// Services that rely on this method to scan for plugis are advised to cache their result in order to have a quicker startup.
+	/// Services that rely on this method to scan for plugins are advised to cache their result in order to have a quicker startup.
 	/// It is then possible to identify added or removed assemblies by looking at the contents of <see cref="AvailableAssemblies"/>.
 	/// Although it should be quite rare, the contents of this property could change over time.
 	/// In that case, the <see cref="AvailableAssembliesChanged"/> event will be triggered.
@@ -50,5 +50,5 @@ public interface IAssemblyLoader
 	/// </remarks>
 	/// <param name="assemblyName"></param>
 	/// <returns></returns>
-	PEReader LoadForReflection(AssemblyName assemblyName);
+	MetadataLoadContext CreateMetadataLoadContext(AssemblyName assemblyName);
 }

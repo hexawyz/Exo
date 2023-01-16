@@ -5,10 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 		<EnableDynamicLoading>true</EnableDynamicLoading>
+		<IsExoPluginAssembly>True</IsExoPluginAssembly>
   </PropertyGroup>
 
   <ItemGroup>
-		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
+		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
+		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
   </ItemGroup>
 
 </Project>

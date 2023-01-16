@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Exo.Core;
+namespace Exo;
 
 /// <summary>An interface exposing a way to instanciate a given driver class.</summary>
 /// <remarks>

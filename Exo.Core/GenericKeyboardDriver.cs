@@ -1,6 +1,6 @@
-using Exo.Core.Features;
+using Exo.Features;
 
-namespace Exo.Core;
+namespace Exo;
 
 // TODO: We need something to support various overlay notifications for any keyboard, or at least globally on Windows.
 // Not sure yet if we want this driver to be the generic "all keyboards" driver or for it to be instanciated for each keyboard.

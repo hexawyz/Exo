@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Exo.Core
+namespace Exo
 {
 	[StructLayout(LayoutKind.Sequential, Size = 24)]
 	public struct RgbColor : IEquatable<RgbColor>

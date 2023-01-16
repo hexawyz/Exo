@@ -8,8 +8,20 @@
 		<PackageReference Condition="'$(TargetFramework)' == 'netcoreapp2.2'" Update="System.Runtime.CompilerServices.Unsafe" Version="[4.7.1, 5.0.0]" />
 		<PackageReference Update="System.Security.AccessControl" Version="6.0.0" />
 		<PackageReference Update="System.Threading.Channels" Version="7.0.0" />
+		<PackageReference Update="System.Reflection.MetadataLoadContext" Version="7.0.0" />
 		<PackageReference Update="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
     <PackageReference Update="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.4.0" />
     <PackageReference Update="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3" />
+		<PackageReference Update="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
+		<PackageReference Update="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
   </ItemGroup>
+	<ItemGroup Condition="'$(IsExoPluginAssembly)' == 'true'">
+		<ProjectReference Update="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.DeviceIds.Databases\DeviceTools.DeviceIds.Databases.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.RawInput\DeviceTools.RawInput.csproj" Private="false" ExcludeAssets="runtime" />
+	</ItemGroup>
 </Project>

@@ -8,7 +8,7 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Exo.Core.Services;
+using Exo.Services;
 using Exo.DeviceNotifications;
 using static Interop.Advapi32;
 

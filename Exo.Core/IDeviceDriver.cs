@@ -1,4 +1,4 @@
-namespace Exo.Core;
+namespace Exo;
 
 public interface IDeviceDriver<TFeature>
 	where TFeature : class, IDeviceFeature

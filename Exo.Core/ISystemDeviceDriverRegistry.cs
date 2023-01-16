@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Exo.Service;
+namespace Exo;
 
 public interface ISystemDeviceDriverRegistry
 {

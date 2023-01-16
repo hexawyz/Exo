@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Immutable;
-using Exo.Core.Lighting.Effects;
+using Exo.Lighting.Effects;
 
-namespace Exo.Core.Lighting
+namespace Exo.Lighting
 {
 	public interface ILightZone
 	{

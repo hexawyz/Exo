@@ -2,7 +2,7 @@ using System;
 using System.Collections.Immutable;
 using DeviceTools.DisplayDevices.Mccs;
 
-namespace Exo.Core.Features.MonitorFeatures
+namespace Exo.Features.MonitorFeatures
 {
 	public interface IMonitorDeviceFeature : IDeviceFeature
 	{

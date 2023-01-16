@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Exo.Core.Lighting
+namespace Exo.Lighting
 {
 	public interface IColorLight : ILight
 	{

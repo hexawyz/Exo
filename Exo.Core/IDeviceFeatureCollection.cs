@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Exo.Core
+namespace Exo
 {
 	/// <summary>A collection of device-related features exposed by a particular device driver instance.</summary>
 	/// <remarks>

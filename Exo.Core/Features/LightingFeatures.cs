@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using Exo.Core.Lighting;
+using Exo.Lighting;
 
-namespace Exo.Core.Features.LightingFeatures
+namespace Exo.Features.LightingFeatures
 {
 	public interface ILightingDeviceFeature : IDeviceFeature
 	{

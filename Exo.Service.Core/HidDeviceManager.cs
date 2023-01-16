@@ -1,18 +1,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Tracing;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using DeviceTools;
-using DeviceTools.HumanInterfaceDevices;
-using Exo.Core;
-using Exo.Core.Services;
+using Exo.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -42,7 +39,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	private readonly ConcurrentDictionary<HidVendorKey, DriverTypeReference> _vendorDrivers;
 	private readonly ConcurrentDictionary<HidProductKey, DriverTypeReference> _productDrivers;
 	private readonly ConcurrentDictionary<HidVersionedProductKey, DriverTypeReference> _versionedProductDrivers;
-	//private readonly ConditionalWeakTable<Type, Func<Driver>> _driverFactoryMethods;
+	private readonly ConditionalWeakTable<Type, Func<Task<Driver>>> _driverFactoryMethods;
 	private readonly Dictionary<(ushort ProductId, ushort VendorId, ushort? VersionNumber), (AssemblyName AssemblyName, string TypeName)> _knownHidDrivers;
 
 	public HidDeviceManager
@@ -69,9 +66,132 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
+		RefreshDriverCache();
 		_deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.Hid, this);
 		_eventProcessingTask = ProcessAsync(_eventChannel.Reader, cancellationToken);
 		return Task.CompletedTask;
+	}
+
+	private void RefreshDriverCache()
+	{
+		foreach (var assembly in _assemblyLoader.AvailableAssemblies)
+		{
+			OnAssemblyAdded(assembly);
+		}
+	}
+
+	private void OnAssemblyAdded(AssemblyName assembly)
+	{
+		try
+		{
+			if (!_parsedDataCache.TryGetValue(assembly, out var details))
+			{
+				_parsedDataCache.SetValue(assembly, details = ParseAssembly(assembly));
+			}
+
+			foreach (var kvp in details.VendorDrivers)
+			{
+				foreach (var key in kvp.Value)
+				{
+					_vendorDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
+				}
+			}
+
+			foreach (var kvp in details.ProductDrivers)
+			{
+				foreach (var key in kvp.Value)
+				{
+					_productDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
+				}
+			}
+
+			foreach (var kvp in details.VersionedProductDrivers)
+			{
+				foreach (var key in kvp.Value)
+				{
+					_versionedProductDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
+	}
+
+	private HidAssembyDetails ParseAssembly(AssemblyName assemblyName)
+	{
+		using var context = _assemblyLoader.CreateMetadataLoadContext(assemblyName);
+
+		var assembly = context.LoadFromAssemblyName(assemblyName);
+
+		var vendorDrivers = new Dictionary<string, List<HidVendorKey>>();
+		var productDrivers = new Dictionary<string, List<HidProductKey>>();
+		var versionedProductDrivers = new Dictionary<string, List<HidVersionedProductKey>>();
+
+		foreach (var type in assembly.DefinedTypes)
+		{
+			if (IsDriverType(type))
+			{
+				foreach (var customAttribute in type.GetCustomAttributesData())
+				{
+					var attributeType = customAttribute.AttributeType;
+
+					if (attributeType.Assembly.GetName().Name == typeof(DeviceIdAttribute).Assembly.GetName().Name && attributeType.FullName == typeof(DeviceIdAttribute).FullName)
+					{
+						var arguments = customAttribute.ConstructorArguments;
+
+						if (arguments.Count >= 3)
+						{
+							var vendorIdSource = (VendorIdSource)(byte)arguments[0].Value!;
+							ushort vendorId = (ushort)arguments[1].Value!;
+							ushort productId = (ushort)arguments[2].Value!;
+							ushort? versionNumber = arguments.Count >= 4 ? (ushort?)arguments[3].Value : null;
+
+							if (versionNumber is not null)
+							{
+								if (!versionedProductDrivers.TryGetValue(type.FullName!, out var list))
+								{
+									versionedProductDrivers.Add(type.FullName!, list = new());
+								}
+								list.Add(new(vendorIdSource, vendorId, productId, versionNumber.GetValueOrDefault()));
+							}
+							else
+							{
+								if (!productDrivers.TryGetValue(type.FullName!, out var list))
+								{
+									productDrivers.Add(type.FullName!, list = new());
+								}
+								list.Add(new(vendorIdSource, vendorId, productId));
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return new HidAssembyDetails
+		(
+			vendorDrivers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray()),
+			productDrivers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray()),
+			versionedProductDrivers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray())
+		);
+	}
+
+	private bool IsDriverType(Type type)
+	{
+		Type? current = type;
+		while (true)
+		{
+			if (current == null) return false;
+
+			if (current.Assembly.GetName().Name == typeof(Driver).Assembly.GetName().Name && current.FullName == typeof(Driver).FullName)
+			{
+				return true;
+			}
+
+			current = current.BaseType;
+		}
 	}
 
 	public async Task StopAsync(CancellationToken cancellationToken)
@@ -177,6 +297,13 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	}
 
 	void IDeviceNotificationSink.OnDeviceRemovePending(Guid deviceInterfaceClassGuid, string deviceName)
+	{
+		_logger.HidDeviceRemoval(deviceName);
+
+		_eventChannel.Writer.TryWrite((deviceName, EventKind.Removal));
+	}
+
+	void IDeviceNotificationSink.OnDeviceRemoveComplete(Guid deviceInterfaceClassGuid, string deviceName)
 	{
 		_logger.HidDeviceRemoval(deviceName);
 

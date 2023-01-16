@@ -122,20 +122,11 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		return assembly;
 	}
 
-	public PEReader LoadForReflection(AssemblyName assemblyName)
+	public MetadataLoadContext CreateMetadataLoadContext(AssemblyName assemblyName)
 	{
 		var entry = GetAssemblyCacheEntry(assemblyName);
 
-		var file = new FileStream(entry.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-		try
-		{
-			return new PEReader(file, PEStreamOptions.Default);
-		}
-		catch
-		{
-			file.Dispose();
-			throw;
-		}
+		return new MetadataLoadContext(new PluginMetadataAssemblyResolver(entry.Path), typeof(object).Assembly.GetName().Name);
 	}
 
 	private AssemblyCacheEntry GetAssemblyCacheEntry(AssemblyName assemblyName)

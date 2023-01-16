@@ -1,11 +1,10 @@
 using DeviceTools;
-using Exo.Core;
-using Exo.Core.Features;
+using Exo.Features;
 
 namespace Exo.Devices.Logitech;
 
-[DeviceId(VendorIdSource.Usb, 0x046D, 0xB361, "MX Keys for Mac")]
-[DeviceId(VendorIdSource.Usb, 0x046D, 0xB36A, "MX Keys Mini for Mac")]
+[DeviceId(VendorIdSource.Usb, 0x046D, 0xB361)]
+[DeviceId(VendorIdSource.Usb, 0x046D, 0xB36A)]
 public class LogitechUniversalDriver : Driver, IDeviceDriver<IKeyboardDeviceFeature>
 {
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => throw new NotImplementedException();

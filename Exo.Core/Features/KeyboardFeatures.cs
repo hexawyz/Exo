@@ -1,4 +1,4 @@
-namespace Exo.Core.Features;
+namespace Exo.Features;
 
 public interface IKeyboardDeviceFeature : IDeviceFeature
 {

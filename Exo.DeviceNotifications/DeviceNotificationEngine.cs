@@ -1,13 +1,11 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Exo.Core.Services;
+using Exo.Services;
 using Microsoft.Win32.SafeHandles;
 using static Exo.DeviceNotifications.NativeMethods;
 

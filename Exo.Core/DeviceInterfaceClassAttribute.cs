@@ -1,6 +1,6 @@
 using System;
 
-namespace Exo.Core
+namespace Exo
 {
 	/// <summary>Declares the device interface class supported by the specified attribute.</summary>
 	[AttributeUsage(AttributeTargets.Class)]

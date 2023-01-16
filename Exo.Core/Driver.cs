@@ -1,4 +1,4 @@
-namespace Exo.Core;
+namespace Exo;
 
 /// <summary>The base class for a device driver.</summary>
 /// <remarks>

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Exo.Core.Lighting
+namespace Exo.Lighting
 {
 	/// <summary>A predefined RGB light effect that can be applied to a light zone.</summary>
 	/// <remarks>

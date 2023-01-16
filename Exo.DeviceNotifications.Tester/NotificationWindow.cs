@@ -1,6 +1,6 @@
 using System;
 using System.Windows.Interop;
-using Exo.Core.Services;
+using Exo.Services;
 using Microsoft.Win32.SafeHandles;
 
 namespace Exo.DeviceNotifications.Tester

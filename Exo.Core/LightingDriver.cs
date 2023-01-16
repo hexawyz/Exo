@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using Exo.Core;
-using Exo.Core.Features.LightingFeatures;
-using Exo.Core.Lighting;
+using Exo;
+using Exo.Features.LightingFeatures;
+using Exo.Lighting;
 
 namespace DeviceTools.SystemControl
 {

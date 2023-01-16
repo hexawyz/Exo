@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Exo.Core.Features.CompositeFeatures;
+namespace Exo.Features.CompositeFeatures;
 
 /// <summary>Composite drivers must implement <see cref="IDeviceDriver{TFeature}"/> with <see cref="ICompositeDeviceFeature"/>.</summary>
 /// <remarks>

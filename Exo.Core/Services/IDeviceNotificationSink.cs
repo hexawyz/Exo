@@ -1,6 +1,6 @@
 using System;
 
-namespace Exo.Core.Services
+namespace Exo.Services
 {
 	public interface IDeviceNotificationSink
 	{

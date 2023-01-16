@@ -1,4 +1,4 @@
-namespace Exo.Core.Lighting.Effects
+namespace Exo.Lighting.Effects
 {
 	public interface ISingleColorEffect
 	{
