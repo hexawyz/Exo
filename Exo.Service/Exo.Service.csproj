@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
     <ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />

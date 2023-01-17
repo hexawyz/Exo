@@ -1,11 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Serilog;
 
 namespace Exo.Service
 {
@@ -19,9 +14,7 @@ namespace Exo.Service
 		public static IHostBuilder CreateHostBuilder(string[] args) =>
 			Host.CreateDefaultBuilder(args)
 				.UseWindowsService()
-				.ConfigureWebHostDefaults(webBuilder =>
-				{
-					webBuilder.UseStartup<Startup>();
-				});
+				.ConfigureWebHostDefaults(webBuilder => webBuilder.UseStartup<Startup>())
+				.UseSerilog((ctx, logger) => logger.ReadFrom.Configuration(ctx.Configuration));
 	}
 }

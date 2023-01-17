@@ -82,40 +82,90 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 	private void OnAssemblyAdded(AssemblyName assembly)
 	{
+		HidAssembyDetails details;
 		try
 		{
-			if (!_parsedDataCache.TryGetValue(assembly, out var details))
+			if (!_parsedDataCache.TryGetValue(assembly, out details))
 			{
 				_parsedDataCache.SetValue(assembly, details = ParseAssembly(assembly));
-			}
-
-			foreach (var kvp in details.VendorDrivers)
-			{
-				foreach (var key in kvp.Value)
-				{
-					_vendorDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
-				}
-			}
-
-			foreach (var kvp in details.ProductDrivers)
-			{
-				foreach (var key in kvp.Value)
-				{
-					_productDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
-				}
-			}
-
-			foreach (var kvp in details.VersionedProductDrivers)
-			{
-				foreach (var key in kvp.Value)
-				{
-					_versionedProductDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
-				}
 			}
 		}
 		catch (Exception ex)
 		{
-			// TODO: Log
+			_logger.HidAssemblyParsingFailure(assembly.FullName, ex);
+			return;
+		}
+
+		foreach (var kvp in details.VendorDrivers)
+		{
+			foreach (var key in kvp.Value)
+			{
+				try
+				{
+					_vendorDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
+				}
+				catch (Exception ex)
+				{
+					var preexistingValue = _vendorDrivers[key];
+
+					_logger.HidVendorRegisteredTwice(key.VendorIdSource, key.VendorId, kvp.Key, assembly.FullName, preexistingValue.TypeName, preexistingValue.AssemblyName.FullName, ex);
+				}
+			}
+		}
+
+		foreach (var kvp in details.ProductDrivers)
+		{
+			foreach (var key in kvp.Value)
+			{
+				try
+				{
+					_productDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
+				}
+				catch (Exception ex)
+				{
+					var preexistingValue = _productDrivers[key];
+
+					_logger.HidProductRegisteredTwice
+					(
+						key.VendorIdSource,
+						key.VendorId,
+						key.ProductId,
+						kvp.Key,
+						assembly.FullName,
+						preexistingValue.TypeName,
+						preexistingValue.AssemblyName.FullName,
+						ex
+					);
+				}
+			}
+		}
+
+		foreach (var kvp in details.VersionedProductDrivers)
+		{
+			foreach (var key in kvp.Value)
+			{
+				try
+				{
+					_versionedProductDrivers.TryAdd(key, new DriverTypeReference(assembly, kvp.Key));
+				}
+				catch (Exception ex)
+				{
+					var preexistingValue = _versionedProductDrivers[key];
+
+					_logger.HidVersionedProductRegisteredTwice
+					(
+						key.VendorIdSource,
+						key.VendorId,
+						key.ProductId,
+						key.VersionNumber,
+						kvp.Key,
+						assembly.FullName,
+						preexistingValue.TypeName,
+						preexistingValue.AssemblyName.FullName,
+						ex
+					);
+				}
+			}
 		}
 	}
 
@@ -234,6 +284,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		// Device may already have been registered by a driver covering multiple device instance IDs.
 		if (_systemDeviceDriverRegistry.TryGetDriver(deviceName, out var driver))
 		{
+			_logger.HidDeviceDriverAlreadyAssigned(deviceName);
 			return;
 		}
 
@@ -247,6 +298,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 			if (deviceId.Version != 0xFFFF && TryGetDriverReference(deviceId.VendorIdSource, deviceId.VendorId, deviceId.ProductId, deviceId.Version, out var driverTypeReference))
 			{
+				_logger.HidDeviceDriverMatch(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, deviceName);
 				return;
 			}
 		}
@@ -264,6 +316,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 			if (TryGetDriverReference(vendorIdSource == VendorIdSource.Unknown ? VendorIdSource.Usb : vendorIdSource, vendorId, productId, versionNumber, out var driverTypeReference))
 			{
+				_logger.HidDeviceDriverMatch(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, deviceName);
 				return;
 			}
 		}
