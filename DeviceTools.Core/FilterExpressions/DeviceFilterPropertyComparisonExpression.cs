@@ -130,7 +130,7 @@ namespace DeviceTools.FilterExpressions
 		}
 
 		internal static DeviceFilterPropertyComparisonExpression Create<TProperty, TValue, TOperator>(TProperty property, TValue value, TOperator @operator)
-			where TProperty : Property, IProperty<TValue>
+			where TProperty : Property, IComparableProperty<TValue>
 			where TOperator : struct, Enum
 			=> new DeviceFilterPropertyComparisonExpression<TProperty, TValue, TOperator>(property, value, @operator);
 
@@ -354,7 +354,7 @@ namespace DeviceTools.FilterExpressions
 	}
 
 	internal class DeviceFilterPropertyComparisonExpression<TProperty, TValue, TOperator> : DeviceFilterPropertyComparisonExpression<TValue, TOperator>
-		where TProperty : Property, IProperty<TValue>
+		where TProperty : Property, IComparableProperty<TValue>
 		where TOperator : struct, Enum
 	{
 		public new TProperty Property => Unsafe.As<TProperty>(base.Property);

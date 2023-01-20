@@ -1,12 +1,13 @@
-﻿namespace Exo.Devices.Logitech.HidPlusPlus;
+namespace Exo.Devices.Logitech.HidPlusPlus;
 
 public enum HidPlusPlusFeature : ushort
 {
 	Root = 0x0000,
 	FeatureSet = 0x0001,
 	FeatureInformation = 0x002,
-	FirmwareInfo = 0x0003,
-	DeviceNameAndType = 0x0004,
+	DeviceInformation = 0x0003,
+	UnitId = 0x0004,
+	DeviceNameAndType = 0x0005,
 	DeviceFriendlyName = 0x0007,
 	ConfigurationChange = 0x0020,
 	BatteryUnifiedLevelStatus = 0x1000,

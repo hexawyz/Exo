@@ -24,14 +24,18 @@ public abstract class Driver : IDeviceDriver<IDeviceFeature>
 	/// Generally, drivers supporting more than one device (e.g. monitor drivers) would expose the friendly name of the device here.
 	/// </para>
 	/// </remarks>
-	public abstract string FriendlyName { get; }
+	public string FriendlyName { get; }
 
 	/// <summary>Gets the configuration key used to load the configuration.</summary>
 	/// <returns>A string that can be used to look for the device configuration.</returns>
-	protected abstract DeviceConfigurationKey ConfigurationKey { get; }
+	public DeviceConfigurationKey ConfigurationKey { get; }
 
 	/// <summary>Gets the list of all features associated with this driver</summary>
 	public abstract IDeviceFeatureCollection<IDeviceFeature> Features { get; }
 
-	protected Driver() { }
+	protected Driver(string friendlyName, DeviceConfigurationKey configurationKey)
+	{
+		FriendlyName = friendlyName;
+		ConfigurationKey = configurationKey;
+	}
 }

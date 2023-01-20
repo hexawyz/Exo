@@ -5,14 +5,14 @@ namespace DeviceTools
 {
 	public sealed class DeviceObjectInformation
 	{
-		internal static readonly ReadOnlyDictionary<PropertyKey, object?> EmptyProperties = new ReadOnlyDictionary<PropertyKey, object?>(new Dictionary<PropertyKey, object?>());
+		internal static readonly DevicePropertyDictionary EmptyProperties = new DevicePropertyDictionary(new Dictionary<PropertyKey, object?>());
 
 		public DeviceObjectInformation(DeviceObjectKind kind, string id, Dictionary<PropertyKey, object?>? properties)
 		{
 			Kind = kind;
 			Id = id;
 			Properties = properties is not null ?
-				new ReadOnlyDictionary<PropertyKey, object?>(properties) :
+				new DevicePropertyDictionary(properties) :
 				EmptyProperties;
 		}
 
@@ -20,6 +20,6 @@ namespace DeviceTools
 
 		public string Id { get; }
 
-		public ReadOnlyDictionary<PropertyKey, object?> Properties { get; }
+		public DevicePropertyDictionary Properties { get; }
 	}
 }

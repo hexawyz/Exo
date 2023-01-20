@@ -22,7 +22,7 @@ public sealed class HidFullDuplexStream : Stream
 		try
 		{
 			readHandle = Device.OpenHandle(deviceName, DeviceAccess.Read);
-			writeHandle = Device.OpenHandle(deviceName, DeviceAccess.Read);
+			writeHandle = Device.OpenHandle(deviceName, DeviceAccess.Write);
 			readStream = new FileStream(readHandle, FileAccess.Read, 4096, true);
 			writeStream = new FileStream(writeHandle, FileAccess.Write, 0, true);
 		}

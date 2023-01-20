@@ -1,5 +1,3 @@
-﻿namespace Exo.Devices.Logitech.HidPlusPlus;
+namespace Exo.Devices.Logitech.HidPlusPlus;
 
-public interface IMessageParameters
-{
-}
+public interface IMessageParameters { }

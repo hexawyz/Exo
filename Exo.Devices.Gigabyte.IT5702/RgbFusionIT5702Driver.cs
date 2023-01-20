@@ -95,7 +95,7 @@ namespace Exo.Devices.Gigabyte.IT5702
 		ColorCycle = 4,
 	}
 
-	[DeviceId(VendorIdSource.Usb, 0x048D, 0x5702)]
+	[ProductId(VendorIdSource.Usb, 0x048D, 0x5702)]
 	public sealed class RgbFusionIT5702Driver : LightingDriver
 	{
 		public string FriendlyName => "RGB Fusion IT5702";

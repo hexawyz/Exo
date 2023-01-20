@@ -4,24 +4,24 @@ namespace Exo.Devices.Logitech.HidPlusPlus;
 
 public class HidPlusPlusException : Exception
 {
-	public byte ErrorCode { get; }
+	public HidPlusPlusErrorCode ErrorCode { get; }
 
-	public HidPlusPlusException(byte errorCode)
+	public HidPlusPlusException(HidPlusPlusErrorCode errorCode)
 	{
 		ErrorCode = errorCode;
 	}
 
-	public HidPlusPlusException(byte errorCode, string? message) : base(message)
+	public HidPlusPlusException(HidPlusPlusErrorCode errorCode, string? message) : base(message)
 	{
 		ErrorCode = errorCode;
 	}
 
-	public HidPlusPlusException(byte errorCode, string? message, Exception? innerException) : base(message, innerException)
+	public HidPlusPlusException(HidPlusPlusErrorCode errorCode, string? message, Exception? innerException) : base(message, innerException)
 	{
 		ErrorCode = errorCode;
 	}
 
-	protected HidPlusPlusException(byte errorCode, SerializationInfo info, StreamingContext context) : base(info, context)
+	protected HidPlusPlusException(HidPlusPlusErrorCode errorCode, SerializationInfo info, StreamingContext context) : base(info, context)
 	{
 		ErrorCode = errorCode;
 	}

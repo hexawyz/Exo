@@ -15,4 +15,16 @@
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
   </ItemGroup>
 
+	<!-- Detect plugin project names. -->
+	<ItemGroup>
+		<PluginProjectDirectory Include ="$([System.IO.Directory]::GetDirectories('..', 'Exo.Devices.*'))" />
+		<PluginProject Include="@(PluginProjectDirectory->'%(Filename)%(Extension)')" />
+	</ItemGroup>
+
+	<!-- Automatically reference plugin projects. -->
+	<!-- TODO: Copy build files in a plugin directory later on. -->
+	<ItemGroup>
+		<ProjectReference Include="@(PluginProject -> '..\%(Identity)\%(Identity).csproj')" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
 </Project>

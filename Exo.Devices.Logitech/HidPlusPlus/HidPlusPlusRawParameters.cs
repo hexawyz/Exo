@@ -1,6 +1,6 @@
 namespace Exo.Devices.Logitech.HidPlusPlus;
 
-public struct HidPlusPlusRawParameters : IMessageParameters
+public struct HidPlusPlusRawParameters : IMessageRequestParameters, IMessageResponseParameters
 {
 	public byte Byte0;
 	public byte Byte1;

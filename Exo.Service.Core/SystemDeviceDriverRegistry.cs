@@ -21,12 +21,12 @@ public sealed class SystemDeviceDriverRegistry : ISystemDeviceDriverRegistry
 		{
 			if (_registeredDrivers.Add(driver))
 			{
-				foreach (var deviceName in driver.GetDeviceNames())
+				foreach (var deviceName in driver.DeviceNames)
 				{
 					if (!_registeredDeviceDrivers.TryAdd(deviceName, driver))
 					{
 						// Remove all previous entries.
-						foreach (var deviceName2 in driver.GetDeviceNames())
+						foreach (var deviceName2 in driver.DeviceNames)
 						{
 							_registeredDeviceDrivers.TryRemove(new KeyValuePair<string, ISystemDeviceDriver>(deviceName2, driver));
 						}
@@ -46,7 +46,7 @@ public sealed class SystemDeviceDriverRegistry : ISystemDeviceDriverRegistry
 		{
 			if (_registeredDrivers.Remove(driver))
 			{
-				foreach (var deviceName in driver.GetDeviceNames())
+				foreach (var deviceName in driver.DeviceNames)
 				{
 					_registeredDeviceDrivers.TryRemove(new KeyValuePair<string, ISystemDeviceDriver>(deviceName, driver));
 				}

@@ -7,9 +7,9 @@ namespace Exo;
 // Ideally, we want to plug notifications for a few specific keypresses, but that may not be possible without some helper applications on UI-side anyway.
 public sealed class GenericKeyboardDriver : Driver, IDeviceDriver<IKeyboardDeviceFeature>
 {
-	public override string FriendlyName => "Keyboard";
-
-	protected override DeviceConfigurationKey ConfigurationKey => throw new System.NotImplementedException();
+	private GenericKeyboardDriver(string friendlyName, DeviceConfigurationKey configurationKey) : base(friendlyName, configurationKey)
+	{
+	}
 
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection<IDeviceFeature>.Empty();
 
