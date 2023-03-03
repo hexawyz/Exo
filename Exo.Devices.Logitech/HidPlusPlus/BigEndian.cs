@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Exo.Devices.Logitech.HidPlusPlus.Features;
+namespace Exo.Devices.Logitech.HidPlusPlus;
 
 internal static class BigEndian
 {

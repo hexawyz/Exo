@@ -1,5 +1,7 @@
-﻿namespace Exo.Devices.Logitech.HidPlusPlus;
+using Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol;
 
-public struct HidPlusPlusEmptyParameters : IMessageRequestParameters, IMessageResponseParameters
+namespace Exo.Devices.Logitech.HidPlusPlus;
+
+public struct HidPlusPlusEmptyParameters : IMessageRequestParameters, IMessageResponseParameters, IShortMessageParameters, ILongMessageParameters, IVeryLongMessageParameters
 {
 }

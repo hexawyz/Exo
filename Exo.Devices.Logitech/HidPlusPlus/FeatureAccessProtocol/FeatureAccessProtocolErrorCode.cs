@@ -1,6 +1,6 @@
-﻿namespace Exo.Devices.Logitech.HidPlusPlus;
+namespace Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol;
 
-public enum HidPlusPlusErrorCode : byte
+public enum FeatureAccessProtocolErrorCode : byte
 {
 	NoError = 0,
 	Unknown = 1,

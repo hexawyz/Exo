@@ -17,6 +17,8 @@ And libratbag could be of some help to understand some details: https://github.c
 
 Features manually listed from the device, and name from external sources when available:
 
+### MX Keys Mini for Mac
+
 01:0001 IFeatureSet
 02:0003 Device Information
 03:0005 Device Name and Type
@@ -48,6 +50,38 @@ Features manually listed from the device, and name from external sources when av
 1D:1861
 1E:1A20
 1F:18B0
+
+### MX Keys for Mac
+
+01:0001 00 01 IFeatureSet
+02:0003 00 02 Device Information
+03:0005 00 00 Device Name and Type
+04:1D4B 00 00 Wireless Device Status
+05:0020 00 00 Config Change
+06:0007 00 00 Device Friendly Name
+07:1000 00 01
+08:1B04 00 04 Keyboard reprogrammable Keys and Mouse buttons 5
+09:1814 00 01 Change Host
+0A:1815 00 01 HOSTS_INFO
+0B:1982 00 01 Backlight 2
+0C:40A3 00 00 Fn Inversion, for multi-host devices
+0D:4100 00 00
+0E:4220 00 00 Lock Key State
+0F:4521 00 00 Disable Keys
+10:4531 00 01 MULTIPLATFORM
+11:00C2 00 00
+12:1802 60 00 DEVICE_RESET
+13:1803 60 00
+14:1806 60 05 CONFIG_DEVICE_PROPS
+15:1813 60 00
+16:1805 60 00 OOBSTATE
+17:1830 60 00
+18:18A1 60 00
+19:1E00 40 00
+1A:1EB0 60 00
+1B:1861 60 00
+1C:1A20 60 00
+1D:18B0 60 00
 
 ## HID APIs
 

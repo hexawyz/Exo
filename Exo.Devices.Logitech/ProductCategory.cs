@@ -1,0 +1,40 @@
+namespace Exo.Devices.Logitech;
+
+// Product categories found in the Logitech Unifying Chrome Extension.
+// The category of a given device can be inferred from the (USB) product ID.
+public enum ProductCategory
+{
+	Other = 0,
+	VirtualUsbGameController = 1,
+	UsbScanner = 2,
+	UsbCamera = 3,
+	UsbAudio = 4,
+	UsbHub = 5,
+	UsbSpecial = 6,
+	BluetoothMouse = 7,
+	BluetoothKeyboard = 8,
+	BluetoothNumpad = 9,
+	BluetoothRemoteControl = 10,
+	BluetoothReserved = 11,
+	BluetoothAudio = 12,
+	UsbBluetoothReceiver = 13,
+	UsbReceiver = 14,
+	UsbMouse = 15,
+	UsbRemoteControl = 16,
+	UsbPcGamingDevice = 17,
+	UsbKeyboard = 18,
+	UsbTrackBall = 19,
+	Usb3dControlDevice = 20,
+	UsbOtherPointingDevice = 21,
+	UsbConsoleGamingDevice = 22,
+	UsbToolsOther = 23,
+	UsbToolsCorded = 24,
+	UsbToolsTransceiver = 25,
+	QuadMouse = 26,
+	QuadKeyboard = 27,
+	QuadGamingDevice = 28,
+	QuadFapDevice = 29,
+	QuadMouseTransceiver = 30,
+	QuadDesktopTransceiver = 31,
+	QuadGamingTransceiver = 32,
+}

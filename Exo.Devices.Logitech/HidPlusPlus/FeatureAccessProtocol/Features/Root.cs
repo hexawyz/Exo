@@ -1,4 +1,6 @@
-namespace Exo.Devices.Logitech.HidPlusPlus.Features;
+using System.Runtime.InteropServices;
+
+namespace Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 
 #pragma warning disable IDE0044 // Add readonly modifier
 public static class Root
@@ -9,7 +11,8 @@ public static class Root
 	{
 		public const byte FunctionId = 0;
 
-		public struct Request : IMessageRequestParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
+		public struct Request : IMessageRequestParameters, IShortMessageParameters
 		{
 			private byte _featureId0;
 			private byte _featureId1;
@@ -20,7 +23,8 @@ public static class Root
 			}
 		}
 
-		public struct Response : IMessageResponseParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
+		public struct Response : IMessageResponseParameters, IShortMessageParameters
 		{
 			public byte Index;
 		}
@@ -30,14 +34,16 @@ public static class Root
 	{
 		public const byte FunctionId = 1;
 
-		public struct Request : IMessageRequestParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
+		public struct Request : IMessageRequestParameters, IShortMessageParameters
 		{
 			public byte Zero0;
 			public byte Zero1;
 			public byte Beacon;
 		}
 
-		public struct Response : IMessageResponseParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
+		public struct Response : IMessageResponseParameters, IShortMessageParameters
 		{
 			public byte Major;
 			public byte Minor;

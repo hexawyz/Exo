@@ -246,6 +246,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 	private bool IsDriverType(Type type)
 	{
+		// TODO: Cache the constant names here.
 		Type? current = type;
 		while (true)
 		{
@@ -253,7 +254,14 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 			if (current.Assembly.GetName().Name == typeof(Driver).Assembly.GetName().Name && current.FullName == typeof(Driver).FullName)
 			{
-				return true;
+				foreach (var interfaceType in type.GetInterfaces())
+				{
+					if (interfaceType.Assembly.GetName().Name == typeof(ISystemDeviceDriver).Assembly.GetName().Name && interfaceType.FullName == typeof(ISystemDeviceDriver).FullName)
+					{
+						return true;
+					}
+				}
+				return false;
 			}
 
 			current = current.BaseType;
@@ -340,15 +348,40 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		}
 	}
 
-	private async Task CreateAndRegisterDriverAsync(string deviceName, DriverTypeReference driverTypeReference, CancellationToken cancellationToken)
+	private async Task<bool> CreateAndRegisterDriverAsync(string deviceName, DriverTypeReference driverTypeReference, CancellationToken cancellationToken)
 	{
+		// TODO: Validate the existence of the CreateAsyncMethod.
 		var assembly = _assemblyLoader.LoadAssembly(driverTypeReference.AssemblyName);
 		var type = assembly.GetType(driverTypeReference.TypeName);
 		var createAsync = type.GetMethod("CreateAsync", BindingFlags.Static | BindingFlags.Public);
-		var task = (Task<Driver>)createAsync.Invoke(null, new object[] { deviceName, cancellationToken });
-		var driverInstance = await task.ConfigureAwait(false);
-		_systemDeviceDriverRegistry.TryRegisterDriver((ISystemDeviceDriver)driverInstance);
-		_driverRegistry.AddDriver(driverInstance);
+		Driver driverInstance;
+		try
+		{
+			var task = (Task<Driver>)createAsync.Invoke(null, new object[] { deviceName, cancellationToken })!;
+			driverInstance = await task.ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			_logger.HidDriverCreationFailure(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, deviceName, ex);
+			return false;
+		}
+
+		// This is guaranteed to succeed base on the checks that were done on the driver type itself.
+		var systemDriver = (ISystemDeviceDriver)driverInstance;
+
+		try
+		{
+			_systemDeviceDriverRegistry.TryRegisterDriver(systemDriver);
+			_driverRegistry.AddDriver(driverInstance);
+		}
+		catch (Exception ex)
+		{
+			_logger.HidDriverRegistrationFailure(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, systemDriver.DeviceNames, ex);
+			await systemDriver.DisposeAsync().ConfigureAwait(false);
+			return false;
+		}
+
+		return true;
 	}
 
 	private void HandleDeviceRemoval(string deviceName)

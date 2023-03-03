@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Exo.Devices.Logitech.HidPlusPlus.Features;
+namespace Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 
 #pragma warning disable IDE0044 // Add readonly modifier
 public static class DeviceInformation
@@ -12,7 +12,8 @@ public static class DeviceInformation
 	{
 		public const byte FunctionId = 0;
 
-		public struct Response : IMessageResponseParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+		public struct Response : IMessageResponseParameters, ILongMessageParameters
 		{
 			public byte EntityCount;
 
@@ -73,12 +74,14 @@ public static class DeviceInformation
 	{
 		public const byte FunctionId = 1;
 
-		public struct Request : IMessageRequestParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
+		public struct Request : IMessageRequestParameters, IShortMessageParameters
 		{
 			public byte EntityIndex;
 		}
 
-		public struct Response : IMessageResponseParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+		public struct Response : IMessageResponseParameters, ILongMessageParameters
 		{
 			private byte _deviceEntityType;
 			public DeviceEntityType EntityType
@@ -134,7 +137,8 @@ public static class DeviceInformation
 	{
 		public const byte FunctionId = 2;
 
-		public struct Response : IMessageResponseParameters
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+		public struct Response : IMessageResponseParameters, ILongMessageParameters
 		{
 			private byte _serialNumber0;
 			private byte _serialNumber1;
@@ -156,9 +160,7 @@ public static class DeviceInformation
 					var span = MemoryMarshal.CreateSpan(ref _serialNumber0, 12);
 
 					if (span.IndexOfAnyExcept((byte)0) < 0)
-					{
 						return null;
-					}
 
 					return Encoding.ASCII.GetString(span);
 				}
@@ -191,14 +193,10 @@ public static class DeviceInformation
 				}
 
 				if (value.Length != 12)
-				{
 					throw new ArgumentException("Serial number must be exactly 12 characters long.");
-				}
 
 				for (int i = 0; i < value.Length; i++)
-				{
 					ValidateChar(value[i]);
-				}
 
 				Encoding.ASCII.GetBytes(value, span);
 			}
@@ -207,9 +205,7 @@ public static class DeviceInformation
 			private static void ValidateChar(char c)
 			{
 				if (c is < '0' or > 'Z' or > '9' and < 'A' or 'I' or 'O')
-				{
 					throw new ArgumentException($"Invalid character in serial number: '{c}'.");
-				}
 			}
 		}
 	}

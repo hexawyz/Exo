@@ -187,6 +187,21 @@ namespace DeviceTools.HumanInterfaceDevices
 		private protected virtual ref byte PreparsedDataFirstByte
 			=> ref Unsafe.Add(ref default(Span<byte>).GetPinnableReference(), PreparsedDataPointer);
 
+		// TODO: Better API
+		public (int InputReportLength, int OutputReportLength, int FeatureReportLength) GetReportLengths()
+		{
+			ref byte preparsedDataFirstByte = ref PreparsedDataFirstByte;
+
+			var result = NativeMethods.HidParsingGetCaps(ref preparsedDataFirstByte, out var caps);
+
+			if (result != NativeMethods.HidParsingResult.Success)
+			{
+				throw new InvalidOperationException();
+			}
+
+			return (caps.InputReportByteLength, caps.OutputReportByteLength, caps.FeatureReportByteLength);
+		}
+
 		// TODO: Wrap this in a high level structure.
 		public NativeMethods.HidParsingLinkCollectionNode[] GetLinkCollectionNodes()
 		{

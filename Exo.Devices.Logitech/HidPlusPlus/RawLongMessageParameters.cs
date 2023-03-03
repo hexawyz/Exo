@@ -1,6 +1,9 @@
+using System.Runtime.InteropServices;
+
 namespace Exo.Devices.Logitech.HidPlusPlus;
 
-public struct HidPlusPlusRawParameters : IMessageRequestParameters, IMessageResponseParameters
+[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+public struct RawLongMessageParameters : ILongMessageParameters
 {
 	public byte Byte0;
 	public byte Byte1;

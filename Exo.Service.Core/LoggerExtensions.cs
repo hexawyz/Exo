@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DeviceTools;
 using Microsoft.Extensions.Logging;
 
@@ -80,4 +81,10 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 1010, EventName = "HidDeviceDriverAlreadyAssigned", Level = LogLevel.Debug, Message = "The device \"{DeviceName}\" has already been assigned a driver.")]
 	public static partial void HidDeviceDriverAlreadyAssigned(this ILogger logger, string deviceName);
+
+	[LoggerMessage(EventId = 1011, EventName = "HidDriverCreationFailure", Level = LogLevel.Error, Message = "Failed to create an instance of \"{TypeName}\" from \"{AssemblyName}\" for the device \"{DeviceName}\".")]
+	public static partial void HidDriverCreationFailure(this ILogger logger, string typeName, string assemblyName, string deviceName, Exception exception);
+
+	[LoggerMessage(EventId = 1012, EventName = "HidDriverRegistrationFailure", Level = LogLevel.Error, Message = "Failed to register an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
+	public static partial void HidDriverRegistrationFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
 }

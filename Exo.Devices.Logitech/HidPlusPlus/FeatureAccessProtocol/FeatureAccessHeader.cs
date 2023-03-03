@@ -1,8 +1,10 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-namespace Exo.Devices.Logitech.HidPlusPlus;
+namespace Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol;
 
-public struct HidPlusPlusHeader
+[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 4)]
+public struct FeatureAccessHeader
 {
 	public byte ReportId;
 	public byte DeviceId;

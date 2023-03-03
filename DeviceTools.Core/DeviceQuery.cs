@@ -234,9 +234,11 @@ namespace DeviceTools
 			var dictionary = new Dictionary<PropertyKey, object?>(count);
 			List<string>? stringList = null;
 
-			for (int i = 0; i < count; i++)
+			var properties = new Span<NativeMethods.DeviceProperty>(device.Properties, count);
+
+			for (int i = 0; i < properties.Length; i++)
 			{
-				ref var property = ref device.Properties[i];
+				ref var property = ref properties[i];
 				object? value;
 				switch (property.Type)
 				{
@@ -334,7 +336,8 @@ namespace DeviceTools
 					continue;
 				}
 
-				dictionary.Add(property.CompoundKey.Key, value);
+				// TODO: There can be duplicate keys when values are localized.
+				dictionary[property.CompoundKey.Key] = value;
 			}
 
 			return dictionary;
