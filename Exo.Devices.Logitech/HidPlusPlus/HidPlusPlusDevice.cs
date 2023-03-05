@@ -10,6 +10,116 @@ namespace Exo.Devices.Logitech.HidPlusPlus;
 
 public abstract partial class HidPlusPlusDevice : IDisposable, IAsyncDisposable
 {
+	private readonly struct ProductCategoryRange
+	{
+		public readonly ushort Start;
+		public readonly ushort End;
+		public readonly ProductCategory Category;
+
+		public ProductCategoryRange(ushort start, ushort end, ProductCategory category)
+		{
+			Start = start;
+			End = end;
+			Category = category;
+		}
+	}
+
+	// Logitech Unifying extension for Google Chrome gives a rudimentary mapping between product IDs and categories.
+	// This is quite old, so it might not be perfect, but we can build on it to keep a relatively up-to-date mapping.
+	// From this mapping, we can infer if the device is corded, wireless, or a receiver.
+	// For HID++ 1.0, the device index to use for communicating with the device itself will be 0 for corded devices, but 255 for receivers.
+	// For HID++ 2.0, it should always be 255.
+	private static readonly ProductCategoryRange[] ProductIdCategoryMappings = new ProductCategoryRange[]
+	{
+		new(0x0000, 0x00FF, ProductCategory.VirtualUsbGameController),
+		new(0x0400, 0x040F, ProductCategory.UsbScanner),
+		new(0x0800, 0x08FF, ProductCategory.UsbCamera),
+		new(0x0900, 0x09FF, ProductCategory.UsbCamera),
+		new(0x0A00, 0x0AFF, ProductCategory.UsbAudio),
+		new(0x0B00, 0x0BFF, ProductCategory.UsbHub),
+		new(0x1000, 0x1FFF, ProductCategory.QuadMouse),
+		new(0x2000, 0x2FFF, ProductCategory.QuadKeyboard),
+		new(0x3000, 0x3FFF, ProductCategory.QuadGamingDevice),
+		new(0x4000, 0x4FFF, ProductCategory.QuadFapDevice),
+		new(0x5000, 0x5FFF, ProductCategory.UsbToolsTransceiver),
+		new(0x8000, 0x87FF, ProductCategory.QuadMouseTransceiver),
+		new(0x8800, 0x88FF, ProductCategory.QuadDesktopTransceiver),
+		new(0x8900, 0x89FF, ProductCategory.UsbCamera),
+		new(0x8A00, 0x8FFF, ProductCategory.QuadDesktopTransceiver),
+		new(0x9000, 0x98FF, ProductCategory.QuadGamingTransceiver),
+		new(0x9900, 0x99FF, ProductCategory.UsbCamera),
+		new(0x9A00, 0x9FFF, ProductCategory.QuadGamingTransceiver),
+		new(0xA000, 0xAFFF, ProductCategory.UsbSpecial),
+		new(0xB000, 0xB0FF, ProductCategory.BluetoothMouse),
+		new(0xB300, 0xB3DF, ProductCategory.BluetoothKeyboard),
+		new(0xB3E0, 0xB3FF, ProductCategory.BluetoothNumpad),
+		new(0xB400, 0xB4FF, ProductCategory.BluetoothRemoteControl),
+		new(0xB500, 0xB5FF, ProductCategory.BluetoothReserved),
+		new(0xBA00, 0xBAFF, ProductCategory.BluetoothAudio),
+		new(0xC000, 0xC0FF, ProductCategory.UsbMouse),
+		new(0xC100, 0xC1FF, ProductCategory.UsbRemoteControl),
+		new(0xC200, 0xC2FF, ProductCategory.UsbPcGamingDevice),
+		new(0xC300, 0xC3FF, ProductCategory.UsbKeyboard),
+		new(0xC400, 0xC4FF, ProductCategory.UsbTrackBall),
+		new(0xC500, 0xC5FF, ProductCategory.UsbReceiver),
+		new(0xC600, 0xC6FF, ProductCategory.Usb3dControlDevice),
+		new(0xC700, 0xC7FF, ProductCategory.UsbBluetoothReceiver),
+		new(0xC800, 0xC8FF, ProductCategory.UsbOtherPointingDevice),
+		new(0xCA00, 0xCCFF, ProductCategory.UsbConsoleGamingDevice),
+		new(0xD000, 0xD00F, ProductCategory.UsbCamera),
+		new(0xF000, 0xF00F, ProductCategory.UsbToolsTransceiver),
+		new(0xF010, 0xF010, ProductCategory.UsbToolsCorded),
+		new(0xF011, 0xFFFF, ProductCategory.UsbToolsTransceiver),
+	};
+
+	/// <summary>Tries to infer the logitech product category from the Product ID.</summary>
+	/// <remarks>
+	/// <para>
+	/// The results returned by this method can't be guaranteed to be 100% exact, as it is based on static data and we can't predict the future.
+	/// However, in many cases, logitech should stick to the current scheme, and this will work on many newer products.
+	/// </para>
+	/// <para>
+	/// Currently, IDs are shared between USB, Bluetooth and WPID (Wireless Product ID) used by the Unifying (Quad) protocol.
+	/// In the case of Bluetooth, HID++ devices are explicitly using USB VID/PIDs. This is permitted by Bluetooth,
+	/// which allows referencing Vendor IDs either from a separate Bluetooth ID space, or from the USB ID space.
+	/// </para>
+	/// </remarks>
+	/// <param name="productId">The product ID.</param>
+	/// <param name="category">The detected product category.</param>
+	/// <returns><c>true</c> if the product category could be inferred from known data; otherwise <c>false</c>.</returns>
+	public static bool TryInferProductCategory(ushort productId, out ProductCategory category)
+	{
+		int min = 0;
+		int max = ProductIdCategoryMappings.Length - 1;
+
+		while (min <= max)
+		{
+			int med = (min + max) / 2;
+
+			var item = ProductIdCategoryMappings[med];
+
+			if (productId >= item.Start)
+			{
+				if (productId <= item.End)
+				{
+					category = item.Category;
+					return true;
+				}
+				else
+				{
+					min = med + 1;
+				}
+			}
+			else
+			{
+				max = med - 1;
+			}
+		}
+
+		category = ProductCategory.Other;
+		return false;
+	}
+
 	/// <summary>Creates and initializes the engine from a HID device streams.</summary>
 	/// <remarks>
 	/// <para>
@@ -39,6 +149,7 @@ public abstract partial class HidPlusPlusDevice : IDisposable, IAsyncDisposable
 		HidFullDuplexStream? longMessageStream,
 		HidFullDuplexStream? veryLongMessageStream,
 		HidPlusPlusProtocolFlavor expectedProtocolFlavor,
+		ushort productId,
 		byte softwareId,
 		TimeSpan requestTimeout
 	)
@@ -158,6 +269,46 @@ public class RegisterAccessDevice : HidPlusPlusDevice
 
 	protected override HidPlusPlusDevice CreateForDevice(byte deviceIndex)
 		=> new RegisterAccessDevice(this, DeviceIndex);
+
+	public Task<TResponseParameters> RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>
+	(
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+		=> Transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+
+	public Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>
+	(
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
+		where TResponseParameters : struct, IShortMessageParameters
+		=> Transport.RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+
+	public Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>
+	(
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
+		where TResponseParameters : struct, ILongMessageParameters
+		=> Transport.RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+
+	public Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TRequestParameters, TResponseParameters>
+	(
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
+		where TResponseParameters : struct, IVeryLongMessageParameters
+		=> Transport.RegisterAccessGetVeryLongRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
 }
 
 public class FeatureAccessDevice : HidPlusPlusDevice

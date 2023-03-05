@@ -14,7 +14,7 @@ public static class HidPlusPlusTransportExtensions
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
 		SubId subId,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -26,7 +26,7 @@ public static class HidPlusPlusTransportExtensions
 			(
 				deviceIndex,
 				(byte)subId,
-				address,
+				(byte)address,
 				ParameterInformation<TRequestParameters>.GetShortReadOnlySpan(parameters),
 				PendingOperationFactory.For<TResponseParameters>(),
 				cancellationToken
@@ -37,7 +37,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -62,7 +62,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -74,7 +74,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -86,7 +86,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -98,7 +98,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -119,7 +119,7 @@ public static class HidPlusPlusTransportExtensions
 					SupportedReports.VeryLong => (byte)SubId.SetVeryLongRegister,
 					_ => throw new NotSupportedException()
 				},
-				address,
+				(byte)address,
 				ParameterInformation<TRequestParameters>.GetShortReadOnlySpan(parameters),
 				PendingOperationFactory.For<TRequestParameters>(),
 				cancellationToken
@@ -136,7 +136,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -145,7 +145,7 @@ public static class HidPlusPlusTransportExtensions
 		(
 			deviceIndex,
 			(byte)SubId.SetShortRegister,
-			address,
+			(byte)address,
 			ParameterInformation<TRequestParameters>.GetShortReadOnlySpan(parameters),
 			PendingOperationFactory.For<TRequestParameters>(),
 			cancellationToken
@@ -155,7 +155,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -164,7 +164,7 @@ public static class HidPlusPlusTransportExtensions
 		(
 			deviceIndex,
 			(byte)SubId.SetLongRegister,
-			address,
+			(byte)address,
 			ParameterInformation<TRequestParameters>.GetLongReadOnlySpan(parameters),
 			PendingOperationFactory.For<TRequestParameters>(),
 			cancellationToken
@@ -174,7 +174,7 @@ public static class HidPlusPlusTransportExtensions
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceIndex,
-		byte address,
+		Address address,
 		in TRequestParameters parameters,
 		CancellationToken cancellationToken
 	)
@@ -183,7 +183,7 @@ public static class HidPlusPlusTransportExtensions
 		(
 			deviceIndex,
 			(byte)SubId.SetVeryLongRegister,
-			address,
+			(byte)address,
 			ParameterInformation<TRequestParameters>.GetVeryLongReadOnlySpan(parameters),
 			PendingOperationFactory.For<TRequestParameters>(),
 			cancellationToken

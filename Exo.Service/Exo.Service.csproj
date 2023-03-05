@@ -23,8 +23,12 @@
 
 	<!-- Automatically reference plugin projects. -->
 	<!-- TODO: Copy build files in a plugin directory later on. -->
-	<ItemGroup>
+	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' != 'true'">
 		<ProjectReference Include="@(PluginProject -> '..\%(Identity)\%(Identity).csproj')" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	<!-- When running in visual studio, manually reference some plugin projects, bacause Visual Studio would ignore the automatic stuff above. -->
+	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
+		<ProjectReference Include="..\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-namespace Exo.Devices.Logitech;
+namespace Exo.Devices.Logitech.HidPlusPlus;
 
 [Flags]
 public enum SupportedReports : byte

@@ -1,4 +1,4 @@
-namespace Exo.Devices.Logitech;
+namespace Exo.Devices.Logitech.HidPlusPlus;
 
 // Product categories found in the Logitech Unifying Chrome Extension.
 // The category of a given device can be inferred from the (USB) product ID.

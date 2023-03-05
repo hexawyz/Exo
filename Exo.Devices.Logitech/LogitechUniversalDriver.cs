@@ -1,115 +1,38 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Logitech.HidPlusPlus;
 using Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
+using Exo.Devices.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Exo.Devices.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
 using Exo.Features;
 
 namespace Exo.Devices.Logitech;
 
+// This driver is a catch-all for logitech devices. On first approximation, they should all implement the proprietary HID++ protocol.
 [DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
 [VendorId(VendorIdSource.Usb, 0x046D)]
 public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceFeature>
 {
-	private readonly struct ProductCategoryRange
-	{
-		public readonly ushort Start;
-		public readonly ushort End;
-		public readonly ProductCategory Category;
-
-		public ProductCategoryRange(ushort start, ushort end, ProductCategory category)
-		{
-			Start = start;
-			End = end;
-			Category = category;
-		}
-	}
-
-	// Logitech Unifying extension for Google Chrome gives a rudimentary mapping between product IDs and categories.
-	// This is quite old, so it might not be perfect, but we can build on it to keep a relatively up-to-date mapping.
-	// From this mapping, we can infer if the device is corded, wireless, or a receiver.
-	// For HID++ 1.0, the device index to use for communicating with the device itself will be 0 for corded devices, but 255 for receivers.
-	// For HID++ 2.0, it should always be 255.
-	private static readonly ProductCategoryRange[] ProductIdCategoryMappings = new ProductCategoryRange[]
-	{
-		new(0x0000, 0x00FF, ProductCategory.VirtualUsbGameController),
-		new(0x0400, 0x040F, ProductCategory.UsbScanner),
-		new(0x0800, 0x08FF, ProductCategory.UsbCamera),
-		new(0x0900, 0x09FF, ProductCategory.UsbCamera),
-		new(0x0A00, 0x0AFF, ProductCategory.UsbAudio),
-		new(0x0B00, 0x0BFF, ProductCategory.UsbHub),
-		new(0x1000, 0x1FFF, ProductCategory.QuadMouse),
-		new(0x2000, 0x2FFF, ProductCategory.QuadKeyboard),
-		new(0x3000, 0x3FFF, ProductCategory.QuadGamingDevice),
-		new(0x4000, 0x4FFF, ProductCategory.QuadFapDevice),
-		new(0x5000, 0x5FFF, ProductCategory.UsbToolsTransceiver),
-		new(0x8000, 0x87FF, ProductCategory.QuadMouseTransceiver),
-		new(0x8800, 0x88FF, ProductCategory.QuadDesktopTransceiver),
-		new(0x8900, 0x89FF, ProductCategory.UsbCamera),
-		new(0x8A00, 0x8FFF, ProductCategory.QuadDesktopTransceiver),
-		new(0x9000, 0x98FF, ProductCategory.QuadGamingTransceiver),
-		new(0x9900, 0x99FF, ProductCategory.UsbCamera),
-		new(0x9A00, 0x9FFF, ProductCategory.QuadGamingTransceiver),
-		new(0xA000, 0xAFFF, ProductCategory.UsbSpecial),
-		new(0xB000, 0xB0FF, ProductCategory.BluetoothMouse),
-		new(0xB300, 0xB3DF, ProductCategory.BluetoothKeyboard),
-		new(0xB3E0, 0xB3FF, ProductCategory.BluetoothNumpad),
-		new(0xB400, 0xB4FF, ProductCategory.BluetoothRemoteControl),
-		new(0xB500, 0xB5FF, ProductCategory.BluetoothReserved),
-		new(0xBA00, 0xBAFF, ProductCategory.BluetoothAudio),
-		new(0xC000, 0xC0FF, ProductCategory.UsbMouse),
-		new(0xC100, 0xC1FF, ProductCategory.UsbRemoteControl),
-		new(0xC200, 0xC2FF, ProductCategory.UsbPcGamingDevice),
-		new(0xC300, 0xC3FF, ProductCategory.UsbKeyboard),
-		new(0xC400, 0xC4FF, ProductCategory.UsbTrackBall),
-		new(0xC500, 0xC5FF, ProductCategory.UsbReceiver),
-		new(0xC600, 0xC6FF, ProductCategory.Usb3dControlDevice),
-		new(0xC700, 0xC7FF, ProductCategory.UsbBluetoothReceiver),
-		new(0xC800, 0xC8FF, ProductCategory.UsbOtherPointingDevice),
-		new(0xCA00, 0xCCFF, ProductCategory.UsbConsoleGamingDevice),
-		new(0xD000, 0xD00F, ProductCategory.UsbCamera),
-		new(0xF000, 0xF00F, ProductCategory.UsbToolsTransceiver),
-		new(0xF010, 0xF010, ProductCategory.UsbToolsCorded),
-		new(0xF011, 0xFFFF, ProductCategory.UsbToolsTransceiver),
-	};
-
-	/// <summary>Tries to infer the logitech product category from the Product ID.</summary>
-	/// <remarks>This method can't be guaranteed to be 100% exact, but should work in a lot of cases.</remarks>
-	/// <param name="productId">The product ID.</param>
-	/// <param name="category">The product category.</param>
-	/// <returns><c>true</c> if the product category could be inferred from known data; otherwise <c>false</c>.</returns>
-	public static bool TryInferProductCategory(ushort productId, out ProductCategory category)
-	{
-		int min = 0;
-		int max = ProductIdCategoryMappings.Length - 1;
-
-		while (min < max)
-		{
-			int med = (min + max) / 2;
-
-			var item = ProductIdCategoryMappings[med];
-
-			if (productId >= item.Start && productId <= item.End)
-			{
-				category = item.Category;
-				return true;
-			}
-		}
-
-		category = ProductCategory.Other;
-		return false;
-	}
+	// Hardcoded value for the software ID. Hoping it will not conflict with anything still in use today.
+	private const int SoftwareId = 3;
 
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
 	{
 		Properties.System.Devices.DeviceInstanceId,
-		Properties.System.DeviceInterface.Hid.VendorId,
 		Properties.System.DeviceInterface.Hid.ProductId,
 		Properties.System.DeviceInterface.Hid.VersionNumber,
 		Properties.System.DeviceInterface.Hid.UsagePage,
 		Properties.System.DeviceInterface.Hid.UsageId,
+	};
+
+	private static readonly Property[] RequestedDeviceProperties = new Property[]
+	{
+		Properties.System.Devices.DeviceInstanceId,
+		Properties.System.Devices.Parent,
 	};
 
 	public static async Task<Driver> CreateAsync(string deviceName, CancellationToken cancellationToken)
@@ -119,10 +42,11 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			throw new InvalidOperationException();
 
 		// The display name of the container can be used as a default value for the device friendly name.
-		string? friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false);
+		string friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
+			throw new InvalidOperationException();
 
-		// Make a device query to fetch all the matching device interfaces at once.
-		var devices = await DeviceQuery.FindAllAsync
+		// Make a device query to fetch all the matching HID device interfaces at once.
+		var deviceInterfaces = await DeviceQuery.FindAllAsync
 		(
 			DeviceObjectKind.DeviceInterface,
 			RequestedDeviceInterfaceProperties,
@@ -132,23 +56,78 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			cancellationToken
 		).ConfigureAwait(false);
 
-		string[] deviceNames = new string[devices.Length];
+		if (deviceInterfaces.Length == 0)
+		{
+			throw new InvalidOperationException("No device interfaces compatible with logitech HID++ found.");
+		}
+
+		// Also fetch all the devices with the same container ID, so that we can find the top-level device.
+		var devices = await DeviceQuery.FindAllAsync
+		(
+			DeviceObjectKind.Device,
+			RequestedDeviceProperties,
+			Properties.System.Devices.ContainerId == containerId,
+			cancellationToken
+		).ConfigureAwait(false);
+
+		if (devices.Length == 0)
+		{
+			throw new InvalidOperationException();
+		}
+
+		var parentDevices = devices.ToDictionary(d => (string)d.Properties[Properties.System.Devices.DeviceInstanceId.Key]!, d => (string)d.Properties[Properties.System.Devices.Parent.Key]!);
+
+		string[] deviceNames = new string[deviceInterfaces.Length + 1];
 		HidPlusPlusProtocolFlavor protocolFlavor = default;
-		byte defaultDeviceIndex = 0xFF;
 		string? shortInterfaceName = null;
 		string? longInterfaceName = null;
 		string? veryLongInterfaceName = null;
 		SupportedReports discoveredReports = 0;
 		SupportedReports expectedReports = 0;
+		ushort productId = 0;
 
-		for (int i = 0; i < devices.Length; i++)
+		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
-			var device = devices[i];
-			deviceNames[i] = device.Id;
+			var deviceInterface = deviceInterfaces[i];
+			deviceNames[i] = deviceInterface.Id;
 
-			if (!device.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage)) continue;
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.ProductId.Key, out ushort pid))
+			{
+				throw new InvalidOperationException($"No HID product ID associated with the device interface {deviceInterface.Id}.");
+			}
+
+			if (productId == 0)
+			{
+				productId = pid;
+			}
+			else if (pid != productId)
+			{
+				throw new InvalidOperationException($"Inconsistent product ID for the device interface {deviceInterface.Id}.");
+			}
+
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out string? deviceInstanceId))
+			{
+				throw new InvalidOperationException($"No device instance ID found for device interface {deviceInterface.Id}.");
+			}
+
+			// We must go from Device Interface to Device (Top Level Collection) to Device (USB/BT Interface) to Device (Parent)
+			// Like most code here, we don't expect this to fail in normal conditions, so throwing an exception here is acceptable.
+			var topLevelDeviceName = parentDevices[parentDevices[deviceInstanceId]];
+
+			// We also verify that all device interfaces point towards the same top level parent. Otherwise, it would indicate that the logic should be reworked.
+			// PS: I don't know, if there is a simple way to detect if a device node is a multi interface device node or not, hence the naïve lookup above where we assume a static structure.
+			if (deviceNames[^1] is null)
+			{
+				deviceNames[^1] = topLevelDeviceName;
+			}
+			else if (deviceNames[^1] != topLevelDeviceName)
+			{
+				throw new InvalidOperationException("Top level devices don't match.");
+			}
+
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage)) continue;
 			if (usagePage is not 0xFF00 and not 0xFF43) continue;
-			if (!device.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId)) continue;
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId)) continue;
 
 			var currentReport = (SupportedReports)(byte)usageId;
 
@@ -156,11 +135,11 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			{
 			case SupportedReports.Short:
 				if (shortInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces that could map to HID++ short reports.");
-				shortInterfaceName = device.Id;
+				shortInterfaceName = deviceInterface.Id;
 				break;
 			case SupportedReports.Long:
 				if (longInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces that could map to HID++ long reports.");
-				longInterfaceName = device.Id;
+				longInterfaceName = deviceInterface.Id;
 				break;
 			case SupportedReports.VeryLong:
 				// For HID++ 1.0, this could (likely?) be a DJ interface. We don't want anything to do with that here. (At least for now)
@@ -168,12 +147,12 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 				{
 					// This is the most basic check that we can do here. We verify that the input/output report length is 64 bytes.
 					// DJ reports are 15 and 32 bytes long, so the API would return 32 as the maximum report length.
-					using var hid = HidDevice.FromPath(device.Id);
+					using var hid = HidDevice.FromPath(deviceInterface.Id);
 					var (il, ol, fl) = hid.GetReportLengths();
 					if (!(il == 64 && ol == 64 && fl == 0)) continue;
 				}
 				if (veryLongInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces that could map to HID++ very long reports.");
-				veryLongInterfaceName = device.Id;
+				veryLongInterfaceName = deviceInterface.Id;
 				break;
 			default:
 				break;
@@ -181,7 +160,7 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 
 			discoveredReports |= currentReport;
 
-			// FF00 for the old scheme (HID++ 1.0) and FF43 for the new scheme (HID++ 2.0)
+			// FF43 for the new scheme (HID++ 2.0) and FF00 for the old scheme (any version ?)
 			if (usagePage == 0xFF43)
 			{
 				var currentExpectedReports = (SupportedReports)(byte)(usageId >>> 8);
@@ -211,8 +190,6 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 				{
 					throw new InvalidOperationException("This device has inconsistent interfaces.");
 				}
-
-				protocolFlavor = HidPlusPlusProtocolFlavor.RegisterAccess;
 			}
 		}
 
@@ -225,14 +202,21 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			throw new InvalidOperationException($"The device is missing some expected HID++ reports. Expected {expectedReports} but got {discoveredReports}.");
 		}
 
+		var connectionType = DeviceConnectionType.Unknown;
+
+		if (HidPlusPlusDevice.TryInferProductCategory(productId, out var category))
+		{
+			connectionType = category.InferConnectionType();
+		}
+
 		var hppDevice = await HidPlusPlusDevice.CreateAsync
 		(
 			shortInterfaceName is not null ? new HidFullDuplexStream(shortInterfaceName) : null,
 			longInterfaceName is not null ? new HidFullDuplexStream(longInterfaceName) : null,
 			veryLongInterfaceName is not null ? new HidFullDuplexStream(veryLongInterfaceName) : null,
 			protocolFlavor,
-			//defaultDeviceIndex,
-			0x01, // Hardcoded value for the software ID. Hoping it will not conflict with anything.
+			productId,
+			SoftwareId,
 			new TimeSpan(100 * TimeSpan.TicksPerSecond)
 		);
 
@@ -317,11 +301,47 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 				}
 			}
 
-			// TODO: The device name that we bind for configuration should be the top-level device of all the HID collections.
 			// HID++ devices will expose multiple interfaces, each with their own top-level collection.
 			// Typically for Mouse/Keyboard/Receiver, these would be 00: Boot Keyboard, 01: Input stuff, 02: HID++/DJ
 			// We want to take the device that is just above all these interfaces. So, typically the name of a raw USB or BT device.
-			var configurationKey = new DeviceConfigurationKey("logi", "TODO", deviceType is null ? "logi-universal" : deviceType.GetValueOrDefault().ToString(), serialNumber);
+			var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], deviceType is null ? "logi-universal" : deviceType.GetValueOrDefault().ToString(), serialNumber);
+
+			return new LogitechUniversalDriver
+			(
+				hppDevice,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				friendlyName ?? "Logi HID++ device",
+				configurationKey
+			);
+		}
+		else if (hppDevice is RegisterAccessDevice rapDevice)
+		{
+			// Handling of HID++ devices seems to be way more complex, as the standard is not as strictly enforced, and there doesn't seem to be a way to get information of the connected device ?
+			// i.e. We can know if the device is a receiver from the Product ID, but that's about it ?
+			string? serialNumber = null;
+
+			// TODO: Handle Bolt. The code below only works for Unifying/Lightspeed receivers.
+			try
+			{
+				// Unifying receivers and some other should answer to this relatively undocumented call that will provide the "serial number" among other things.
+				// We can find trace of this in the logitech Unifying chrome extension, where the serial number is also called base address. (A radio thing?)
+				var receiverInformation = await rapDevice.RegisterAccessGetLongRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ReceiverInformationResponse>
+				(
+					Address.NonVolatileAndPairingInformation,
+					new NonVolatileAndPairingInformation.Request(NonVolatileAndPairingInformation.Parameter.ReceiverInformation),
+					cancellationToken
+				);
+
+				serialNumber = FormatReceiverSerialNumber(productId, receiverInformation.SerialNumber);
+			}
+			catch
+			{
+			}
+
+			// HID++ devices will expose multiple interfaces, each with their own top-level collection.
+			// Typically for Mouse/Keyboard/Receiver, these would be 00: Boot Keyboard, 01: Input stuff, 02: HID++/DJ
+			// We want to take the device that is just above all these interfaces. So, typically the name of a raw USB or BT device.
+			var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], "logi-universal", serialNumber);
 
 			return new LogitechUniversalDriver
 			(
@@ -333,9 +353,22 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 		}
 		else
 		{
-			throw new NotImplementedException("TODO: RAP");
+			throw new NotImplementedException();
 		}
 	}
+
+	private static string FormatReceiverSerialNumber(ushort productId, uint serialNumber)
+		=> string.Create
+		(
+			13,
+			(ProductId: productId, SerialNumber: serialNumber),
+			static (span, state) =>
+			{
+				state.ProductId.TryFormat(span[..4], out _, "X4", CultureInfo.InvariantCulture);
+				span[4] = '-';
+				state.SerialNumber.TryFormat(span[5..], out _, "X8", CultureInfo.InvariantCulture);
+			}
+		);
 
 	private readonly HidPlusPlusDevice _device;
 
@@ -350,4 +383,12 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => throw new NotImplementedException();
 
 	IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features { get; }
+
+	//private class LogitechRegisterAccessProtocolUniversalDriver : LogitechUniversalDriver
+	//{
+	//}
+
+	//private class LogitechFeatureAccessProtocolUniversalDriver : LogitechUniversalDriver
+	//{
+	//}
 }

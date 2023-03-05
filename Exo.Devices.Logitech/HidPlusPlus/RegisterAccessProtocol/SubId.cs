@@ -4,6 +4,9 @@ namespace Exo.Devices.Logitech.HidPlusPlus.RegisterAccessProtocol;
 public enum SubId : byte
 {
 	// TODO: Notifications
+	DeviceDisconnect = 0x40,
+	DeviceConnect = 0x41,
+	LockingInformation = 0x4A,
 
 	// Register Access
 	SetShortRegister = 0x80,

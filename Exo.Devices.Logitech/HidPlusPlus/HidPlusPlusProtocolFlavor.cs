@@ -1,4 +1,4 @@
-namespace Exo.Devices.Logitech;
+namespace Exo.Devices.Logitech.HidPlusPlus;
 
 public enum HidPlusPlusProtocolFlavor : byte
 {

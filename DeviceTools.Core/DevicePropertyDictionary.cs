@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using DeviceTools;
 
 public readonly struct DevicePropertyDictionary : IReadOnlyDictionary<PropertyKey, object?>, IDictionary<PropertyKey, object?>
@@ -34,7 +35,11 @@ public readonly struct DevicePropertyDictionary : IReadOnlyDictionary<PropertyKe
 
 	public bool TryGetValue(PropertyKey key, out object? value) => Properties.TryGetValue(key, out value);
 
+#if NETSTANDARD
 	public bool TryGetValue<T>(PropertyKey key, out T? value)
+#else
+	public bool TryGetValue<T>(PropertyKey key, [NotNullWhen(true)] out T? value)
+#endif
 	{
 		if (Properties.TryGetValue(key, out var obj) && obj is T v)
 		{

@@ -9,22 +9,22 @@ public abstract class HidPlusPlusException : Exception
 {
 	public byte ErrorCode { get; }
 
-	public HidPlusPlusException(byte errorCode)
+	private protected HidPlusPlusException(byte errorCode)
 	{
 		ErrorCode = errorCode;
 	}
 
-	public HidPlusPlusException(byte errorCode, string? message) : base(message)
+	private protected HidPlusPlusException(byte errorCode, string? message) : base(message)
 	{
 		ErrorCode = errorCode;
 	}
 
-	public HidPlusPlusException(byte errorCode, string? message, Exception? innerException) : base(message, innerException)
+	private protected HidPlusPlusException(byte errorCode, string? message, Exception? innerException) : base(message, innerException)
 	{
 		ErrorCode = errorCode;
 	}
 
-	protected HidPlusPlusException(SerializationInfo info, StreamingContext context) : base(info, context)
+	private protected HidPlusPlusException(SerializationInfo info, StreamingContext context) : base(info, context)
 	{
 		ErrorCode = info.GetByte("HidppErrorCode");
 	}
@@ -49,7 +49,7 @@ public abstract class HidPlusPlusException<TErrorCode> : HidPlusPlusException
 	}
 
 	private protected HidPlusPlusException(TErrorCode errorCode)
-		: base(Unsafe.As<TErrorCode, byte>(ref errorCode))
+		: base(Unsafe.As<TErrorCode, byte>(ref errorCode), $"An exception occurred on the HID++ when processing the request: {errorCode}.")
 	{
 	}
 
