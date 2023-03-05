@@ -4,10 +4,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
-using Exo.Devices.Logitech.HidPlusPlus;
-using Exo.Devices.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
-using Exo.Devices.Logitech.HidPlusPlus.RegisterAccessProtocol;
-using Exo.Devices.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
+using DeviceTools.Logitech.HidPlusPlus;
+using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
+using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
 using Exo.Features;
 
 namespace Exo.Devices.Logitech;

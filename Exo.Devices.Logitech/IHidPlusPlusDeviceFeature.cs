@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Exo.Devices.Logitech.HidPlusPlus;
+using DeviceTools.Logitech.HidPlusPlus;
 
 namespace Exo.Devices.Logitech;
 

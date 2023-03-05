@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
 		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
 		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
