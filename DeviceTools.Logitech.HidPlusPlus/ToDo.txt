@@ -1,0 +1,11 @@
+* Create a dataset of know product IDs so that we can avoid the autodetection path most of the time. (Have the data embedded within the assembly)
+* Migrate more of the logic, especially the USB receiver logic, within HidPlusPlusDevice
+* Have subclasses of HidPlusPlusDevice for all (known) kinds of devices: (Raw access can still use the HidPlusPlusTransport class)
+  * 1.0 Receivers (All HID++ receivers in existence?)
+  * 1.0 Devices (i.e. Not receivers)
+  * 2.0 Devices (i.e. Not receivers)
+  * 1.0 Devices through a receiver (Especially for connect/disconnect notification support)
+  * 2.0 Devices through a receiver (Especially for connect/disconnect notification support)
+* See which class hierarchi would be the best to handle the various configurations listed above. (What can be put in common, etc.)
+* Use product ID to identify USB receivers based on the broad product ID mapping (this would auto-detect newer USB receivers even if we didn't list them on the data set)
+* USB Receivers using the HID++ 2.0 spec don't seem to actually exist today (and not possible because a lack of necessary features in the current known spec ?). Make the code throw if we encounter one of these someday.

@@ -1,0 +1,17 @@
+* Implement the configuration model:
+  * Configuration objects should be stored separately from their key, so that we can reuse a specific obejct for multiple keys and move an object between keys easily.
+  * Configuration objects should be easily serializable, at least to json (we'll see about the exact format later)
+* The configuration should also include caching of some prefetched data, e.g.:
+  * The list of known drivers that was parsed the first time
+  * Which driver was last used / is to be used by a specific device (by unique device name)
+* Configuration should be automatically discarded when changes are detected
+  * Possibly cache the list of files and their date, then compare them to know what is suscpetible of having changed
+  * Worst case, a simple hashing (CRC32, MD5, SHA1 or whatever) of the files could do the trick, but it would be best to avoid anything if possible.
+  * Maybe have a strict integrity mdoe where either caching is disabeld or hashes are checked everytime.
+  * We want to avoid app startup costs whenever possible.
+  * Possibly, the official installation of the apps/service later would be within a locked directory in order to discourage manual tweaking of the files
+* Anyway, if possible, we'll want the service to run under its very own, non-admin account, in order to reduce attack surfaces
+* Should still possible to allow admin rights to the service in some specific case, if the user explicitly asks for it. (Hopefully we won't need that most of the time?)
+* If the app/service is installed within its own "secure" directory, there should be an official way to package and install plugins through the UI/CLI apps
+  * Assembly manifest could be enough in many cases, as a lot of plugins should work without external data?
+  * What about complex plugins coming with external files, native DLLs, and such?
