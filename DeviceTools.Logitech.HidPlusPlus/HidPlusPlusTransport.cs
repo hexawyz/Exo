@@ -1,4 +1,6 @@
 using System.Buffers;
+using System.Collections;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -25,16 +27,186 @@ public sealed class HidPlusPlusTransport
 		DeviceDisconnected = 2,
 	}
 
+	// This is the private implementation of the device state, which must not be exposed publicly.
 	private sealed class DeviceState : IDisposable
 	{
 		public byte ProtocolFlavor;
 		public PendingOperation? PendingOperation;
+		public HidPlusPlusRawNotificationHandler? NotificationHandler;
 
 		public void Dispose()
 		{
 			if (Interlocked.Exchange(ref PendingOperation, null) is { } operation)
 			{
 				operation.TrySetCanceled();
+			}
+		}
+	}
+
+	// This is the public API to access device state. It will lazily access DeviceState objects.
+	public readonly struct DeviceConfiguration
+	{
+		private readonly HidPlusPlusTransport? _transport;
+
+		internal DeviceConfiguration(HidPlusPlusTransport transport, byte deviceIndex)
+		{
+			_transport = transport;
+			DeviceIndex = deviceIndex;
+		}
+
+		/// <summary>Gets the device index of the device.</summary>
+		public byte DeviceIndex { get; }
+
+		/// <summary>Gets a value indicating if this device configuration is the default one.</summary>
+		public bool IsDefault => _transport?.TryGetDeviceState(DeviceIndex) is null;
+
+		/// <summary>Triggered when a notification has been received for the device.</summary>
+		/// <remarks>
+		/// <para>
+		/// In the cases of <see cref="HidPlusPlusProtocolFlavor.Unknown"/> or <see cref="HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess"/>,
+		/// notifications can be either HID++ 1.0 (RAP) or HID++ 2.0 (FAP) messages. Processing must be done accordingly in order to avoid ambiguities.
+		/// </para>
+		/// <para>
+		/// If no handler has been set up for the device, notifications will be raised on the transport's <see cref="HidPlusPlusTransport.NotificationReceived"/> event.
+		/// </para>
+		/// </remarks>
+		public event HidPlusPlusRawNotificationHandler NotificationReceived
+		{
+			add
+			{
+				if (_transport is null) throw new InvalidOperationException();
+
+				AddHandler(ref _transport.GetOrCreateDeviceState(DeviceIndex).NotificationHandler, value);
+			}
+			remove
+			{
+				if (_transport?.TryGetDeviceState(DeviceIndex) is { } state)
+				{
+					RemoveHandler(ref state.NotificationHandler, value);
+				}
+			}
+		}
+
+		/// <summary>Gets or sets the protocol flavor currently used by the device.</summary>
+		/// <remarks>
+		/// <para>
+		/// The value <see cref="HidPlusPlusProtocolFlavor.Unknown"/> is allowed, and indicates that the transport functions in an ambiguous mode,
+		/// where incoming messages are interpreted with best effort according to the ambiguity.
+		/// </para>
+		/// <para>
+		/// HID++ 2.0 devices on an Unifying receiver (HID++ 1.0) should use the special value <see cref="HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess"/> to indicate that they require
+		/// special processing. The USB receiver will send wireless notifications using their device index, which would conflict with the HID++ 2.0 interpretation of messages.
+		/// </para>
+		/// <para>
+		/// While the underlying transport of the HID++ protocols is mostly the same across versions, knowing the actual protocol flavor helps resolving a few ambiguities in input message parsing.
+		/// The protocol version should generally be assigned after having sent an autodetect request on the transport, which will allow discriminating between the two.
+		/// This class supports the ambiguous working mode in order to allow such an autodetection, but it is not intended to be used in that ambiguous mode for a long duration.
+		/// </para>
+		/// <para>
+		/// Ambiguities regarding message parsing mainly involve error notifications where the SUB_ID / Feature Index values used by the two protocol flavors could have a different meaning in the other.
+		/// e.g. There could be a feature at index 0x8F on an HID++ 2.0 device, and SUB_ID 0xFF is SYNC for HID++ 1.0.
+		/// </para>
+		/// <para>
+		/// Changes of the protocol flavor for a given device should be kept to the minimum necessary, as it will affect the quality of the message parsing.
+		/// Especially, having the wrong protocol flavor may lead to some device messages being lost due to incorrect interpretation.
+		/// Generally, the protocol flavor should not be changed once the device is detected for the first time.
+		/// Cases where it would be applicable to change the protocol flavor would be for example, when device pairing is changed on an USB receiver.
+		/// </para>
+		/// </remarks>
+		public readonly HidPlusPlusProtocolFlavor ProtocolFlavor
+		{
+			get
+			{
+				return _transport?.TryGetDeviceState(DeviceIndex) is { } state ?
+					(HidPlusPlusProtocolFlavor)Volatile.Read(ref state.ProtocolFlavor) :
+					default;
+			}
+			set
+			{
+				if ((byte)value is > 3) throw new ArgumentOutOfRangeException(nameof(value));
+
+				// Avoid preemptively allocating the device state if we set the protocol flavor to its default value.
+				DeviceState? state;
+				if (value == HidPlusPlusProtocolFlavor.Unknown)
+				{
+					if (_transport is null || (state = _transport.TryGetDeviceState(DeviceIndex)) is null)
+					{
+						return;
+					}
+				}
+				else
+				{
+					if (_transport is null) throw new InvalidOperationException();
+					state = _transport.GetOrCreateDeviceState(DeviceIndex);
+				}
+
+				Volatile.Write(ref state.ProtocolFlavor, (byte)value);
+			}
+		}
+
+		/// <summary>See <see cref="ProtocolFlavor"/>.</summary>
+		/// <remarks>https://github.com/dotnet/csharplang/discussions/2068</remarks>
+		public void SetProtocolFlavor(HidPlusPlusProtocolFlavor value) => ProtocolFlavor = value;
+	}
+
+	/// <summary>A collection of device configurations associated with the transport.</summary>
+	/// <remarks>This collection must be used to access properties related to a specific device index.</remarks>
+	public readonly struct DeviceConfigurationCollection : IReadOnlyList<DeviceConfiguration>
+	{
+		public struct Enumerator : IEnumerator<DeviceConfiguration>
+		{
+			private readonly HidPlusPlusTransport _transport;
+			private int _index;
+
+			public Enumerator(HidPlusPlusTransport transport)
+			{
+				_transport = transport;
+				_index = -1;
+			}
+
+			public DeviceConfiguration Current => new(_transport, (byte)_index);
+			object IEnumerator.Current => Current;
+
+			public bool MoveNext() => unchecked((uint)++_index) < 256;
+
+			public void Reset() => _index = -1;
+
+			public void Dispose() { }
+		}
+
+		private readonly HidPlusPlusTransport _transport;
+
+		internal DeviceConfigurationCollection(HidPlusPlusTransport transport) => _transport = transport;
+
+		public DeviceConfiguration this[int index] => new(_transport, checked((byte)index));
+
+		public int Count => 256;
+
+		public Enumerator GetEnumerator() => new Enumerator(_transport);
+		IEnumerator<DeviceConfiguration> IEnumerable<DeviceConfiguration>.GetEnumerator() => GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private static void AddHandler(ref HidPlusPlusRawNotificationHandler? storage, HidPlusPlusRawNotificationHandler? handler)
+	{
+		var @base = Volatile.Read(ref storage);
+		while (true)
+		{
+			if (ReferenceEquals(@base, @base = Interlocked.CompareExchange(ref storage, (HidPlusPlusRawNotificationHandler?)Delegate.Combine(@base, handler), @base)))
+			{
+				break;
+			}
+		}
+	}
+
+	private static void RemoveHandler(ref HidPlusPlusRawNotificationHandler? storage, HidPlusPlusRawNotificationHandler? handler)
+	{
+		var @base = Volatile.Read(ref storage);
+		while (true)
+		{
+			if (ReferenceEquals(@base, @base = Interlocked.CompareExchange(ref storage, (HidPlusPlusRawNotificationHandler?)Delegate.Remove(@base, handler), @base)))
+			{
+				break;
 			}
 		}
 	}
@@ -49,7 +221,7 @@ public sealed class HidPlusPlusTransport
 	private readonly HidFullDuplexStream? _longMessageStream;
 	private readonly HidFullDuplexStream? _veryLongMessageStream;
 
-	private readonly ChannelReader<FeatureAccesLongMessage<RawLongMessageParameters>> _broadcastMessageReader;
+	private HidPlusPlusRawNotificationHandler? _defaultNotificationHandler;
 
 	private DeviceStates<DeviceState> _deviceStates;
 	private CancellationTokenSource? _disposeCancellationTokenSource;
@@ -141,67 +313,25 @@ public sealed class HidPlusPlusTransport
 		}
 	}
 
+	/// <summary>Triggered when a notification has been received and was not handled by any device-specific handlers.</summary>
+	/// <remarks>
+	/// By default, this event will be triggered for every notification, including broadcast notifications and device-specific notifications.
+	/// In the case of HID++ 2.0, notifications will be filtered based on <see cref="FeatureAccessSoftwareId"/>.
+	/// </remarks>
+	public event HidPlusPlusRawNotificationHandler NotificationReceived
+	{
+		add => AddHandler(ref _defaultNotificationHandler, value);
+		remove => RemoveHandler(ref _defaultNotificationHandler, value);
+	}
+
 	/// <summary>Gets the reports supported by this transport.</summary>
 	public SupportedReports SupportedReports => _supportedReports;
 
 	/// <summary>Gets the software ID used by this transport to receive and send HID++ 2.0 (FAP) messages.</summary>
 	public byte FeatureAccessSoftwareId => _softwareId;
 
-	/// <summary>Gets the protocol flavor currently used by a device on this transport.</summary>
-	/// <remarks>
-	/// <para>
-	/// The value <see cref="HidPlusPlusProtocolFlavor.Unknown"/> is allowed, and indicates that the transport functions in an ambiguous mode,
-	/// where incoming messages are interpreted with best effort according to the ambiguity.
-	/// </para>
-	/// <para>
-	/// HID++ 2.0 devices on an Unifying receiver (HID++ 1.0) should use the special value <see cref="HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess"/> to indicate that they require
-	/// special processing. The USB receiver will send wireless notifications using their device index, which would conflict with the HID++ 2.0 interpretation of messages.
-	/// </para>
-	/// </remarks>
-	public HidPlusPlusProtocolFlavor GetProtocolFlavor(byte deviceIndex)
-		=> TryGetDeviceState(deviceIndex) is { } state ?
-			(HidPlusPlusProtocolFlavor)Volatile.Read(ref state.ProtocolFlavor) :
-			default;
-
-	/// <summary>Sets the protocol flavor used by a device on this transport.</summary>
-	/// <remarks>
-	/// <para>
-	/// While the underlying transport of the HID++ protocols is mostly the same across versions, knowing the actual protocol flavor helps resolving a few ambiguities in input message parsing.
-	/// The protocol version should generally be assigned after having sent an autodetect request on the transport, which will allow discriminating between the two.
-	/// This class supports the ambiguous working mode in order to allow such an autodetection, but it is not intended to be used in that ambiguous mode for a long duration.
-	/// </para>
-	/// <para>
-	/// Ambiguities regarding message parsing mainly involve error notifications where the SUB_ID / Feature Index values used by the two protocol flavors could have a different meaning in the other.
-	/// e.g. There could be a feature at index 0x8F on an HID++ 2.0 device, and SUB_ID 0xFF is SYNC for HID++ 1.0.
-	/// </para>
-	/// <para>
-	/// Changes of the protocol flavor for a given index should be kept to the minimum necessary, as it will affect the quality of the message parsing.
-	/// Especially, having the wrong protocol flavor may lead to some device messages being lost due to incorrect interpretation.
-	/// Generally, the protocol flavor should not be changed once the device is detected for the first time.
-	/// Cases where it would be applicable to change the protocol flavor would be for example, when device pairing is changed on an USB receiver.
-	/// </para>
-	/// </remarks>
-	/// <param name="flavor"></param>
-	public void SetProtocolFlavor(byte deviceIndex, HidPlusPlusProtocolFlavor flavor)
-	{
-		if ((byte)flavor is > 3) throw new ArgumentOutOfRangeException(nameof(flavor));
-
-		// Avoid preemptively allocating the device state if we set the protocol flavor to its default value.
-		DeviceState? state;
-		if (flavor != HidPlusPlusProtocolFlavor.Unknown)
-		{
-			state = GetOrCreateDeviceState(deviceIndex);
-		}
-		else
-		{
-			if ((state = TryGetDeviceState(deviceIndex)) is null)
-			{
-				return;
-			}
-		}
-
-		Volatile.Write(ref state.ProtocolFlavor, (byte)flavor);
-	}
+	/// <summary>Gets the collection of device configurations for this transport.</summary>
+	public DeviceConfigurationCollection Devices => new(this);
 
 	private DeviceState GetOrCreateDeviceState(byte deviceIndex)
 	{
@@ -471,21 +601,54 @@ public sealed class HidPlusPlusTransport
 		{
 			byte potentialSoftwareId = (byte)(header.AddressOrFunctionIdAndSoftwareId & 0xF);
 
-			if (protocolFlavor is HidPlusPlusProtocolFlavor.FeatureAccess or HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess)
+			// Try to determine if the message may be a notification for each protocol favor.
+			// It is only easy to determine this when the protocol flavor is not ambiguous. These heuristics may need to be tuned to produce better results.
+			// If the message is nto a notification, this switch must return from the method.
+			switch (protocolFlavor)
 			{
-				if (potentialSoftwareId == 0)
+			case HidPlusPlusProtocolFlavor.Unknown:
+				// Try to evict messages that would match neither HID++ 1.0 nor HID++ 2.0 profiles.
+				// It is far from being perfect, but it should at least reduce clutter a bit.
+				if (header.SubIdOrFeatureIndex >= 0x80 && potentialSoftwareId != 0 && potentialSoftwareId != _softwareId)
 				{
+					return;
 				}
-				else if (potentialSoftwareId == _softwareId)
+				break;
+			case HidPlusPlusProtocolFlavor.RegisterAccess:
+				// For HID++ 1.0, SUB_ID 00..7F are notifications.
+				if (header.SubIdOrFeatureIndex >= 0x80)
 				{
+					return;
 				}
+				break;
+			case HidPlusPlusProtocolFlavor.FeatureAccess:
+				if (potentialSoftwareId != 0 && potentialSoftwareId != _softwareId)
+				{
+					return;
+				}
+				break;
+			case HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess:
+				if (potentialSoftwareId != 0 && potentialSoftwareId != _softwareId && (SubId)header.SubIdOrFeatureIndex is not SubId.DeviceDisconnect and not SubId.DeviceConnect)
+				{
+					return;
+				}
+				break;
+			default:
+				return;
 			}
-			else if (protocolFlavor == HidPlusPlusProtocolFlavor.RegisterAccess)
+
+			// Raise the event if the message has been determined to be a notification (Not a 100% guarantee but we will try to forward it anyway)
+			HidPlusPlusRawNotificationHandler? handler = null;
+			if (deviceState is not null) handler = Volatile.Read(ref deviceState.NotificationHandler);
+			if (handler is null) handler = Volatile.Read(ref _defaultNotificationHandler);
+
+			try
 			{
-				// For HID++ 1.0, SUB_ID 00..7F are notifications
-				if (header.SubIdOrFeatureIndex < 0x80)
-				{
-				}
+				handler?.Invoke(message);
+			}
+			catch
+			{
+				// TODO: Log / Handle
 			}
 		}
 	}

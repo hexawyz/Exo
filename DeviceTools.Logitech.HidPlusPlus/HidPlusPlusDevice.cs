@@ -169,7 +169,7 @@ public abstract partial class HidPlusPlusDevice : IDisposable, IAsyncDisposable
 				try
 				{
 					protocolVersion = await transport.GetProtocolVersionAsync(255, default).ConfigureAwait(false);
-					transport.SetProtocolFlavor(255, HidPlusPlusProtocolFlavor.FeatureAccess);
+					transport.Devices[255].SetProtocolFlavor(HidPlusPlusProtocolFlavor.FeatureAccess);
 				}
 				catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocolErrorCode.InvalidSubId)
 				{
@@ -178,7 +178,7 @@ public abstract partial class HidPlusPlusDevice : IDisposable, IAsyncDisposable
 						throw new Exception("Protocol flavor does not match.");
 					}
 
-					transport.SetProtocolFlavor(255, HidPlusPlusProtocolFlavor.RegisterAccess);
+					transport.Devices[255].SetProtocolFlavor(HidPlusPlusProtocolFlavor.RegisterAccess);
 					return new RegisterAccessDevice(transport, 255);
 				}
 
@@ -280,6 +280,10 @@ public class RegisterAccessDevice : HidPlusPlusDevice
 		where TResponseParameters : struct, IMessageParameters
 		=> Transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
 
+	public Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TResponseParameters>(Address address, CancellationToken cancellationToken)
+		where TResponseParameters : struct, IShortMessageParameters
+		=> Transport.RegisterAccessGetShortRegisterAsync<TResponseParameters>(DeviceIndex, address, cancellationToken);
+
 	public Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>
 	(
 		Address address,
@@ -290,6 +294,10 @@ public class RegisterAccessDevice : HidPlusPlusDevice
 		where TResponseParameters : struct, IShortMessageParameters
 		=> Transport.RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
 
+	public Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TResponseParameters>(Address address, CancellationToken cancellationToken)
+		where TResponseParameters : struct, ILongMessageParameters
+		=> Transport.RegisterAccessGetLongRegisterAsync<TResponseParameters>(DeviceIndex, address, cancellationToken);
+
 	public Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>
 	(
 		Address address,
@@ -299,6 +307,10 @@ public class RegisterAccessDevice : HidPlusPlusDevice
 		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 		where TResponseParameters : struct, ILongMessageParameters
 		=> Transport.RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+
+	public Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TResponseParameters>(Address address, CancellationToken cancellationToken)
+		where TResponseParameters : struct, IVeryLongMessageParameters
+		=> Transport.RegisterAccessGetVeryLongRegisterAsync<TResponseParameters>(DeviceIndex, address, cancellationToken);
 
 	public Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TRequestParameters, TResponseParameters>
 	(

@@ -320,7 +320,6 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			// i.e. We can know if the device is a receiver from the Product ID, but that's about it ?
 			string? serialNumber = null;
 
-			// TODO: Handle Bolt. The code below only works for Unifying/Lightspeed receivers.
 			try
 			{
 				// Unifying receivers and some other should answer to this relatively undocumented call that will provide the "serial number" among other things.
@@ -330,12 +329,25 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 					Address.NonVolatileAndPairingInformation,
 					new NonVolatileAndPairingInformation.Request(NonVolatileAndPairingInformation.Parameter.ReceiverInformation),
 					cancellationToken
-				);
+				).ConfigureAwait(false);
 
 				serialNumber = FormatReceiverSerialNumber(productId, receiverInformation.SerialNumber);
 			}
-			catch
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode is RegisterAccessProtocolErrorCode.InvalidAddress or RegisterAccessProtocolErrorCode.InvalidParameter)
 			{
+			}
+
+			if (serialNumber is null)
+			{
+				try
+				{
+					var boltSerialNumberResponse = await rapDevice.RegisterAccessGetLongRegisterAsync<BoltSerialNumber.Response>(Address.BoltSerialNumber, cancellationToken).ConfigureAwait(false);
+
+					serialNumber = boltSerialNumberResponse.ToString();
+				}
+				catch (HidPlusPlus1Exception ex) when (ex.ErrorCode is RegisterAccessProtocolErrorCode.InvalidAddress or RegisterAccessProtocolErrorCode.InvalidParameter)
+				{
+				}
 			}
 
 			// HID++ devices will expose multiple interfaces, each with their own top-level collection.

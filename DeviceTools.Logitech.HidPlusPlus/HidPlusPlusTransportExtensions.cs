@@ -9,6 +9,28 @@ namespace DeviceTools.Logitech.HidPlusPlus;
 /// <remarks>This provides base methods to work with the HID++ 1.0 (Register Access Protocol) and HID++ 2.0 (Feature Access Protocol).</remarks>
 public static class HidPlusPlusTransportExtensions
 {
+	private static Task<TResponseParameters> RegisterAccessGetRegisterAsync<TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		SubId subId,
+		Address address,
+		CancellationToken cancellationToken
+	)
+		where TResponseParameters : struct, IMessageParameters
+		=> Unsafe.As<Task<TResponseParameters>>
+		(
+			transport.SendAsync
+			(
+				deviceIndex,
+				(byte)subId,
+				(byte)address,
+				default,
+				PendingOperationFactory.For<TResponseParameters>(),
+				cancellationToken
+			)
+		);
+
 	private static Task<TResponseParameters> RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>
 	(
 		this HidPlusPlusTransport transport,
@@ -31,6 +53,28 @@ public static class HidPlusPlusTransportExtensions
 				PendingOperationFactory.For<TResponseParameters>(),
 				cancellationToken
 			)
+		);
+
+	public static Task<TResponseParameters> RegisterAccessGetRegisterAsync<TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		CancellationToken cancellationToken
+	)
+		where TResponseParameters : struct, IMessageParameters
+		=> transport.RegisterAccessGetRegisterAsync<TResponseParameters>
+		(
+			deviceIndex,
+			ParameterInformation<TResponseParameters>.NativeSupportedReport switch
+			{
+				SupportedReports.Short => SubId.GetShortRegister,
+				SupportedReports.Long => SubId.GetLongRegister,
+				SupportedReports.VeryLong => SubId.GetVeryLongRegister,
+				_ => throw new NotSupportedException()
+			},
+			address,
+			cancellationToken
 		);
 
 	public static Task<TResponseParameters> RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>
@@ -58,6 +102,16 @@ public static class HidPlusPlusTransportExtensions
 			cancellationToken
 		);
 
+	public static Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		CancellationToken cancellationToken
+	)
+		where TResponseParameters : struct, IShortMessageParameters
+		=> transport.RegisterAccessGetRegisterAsync<TResponseParameters>(deviceIndex, SubId.GetShortRegister, address, cancellationToken);
+
 	public static Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>
 	(
 		this HidPlusPlusTransport transport,
@@ -70,6 +124,16 @@ public static class HidPlusPlusTransportExtensions
 		where TResponseParameters : struct, IShortMessageParameters
 		=> transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>(deviceIndex, SubId.GetShortRegister, address, parameters, cancellationToken);
 
+	public static Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		CancellationToken cancellationToken
+	)
+		where TResponseParameters : struct, ILongMessageParameters
+		=> transport.RegisterAccessGetRegisterAsync<TResponseParameters>(deviceIndex, SubId.GetLongRegister, address, cancellationToken);
+
 	public static Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>
 	(
 		this HidPlusPlusTransport transport,
@@ -81,6 +145,16 @@ public static class HidPlusPlusTransportExtensions
 		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 		where TResponseParameters : struct, ILongMessageParameters
 		=> transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>(deviceIndex, SubId.GetLongRegister, address, parameters, cancellationToken);
+
+	public static Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		CancellationToken cancellationToken
+	)
+		where TResponseParameters : struct, IVeryLongMessageParameters
+		=> transport.RegisterAccessGetRegisterAsync<TResponseParameters>(deviceIndex, SubId.GetShortRegister, address, cancellationToken);
 
 	public static Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TRequestParameters, TResponseParameters>
 	(

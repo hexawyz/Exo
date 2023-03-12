@@ -1,0 +1,17 @@
+Dump of the data when Logitech Bolt manager is started.
+
+10FF 81 00 000100 # Enable wireless notifications ?
+10FF 81 00 000100
+10FF 81 02 000100 # Connection State (1 Paired device)
+1001 41 10 41 6AB3 # Device 1 Arrival / Protocol ?? / Keyboard / Not Connected / WPID B36A (BT KBD)
+10FF 80 02 00 00 00 # Fake device arrival (END)
+10FF 8F 00 1D 01 00 # Error of HID++ 2.0 GetVersion ?
+10FF 8F 83 B5 0B 00 # Error of Get Register B5 / 0B
+11FF 83 B5 51 41 6AB3 48052C670100011401000000 # Device 1 Info / WPID B36A (BT KBD) / ?
+11FF 83 FB xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # ASCII S/N ?
+11FF 83 FB xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # ASCII S/N ?
+11FF 83 B5 61 01 0D 4D58204B657973204D204D6163 # Device 1 ASCII "MX Keys M Mac"
+11FF 83 B5 61 01 0D 4D58204B657973204D204D6163 # Device 1 ASCII "MX Keys M Mac"
+11FF 83 B5 61 01 0D 4D58204B657973204D204D6163 # Device 1 ASCII "MX Keys M Mac"
+11FF 83 B5 61 01 0D 4D58204B657973204D204D6163 # Device 1 ASCII "MX Keys M Mac"
+1001 41 10 01 6AB3 # Device 1 Arrival / Protocol ?? / Keyboard / Connected / WPID B36A (BT KBD)
