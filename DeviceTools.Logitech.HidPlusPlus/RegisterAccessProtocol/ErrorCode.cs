@@ -1,6 +1,6 @@
 namespace DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 
-public enum RegisterAccessProtocolErrorCode : byte
+public enum ErrorCode : byte
 {
 	Success = 0x00,
 	InvalidSubId = 0x01,

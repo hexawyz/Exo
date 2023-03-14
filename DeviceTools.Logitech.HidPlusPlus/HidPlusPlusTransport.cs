@@ -33,6 +33,7 @@ public sealed class HidPlusPlusTransport
 		public byte ProtocolFlavor;
 		public PendingOperation? PendingOperation;
 		public HidPlusPlusRawNotificationHandler? NotificationHandler;
+		public object? CustomState;
 
 		public void Dispose()
 		{
@@ -141,6 +142,16 @@ public sealed class HidPlusPlusTransport
 				}
 
 				Volatile.Write(ref state.ProtocolFlavor, (byte)value);
+			}
+		}
+
+		/// <summary>Gets a reference to a custom state that can be stored per-device.</summary>
+		public ref object? CustomState
+		{
+			get
+			{
+				if (_transport is null) throw new InvalidOperationException();
+				return ref _transport.GetOrCreateDeviceState(DeviceIndex).CustomState;
 			}
 		}
 
@@ -281,8 +292,7 @@ public sealed class HidPlusPlusTransport
 			(_veryLongMessageStream is not null ? SupportedReports.VeryLong : 0);
 		_softwareId = featureAccessSoftwareId;
 		_disposeCancellationTokenSource = new CancellationTokenSource();
-		var broadcastMessageChannel = Channel.CreateUnbounded<FeatureAccesLongMessage<RawLongMessageParameters>>();
-		_readTask = ReadAsync(broadcastMessageChannel.Writer, _disposeCancellationTokenSource.Token);
+		_readTask = ReadAsync(_disposeCancellationTokenSource.Token);
 	}
 
 	public void Dispose() => DisposeAsync().GetAwaiter().GetResult();
@@ -333,6 +343,8 @@ public sealed class HidPlusPlusTransport
 	/// <summary>Gets the collection of device configurations for this transport.</summary>
 	public DeviceConfigurationCollection Devices => new(this);
 
+	public Task WaitForCompletionAsync() => _readTask;
+
 	private DeviceState GetOrCreateDeviceState(byte deviceIndex)
 	{
 		ref var storage = ref _deviceStates.GetReference(deviceIndex);
@@ -355,7 +367,7 @@ public sealed class HidPlusPlusTransport
 		return Unsafe.IsNullRef(ref storage) ? null : Volatile.Read(ref storage);
 	}
 
-	private async Task<ReadTaskResult> ReadAsync(ChannelWriter<FeatureAccesLongMessage<RawLongMessageParameters>> broadcastMessageWriter, CancellationToken cancellationToken)
+	private async Task<ReadTaskResult> ReadAsync(CancellationToken cancellationToken)
 	{
 		const uint ErrorDeviceNotConnected = 0x8007048F;
 
@@ -375,11 +387,9 @@ public sealed class HidPlusPlusTransport
 		switch (completedTask.Status)
 		{
 		case TaskStatus.RanToCompletion:
-			broadcastMessageWriter.TryComplete();
 			result = ReadTaskResult.EndOfStream;
 			break;
 		case TaskStatus.Canceled:
-			broadcastMessageWriter.TryComplete();
 			result = ReadTaskResult.TaskCanceled;
 			break;
 		case TaskStatus.Faulted:
@@ -388,16 +398,11 @@ public sealed class HidPlusPlusTransport
 			if (exception.InnerExceptions.Count == 1)
 			{
 				var ex = exception.InnerException;
-				broadcastMessageWriter.TryComplete(ex);
 
 				if (ex is IOException { HResult: unchecked((int)ErrorDeviceNotConnected) })
 				{
 					result = ReadTaskResult.DeviceDisconnected;
 				}
-			}
-			else
-			{
-				broadcastMessageWriter.TryComplete(exception);
 			}
 			break;
 		}
@@ -573,8 +578,8 @@ public sealed class HidPlusPlusTransport
 			byte errorCode = message[5];
 
 			Exception ex = header.SubIdOrFeatureIndex == 0x8F ?
-				new HidPlusPlus1Exception((RegisterAccessProtocolErrorCode)errorCode) :
-				new HidPlusPlus2Exception((FeatureAccessProtocolErrorCode)errorCode);
+				new global::DeviceTools.Logitech.HidPlusPlus.HidPlusPlus1Exception((global::DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.ErrorCode)errorCode) :
+				new global::DeviceTools.Logitech.HidPlusPlus.HidPlusPlus2Exception((global::DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.ErrorCode)errorCode);
 
 			Volatile.Write(ref deviceState!.PendingOperation, null);
 			currentOperation.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(ex));

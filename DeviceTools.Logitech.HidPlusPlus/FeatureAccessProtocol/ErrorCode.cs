@@ -1,6 +1,6 @@
 namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 
-public enum FeatureAccessProtocolErrorCode : byte
+public enum ErrorCode : byte
 {
 	NoError = 0,
 	Unknown = 1,

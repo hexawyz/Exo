@@ -5,6 +5,7 @@ using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
+using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
@@ -217,170 +218,24 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			protocolFlavor,
 			productId,
 			SoftwareId,
+			friendlyName,
 			new TimeSpan(100 * TimeSpan.TicksPerSecond)
 		);
 
-		if (hppDevice is FeatureAccessDevice fapDevice)
-		{
-			var features = await fapDevice.GetFeaturesAsync(cancellationToken).ConfigureAwait(false);
-			string? serialNumber = null;
-			DeviceType? deviceType = null;
+		// HID++ devices will expose multiple interfaces, each with their own top-level collection.
+		// Typically for Mouse/Keyboard/Receiver, these would be 00: Boot Keyboard, 01: Input stuff, 02: HID++/DJ
+		// We want to take the device that is just above all these interfaces. So, typically the name of a raw USB or BT device.
+		//var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], deviceType is null ? "logi-universal" : deviceType.GetValueOrDefault().ToString(), serialNumber);
+		var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], "logi-universal", hppDevice.SerialNumber);
 
-			if (features.TryGetValue(HidPlusPlusFeature.DeviceNameAndType, out byte featureIndex))
-			{
-				var deviceTypeResponse = await fapDevice.SendAsync<DeviceNameAndType.GetDeviceType.Response>
-				(
-					featureIndex,
-					DeviceNameAndType.GetDeviceType.FunctionId,
-					cancellationToken
-				).ConfigureAwait(false);
-
-				deviceType = deviceTypeResponse.DeviceType;
-
-				var deviceNameLengthResponse = await fapDevice.SendAsync<DeviceNameAndType.GetDeviceNameLength.Response>
-				(
-					featureIndex,
-					DeviceNameAndType.GetDeviceNameLength.FunctionId,
-					cancellationToken
-				).ConfigureAwait(false);
-
-				int length = deviceNameLengthResponse.Length;
-				int offset = 0;
-
-				var buffer = new byte[length];
-
-				while (true)
-				{
-					var deviceNameResponse = await fapDevice.SendAsync<DeviceNameAndType.GetDeviceName.Request, DeviceNameAndType.GetDeviceName.Response>
-					(
-						featureIndex,
-						DeviceNameAndType.GetDeviceName.FunctionId,
-						new DeviceNameAndType.GetDeviceName.Request { Offset = (byte)offset },
-						cancellationToken
-					).ConfigureAwait(false);
-
-					if (deviceNameResponse.TryCopyTo(buffer.AsSpan(offset), out int count))
-					{
-						offset += count;
-
-						if (offset == length)
-						{
-							break;
-						}
-						else if (count == 16)
-						{
-							continue;
-						}
-					}
-
-					throw new InvalidOperationException("Failed to retrieve the device name.");
-				}
-
-				friendlyName = Encoding.UTF8.GetString(buffer);
-			}
-
-			if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out featureIndex))
-			{
-				var deviceInfoResponse = await fapDevice.SendAsync<DeviceInformation.GetDeviceInfo.Response>
-				(
-					featureIndex,
-					DeviceInformation.GetDeviceInfo.FunctionId,
-					cancellationToken
-				).ConfigureAwait(false);
-
-				if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
-				{
-					var serialNumberResponse = await fapDevice.SendAsync<DeviceInformation.GetDeviceSerialNumber.Response>
-					(
-						featureIndex,
-						DeviceInformation.GetDeviceSerialNumber.FunctionId,
-						cancellationToken
-					).ConfigureAwait(false);
-
-					serialNumber = serialNumberResponse.SerialNumber;
-				}
-			}
-
-			// HID++ devices will expose multiple interfaces, each with their own top-level collection.
-			// Typically for Mouse/Keyboard/Receiver, these would be 00: Boot Keyboard, 01: Input stuff, 02: HID++/DJ
-			// We want to take the device that is just above all these interfaces. So, typically the name of a raw USB or BT device.
-			var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], deviceType is null ? "logi-universal" : deviceType.GetValueOrDefault().ToString(), serialNumber);
-
-			return new LogitechUniversalDriver
-			(
-				hppDevice,
-				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-				friendlyName ?? "Logi HID++ device",
-				configurationKey
-			);
-		}
-		else if (hppDevice is RegisterAccessDevice rapDevice)
-		{
-			// Handling of HID++ devices seems to be way more complex, as the standard is not as strictly enforced, and there doesn't seem to be a way to get information of the connected device ?
-			// i.e. We can know if the device is a receiver from the Product ID, but that's about it ?
-			string? serialNumber = null;
-
-			try
-			{
-				// Unifying receivers and some other should answer to this relatively undocumented call that will provide the "serial number" among other things.
-				// We can find trace of this in the logitech Unifying chrome extension, where the serial number is also called base address. (A radio thing?)
-				var receiverInformation = await rapDevice.RegisterAccessGetLongRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ReceiverInformationResponse>
-				(
-					Address.NonVolatileAndPairingInformation,
-					new NonVolatileAndPairingInformation.Request(NonVolatileAndPairingInformation.Parameter.ReceiverInformation),
-					cancellationToken
-				).ConfigureAwait(false);
-
-				serialNumber = FormatReceiverSerialNumber(productId, receiverInformation.SerialNumber);
-			}
-			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode is RegisterAccessProtocolErrorCode.InvalidAddress or RegisterAccessProtocolErrorCode.InvalidParameter)
-			{
-			}
-
-			if (serialNumber is null)
-			{
-				try
-				{
-					var boltSerialNumberResponse = await rapDevice.RegisterAccessGetLongRegisterAsync<BoltSerialNumber.Response>(Address.BoltSerialNumber, cancellationToken).ConfigureAwait(false);
-
-					serialNumber = boltSerialNumberResponse.ToString();
-				}
-				catch (HidPlusPlus1Exception ex) when (ex.ErrorCode is RegisterAccessProtocolErrorCode.InvalidAddress or RegisterAccessProtocolErrorCode.InvalidParameter)
-				{
-				}
-			}
-
-			// HID++ devices will expose multiple interfaces, each with their own top-level collection.
-			// Typically for Mouse/Keyboard/Receiver, these would be 00: Boot Keyboard, 01: Input stuff, 02: HID++/DJ
-			// We want to take the device that is just above all these interfaces. So, typically the name of a raw USB or BT device.
-			var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], "logi-universal", serialNumber);
-
-			return new LogitechUniversalDriver
-			(
-				hppDevice,
-				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-				friendlyName ?? "Logi HID++ device",
-				configurationKey
-			);
-		}
-		else
-		{
-			throw new NotImplementedException();
-		}
-	}
-
-	private static string FormatReceiverSerialNumber(ushort productId, uint serialNumber)
-		=> string.Create
+		return new LogitechUniversalDriver
 		(
-			13,
-			(ProductId: productId, SerialNumber: serialNumber),
-			static (span, state) =>
-			{
-				state.ProductId.TryFormat(span[..4], out _, "X4", CultureInfo.InvariantCulture);
-				span[4] = '-';
-				state.SerialNumber.TryFormat(span[5..], out _, "X8", CultureInfo.InvariantCulture);
-			}
+			hppDevice,
+			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+			friendlyName ?? "Logi HID++ device",
+			configurationKey
 		);
+	}
 
 	private readonly HidPlusPlusDevice _device;
 

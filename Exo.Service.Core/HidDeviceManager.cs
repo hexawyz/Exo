@@ -295,7 +295,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 					await HandleDeviceArrivalAsync(t.DeviceName, cancellationToken).ConfigureAwait(false);
 					break;
 				case EventKind.Removal:
-					HandleDeviceRemoval(t.DeviceName);
+					await HandleDeviceRemovalAsync(t.DeviceName).ConfigureAwait(false);
 					break;
 				}
 			}
@@ -384,10 +384,20 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		return true;
 	}
 
-	private void HandleDeviceRemoval(string deviceName)
+	private async ValueTask HandleDeviceRemovalAsync(string deviceName)
 	{
 		if (_systemDeviceDriverRegistry.TryGetDriver(deviceName, out var systemDeviceDriver))
 		{
+			try
+			{
+				await systemDeviceDriver.DisposeAsync().ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				var driverType = systemDeviceDriver.GetType();
+				_logger.HidDriverDisposeFailure(driverType.ToString(), driverType.Assembly.FullName!, systemDeviceDriver.DeviceNames, ex);
+			}
+
 			if (_systemDeviceDriverRegistry.TryUnregisterDriver(systemDeviceDriver))
 			{
 				_logger.HidDriverUnregisterSuccess(systemDeviceDriver.GetType(), deviceName);

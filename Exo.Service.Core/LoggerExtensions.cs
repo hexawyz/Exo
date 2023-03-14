@@ -87,4 +87,7 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 1012, EventName = "HidDriverRegistrationFailure", Level = LogLevel.Error, Message = "Failed to register an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
 	public static partial void HidDriverRegistrationFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
+
+	[LoggerMessage(EventId = 1013, EventName = "HidDriverDisposeFailure", Level = LogLevel.Error, Message = "Failed to dispose an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
+	public static partial void HidDriverDisposeFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
 }

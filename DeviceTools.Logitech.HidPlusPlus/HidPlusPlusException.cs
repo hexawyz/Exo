@@ -66,17 +66,17 @@ public abstract class HidPlusPlusException<TErrorCode> : HidPlusPlusException
 	}
 }
 
-public sealed class HidPlusPlus1Exception : HidPlusPlusException<RegisterAccessProtocolErrorCode>
+public sealed class HidPlusPlus1Exception : HidPlusPlusException<RegisterAccessProtocol.ErrorCode>
 {
-	public HidPlusPlus1Exception(RegisterAccessProtocolErrorCode errorCode): base(errorCode)
+	public HidPlusPlus1Exception(RegisterAccessProtocol.ErrorCode errorCode): base(errorCode)
 	{
 	}
 
-	public HidPlusPlus1Exception(RegisterAccessProtocolErrorCode errorCode, string? message) : base(errorCode, message)
+	public HidPlusPlus1Exception(RegisterAccessProtocol.ErrorCode errorCode, string? message) : base(errorCode, message)
 	{
 	}
 
-	public HidPlusPlus1Exception(RegisterAccessProtocolErrorCode errorCode, string? message, Exception? innerException) : base(errorCode, message, innerException)
+	public HidPlusPlus1Exception(RegisterAccessProtocol.ErrorCode errorCode, string? message, Exception? innerException) : base(errorCode, message, innerException)
 	{
 	}
 
@@ -85,17 +85,17 @@ public sealed class HidPlusPlus1Exception : HidPlusPlusException<RegisterAccessP
 	}
 }
 
-public sealed class HidPlusPlus2Exception : HidPlusPlusException<FeatureAccessProtocolErrorCode>
+public sealed class HidPlusPlus2Exception : HidPlusPlusException<FeatureAccessProtocol.ErrorCode>
 {
-	public HidPlusPlus2Exception(FeatureAccessProtocolErrorCode errorCode) : base(errorCode)
+	public HidPlusPlus2Exception(FeatureAccessProtocol.ErrorCode errorCode) : base(errorCode)
 	{
 	}
 
-	public HidPlusPlus2Exception(FeatureAccessProtocolErrorCode errorCode, string? message) : base(errorCode, message)
+	public HidPlusPlus2Exception(FeatureAccessProtocol.ErrorCode errorCode, string? message) : base(errorCode, message)
 	{
 	}
 
-	public HidPlusPlus2Exception(FeatureAccessProtocolErrorCode errorCode, string? message, Exception? innerException) : base(errorCode, message, innerException)
+	public HidPlusPlus2Exception(FeatureAccessProtocol.ErrorCode errorCode, string? message, Exception? innerException) : base(errorCode, message, innerException)
 	{
 	}
 

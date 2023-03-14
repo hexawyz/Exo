@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.Logitech.HidPlusPlus;
+namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 
 public enum DeviceType : byte
 {
