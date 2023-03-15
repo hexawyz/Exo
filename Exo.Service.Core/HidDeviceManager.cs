@@ -287,6 +287,8 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	{
 		try
 		{
+			await ProcessAlreadyConnectedDevicesAsync(cancellationToken).ConfigureAwait(false);
+
 			while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false) && reader.TryRead(out var t))
 			{
 				switch (t.Event)
@@ -301,6 +303,14 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 			}
 		}
 		catch (OperationCanceledException) { }
+	}
+
+	private async Task ProcessAlreadyConnectedDevicesAsync(CancellationToken cancellationToken)
+	{
+		foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
+		{
+			await HandleDeviceArrivalAsync(deviceName, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	private async Task HandleDeviceArrivalAsync(string deviceName, CancellationToken cancellationToken)
@@ -359,6 +369,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		{
 			var task = (Task<Driver>)createAsync.Invoke(null, new object[] { deviceName, cancellationToken })!;
 			driverInstance = await task.ConfigureAwait(false);
+			_logger.HidDriverCreationSuccess(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, deviceName);
 		}
 		catch (Exception ex)
 		{
@@ -373,10 +384,11 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		{
 			_systemDeviceDriverRegistry.TryRegisterDriver(systemDriver);
 			_driverRegistry.AddDriver(driverInstance);
+			_logger.HidDriverRegistrationSuccess(systemDriver.FriendlyName, driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, systemDriver.DeviceNames);
 		}
 		catch (Exception ex)
 		{
-			_logger.HidDriverRegistrationFailure(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, systemDriver.DeviceNames, ex);
+			_logger.HidDriverRegistrationFailure(systemDriver.FriendlyName, driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, systemDriver.DeviceNames, ex);
 			await systemDriver.DisposeAsync().ConfigureAwait(false);
 			return false;
 		}

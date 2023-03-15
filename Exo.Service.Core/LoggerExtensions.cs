@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using DeviceTools;
 using Microsoft.Extensions.Logging;
 
@@ -82,12 +83,18 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1010, EventName = "HidDeviceDriverAlreadyAssigned", Level = LogLevel.Debug, Message = "The device \"{DeviceName}\" has already been assigned a driver.")]
 	public static partial void HidDeviceDriverAlreadyAssigned(this ILogger logger, string deviceName);
 
-	[LoggerMessage(EventId = 1011, EventName = "HidDriverCreationFailure", Level = LogLevel.Error, Message = "Failed to create an instance of \"{TypeName}\" from \"{AssemblyName}\" for the device \"{DeviceName}\".")]
+	[LoggerMessage(EventId = 1011, EventName = "HidDriverCreationSuccess", Level = LogLevel.Debug, Message = "An instance of \"{TypeName}\" from \"{AssemblyName}\" has been created for the device \"{DeviceName}\".")]
+	public static partial void HidDriverCreationSuccess(this ILogger logger, string typeName, string assemblyName, string deviceName);
+
+	[LoggerMessage(EventId = 1012, EventName = "HidDriverCreationFailure", Level = LogLevel.Error, Message = "Failed to create an instance of \"{TypeName}\" from \"{AssemblyName}\" for the device \"{DeviceName}\".")]
 	public static partial void HidDriverCreationFailure(this ILogger logger, string typeName, string assemblyName, string deviceName, Exception exception);
 
-	[LoggerMessage(EventId = 1012, EventName = "HidDriverRegistrationFailure", Level = LogLevel.Error, Message = "Failed to register an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
-	public static partial void HidDriverRegistrationFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
+	[LoggerMessage(EventId = 1013, EventName = "HidDriverRegistrationSuccess", Level = LogLevel.Information, Message = "The driver for {DeviceFriendlyName} has been created and registered. The driver is an instance of \"{TypeName}\" from \"{AssemblyName}\" and has been associated with \"{DeviceNames}\".")]
+	public static partial void HidDriverRegistrationSuccess(this ILogger logger, string deviceFriendlyName, string typeName, string assemblyName, IEnumerable<string> deviceNames);
 
-	[LoggerMessage(EventId = 1013, EventName = "HidDriverDisposeFailure", Level = LogLevel.Error, Message = "Failed to dispose an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
+	[LoggerMessage(EventId = 1014, EventName = "HidDriverRegistrationFailure", Level = LogLevel.Error, Message = "The driver for {DeviceFriendlyName} could not be registered. The driver was an instance of \"{TypeName}\" from \"{AssemblyName}\" requesting to be associated with \"{DeviceNames}\".")]
+	public static partial void HidDriverRegistrationFailure(this ILogger logger, string deviceFriendlyName, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
+
+	[LoggerMessage(EventId = 1015, EventName = "HidDriverDisposeFailure", Level = LogLevel.Error, Message = "Failed to dispose an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
 	public static partial void HidDriverDisposeFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
 }
