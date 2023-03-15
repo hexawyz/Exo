@@ -22,4 +22,7 @@ public enum DeviceType : byte
 	ProgrammableController = 17,
 	CarSimPedals = 18,
 	Adapter = 19,
+
+	// Not an official value, but they seem to stick to a continuous scheme. We'll use this to mark an unavailable value in the mean time.
+	Unknown = 255,
 }

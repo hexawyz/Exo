@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
 
@@ -47,6 +48,13 @@ public static class NonVolatileAndPairingInformation
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
 	public struct ReceiverInformationResponse : ILongMessageParameters
 	{
+		private byte _parameter;
+		public Parameter Parameter
+		{
+			get => (Parameter)_parameter;
+			set => _parameter = (byte)value;
+		}
+
 #pragma warning disable IDE0044 // Add readonly modifier
 		private byte _serialNumber0;
 		private byte _serialNumber1;
@@ -98,6 +106,56 @@ public static class NonVolatileAndPairingInformation
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+	public struct ExtendedPairingInformationResponse : ILongMessageParameters
+	{
+		private byte _parameter;
+		public Parameter Parameter
+		{
+			get => (Parameter)_parameter;
+			set => _parameter = (byte)value;
+		}
+
+#pragma warning disable IDE0044 // Add readonly modifier
+		private byte _serialNumber0;
+		private byte _serialNumber1;
+		private byte _serialNumber2;
+		private byte _serialNumber3;
+#pragma warning restore IDE0044 // Add readonly modifier
+
+		public uint SerialNumber
+		{
+			get => BigEndian.ReadUInt32(_serialNumber0);
+			set => BigEndian.Write(ref _serialNumber0, value);
+		}
+
+#pragma warning disable IDE0044 // Add readonly modifier
+		private byte _reportTypes0;
+		private byte _reportTypes1;
+		private byte _reportTypes2;
+		private byte _reportTypes3;
+#pragma warning restore IDE0044 // Add readonly modifier
+
+		public uint ReportTypes
+		{
+			get => BigEndian.ReadUInt32(_reportTypes0);
+			set => BigEndian.Write(ref _reportTypes0, value);
+		}
+
+		private byte _usabilityInfo;
+
+		public PowerSwitchLocation PowerSwitchLocation
+		{
+			get => (PowerSwitchLocation)(_usabilityInfo & 0x0F);
+			set
+			{
+				if ((byte)value >= 0xD) throw new ArgumentOutOfRangeException(nameof(value));
+
+				_usabilityInfo = (byte)(_usabilityInfo & 0xF0 | (byte)value);
+			}
+		}
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
 	public struct DeviceNameResponse : ILongMessageParameters
 	{
 		private byte _parameter;
@@ -143,5 +201,7 @@ public static class NonVolatileAndPairingInformation
 				return true;
 			}
 		}
+
+		public string GetDeviceName() => Encoding.UTF8.GetString(MemoryMarshal.CreateSpan(ref _deviceName0, Math.Min((byte)14, Length)));
 	}
 }

@@ -5,6 +5,7 @@ using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
@@ -179,7 +180,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			var transport = new HidPlusPlusTransport(shortMessageStream, longMessageStream, veryLongMessageStream, softwareId, requestTimeout);
 			try
 			{
-				return await CreateAsync(null, transport, expectedProtocolFlavor, productId, 255, true, externalFriendlyName, default).ConfigureAwait(false);
+				return await CreateAsync(null, transport, expectedProtocolFlavor, productId, 255, default, externalFriendlyName, null, default).ConfigureAwait(false);
 			}
 			catch
 			{
@@ -198,46 +199,79 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	private static async Task<HidPlusPlusDevice> CreateAsync
 	(
-		RegisterAccessReceiver? parentDevice,
+		RegisterAccessReceiver? parent,
 		HidPlusPlusTransport transport,
 		HidPlusPlusProtocolFlavor expectedProtocolFlavor,
 		ushort productId,
 		byte deviceIndex,
-		bool isConnected, // In the case of a receiver, attached devices can be discovered while disconnected. There should be enough info do to most basic things.
+		DeviceConnectionInfo deviceInfo, // In the case of a receiver, information obtained when the device was discovered.
 		string? externalFriendlyName,
+		string? serialNumberFromReceiverPairing,
 		CancellationToken cancellationToken
 	)
 	{
-		// Protocol version check.
-		// TODO: Make this check a bit better and explicitly list the supported versions.
-		HidPlusPlusVersion protocolVersion;
-		try
+		if (parent is not null ?
+			expectedProtocolFlavor is not HidPlusPlusProtocolFlavor.RegisterAccess and not HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess :
+			expectedProtocolFlavor is HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess)
 		{
-			protocolVersion = await transport.GetProtocolVersionAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
-			transport.Devices[deviceIndex].SetProtocolFlavor(HidPlusPlusProtocolFlavor.FeatureAccess);
+			throw new ArgumentOutOfRangeException(nameof(expectedProtocolFlavor));
 		}
-		catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidSubId)
+
+		// Protocol version check.
+		HidPlusPlusVersion protocolVersion;
+
+		if (parent is null || deviceInfo.IsLinkEstablished)
 		{
-			if (expectedProtocolFlavor is not HidPlusPlusProtocolFlavor.Unknown and not HidPlusPlusProtocolFlavor.RegisterAccess)
-			{
-				throw new Exception("Protocol flavor does not match.");
-			}
+			protocolVersion = await GetVersionAsync(transport, deviceIndex, cancellationToken).ConfigureAwait(false);
+		}
+		else if (expectedProtocolFlavor is HidPlusPlusProtocolFlavor.RegisterAccess)
+		{
+			protocolVersion = new HidPlusPlusVersion(1, 0);
+		}
+		else if (expectedProtocolFlavor is HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess)
+		{
+			// This will not always match the exact protocol version, but it will be enough until the device is connected.
+			protocolVersion = new HidPlusPlusVersion(2, 0);
+		}
+		else
+		{
+			throw new InvalidOperationException("Trying to instantiate a child device with an unsupported protocol flavor.");
+		}
+
+		if (protocolVersion.Major == 1 && protocolVersion.Minor == 0)
+		{
+			if (expectedProtocolFlavor is not HidPlusPlusProtocolFlavor.Unknown and not HidPlusPlusProtocolFlavor.RegisterAccess) goto ProtocolFlavorMismatch;
 
 			transport.Devices[deviceIndex].SetProtocolFlavor(HidPlusPlusProtocolFlavor.RegisterAccess);
-			return await CreateRegisterAccessAsync(parentDevice, transport, productId, deviceIndex, isConnected, externalFriendlyName, cancellationToken).ConfigureAwait(false);
-		}
 
-		if (expectedProtocolFlavor is not HidPlusPlusProtocolFlavor.Unknown and not HidPlusPlusProtocolFlavor.FeatureAccess and not HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess)
-		{
-			throw new Exception("Protocol flavor does not match.");
+			return await CreateRegisterAccessAsync(parent, transport, productId, deviceIndex, deviceInfo, externalFriendlyName, serialNumberFromReceiverPairing, cancellationToken).ConfigureAwait(false);
 		}
-		else if (protocolVersion.Major >= 2 && protocolVersion.Major <= 4)
+		else if (protocolVersion.Major is >= 2 and <= 4)
 		{
-			return await CreateFeatureAccessAsync(parentDevice, transport, productId, deviceIndex, isConnected, externalFriendlyName, cancellationToken).ConfigureAwait(false);
+			if (expectedProtocolFlavor is HidPlusPlusProtocolFlavor.RegisterAccess) goto ProtocolFlavorMismatch;
+
+			transport.Devices[deviceIndex].SetProtocolFlavor(expectedProtocolFlavor is HidPlusPlusProtocolFlavor.Unknown ? HidPlusPlusProtocolFlavor.FeatureAccess : expectedProtocolFlavor);
+
+			return await CreateFeatureAccessAsync(parent, transport, productId, deviceIndex, deviceInfo, externalFriendlyName, serialNumberFromReceiverPairing, cancellationToken).ConfigureAwait(false);
 		}
 		else
 		{
 			throw new Exception($"Unsupported protocol version: {protocolVersion.Major}.{protocolVersion.Minor}.");
+		}
+
+	ProtocolFlavorMismatch:;
+		throw new Exception("Protocol flavor does not match.");
+	}
+
+	private static async Task<HidPlusPlusVersion> GetVersionAsync(HidPlusPlusTransport transport, byte deviceIndex, CancellationToken cancellationToken)
+	{
+		try
+		{
+			return await transport.GetProtocolVersionAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
+		}
+		catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidSubId)
+		{
+			return new HidPlusPlusVersion(1, 0);
 		}
 	}
 
@@ -247,11 +281,15 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		HidPlusPlusTransport transport,
 		ushort productId,
 		byte deviceIndex,
-		bool isConnected,
+		DeviceConnectionInfo deviceInfo,
 		string? externalFriendlyName,
+		string? serialNumberFromReceiverPairing,
 		CancellationToken cancellationToken
 	)
 	{
+		// Handling of HID++ 1.0 devices seems to be way more complex, as the standard is not as strictly enforced, and there doesn't seem to be a way to get information of the connected device ?
+		// i.e. We can know if the device is a receiver from the Product ID, but that's about it ?
+
 		string? friendlyName = externalFriendlyName;
 		var deviceKind = RegisterAccessDeviceKind.Default;
 
@@ -262,9 +300,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			deviceKind = RegisterAccessDeviceKind.Receiver;
 		}
 
-		// Handling of HID++ devices seems to be way more complex, as the standard is not as strictly enforced, and there doesn't seem to be a way to get information of the connected device ?
-		// i.e. We can know if the device is a receiver from the Product ID, but that's about it ?
-		string? serialNumber = null;
+		if (parent is null && productCategory != ProductCategory.Other)
+		{
+			deviceInfo = new DeviceConnectionInfo(productCategory.InferDeviceType(), 0);
+		}
+		string? serialNumber = serialNumberFromReceiverPairing;
 
 		try
 		{
@@ -312,21 +352,54 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		if (parent is not null && deviceKind != RegisterAccessDeviceKind.Default) throw new InvalidOperationException($"A receiver cannot be paired to another receiver. (Product ID {productId}");
 
-		switch (deviceKind)
+		HidPlusPlusDevice device = deviceKind switch
 		{
-		case RegisterAccessDeviceKind.Default:
-			return parent is null ?
-				new RegisterAccessDirect(transport, deviceIndex, productId, friendlyName, serialNumber) :
-				new RegisterAccessThroughReceiver(parent, deviceIndex, productId, friendlyName, serialNumber);
-		case RegisterAccessDeviceKind.Receiver:
-			return new RegisterAccessReceiver(transport, deviceIndex, productId, friendlyName, serialNumber);
-		case RegisterAccessDeviceKind.UnifyingReceiver:
-			return new RegisterAccessReceiver(transport, deviceIndex, productId, friendlyName, serialNumber);
-		case RegisterAccessDeviceKind.BoltReceiver:
-			return new RegisterAccessReceiver(transport, deviceIndex, productId, friendlyName, serialNumber);
-		default:
-			throw new InvalidOperationException();
+			RegisterAccessDeviceKind.Default => parent is null ?
+				new RegisterAccessDirect(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber) :
+				new RegisterAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.Receiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.UnifyingReceiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.BoltReceiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			_ => throw new InvalidOperationException(),
+		};
+
+		// If the device is a receiver, setup it so that notifications are received, and child devices enumerated.
+		if (device is RegisterAccessReceiver)
+		{
+			try
+			{
+				// Enable device arrival notifications, and set the "software present" flag.
+				await transport.RegisterAccessSetRegisterAsync
+				(
+					255,
+					Address.EnableHidPlusPlusNotifications,
+					new EnableHidPlusPlusNotifications.Parameters
+					{
+						ReceiverReportingFlags = ReceiverReportingFlags.WirelessNotifications | ReceiverReportingFlags.SoftwarePresent
+					},
+					cancellationToken
+				).ConfigureAwait(false);
+
+				// Enumerate all connected devices.
+				await transport.RegisterAccessSetRegisterAsync
+				(
+					255,
+					Address.ConnectionState,
+					new ConnectionState.SetRequest
+					{
+						Action = ConnectionStateAction.FakeDeviceArrival
+					},
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+			catch
+			{
+				await device.DisposeAsync().ConfigureAwait(false);
+				throw;
+			}
 		}
+
+		return device;
 	}
 
 	private static async Task<HidPlusPlusDevice> CreateFeatureAccessAsync
@@ -335,15 +408,90 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		HidPlusPlusTransport transport,
 		ushort productId,
 		byte deviceIndex,
-		bool isConnected,
+		DeviceConnectionInfo deviceInfo,
 		string? externalFriendlyName,
+		string? serialNumberFromReceiverPairing,
 		CancellationToken cancellationToken
 	)
 	{
 		string? friendlyName = externalFriendlyName;
-		var features = await transport.GetFeaturesAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
-		string? serialNumber = null;
-		FeatureAccessProtocol.DeviceType? deviceType = null;
+		string? serialNumber = serialNumberFromReceiverPairing;
+		FeatureAccessProtocol.DeviceType deviceType = FeatureAccessProtocol.DeviceType.Unknown;
+
+		// Try to map from HID++ 1.0 device type to HID++ 2.0 device type. It is a best effort before the actual device is queried.
+		if (parent is not null)
+		{
+			deviceType = deviceInfo.DeviceType switch
+			{
+				RegisterAccessProtocol.DeviceType.Keyboard => FeatureAccessProtocol.DeviceType.Keyboard,
+				RegisterAccessProtocol.DeviceType.Mouse => FeatureAccessProtocol.DeviceType.Mouse,
+				RegisterAccessProtocol.DeviceType.Numpad => FeatureAccessProtocol.DeviceType.Numpad,
+				RegisterAccessProtocol.DeviceType.Presenter => FeatureAccessProtocol.DeviceType.Presenter,
+				RegisterAccessProtocol.DeviceType.Trackball => FeatureAccessProtocol.DeviceType.Trackball,
+				RegisterAccessProtocol.DeviceType.Touchpad => FeatureAccessProtocol.DeviceType.Trackpad,
+				_ => FeatureAccessProtocol.DeviceType.Unknown
+			};
+		}
+
+		ReadOnlyDictionary<HidPlusPlusFeature, byte>? features = null;
+
+		if (parent is null || deviceInfo.IsLinkEstablished)
+		{
+			features = await transport.GetFeaturesAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
+
+			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, deviceIndex, cancellationToken);
+
+			if (retrievedName is not null)
+			{
+				deviceType = retrievedType;
+				friendlyName = retrievedName;
+			}
+
+			if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out byte featureIndex))
+			{
+				var deviceInfoResponse = await transport.FeatureAccessSendAsync<DeviceInformation.GetDeviceInfo.Response>
+				(
+					deviceIndex,
+					featureIndex,
+					DeviceInformation.GetDeviceInfo.FunctionId,
+					cancellationToken
+				).ConfigureAwait(false);
+
+				if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
+				{
+					var serialNumberResponse = await transport.FeatureAccessSendAsync<DeviceInformation.GetDeviceSerialNumber.Response>
+					(
+						deviceIndex,
+						featureIndex,
+						DeviceInformation.GetDeviceSerialNumber.FunctionId,
+						cancellationToken
+					).ConfigureAwait(false);
+
+					serialNumber = serialNumberResponse.SerialNumber;
+				}
+			}
+		}
+
+		if (parent is null)
+		{
+			return new FeatureAccessDirect(transport, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
+		}
+		else
+		{
+			return new FeatureAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
+		}
+	}
+
+	private static async Task<(FeatureAccessProtocol.DeviceType, string?)> FeatureAccessGetDeviceNameAndTypeAsync
+	(
+		HidPlusPlusTransport transport,
+		ReadOnlyDictionary<HidPlusPlusFeature, byte> features,
+		byte deviceIndex,
+		CancellationToken cancellationToken
+	)
+	{
+		FeatureAccessProtocol.DeviceType deviceType = FeatureAccessProtocol.DeviceType.Unknown;
+		string? deviceName = null;
 
 		if (features.TryGetValue(HidPlusPlusFeature.DeviceNameAndType, out byte featureIndex))
 		{
@@ -398,41 +546,10 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				throw new InvalidOperationException("Failed to retrieve the device name.");
 			}
 
-			friendlyName = Encoding.UTF8.GetString(buffer);
+			deviceName = Encoding.UTF8.GetString(buffer);
 		}
 
-		if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out featureIndex))
-		{
-			var deviceInfoResponse = await transport.FeatureAccessSendAsync<DeviceInformation.GetDeviceInfo.Response>
-			(
-				deviceIndex,
-				featureIndex,
-				DeviceInformation.GetDeviceInfo.FunctionId,
-				cancellationToken
-			).ConfigureAwait(false);
-
-			if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
-			{
-				var serialNumberResponse = await transport.FeatureAccessSendAsync<DeviceInformation.GetDeviceSerialNumber.Response>
-				(
-					deviceIndex,
-					featureIndex,
-					DeviceInformation.GetDeviceSerialNumber.FunctionId,
-					cancellationToken
-				).ConfigureAwait(false);
-
-				serialNumber = serialNumberResponse.SerialNumber;
-			}
-		}
-
-		if (parent is null)
-		{
-			return new FeatureAccessDirect(transport, deviceIndex, productId, friendlyName, serialNumber);
-		}
-		else
-		{
-			return new FeatureAccessThroughReceiver(parent, deviceIndex, productId, friendlyName, serialNumber);
-		}
+		return (deviceType, deviceName);
 	}
 
 	private static string FormatReceiverSerialNumber(ushort productId, uint serialNumber)
@@ -451,28 +568,45 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	// Root devices will contain the HidPlusPlusTransport instance here. Child devices will contain the parent device reference.
 	protected object ParentOrTransport { get; }
 	protected byte DeviceIndex { get; }
+	protected DeviceConnectionInfo DeviceConnectionInfo;
 	public ushort ProductId { get; }
-	public string? FriendlyName { get; }
-	public string? SerialNumber { get; }
+
+	private string? _friendlyName;
+	public string? FriendlyName
+	{
+		get => _friendlyName;
+		private protected set => Volatile.Write(ref _friendlyName, value);
+	}
+
+	private string? _serialNumber;
+	public string? SerialNumber
+	{
+		get => _serialNumber;
+		private protected set => Volatile.Write(ref _serialNumber, value);
+	}
 
 	protected abstract HidPlusPlusTransport Transport { get; }
 	public abstract HidPlusPlusProtocolFlavor ProtocolFlavor { get; }
 
-	private protected HidPlusPlusDevice(object parentOrTransport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
+	public RegisterAccessProtocol.DeviceType DeviceType => DeviceConnectionInfo.DeviceType;
+	public bool IsConnected => ((DeviceConnectionInfo)Volatile.Read(ref Unsafe.As<DeviceConnectionInfo, byte>(ref DeviceConnectionInfo))).IsLinkEstablished;
+
+	private protected HidPlusPlusDevice(object parentOrTransport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
 	{
 		ParentOrTransport = parentOrTransport;
 		DeviceIndex = deviceIndex;
 		ProductId = productId;
 		FriendlyName = friendlyName;
 		SerialNumber = serialNumber;
+		DeviceConnectionInfo = deviceConnectionInfo;
 	}
 
 	public abstract ValueTask DisposeAsync();
 
 	public abstract class RegisterAccess : HidPlusPlusDevice
 	{
-		private protected RegisterAccess(object parentOrTransport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(parentOrTransport, deviceIndex, productId, friendlyName, serialNumber)
+		private protected RegisterAccess(object parentOrTransport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(parentOrTransport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 
@@ -536,8 +670,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		private LightweightSingleProducerSingleConsumerQueue<Task> _deviceCreationTaskQueue;
 		private readonly Task _deviceWatcherTask;
 
-		internal RegisterAccessReceiver(HidPlusPlusTransport transport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(transport, deviceIndex, productId, friendlyName, serialNumber)
+		internal RegisterAccessReceiver(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			transport.NotificationReceived += HandleNotification;
 			_deviceCreationTaskQueue = new();
@@ -562,7 +696,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
 
-		private void HandleNotification(ReadOnlySpan<byte> message)
+		// Child devices can forward notifications here when necessary. e.g. When the WPID of a device has changed.
+		internal void HandleNotification(ReadOnlySpan<byte> message)
 		{
 			if (message.Length < 7) return;
 
@@ -579,25 +714,87 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess :
 					HidPlusPlusProtocolFlavor.RegisterAccess;
 
-				var task = ProcessDeviceArrivalAsync(header.DeviceId, parameters.WirelessProductId, protocolFlavor);
-
-				_deviceCreationTaskQueue.Enqueue(task);
+				RegisterNotificationTask(ProcessDeviceArrivalAsync(parameters.WirelessProductId, header.DeviceId, parameters.DeviceInfo, protocolFlavor));
 			}
 		}
 
+		// Get device information from the pairing data in the receiver.
+		// For HID++ 2.0 devices, this may be less good than what will be discovered through the device itself, but this will work even when the device is disconnected.
+		protected virtual async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync(byte deviceIndex, CancellationToken cancellationToken)
+		{
+			if (deviceIndex is 0x00 or > 0x0F) return default;
+
+			RegisterAccessProtocol.DeviceType deviceType = RegisterAccessProtocol.DeviceType.Unknown;
+			string? deviceName = null;
+			string? serialNumber = null;
+
+			try
+			{
+				var pairingInformationResponse = await Transport.RegisterAccessGetRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.PairingInformationResponse>
+				(
+					255,
+					Address.NonVolatileAndPairingInformation,
+					new(NonVolatileAndPairingInformation.Parameter.PairingInformation1 + (deviceIndex - 1)),
+					cancellationToken
+				);
+
+				deviceType = (RegisterAccessProtocol.DeviceType)pairingInformationResponse.DeviceType;
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidParameter)
+			{
+			}
+
+			try
+			{
+				var extendedPairingInformationResponse = await Transport.RegisterAccessGetRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ExtendedPairingInformationResponse>
+				(
+					255,
+					Address.NonVolatileAndPairingInformation,
+					new(NonVolatileAndPairingInformation.Parameter.ExtendedPairingInformation1 + (deviceIndex - 1)),
+					cancellationToken
+				);
+
+				serialNumber = extendedPairingInformationResponse.SerialNumber.ToString("X8");
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidParameter)
+			{
+			}
+
+			try
+			{
+				var deviceNameResponse = await Transport.RegisterAccessGetRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.DeviceNameResponse>
+				(
+					255,
+					Address.NonVolatileAndPairingInformation,
+					new(NonVolatileAndPairingInformation.Parameter.DeviceName1 + (deviceIndex - 1)),
+					cancellationToken
+				);
+
+				deviceName = deviceNameResponse.GetDeviceName();
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidParameter)
+			{
+			}
+
+			return (deviceType, deviceName, serialNumber);
+		}
+
+		// To call in order to register a task started within a notification handler.
+		// It should *only* be called within a notification handler, as notifications are processed sequentially and will not generate race conditions here.
+		// The tasks registered here will be tracked internally for completion.
+		internal void RegisterNotificationTask(Task task) => _deviceCreationTaskQueue.Enqueue(task);
+
 		// This method can never finish synchronously because it will wait on message processing. (This is kinda important for the correct order of state updates)
-		private async Task ProcessDeviceArrivalAsync(byte deviceIndex, ushort productId, HidPlusPlusProtocolFlavor protocolFlavor)
+		private async Task ProcessDeviceArrivalAsync(ushort productId, byte deviceIndex, DeviceConnectionInfo deviceInfo, HidPlusPlusProtocolFlavor protocolFlavor)
 		{
 			// Don't (try to) create the same device object twice. The custom state acts as some kind of lock, while also storing the associated device object.
 			if (Volatile.Read(ref Transport.Devices[deviceIndex].CustomState) is null)
 			{
 				try
 				{
-					var task = CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, null, default);
+					var task = CreateConnectedDeviceAsync(protocolFlavor, productId, deviceIndex, deviceInfo, default);
 
 					Volatile.Write(ref Transport.Devices[deviceIndex].CustomState, task);
-
-					await task;
 				}
 				catch
 				{
@@ -607,23 +804,42 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
+		private async Task<HidPlusPlusDevice> CreateConnectedDeviceAsync
+		(
+			HidPlusPlusProtocolFlavor protocolFlavor,
+			ushort productId,
+			byte deviceIndex,
+			DeviceConnectionInfo deviceInfo,
+			CancellationToken cancellationToken
+		)
+		{
+			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
+			return await CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, default).ConfigureAwait(false);
+		}
+
 		// NB: We don't need to unregister our notification handler here, since the transport is owned by the current instance.
 		public override ValueTask DisposeAsync() => Transport.DisposeAsync();
 	}
 
 	public sealed class UnifyingReceiver : RegisterAccessReceiver
 	{
-		internal UnifyingReceiver(HidPlusPlusTransport transport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(transport, deviceIndex, productId, friendlyName, serialNumber)
+		internal UnifyingReceiver(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 	}
 
 	public sealed class BoltReceiver : RegisterAccessReceiver
 	{
-		internal BoltReceiver(HidPlusPlusTransport transport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(transport, deviceIndex, productId, friendlyName, serialNumber)
+		internal BoltReceiver(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
+		}
+
+		protected override Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync(byte deviceIndex, CancellationToken cancellationToken)
+		{
+			// TODO: Implement Bolt status.
+			return default;
 		}
 	}
 
@@ -631,8 +847,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	{
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
 
-		internal RegisterAccessDirect(HidPlusPlusTransport transport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(transport, deviceIndex, productId, friendlyName, serialNumber)
+		internal RegisterAccessDirect(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 
@@ -641,16 +857,46 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	public class RegisterAccessThroughReceiver : RegisterAccess
 	{
-		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport).Transport;
+		protected RegisterAccessReceiver Receiver => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport);
+		protected sealed override HidPlusPlusTransport Transport => Receiver.Transport;
 
-		internal RegisterAccessThroughReceiver(RegisterAccessReceiver parent, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(parent, deviceIndex, productId, friendlyName, serialNumber)
+		internal RegisterAccessThroughReceiver(RegisterAccessReceiver parent, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(parent, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
-			Transport.Devices[deviceIndex].NotificationReceived += HandleNotification;
+			var device = Transport.Devices[deviceIndex];
+			device.NotificationReceived += HandleNotification;
+			Volatile.Write(ref device.CustomState, this);
 		}
 
 		private void HandleNotification(ReadOnlySpan<byte> message)
 		{
+			if (message.Length < 7) return;
+
+			var header = Unsafe.ReadUnaligned<RegisterAccessHeader>(ref MemoryMarshal.GetReference(message));
+
+			// If we receive a device connect notification, it indicates a new device. (In the sense of not yet known; not necessarily a new pairing)
+			// Once we create the device object, it will automatically process the notifications.
+			if (header.SubId == SubId.DeviceConnect)
+			{
+				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
+
+				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
+				if (parameters.WirelessProductId != ProductId)
+				{
+					DisposeInternal();
+					Receiver.HandleNotification(message);
+					return;
+				}
+
+				// TODO: Update state
+			}
+		}
+
+		private void DisposeInternal()
+		{
+			var device = Transport.Devices[DeviceIndex];
+			device.NotificationReceived += HandleNotification;
+			Volatile.Write(ref device.CustomState, null);
 		}
 
 		public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -658,25 +904,46 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	public abstract class FeatureAccess : HidPlusPlusDevice
 	{
-		private ReadOnlyDictionary<HidPlusPlusFeature, byte>? _cachedFeatures;
+		// Fields are not readonly because devices seen through a receiver can be discovered while disconnected.
+		// The values should be updated when the device is connected.
+		private protected ReadOnlyDictionary<HidPlusPlusFeature, byte>? CachedFeatures;
+		private FeatureAccessProtocol.DeviceType _deviceType;
 
-		private protected FeatureAccess(object parentOrTransport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(parentOrTransport, deviceIndex, productId, friendlyName, serialNumber)
+		// NB: We probably don't need Volatile reads here, as this data isn't supposed to be updated often, and we expect it to be read as a response to a connection notification.
+		public new FeatureAccessProtocol.DeviceType DeviceType
 		{
+			get => _deviceType;
+			private protected set => Volatile.Write(ref Unsafe.As<FeatureAccessProtocol.DeviceType, byte>(ref _deviceType), (byte)value);
+		}
+
+		private protected FeatureAccess
+		(
+			object parentOrTransport,
+			ushort productId,
+			byte deviceIndex,
+			DeviceConnectionInfo deviceConnectionInfo,
+			FeatureAccessProtocol.DeviceType deviceType,
+			ReadOnlyDictionary<HidPlusPlusFeature, byte>? cachedFeatures,
+			string? friendlyName,
+			string? serialNumber
+		)
+			: base(parentOrTransport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		{
+			_deviceType = deviceType;
 		}
 
 		public override HidPlusPlusProtocolFlavor ProtocolFlavor => HidPlusPlusProtocolFlavor.FeatureAccess;
 
 		public ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsync(CancellationToken cancellationToken)
-			=> _cachedFeatures is not null ?
-				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(_cachedFeatures) :
+			=> CachedFeatures is not null ?
+				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(CachedFeatures) :
 				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(GetFeaturesAsyncCore(cancellationToken));
 
 		private async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsyncCore(CancellationToken cancellationToken)
 		{
 			var features = await Transport.GetFeaturesAsync(DeviceIndex, cancellationToken).ConfigureAwait(false);
 
-			Volatile.Write(ref _cachedFeatures, features);
+			Volatile.Write(ref CachedFeatures, features);
 
 			return features;
 		}
@@ -719,8 +986,18 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	{
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
 
-		internal FeatureAccessDirect(HidPlusPlusTransport transport, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(transport, deviceIndex, productId, friendlyName, serialNumber)
+		internal FeatureAccessDirect
+		(
+			HidPlusPlusTransport transport,
+			ushort productId,
+			byte deviceIndex,
+			DeviceConnectionInfo deviceConnectionInfo,
+			FeatureAccessProtocol.DeviceType deviceType,
+			ReadOnlyDictionary<HidPlusPlusFeature, byte>? cachedFeatures,
+			string? friendlyName,
+			string? serialNumber
+		)
+			: base(transport, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
 		}
 
@@ -729,18 +1006,92 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	public class FeatureAccessThroughReceiver : FeatureAccess
 	{
-		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport).Transport;
+		protected RegisterAccessReceiver Receiver => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport);
+		protected sealed override HidPlusPlusTransport Transport => Receiver.Transport;
+		private bool _isInitialized;
 
-		internal FeatureAccessThroughReceiver(RegisterAccessReceiver parent, byte deviceIndex, ushort productId, string? friendlyName, string? serialNumber)
-			: base(parent.Transport, deviceIndex, productId, friendlyName, serialNumber)
+		internal FeatureAccessThroughReceiver
+		(
+			RegisterAccessReceiver parent,
+			ushort productId,
+			byte deviceIndex,
+			DeviceConnectionInfo deviceConnectionInfo,
+			FeatureAccessProtocol.DeviceType deviceType,
+			ReadOnlyDictionary<HidPlusPlusFeature, byte>? cachedFeatures,
+			string? friendlyName,
+			string? serialNumber
+		)
+			: base(parent, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
-			Transport.Devices[deviceIndex].NotificationReceived += HandleNotification;
+			// If the device is connected and we reach this point in the code, relevant information will already have been fetched and passed through the parameters.
+			_isInitialized = deviceConnectionInfo.IsLinkEstablished;
+			var device = Transport.Devices[deviceIndex];
+			device.NotificationReceived += HandleNotification;
+			Volatile.Write(ref device.CustomState, this);
 		}
 
 		private void HandleNotification(ReadOnlySpan<byte> message)
 		{
+			if (message.Length < 7) return;
+
+			var header = Unsafe.ReadUnaligned<RegisterAccessHeader>(ref MemoryMarshal.GetReference(message));
+
+			// If we receive a device connect notification, it indicates a new device. (In the sense of not yet known; not necessarily a new pairing)
+			// Once we create the device object, it will automatically process the notifications.
+			if (header.SubId == SubId.DeviceConnect)
+			{
+				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
+
+				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
+				if (parameters.WirelessProductId != ProductId)
+				{
+					DisposeInternal();
+					Receiver.HandleNotification(message);
+					return;
+				}
+
+				bool wasConnected = DeviceConnectionInfo.IsLinkEstablished;
+				bool isConnected = parameters.DeviceInfo.IsLinkEstablished;
+
+				// Update the connection information.
+				Volatile.Write(ref Unsafe.As<DeviceConnectionInfo, byte>(ref DeviceConnectionInfo), (byte)parameters.DeviceInfo);
+
+				if (isConnected && !wasConnected && !Volatile.Read(ref _isInitialized))
+				{
+					Receiver.RegisterNotificationTask(UpdateDeviceInformationAsync());
+				}
+			}
 		}
 
+		private async Task UpdateDeviceInformationAsync()
+		{
+			var transport = Transport;
+
+			if (CachedFeatures is not { } features)
+			{
+				features = await transport.GetFeaturesAsync(DeviceIndex, default).ConfigureAwait(false);
+			}
+
+			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, DeviceIndex, default).ConfigureAwait(false);
+
+			// Update the device information if we were able to retrieve the device name.
+			if (retrievedName is not null)
+			{
+				DeviceType = retrievedType;
+				FriendlyName = retrievedName;
+			}
+
+			Volatile.Write(ref _isInitialized, true);
+		}
+
+		private void DisposeInternal()
+		{
+			var device = Transport.Devices[DeviceIndex];
+			device.NotificationReceived += HandleNotification;
+			Volatile.Write(ref device.CustomState, null);
+		}
+
+		// Instances of this class should not be disposed externally. The DisposeAsync method does nothing.
 		public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 }

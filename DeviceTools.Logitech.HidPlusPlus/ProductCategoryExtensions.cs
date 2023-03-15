@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.Logitech.HidPlusPlus;
+namespace DeviceTools.Logitech.HidPlusPlus;
 
 public static class ProductCategoryExtensions
 {
@@ -34,5 +34,19 @@ public static class ProductCategoryExtensions
 			ProductCategory.QuadMouse or
 			ProductCategory.QuadKeyboard => DeviceConnectionType.Wireless,
 			_ => DeviceConnectionType.Unknown,
+		};
+
+	public static RegisterAccessProtocol.DeviceType InferDeviceType(this ProductCategory category)
+		=> category switch
+		{
+			ProductCategory.BluetoothKeyboard or
+			ProductCategory.UsbKeyboard or
+			ProductCategory.QuadKeyboard => RegisterAccessProtocol.DeviceType.Keyboard,
+			ProductCategory.BluetoothMouse or
+			ProductCategory.UsbMouse or
+			ProductCategory.QuadMouse => RegisterAccessProtocol.DeviceType.Mouse,
+			ProductCategory.BluetoothNumpad => RegisterAccessProtocol.DeviceType.Numpad,
+			ProductCategory.UsbTrackBall => RegisterAccessProtocol.DeviceType.Trackball,
+			_ => RegisterAccessProtocol.DeviceType.Unknown,
 		};
 }
