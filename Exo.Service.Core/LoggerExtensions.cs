@@ -14,7 +14,7 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1002, EventName = "HidDeviceRemoval", Level = LogLevel.Debug, Message = "Removal of HID device: \"{DeviceName}\".")]
 	public static partial void HidDeviceRemoval(this ILogger logger, string deviceName);
 
-	[LoggerMessage(EventId = 1003, EventName = "HidDriverUnregisterSuccess", Level = LogLevel.Information, Message = "Succesfully unregistered the driver {DriverType} for device \"{DeviceName}\".")]
+	[LoggerMessage(EventId = 1003, EventName = "HidDriverUnregisterSuccess", Level = LogLevel.Information, Message = "Successfully unregistered the driver {DriverType} for device \"{DeviceName}\".")]
 	public static partial void HidDriverUnregisterSuccess(this ILogger logger, Type driverType, string deviceName);
 
 	[LoggerMessage(EventId = 1004, EventName = "HidDriverUnregisterFailure", Level = LogLevel.Warning, Message = "Failed to unregister the driver {DriverType} for device \"{DeviceName}\".")]
@@ -97,4 +97,7 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 1015, EventName = "HidDriverDisposeFailure", Level = LogLevel.Error, Message = "Failed to dispose an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
 	public static partial void HidDriverDisposeFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
+
+	[LoggerMessage(EventId = 1099, EventName = "HidDeviceNotificationSinkError", Level = LogLevel.Critical, Message = "An exception occurred when processing HID arrivals and removals.")]
+	public static partial void HidDeviceNotificationSinkError(this ILogger logger, Exception ex);
 }

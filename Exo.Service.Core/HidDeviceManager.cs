@@ -303,12 +303,17 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 			}
 		}
 		catch (OperationCanceledException) { }
+		catch (Exception ex)
+		{
+			_logger.HidDeviceNotificationSinkError(ex);
+		}
 	}
 
 	private async Task ProcessAlreadyConnectedDevicesAsync(CancellationToken cancellationToken)
 	{
 		foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
 		{
+			_logger.HidDeviceArrival(deviceName);
 			await HandleDeviceArrivalAsync(deviceName, cancellationToken).ConfigureAwait(false);
 		}
 	}
