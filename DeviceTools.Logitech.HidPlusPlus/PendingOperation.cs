@@ -1,22 +1,24 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using System.Runtime.InteropServices;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
 // This base class allows working with the various return type of Send operations without needing to know the expected type of result when it is not necessary.
 internal abstract class PendingOperation
 {
+	// The type of task completion source will indicate the type of response message expected.
+	protected object TaskCompletionSource { get; }
+
 	private readonly RawMessageHeader _header;
 	public ref readonly RawMessageHeader Header => ref _header;
 
-	// The type of task completion source will indicate the type of response message expected.
-	protected object TaskCompletionSource { get; }
+	public long Timestamp { get; }
 
 	protected PendingOperation(RawMessageHeader header, object taskCompletionSource)
 	{
 		_header = header;
 		TaskCompletionSource = taskCompletionSource;
+		Timestamp = Stopwatch.GetTimestamp();
 	}
 
 	// Allows to await the Task exposed by the TaskCompletionSource object.

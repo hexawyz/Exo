@@ -1,19 +1,19 @@
+using System;
 using System.Buffers;
 using System.Collections;
-using System.Reflection.Metadata.Ecma335;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using System.Runtime.InteropServices;
-using System.Threading.Channels;
+using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
-using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
 // I really wished to avoid having an inner class, but this seems clearer to separate between Hid++ 1.0 and HID++ 2.0.
 // The transport will be mostly version-agnostic, while the wrapper will be specialized for either version.
-public sealed class HidPlusPlusTransport
+public sealed class HidPlusPlusTransport : IAsyncDisposable
 {
 	public const int ShortReportId = 0x10;
 	public const int LongReportId = 0x11;
@@ -198,6 +198,16 @@ public sealed class HidPlusPlusTransport
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
+	// Wrap the logic for request timeout in a single instance delegate that will dispatch calls to the correct transport instance.
+	private sealed class RequestTimeout
+	{
+		public static readonly TimerCallback Callback = new RequestTimeout().HandleRequestTimeout;
+
+		private RequestTimeout() { }
+
+		private void HandleRequestTimeout(object? state) => Unsafe.As<HidPlusPlusTransport>(state)!.HandleRequestTimeout();
+	}
+
 	private static void AddHandler(ref HidPlusPlusRawNotificationHandler? storage, HidPlusPlusRawNotificationHandler? handler)
 	{
 		var @base = Volatile.Read(ref storage);
@@ -228,9 +238,13 @@ public sealed class HidPlusPlusTransport
 	private static readonly BufferPool LongBufferPool = new BufferPool(20, 40);
 	private static readonly BufferPool VeryLongBufferPool = new BufferPool(64, 20);
 
+	private static readonly double StopwatchTicksToMilliseconds = 1000d / Stopwatch.Frequency;
+	private static readonly double TimeSpanToStopwatchTicks = (double)Stopwatch.Frequency / TimeSpan.TicksPerSecond;
+
 	private readonly HidFullDuplexStream? _shortMessageStream;
 	private readonly HidFullDuplexStream? _longMessageStream;
 	private readonly HidFullDuplexStream? _veryLongMessageStream;
+	private readonly Timer _timeoutTimer;
 
 	private HidPlusPlusRawNotificationHandler? _defaultNotificationHandler;
 
@@ -241,8 +255,8 @@ public sealed class HidPlusPlusTransport
 	private readonly SupportedReports _supportedReports;
 	private readonly byte _softwareId;
 
-	// TODO: Reimplement requests timeouts. It could possibly break if we don't do this.
-	private readonly TimeSpan _requestTimeout;
+	private readonly long _requestTimeoutInStopwatchTicks;
+	private readonly List<PendingOperation> _pendingOperations;
 
 	/// <summary>Initializes a new instance of the class <see cref="HidPlusPlusTransport"/>.</summary>
 	/// <remarks>
@@ -282,20 +296,129 @@ public sealed class HidPlusPlusTransport
 		// Hoping this is a reasonable assumption here.
 		if (_shortMessageStream is null && longMessageStream is null) throw new ArgumentException("Must at least provide a stream for short or long messages.");
 		if (featureAccessSoftwareId is 0 or > 15) throw new ArgumentOutOfRangeException(nameof(featureAccessSoftwareId));
+		// 10ms to 60s should be a sensible enough range for request timeout. An ideal value would probably be somewhere between 100ms and 1s.
+		if (requestTimeout.Ticks is < 10 * TimeSpan.TicksPerMillisecond or > TimeSpan.TicksPerMinute)
+		{
+			throw new ArgumentOutOfRangeException(nameof(requestTimeout), "HID++ transport must define a valid request timeout.");
+		}
 
 		_shortMessageStream = shortMessageStream;
 		_longMessageStream = longMessageStream;
 		_veryLongMessageStream = veryLongMessageStream;
-		_requestTimeout = requestTimeout;
+		_requestTimeoutInStopwatchTicks = (long)(requestTimeout.Ticks * TimeSpanToStopwatchTicks);
+		_timeoutTimer = new Timer(RequestTimeout.Callback, this, Timeout.Infinite, Timeout.Infinite);
 		_supportedReports = (_shortMessageStream is not null ? SupportedReports.Short : 0) |
 			(_longMessageStream is not null ? SupportedReports.Long : 0) |
 			(_veryLongMessageStream is not null ? SupportedReports.VeryLong : 0);
 		_softwareId = featureAccessSoftwareId;
 		_disposeCancellationTokenSource = new CancellationTokenSource();
+		_pendingOperations = new();
 		_readTask = ReadAsync(_disposeCancellationTokenSource.Token);
 	}
 
-	public void Dispose() => DisposeAsync().GetAwaiter().GetResult();
+	private void HandleRequestTimeout()
+	{
+		lock (_timeoutTimer)
+		{
+			ProcessTimeoutsAndUpdateTimer();
+		}
+	}
+
+	private void RegisterPendingOperation(PendingOperation operation)
+	{
+		lock (_pendingOperations)
+		{
+			int i = _pendingOperations.Count;
+
+			for (; i > 0; i--)
+			{
+				if (operation.Timestamp - _pendingOperations[i - 1].Timestamp > 0)
+				{
+					break;
+				}
+			}
+
+			_pendingOperations.Insert(i, operation);
+
+			if (i == 0)
+			{
+				SetTimer(_timeoutTimer, operation.Timestamp + _requestTimeoutInStopwatchTicks);
+			}
+		}
+	}
+
+	private void UnregisterPendingOperation(PendingOperation operation)
+	{
+		lock (_pendingOperations)
+		{
+			if (_pendingOperations.IndexOf(operation) is int index and >= 0)
+			{
+				_pendingOperations.RemoveAt(index);
+				if (_pendingOperations.Count == 0)
+				{
+					_timeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
+				}
+				else if (index == 0)
+				{
+					SetTimer(_timeoutTimer, operation.Timestamp + _requestTimeoutInStopwatchTicks);
+				}
+			}
+		}
+	}
+
+	private static void SetTimer(Timer timer, long expirationTimestamp)
+		=> SetTimer(timer, expirationTimestamp, Stopwatch.GetTimestamp());
+
+	private static void SetTimer(Timer timer, long expirationTimestamp, long now)
+		=> timer.Change(GetNextDelay(expirationTimestamp, now), Timeout.Infinite);
+
+	private static long GetNextDelay(long expirationTimestamp, long now)
+		=> Math.Max(0, (long)((expirationTimestamp - now) * StopwatchTicksToMilliseconds));
+
+	private void ProcessTimeoutsAndUpdateTimer()
+	{
+		lock (_pendingOperations)
+		{
+			long now = Stopwatch.GetTimestamp();
+
+			while (true)
+			{
+				// Move the expiration timestamp in the past, as all operations use the same timeout and they only indicate their start timestamp.
+				// NB: Otherwise, we'd need to pass the expiration timestamp in each operation, but we probably won't need that.
+				long expirationTimestamp = now - _requestTimeoutInStopwatchTicks;
+
+				for (int i = 0; i < _pendingOperations.Count; i++)
+				{
+					var operation = _pendingOperations[i];
+					// If the operation has expired, clear it. Otherwise, update the next expiration timestamp if it is before than the current operation timestamp.
+					if (operation.Timestamp - expirationTimestamp <= 0)
+					{
+						ClearOperation(GetOrCreateDeviceState(operation.Header.DeviceIndex), operation);
+						operation.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new TimeoutException()));
+					}
+					else
+					{
+						_pendingOperations.RemoveRange(0, i);
+						break;
+					}
+				}
+
+				// If there are still some pending operations, the timer should be rescheduled.
+				if (_pendingOperations.Count > 0)
+				{
+					long delay = GetNextDelay(_pendingOperations[0].Timestamp + _requestTimeoutInStopwatchTicks, now = Stopwatch.GetTimestamp());
+
+					// It is possible that some operations are now expired. (The thread running this code can sleep at any time for any duration since we looked up the timestamp)
+					// If that is the case, we'll just do another iteration of the loop and process those operations.
+					if (delay > 0)
+					{
+						_timeoutTimer.Change(delay, Timeout.Infinite);
+						return;
+					}
+				}
+			}
+		}
+	}
 
 	public async ValueTask DisposeAsync()
 	{
@@ -532,6 +655,15 @@ public sealed class HidPlusPlusTransport
 		}
 	}
 
+	// Exclusively clears a pending operation. (Pending operations can be cleared either by timeout or normal completion)
+	private static void ClearOperation(DeviceState deviceState, PendingOperation currentOperation) => Interlocked.CompareExchange(ref deviceState.PendingOperation, null, currentOperation);
+
+	private void EndOperation(DeviceState deviceState, PendingOperation currentOperation)
+	{
+		ClearOperation(deviceState, currentOperation);
+		UnregisterPendingOperation(currentOperation);
+	}
+
 	private void ProcessReadMessage(ReadOnlySpan<byte> message)
 	{
 		// Interpret the message header in a more accessible format.
@@ -581,7 +713,7 @@ public sealed class HidPlusPlusTransport
 				new global::DeviceTools.Logitech.HidPlusPlus.HidPlusPlus1Exception((global::DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.ErrorCode)errorCode) :
 				new global::DeviceTools.Logitech.HidPlusPlus.HidPlusPlus2Exception((global::DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.ErrorCode)errorCode);
 
-			Volatile.Write(ref deviceState!.PendingOperation, null);
+			EndOperation(deviceState!, currentOperation);
 			currentOperation.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(ex));
 		}
 
@@ -596,7 +728,7 @@ public sealed class HidPlusPlusTransport
 		{
 			if (currentOperation.Header.EqualsWithoutReportId(header))
 			{
-				Volatile.Write(ref deviceState!.PendingOperation, null);
+				EndOperation(deviceState!, currentOperation);
 				currentOperation.TrySetResult(message);
 			}
 		}
@@ -730,18 +862,45 @@ public sealed class HidPlusPlusTransport
 	// So in this case, async void should be an appropriate design.
 	private async void SendAsyncCore(IMemoryOwner<byte> message, HidFullDuplexStream stream, PendingOperation operation, CancellationToken cancellationToken)
 	{
-		try
+		using (message)
 		{
-			using (message)
+			try
+			{
+				RegisterPendingOperation(operation);
+			}
+			catch (Exception ex)
+			{
+				operation.TrySetException(ex);
+				return;
+			}
+
+			try
 			{
 				// The pending operation will be unset in the ReadAsync method, so the current method should actually be quite short
 				await SetPendingOperationAsync(operation.Header.DeviceIndex, operation, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				UnregisterPendingOperation(operation);
+				operation.TrySetException(ex);
+				return;
+			}
+
+			if (operation.WaitAsync().IsFaulted)
+			{
+				return;
+			}
+
+			try
+			{
 				await stream.WriteAsync(message.Memory).ConfigureAwait(false);
 			}
-		}
-		catch (Exception ex)
-		{
-			operation.TrySetException(ex);
+			catch (Exception ex)
+			{
+				EndOperation(GetOrCreateDeviceState(operation.Header.DeviceIndex), operation);
+				operation.TrySetException(ex);
+				return;
+			}
 		}
 	}
 
@@ -752,13 +911,15 @@ public sealed class HidPlusPlusTransport
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
+			if (operation.WaitAsync().IsFaulted) return;
+
 			if (Interlocked.CompareExchange(ref state.PendingOperation, operation, null) is { } pending)
 			{
 				await pending.WaitAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
-				break;
+				return;
 			}
 		}
 	}

@@ -1,14 +1,8 @@
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
-using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
-using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
-using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
-using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
 using Exo.Features;
 
 namespace Exo.Devices.Logitech;
@@ -219,7 +213,7 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 			productId,
 			SoftwareId,
 			friendlyName,
-			new TimeSpan(100 * TimeSpan.TicksPerSecond)
+			new TimeSpan(500 * TimeSpan.TicksPerMillisecond)
 		);
 
 		// HID++ devices will expose multiple interfaces, each with their own top-level collection.
