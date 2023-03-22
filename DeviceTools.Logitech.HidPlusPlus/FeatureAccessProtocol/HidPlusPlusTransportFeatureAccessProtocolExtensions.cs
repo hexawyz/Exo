@@ -27,6 +27,28 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 		return new HidPlusPlusVersion(getVersionResponse.Major, getVersionResponse.Minor);
 	}
 
+	public static async Task<HidPlusPlusVersion> GetProtocolVersionWithRetryAsync(this HidPlusPlusTransport transport, byte deviceId, int retryCount, CancellationToken cancellationToken)
+	{
+		// This an arbitrarily chosen value to validate the (ping) response.
+		// Logitech Options and G-Hub use 0x90 here.
+		const byte Beacon = 0xA5;
+
+		var getVersionResponse = await transport.FeatureAccessSendWithRetryAsync<Root.GetVersion.Request, Root.GetVersion.Response>
+		(
+			deviceId,
+			0,
+			Root.GetVersion.FunctionId,
+			new Root.GetVersion.Request { Beacon = Beacon },
+			retryCount,
+			cancellationToken
+		).ConfigureAwait(false);
+
+		if (getVersionResponse.Beacon != Beacon)
+			throw new Exception("Received an invalid response.");
+
+		return new HidPlusPlusVersion(getVersionResponse.Major, getVersionResponse.Minor);
+	}
+
 	public static async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsync(this HidPlusPlusTransport transport, byte deviceId, CancellationToken cancellationToken)
 	{
 		var getCountResponse = await transport.FeatureAccessSendAsync<FeatureSet.GetCount.Response>(deviceId, 1, FeatureSet.GetCount.FunctionId, cancellationToken);
@@ -60,6 +82,46 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 		return readOnlyFeatures;
 	}
 
+	public static async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesWithRetryAsync
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceId,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+	{
+		var getCountResponse = await transport.FeatureAccessSendWithRetryAsync<FeatureSet.GetCount.Response>(deviceId, 1, FeatureSet.GetCount.FunctionId, retryCount, cancellationToken);
+
+		if (getCountResponse.Count == 0)
+			throw new InvalidOperationException();
+
+		int count = getCountResponse.Count + 1;
+
+		var features = new Dictionary<HidPlusPlusFeature, byte>(count)
+		{
+			{ HidPlusPlusFeature.Root, 0 }
+		};
+
+		for (int i = 1; i < count; i++)
+		{
+			var getFeatureIdResponse = await transport.FeatureAccessSendWithRetryAsync<FeatureSet.GetFeatureId.Request, FeatureSet.GetFeatureId.Response>
+			(
+				deviceId,
+				1,
+				1,
+				new FeatureSet.GetFeatureId.Request { Index = (byte)i },
+				retryCount,
+				cancellationToken
+			);
+
+			features.Add(getFeatureIdResponse.FeatureId, (byte)i);
+		}
+
+		var readOnlyFeatures = new ReadOnlyDictionary<HidPlusPlusFeature, byte>(features);
+
+		return readOnlyFeatures;
+	}
+
 	public static async Task<byte> GetFeatureIndexAsync(this HidPlusPlusTransport transport, byte deviceId, HidPlusPlusFeature feature, CancellationToken cancellationToken)
 	{
 		var getFeatureResponse = await transport.FeatureAccessSendAsync<Root.GetFeature.Request, Root.GetFeature.Response>
@@ -68,6 +130,21 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 			0,
 			Root.GetFeature.FunctionId,
 			new Root.GetFeature.Request { FeatureId = feature },
+			cancellationToken
+		);
+
+		return getFeatureResponse.Index;
+	}
+
+	public static async Task<byte> GetFeatureIndexWithRetryAsync(this HidPlusPlusTransport transport, byte deviceId, HidPlusPlusFeature feature, int retryCount, CancellationToken cancellationToken)
+	{
+		var getFeatureResponse = await transport.FeatureAccessSendWithRetryAsync<Root.GetFeature.Request, Root.GetFeature.Response>
+		(
+			deviceId,
+			0,
+			Root.GetFeature.FunctionId,
+			new Root.GetFeature.Request { FeatureId = feature },
+			retryCount,
 			cancellationToken
 		);
 

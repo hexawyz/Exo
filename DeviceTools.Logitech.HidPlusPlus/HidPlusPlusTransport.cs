@@ -792,13 +792,15 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 
 	// This method was previously implemented as one version for each input message length, but having it handle everything seems better.
 	// It being non generic will also help with generic code creep, although generic code is still used for callers.
-	internal Task SendAsync(
+	internal Task SendAsync
+	(
 		byte deviceIndex,
 		byte subIdOrFeatureIndex,
 		byte addressOrFunctionIdAndSoftwareId,
 		ReadOnlySpan<byte> parameters,
 		Func<RawMessageHeader, PendingOperation> operationFactory,
-		CancellationToken cancellationToken)
+		CancellationToken cancellationToken
+	)
 	{
 		RawMessageHeader header;
 		PendingOperation operation;

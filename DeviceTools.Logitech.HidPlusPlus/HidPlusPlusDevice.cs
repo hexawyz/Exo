@@ -176,7 +176,19 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			var transport = new HidPlusPlusTransport(shortMessageStream, longMessageStream, veryLongMessageStream, softwareId, requestTimeout);
 			try
 			{
-				return await CreateAsync(null, transport, expectedProtocolFlavor, productId, 255, default, externalFriendlyName, null, default).ConfigureAwait(false);
+				return await CreateAsync
+				(
+					null,
+					transport,
+					expectedProtocolFlavor,
+					productId,
+					255,
+					default,
+					externalFriendlyName,
+					null,
+					HidPlusPlusTransportExtensions.DefaultRetryCount,
+					default
+				).ConfigureAwait(false);
 			}
 			catch
 			{
@@ -203,6 +215,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		DeviceConnectionInfo deviceInfo, // In the case of a receiver, information obtained when the device was discovered.
 		string? externalFriendlyName,
 		string? serialNumberFromReceiverPairing,
+		int retryCount,
 		CancellationToken cancellationToken
 	)
 	{
@@ -218,7 +231,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		if (parent is null || deviceInfo.IsLinkEstablished)
 		{
-			protocolVersion = await GetVersionAsync(transport, deviceIndex, cancellationToken).ConfigureAwait(false);
+			protocolVersion = await GetVersionAsync(transport, deviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 		}
 		else if (expectedProtocolFlavor is HidPlusPlusProtocolFlavor.RegisterAccess)
 		{
@@ -240,7 +253,18 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			transport.Devices[deviceIndex].SetProtocolFlavor(HidPlusPlusProtocolFlavor.RegisterAccess);
 
-			return await CreateRegisterAccessAsync(parent, transport, productId, deviceIndex, deviceInfo, externalFriendlyName, serialNumberFromReceiverPairing, cancellationToken).ConfigureAwait(false);
+			return await CreateRegisterAccessAsync
+			(
+				parent,
+				transport,
+				productId,
+				deviceIndex,
+				deviceInfo,
+				externalFriendlyName,
+				serialNumberFromReceiverPairing,
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
 		}
 		else if (protocolVersion.Major is >= 2 and <= 4)
 		{
@@ -248,7 +272,18 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			transport.Devices[deviceIndex].SetProtocolFlavor(expectedProtocolFlavor is HidPlusPlusProtocolFlavor.Unknown ? HidPlusPlusProtocolFlavor.FeatureAccess : expectedProtocolFlavor);
 
-			return await CreateFeatureAccessAsync(parent, transport, productId, deviceIndex, deviceInfo, externalFriendlyName, serialNumberFromReceiverPairing, cancellationToken).ConfigureAwait(false);
+			return await CreateFeatureAccessAsync
+			(
+				parent,
+				transport,
+				productId,
+				deviceIndex,
+				deviceInfo,
+				externalFriendlyName,
+				serialNumberFromReceiverPairing,
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
 		}
 		else
 		{
@@ -259,11 +294,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		throw new Exception("Protocol flavor does not match.");
 	}
 
-	private static async Task<HidPlusPlusVersion> GetVersionAsync(HidPlusPlusTransport transport, byte deviceIndex, CancellationToken cancellationToken)
+	private static async Task<HidPlusPlusVersion> GetVersionAsync(HidPlusPlusTransport transport, byte deviceIndex, int retryCount, CancellationToken cancellationToken)
 	{
 		try
 		{
-			return await transport.GetProtocolVersionAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
+			return await transport.GetProtocolVersionWithRetryAsync(deviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 		}
 		catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidSubId)
 		{
@@ -280,6 +315,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		DeviceConnectionInfo deviceInfo,
 		string? externalFriendlyName,
 		string? serialNumberFromReceiverPairing,
+		int retryCount,
 		CancellationToken cancellationToken
 	)
 	{
@@ -306,11 +342,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			// Unifying receivers and some other should answer to this relatively undocumented call that will provide the "serial number" among other things.
 			// We can find trace of this in the logitech Unifying chrome extension, where the serial number is also called base address. (A radio thing?)
-			var receiverInformation = await transport.RegisterAccessGetLongRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ReceiverInformationResponse>
+			var receiverInformation = await transport.RegisterAccessGetLongRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ReceiverInformationResponse>
 			(
 				deviceIndex,
 				Address.NonVolatileAndPairingInformation,
 				new NonVolatileAndPairingInformation.Request(NonVolatileAndPairingInformation.Parameter.ReceiverInformation),
+				retryCount,
 				cancellationToken
 			).ConfigureAwait(false);
 
@@ -330,10 +367,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			try
 			{
-				var boltSerialNumberResponse = await transport.RegisterAccessGetLongRegisterAsync<BoltSerialNumber.Response>
+				var boltSerialNumberResponse = await transport.RegisterAccessGetLongRegisterWithRetryAsync<BoltSerialNumber.Response>
 				(
 					deviceIndex,
 					Address.BoltSerialNumber,
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -365,7 +403,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			try
 			{
 				// Enable device arrival notifications, and set the "software present" flag.
-				await transport.RegisterAccessSetRegisterAsync
+				await transport.RegisterAccessSetRegisterWithRetryAsync
 				(
 					255,
 					Address.EnableHidPlusPlusNotifications,
@@ -373,11 +411,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					{
 						ReceiverReportingFlags = ReceiverReportingFlags.WirelessNotifications | ReceiverReportingFlags.SoftwarePresent
 					},
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
 				// Enumerate all connected devices.
-				await transport.RegisterAccessSetRegisterAsync
+				await transport.RegisterAccessSetRegisterWithRetryAsync
 				(
 					255,
 					Address.ConnectionState,
@@ -385,6 +424,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					{
 						Action = ConnectionStateAction.FakeDeviceArrival
 					},
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 			}
@@ -407,6 +447,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		DeviceConnectionInfo deviceInfo,
 		string? externalFriendlyName,
 		string? serialNumberFromReceiverPairing,
+		int retryCount,
 		CancellationToken cancellationToken
 	)
 	{
@@ -433,9 +474,9 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		if (parent is null || deviceInfo.IsLinkEstablished)
 		{
-			features = await transport.GetFeaturesAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
+			features = await transport.GetFeaturesWithRetryAsync(deviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
-			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, deviceIndex, cancellationToken);
+			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, deviceIndex, retryCount, cancellationToken);
 
 			if (retrievedName is not null)
 			{
@@ -445,21 +486,23 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out byte featureIndex))
 			{
-				var deviceInfoResponse = await transport.FeatureAccessSendAsync<DeviceInformation.GetDeviceInfo.Response>
+				var deviceInfoResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceInfo.Response>
 				(
 					deviceIndex,
 					featureIndex,
 					DeviceInformation.GetDeviceInfo.FunctionId,
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
 				if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
 				{
-					var serialNumberResponse = await transport.FeatureAccessSendAsync<DeviceInformation.GetDeviceSerialNumber.Response>
+					var serialNumberResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceSerialNumber.Response>
 					(
 						deviceIndex,
 						featureIndex,
 						DeviceInformation.GetDeviceSerialNumber.FunctionId,
+						retryCount,
 						cancellationToken
 					).ConfigureAwait(false);
 
@@ -483,6 +526,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		HidPlusPlusTransport transport,
 		ReadOnlyDictionary<HidPlusPlusFeature, byte> features,
 		byte deviceIndex,
+		int retryCount,
 		CancellationToken cancellationToken
 	)
 	{
@@ -491,21 +535,23 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		if (features.TryGetValue(HidPlusPlusFeature.DeviceNameAndType, out byte featureIndex))
 		{
-			var deviceTypeResponse = await transport.FeatureAccessSendAsync<DeviceNameAndType.GetDeviceType.Response>
+			var deviceTypeResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceNameAndType.GetDeviceType.Response>
 			(
 				deviceIndex,
 				featureIndex,
 				DeviceNameAndType.GetDeviceType.FunctionId,
+				retryCount,
 				cancellationToken
 			).ConfigureAwait(false);
 
 			deviceType = deviceTypeResponse.DeviceType;
 
-			var deviceNameLengthResponse = await transport.FeatureAccessSendAsync<DeviceNameAndType.GetDeviceNameLength.Response>
+			var deviceNameLengthResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceNameAndType.GetDeviceNameLength.Response>
 			(
 				deviceIndex,
 				featureIndex,
 				DeviceNameAndType.GetDeviceNameLength.FunctionId,
+				retryCount,
 				cancellationToken
 			).ConfigureAwait(false);
 
@@ -516,12 +562,13 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			while (true)
 			{
-				var deviceNameResponse = await transport.FeatureAccessSendAsync<DeviceNameAndType.GetDeviceName.Request, DeviceNameAndType.GetDeviceName.Response>
+				var deviceNameResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceNameAndType.GetDeviceName.Request, DeviceNameAndType.GetDeviceName.Response>
 				(
 					deviceIndex,
 					featureIndex,
 					DeviceNameAndType.GetDeviceName.FunctionId,
 					new DeviceNameAndType.GetDeviceName.Request { Offset = (byte)offset },
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -616,11 +663,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		)
 			where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 			where TResponseParameters : struct, IMessageParameters
-			=> Transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+			=> Transport.RegisterAccessGetRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TResponseParameters>(Address address, CancellationToken cancellationToken)
 			where TResponseParameters : struct, IShortMessageParameters
-			=> Transport.RegisterAccessGetShortRegisterAsync<TResponseParameters>(DeviceIndex, address, cancellationToken);
+			=> Transport.RegisterAccessGetShortRegisterWithRetryAsync<TResponseParameters>(DeviceIndex, address, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>
 		(
@@ -630,11 +677,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		)
 			where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 			where TResponseParameters : struct, IShortMessageParameters
-			=> Transport.RegisterAccessGetShortRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+			=> Transport.RegisterAccessGetShortRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TResponseParameters>(Address address, CancellationToken cancellationToken)
 			where TResponseParameters : struct, ILongMessageParameters
-			=> Transport.RegisterAccessGetLongRegisterAsync<TResponseParameters>(DeviceIndex, address, cancellationToken);
+			=> Transport.RegisterAccessGetLongRegisterWithRetryAsync<TResponseParameters>(DeviceIndex, address, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>
 		(
@@ -644,11 +691,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		)
 			where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 			where TResponseParameters : struct, ILongMessageParameters
-			=> Transport.RegisterAccessGetLongRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+			=> Transport.RegisterAccessGetLongRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TResponseParameters>(Address address, CancellationToken cancellationToken)
 			where TResponseParameters : struct, IVeryLongMessageParameters
-			=> Transport.RegisterAccessGetVeryLongRegisterAsync<TResponseParameters>(DeviceIndex, address, cancellationToken);
+			=> Transport.RegisterAccessGetVeryLongRegisterWithRetryAsync<TResponseParameters>(DeviceIndex, address, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TRequestParameters, TResponseParameters>
 		(
@@ -658,7 +705,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		)
 			where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 			where TResponseParameters : struct, IVeryLongMessageParameters
-			=> Transport.RegisterAccessGetVeryLongRegisterAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, cancellationToken);
+			=> Transport.RegisterAccessGetVeryLongRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 	}
 
 	public class RegisterAccessReceiver : RegisterAccess
@@ -716,7 +763,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		// Get device information from the pairing data in the receiver.
 		// For HID++ 2.0 devices, this may be less good than what will be discovered through the device itself, but this will work even when the device is disconnected.
-		protected virtual async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync(byte deviceIndex, CancellationToken cancellationToken)
+		protected virtual async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
+		(
+			byte deviceIndex,
+			int retryCount,
+			CancellationToken cancellationToken
+		)
 		{
 			if (deviceIndex is 0x00 or > 0x0F) return default;
 
@@ -726,11 +778,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			try
 			{
-				var pairingInformationResponse = await Transport.RegisterAccessGetRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.PairingInformationResponse>
+				var pairingInformationResponse = await Transport.RegisterAccessGetRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.PairingInformationResponse>
 				(
 					255,
 					Address.NonVolatileAndPairingInformation,
 					new(NonVolatileAndPairingInformation.Parameter.PairingInformation1 + (deviceIndex - 1)),
+					retryCount,
 					cancellationToken
 				);
 
@@ -742,11 +795,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			try
 			{
-				var extendedPairingInformationResponse = await Transport.RegisterAccessGetRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ExtendedPairingInformationResponse>
+				var extendedPairingInformationResponse = await Transport.RegisterAccessGetRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ExtendedPairingInformationResponse>
 				(
 					255,
 					Address.NonVolatileAndPairingInformation,
 					new(NonVolatileAndPairingInformation.Parameter.ExtendedPairingInformation1 + (deviceIndex - 1)),
+					retryCount,
 					cancellationToken
 				);
 
@@ -758,11 +812,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			try
 			{
-				var deviceNameResponse = await Transport.RegisterAccessGetRegisterAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.DeviceNameResponse>
+				var deviceNameResponse = await Transport.RegisterAccessGetRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.DeviceNameResponse>
 				(
 					255,
 					Address.NonVolatileAndPairingInformation,
 					new(NonVolatileAndPairingInformation.Parameter.DeviceName1 + (deviceIndex - 1)),
+					retryCount,
 					cancellationToken
 				);
 
@@ -788,9 +843,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			{
 				try
 				{
-					var task = CreateConnectedDeviceAsync(protocolFlavor, productId, deviceIndex, deviceInfo, default);
+					var task = CreateConnectedDeviceAsync(protocolFlavor, productId, deviceIndex, deviceInfo, HidPlusPlusTransportExtensions.DefaultRetryCount, default);
 
 					Volatile.Write(ref Transport.Devices[deviceIndex].CustomState, task);
+
+					await task;
 				}
 				catch
 				{
@@ -806,11 +863,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			ushort productId,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceInfo,
+			int retryCount,
 			CancellationToken cancellationToken
 		)
 		{
-			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, cancellationToken).ConfigureAwait(false);
-			return await CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, default).ConfigureAwait(false);
+			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
+			return await CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
 		}
 
 		// NB: We don't need to unregister our notification handler here, since the transport is owned by the current instance.
@@ -832,7 +890,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 		}
 
-		protected override Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync(byte deviceIndex, CancellationToken cancellationToken)
+		protected override Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
+		(
+			byte deviceIndex,
+			int retryCount,
+			CancellationToken cancellationToken
+		)
 		{
 			// TODO: Implement Bolt status.
 			return default;
@@ -954,7 +1017,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			CancellationToken cancellationToken
 		)
 			where TResponseParameters : struct, IMessageResponseParameters
-			=> Transport.FeatureAccessSendAsync<TResponseParameters>(DeviceIndex, featureIndex, functionId, cancellationToken);
+			=> Transport.FeatureAccessSendWithRetryAsync<TResponseParameters>(DeviceIndex, featureIndex, functionId, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task SendAsync<TRequestParameters>
 		(
@@ -964,7 +1027,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			CancellationToken cancellationToken
 		)
 			where TRequestParameters : struct, IMessageRequestParameters
-			=> Transport.FeatureAccessSendAsync(DeviceIndex, featureIndex, functionId, requestParameters, cancellationToken);
+			=> Transport.FeatureAccessSendWithRetryAsync(DeviceIndex, featureIndex, functionId, requestParameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
 		public Task<TResponseParameters> SendAsync<TRequestParameters, TResponseParameters>
 		(
@@ -975,7 +1038,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		)
 			where TRequestParameters : struct, IMessageRequestParameters
 			where TResponseParameters : struct, IMessageResponseParameters
-			=> Transport.FeatureAccessSendAsync<TRequestParameters, TResponseParameters>(DeviceIndex, featureIndex, functionId, requestParameters, cancellationToken);
+			=> Transport.FeatureAccessSendWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, featureIndex, functionId, requestParameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 	}
 
 	public sealed class FeatureAccessDirect : FeatureAccess
@@ -1054,21 +1117,21 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 				if (isConnected && !wasConnected && !Volatile.Read(ref _isInitialized))
 				{
-					Receiver.RegisterNotificationTask(UpdateDeviceInformationAsync());
+					Receiver.RegisterNotificationTask(UpdateDeviceInformationAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, default));
 				}
 			}
 		}
 
-		private async Task UpdateDeviceInformationAsync()
+		private async Task UpdateDeviceInformationAsync(int retryCount, CancellationToken cancellationToken)
 		{
 			var transport = Transport;
 
 			if (CachedFeatures is not { } features)
 			{
-				features = await transport.GetFeaturesAsync(DeviceIndex, default).ConfigureAwait(false);
+				features = await transport.GetFeaturesWithRetryAsync(DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 			}
 
-			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, DeviceIndex, default).ConfigureAwait(false);
+			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
 			// Update the device information if we were able to retrieve the device name.
 			if (retrievedName is not null)
