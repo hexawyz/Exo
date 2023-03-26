@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 
@@ -6,7 +6,7 @@ namespace DeviceTools.Logitech.HidPlusPlus;
 
 internal struct LightweightSingleProducerSingleConsumerQueue<T> : IDisposable
 {
-	private static readonly object DisposedSignal = new();
+	private static readonly object DisposedSentinel = new();
 
 	private readonly ConcurrentQueue<T> _queue = new();
 	private object? _signal;
@@ -17,7 +17,7 @@ internal struct LightweightSingleProducerSingleConsumerQueue<T> : IDisposable
 
 	public void Dispose()
 	{
-		if (Interlocked.Exchange(ref _signal, DisposedSignal) is TaskCompletionSource tcs)
+		if (Interlocked.Exchange(ref _signal, DisposedSentinel) is TaskCompletionSource tcs)
 		{
 			tcs.TrySetException(new ObjectDisposedException(nameof(LightweightSingleProducerSingleConsumerQueue<T>)));
 		}
@@ -45,7 +45,7 @@ internal struct LightweightSingleProducerSingleConsumerQueue<T> : IDisposable
 	{
 		var signal = Volatile.Read(ref _signal);
 
-		if (ReferenceEquals(signal, DisposedSignal)) goto ThrowObjectDisposedException;
+		if (ReferenceEquals(signal, DisposedSentinel)) goto ThrowObjectDisposedException;
 
 		TaskCompletionSource tcs;
 
@@ -59,7 +59,7 @@ internal struct LightweightSingleProducerSingleConsumerQueue<T> : IDisposable
 
 		tcs = new TaskCompletionSource();
 
-		if (ReferenceEquals(Interlocked.CompareExchange(ref _signal, tcs, signal), DisposedSignal)) goto ThrowObjectDisposedException;
+		if (ReferenceEquals(Interlocked.CompareExchange(ref _signal, tcs, signal), DisposedSentinel)) goto ThrowObjectDisposedException;
 
 		TryDequeueBeforeWait:;
 		if (_queue.TryDequeue(out var item)) return new ValueTask<T>(item);

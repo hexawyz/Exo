@@ -10,18 +10,18 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 	{
 		// This an arbitrarily chosen value to validate the (ping) response.
 		// Logitech Options and G-Hub use 0x90 here.
-		const byte Beacon = 0xA5;
+		const byte Sentinel = 0xA5;
 
 		var getVersionResponse = await transport.FeatureAccessSendAsync<Root.GetVersion.Request, Root.GetVersion.Response>
 		(
 			deviceId,
 			0,
 			Root.GetVersion.FunctionId,
-			new Root.GetVersion.Request { Beacon = Beacon },
+			new Root.GetVersion.Request { Sentinel = Sentinel },
 			cancellationToken
 		).ConfigureAwait(false);
 
-		if (getVersionResponse.Beacon != Beacon)
+		if (getVersionResponse.Beacon != Sentinel)
 			throw new Exception("Received an invalid response.");
 
 		return new HidPlusPlusVersion(getVersionResponse.Major, getVersionResponse.Minor);
@@ -31,19 +31,19 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 	{
 		// This an arbitrarily chosen value to validate the (ping) response.
 		// Logitech Options and G-Hub use 0x90 here.
-		const byte Beacon = 0xA5;
+		const byte Sentinel = 0xA5;
 
 		var getVersionResponse = await transport.FeatureAccessSendWithRetryAsync<Root.GetVersion.Request, Root.GetVersion.Response>
 		(
 			deviceId,
 			0,
 			Root.GetVersion.FunctionId,
-			new Root.GetVersion.Request { Beacon = Beacon },
+			new Root.GetVersion.Request { Sentinel = Sentinel },
 			retryCount,
 			cancellationToken
 		).ConfigureAwait(false);
 
-		if (getVersionResponse.Beacon != Beacon)
+		if (getVersionResponse.Beacon != Sentinel)
 			throw new Exception("Received an invalid response.");
 
 		return new HidPlusPlusVersion(getVersionResponse.Major, getVersionResponse.Minor);

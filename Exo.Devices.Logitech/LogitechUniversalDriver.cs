@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
@@ -10,7 +11,7 @@ namespace Exo.Devices.Logitech;
 // This driver is a catch-all for logitech devices. On first approximation, they should all implement the proprietary HID++ protocol.
 [DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
 [VendorId(VendorIdSource.Usb, 0x046D)]
-public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceFeature>
+public abstract class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceFeature>
 {
 	// Hardcoded value for the software ID. Hoping it will not conflict with anything still in use today.
 	private const int SoftwareId = 3;
@@ -30,7 +31,7 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 		Properties.System.Devices.Parent,
 	};
 
-	public static async Task<Driver> CreateAsync(string deviceName, CancellationToken cancellationToken)
+	public static async Task<LogitechUniversalDriver> CreateAsync(string deviceName, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
 	{
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -222,19 +223,71 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 		//var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], deviceType is null ? "logi-universal" : deviceType.GetValueOrDefault().ToString(), serialNumber);
 		var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], "logi-universal", hppDevice.SerialNumber);
 
-		return new LogitechUniversalDriver
-		(
-			hppDevice,
-			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-			friendlyName ?? "Logi HID++ device",
-			configurationKey
-		);
+		switch (hppDevice)
+		{
+		case HidPlusPlusDevice.UnifyingReceiver unifyingReceiver:
+			return new UnifyingReceiver
+			(
+				unifyingReceiver,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				configurationKey,
+				driverRegistry.GetOrCreateValue()
+			);
+		case HidPlusPlusDevice.BoltReceiver boltReceiver:
+			return new BoltReceiver
+			(
+				boltReceiver,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				configurationKey,
+				driverRegistry.GetOrCreateValue()
+			);
+		case HidPlusPlusDevice.RegisterAccessReceiver receiver:
+			return new Receiver
+			(
+				receiver,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				configurationKey,
+				driverRegistry.GetOrCreateValue()
+			);
+		case HidPlusPlusDevice.RegisterAccessDirect rapDirect:
+			driverRegistry.Dispose();
+			return new RegisterAccessDirect
+			(
+				rapDirect,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				configurationKey
+			);
+		case HidPlusPlusDevice.FeatureAccessDirect fapDirect:
+			driverRegistry.Dispose();
+			return new FeatureAccessDirect
+			(
+				fapDirect,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				configurationKey
+			);
+		default:
+			throw new InvalidOperationException("Unsupported device type.");
+		};
 	}
+
+	private static string InferDeviceName(HidPlusPlusDevice device)
+		=> device switch
+		{
+			HidPlusPlusDevice.RegisterAccess rap => InferDeviceName(rap),
+			HidPlusPlusDevice.FeatureAccess fap => InferDeviceName(fap),
+			_ => throw new InvalidOperationException("Unsupported device type.")
+		};
+
+	private static string InferDeviceName(HidPlusPlusDevice.RegisterAccess device)
+		=> device.DeviceType is DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.DeviceType.Unknown ? "HID++ 1.0 device" : device.DeviceType.ToString();
+
+	private static string InferDeviceName(HidPlusPlusDevice.FeatureAccess device)
+		=> device.DeviceType is DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.DeviceType.Unknown ? "HID++ 2.0 device" : device.DeviceType.ToString();
 
 	private readonly HidPlusPlusDevice _device;
 
-	protected LogitechUniversalDriver(HidPlusPlusDevice device, ImmutableArray<string> deviceNames, string friendlyName, DeviceConfigurationKey configurationKey)
-		: base(deviceNames, friendlyName, configurationKey)
+	protected LogitechUniversalDriver(HidPlusPlusDevice device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+		: base(deviceNames, device.FriendlyName ?? InferDeviceName(device), configurationKey)
 	{
 		_device = device;
 	}
@@ -245,11 +298,84 @@ public class LogitechUniversalDriver : HidDriver, IDeviceDriver<IKeyboardDeviceF
 
 	IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features { get; }
 
-	//private class LogitechRegisterAccessProtocolUniversalDriver : LogitechUniversalDriver
-	//{
-	//}
+	private class RegisterAccess : LogitechUniversalDriver
+	{
+		public RegisterAccess(HidPlusPlusDevice.RegisterAccess device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+			: base(device, deviceNames, configurationKey)
+		{
+		}
+	}
 
-	//private class LogitechFeatureAccessProtocolUniversalDriver : LogitechUniversalDriver
-	//{
-	//}
+	private class Receiver : RegisterAccess
+	{
+		private readonly IDriverRegistry _driverRegistry;
+
+		public Receiver(HidPlusPlusDevice.RegisterAccessReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, IDriverRegistry driverRegistry)
+			: base(device, deviceNames, configurationKey)
+		{
+			_driverRegistry = driverRegistry;
+		}
+
+		public override async ValueTask DisposeAsync()
+		{
+			await base.DisposeAsync();
+			_driverRegistry.Dispose();
+		}
+	}
+
+	private class UnifyingReceiver : Receiver
+	{
+		public UnifyingReceiver(HidPlusPlusDevice.UnifyingReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, IDriverRegistry driverRegistry)
+			: base(device, deviceNames, configurationKey, driverRegistry)
+		{
+		}
+	}
+
+	private class BoltReceiver : Receiver
+	{
+		public BoltReceiver(HidPlusPlusDevice.BoltReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, IDriverRegistry driverRegistry)
+			: base(device, deviceNames, configurationKey, driverRegistry)
+		{
+		}
+	}
+
+	private class RegisterAccessDirect : RegisterAccess
+	{
+		public RegisterAccessDirect(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+			: base(device, deviceNames, configurationKey)
+		{
+		}
+	}
+
+	private class RegisterAccessThroughReceiver : RegisterAccess
+	{
+		public RegisterAccessThroughReceiver(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+			: base(device, deviceNames, configurationKey)
+		{
+		}
+	}
+
+	private class FeatureAccess : LogitechUniversalDriver
+	{
+		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+			: base(device, deviceNames, configurationKey)
+		{
+		}
+	}
+
+	private class FeatureAccessDirect : FeatureAccess
+	{
+		public FeatureAccessDirect(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+			: base(device, deviceNames, configurationKey)
+		{
+		}
+	}
+
+	private class FeatureAccessThroughReceiver : FeatureAccess
+	{
+		public FeatureAccessThroughReceiver(HidPlusPlusDevice.FeatureAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
+			: base(device, deviceNames, configurationKey)
+		{
+		}
+	}
 }

@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace Exo.Service;
 
-public sealed class DriverRegistry
+public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 {
 	private abstract class FeatureCacheEntry
 	{
@@ -80,21 +80,36 @@ public sealed class DriverRegistry
 	// Also, this should never be updated outside the lock in order to keep coherency with _driverSet.
 	private readonly ConditionalWeakTable<Type, FeatureCacheEntry> _featureCache = new();
 
+	object IInternalDriverRegistry.Lock => _lock;
+
+	bool IInternalDriverRegistry.AddDriver(Driver driver) => AddDriverInLock(driver);
+	bool IInternalDriverRegistry.RemoveDriver(Driver driver) => RemoveDriverInLock(driver);
+
+	public void Dispose() { }
+
+	public NestedDriverRegistry CreateNestedRegistry() => new NestedDriverRegistry(this);
+	IDriverRegistry IDriverRegistry.CreateNestedRegistry() => CreateNestedRegistry();
+
 	public bool AddDriver(Driver driver)
 	{
 		lock (_lock)
 		{
-			if (_driverSet.Add(driver))
+			return AddDriverInLock(driver);
+		}
+	}
+
+	private bool AddDriverInLock(Driver driver)
+	{
+		if (_driverSet.Add(driver))
+		{
+			_drivers = _driverSet.ToImmutableArray();
+
+			foreach (var kvp in _featureCache)
 			{
-				_drivers = _driverSet.ToImmutableArray();
-
-				foreach (var kvp in _featureCache)
-				{
-					kvp.Value.TryAdd(driver);
-				}
-
-				return true;
+				kvp.Value.TryAdd(driver);
 			}
+
+			return true;
 		}
 		return false;
 	}
@@ -103,17 +118,22 @@ public sealed class DriverRegistry
 	{
 		lock (_lock)
 		{
-			if (_driverSet.Remove(driver))
+			return RemoveDriverInLock(driver);
+		}
+	}
+
+	internal bool RemoveDriverInLock(Driver driver)
+	{
+		if (_driverSet.Remove(driver))
+		{
+			_drivers = _driverSet.ToImmutableArray();
+
+			foreach (var kvp in _featureCache)
 			{
-				_drivers = _driverSet.ToImmutableArray();
-
-				foreach (var kvp in _featureCache)
-				{
-					kvp.Value.TryRemove(driver);
-				}
-
-				return true;
+				kvp.Value.TryRemove(driver);
 			}
+
+			return true;
 		}
 		return false;
 	}

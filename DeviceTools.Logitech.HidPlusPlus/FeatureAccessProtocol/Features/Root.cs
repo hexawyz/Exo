@@ -39,7 +39,7 @@ public static class Root
 		{
 			public byte Zero0;
 			public byte Zero1;
-			public byte Beacon;
+			public byte Sentinel;
 		}
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]

@@ -357,6 +357,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			if (productId is 0xC52B or 0xC52B or 0xC531 or 0xC532 or 0xC534)
 			{
 				deviceKind = RegisterAccessDeviceKind.UnifyingReceiver;
+				// Hardcode the device name because there isn't a way to retrieve it otherwise? (Or is there?)
+				friendlyName = "Logi Unifying Receiver";
 			}
 		}
 		catch (HidPlusPlus1Exception ex) when (ex.ErrorCode is RegisterAccessProtocol.ErrorCode.InvalidAddress or RegisterAccessProtocol.ErrorCode.InvalidParameter)
@@ -378,6 +380,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				serialNumber = boltSerialNumberResponse.ToString();
 
 				deviceKind = RegisterAccessDeviceKind.BoltReceiver;
+				// Hardcode the device name because there isn't a way to retrieve it otherwise? (Or is there?)
+				friendlyName = "Logi Bolt Receiver";
 			}
 			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode is RegisterAccessProtocol.ErrorCode.InvalidAddress or RegisterAccessProtocol.ErrorCode.InvalidParameter)
 			{
@@ -393,7 +397,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				new RegisterAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
 			RegisterAccessDeviceKind.Receiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
 			RegisterAccessDeviceKind.UnifyingReceiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
-			RegisterAccessDeviceKind.BoltReceiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.BoltReceiver => new BoltReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
 			_ => throw new InvalidOperationException(),
 		};
 
@@ -721,6 +725,15 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			_deviceWatcherTask = WatchDevicesAsync();
 		}
 
+		// NB: We don't need to unregister our notification handler here, since the transport is owned by the current instance.
+		public override async ValueTask DisposeAsync()
+		{
+			await Transport.DisposeAsync().ConfigureAwait(false);
+			_deviceCreationTaskQueue.Dispose();
+			await _deviceWatcherTask.ConfigureAwait(false);
+
+		}
+
 		private async Task WatchDevicesAsync()
 		{
 			while (true)
@@ -870,9 +883,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 			return await CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
 		}
-
-		// NB: We don't need to unregister our notification handler here, since the transport is owned by the current instance.
-		public override ValueTask DisposeAsync() => Transport.DisposeAsync();
 	}
 
 	public sealed class UnifyingReceiver : RegisterAccessReceiver
@@ -890,7 +900,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 		}
 
-		protected override Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
+		protected override async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
 		(
 			byte deviceIndex,
 			int retryCount,

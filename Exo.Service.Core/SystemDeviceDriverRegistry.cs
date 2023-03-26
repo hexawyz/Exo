@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Exo.Service;
 
 /// <summary>Device tracker for operating system devices.</summary>
+/// <remarks>System devices are those that are managed and given a unique name by the operating system.</remarks>
 public sealed class SystemDeviceDriverRegistry : ISystemDeviceDriverRegistry
 {
 	private readonly ConcurrentDictionary<string, ISystemDeviceDriver> _registeredDeviceDrivers = new(1, 20);
