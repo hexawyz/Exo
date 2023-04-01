@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -9,6 +10,7 @@ using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
+using static DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers.EnableHidPlusPlusNotifications;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -20,6 +22,13 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		Receiver = 1,
 		UnifyingReceiver = 2,
 		BoltReceiver = 3,
+	}
+
+	private enum DeviceEventKind : byte
+	{
+		DeviceDiscovered = 0,
+		DeviceConnected = 1,
+		DeviceDisconnected = 2,
 	}
 
 	private readonly struct ProductCategoryRange
@@ -615,7 +624,14 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	// Root devices will contain the HidPlusPlusTransport instance here. Child devices will contain the parent device reference.
 	protected object ParentOrTransport { get; }
 	protected byte DeviceIndex { get; }
-	protected DeviceConnectionInfo DeviceConnectionInfo;
+
+	private DeviceConnectionInfo _deviceConnectionInfo;
+	protected DeviceConnectionInfo DeviceConnectionInfo
+	{
+		get => (DeviceConnectionInfo)Volatile.Read(ref Unsafe.As<DeviceConnectionInfo, byte>(ref _deviceConnectionInfo));
+		set => Volatile.Write(ref Unsafe.As<DeviceConnectionInfo, byte>(ref _deviceConnectionInfo), (byte)value);
+	}
+
 	public ushort ProductId { get; }
 
 	private string? _friendlyName;
@@ -635,8 +651,9 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	protected abstract HidPlusPlusTransport Transport { get; }
 	public abstract HidPlusPlusProtocolFlavor ProtocolFlavor { get; }
 
-	public RegisterAccessProtocol.DeviceType DeviceType => DeviceConnectionInfo.DeviceType;
-	public bool IsConnected => ((DeviceConnectionInfo)Volatile.Read(ref Unsafe.As<DeviceConnectionInfo, byte>(ref DeviceConnectionInfo))).IsLinkEstablished;
+	// The device type should not change through the life time of the object, so we don't need a volatile read here.
+	public RegisterAccessProtocol.DeviceType DeviceType => _deviceConnectionInfo.DeviceType;
+	public bool IsConnected => DeviceConnectionInfo.IsLinkEstablished;
 
 	private protected HidPlusPlusDevice(object parentOrTransport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
 	{
@@ -649,6 +666,26 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	}
 
 	public abstract ValueTask DisposeAsync();
+
+	// The below methods are used to raise connect/disconnect events on receivers and receiver-connected devices.
+	// They won't be called on devices that are not of the appropriate kind.
+	// It is easier to have them defined here because of the split between RAP/FAP, so that we don't need to care about the exact implementation type.
+	// It is admittedly not a very clean way to do this, but as long as it work, it will be ok.
+	// The principle is that child devices will determine whether the event must be raised in their Raise(Dis)Connected method, and call the RaiseDevice(Dis)Connected method on the receiver.
+	// Event dispatching will be handled by the receiver device, in order to guarantee that events are sent in order, so the call flow can be something like Child->Receiver->Child->Receiver.
+
+	// To be implemented by the receiver for registering an event.
+	private protected virtual void OnDeviceDiscovered(HidPlusPlusDevice device) { }
+	private protected virtual void OnDeviceConnected(HidPlusPlusDevice device, int version) { }
+	private protected virtual void OnDeviceDisconnected(HidPlusPlusDevice device, int version) { }
+
+	// To be implemented by the receiver for raising the event.
+	private protected virtual void RaiseDeviceConnected(HidPlusPlusDevice device) { }
+	private protected virtual void RaiseDeviceDisconnected(HidPlusPlusDevice device) { }
+
+	// To be implemented by child devices for raising the event at both the receiver and device level. (Should call RaiseDeviceConnected/RaiseDeviceDisconnected before)
+	private protected virtual void RaiseConnected(int version) { }
+	private protected virtual void RaiseDisconnected(int version) { }
 
 	public abstract class RegisterAccess : HidPlusPlusDevice
 	{
@@ -712,33 +749,42 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			=> Transport.RegisterAccessGetVeryLongRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 	}
 
-	public class RegisterAccessReceiver : RegisterAccess
+	public class RegisterAccessReceiver : RegisterAccess, IUsbReceiver
 	{
-		private LightweightSingleProducerSingleConsumerQueue<Task> _deviceCreationTaskQueue;
+		private LightweightSingleProducerSingleConsumerQueue<Task> _deviceOperationTaskQueue;
+		private LightweightSingleProducerSingleConsumerQueue<(DeviceEventKind kind, HidPlusPlusDevice device, int Version)> _eventQueue;
 		private readonly Task _deviceWatcherTask;
+		private readonly Task _eventProcessingTask;
+
+		public event ReceiverDeviceEventHandler? DeviceDiscovered;
+		public event ReceiverDeviceEventHandler? DeviceConnected;
+		public event ReceiverDeviceEventHandler? DeviceDisconnected;
 
 		internal RegisterAccessReceiver(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
 			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			transport.NotificationReceived += HandleNotification;
-			_deviceCreationTaskQueue = new();
+			_deviceOperationTaskQueue = new();
+			_eventQueue = new();
 			_deviceWatcherTask = WatchDevicesAsync();
+			_eventProcessingTask = ProcessEventsAsync();
 		}
 
 		// NB: We don't need to unregister our notification handler here, since the transport is owned by the current instance.
 		public override async ValueTask DisposeAsync()
 		{
 			await Transport.DisposeAsync().ConfigureAwait(false);
-			_deviceCreationTaskQueue.Dispose();
+			_deviceOperationTaskQueue.Dispose();
+			_eventQueue.Dispose();
 			await _deviceWatcherTask.ConfigureAwait(false);
-
+			await _eventProcessingTask.ConfigureAwait(false);
 		}
 
 		private async Task WatchDevicesAsync()
 		{
 			while (true)
 			{
-				var task = await _deviceCreationTaskQueue.DequeueAsync().ConfigureAwait(false);
+				var task = await _deviceOperationTaskQueue.DequeueAsync().ConfigureAwait(false);
 
 				try
 				{
@@ -750,7 +796,46 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
+		private async Task ProcessEventsAsync()
+		{
+			while (true)
+			{
+				var (kind, device, version) = await _eventQueue.DequeueAsync().ConfigureAwait(false);
+
+				try
+				{
+					switch (kind)
+					{
+					case DeviceEventKind.DeviceDiscovered:
+						DeviceDiscovered?.Invoke(this, device);
+						break;
+					case DeviceEventKind.DeviceConnected:
+						device.RaiseConnected(version);
+						break;
+					case DeviceEventKind.DeviceDisconnected:
+						device.RaiseDisconnected(version);
+						break;
+					}
+				}
+				catch (Exception ex)
+				{
+				}
+			}
+		}
+
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
+
+		private protected sealed override void OnDeviceDiscovered(HidPlusPlusDevice device) => _eventQueue.Enqueue((DeviceEventKind.DeviceDiscovered, device, 0));
+		private protected sealed override void OnDeviceConnected(HidPlusPlusDevice device, int version) => _eventQueue.Enqueue((DeviceEventKind.DeviceConnected, device, version));
+		private protected sealed override void OnDeviceDisconnected(HidPlusPlusDevice device, int version) => _eventQueue.Enqueue((DeviceEventKind.DeviceDisconnected, device, version));
+
+		private protected override void RaiseDeviceConnected(HidPlusPlusDevice device) => DeviceConnected?.Invoke(this, device);
+		private protected override void RaiseDeviceDisconnected(HidPlusPlusDevice device) => DeviceDisconnected?.Invoke(this, device);
+
+		private protected virtual HidPlusPlusProtocolFlavor InferProtocolFlavor(in DeviceConnectionParameters deviceConnectionParameters)
+			=> TryInferProductCategory(deviceConnectionParameters.WirelessProductId, out var productCategory) && productCategory == ProductCategory.QuadFapDevice ?
+				HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess :
+				HidPlusPlusProtocolFlavor.RegisterAccess;
 
 		// Child devices can forward notifications here when necessary. e.g. When the WPID of a device has changed.
 		internal void HandleNotification(ReadOnlySpan<byte> message)
@@ -766,9 +851,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
 
 				// All (Quad) HID++ 2.0 should adhere to this product ID mapping for now. It is important to know this in advance because the device might be offline.
-				var protocolFlavor = TryInferProductCategory(parameters.WirelessProductId, out var productCategory) && productCategory == ProductCategory.QuadFapDevice ?
-					HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess :
-					HidPlusPlusProtocolFlavor.RegisterAccess;
+				var protocolFlavor = InferProtocolFlavor(parameters);
 
 				RegisterNotificationTask(ProcessDeviceArrivalAsync(parameters.WirelessProductId, header.DeviceId, parameters.DeviceInfo, protocolFlavor));
 			}
@@ -846,7 +929,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		// To call in order to register a task started within a notification handler.
 		// It should *only* be called within a notification handler, as notifications are processed sequentially and will not generate race conditions here.
 		// The tasks registered here will be tracked internally for completion.
-		internal void RegisterNotificationTask(Task task) => _deviceCreationTaskQueue.Enqueue(task);
+		internal void RegisterNotificationTask(Task task) => _deviceOperationTaskQueue.Enqueue(task);
 
 		// This method can never finish synchronously because it will wait on message processing. (This is kinda important for the correct order of state updates)
 		private async Task ProcessDeviceArrivalAsync(ushort productId, byte deviceIndex, DeviceConnectionInfo deviceInfo, HidPlusPlusProtocolFlavor protocolFlavor)
@@ -900,6 +983,12 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 		}
 
+		// NB: Do HID++ 1.0 Bolt devices exist ?
+		// If so, we'll need to change the algorithm here. Bolt devices seem to use their Bluetooth (USB) PID as WPID directly.
+		// This kinda makes sense, as Bolt is based upon Bluetooth, but it does not provide any information on the underlying protocol used by the device.
+		private protected override HidPlusPlusProtocolFlavor InferProtocolFlavor(in DeviceConnectionParameters deviceConnectionParameters)
+			=> HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess;
+
 		protected override async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
 		(
 			byte deviceIndex,
@@ -907,8 +996,29 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			CancellationToken cancellationToken
 		)
 		{
-			// TODO: Implement Bolt status.
-			return default;
+			// The serial number should probably be somewhere in there, but apart from the WPID (which seems to be the BT/USB PID in this case), nothing appears obvious.
+			var boltPairingInformation = await Transport.RegisterAccessGetLongRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.BoltPairingInformationResponse>
+			(
+				DeviceIndex,
+				Address.NonVolatileAndPairingInformation,
+				new NonVolatileAndPairingInformation.Request { Parameter = NonVolatileAndPairingInformation.Parameter.BoltPairingInformation1 - 1 + deviceIndex },
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
+
+			// Seems like this could be a multipart query, but I don't have any device with a name longer than 13 characters to verify this.
+			var deviceNameResponse = await Transport.RegisterAccessGetLongRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.BoltDeviceNameResponse>
+			(
+				DeviceIndex,
+				Address.NonVolatileAndPairingInformation,
+				new NonVolatileAndPairingInformation.Request { Parameter = NonVolatileAndPairingInformation.Parameter.BoltDeviceName1 - 1 + deviceIndex, Index = 1 },
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
+
+			var deviceName = deviceNameResponse.GetDeviceName();
+
+			return (0, deviceName, null);
 		}
 	}
 
@@ -924,8 +1034,18 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		public override ValueTask DisposeAsync() => Transport.DisposeAsync();
 	}
 
-	public class RegisterAccessThroughReceiver : RegisterAccess
+	public class RegisterAccessThroughReceiver : RegisterAccess, IDeviceThroughReceiver
 	{
+		public new byte DeviceIndex => base.DeviceIndex;
+
+		public event DeviceEventHandler? Connected;
+		public event DeviceEventHandler? Disconnected;
+
+		// 0 (default) if last published device state is disconnected; 1 if last published device state is connected.
+		private bool _lastPublishedStateWasConnected;
+		// Track the number of connect/disconnect events, and allow skipping .
+		private int _version;
+
 		protected RegisterAccessReceiver Receiver => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport);
 		protected sealed override HidPlusPlusTransport Transport => Receiver.Transport;
 
@@ -935,6 +1055,58 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			var device = Transport.Devices[deviceIndex];
 			device.NotificationReceived += HandleNotification;
 			Volatile.Write(ref device.CustomState, this);
+			Receiver.OnDeviceDiscovered(this);
+			if (deviceConnectionInfo.IsLinkEstablished) Receiver.OnDeviceConnected(this, _version);
+		}
+
+		private protected override void RaiseConnected(int version)
+		{
+			if (Volatile.Read(ref _version) == version)
+			{
+				if (!_lastPublishedStateWasConnected)
+				{
+					try
+					{
+						Receiver.RaiseDeviceConnected(this);
+					}
+					finally
+					{
+						try
+						{
+							Connected?.Invoke(this);
+						}
+						finally
+						{
+							_lastPublishedStateWasConnected = true;
+						}
+					}
+				}
+			}
+		}
+
+		private protected override void RaiseDisconnected(int version)
+		{
+			if (Volatile.Read(ref _version) == version)
+			{
+				if (_lastPublishedStateWasConnected)
+				{
+					try
+					{
+						Receiver.RaiseDeviceDisconnected(this);
+					}
+					finally
+					{
+						try
+						{
+							Disconnected?.Invoke(this);
+						}
+						finally
+						{
+							_lastPublishedStateWasConnected = false;
+						}
+					}
+				}
+			}
 		}
 
 		private void HandleNotification(ReadOnlySpan<byte> message)
@@ -957,7 +1129,41 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					return;
 				}
 
-				// TODO: Update state
+				bool wasConnected = DeviceConnectionInfo.IsLinkEstablished;
+				bool isConnected = parameters.DeviceInfo.IsLinkEstablished;
+
+				// Update the connection information.
+				DeviceConnectionInfo = parameters.DeviceInfo;
+
+				if (isConnected != wasConnected)
+				{
+					int version = Interlocked.Increment(ref _version);
+					if (isConnected)
+					{
+						Receiver.OnDeviceConnected(this, version);
+					}
+					else
+					{
+						Receiver.OnDeviceDisconnected(this, version);
+					}
+				}
+			}
+			else
+			{
+				var connectionInfo = DeviceConnectionInfo;
+
+				bool wasConnected = DeviceConnectionInfo.IsLinkEstablished;
+
+				if (wasConnected)
+				{
+					connectionInfo.ConnectionFlags |= DeviceConnectionFlags.LinkNotEstablished;
+
+					// Update the connection information.
+					DeviceConnectionInfo = connectionInfo;
+
+					int version = Interlocked.Increment(ref _version);
+					Receiver.OnDeviceDisconnected(this, version);
+				}
 			}
 		}
 
@@ -1073,11 +1279,22 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		public override ValueTask DisposeAsync() => Transport.DisposeAsync();
 	}
 
-	public class FeatureAccessThroughReceiver : FeatureAccess
+	public class FeatureAccessThroughReceiver : FeatureAccess, IDeviceThroughReceiver
 	{
+		public new byte DeviceIndex => base.DeviceIndex;
+
+		public event DeviceEventHandler? Connected;
+		public event DeviceEventHandler? Disconnected;
+
 		protected RegisterAccessReceiver Receiver => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport);
 		protected sealed override HidPlusPlusTransport Transport => Receiver.Transport;
+
 		private bool _isInitialized;
+
+		// 0 (default) if last published device state is disconnected; 1 if last published device state is connected.
+		private bool _lastPublishedStateWasConnected;
+		// Track the number of connect/disconnect events, and allow skipping .
+		private int _version;
 
 		internal FeatureAccessThroughReceiver
 		(
@@ -1097,6 +1314,58 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			var device = Transport.Devices[deviceIndex];
 			device.NotificationReceived += HandleNotification;
 			Volatile.Write(ref device.CustomState, this);
+			Receiver.OnDeviceDiscovered(this);
+			if (deviceConnectionInfo.IsLinkEstablished) Receiver.OnDeviceConnected(this, _version);
+		}
+
+		private protected override void RaiseConnected(int version)
+		{
+			if (Volatile.Read(ref _version) == version)
+			{
+				if (!_lastPublishedStateWasConnected)
+				{
+					try
+					{
+						Receiver.RaiseDeviceConnected(this);
+					}
+					finally
+					{
+						try
+						{
+							Connected?.Invoke(this);
+						}
+						finally
+						{
+							_lastPublishedStateWasConnected = true;
+						}
+					}
+				}
+			}
+		}
+
+		private protected override void RaiseDisconnected(int version)
+		{
+			if (Volatile.Read(ref _version) == version)
+			{
+				if (_lastPublishedStateWasConnected)
+				{
+					try
+					{
+						Receiver.RaiseDeviceDisconnected(this);
+					}
+					finally
+					{
+						try
+						{
+							Disconnected?.Invoke(this);
+						}
+						finally
+						{
+							_lastPublishedStateWasConnected = false;
+						}
+					}
+				}
+			}
 		}
 
 		private void HandleNotification(ReadOnlySpan<byte> message)
@@ -1123,16 +1392,49 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				bool isConnected = parameters.DeviceInfo.IsLinkEstablished;
 
 				// Update the connection information.
-				Volatile.Write(ref Unsafe.As<DeviceConnectionInfo, byte>(ref DeviceConnectionInfo), (byte)parameters.DeviceInfo);
+				DeviceConnectionInfo = parameters.DeviceInfo;
 
-				if (isConnected && !wasConnected && !Volatile.Read(ref _isInitialized))
+				if (isConnected != wasConnected)
 				{
-					Receiver.RegisterNotificationTask(UpdateDeviceInformationAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, default));
+					int version = Interlocked.Increment(ref _version);
+					if (isConnected)
+					{
+						if (!Volatile.Read(ref _isInitialized))
+						{
+							Receiver.RegisterNotificationTask(UpdateDeviceInformationAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, version, default));
+							Volatile.Write(ref _isInitialized, true);
+						}
+						else
+						{
+							Receiver.OnDeviceConnected(this, version);
+						}
+					}
+					else
+					{
+						Receiver.OnDeviceDisconnected(this, version);
+					}
+				}
+			}
+			else if (header.SubId == SubId.DeviceDisconnect)
+			{
+				var connectionInfo = DeviceConnectionInfo;
+
+				bool wasConnected = DeviceConnectionInfo.IsLinkEstablished;
+
+				if (wasConnected)
+				{
+					connectionInfo.ConnectionFlags |= DeviceConnectionFlags.LinkNotEstablished;
+
+					// Update the connection information.
+					DeviceConnectionInfo = connectionInfo;
+
+					int version = Interlocked.Increment(ref _version);
+					Receiver.OnDeviceDisconnected(this, version);
 				}
 			}
 		}
 
-		private async Task UpdateDeviceInformationAsync(int retryCount, CancellationToken cancellationToken)
+		private async Task UpdateDeviceInformationAsync(int retryCount, int version, CancellationToken cancellationToken)
 		{
 			var transport = Transport;
 
@@ -1151,6 +1453,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 
 			Volatile.Write(ref _isInitialized, true);
+
+			Receiver.OnDeviceConnected(this, version);
 		}
 
 		private void DisposeInternal()

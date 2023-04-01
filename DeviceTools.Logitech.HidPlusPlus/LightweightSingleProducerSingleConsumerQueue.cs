@@ -57,14 +57,14 @@ internal struct LightweightSingleProducerSingleConsumerQueue<T> : IDisposable
 			else if (tcs.Task.IsFaulted) goto AwaitAndDequeue;
 		}
 
-		tcs = new TaskCompletionSource();
+		tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		if (ReferenceEquals(Interlocked.CompareExchange(ref _signal, tcs, signal), DisposedSentinel)) goto ThrowObjectDisposedException;
 
-		TryDequeueBeforeWait:;
+	TryDequeueBeforeWait:;
 		if (_queue.TryDequeue(out var item)) return new ValueTask<T>(item);
 
-		AwaitAndDequeue:;
+	AwaitAndDequeue:;
 		return new ValueTask<T>(AwaitAndDequeueAsync(tcs.Task));
 
 	ThrowObjectDisposedException:;

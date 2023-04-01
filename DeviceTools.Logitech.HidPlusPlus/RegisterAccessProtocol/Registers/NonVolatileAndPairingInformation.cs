@@ -29,12 +29,27 @@ public static class NonVolatileAndPairingInformation
 		DeviceName4 = 0x43,
 		DeviceName5 = 0x44,
 		DeviceName6 = 0x45,
+
+		BoltPairingInformation1 = 0x51,
+		BoltPairingInformation2 = 0x52,
+		BoltPairingInformation3 = 0x53,
+		BoltPairingInformation4 = 0x54,
+		BoltPairingInformation5 = 0x55,
+		BoltPairingInformation6 = 0x56,
+
+		BoltDeviceName1 = 0x61,
+		BoltDeviceName2 = 0x62,
+		BoltDeviceName3 = 0x63,
+		BoltDeviceName4 = 0x64,
+		BoltDeviceName5 = 0x65,
+		BoltDeviceName6 = 0x66,
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
 	public struct Request : IMessageGetParameters, IShortMessageParameters
 	{
 		private byte _parameter;
+		public byte Index;
 
 		public Request(Parameter parameter) => _parameter = (byte)parameter;
 
@@ -203,5 +218,80 @@ public static class NonVolatileAndPairingInformation
 		}
 
 		public string GetDeviceName() => Encoding.UTF8.GetString(MemoryMarshal.CreateSpan(ref _deviceName0, Math.Min((byte)14, Length)));
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+	public struct BoltPairingInformationResponse : ILongMessageParameters
+	{
+		private byte _parameter;
+		public Parameter Parameter
+		{
+			get => (Parameter)_parameter;
+			set => _parameter = (byte)value;
+		}
+		public byte DeviceInformation;
+
+#pragma warning disable IDE0044 // Add readonly modifier
+		private byte _wirelessProductId0;
+		private byte _wirelessProductId1;
+
+		public ushort WirelessProductId
+		{
+			get => LittleEndian.ReadUInt16(_wirelessProductId0);
+			set => LittleEndian.Write(ref _wirelessProductId0, value);
+		}
+#pragma warning restore IDE0044 // Add readonly modifier
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
+	public struct BoltDeviceNameResponse : ILongMessageParameters
+	{
+		private byte _parameter;
+		public Parameter Parameter
+		{
+			get => (Parameter)_parameter;
+			set => _parameter = (byte)value;
+		}
+
+		public byte Index;
+
+		public byte Length;
+
+#pragma warning disable IDE0044 // Add readonly modifier
+		private byte _deviceName0;
+		private byte _deviceName1;
+		private byte _deviceName2;
+		private byte _deviceName3;
+		private byte _deviceName4;
+		private byte _deviceName5;
+		private byte _deviceName6;
+		private byte _deviceName7;
+		private byte _deviceName8;
+		private byte _deviceName9;
+		private byte _deviceNameA;
+		private byte _deviceNameB;
+		private byte _deviceNameC;
+#pragma warning restore IDE0044 // Add readonly modifier
+
+		public bool TryCopyTo(Span<byte> span, out int charsWritten)
+		{
+			var src = MemoryMarshal.CreateSpan(ref _deviceName0, Math.Min((byte)13, Length));
+
+			int length = src.Length;
+
+			if (span.Length < length)
+			{
+				charsWritten = 0;
+				return false;
+			}
+			else
+			{
+				src[..length].CopyTo(span);
+				charsWritten = length;
+				return true;
+			}
+		}
+
+		public string GetDeviceName() => Encoding.UTF8.GetString(MemoryMarshal.CreateSpan(ref _deviceName0, Math.Min((byte)13, Length)));
 	}
 }
