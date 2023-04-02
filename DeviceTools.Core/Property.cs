@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using DeviceTools.FilterExpressions;
 
 namespace DeviceTools;
 
@@ -38,4 +39,6 @@ public abstract class Property
 public abstract class Property<TValue> : Property
 {
 	private protected Property(Guid categoryId, uint propertyId) : base(categoryId, propertyId) { }
+
+	public DeviceFilterExpression Exists() => new DeviceFilterExistenceExpression(this, true);
 }

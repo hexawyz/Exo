@@ -212,7 +212,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 							var vendorIdSource = (VendorIdSource)(byte)arguments[0].Value!;
 							ushort vendorId = (ushort)arguments[1].Value!;
 							ushort? productId = arguments.Count >= 3 ? (ushort)arguments[2].Value! : null;
-							ushort? versionNumber = arguments.Count >= 4 ? (ushort)arguments[3].Value : null;
+							ushort? versionNumber = arguments.Count >= 4 ? (ushort)arguments[3].Value! : null;
 
 							if (productId is not null)
 							{
@@ -361,6 +361,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 			if (deviceId.Version != 0xFFFF && TryGetDriverReference(deviceId.VendorIdSource, deviceId.VendorId, deviceId.ProductId, deviceId.Version, out var driverTypeReference))
 			{
 				_logger.HidDeviceDriverMatch(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, deviceName);
+				driverCreationContext.Initialize(deviceId);
 				await CreateAndRegisterDriverAsync(deviceName, driverTypeReference, driverCreationContext, cancellationToken).ConfigureAwait(false);
 				return;
 			}
@@ -380,6 +381,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 			if (TryGetDriverReference(vendorIdSource == VendorIdSource.Unknown ? VendorIdSource.Usb : vendorIdSource, vendorId, productId, versionNumber, out var driverTypeReference))
 			{
 				_logger.HidDeviceDriverMatch(driverTypeReference.TypeName, driverTypeReference.AssemblyName.FullName, deviceName);
+				driverCreationContext.Initialize(new DeviceId(DeviceIdSource.Unknown, VendorIdSource.Unknown, vendorId, productId, versionNumber ?? 0xFFFF));
 				await CreateAndRegisterDriverAsync(deviceName, driverTypeReference, driverCreationContext, cancellationToken).ConfigureAwait(false);
 				return;
 			}

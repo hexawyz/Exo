@@ -12,6 +12,4 @@ public abstract class HidDriver : Driver, ISystemDeviceDriver
 	}
 
 	public ImmutableArray<string> DeviceNames { get; }
-
-	public abstract ValueTask DisposeAsync();
 }

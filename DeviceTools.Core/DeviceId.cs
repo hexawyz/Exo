@@ -55,7 +55,7 @@ public readonly struct DeviceId
 
 	/// <summary>Indicates the source technology of this device ID.</summary>
 	/// <remarks>
-	/// <para>While not stricly part of the device ID, it is (can be) part of the device name and it is important information to properly interpret the device ID.</para>
+	/// <para>While not strictly part of the device ID, it is (can be) part of the device name and it is important information to properly interpret the device ID.</para>
 	/// <para>
 	/// Please note that the reliability of this information cannot be strictly guaranteed, as it largely depends on specific knowledge about the various device enumerators (bus drivers),
 	/// and new technologies and specific cases will always arise at some point.
@@ -69,7 +69,7 @@ public readonly struct DeviceId
 	/// <remarks>
 	/// <para>
 	/// Different technology associations manage or provide their own ID lists, which usually follow the same 16 bit VID & PID scheme, but are entirely different, potentially conflicting, namespaces.
-	/// In the case of at least bluetooth, they allow the published Vendor ID to originate from another database (only USB at the time of writing this comment), so it is important to know this information.
+	/// In the case of at least Bluetooth, they allow the published Vendor ID to originate from another database (only USB at the time of writing this comment), so it is important to know this information.
 	/// </para>
 	/// <para>The most notable sources for Vendor IDs would be PCI, USB and Bluetooth.</para>
 	/// </remarks>

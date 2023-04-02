@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+
 namespace Exo;
 
 /// <summary>The base class for a device driver.</summary>
@@ -15,7 +18,7 @@ namespace Exo;
 /// Use of this interface is not mandatory, but it is expected that most device managers will use this interface to detect and instanciate device drivers for devices they can manage.
 /// </para>
 /// </remarks>
-public abstract class Driver : IDeviceDriver<IDeviceFeature>
+public abstract class Driver : IDeviceDriver<IDeviceFeature>, IAsyncDisposable
 {
 	/// <summary>Gets a friendly name for this driver instance.</summary>
 	/// <remarks>
@@ -38,4 +41,6 @@ public abstract class Driver : IDeviceDriver<IDeviceFeature>
 		FriendlyName = friendlyName;
 		ConfigurationKey = configurationKey;
 	}
+
+	public abstract ValueTask DisposeAsync();
 }

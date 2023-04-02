@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Exo.Features;
 
 namespace Exo;
@@ -14,4 +15,6 @@ public sealed class GenericKeyboardDriver : Driver, IDeviceDriver<IKeyboardDevic
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection<IDeviceFeature>.Empty();
 
 	IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection<IKeyboardDeviceFeature>.Empty();
+
+	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

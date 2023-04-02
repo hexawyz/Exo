@@ -10,7 +10,6 @@ using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
-using static DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers.EnableHidPlusPlusNotifications;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -1205,6 +1204,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			: base(parentOrTransport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			_deviceType = deviceType;
+			CachedFeatures = cachedFeatures;
 		}
 
 		public override HidPlusPlusProtocolFlavor ProtocolFlavor => HidPlusPlusProtocolFlavor.FeatureAccess;

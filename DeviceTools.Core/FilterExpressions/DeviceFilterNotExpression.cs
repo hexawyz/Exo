@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace DeviceTools.FilterExpressions
 {
@@ -11,6 +11,7 @@ namespace DeviceTools.FilterExpressions
 			{
 				DeviceFilterNotExpression notExpression => notExpression.Operand,
 				DeviceFilterPropertyComparisonExpression propertyComparisonExpression => propertyComparisonExpression.Not(),
+				DeviceFilterExistenceExpression propertyExistenceExpression => propertyExistenceExpression.Not(),
 				_ => new DeviceFilterNotExpression(operand)
 			};
 

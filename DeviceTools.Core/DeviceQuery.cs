@@ -24,7 +24,7 @@ namespace DeviceTools
 			// Manual testing with Thread.Sleep seems to indicate that the callback is called in non-concurrent sequence.
 			// Peeking at the code using Ghidra seems to confirm this. I could still be wrong, though.
 			SingleWriter = true,
-			// We don't want to lock the DevQuery threadpool for too long, so we can't have synchronous completions.
+			// We don't want to lock the DevQuery thread pool for too long, so we can't have synchronous completions.
 			// Also, it could generate deadlocks.
 			AllowSynchronousContinuations = false
 		};
@@ -367,9 +367,7 @@ namespace DeviceTools
 					stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
 				new NativeMethods.DevicePropertyFilterExpression[count];
 
-			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
-					new Span<NativeMethods.DevicePropertyCompoundKey>() :
-					properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = GetPropertyKeys(properties);
 
 			SafeDeviceQueryHandle query;
 			DevQueryCallbackContext<ChannelReader<DeviceObjectInformation>> context;
@@ -447,9 +445,7 @@ namespace DeviceTools
 					stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
 				new NativeMethods.DevicePropertyFilterExpression[count];
 
-			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
-				new Span<NativeMethods.DevicePropertyCompoundKey>() :
-				properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray().AsSpan();
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = GetPropertyKeys(properties);
 
 			SafeDeviceQueryHandle query;
 #if NET5_0_OR_GREATER
@@ -481,6 +477,19 @@ namespace DeviceTools
 			return FindAllAsync(query, context, cancellationToken);
 		}
 
+		private static Span<NativeMethods.DevicePropertyCompoundKey> GetPropertyKeys(IEnumerable<Property>? properties)
+		{
+			if (properties is not null)
+			{
+				var propertyKeys = properties.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key }).ToArray();
+				if (propertyKeys.Length > 0)
+				{
+					return propertyKeys;
+				}
+			}
+			return new Span<NativeMethods.DevicePropertyCompoundKey>();
+		}
+
 		private static async Task<DeviceObjectInformation[]> FindAllAsync
 		(
 			SafeDeviceQueryHandle queryHandle,
@@ -504,7 +513,7 @@ namespace DeviceTools
 				queryHandle.Dispose();
 			}
 
-			return context.Value.ToArray();
+			return context.Value is { } devices ? devices.ToArray() : Array.Empty<DeviceObjectInformation>();
 		}
 
 		public static Task<DevicePropertyDictionary> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, CancellationToken cancellationToken)
@@ -551,8 +560,8 @@ namespace DeviceTools
 			return GetObjectPropertiesAsync(objectKind, objectId, propertyKeys, filter, cancellationToken);
 		}
 
-		public static Task<DevicePropertyDictionary> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
-			GetObjectPropertiesAsync(objectKind, objectId, properties, null, cancellationToken);
+		public static Task<DevicePropertyDictionary> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, IEnumerable<Property>? properties, CancellationToken cancellationToken)
+			=> GetObjectPropertiesAsync(objectKind, objectId, properties, null, cancellationToken);
 
 		public static Task<DevicePropertyDictionary> GetObjectPropertiesAsync(DeviceObjectKind objectKind, Guid objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken)
 		{
@@ -666,12 +675,7 @@ namespace DeviceTools
 
 		private static Task<DevicePropertyDictionary> GetObjectPropertiesAsync(DeviceObjectKind objectKind, in char objectId, IEnumerable<Property>? properties, DeviceFilterExpression? filter, CancellationToken cancellationToken)
 		{
-			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = properties is null ?
-				new Span<NativeMethods.DevicePropertyCompoundKey>() :
-				properties
-					.Select(p => new NativeMethods.DevicePropertyCompoundKey { Key = p.Key })
-					.ToArray()
-					.AsSpan();
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = GetPropertyKeys(properties);
 
 			if (properties is not null && propertyKeys.IsEmpty)
 			{
