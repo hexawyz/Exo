@@ -1,22 +1,9 @@
-namespace Exo.Lighting.Effects
+namespace Exo.Lighting.Effects;
+
+/// <summary>Represents a light with a static color.</summary>
+public readonly struct StaticColorEffect : ISingleColorLightEffect
 {
-	public struct StaticColorEffect : ISingleColorEffect
-	{
-		public RgbColor Color { get; set; }
-	}
+	public RgbColor Color { get; }
 
-	public struct PulseEffect : ISingleColorEffect
-	{
-		public RgbColor Color { get; set; }
-	}
-
-	public struct FlashEffect : ISingleColorEffect
-	{
-		public RgbColor Color { get; set; }
-	}
-
-	public struct AddressableColorEffect : IApplicableColorEffect
-	{
-		private readonly RgbColor[] _color;
-	}
+	public StaticColorEffect(RgbColor color) => Color = color;
 }

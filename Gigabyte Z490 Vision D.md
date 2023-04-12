@@ -166,9 +166,13 @@ Similarly to RGB RAM, the chip has an "apply settings" command (0x28 here) to ap
 As it turns out, although there is at least one command id per led, any command ID can be used to update *any* LED.
 The **actual** protocol used by the chip seems to be a command buffer that is applied upon demand.
 As such, every command between 0x20 and 0x27 include, are in fact generic led command buffer slots. These slots **must** be filled in order, and any empty command ends the chain.
-These slots are not cleared automatically, thus explaining why RGB Fusion is constantly outputing many empty commands. These could very certainly be optimized away, as clearing the first command before updating it is probably always useless.
+These slots are not cleared automatically, thus explaining why RGB Fusion is constantly outputting many empty commands. These could very certainly be optimized away, as clearing the first command before updating it is probably always useless.
 
 Also, it would seem that setting an effect on multiple zones *at once* could produce a different result than setting the same effect on each zone, one at a time.
+In fact, from testing, it is possible to conclude that each slot defines an active effect. If a slot is replaced, the effect stops, but the static lighting is preserved.
+So, it would not be necessary to overwrite every command before sending an update (assuming there is no other software fighting over the device).
+In that case, however, it is quite wise to follow the RGB Fusion methodology and assign a definite slot for each LED.
+If we do that, it is possible to only send the commands slots that require an update, which will help reducing CPU usage compared to RGB Fusion. (Less memory copies, less USB latency)
 
 ## Sending a stream of colors on a DLED
 
@@ -189,7 +193,7 @@ The first command sends (0x39 / 3) = 19 colors because that's the maximum possib
 The second command sends (0x27 + 3) = 13 colors which completes the previous 19 to make 32.
 
 The command seems to write into some kind of buffer in the chip, with writes represented as an offset + length.
-RGB Fusion sends 32 colors, but the "API" seems to permit any number of colors, so I can't tell what is actuall possible.
+RGB Fusion sends 32 colors, but the "API" seems to permit any number of colors, so I can't tell what is actually possible.
 
 It might be possible to update a single LED in that way, but again, I don't have the hardware for that at the moment.
 This would be:
@@ -281,7 +285,7 @@ If necessary, the whole packets can be exported as JSON from the UI and will inc
 cc600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 cc600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
-#### No idea what this is about
+#### This seems to be for setting the number of adressable LEDs for ARGB strips
 cc340000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 #### Sequence of empty commands (0x20 to 0x27 included)
@@ -320,7 +324,6 @@ RpLdLd                CmBr  BBGGRR
 
 #### Pulse
 cc20010000000000000000025a00ff00000000000000b004b004f401000000010000000000000000000000000000000000000000000000000000000000000000
-
 cc20010000000000000000036400f0f0f00000000000640064007805000000010100000000000000000000000000000000000000000000000000000000000000
 cc20010000000000000000025a00ff00000000000000b004b004f401000000010000000000000000000000000000000000000000000000000000000000000000
 cc20010000000000000000025a00f0f0f00000000000b004b004f401000000010000000000000000000000000000000000000000000000000000000000000000
@@ -405,7 +408,7 @@ S3 0807
 S4 4006
 S5 7805
 
-NN: Number of pulses of light (Got continious pulses with Speed 5 and NN = 08)
+NN: Number of pulses of light (Got continuous pulses with Speed 5 and NN = 08)
 
 #### Double Flash (Unsurprisingly similar to flash)
 
@@ -468,7 +471,7 @@ N2 must be ≤ N1 for correct operation
 
 N2 = 0 => Immediate transition
 
-I suspect the 0xFF at the position where Blue appears in othe modes is a leftover from RGB Fusion 2.0 Software which defaults to the blue color on this MB.
+I suspect the 0xFF at the position where Blue appears in other modes is a leftover from RGB Fusion 2.0 Software which defaults to the blue color on this MB.
 
 
 #### Digital A (Would be same for most digital effects I guess, but this one seems pretty straightforward)

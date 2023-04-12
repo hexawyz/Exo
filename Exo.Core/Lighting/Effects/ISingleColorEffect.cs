@@ -1,7 +1,6 @@
-namespace Exo.Lighting.Effects
+namespace Exo.Lighting.Effects;
+
+public interface ISingleColorLightEffect : ILightingEffect
 {
-	public interface ISingleColorEffect
-	{
-		RgbColor Color { get; set; }
-	}
+	RgbColor Color { get; }
 }
