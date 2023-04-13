@@ -114,6 +114,13 @@ public sealed class RgbFusionIT5702Driver :
 		[FieldOffset(0)]
 		public RgbColor RgbColor;
 
+		public EffectColor(byte blue, byte green, byte red) : this()
+		{
+			Blue = blue;
+			Green = green;
+			Red = red;
+		}
+
 		[SkipLocalsInit]
 		public static implicit operator EffectColor(RgbColor color) => new EffectColor { RgbColor = color, Alpha = 0 };
 	}
@@ -317,6 +324,17 @@ public sealed class RgbFusionIT5702Driver :
 		Z490MotherboardDigitalLed2ZoneId,
 	};
 
+	private static readonly EffectColor[] DefaultPalette = new[]
+	{
+		new EffectColor(255, 0, 0),
+		new EffectColor(255, 127, 0),
+		new EffectColor(255, 255, 0),
+		new EffectColor(0, 255, 0),
+		new EffectColor(0, 0, 255),
+		new EffectColor(75, 0, 130),
+		new EffectColor(148, 0, 211),
+	};
+
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
 	{
 		Properties.System.Devices.DeviceInstanceId,
@@ -451,6 +469,7 @@ public sealed class RgbFusionIT5702Driver :
 	// All known command IDs to the MCU. Some were reverse-engineered from RGB Fusion.
 	private const byte FirstCommandId = 0x20;
 	private const byte ExecuteCommandsCommandId = 0x28;
+	private const byte SetPaletteCommandId = 0x30;
 	private const byte EnableAddressableColorsCommandId = 0x32;
 	private const byte UpdateCalibrationCommandId = 0x33;
 	private const byte SetAddressableColorLengthCommandId = 0x34;
@@ -472,6 +491,7 @@ public sealed class RgbFusionIT5702Driver :
 	private readonly HidFullDuplexStream _stream;
 	private readonly object _lock = new object();
 	private uint _state;
+	private readonly EffectColor[] _palette = new EffectColor[7 * 4];
 	private readonly byte[] _rgb = new byte[2 * 3 * 32];
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
@@ -495,11 +515,12 @@ public sealed class RgbFusionIT5702Driver :
 		for (int i = 0; i < _lightingZones.Length; i++)
 		{
 			byte ledMask = (byte)(1 << i);
-			_lightingZones[i] = i < 6 ?
+			_lightingZones[i] = i < ledCount - 2 ?
 				new LightingZone(ledMask, Z490MotherboardGuids[i], this) :
 				new AddressableLightingZone(ledMask, Z490MotherboardGuids[i], this);
 		}
 		_lightingZoneCollection = new(_lightingZones);
+		_palette = (EffectColor[])DefaultPalette.Clone();
 
 		// Initialize the state to mark everything as pending updates, so that everything works properly.
 		_state = StatePendingChangeLedMask | StatePendingChangeAddressable | StatePendingChangeUnifiedLighting;
@@ -512,6 +533,7 @@ public sealed class RgbFusionIT5702Driver :
 		//(_unifiedLightingZone as ILightingZoneEffect<RainbowCycleEffect>).ApplyEffect(new RainbowCycleEffect());
 		//(_unifiedLightingZone as ILightingZoneEffect<RainbowWaveEffect>).ApplyEffect(new RainbowWaveEffect());
 		//ApplyChanges();
+		//ApplyPaletteColors();
 	}
 
 	public override ValueTask DisposeAsync() => _stream.DisposeAsync();
@@ -586,6 +608,19 @@ public sealed class RgbFusionIT5702Driver :
 
 			// Clear all the status bits that we consumed during this update.
 			_state &= ~(StatePendingChangeLedMask | StatePendingChangeAddressable | StatePendingChangeUnifiedLighting);
+		}
+	}
+
+	public void ApplyPaletteColors()
+	{
+		Span<byte> buffer = stackalloc byte[64];
+		buffer[0] = 0xCC;
+		buffer[1] = SetPaletteCommandId;
+		MemoryMarshal.AsBytes(_palette.AsSpan()).CopyTo(buffer[2..]);
+
+		lock (_lock)
+		{
+			_stream.SendFeatureReport(buffer);
 		}
 	}
 
@@ -720,7 +755,6 @@ public sealed class RgbFusionIT5702Driver :
 				CurrentEffect = DisabledEffect.SharedInstance;
 			}
 		}
-
 
 		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(StaticColorEffect effect)
 		{
@@ -873,7 +907,7 @@ public sealed class RgbFusionIT5702Driver :
 		bool ILightingZoneEffect<RainbowWaveEffect>.TryGetCurrentEffect(out RainbowWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	}
 
-	private class AddressableLightingZone : WaveLightingZone
+	private class AddressableLightingZone : LightingZone
 	{
 		public AddressableLightingZone(byte ledMask, Guid zoneId, RgbFusionIT5702Driver owner) : base(ledMask, zoneId, owner)
 		{

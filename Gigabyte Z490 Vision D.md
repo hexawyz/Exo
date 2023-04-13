@@ -200,6 +200,19 @@ This would be:
 cc580300IxRRGGBB0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 Where Ix is the index of the LED * 3 (offset in bytes), and RRGGBB obviously are the RGB color codes.
 
+## Setting the color palette used for color cycling effects (actually most effects can cycle through colors if I understand correctly: the color count byte seems to work almost always)
+
+I found this one by experimenting and got somewhat lucky as it apparently didn't brick anything, but it did erase my color palette at first.
+This was thankfully relatively easy to notice, as static color effects were still working.
+The number of colors seems to be exactly 7. Any data defined after the 7 RGB values seems to be ignored.
+
+This would set the color cycle to a palette similar to the default one, that I crafted to replace the one I have erased.
+cc300000ff0000ffff0000ff0000ffff0000ff000000ff00ff008000ff0000000000000000000000000000000000000000000000000000000000000000000000
+
+We can probably build one closer to the original by looking to the palette used for "manual" effects in RGB fusion?
+This one might be the original palette:
+cc300000ff00007fff0000ffff0000ff0000ff00000082004b00d300940000000000000000000000000000000000000000000000000000000000000000000000
+
 # Data extracts
 
 ## HID Extract from Windows APIs
