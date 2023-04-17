@@ -213,6 +213,17 @@ We can probably build one closer to the original by looking to the palette used 
 This one might be the original palette:
 cc300000ff00007fff0000ffff0000ff0000ff00000082004b00d300940000000000000000000000000000000000000000000000000000000000000000000000
 
+## Beat enable command
+
+Found from reverse engineering. The command is a one bit enable/disable:
+cc310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+cc310100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+It seems beat control is triggered via GPIO, so it might be a bit complex to use. From what I understand, this enables triggering flashes from a simple bit switch.
+RE indicates that beat mode it would at least require access to CPU IO ports, so we'd either have to rely on the Gigabyte driver or find another way to access these features.
+It might be possible to read/write ports using the gigabyte ACPI device exposed over WMI, as in the case of SMB.
+Anyway, this mode might not be very useful, as we can control the colors manually, and usb calls might be cheaper than any way of calling SMB/GPIO/whatever.
+
 # Data extracts
 
 ## HID Extract from Windows APIs

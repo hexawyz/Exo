@@ -470,6 +470,7 @@ public sealed class RgbFusionIT5702Driver :
 	private const byte FirstCommandId = 0x20;
 	private const byte ExecuteCommandsCommandId = 0x28;
 	private const byte SetPaletteCommandId = 0x30;
+	private const byte BeatEnableCommandId = 0x31;
 	private const byte EnableAddressableColorsCommandId = 0x32;
 	private const byte UpdateCalibrationCommandId = 0x33;
 	private const byte SetAddressableColorLengthCommandId = 0x34;
