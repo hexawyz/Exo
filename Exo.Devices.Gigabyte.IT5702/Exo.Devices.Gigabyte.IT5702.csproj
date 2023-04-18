@@ -8,6 +8,11 @@
 	</PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Management.Infrastructure" Version="2.0.0" />
+    <PackageReference Include="System.Reactive" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
     <ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
     <ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />

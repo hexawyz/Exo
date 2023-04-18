@@ -532,8 +532,8 @@ public sealed class RgbFusionIT5702Driver :
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorFlashEffect>).ApplyEffect(new ColorFlashEffect(new(255, 0, 255)));
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorDoubleFlashEffect>).ApplyEffect(new ColorDoubleFlashEffect(new(255, 0, 255)));
 		//(_unifiedLightingZone as ILightingZoneEffect<RainbowCycleEffect>).ApplyEffect(new RainbowCycleEffect());
-		//(_unifiedLightingZone as ILightingZoneEffect<RainbowWaveEffect>).ApplyEffect(new RainbowWaveEffect());
-		//ApplyChanges();
+		(_unifiedLightingZone as ILightingZoneEffect<RainbowWaveEffect>).ApplyEffect(new RainbowWaveEffect());
+		ApplyChanges();
 		//ApplyPaletteColors();
 	}
 
