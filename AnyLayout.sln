@@ -48,7 +48,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Core", "Exo.Core\Exo.Co
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Apple.Keyboard", "Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj", "{B48149B4-130C-4277-9727-D97C648C91AD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Gigabyte.IT5702", "Exo.Devices.Gigabyte.IT5702\Exo.Devices.Gigabyte.IT5702.csproj", "{453DBCD7-A3E3-4BC4-89D6-DEA0F1BA7AF6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Gigabyte", "Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj", "{453DBCD7-A3E3-4BC4-89D6-DEA0F1BA7AF6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.DeviceNotifications", "Exo.DeviceNotifications\Exo.DeviceNotifications.csproj", "{8DAF49D0-B373-47E7-8DE9-B4963E6DE82E}"
 EndProject
@@ -74,7 +74,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Core.SourceGene
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Logitech", "Exo.Devices.Logitech\Exo.Devices.Logitech.csproj", "{88D5BF9B-6CFC-4CC2-9286-FC949A3AE3FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Logitech.HidPlusPlus", "DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj", "{A11D8CB7-E5FB-4834-A4E8-311191488633}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Logitech.HidPlusPlus", "DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj", "{A11D8CB7-E5FB-4834-A4E8-311191488633}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

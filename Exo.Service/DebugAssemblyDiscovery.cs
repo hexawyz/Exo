@@ -31,7 +31,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 		var plugins = new[]
 		{
 			"Exo.Devices.Logitech",
-			"Exo.Devices.Gigabyte.IT5702",
+			"Exo.Devices.Gigabyte",
 			"Exo.Devices.Apple.Keyboard"
 		};
 
