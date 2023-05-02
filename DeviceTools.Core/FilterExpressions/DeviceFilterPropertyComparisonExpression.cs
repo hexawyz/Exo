@@ -297,7 +297,7 @@ namespace DeviceTools.FilterExpressions
 					CompoundKey =
 					{
 						Key = Property.Key,
-						Store = NativeMethods.DevicePropertyStore.Sytem,
+						Store = NativeMethods.DevicePropertyStore.System,
 					},
 					Type = _value is null ? NativeMethods.DevicePropertyType.Null : Property.Type.Value,
 					BufferLength = (uint)GetBufferLength(),

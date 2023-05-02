@@ -505,7 +505,7 @@ namespace DeviceTools
 			var displayNameProperty = new NativeMethods.DevicePropertyCompoundKey
 			{
 				Key = property,
-				Store = NativeMethods.DevicePropertyStore.Sytem
+				Store = NativeMethods.DevicePropertyStore.System
 			};
 
 			ref var firstProperty = ref NativeMethods.DeviceGetObjectProperties

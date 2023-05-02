@@ -45,14 +45,21 @@ namespace DeviceTools
 
 			string filename = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(NativeMethods).Assembly.Location)!, directoryName, "DeviceTools.DevQueryHelper.dll"));
 
+#if NETCOREAPP3_0_OR_GREATER
+			var module = NativeLibrary.Load(filename);
+#else
 			var module = LoadLibrary(filename);
-			//var module = LoadLibrary(@"C:\Users\Fabien\Source\Repos\AnyLayout\DeviceTools.DevQueryHelper\bin\x64\Debug\DeviceTools.DevQueryHelper.dll");
+#endif
 			if (module == IntPtr.Zero)
 			{
 				throw new Win32Exception(Marshal.GetLastWin32Error());
 			}
 
+#if NETCOREAPP3_0_OR_GREATER
+			var procAddress = NativeLibrary.GetExport(module, "DevQueryCallback");
+#else
 			var procAddress = GetProcAddress(module, "DevQueryCallback");
+#endif
 			if (procAddress == IntPtr.Zero)
 			{
 				throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -92,7 +99,7 @@ namespace DeviceTools
 
 		public enum DevicePropertyStore
 		{
-			Sytem,
+			System,
 			User,
 		}
 

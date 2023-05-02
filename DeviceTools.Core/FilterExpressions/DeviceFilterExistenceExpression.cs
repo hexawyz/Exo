@@ -33,7 +33,7 @@ public sealed class DeviceFilterExistenceExpression : DeviceFilterExpression
 				CompoundKey =
 				{
 					Key = Property.Key,
-					Store = NativeMethods.DevicePropertyStore.Sytem,
+					Store = NativeMethods.DevicePropertyStore.System,
 				},
 				Type = NativeMethods.DevicePropertyType.Empty,
 				BufferLength = 0,
