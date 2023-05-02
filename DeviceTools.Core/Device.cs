@@ -406,7 +406,7 @@ namespace DeviceTools
 				{
 					uint dataLength = ((uint)span.Length + 1) * 2;
 					// NB: This will technically overwrite the internal null terminator of the string. This implementation detail of strings is unlikely to change, but at least you know.
-					var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(state.DeviceInterface, state.PropertyKey, out _, ref MemoryMarshal.AsBytes(span)[0], ref dataLength, 0);
+					var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceProperty(state.DeviceInterface, state.PropertyKey, out _, ref MemoryMarshal.GetReference(MemoryMarshal.AsBytes(span)), ref dataLength, 0);
 					if (result != 0)
 					{
 						throw new ConfigurationManagerException(result);
@@ -454,7 +454,7 @@ namespace DeviceTools
 				{
 					uint dataLength = ((uint)span.Length + 1) * 2;
 					// NB: This will technically overwrite the internal null terminator of the string. This implementation detail of strings is unlikely to change, but at least you know.
-					var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(state.DeviceInstanceHandle, state.PropertyKey, out _, ref MemoryMarshal.AsBytes(span)[0], ref dataLength, 0);
+					var result = NativeMethods.ConfigurationManagerGetDeviceNodeProperty(state.DeviceInstanceHandle, state.PropertyKey, out _, ref MemoryMarshal.GetReference(MemoryMarshal.AsBytes(span)), ref dataLength, 0);
 					if (result != 0)
 					{
 						throw new ConfigurationManagerException(result);
