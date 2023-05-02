@@ -1,8 +1,7 @@
-﻿using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace Exo.Devices.Gigabyte;
+namespace DeviceTools.Firmware;
 
 internal static class SystemEnvironmentPrivilege
 {
@@ -13,10 +12,7 @@ internal static class SystemEnvironmentPrivilege
 			throw new Win32Exception(Marshal.GetLastWin32Error());
 		}
 
-		if (NativeMethods.RtlAdjustPrivilege(privilege, true, false, out bool _) != 0)
-		{
-			throw new Exception("Failed to enable SeSystemEnvironmentPrivilege.");
-		}
+		NativeMethods.ValidateNtStatus(NativeMethods.RtlAdjustPrivilege(privilege, true, false, out bool _));
 	}
 
 	public static void Initialize() { }

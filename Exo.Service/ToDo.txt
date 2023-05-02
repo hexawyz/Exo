@@ -15,3 +15,4 @@
 * If the app/service is installed within its own "secure" directory, there should be an official way to package and install plugins through the UI/CLI apps
   * Assembly manifest could be enough in many cases, as a lot of plugins should work without external data?
   * What about complex plugins coming with external files, native DLLs, and such?
+* Read the SMBios table using GetSystemFirmwareTable to get various information on the current computer. (Could also be partially done through WMI but because this is lower level, this should have less overhead)

@@ -5,6 +5,7 @@ using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using DeviceTools.Firmware.Uefi;
 using Microsoft.Management.Infrastructure;
 
 namespace Exo.Devices.Gigabyte;
@@ -23,22 +24,13 @@ public class AcpiSmBusDriver : ISmBusDriver
 	{
 		public static readonly MutexLifecycle Instance = new();
 
+		// Not exactly sure what this GUID maps to, but it does not seem to be Gigabyte-specific, so I'm assuming it is from AMI.
+		private static readonly Guid AmiGuid = new Guid(0x01368881, 0xC4AD, 0x4B1D, 0xB6, 0x31, 0xD5, 0x7A, 0x8E, 0xC8, 0xDB, 0x6B);
+
 		private static unsafe void SetSystemMutex(bool enable)
 		{
 			byte value = enable ? (byte)1 : (byte)0;
-			if (!NativeMethods.SetFirmwareEnvironmentVariable("SMBMutex", "{01368881-C4AD-4B1D-B631-D57A8EC8DB6B}", &value, 1))
-			{
-				throw new Win32Exception(Marshal.GetLastWin32Error());
-			}
-		}
-
-		// We use the opportunity of the constructor call to adjust the current privileges.
-		// Since the initialization is done opportunistically by the JIT, we don't know when this can happen, but we can hope it is not done too early before the first time we need the feature.
-		// Having it done there will be the most optimal for the rest of the process execution, as this instance constructor is only called once.
-		// As such, the static initializer for SystemEnvironmentPrivilege will not add any further overhead to the usage of this class. (Compared to if this was done in the methods below)
-		private MutexLifecycle()
-		{
-			SystemEnvironmentPrivilege.Initialize();
+			EfiEnvironment.SetVariable("SMBMutex", AmiGuid, MemoryMarshal.CreateReadOnlySpan(ref value, 1));
 		}
 
 		public void OnAfterAcquire()
