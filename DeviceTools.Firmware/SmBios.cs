@@ -22,7 +22,7 @@ public sealed partial class SmBios
 		public readonly byte Type;
 		public readonly byte Length;
 		private readonly ushort _handle;
-		public ushort Handle => Unaligned.Read(_handle);
+		public ushort Handle => Unaligned.ReadAt(_handle);
 	}
 
 	public static unsafe byte[] GetRawData()
@@ -88,12 +88,17 @@ public sealed partial class SmBios
 				if (SystemInformation is not null) throw new InvalidDataException("System Information structure must only appear once.");
 				SystemInformation = new(structureHeader.Handle, structureData, strings);
 				break;
+			case 4:
+				processorInformations.Add(new(structureHeader.Handle, structureData, strings));
+				break;
 			}
 		}
 
+		// Once parsing is finished, validate that all required structures are present.
 		if (BiosInformation is null) throw new InvalidDataException("BIOS Information structure is missing.");
 		if (SystemInformation is null) throw new InvalidDataException("System Information structure is missing.");
-		//if (ProcessorInformation.IsDefaultOrEmpty) throw new InvalidDataException("Processor Information structure is missing.");
+		if (processorInformations.Count == 0) throw new InvalidDataException("Processor Information structure is missing.");
+		ProcessorInformation = processorInformations.Count == processorInformations.Capacity ? processorInformations.MoveToImmutable() : processorInformations.ToImmutable();
 	}
 
 	private static int ParseStrings(ReadOnlySpan<byte> data, List<string> strings)
