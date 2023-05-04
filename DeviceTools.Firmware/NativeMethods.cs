@@ -79,4 +79,10 @@ internal static unsafe class NativeMethods
 			throw new Win32Exception((int)RtlNtStatusToDosError(status));
 		}
 	}
+
+	[DllImport("kernel32", ExactSpelling = true, PreserveSig = true, SetLastError = false)]
+	public static extern uint EnumSystemFirmwareTables(uint firmwareTableProviderSignature, void* pFirmwareTableEnumBuffer, uint bufferSize);
+
+	[DllImport("kernel32", ExactSpelling = true, PreserveSig = true, SetLastError = true)]
+	public static extern uint GetSystemFirmwareTable(uint firmwareTableProviderSignature, uint firmwareTableID, void* firmwareTableBuffer, uint bufferSize);
 }
