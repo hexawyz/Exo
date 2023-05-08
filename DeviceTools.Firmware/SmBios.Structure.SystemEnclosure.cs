@@ -1,8 +1,7 @@
-﻿namespace DeviceTools.Firmware;
+namespace DeviceTools.Firmware;
 
 public sealed partial class SmBios
 {
-
 	public abstract partial class Structure
 	{
 		public sealed class SystemEnclosure : Structure

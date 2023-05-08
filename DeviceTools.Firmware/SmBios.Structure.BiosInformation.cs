@@ -1,10 +1,9 @@
-﻿using System.Globalization;
+using System.Globalization;
 
 namespace DeviceTools.Firmware;
 
 public sealed partial class SmBios
 {
-
 	public abstract partial class Structure
 	{
 		public sealed class BiosInformation : Structure
@@ -29,6 +28,9 @@ public sealed partial class SmBios
 
 			internal BiosInformation(ushort handle, ReadOnlySpan<byte> data, List<string> strings) : base(handle)
 			{
+				// SMBIOS 2.0+
+				if (data.Length < 14) throw new InvalidDataException("The data structure for BIOS Information is not long enough.");
+
 				Vendor = GetString(strings, data[0]);
 				BiosVersion = GetString(strings, data[1]);
 				BiosStartingAddressSegment = Unaligned.Read<ushort>(data[2..]);
@@ -54,7 +56,7 @@ public sealed partial class SmBios
 					BiosReleaseDate = new DateTime(year, month, day, 0, 0, 0, 0, DateTimeKind.Utc);
 				}
 				byte romSize = data[5];
-				BiosRomSize = (romSize + 1U) * 64 * 1024;
+				BiosRomSize = (romSize + 1U) * (64 * 1024);
 
 				// BIOS Characteristics are supposed to be a single 64 bit field, but only the first 32 bits are explicitly defined.
 				// Other 32 bits are vendor-defined. As such, splitting the characteristics in two makes sense.
@@ -67,15 +69,15 @@ public sealed partial class SmBios
 					SystemBiosMajorRelease = 255;
 
 				// SMBIOS 2.1+
-				if (data.Length >= 14)
+				if (data.Length >= 15)
 				{
 					// SMBIOS 2.3+
-					if (data.Length >= 15)
+					if (data.Length >= 16)
 					{
 						ExtendedBiosCharacteristics = (ExtendedBiosCharacteristics)Unaligned.Read<ushort>(data[14..]);
 
 						// SMBIOS 2.4+
-						if (data.Length >= 19)
+						if (data.Length >= 20)
 						{
 							SystemBiosMajorRelease = data[16];
 							SystemBiosMinorRelease = data[17];
@@ -83,15 +85,15 @@ public sealed partial class SmBios
 							EmbeddedFirmwareControllerMinorRelease = data[19];
 
 							// SMBIOS 3.1+
-							if (data.Length >= 21 && romSize == 0xFF)
+							if (data.Length >= 22 && romSize == 0xFF)
 							{
 								ushort extendedRomSize = Unaligned.Read<ushort>(data[20..]);
 								byte unit = (byte)(extendedRomSize >>> 14);
 								extendedRomSize &= 0x3FFF;
 								BiosRomSize = unit switch
 								{
-									0 => (ulong)extendedRomSize * 1024 * 1024,
-									1 => (ulong)extendedRomSize * 1024 * 1024 * 1024,
+									0 => extendedRomSize * (1024UL * 1024),
+									1 => extendedRomSize * (1024UL * 1024 * 1024),
 									_ => throw new InvalidOperationException("Unsupported BIOS ROM size."),
 								};
 							}

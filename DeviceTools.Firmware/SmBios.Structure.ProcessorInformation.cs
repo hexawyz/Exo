@@ -38,7 +38,7 @@ public sealed partial class SmBios
 			internal ProcessorInformation(ushort handle, ReadOnlySpan<byte> data, List<string> strings) : base(handle)
 			{
 				// SMBIOS 2.0+
-				if (data.Length < 21) throw new InvalidDataException("The data structure for Processor information is not long enough.");
+				if (data.Length < 22) throw new InvalidDataException("The data structure for Processor Information is not long enough.");
 
 				SocketDesignation = GetString(strings, data[0]);
 				ProcessorType = (ProcessorType)data[1];
@@ -54,17 +54,17 @@ public sealed partial class SmBios
 				ProcessorUpgrade = (ProcessorUpgrade)data[21];
 
 				// SMBIOS 2.1+
-				if (data.Length >= 27)
+				if (data.Length >= 28)
 				{
 					// SMBIOS 2.3+
-					if (data.Length >= 30)
+					if (data.Length >= 31)
 					{
 						SerialNumber = GetString(strings, data[28]);
 						AssetTag = GetString(strings, data[29]);
 						PartNumber = GetString(strings, data[30]);
 
 						// SMBIOS 2.5+
-						if (data.Length >= 35)
+						if (data.Length >= 36)
 						{
 							CoreCount = data[31];
 							EnabledCoreCount = data[32];
@@ -72,19 +72,19 @@ public sealed partial class SmBios
 							ProcessorCharacteristics = (ProcessorCharacteristics)Unaligned.Read<ushort>(data[34..]);
 
 							// SMBIOS 2.6+
-							if (data.Length >= 37)
+							if (data.Length >= 38)
 							{
 								ProcessorFamily = (ProcessorFamily)Unaligned.Read<ushort>(data[36..]);
 
 								// SMBIOS 3.0+
-								if (data.Length >= 43)
+								if (data.Length >= 44)
 								{
 									CoreCount = Unaligned.Read<ushort>(data[38..]);
 									EnabledCoreCount = Unaligned.Read<ushort>(data[40..]);
 									ThreadCount = Unaligned.Read<ushort>(data[42..]);
 
 									// SMBIOS 3.6+
-									if (data.Length >= 45)
+									if (data.Length >= 46)
 									{
 										EnabledThreadCount = Unaligned.Read<ushort>(data[44..]);
 									}

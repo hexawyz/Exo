@@ -52,7 +52,8 @@ public sealed partial class SmBios
 
 	public Structure.BiosInformation BiosInformation { get; }
 	public Structure.SystemInformation SystemInformation { get; }
-	public ImmutableArray<Structure.ProcessorInformation> ProcessorInformation { get; }
+	public ImmutableArray<Structure.ProcessorInformation> ProcessorInformations { get; }
+	public ImmutableArray<Structure.MemoryDevice> MemoryDevices { get; }
 
 	private SmBios(ReadOnlySpan<byte> data)
 	{
@@ -63,6 +64,7 @@ public sealed partial class SmBios
 
 		var strings = new List<string>();
 		var processorInformations = ImmutableArray.CreateBuilder<Structure.ProcessorInformation>(1);
+		var memoryDevices = ImmutableArray.CreateBuilder<Structure.MemoryDevice>(4);
 
 		var remaining = data[Unsafe.SizeOf<RawSmBiosHeader>()..];
 
@@ -91,6 +93,9 @@ public sealed partial class SmBios
 			case 4:
 				processorInformations.Add(new(structureHeader.Handle, structureData, strings));
 				break;
+			case 17:
+				memoryDevices.Add(new(structureHeader.Handle, structureData, strings));
+				break;
 			}
 		}
 
@@ -98,7 +103,9 @@ public sealed partial class SmBios
 		if (BiosInformation is null) throw new InvalidDataException("BIOS Information structure is missing.");
 		if (SystemInformation is null) throw new InvalidDataException("System Information structure is missing.");
 		if (processorInformations.Count == 0) throw new InvalidDataException("Processor Information structure is missing.");
-		ProcessorInformation = processorInformations.Count == processorInformations.Capacity ? processorInformations.MoveToImmutable() : processorInformations.ToImmutable();
+		if (memoryDevices.Count == 0) throw new InvalidDataException("Memory Device structure is missing.");
+		ProcessorInformations = processorInformations.Count == processorInformations.Capacity ? processorInformations.MoveToImmutable() : processorInformations.ToImmutable();
+		MemoryDevices = memoryDevices.Count == memoryDevices.Capacity ? memoryDevices.MoveToImmutable() : memoryDevices.ToImmutable();
 	}
 
 	private static int ParseStrings(ReadOnlySpan<byte> data, List<string> strings)
