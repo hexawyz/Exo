@@ -88,12 +88,12 @@ public sealed partial class SmBios
 				// SMBIOS 2.1+
 				if (data.Length < 16) throw new InvalidDataException("The data structure for Memory Device is not long enough.");
 
-				_physicalMemoryArrayHandle = Unaligned.Read<ushort>(data);
-				_memoryErrorInformationHandle = Unaligned.Read<ushort>(data[2..]);
+				_physicalMemoryArrayHandle = LittleEndian.Read<ushort>(data);
+				_memoryErrorInformationHandle = LittleEndian.Read<ushort>(data[2..]);
 
-				_totalWidth = Unaligned.Read<ushort>(data[4..]);
-				_dataWidth = Unaligned.Read<ushort>(data[6..]);
-				ushort size = Unaligned.Read<ushort>(data[8..]);
+				_totalWidth = LittleEndian.Read<ushort>(data[4..]);
+				_dataWidth = LittleEndian.Read<ushort>(data[6..]);
+				ushort size = LittleEndian.Read<ushort>(data[8..]);
 				ushort sizeBase = (ushort)(size & 0x7FFF);
 				if (sizeBase == 0x7FFF)
 				{
@@ -110,12 +110,12 @@ public sealed partial class SmBios
 				BankLocator = GetString(strings, data[13]);
 
 				_memoryType = data[14];
-				_typeDetail = Unaligned.Read<ushort>(data[15..]);
+				_typeDetail = LittleEndian.Read<ushort>(data[15..]);
 
 				// SMBIOS 2.3+
 				if (data.Length >= 23)
 				{
-					_speed = Unaligned.Read<ushort>(data[17..]) * (1024UL * 1024);
+					_speed = LittleEndian.Read<ushort>(data[17..]) * (1024UL * 1024);
 
 					Manufacturer = GetString(strings, data[19]);
 					SerialNumber = GetString(strings, data[20]);
@@ -131,47 +131,47 @@ public sealed partial class SmBios
 						{
 							if (size == 0x7FFF)
 							{
-								uint extendedSize = Unaligned.Read<uint>(data[24..]);
+								uint extendedSize = LittleEndian.Read<uint>(data[24..]);
 								uint extendedBaseSize = extendedSize & 0x7FFFFFFF;
 
 								_size = extendedBaseSize * (1024UL * 1024);
 							}
 
-							_configuredMemorySpeed = Unaligned.Read<ushort>(data[28..]) * (1024UL * 1024);
+							_configuredMemorySpeed = LittleEndian.Read<ushort>(data[28..]) * (1024UL * 1024);
 
 							// SMBIOS 2.8+
 							if (data.Length >= 36)
 							{
-								_minimumVoltage = Unaligned.Read<ushort>(data[30..]);
-								_maximumVoltage = Unaligned.Read<ushort>(data[32..]);
-								_configuredVoltage = Unaligned.Read<ushort>(data[34..]);
+								_minimumVoltage = LittleEndian.Read<ushort>(data[30..]);
+								_maximumVoltage = LittleEndian.Read<ushort>(data[32..]);
+								_configuredVoltage = LittleEndian.Read<ushort>(data[34..]);
 
 								// SMBIOS 3.2+
 								if (data.Length >= 80)
 								{
 									_memoryTechnology = data[36];
-									_memoryOperatingModeCapability = Unaligned.Read<ushort>(data[37..]);
+									_memoryOperatingModeCapability = LittleEndian.Read<ushort>(data[37..]);
 
 									FirmwareVersion = GetString(strings, data[39]);
 
 									// Optimize the 4 nullable values in a single field.
 									byte nonNullIds = 0;
-									if ((_moduleManufacturerId = Unaligned.Read<ushort>(data[40..])) is not 0) nonNullIds |= 1;
-									if ((_moduleProductId = Unaligned.Read<ushort>(data[42..])) is not 0) nonNullIds |= 2;
-									if ((_memorySubsystemControllerManufacturerId = Unaligned.Read<ushort>(data[44..])) is not 0) nonNullIds |= 4;
-									if ((_memorySubsystemControllerProductId = Unaligned.Read<ushort>(data[46..])) is not 0) nonNullIds |= 8;
+									if ((_moduleManufacturerId = LittleEndian.Read<ushort>(data[40..])) is not 0) nonNullIds |= 1;
+									if ((_moduleProductId = LittleEndian.Read<ushort>(data[42..])) is not 0) nonNullIds |= 2;
+									if ((_memorySubsystemControllerManufacturerId = LittleEndian.Read<ushort>(data[44..])) is not 0) nonNullIds |= 4;
+									if ((_memorySubsystemControllerProductId = LittleEndian.Read<ushort>(data[46..])) is not 0) nonNullIds |= 8;
 									_nonNullIds = nonNullIds;
 
-									_nonVolatileSize = Unaligned.Read<ulong>(data[48..]);
-									_volatileSize = Unaligned.Read<ulong>(data[56..]);
-									_cacheSize = Unaligned.Read<ulong>(data[64..]);
-									_logicalSize = Unaligned.Read<ulong>(data[72..]);
+									_nonVolatileSize = LittleEndian.Read<ulong>(data[48..]);
+									_volatileSize = LittleEndian.Read<ulong>(data[56..]);
+									_cacheSize = LittleEndian.Read<ulong>(data[64..]);
+									_logicalSize = LittleEndian.Read<ulong>(data[72..]);
 
 									// SMBIOS 3.3+
 									if (data.Length >= 88)
 									{
-										_speed = Unaligned.Read<uint>(data[80..]) * (1024UL * 1024);
-										_configuredMemorySpeed = Unaligned.Read<uint>(data[84..]) * (1024UL * 1024);
+										_speed = LittleEndian.Read<uint>(data[80..]) * (1024UL * 1024);
+										_configuredMemorySpeed = LittleEndian.Read<uint>(data[84..]) * (1024UL * 1024);
 									}
 									else
 									{

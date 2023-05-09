@@ -30,7 +30,7 @@ public sealed partial class SmBios
 				// SMBIOS 2.1+
 				if (data.Length >= 21)
 				{
-					Uuid = Unaligned.Read<Guid>(data[4..]);
+					Uuid = LittleEndian.Read<Guid>(data[4..]);
 					WakeUpType = (SystemWakeUpType)data[20];
 
 					// SMBIOS 2.4+

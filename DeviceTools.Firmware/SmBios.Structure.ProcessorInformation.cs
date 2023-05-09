@@ -44,12 +44,12 @@ public sealed partial class SmBios
 				ProcessorType = (ProcessorType)data[1];
 				ProcessorFamily = (ProcessorFamily)data[2];
 				ProcessorManufacturer = GetString(strings, data[3]);
-				ProcessorId = Unaligned.Read<ulong>(data[4..]);
+				ProcessorId = LittleEndian.Read<ulong>(data[4..]);
 				ProcessorVersion = GetString(strings, data[12]);
 				Voltage = data[13];
-				ExternalClock = Unaligned.Read<ushort>(data[14..]) * 1000u * 1000;
-				MaximumSpeed = Unaligned.Read<ushort>(data[16..]) * 1000u * 1000;
-				CurrentSpeed = Unaligned.Read<ushort>(data[18..]) * 1000u * 1000;
+				ExternalClock = LittleEndian.Read<ushort>(data[14..]) * 1000u * 1000;
+				MaximumSpeed = LittleEndian.Read<ushort>(data[16..]) * 1000u * 1000;
+				CurrentSpeed = LittleEndian.Read<ushort>(data[18..]) * 1000u * 1000;
 				_status = data[20];
 				ProcessorUpgrade = (ProcessorUpgrade)data[21];
 
@@ -69,24 +69,24 @@ public sealed partial class SmBios
 							CoreCount = data[31];
 							EnabledCoreCount = data[32];
 							ThreadCount = data[33];
-							ProcessorCharacteristics = (ProcessorCharacteristics)Unaligned.Read<ushort>(data[34..]);
+							ProcessorCharacteristics = (ProcessorCharacteristics)LittleEndian.Read<ushort>(data[34..]);
 
 							// SMBIOS 2.6+
 							if (data.Length >= 38)
 							{
-								ProcessorFamily = (ProcessorFamily)Unaligned.Read<ushort>(data[36..]);
+								ProcessorFamily = (ProcessorFamily)LittleEndian.Read<ushort>(data[36..]);
 
 								// SMBIOS 3.0+
 								if (data.Length >= 44)
 								{
-									CoreCount = Unaligned.Read<ushort>(data[38..]);
-									EnabledCoreCount = Unaligned.Read<ushort>(data[40..]);
-									ThreadCount = Unaligned.Read<ushort>(data[42..]);
+									CoreCount = LittleEndian.Read<ushort>(data[38..]);
+									EnabledCoreCount = LittleEndian.Read<ushort>(data[40..]);
+									ThreadCount = LittleEndian.Read<ushort>(data[42..]);
 
 									// SMBIOS 3.6+
 									if (data.Length >= 46)
 									{
-										EnabledThreadCount = Unaligned.Read<ushort>(data[44..]);
+										EnabledThreadCount = LittleEndian.Read<ushort>(data[44..]);
 									}
 								}
 							}

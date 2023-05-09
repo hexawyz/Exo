@@ -22,7 +22,7 @@ public sealed partial class SmBios
 		public readonly byte Type;
 		public readonly byte Length;
 		private readonly ushort _handle;
-		public ushort Handle => Unaligned.ReadAt(_handle);
+		public ushort Handle => LittleEndian.ReadAt(_handle);
 	}
 
 	public static unsafe byte[] GetRawData()

@@ -33,7 +33,7 @@ public sealed partial class SmBios
 
 				Vendor = GetString(strings, data[0]);
 				BiosVersion = GetString(strings, data[1]);
-				BiosStartingAddressSegment = Unaligned.Read<ushort>(data[2..]);
+				BiosStartingAddressSegment = LittleEndian.Read<ushort>(data[2..]);
 				var biosReleaseDate = GetString(strings, data[4]);
 				if (biosReleaseDate is not null)
 				{
@@ -60,8 +60,8 @@ public sealed partial class SmBios
 
 				// BIOS Characteristics are supposed to be a single 64 bit field, but only the first 32 bits are explicitly defined.
 				// Other 32 bits are vendor-defined. As such, splitting the characteristics in two makes sense.
-				BiosCharacteristics = (BiosCharacteristics)Unaligned.Read<uint>(data[6..]);
-				VendorBiosCharacteristics = Unaligned.Read<uint>(data[10..]);
+				BiosCharacteristics = (BiosCharacteristics)LittleEndian.Read<uint>(data[6..]);
+				VendorBiosCharacteristics = LittleEndian.Read<uint>(data[10..]);
 
 				EmbeddedFirmwareControllerMinorRelease =
 					EmbeddedFirmwareControllerMajorRelease =
@@ -74,7 +74,7 @@ public sealed partial class SmBios
 					// SMBIOS 2.3+
 					if (data.Length >= 16)
 					{
-						ExtendedBiosCharacteristics = (ExtendedBiosCharacteristics)Unaligned.Read<ushort>(data[14..]);
+						ExtendedBiosCharacteristics = (ExtendedBiosCharacteristics)LittleEndian.Read<ushort>(data[14..]);
 
 						// SMBIOS 2.4+
 						if (data.Length >= 20)
@@ -87,7 +87,7 @@ public sealed partial class SmBios
 							// SMBIOS 3.1+
 							if (data.Length >= 22 && romSize == 0xFF)
 							{
-								ushort extendedRomSize = Unaligned.Read<ushort>(data[20..]);
+								ushort extendedRomSize = LittleEndian.Read<ushort>(data[20..]);
 								byte unit = (byte)(extendedRomSize >>> 14);
 								extendedRomSize &= 0x3FFF;
 								BiosRomSize = unit switch
