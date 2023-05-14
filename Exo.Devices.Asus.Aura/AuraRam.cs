@@ -4,6 +4,7 @@ using Exo.Lighting;
 
 namespace Exo.Devices.Asus.Aura;
 
+[RamStick(0x04, 0x8D, "F4-3600C18-32GTZN")]
 public class AuraRamDriver :
 	Driver,
 	IDeviceDriver<ILightingDeviceFeature>,
