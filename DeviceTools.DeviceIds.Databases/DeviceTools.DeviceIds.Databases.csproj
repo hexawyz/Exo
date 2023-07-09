@@ -2,9 +2,53 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+		<UsbIdsDaysFromToday>30</UsbIdsDaysFromToday>
   </PropertyGroup>
 
-	<Target Name="DownloadUsbIds">
+	<UsingTask TaskName="ReadDatabaseVersionInformation" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<Path ParameterType="System.String" Required="true" />
+			<Version ParameterType="System.String" Output="true" />
+			<DaysFromToday ParameterType="System.Int32" Output="true" />
+		</ParameterGroup>
+		<Task>
+			<Using Namespace="System.Text.RegularExpressions" />
+			<Code Type="Fragment" Language="cs">
+				<![CDATA[
+foreach (var line in File.ReadLines(Path))
+{
+	if (line[0] != '#')
+	{
+		Log.LogError(@"Version number not found in """ + Path + @""".");
+		Success = false;
+		break;
+	}
+	
+	var match = Regex.Match(line, @"^#\s+Version:\s+(?<Version>\d{4}\.\d{2}\.\d{2})$", RegexOptions.ExplicitCapture);
+	
+	if (match.Success)
+	{
+		string version = match.Groups["Version"].Captures[0].Value;
+		DaysFromToday = (int)(DateTime.UtcNow.Date - new DateTime(int.Parse(version.Substring(0, 4)), int.Parse(version.Substring(5, 2)), int.Parse(version.Substring(8, 2)))).TotalDays;
+		Version = version;
+		Success = true;
+		break;
+	}
+}
+]]>
+			</Code>
+		</Task>
+	</UsingTask>
+
+	<Target Name="CheckUsbIdsDatabaseVersion" Condition="Exists('usb.ids')">
+		<ReadDatabaseVersionInformation Path="usb.ids">
+			<Output TaskParameter="Version" PropertyName="UsbIdsVersion" />
+			<Output TaskParameter="DaysFromToday" PropertyName="UsbIdsDaysFromToday" />
+		</ReadDatabaseVersionInformation>
+		<Message Text="USB IDs Database Version: $(UsbIdsVersion)" Importance="low" />
+	</Target>
+	
+	<Target Name="DownloadUsbIds" Condition="'$(UsbIdsDaysFromToday)' &gt; 30">
 		<!-- Try to download the latest usb.ids file if available, but ignore errors, as we still have a local copy of this file.-->
 		<DownloadFile SourceUrl="http://www.linux-usb.org/usb.ids" DestinationFolder="$(BaseIntermediateOutputPath)" SkipUnchangedFiles="true" ContinueOnError="true">
 			<Output TaskParameter="DownloadedFile" ItemName="FileWrites" />
@@ -15,6 +59,6 @@
 		<Copy SourceFiles="$(BaseIntermediateOutputPath)usb.ids" DestinationFiles="usb.ids" SkipUnchangedFiles="true" UseHardlinksIfPossible="true" UseSymboliclinksIfPossible="false" />
 	</Target>
 
-	<Target Name="DownloadAndUpdateUsbIds" DependsOnTargets="DownloadUsbIds;UpdateUsbIds" BeforeTargets="BeforeBuild" />
+	<Target Name="DownloadAndUpdateUsbIds" DependsOnTargets="CheckUsbIdsDatabaseVersion;DownloadUsbIds;UpdateUsbIds" BeforeTargets="BeforeBuild" />
 
 </Project>
