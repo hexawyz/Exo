@@ -28,7 +28,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 	ProjectSection(SolutionItems) = preProject
 		Apple USB Keyboard.md = Apple USB Keyboard.md
 		Corsair HX1200i.md = Corsair HX1200i.md
+		Design Philosophy.md = Design Philosophy.md
 		Gigabyte Z490 Vision D.md = Gigabyte Z490 Vision D.md
+		LG 27GP950.md = LG 27GP950.md
 		Logitech Bolt.txt = Logitech Bolt.txt
 		Logitech MX Keys.md = Logitech MX Keys.md
 		NZXT Kraken Z63.md = NZXT Kraken Z63.md
@@ -76,9 +78,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Logitech", "Exo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Logitech.HidPlusPlus", "DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj", "{A11D8CB7-E5FB-4834-A4E8-311191488633}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Asus.Aura", "Exo.Devices.Asus.Aura\Exo.Devices.Asus.Aura.csproj", "{A329545C-1BF9-471A-B82F-483063560E26}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Asus.Aura", "Exo.Devices.Asus.Aura\Exo.Devices.Asus.Aura.csproj", "{A329545C-1BF9-471A-B82F-483063560E26}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Firmware", "DeviceTools.Firmware\DeviceTools.Firmware.csproj", "{7331DF38-21F2-4039-90E6-1A95351A9114}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Firmware", "DeviceTools.Firmware\DeviceTools.Firmware.csproj", "{7331DF38-21F2-4039-90E6-1A95351A9114}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Lg.Monitors", "Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj", "{06E1474F-B6AE-44AC-993A-5337F62F21AB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -540,6 +544,22 @@ Global
 		{7331DF38-21F2-4039-90E6-1A95351A9114}.Release|x64.Build.0 = Release|Any CPU
 		{7331DF38-21F2-4039-90E6-1A95351A9114}.Release|x86.ActiveCfg = Release|Any CPU
 		{7331DF38-21F2-4039-90E6-1A95351A9114}.Release|x86.Build.0 = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|arm64.Build.0 = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|x64.Build.0 = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Debug|x86.Build.0 = Debug|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|arm64.ActiveCfg = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|arm64.Build.0 = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|x64.ActiveCfg = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|x64.Build.0 = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|x86.ActiveCfg = Release|Any CPU
+		{06E1474F-B6AE-44AC-993A-5337F62F21AB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

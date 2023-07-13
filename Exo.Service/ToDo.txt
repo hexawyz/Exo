@@ -16,3 +16,37 @@
   * Assembly manifest could be enough in many cases, as a lot of plugins should work without external data?
   * What about complex plugins coming with external files, native DLLs, and such?
 * Read the SMBios table using GetSystemFirmwareTable to get various information on the current computer. (Could also be partially done through WMI but because this is lower level, this should have less overhead)
+* Refactor the device discovery:
+  * There are already relatively central repositories of registered drivers in the current model, however, it can be difficult to imagine how a device that can be discovered through multiple systems can work.
+  * Which constructor should get called, and with which information
+  * Taking the very specific example of a monitor with and USB interface, the monitor can be connected to the computer through multiple relatively independant channels At the minimum, video and USB.
+    Since each connection can be added or removed on the fly independentlmy of others, what would be the best way to present an unified interface ?
+    It seems like presenting an abstract root device with multiple actual children would be a good solution (maybe not the best one ?), but this doesn't really work in the current relatively simple model.
+  * At the very minimum: Restrictions on the CreateAsync<> method were a good idea but they probably need to be lifted ?
+  * How do we manage a "discovered" subdevice ? Who does the discovery ? The minimum implementation dictates that all discovery systems need to accept being returned an already-registered device even if registered from other systems.
+  * This in turn dictates the more centered view of device discovery.
+    * Each device object, be it system-originated or not, should have a unique key composed of a "registrar ID" and a "device ID" that is at least unique in the specific registrar/discoverer, but ideally unique system-wide (which should be mandatory for system provided devices)
+    * The central device driver registry should then be able to track the main driver instance associated with that device and update references on the fly
+    * We probably want to change the instanciation order and have driver (factories) register for notifications and decide themselves when to create an instance
+    * The driver notifications should be handled in a central way too. e.g. Each device discovery system watches for what it needs, then forwards information to the centralized part when something happens
+    * Each driver class/factory should register for notifications using attributes. We need to keepo this declarative so that the information can be cached.
+    * The static CreateAsync stuff can probably be mostly kept as we probably don't want to instanciate driver factory objects. Might be a bit clunky in the long term, but we'll see.
+    * The pattern for notification stuff would be:
+      1 - Central registry/notification system has/gets information on all avaliable device discovery systems. This can be cached.
+      2 - Central registry/notification system instanciates all device discovery systems (implies loading the assemblies), e.g. HID
+      3 - Each device discovery system has/gets information on all drivers (factories) and their metadata. This can be cached too. It must be cached in the final design.
+      4 - Device discovery systems start watching for devices by any appropriate means
+      5 - Upon a device discovery, the necessary context is transfered to the central system for sequential dispatch (avoid race conditions for drivers spanning multiple device objects)
+      6 - Contrarily to before with the CreateAsync method (which should be renamed I guess ?), the driver factory can decide to return a driver instance or not
+      7 - The instance returned can be a pre-existing one. Such an instance can be augmented with the new device info
+      8 - The central system takes action from the result of the driver factory.
+    * As for assembly metadata caching, it is not critical to have it initally, but it will extend some of the code paths that will be required anyway
+      * We want the metadata management to be centralized (as much as possible), so that assemblies are not scanned multiple times
+      * e.g. upon startup without caching, assemblies would be loaded one by one, and for each assembly, each system capable of discovery would be asked to parse them
+      * Metadata could still be stored into multiple files for efficiency. (Thinking of optimal JSON (de)serialization patterns here)
+      * Basically, we want to cascade the metadata management from the main registar code. We'd probably want to have more than those two levels in some scenarios. (More exotic drivers ?)
+      * Metadata should be automatically updated when an assembly is added, removed or modified, even during runtime. All systems must be able to update their runtime caches as well as the serialized data.
+      * The centralized sytem may be able to some of the heavy lifting regarding as to what has been added or removed. (e.g. We expect that a removed assembly would not affect metadata from other assemblies)
+      * We'd probably track file updates using a simple hash such as MD5 or SHA1. (Of course coupled to a FS watcher during runtime)
+
+
