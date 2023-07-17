@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -224,76 +225,59 @@ public sealed class HidI2cTransport : IAsyncDisposable
 
 	private abstract class ResponseWaitState
 	{
-		public abstract bool OnDataReceived(ReadOnlySpan<byte> message);
+		private TaskCompletionSource _taskCompletionSource = new();
 
-		public abstract void Reset();
-	}
+		public TaskCompletionSource TaskCompletionSource => Volatile.Read(ref _taskCompletionSource);
 
-	private abstract class ResponseWaitState<T> : ResponseWaitState
-	{
-		private TaskCompletionSource<T> _taskCompletionSource = new();
+		public abstract void OnDataReceived(ReadOnlySpan<byte> message);
 
-		public TaskCompletionSource<T> TaskCompletionSource => Volatile.Read(ref _taskCompletionSource);
+		[DebuggerHidden]
+		[DebuggerStepThrough]
+		[StackTraceHidden]
+		public void SetNewException(Exception exception) => SetException(ExceptionDispatchInfo.SetCurrentStackTrace(exception));
 
-		public override void Reset()
+		private void SetException(Exception exception) => TaskCompletionSource.TrySetException(exception);
+
+		public void Reset()
 		{
 			TaskCompletionSource.TrySetCanceled();
 			Volatile.Write(ref _taskCompletionSource, new());
 		}
 	}
 
-	private sealed class HandshakeResponseWaitState : ResponseWaitState<bool>
+	private sealed class HandshakeResponseWaitState : ResponseWaitState
 	{
-		public override bool OnDataReceived(ReadOnlySpan<byte> message)
+		public override void OnDataReceived(ReadOnlySpan<byte> message)
 		{
-			if (message[0] == 0x0c && message[3] == 0x00)
+			if (message.Slice(5, 3).SequenceEqual("HID"u8))
 			{
-				if (message.Slice(9, 3).SequenceEqual("HID"u8))
-				{
-					TaskCompletionSource.TrySetResult(true);
-				}
-				else
-				{
-					TaskCompletionSource.TrySetResult(false);
-				}
+				TaskCompletionSource.TrySetResult();
 			}
-			return true;
+			else
+			{
+				SetNewException(new InvalidDataException("Invalid handshake data received."));
+			}
 		}
 	}
 
-	private abstract class DdcResponseWaitState<T> : ResponseWaitState<T>
+	private abstract class DdcResponseWaitState : ResponseWaitState
 	{
 		protected abstract byte DdcOpCode { get; }
 
-		public sealed override bool OnDataReceived(ReadOnlySpan<byte> message)
+		public sealed override void OnDataReceived(ReadOnlySpan<byte> message)
 		{
-			// The first byte in the raw HID response messages seem to always be the message data length. From what we can infer from the data, it needs to be at least 4 bytes.
-			// TODO: Move this check in the read loop, as well as the [3] = 0x00 check, and truncate the message there. (So that we can do only the DDC stuff here)
-			if (message[0] < 4)
-			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an invalid length.")));
-				goto Completed;
-			}
-			else if (message[3] != 0x00)
-			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response contains an unexpected byte value.")));
-				goto Completed;
-			}
-
-			message = message[4..message[0]];
-
 			// DDC responses need to be at least 3 bytes long, as we need at least 0x6E + Length + Checksum
 			if (message.Length < 3)
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response is not long enough.")));
+				SetNewException(new InvalidDataException("The received response is not long enough."));
 			}
 
 			byte length;
 
 			if (message[0] != 0x6E)
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an unexpected destination address.")));
-				goto Completed;
+				SetNewException(new InvalidDataException("The received response has an unexpected destination address."));
+				return;
 			}
 
 			if (message[1] >= 0x81)
@@ -302,61 +286,62 @@ public sealed class HidI2cTransport : IAsyncDisposable
 			}
 			else
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an invalid length.")));
-				goto Completed;
+				SetNewException(new InvalidDataException("The received response has an invalid length."));
+				return;
 			}
 
 			if (message[2] != DdcOpCode)
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response is referencing the wrong DDC opcode.")));
-				goto Completed;
+				SetNewException(new InvalidDataException("The received response is referencing the wrong DDC opcode."));
+				return;
 			}
 
 			if (DdcChecksum(message[..(length + 3)], 0x50) != 0)
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an invalid DDC checksum.")));
-				goto Completed;
+				SetNewException(new InvalidDataException("The received response has an invalid DDC checksum."));
+				return;
 			}
 
-			return ProcessDdcResponseContents(message.Slice(3, length - 1));
-		Completed:;
-			return true;
+			ProcessDdcResponseContents(message.Slice(3, length - 1));
 		}
 
-		protected abstract bool ProcessDdcResponseContents(ReadOnlySpan<byte> contents);
+		protected abstract void ProcessDdcResponseContents(ReadOnlySpan<byte> contents);
 	}
 
-	private abstract class VcpVariableLengthResponseWaitState : DdcResponseWaitState<bool>
+	private abstract class VcpVariableLengthResponseWaitState : DdcResponseWaitState
 	{
 		public Memory<byte> Buffer { get; }
 		private ushort _readLength;
 		public ushort ReadLength => _readLength;
+		private bool _isCompleted;
+		public bool IsCompleted => _isCompleted;
 
 		public VcpVariableLengthResponseWaitState(Memory<byte> buffer) => Buffer = buffer;
 
-		protected override bool ProcessDdcResponseContents(ReadOnlySpan<byte> contents)
+		protected override void ProcessDdcResponseContents(ReadOnlySpan<byte> contents)
 		{
 			ushort offset = (ushort)(contents[0] << 8 | contents[1]);
 			var data = contents[2..];
 
 			if (offset != _readLength)
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("Non consecutive data packets were received.")));
-				return true;
+				SetNewException(new InvalidDataException("Non consecutive data packets were received."));
+				return;
 			}
 
 			if (data.Length == 0)
 			{
-				TaskCompletionSource.TrySetResult(true);
-				return true;
+				_isCompleted = true;
+				TaskCompletionSource.TrySetResult();
+				return;
 			}
 
 			int nextLength = _readLength + data.Length;
 
 			if (nextLength > 0xFFFF)
 			{
-				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The data exceeded the maximum size.")));
-				return true;
+				SetNewException(new InvalidDataException("The data exceeded the maximum size."));
+				return;
 			}
 
 			var remaining = Buffer.Span[_readLength..];
@@ -364,17 +349,16 @@ public sealed class HidI2cTransport : IAsyncDisposable
 			if (remaining.Length < data.Length)
 			{
 				data[..remaining.Length].CopyTo(remaining);
-				_readLength = (ushort)Buffer.Length;
-				TaskCompletionSource.TrySetResult(true);
-				return true;
+				SetNewException(new InvalidOperationException("The provided buffer is too small."));
 			}
 			else
 			{
 				data.CopyTo(remaining);
-				_readLength = (ushort)nextLength;
-				TaskCompletionSource.TrySetResult(false);
-				return true;
 			}
+
+			_readLength = (ushort)nextLength;
+
+			TaskCompletionSource.TrySetResult();
 		}
 	}
 
@@ -392,19 +376,27 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		public VcpReadTableWaitState(Memory<byte> buffer) : base(buffer) { }
 	}
 
-	private sealed class VcpGetResponseWaitState : DdcResponseWaitState<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)>
+	private sealed class VcpGetResponseWaitState : DdcResponseWaitState
 	{
 		public byte VcpCode { get; }
 		protected override byte DdcOpCode => (byte)DdcCiCommand.VcpReply;
 
+		private ushort _currentValue;
+		private ushort _maximumValue;
+		private bool _isTemporary;
+
+		public ushort CurrentValue => _currentValue;
+		public ushort MaximumValue => _maximumValue;
+		public bool IsTemporary => _isTemporary;
+
 		public VcpGetResponseWaitState(byte vcpCode) => VcpCode = vcpCode;
 
-		protected override bool ProcessDdcResponseContents(ReadOnlySpan<byte> contents)
+		protected override void ProcessDdcResponseContents(ReadOnlySpan<byte> contents)
 		{
 			if (contents.Length != 7)
 			{
-				TaskCompletionSource.TrySetException(new InvalidDataException("The received response has an incorrect length."));
-				goto Completed;
+				SetNewException(new InvalidDataException("The received response has an incorrect length."));
+				return;
 			}
 
 			switch (contents[0])
@@ -412,25 +404,22 @@ public sealed class HidI2cTransport : IAsyncDisposable
 			case 0:
 				if (contents[1] != VcpCode)
 				{
-					TaskCompletionSource.TrySetException(new InvalidDataException("The received response does not match the requested VCP code."));
+					SetNewException(new InvalidDataException("The received response does not match the requested VCP code."));
 				}
 
-				bool isTemporary = contents[2] != 0;
-				ushort maximum = (ushort)(contents[3] << 8 | contents[4]);
-				ushort current = (ushort)(contents[5] << 8 | contents[6]);
+				_isTemporary = contents[2] != 0;
+				_maximumValue = (ushort)(contents[3] << 8 | contents[4]);
+				_currentValue = (ushort)(contents[5] << 8 | contents[6]);
 
-				TaskCompletionSource.TrySetResult((current, maximum, isTemporary));
-				goto Completed;
+				TaskCompletionSource.TrySetResult();
+				return;
 			case 1:
-				TaskCompletionSource.TrySetException(new InvalidOperationException($"The monitor rejected the request for VCP code {VcpCode:X2} as unsupported. Some monitors can badly report VCP codes in the capabilities string."));
-				goto Completed;
+				SetNewException(new InvalidOperationException($"The monitor rejected the request for VCP code {VcpCode:X2} as unsupported. Some monitors can badly report VCP codes in the capabilities string."));
+				return;
 			default:
-				TaskCompletionSource.TrySetException(new InvalidOperationException($"The monitor returned an unknown error for VCP code {VcpCode:X2}."));
-				goto Completed;
+				SetNewException(new InvalidOperationException($"The monitor returned an unknown error for VCP code {VcpCode:X2}."));
+				return;
 			}
-
-		Completed:;
-			return true;
 		}
 	}
 
@@ -528,7 +517,6 @@ public sealed class HidI2cTransport : IAsyncDisposable
 
 	private async Task HandshakeAsync(CancellationToken cancellationToken)
 	{
-		bool result;
 		byte sequenceNumber = BeginWrite();
 		try
 		{
@@ -543,7 +531,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 			try
 			{
 				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-				result = await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+				await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{
@@ -554,11 +542,6 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		finally
 		{
 			EndWrite(sequenceNumber);
-		}
-
-		if (!result)
-		{
-			throw new InvalidDataException("The device handshake failed because invalid data was returned.");
 		}
 	}
 
@@ -583,7 +566,9 @@ public sealed class HidI2cTransport : IAsyncDisposable
 			try
 			{
 				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-				return await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+				await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+				return (waitState.CurrentValue, waitState.MaximumValue, waitState.IsTemporary);
 			}
 			catch (OperationCanceledException)
 			{
@@ -646,7 +631,8 @@ public sealed class HidI2cTransport : IAsyncDisposable
 				try
 				{
 					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-					if (await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false))
+					await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+					if (waitState.IsCompleted)
 					{
 						return waitState.ReadLength;
 					}
@@ -694,7 +680,8 @@ public sealed class HidI2cTransport : IAsyncDisposable
 				try
 				{
 					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-					if (await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false))
+					await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+					if (waitState.IsCompleted)
 					{
 						return waitState.ReadLength;
 					}
@@ -871,9 +858,21 @@ public sealed class HidI2cTransport : IAsyncDisposable
 
 		byte sequenceNumber = message[1];
 
-		if (_pendingOperations.TryRemove(sequenceNumber, out var state))
+		_pendingOperations.TryRemove(sequenceNumber, out var state);
+
+		// The first byte in the raw HID response messages seem to always be the message data length. From what we can infer from the data, it needs to be at least 4 bytes.
+		// TODO: Emit a log when there is an error and no state to bubble up the error.
+		if (message[0] < 4)
 		{
-			state.OnDataReceived(message);
+			state?.SetNewException(new InvalidDataException("The received response has an invalid length."));
+			return;
 		}
+		else if (message[3] != 0x00)
+		{
+			state?.SetNewException(new InvalidDataException("The received response contains an unexpected byte value."));
+			return;
+		}
+
+		state?.OnDataReceived(message[4..message[0]]);
 	}
 }
