@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
+using DeviceTools.DisplayDevices.Mccs;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Features.MonitorFeatures;
 
@@ -110,7 +111,8 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
 		var transport = await HidI2cTransport.CreateAsync(new HidFullDuplexStream(deviceInterfaceName), sessionId, HidI2cTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
-		(ushort scalerVersion, _, _) = await transport.GetVcpFeatureAsync(0xC9, cancellationToken).ConfigureAwait(false);
+		// await transport.SetVcpFeatureAsync(0x62, 0x64, cancellationToken).ConfigureAwait(false); // Test setting the sound.
+		(ushort scalerVersion, _, _) = await transport.GetVcpFeatureAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
 		var data = ArrayPool<byte>.Shared.Rent(1000);
 		var length = await transport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
@@ -119,6 +121,38 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 		{
 			throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
 		}
+		//var opcodes = new VcpCommandDefinition?[256];
+		//foreach (var def in parsedCapabilities.SupportedVcpCommands)
+		//{
+		//	opcodes[def.VcpCode] = def;
+		//}
+		//for (int i = 0; i < opcodes.Length; i++)
+		//{
+		//	var def = opcodes[i];
+		//	try
+		//	{
+		//		var result = await transport.GetVcpFeatureAsync((byte)i, cancellationToken).ConfigureAwait(false);
+		//		string? name;
+		//		string? category;
+		//		if (def is null)
+		//		{
+		//			((VcpCode)i).TryGetNameAndCategory(out name, out category);
+		//		}
+		//		else
+		//		{
+		//			name = def.GetValueOrDefault().Name;
+		//			category = def.GetValueOrDefault().Category;
+		//		}
+		//		Console.WriteLine($"[{(def is null ? "U" : "R")}] [{(result.IsTemporary ? "T" : "P")}] {i:X2} {result.CurrentValue:X4} {result.MaximumValue:X4} [{category ?? "Unknown"}] {name ?? "Unknown"}");
+		//	}
+		//	catch (Exception ex)
+		//	{
+		//		if (def is not null)
+		//		{
+		//			Console.WriteLine($"[R] [-] {i:X2} - {ex.Message}");
+		//		}
+		//	}
+		//}
 		return new LgMonitorDriver
 		(
 			transport,
@@ -246,7 +280,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 				goto Completed;
 			}
 
-			message = message[4..];
+			message = message[4..message[0]];
 
 			// DDC responses need to be at least 3 bytes long, as we need at least 0x6E + Length + Checksum
 			if (message.Length < 3)
@@ -284,7 +318,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 				goto Completed;
 			}
 
-			return ProcessDdcResponseContents(message.Slice(3, length - 2));
+			return ProcessDdcResponseContents(message.Slice(3, length - 1));
 		Completed:;
 			return true;
 		}
@@ -358,56 +392,43 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		public VcpReadTableWaitState(Memory<byte> buffer) : base(buffer) { }
 	}
 
-	private static ReadOnlySpan<byte> GetVcpFeatureResponseStartSequence => new byte[] { 0x6E, 0x88, 0x02 };
-
-	private sealed class VcpGetResponseWaitState : ResponseWaitState<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)>
+	private sealed class VcpGetResponseWaitState : DdcResponseWaitState<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)>
 	{
 		public byte VcpCode { get; }
+		protected override byte DdcOpCode => (byte)DdcCiCommand.VcpReply;
 
 		public VcpGetResponseWaitState(byte vcpCode) => VcpCode = vcpCode;
 
-		public override bool OnDataReceived(ReadOnlySpan<byte> message)
+		protected override bool ProcessDdcResponseContents(ReadOnlySpan<byte> contents)
 		{
-			if (message[0] == 0x0f && message[3] == 0x00)
+			if (contents.Length != 7)
 			{
-				if (DdcChecksum(message.Slice(4, 11), 0x50) != 0)
-				{
-					TaskCompletionSource.TrySetException(new Exception("WRONG CKS"));
-					goto Completed;
-				}
-
-				if (message.Slice(4, 3).SequenceEqual(GetVcpFeatureResponseStartSequence))
-				{
-					if (message[7] == 0x00)
-					{
-						if (message[8] != VcpCode)
-						{
-							TaskCompletionSource.TrySetException(new Exception("WRONG VCP"));
-						}
-
-						bool isTemporary = message[9] != 0;
-						ushort maximum = (ushort)(message[10] << 8 | message[11]);
-						ushort current = (ushort)(message[12] << 8 | message[13]);
-
-						TaskCompletionSource.TrySetResult((current, maximum, isTemporary));
-					}
-					else
-					{
-						TaskCompletionSource.TrySetException(new Exception("ERROR"));
-						goto Completed;
-					}
-				}
-				else
-				{
-					TaskCompletionSource.TrySetException(new Exception("ERROR"));
-					goto Completed;
-				}
-			}
-			else
-			{
-				TaskCompletionSource.TrySetException(new InvalidDataException("INVALID RESPONSE"));
+				TaskCompletionSource.TrySetException(new InvalidDataException("The received response has an incorrect length."));
 				goto Completed;
 			}
+
+			switch (contents[0])
+			{
+			case 0:
+				if (contents[1] != VcpCode)
+				{
+					TaskCompletionSource.TrySetException(new InvalidDataException("The received response does not match the requested VCP code."));
+				}
+
+				bool isTemporary = contents[2] != 0;
+				ushort maximum = (ushort)(contents[3] << 8 | contents[4]);
+				ushort current = (ushort)(contents[5] << 8 | contents[6]);
+
+				TaskCompletionSource.TrySetResult((current, maximum, isTemporary));
+				goto Completed;
+			case 1:
+				TaskCompletionSource.TrySetException(new InvalidOperationException($"The monitor rejected the request for VCP code {VcpCode:X2} as unsupported. Some monitors can badly report VCP codes in the capabilities string."));
+				goto Completed;
+			default:
+				TaskCompletionSource.TrySetException(new InvalidOperationException($"The monitor returned an unknown error for VCP code {VcpCode:X2}."));
+				goto Completed;
+			}
+
 		Completed:;
 			return true;
 		}
@@ -548,28 +569,48 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		try
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-
 			WriteDdcVcpGetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode);
-
+			sequenceNumber++;
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			// We need to wait 50ms after a VCP get request.
+			var delay = Task.Delay(40, cancellationToken);
+			WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x0b);
+			byte currentOperationSequenceNumber = sequenceNumber++;
 			var waitState = new VcpGetResponseWaitState(vcpCode);
-
-			_pendingOperations.TryAdd((byte)(initialSequenceNumber + 1), waitState);
-
+			// Wait the delay
+			await delay.ConfigureAwait(false);
+			_pendingOperations.TryAdd(currentOperationSequenceNumber, waitState);
 			try
 			{
-				sequenceNumber++;
-				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-				WriteDdcReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x0b);
-				sequenceNumber++;
-				await Task.Delay(40, cancellationToken).ConfigureAwait(false);
 				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 				return await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{
-				_pendingOperations.TryRemove(new((byte)(initialSequenceNumber + 1), waitState));
+				_pendingOperations.TryRemove(new(currentOperationSequenceNumber, waitState));
 				throw;
 			}
+		}
+		finally
+		{
+			EndWrite(initialSequenceNumber, sequenceNumber);
+		}
+	}
+
+	public async Task SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
+	{
+		byte initialSequenceNumber = BeginWrite();
+		byte sequenceNumber = initialSequenceNumber;
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+			WriteDdcVcpSetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode, value);
+			sequenceNumber++;
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			// We need to wait 50ms after a VCP set request.
+			var delay = Task.Delay(50, cancellationToken);
+			// Wait the delay
+			await delay.ConfigureAwait(false);
 		}
 		finally
 		{
@@ -597,7 +638,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 				// We need to wait 50ms after a table read request.
 				var delay = Task.Delay(50, cancellationToken);
 				// Table requests can return up to 32 bytes at a time, and counting the 6 extra ddc packet wrapper that makes 38 bytes total. (0x26)
-				WriteDdcReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x26);
+				WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x26);
 				byte currentOperationSequenceNumber = sequenceNumber++;
 				// Wait the delay
 				await delay.ConfigureAwait(false);
@@ -645,7 +686,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 				// We need to wait 50ms after a table read request.
 				var delay = Task.Delay(50, cancellationToken);
 				// Table requests can return up to 32 bytes at a time, and counting the 6 extra ddc packet wrapper that makes 38 bytes total. (0x26)
-				WriteDdcReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x26);
+				WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x26);
 				byte currentOperationSequenceNumber = sequenceNumber++;
 				// Wait the delay
 				await delay.ConfigureAwait(false);
@@ -673,31 +714,6 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		}
 	}
 
-	public async Task SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
-	{
-		byte sequenceNumber = BeginWrite();
-		try
-		{
-			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-
-			WriteDdcVcpSetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode, value);
-
-			try
-			{
-				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-				await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-			}
-			catch (OperationCanceledException)
-			{
-				throw;
-			}
-		}
-		finally
-		{
-			EndWrite(sequenceNumber);
-		}
-	}
-
 	private static void WriteHandshakeRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber)
 	{
 		buffer.Clear();
@@ -711,7 +727,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		buffer[6] = 0x06;
 	}
 
-	private static void WriteDdcWriteRequestHeader(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte length)
+	private static void WriteI2CWriteRequestHeader(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte length)
 	{
 		buffer[0] = 0x08;
 		buffer[1] = sequenceNumber;
@@ -723,7 +739,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		buffer[7] = deviceAddress;
 	}
 
-	private static void WriteDdcReadRequestHeader(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte length)
+	private static void WriteI2CReadRequestHeader(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte length)
 	{
 		buffer[0] = 0x08;
 		buffer[1] = sequenceNumber;
@@ -739,7 +755,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 	{
 		buffer.Clear();
 
-		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 5);
+		WriteI2CWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 5);
 
 		buffer = buffer.Slice(8, 5);
 
@@ -759,7 +775,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 	{
 		buffer.Clear();
 
-		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 6);
+		WriteI2CWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 6);
 
 		buffer = buffer.Slice(8, 6);
 
@@ -775,7 +791,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 	{
 		buffer.Clear();
 
-		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 7);
+		WriteI2CWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 7);
 
 		buffer = buffer.Slice(8, 7);
 
@@ -792,7 +808,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 	{
 		buffer.Clear();
 
-		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 7);
+		WriteI2CWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 7);
 
 		buffer = buffer.Slice(8, 7);
 
