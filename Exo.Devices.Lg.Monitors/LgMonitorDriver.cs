@@ -1,11 +1,13 @@
-using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using DeviceTools;
+using DeviceTools.DisplayDevices;
 using DeviceTools.HumanInterfaceDevices;
-using Exo.Features.LightingFeatures;
 using Exo.Features.MonitorFeatures;
 
 namespace Exo.Devices.Lg.Monitors;
@@ -18,6 +20,7 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 		Properties.System.Devices.DeviceInstanceId,
 		Properties.System.DeviceInterface.Hid.UsagePage,
 		Properties.System.DeviceInterface.Hid.UsageId,
+		Properties.System.DeviceInterface.Hid.VersionNumber,
 	};
 
 	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, CancellationToken cancellationToken)
@@ -64,6 +67,7 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 		string[] deviceNames = new string[deviceInterfaces.Length + 1];
 		string? deviceInterfaceName = null;
 		string topLevelDeviceName = devices[0].Id;
+		ushort nxpVersion = 0xFFFF;
 
 		// Set the top level device name as the last device name now.
 		deviceNames[^1] = topLevelDeviceName;
@@ -91,6 +95,11 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 			if (usagePage == 0xFF00 && usageId == 0x01)
 			{
 				deviceInterfaceName = deviceInterface.Id;
+
+				if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.VersionNumber.Key, out ushort version))
+				{
+					nxpVersion = version;
+				}
 			}
 		}
 
@@ -100,30 +109,67 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 		}
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
-		var transport = await HidI2cTransport.CreateAsync(new HidFullDuplexStream(deviceInterfaceName), sessionId, HidI2cTransport.DefaultDeviceAddress, cancellationToken).ConfigureAwait(false);
+		var transport = await HidI2cTransport.CreateAsync(new HidFullDuplexStream(deviceInterfaceName), sessionId, HidI2cTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
+		(ushort scalerVersion, _, _) = await transport.GetVcpFeatureAsync(0xC9, cancellationToken).ConfigureAwait(false);
+		var data = ArrayPool<byte>.Shared.Rent(1000);
+		var length = await transport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
+		ArrayPool<byte>.Shared.Return(data);
+		if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
+		{
+			throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
+		}
 		return new LgMonitorDriver
 		(
 			transport,
+			nxpVersion,
+			scalerVersion,
+			0, // TODO: Get the DSC version using the LG special command stuff.
+			rawCapabilities,
+			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 			friendlyName
 		);
 	}
 
 	private readonly HidI2cTransport _transport;
+	private readonly ushort _nxpVersion;
+	private readonly ushort _scalerVersion;
+	private readonly byte _dscVersion;
+	private readonly byte[] _rawCapabilities;
+	private readonly MonitorCapabilities _parsedCapabilities;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 
 	private LgMonitorDriver
 	(
 		HidI2cTransport transport,
+		ushort nxpVersion,
+		ushort scalerVersion,
+		byte dscVersion,
+		byte[] rawCapabilities,
+		MonitorCapabilities parsedCapabilities,
 		ImmutableArray<string> deviceNames,
 		string friendlyName
 	) : base(deviceNames, friendlyName, default)
 	{
 		_transport = transport;
+		_nxpVersion = nxpVersion;
+		_scalerVersion = scalerVersion;
+		_dscVersion = dscVersion;
+		_rawCapabilities = rawCapabilities;
+		_parsedCapabilities = parsedCapabilities;
 		_monitorFeatures = FeatureCollection.Empty<IMonitorDeviceFeature>();
 		_allFeatures = FeatureCollection.Empty<IDeviceFeature>();
 	}
+
+	// It is mentioned on a few forums/reddit posts that SV, DV, NV would stand for Scaler Version, DSC Version, and NXP version.
+	// I'm a bit unsure about the NXP thing, but couldn't find better information for now.
+	public SimpleVersion FirmwareNxpVersion => new((byte)(_nxpVersion >>> 8), (byte)_nxpVersion);
+	public SimpleVersion FirmwareScalerVersion => new((byte)(_scalerVersion >>> 8), (byte)_scalerVersion);
+	public byte FirmwareDisplayStreamCompressionVersion => _dscVersion;
+	public ReadOnlySpan<byte> RawCapabilities => _rawCapabilities;
+	public MonitorCapabilities Capabilities => _parsedCapabilities;
 
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
@@ -133,7 +179,7 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 
 public sealed class HidI2cTransport : IAsyncDisposable
 {
-	public const int DefaultDeviceAddress = 0x37;
+	public const int DefaultDdcDeviceAddress = 0x37;
 
 	// The message length is hardcoded to 64 bytes + report ID.
 	private const int MessageLength = 65;
@@ -144,17 +190,27 @@ public sealed class HidI2cTransport : IAsyncDisposable
 
 	private abstract class ResponseWaitState
 	{
-		public abstract void Complete(ReadOnlySpan<byte> message);
+		public abstract bool OnDataReceived(ReadOnlySpan<byte> message);
+
+		public abstract void Reset();
 	}
 
 	private abstract class ResponseWaitState<T> : ResponseWaitState
 	{
-		public TaskCompletionSource<T> TaskCompletionSource { get; } = new();
+		private TaskCompletionSource<T> _taskCompletionSource = new();
+
+		public TaskCompletionSource<T> TaskCompletionSource => Volatile.Read(ref _taskCompletionSource);
+
+		public override void Reset()
+		{
+			TaskCompletionSource.TrySetCanceled();
+			Volatile.Write(ref _taskCompletionSource, new());
+		}
 	}
 
 	private sealed class HandshakeResponseWaitState : ResponseWaitState<bool>
 	{
-		public override void Complete(ReadOnlySpan<byte> message)
+		public override bool OnDataReceived(ReadOnlySpan<byte> message)
 		{
 			if (message[0] == 0x0c && message[3] == 0x00)
 			{
@@ -167,7 +223,204 @@ public sealed class HidI2cTransport : IAsyncDisposable
 					TaskCompletionSource.TrySetResult(false);
 				}
 			}
+			return true;
 		}
+	}
+
+	private abstract class DdcResponseWaitState<T> : ResponseWaitState<T>
+	{
+		protected abstract byte DdcOpCode { get; }
+
+		public sealed override bool OnDataReceived(ReadOnlySpan<byte> message)
+		{
+			// The first byte in the raw HID response messages seem to always be the message data length. From what we can infer from the data, it needs to be at least 4 bytes.
+			// TODO: Move this check in the read loop, as well as the [3] = 0x00 check, and truncate the message there. (So that we can do only the DDC stuff here)
+			if (message[0] < 4)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an invalid length.")));
+				goto Completed;
+			}
+			else if (message[3] != 0x00)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response contains an unexpected byte value.")));
+				goto Completed;
+			}
+
+			message = message[4..];
+
+			// DDC responses need to be at least 3 bytes long, as we need at least 0x6E + Length + Checksum
+			if (message.Length < 3)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response is not long enough.")));
+			}
+
+			byte length;
+
+			if (message[0] != 0x6E)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an unexpected destination address.")));
+				goto Completed;
+			}
+
+			if (message[1] >= 0x81)
+			{
+				length = (byte)(message[1] & 0x7F);
+			}
+			else
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an invalid length.")));
+				goto Completed;
+			}
+
+			if (message[2] != DdcOpCode)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response is referencing the wrong DDC opcode.")));
+				goto Completed;
+			}
+
+			if (DdcChecksum(message[..(length + 3)], 0x50) != 0)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The received response has an invalid DDC checksum.")));
+				goto Completed;
+			}
+
+			return ProcessDdcResponseContents(message.Slice(3, length - 2));
+		Completed:;
+			return true;
+		}
+
+		protected abstract bool ProcessDdcResponseContents(ReadOnlySpan<byte> contents);
+	}
+
+	private abstract class VcpVariableLengthResponseWaitState : DdcResponseWaitState<bool>
+	{
+		public Memory<byte> Buffer { get; }
+		private ushort _readLength;
+		public ushort ReadLength => _readLength;
+
+		public VcpVariableLengthResponseWaitState(Memory<byte> buffer) => Buffer = buffer;
+
+		protected override bool ProcessDdcResponseContents(ReadOnlySpan<byte> contents)
+		{
+			ushort offset = (ushort)(contents[0] << 8 | contents[1]);
+			var data = contents[2..];
+
+			if (offset != _readLength)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("Non consecutive data packets were received.")));
+				return true;
+			}
+
+			if (data.Length == 0)
+			{
+				TaskCompletionSource.TrySetResult(true);
+				return true;
+			}
+
+			int nextLength = _readLength + data.Length;
+
+			if (nextLength > 0xFFFF)
+			{
+				TaskCompletionSource.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidDataException("The data exceeded the maximum size.")));
+				return true;
+			}
+
+			var remaining = Buffer.Span[_readLength..];
+
+			if (remaining.Length < data.Length)
+			{
+				data[..remaining.Length].CopyTo(remaining);
+				_readLength = (ushort)Buffer.Length;
+				TaskCompletionSource.TrySetResult(true);
+				return true;
+			}
+			else
+			{
+				data.CopyTo(remaining);
+				_readLength = (ushort)nextLength;
+				TaskCompletionSource.TrySetResult(false);
+				return true;
+			}
+		}
+	}
+
+	private sealed class DdcGetCapabilitiesWaitState : VcpVariableLengthResponseWaitState
+	{
+		protected override byte DdcOpCode => (byte)DdcCiCommand.CapabilitiesReply;
+
+		public DdcGetCapabilitiesWaitState(Memory<byte> buffer) : base(buffer) { }
+	}
+
+	private sealed class VcpReadTableWaitState : VcpVariableLengthResponseWaitState
+	{
+		protected override byte DdcOpCode => (byte)DdcCiCommand.TableReadReply;
+
+		public VcpReadTableWaitState(Memory<byte> buffer) : base(buffer) { }
+	}
+
+	private static ReadOnlySpan<byte> GetVcpFeatureResponseStartSequence => new byte[] { 0x6E, 0x88, 0x02 };
+
+	private sealed class VcpGetResponseWaitState : ResponseWaitState<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)>
+	{
+		public byte VcpCode { get; }
+
+		public VcpGetResponseWaitState(byte vcpCode) => VcpCode = vcpCode;
+
+		public override bool OnDataReceived(ReadOnlySpan<byte> message)
+		{
+			if (message[0] == 0x0f && message[3] == 0x00)
+			{
+				if (DdcChecksum(message.Slice(4, 11), 0x50) != 0)
+				{
+					TaskCompletionSource.TrySetException(new Exception("WRONG CKS"));
+					goto Completed;
+				}
+
+				if (message.Slice(4, 3).SequenceEqual(GetVcpFeatureResponseStartSequence))
+				{
+					if (message[7] == 0x00)
+					{
+						if (message[8] != VcpCode)
+						{
+							TaskCompletionSource.TrySetException(new Exception("WRONG VCP"));
+						}
+
+						bool isTemporary = message[9] != 0;
+						ushort maximum = (ushort)(message[10] << 8 | message[11]);
+						ushort current = (ushort)(message[12] << 8 | message[13]);
+
+						TaskCompletionSource.TrySetResult((current, maximum, isTemporary));
+					}
+					else
+					{
+						TaskCompletionSource.TrySetException(new Exception("ERROR"));
+						goto Completed;
+					}
+				}
+				else
+				{
+					TaskCompletionSource.TrySetException(new Exception("ERROR"));
+					goto Completed;
+				}
+			}
+			else
+			{
+				TaskCompletionSource.TrySetException(new InvalidDataException("INVALID RESPONSE"));
+				goto Completed;
+			}
+		Completed:;
+			return true;
+		}
+	}
+
+	private static byte DdcChecksum(ReadOnlySpan<byte> buffer, byte initialValue)
+	{
+		byte b = initialValue;
+		for (int i = 0; i < buffer.Length; i++)
+		{
+			b ^= buffer[i];
+		}
+		return b;
 	}
 
 	private readonly HidFullDuplexStream _stream;
@@ -184,7 +437,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 	/// <param name="sessionId">A byte value to be used for identifying requests done by the instance.</param>
 	/// <param name="cancellationToken"></param>
 	public static Task<HidI2cTransport> CreateAsync(HidFullDuplexStream stream, byte sessionId, CancellationToken cancellationToken)
-		=> CreateAsync(stream, sessionId, DefaultDeviceAddress, cancellationToken);
+		=> CreateAsync(stream, sessionId, DefaultDdcDeviceAddress, cancellationToken);
 
 	/// <summary>Creates a new instance of the class <see cref="HidI2cTransport"/>.</summary>
 	/// <param name="stream">A stream to use for receiving and sending messages.</param>
@@ -227,18 +480,29 @@ public sealed class HidI2cTransport : IAsyncDisposable
 
 	private byte BeginWrite()
 	{
-		int oldState = Interlocked.CompareExchange(ref _writeState, WriteStateReserved, WriteStateReady);
-		if (oldState != WriteStateReady)
+		int sequenceNumber = Volatile.Read(ref _writeState) & unchecked((int)0xFF000000U);
+		while (true)
 		{
-			if (oldState == WriteStateDisposed) throw new ObjectDisposedException(nameof(HidI2cTransport));
-			else throw new InvalidOperationException("A write operation is already pending.");
+			int oldState = Interlocked.CompareExchange(ref _writeState, sequenceNumber | WriteStateReserved, sequenceNumber | WriteStateReady);
+			if (sequenceNumber != (sequenceNumber = oldState & unchecked((int)0xFF000000U)))
+			{
+				continue;
+			}
+			oldState &= 0xFFFFFF;
+			if (oldState != WriteStateReady)
+			{
+				if (oldState == WriteStateDisposed) throw new ObjectDisposedException(nameof(HidI2cTransport));
+				else throw new InvalidOperationException("A write operation is already pending.");
+			}
+			return (byte)(sequenceNumber >>> 24);
 		}
-		return (byte)(oldState >>> 24);
 	}
 
-	private void EndWrite(byte sequenceNumber)
+	private void EndWrite(byte oldSequenceNumber) => EndWrite(oldSequenceNumber, (byte)(oldSequenceNumber + 1));
+
+	private void EndWrite(byte oldSequenceNumber, byte newSequenceNumber)
 	{
-		Interlocked.CompareExchange(ref _writeState, (sequenceNumber + 1) << 24 | WriteStateReady, sequenceNumber << 24 | WriteStateReserved);
+		Interlocked.CompareExchange(ref _writeState, newSequenceNumber << 24 | WriteStateReady, oldSequenceNumber << 24 | WriteStateReserved);
 	}
 
 	private async Task HandshakeAsync(CancellationToken cancellationToken)
@@ -249,7 +513,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
 
-			WriteHandshakeRequest(buffer.Span[1..], _sessionId, 0);
+			WriteHandshakeRequest(buffer.Span[1..], _sessionId, sequenceNumber);
 
 			var waitState = new HandshakeResponseWaitState();
 
@@ -277,6 +541,163 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		}
 	}
 
+	public async Task<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
+	{
+		byte initialSequenceNumber = BeginWrite();
+		byte sequenceNumber = initialSequenceNumber;
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+
+			WriteDdcVcpGetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode);
+
+			var waitState = new VcpGetResponseWaitState(vcpCode);
+
+			_pendingOperations.TryAdd((byte)(initialSequenceNumber + 1), waitState);
+
+			try
+			{
+				sequenceNumber++;
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				WriteDdcReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x0b);
+				sequenceNumber++;
+				await Task.Delay(40, cancellationToken).ConfigureAwait(false);
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				return await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException)
+			{
+				_pendingOperations.TryRemove(new((byte)(initialSequenceNumber + 1), waitState));
+				throw;
+			}
+		}
+		finally
+		{
+			EndWrite(initialSequenceNumber, sequenceNumber);
+		}
+	}
+
+	public async Task<ushort> GetCapabilitiesAsync(Memory<byte> destination, CancellationToken cancellationToken)
+	{
+		byte initialSequenceNumber = BeginWrite();
+		byte sequenceNumber = initialSequenceNumber;
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+
+			// NB: We should be able to avoid rewriting the whole buffer for every packet in table read requests, but for now, this will be simpler.
+			WriteDdcVcpGetCapabilitiesRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, 0);
+
+			var waitState = new DdcGetCapabilitiesWaitState(destination);
+
+			while (true)
+			{
+				sequenceNumber++;
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				// We need to wait 50ms after a table read request.
+				var delay = Task.Delay(50, cancellationToken);
+				// Table requests can return up to 32 bytes at a time, and counting the 6 extra ddc packet wrapper that makes 38 bytes total. (0x26)
+				WriteDdcReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x26);
+				byte currentOperationSequenceNumber = sequenceNumber++;
+				// Wait the delay
+				await delay.ConfigureAwait(false);
+				_pendingOperations.TryAdd(currentOperationSequenceNumber, waitState);
+				try
+				{
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					if (await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false))
+					{
+						return waitState.ReadLength;
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					_pendingOperations.TryRemove(new(currentOperationSequenceNumber, waitState));
+					throw;
+				}
+				WriteDdcVcpGetCapabilitiesRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, waitState.ReadLength);
+				waitState.Reset();
+			}
+		}
+		finally
+		{
+			EndWrite(initialSequenceNumber, sequenceNumber);
+		}
+	}
+
+	public async Task<ushort> ReadTableAsync(byte vcpCode, Memory<byte> destination, CancellationToken cancellationToken)
+	{
+		byte initialSequenceNumber = BeginWrite();
+		byte sequenceNumber = initialSequenceNumber;
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+
+			// NB: We should be able to avoid rewriting the whole buffer for every packet in table read requests, but for now, this will be simpler.
+			WriteDdcVcpReadTableRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode, 0);
+
+			var waitState = new VcpReadTableWaitState(destination);
+
+			while (true)
+			{
+				sequenceNumber++;
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				// We need to wait 50ms after a table read request.
+				var delay = Task.Delay(50, cancellationToken);
+				// Table requests can return up to 32 bytes at a time, and counting the 6 extra ddc packet wrapper that makes 38 bytes total. (0x26)
+				WriteDdcReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x26);
+				byte currentOperationSequenceNumber = sequenceNumber++;
+				// Wait the delay
+				await delay.ConfigureAwait(false);
+				_pendingOperations.TryAdd(currentOperationSequenceNumber, waitState);
+				try
+				{
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					if (await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false))
+					{
+						return waitState.ReadLength;
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					_pendingOperations.TryRemove(new(currentOperationSequenceNumber, waitState));
+					throw;
+				}
+				WriteDdcVcpReadTableRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode, waitState.ReadLength);
+				waitState.Reset();
+			}
+		}
+		finally
+		{
+			EndWrite(initialSequenceNumber, sequenceNumber);
+		}
+	}
+
+	public async Task SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
+	{
+		byte sequenceNumber = BeginWrite();
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+
+			WriteDdcVcpSetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode, value);
+
+			try
+			{
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
+		}
+		finally
+		{
+			EndWrite(sequenceNumber);
+		}
+	}
+
 	private static void WriteHandshakeRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber)
 	{
 		buffer.Clear();
@@ -288,6 +709,105 @@ public sealed class HidI2cTransport : IAsyncDisposable
 		buffer[4] = 0x80;
 		buffer[5] = 0x1a;
 		buffer[6] = 0x06;
+	}
+
+	private static void WriteDdcWriteRequestHeader(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte length)
+	{
+		buffer[0] = 0x08;
+		buffer[1] = sequenceNumber;
+		buffer[2] = sessionId;
+		buffer[3] = 0x03;
+		buffer[4] = length;
+		buffer[5] = 0;
+		buffer[6] = 0x03;
+		buffer[7] = deviceAddress;
+	}
+
+	private static void WriteDdcReadRequestHeader(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte length)
+	{
+		buffer[0] = 0x08;
+		buffer[1] = sequenceNumber;
+		buffer[2] = sessionId;
+		buffer[3] = 0x04;
+		buffer[4] = length;
+		buffer[5] = 0;
+		buffer[6] = 0x0b;
+		buffer[7] = deviceAddress;
+	}
+
+	private static void WriteDdcVcpGetRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, byte vcpCode)
+	{
+		buffer.Clear();
+
+		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 5);
+
+		buffer = buffer.Slice(8, 5);
+
+		// The DDC source device should be device 0x28 (host), which maps to the values 0x50/0x51. (device_address << 1 | direction_bit)
+		// When sending data to the display, the address 0x51 should be used, while address 0x50 will be used when receiving data.
+		// However, LG monitors are using a hack to expose custom features by writing to the address 0x51 instead of 0x51.
+		// In all cases, the source register could also be used to access display-dependent devices, as explained in the DDC documentation.
+		// This use-case of having display-dependent devices is highly unlikely in the modern world, though.
+		buffer[0] = rawSourceAddress;
+		buffer[1] = 0x82;
+		buffer[2] = (byte)DdcCiCommand.VcpRequest;
+		buffer[3] = vcpCode;
+		buffer[4] = DdcChecksum(buffer[..4], 0x6E);
+	}
+
+	private static void WriteDdcVcpGetCapabilitiesRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, ushort offset)
+	{
+		buffer.Clear();
+
+		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 6);
+
+		buffer = buffer.Slice(8, 6);
+
+		buffer[0] = rawSourceAddress;
+		buffer[1] = 0x83;
+		buffer[2] = (byte)DdcCiCommand.CapabilitiesRequest;
+		buffer[3] = (byte)(offset >> 8);
+		buffer[4] = (byte)offset;
+		buffer[5] = DdcChecksum(buffer[..5], 0x6E);
+	}
+
+	private static void WriteDdcVcpReadTableRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, byte vcpCode, ushort offset)
+	{
+		buffer.Clear();
+
+		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 7);
+
+		buffer = buffer.Slice(8, 7);
+
+		buffer[0] = rawSourceAddress;
+		buffer[1] = 0x84;
+		buffer[2] = (byte)DdcCiCommand.TableReadRequest;
+		buffer[3] = vcpCode;
+		buffer[4] = (byte)(offset >> 8);
+		buffer[5] = (byte)offset;
+		buffer[6] = DdcChecksum(buffer[..6], 0x6E);
+	}
+
+	private static void WriteDdcVcpSetRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, byte vcpCode, ushort value)
+	{
+		buffer.Clear();
+
+		WriteDdcWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, 7);
+
+		buffer = buffer.Slice(8, 7);
+
+		// The DDC source device should be device 0x28 (host), which maps to the values 0x50/0x51. (device_address << 1 | direction_bit)
+		// When sending data to the display, the address 0x51 should be used, while address 0x50 will be used when receiving data.
+		// However, LG monitors are using a hack to expose custom features by writing to the address 0x51 instead of 0x51.
+		// In all cases, the source register could also be used to access display-dependent devices, as explained in the DDC documentation.
+		// This use-case of having display-dependent devices is highly unlikely in the modern world, though.
+		buffer[0] = rawSourceAddress;
+		buffer[1] = 0x84;
+		buffer[2] = (byte)DdcCiCommand.VcpSet;
+		buffer[3] = vcpCode;
+		buffer[4] = (byte)(value >>> 8);
+		buffer[5] = (byte)value;
+		buffer[6] = DdcChecksum(buffer[..6], 0x6E);
 	}
 
 	private async Task ReadAsync(CancellationToken cancellationToken)
@@ -337,7 +857,7 @@ public sealed class HidI2cTransport : IAsyncDisposable
 
 		if (_pendingOperations.TryRemove(sequenceNumber, out var state))
 		{
-			state.Complete(message);
+			state.OnDataReceived(message);
 		}
 	}
 }

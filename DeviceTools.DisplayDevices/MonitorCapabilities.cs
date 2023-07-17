@@ -1,14 +1,12 @@
-﻿using DeviceTools.DisplayDevices.Mccs;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
+using DeviceTools.DisplayDevices.Mccs;
 
 namespace DeviceTools.DisplayDevices
 {
@@ -36,17 +34,17 @@ namespace DeviceTools.DisplayDevices
 
 		// List of known (supported) tag names
 		// NB: The specs indicate that TAG is name + '('. For simplicity, we'll omit the '(' here.
-		private static ReadOnlySpan<byte> ProtTagName => new byte[] { (byte)'p', (byte)'r', (byte)'o', (byte)'t' };
-		private static ReadOnlySpan<byte> TypeTagName => new byte[] { (byte)'t', (byte)'y', (byte)'p', (byte)'e' };
-		private static ReadOnlySpan<byte> ModelTagName => new byte[] { (byte)'m', (byte)'o', (byte)'d', (byte)'e', (byte)'l' };
-		private static ReadOnlySpan<byte> CmdsTagName => new byte[] { (byte)'c', (byte)'m', (byte)'d', (byte)'s' };
-		private static ReadOnlySpan<byte> VcpTagName => new byte[] { (byte)'v', (byte)'c', (byte)'p' };
-		private static ReadOnlySpan<byte> VcpNameTagName => new byte[] { (byte)'v', (byte)'c', (byte)'p', (byte)'n', (byte)'a', (byte)'m', (byte)'e' };
-		private static ReadOnlySpan<byte> MccsVerTagName => new byte[] { (byte)'m', (byte)'c', (byte)'c', (byte)'s', (byte)'_', (byte)'v', (byte)'e', (byte)'r' };
+		private static ReadOnlySpan<byte> ProtTagName => "prot"u8;
+		private static ReadOnlySpan<byte> TypeTagName => "type"u8;
+		private static ReadOnlySpan<byte> ModelTagName => "model"u8;
+		private static ReadOnlySpan<byte> CmdsTagName => "cmds"u8;
+		private static ReadOnlySpan<byte> VcpTagName => "vcp"u8;
+		private static ReadOnlySpan<byte> VcpNameTagName => "vcpname"u8;
+		private static ReadOnlySpan<byte> MccsVerTagName => "mccs_ver"u8;
 
-		private static ReadOnlySpan<byte> WhiteSpace => new byte[] { (byte)'\t', (byte)'\n', (byte)'\r', (byte)' ' };
-		private static ReadOnlySpan<byte> WhiteSpaceOrParentheses => new byte[] { (byte)'\t', (byte)'\n', (byte)'\r', (byte)' ', (byte)'(', (byte)')' };
-		private static ReadOnlySpan<byte> Parentheses => new byte[] { (byte)'(', (byte)')' };
+		private static ReadOnlySpan<byte> WhiteSpace => "\t\n\r "u8;
+		private static ReadOnlySpan<byte> WhiteSpaceOrParentheses => "\t\n\r ()"u8;
+		private static ReadOnlySpan<byte> Parentheses => "()"u8;
 
 		private const byte OpeningParenthesis = (byte)'(';
 		private const byte ClosingParenthesis = (byte)')';
@@ -56,7 +54,7 @@ namespace DeviceTools.DisplayDevices
 		// Inside parentheses is a <CapString>, which is one or more sequences of <String> or <Tag><CapString>")" (optionally separated by spaces; required to delimit two <String>)
 		// Tag is <String>"(", and String is any sequence of characters that are not whitespace (and not parentheses, obviously)
 
-		public static bool TryParse(ReadOnlySpan<byte> capabilitiesString, out MonitorCapabilities? capabilities)
+		public static bool TryParse(ReadOnlySpan<byte> capabilitiesString, [NotNullWhen(true)] out MonitorCapabilities? capabilities)
 		{
 			// The spec requires prot, type and model, so (prot()type()model()) would be the minimum we allow.
 			if (capabilitiesString.Length < 21 || capabilitiesString[0] != '(' || capabilitiesString[^1] != ')') goto Fail;
