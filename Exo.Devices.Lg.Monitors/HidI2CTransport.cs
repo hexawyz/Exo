@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -500,7 +500,8 @@ public sealed class HidI2CTransport : IAsyncDisposable
 	{
 		buffer.Clear();
 
-		buffer[0] = 0x0C;
+		// OnScreen Control software uses 0x0C here, but we only send 7 bytes, so it should be 7.
+		buffer[0] = 0x07;
 		buffer[1] = sequenceNumber;
 		buffer[2] = sessionId;
 		buffer[3] = 0x01;
