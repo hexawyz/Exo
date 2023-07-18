@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace DeviceTools.DisplayDevices.Mccs;
 
-namespace DeviceTools.DisplayDevices.Mccs
+public readonly struct VcpFeatureReply
 {
-	public readonly struct VcpFeatureReply
+	public VcpFeatureReply(ushort currentValue, ushort maximumValue, bool isTemporary)
 	{
-		public VcpFeatureReply(uint currentValue, uint maximumValue)
-		{
-			CurrentValue = currentValue;
-			MaximumValue = maximumValue;
-		}
-
-		public uint CurrentValue { get; }
-		public uint MaximumValue { get; }
+		CurrentValue = currentValue;
+		MaximumValue = maximumValue;
+		IsTemporary = isTemporary;
 	}
+
+	public ushort CurrentValue { get; }
+	public ushort MaximumValue { get; }
+	public bool IsTemporary { get; }
 }

@@ -218,6 +218,25 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		}
 	}
 
+	private sealed class LgCustomCommandResponseWaitState : ResponseWaitState
+	{
+		public Memory<byte> Buffer { get; }
+
+		public LgCustomCommandResponseWaitState(Memory<byte> buffer) => Buffer = buffer;
+
+		public override void OnDataReceived(ReadOnlySpan<byte> message)
+		{
+			if (message.Length != Buffer.Length)
+			{
+				SetNewException(new InvalidOperationException($"Invalid data length."));
+			}
+
+			message.CopyTo(Buffer.Span);
+
+			TaskCompletionSource.TrySetResult();
+		}
+	}
+
 	private static byte DdcChecksum(ReadOnlySpan<byte> buffer, byte initialValue)
 	{
 		byte b = initialValue;
@@ -350,7 +369,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 			WriteDdcVcpGetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x51, vcpCode);
 			sequenceNumber++;
 			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-			// We need to wait 50ms after a VCP get request.
+			// We need to wait 40ms after a VCP get request.
 			var delay = Task.Delay(40, cancellationToken);
 			WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x0b);
 			byte currentOperationSequenceNumber = sequenceNumber++;
@@ -364,6 +383,61 @@ public sealed class HidI2CTransport : IAsyncDisposable
 				await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
 				return (waitState.CurrentValue, waitState.MaximumValue, waitState.IsTemporary);
+			}
+			catch (OperationCanceledException)
+			{
+				_pendingOperations.TryRemove(new(currentOperationSequenceNumber, waitState));
+				throw;
+			}
+		}
+		finally
+		{
+			EndWrite(initialSequenceNumber, sequenceNumber);
+		}
+	}
+
+	public Task SendLgCustomCommandAsync(byte code, ushort value, byte responseLength, CancellationToken cancellationToken)
+	{
+		if (responseLength > 60)
+		{
+			// It might be possible to request more than 60 bytes and retrieve the results in multiple packets. (Up to 255 bytes over 5 packets ?)
+			// But unless there is a need for this and more importantly, a way to try this, it is better to stay limited to the maximum possible in a single packet.
+			throw new ArgumentOutOfRangeException(nameof(responseLength), "Cannot request more than 60 bytes at once.");
+		}
+
+		var buffer = new byte[responseLength];
+
+		return SendLgCustomCommandAsync(code, value, buffer, cancellationToken);
+	}
+
+	public async Task SendLgCustomCommandAsync(byte code, ushort value, Memory<byte> destination, CancellationToken cancellationToken)
+	{
+		if (destination.Length > 60)
+		{
+			// It might be possible to request more than 60 bytes and retrieve the results in multiple packets. (Up to 255 bytes over 5 packets ?)
+			// But unless there is a need for this and more importantly, a way to try this, it is better to stay limited to the maximum possible in a single packet.
+			throw new InvalidOperationException("Cannot request more than 60 bytes at once.");
+		}
+		byte initialSequenceNumber = BeginWrite();
+		byte sequenceNumber = initialSequenceNumber;
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+			WriteDdcVcpSetRequest(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, 0x50, code, value);
+			sequenceNumber++;
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			// We need to wait 50ms after a VCP get request.
+			var delay = Task.Delay(40, cancellationToken);
+			WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, _deviceAddress, (byte)destination.Length);
+			byte currentOperationSequenceNumber = sequenceNumber++;
+			var waitState = new LgCustomCommandResponseWaitState(destination);
+			// Wait the delay
+			await delay.ConfigureAwait(false);
+			_pendingOperations.TryAdd(currentOperationSequenceNumber, waitState);
+			try
+			{
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{

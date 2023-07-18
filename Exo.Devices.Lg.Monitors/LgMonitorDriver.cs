@@ -11,7 +11,18 @@ using Exo.Features.MonitorFeatures;
 namespace Exo.Devices.Lg.Monitors;
 
 [ProductId(VendorIdSource.Usb, 0x043E, 0x9A8A)]
-public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
+public class LgMonitorDriver :
+	HidDriver,
+	IDeviceDriver<IMonitorDeviceFeature>,
+	IDeviceDriver<ILgMonitorDeviceFeature>,
+	IRawVcpFeature,
+	IBrightnessFeature,
+	IContrastFeature,
+	IMonitorCapabilitiesFeature,
+	IMonitorRawCapabilitiesFeature,
+	ILgMonitorScalerVersionFeature,
+	ILgMonitorNxpVersionFeature,
+	ILgMonitorDisplayStreamCompressionVersionFeature
 {
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
 	{
@@ -108,9 +119,11 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
 		var transport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(deviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
-		// await transport.SetVcpFeatureAsync(0x62, 0x64, cancellationToken).ConfigureAwait(false); // Test setting the sound.
 		(ushort scalerVersion, _, _) = await transport.GetVcpFeatureAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
 		var data = ArrayPool<byte>.Shared.Rent(1000);
+		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
+		await transport.SendLgCustomCommandAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+		byte dscVersion = data[1];
 		var length = await transport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 		ArrayPool<byte>.Shared.Return(data);
@@ -155,7 +168,7 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 			transport,
 			nxpVersion,
 			scalerVersion,
-			0, // TODO: Get the DSC version using the LG special command stuff.
+			dscVersion,
 			rawCapabilities,
 			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
@@ -171,6 +184,7 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 	private readonly MonitorCapabilities _parsedCapabilities;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
 
 	private LgMonitorDriver
 	(
@@ -190,20 +204,68 @@ public class LgMonitorDriver : HidDriver, IDeviceDriver<IMonitorDeviceFeature>
 		_dscVersion = dscVersion;
 		_rawCapabilities = rawCapabilities;
 		_parsedCapabilities = parsedCapabilities;
-		_monitorFeatures = FeatureCollection.Empty<IMonitorDeviceFeature>();
-		_allFeatures = FeatureCollection.Empty<IDeviceFeature>();
+		_monitorFeatures = FeatureCollection.Create<
+			IMonitorDeviceFeature,
+			LgMonitorDriver,
+			IMonitorRawCapabilitiesFeature,
+			IMonitorCapabilitiesFeature,
+			IRawVcpFeature,
+			IBrightnessFeature,
+			IContrastFeature>(this);
+		_lgMonitorFeatures = FeatureCollection.Create<
+			ILgMonitorDeviceFeature,
+			LgMonitorDriver,
+			ILgMonitorScalerVersionFeature,
+			ILgMonitorNxpVersionFeature,
+			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
+		_allFeatures = FeatureCollection.Create<
+			IDeviceFeature,
+			LgMonitorDriver,
+			IMonitorRawCapabilitiesFeature,
+			IMonitorCapabilitiesFeature,
+			IRawVcpFeature,
+			IBrightnessFeature,
+			IContrastFeature,
+			ILgMonitorScalerVersionFeature,
+			ILgMonitorNxpVersionFeature,
+			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
 	}
 
-	// It is mentioned on a few forums/reddit posts that SV, DV, NV would stand for Scaler Version, DSC Version, and NXP version.
-	// I'm a bit unsure about the NXP thing, but couldn't find better information for now.
+	// The firmware archive explicitly names the SV, DV and NV as "Scaler", "DSC" and "NXP"
+	// DSC versions are expanded in a single byte, seemingly in BCD format. So, 0x44 for version 44, and 0x51 for version 51.
 	public SimpleVersion FirmwareNxpVersion => new((byte)(_nxpVersion >>> 8), (byte)_nxpVersion);
 	public SimpleVersion FirmwareScalerVersion => new((byte)(_scalerVersion >>> 8), (byte)_scalerVersion);
-	public byte FirmwareDisplayStreamCompressionVersion => _dscVersion;
+	public SimpleVersion FirmwareDisplayStreamCompressionVersion => new((byte)((_dscVersion >>> 4) * 10 | _dscVersion & 0x0F), 0);
 	public ReadOnlySpan<byte> RawCapabilities => _rawCapabilities;
 	public MonitorCapabilities Capabilities => _parsedCapabilities;
 
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
+	IDeviceFeatureCollection<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
-	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
+
+	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => new(_transport.SetVcpFeatureAsync(vcpCode, value, cancellationToken));
+
+	public async ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
+	{
+		var result = await _transport.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
+		return new(result.CurrentValue, result.MaximumValue, result.IsTemporary);
+	}
+
+	public async ValueTask<ContinuousValue> GetBrightnessAsync(CancellationToken cancellationToken)
+	{
+		var result = await _transport.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
+		return new(0, result.CurrentValue, result.MaximumValue);
+	}
+
+	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => new(_transport.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken));
+
+	public async ValueTask<ContinuousValue> GetContrastAsync(CancellationToken cancellationToken)
+	{
+		var result = await _transport.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
+		return new(0, result.CurrentValue, result.MaximumValue);
+	}
+
+	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_transport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));
 }

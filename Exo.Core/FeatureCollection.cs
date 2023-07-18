@@ -133,6 +133,118 @@ public static class FeatureCollection
 		where TFeature5 : class, TFeature
 		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5);
 
+	/// <summary>Creates a feature collection containing six feature implementations.</summary>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TFeature1">The type of the first feature.</typeparam>
+	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
+	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
+	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
+	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
+	/// <typeparam name="TFeature6">The type of the sixth feature.</typeparam>
+	/// <param name="feature1">The first feature implementation.</param>
+	/// <param name="feature2">The second feature implementation.</param>
+	/// <param name="feature3">The third feature implementation.</param>
+	/// <param name="feature4">The fourth feature implementation.</param>
+	/// <param name="feature5">The fifth feature implementation.</param>
+	/// <param name="feature6">The sixth feature implementation.</param>
+	/// <returns>A device collection that contains six features.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>
+	(
+		TFeature1 feature1,
+		TFeature2 feature2,
+		TFeature3 feature3,
+		TFeature4 feature4,
+		TFeature5 feature5,
+		TFeature6 feature6
+	)
+		where TFeature : class, IDeviceFeature
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6);
+
+	/// <summary>Creates a feature collection containing seven feature implementations.</summary>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TFeature1">The type of the first feature.</typeparam>
+	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
+	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
+	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
+	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
+	/// <typeparam name="TFeature6">The type of the sixth feature.</typeparam>
+	/// <typeparam name="TFeature7">The type of the seventh feature.</typeparam>
+	/// <param name="feature1">The first feature implementation.</param>
+	/// <param name="feature2">The second feature implementation.</param>
+	/// <param name="feature3">The third feature implementation.</param>
+	/// <param name="feature4">The fourth feature implementation.</param>
+	/// <param name="feature5">The fifth feature implementation.</param>
+	/// <param name="feature6">The sixth feature implementation.</param>
+	/// <param name="feature7">The seventh feature implementation.</param>
+	/// <param name="feature8">The eighth feature implementation.</param>
+	/// <returns>A device collection that contains seven features.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>
+	(
+		TFeature1 feature1,
+		TFeature2 feature2,
+		TFeature3 feature3,
+		TFeature4 feature4,
+		TFeature5 feature5,
+		TFeature6 feature6,
+		TFeature7 feature7
+	)
+		where TFeature : class, IDeviceFeature
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7);
+
+	/// <summary>Creates a feature collection containing eight feature implementations.</summary>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TFeature1">The type of the first feature.</typeparam>
+	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
+	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
+	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
+	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
+	/// <typeparam name="TFeature6">The type of the sixth feature.</typeparam>
+	/// <typeparam name="TFeature7">The type of the seventh feature.</typeparam>
+	/// <typeparam name="TFeature8">The type of the eighth feature.</typeparam>
+	/// <param name="feature1">The first feature implementation.</param>
+	/// <param name="feature2">The second feature implementation.</param>
+	/// <param name="feature3">The third feature implementation.</param>
+	/// <param name="feature4">The fourth feature implementation.</param>
+	/// <param name="feature5">The fifth feature implementation.</param>
+	/// <param name="feature6">The sixth feature implementation.</param>
+	/// <param name="feature7">The seventh feature implementation.</param>
+	/// <param name="feature8">The eighth feature implementation.</param>
+	/// <returns>A device collection that contains eight features.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>
+	(
+		TFeature1 feature1,
+		TFeature2 feature2,
+		TFeature3 feature3,
+		TFeature4 feature4,
+		TFeature5 feature5,
+		TFeature6 feature6,
+		TFeature7 feature7,
+		TFeature8 feature8
+	)
+		where TFeature : class, IDeviceFeature
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		where TFeature8 : class, TFeature
+		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
+
 	/// <summary>Creates a feature collection for a type implementing two features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
 	/// <typeparam name="TImplementation">The feature implementation type.</typeparam>
@@ -154,7 +266,7 @@ public static class FeatureCollection
 	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
 	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
 	/// <param name="implementation">The implementation of all features.</param>
-	/// <returns>A device collection that contains two features.</returns>
+	/// <returns>A device collection that contains three features.</returns>
 	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TFeature1, TFeature2, TFeature3>(TImplementation implementation)
 		where TFeature : class, IDeviceFeature
 		where TImplementation : class, TFeature1, TFeature2, TFeature3
@@ -171,7 +283,7 @@ public static class FeatureCollection
 	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
 	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
 	/// <param name="implementation">The implementation of all features.</param>
-	/// <returns>A device collection that contains two features.</returns>
+	/// <returns>A device collection that contains four features.</returns>
 	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TFeature1, TFeature2, TFeature3, TFeature4>(TImplementation implementation)
 		where TFeature : class, IDeviceFeature
 		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4
@@ -190,7 +302,7 @@ public static class FeatureCollection
 	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
 	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
 	/// <param name="implementation">The implementation of all features.</param>
-	/// <returns>A device collection that contains two features.</returns>
+	/// <returns>A device collection that contains five features.</returns>
 	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(TImplementation implementation)
 		where TFeature : class, IDeviceFeature
 		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5
@@ -200,6 +312,78 @@ public static class FeatureCollection
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
 		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(implementation);
+
+	/// <summary>Creates a feature collection for a type implementing six features.</summary>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TImplementation">The feature implementation type.</typeparam>
+	/// <typeparam name="TFeature1">The type of the first feature.</typeparam>
+	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
+	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
+	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
+	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
+	/// <typeparam name="TFeature6">The type of the sixth feature.</typeparam>
+	/// <param name="implementation">The implementation of all features.</param>
+	/// <returns>A device collection that contains six features.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(TImplementation implementation)
+		where TFeature : class, IDeviceFeature
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(implementation);
+
+	/// <summary>Creates a feature collection for a type implementing seven features.</summary>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TImplementation">The feature implementation type.</typeparam>
+	/// <typeparam name="TFeature1">The type of the first feature.</typeparam>
+	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
+	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
+	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
+	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
+	/// <typeparam name="TFeature6">The type of the sixth feature.</typeparam>
+	/// <typeparam name="TFeature7">The type of the seventh feature.</typeparam>
+	/// <param name="implementation">The implementation of all features.</param>
+	/// <returns>A device collection that contains seven features.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(TImplementation implementation)
+		where TFeature : class, IDeviceFeature
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(implementation);
+
+	/// <summary>Creates a feature collection for a type implementing eight features.</summary>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TImplementation">The feature implementation type.</typeparam>
+	/// <typeparam name="TFeature1">The type of the first feature.</typeparam>
+	/// <typeparam name="TFeature2">The type of the second feature.</typeparam>
+	/// <typeparam name="TFeature3">The type of the third feature.</typeparam>
+	/// <typeparam name="TFeature4">The type of the fourth feature.</typeparam>
+	/// <typeparam name="TFeature5">The type of the fifth feature.</typeparam>
+	/// <typeparam name="TFeature6">The type of the sixth feature.</typeparam>
+	/// <typeparam name="TFeature7">The type of the seventh feature.</typeparam>
+	/// <typeparam name="TFeature8">The type of the eighth feature.</typeparam>
+	/// <param name="implementation">The implementation of all features.</param>
+	/// <returns>A device collection that contains eight features.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(TImplementation implementation)
+		where TFeature : class, IDeviceFeature
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		where TFeature8 : class, TFeature
+		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(implementation);
 }
 
 /// <summary>Quickly instantiate new feature collections.</summary>
@@ -259,6 +443,63 @@ internal static class FeatureCollection<TFeature>
 		where TFeature5 : class, TFeature
 		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(feature1, feature2, feature3, feature4, feature5);
 
+	internal static IDeviceFeatureCollection<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>
+	(
+		TFeature1 feature1,
+		TFeature2 feature2,
+		TFeature3 feature3,
+		TFeature4 feature4,
+		TFeature5 feature5,
+		TFeature6 feature6
+	)
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(feature1, feature2, feature3, feature4, feature5, feature6);
+
+	internal static IDeviceFeatureCollection<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>
+	(
+		TFeature1 feature1,
+		TFeature2 feature2,
+		TFeature3 feature3,
+		TFeature4 feature4,
+		TFeature5 feature5,
+		TFeature6 feature6,
+		TFeature7 feature7
+	)
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(feature1, feature2, feature3, feature4, feature5, feature6, feature7);
+
+	internal static IDeviceFeatureCollection<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>
+	(
+		TFeature1 feature1,
+		TFeature2 feature2,
+		TFeature3 feature3,
+		TFeature4 feature4,
+		TFeature5 feature5,
+		TFeature6 feature6,
+		TFeature7 feature7,
+		TFeature8 feature8
+	)
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		where TFeature8 : class, TFeature
+		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
+
 	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2>(TImplementation feature)
 		where TImplementation : class, TFeature1, TFeature2
 		where TFeature1 : class, TFeature
@@ -266,14 +507,14 @@ internal static class FeatureCollection<TFeature>
 		=> Create(new() { typeof(TFeature1), typeof(TFeature2) }, feature);
 
 	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2, TFeature3>(TImplementation feature)
-		where TImplementation : class, TFeature1, TFeature2
+		where TImplementation : class, TFeature1, TFeature2, TFeature3
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3) }, feature);
 
 	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4>(TImplementation feature)
-		where TImplementation : class, TFeature1, TFeature2
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
@@ -281,13 +522,46 @@ internal static class FeatureCollection<TFeature>
 		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4) }, feature);
 
 	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(TImplementation feature)
-		where TImplementation : class, TFeature1, TFeature2
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
 		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4), typeof(TFeature5) }, feature);
+
+	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(TImplementation feature)
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4), typeof(TFeature5), typeof(TFeature6) }, feature);
+
+	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(TImplementation feature)
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4), typeof(TFeature5), typeof(TFeature6), typeof(TFeature7) }, feature);
+
+	internal static IDeviceFeatureCollection<TFeature> Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(TImplementation feature)
+		where TImplementation : class, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		where TFeature8 : class, TFeature
+		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4), typeof(TFeature5), typeof(TFeature6), typeof(TFeature7), typeof(TFeature8) }, feature);
 
 	private sealed class EmptyFeatureCollection : IDeviceFeatureCollection<TFeature>
 	{
@@ -568,6 +842,313 @@ internal static class FeatureCollection<TFeature>
 			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature3), _feature3);
 			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature4), _feature4);
 			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature5), _feature5);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+	{
+		static FixedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
+		}
+
+		private readonly TFeature1 _feature1;
+		private readonly TFeature2 _feature2;
+		private readonly TFeature3 _feature3;
+		private readonly TFeature4 _feature4;
+		private readonly TFeature5 _feature5;
+		private readonly TFeature6 _feature6;
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (type == typeof(TFeature1)) return _feature1;
+				else if (type == typeof(TFeature2)) return _feature2;
+				else if (type == typeof(TFeature3)) return _feature3;
+				else if (type == typeof(TFeature4)) return _feature4;
+				else if (type == typeof(TFeature5)) return _feature5;
+				else if (type == typeof(TFeature6)) return _feature6;
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (typeof(T) == typeof(TFeature1)) return Unsafe.As<T>(_feature1);
+			else if (typeof(T) == typeof(TFeature2)) return Unsafe.As<T>(_feature2);
+			else if (typeof(T) == typeof(TFeature3)) return Unsafe.As<T>(_feature3);
+			else if (typeof(T) == typeof(TFeature4)) return Unsafe.As<T>(_feature4);
+			else if (typeof(T) == typeof(TFeature5)) return Unsafe.As<T>(_feature5);
+			else if (typeof(T) == typeof(TFeature6)) return Unsafe.As<T>(_feature6);
+			else return null;
+		}
+
+		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6)
+		{
+			_feature1 = feature1;
+			_feature2 = feature2;
+			_feature3 = feature3;
+			_feature4 = feature4;
+			_feature5 = feature5;
+			_feature6 = feature6;
+		}
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature1), _feature1);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature2), _feature2);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature3), _feature3);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature4), _feature4);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature5), _feature5);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature6), _feature6);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+	{
+		static FixedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature7));
+		}
+
+		private readonly TFeature1 _feature1;
+		private readonly TFeature2 _feature2;
+		private readonly TFeature3 _feature3;
+		private readonly TFeature4 _feature4;
+		private readonly TFeature5 _feature5;
+		private readonly TFeature6 _feature6;
+		private readonly TFeature7 _feature7;
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (type == typeof(TFeature1)) return _feature1;
+				else if (type == typeof(TFeature2)) return _feature2;
+				else if (type == typeof(TFeature3)) return _feature3;
+				else if (type == typeof(TFeature4)) return _feature4;
+				else if (type == typeof(TFeature5)) return _feature5;
+				else if (type == typeof(TFeature6)) return _feature6;
+				else if (type == typeof(TFeature7)) return _feature7;
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (typeof(T) == typeof(TFeature1)) return Unsafe.As<T>(_feature1);
+			else if (typeof(T) == typeof(TFeature2)) return Unsafe.As<T>(_feature2);
+			else if (typeof(T) == typeof(TFeature3)) return Unsafe.As<T>(_feature3);
+			else if (typeof(T) == typeof(TFeature4)) return Unsafe.As<T>(_feature4);
+			else if (typeof(T) == typeof(TFeature5)) return Unsafe.As<T>(_feature5);
+			else if (typeof(T) == typeof(TFeature6)) return Unsafe.As<T>(_feature6);
+			else if (typeof(T) == typeof(TFeature7)) return Unsafe.As<T>(_feature7);
+			else return null;
+		}
+
+		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6, TFeature7 feature7)
+		{
+			_feature1 = feature1;
+			_feature2 = feature2;
+			_feature3 = feature3;
+			_feature4 = feature4;
+			_feature5 = feature5;
+			_feature6 = feature6;
+			_feature7 = feature7;
+		}
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature1), _feature1);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature2), _feature2);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature3), _feature3);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature4), _feature4);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature5), _feature5);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature6), _feature6);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature7), _feature7);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		where TFeature5 : class, TFeature
+		where TFeature6 : class, TFeature
+		where TFeature7 : class, TFeature
+		where TFeature8 : class, TFeature
+	{
+		static FixedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature7));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature7));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature8));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature7), typeof(TFeature8));
+		}
+
+		private readonly TFeature1 _feature1;
+		private readonly TFeature2 _feature2;
+		private readonly TFeature3 _feature3;
+		private readonly TFeature4 _feature4;
+		private readonly TFeature5 _feature5;
+		private readonly TFeature6 _feature6;
+		private readonly TFeature7 _feature7;
+		private readonly TFeature8 _feature8;
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (type == typeof(TFeature1)) return _feature1;
+				else if (type == typeof(TFeature2)) return _feature2;
+				else if (type == typeof(TFeature3)) return _feature3;
+				else if (type == typeof(TFeature4)) return _feature4;
+				else if (type == typeof(TFeature5)) return _feature5;
+				else if (type == typeof(TFeature6)) return _feature6;
+				else if (type == typeof(TFeature7)) return _feature7;
+				else if (type == typeof(TFeature8)) return _feature8;
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (typeof(T) == typeof(TFeature1)) return Unsafe.As<T>(_feature1);
+			else if (typeof(T) == typeof(TFeature2)) return Unsafe.As<T>(_feature2);
+			else if (typeof(T) == typeof(TFeature3)) return Unsafe.As<T>(_feature3);
+			else if (typeof(T) == typeof(TFeature4)) return Unsafe.As<T>(_feature4);
+			else if (typeof(T) == typeof(TFeature5)) return Unsafe.As<T>(_feature5);
+			else if (typeof(T) == typeof(TFeature6)) return Unsafe.As<T>(_feature6);
+			else if (typeof(T) == typeof(TFeature7)) return Unsafe.As<T>(_feature7);
+			else if (typeof(T) == typeof(TFeature8)) return Unsafe.As<T>(_feature8);
+			else return null;
+		}
+
+		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6, TFeature7 feature7, TFeature8 feature8)
+		{
+			_feature1 = feature1;
+			_feature2 = feature2;
+			_feature3 = feature3;
+			_feature4 = feature4;
+			_feature5 = feature5;
+			_feature6 = feature6;
+			_feature7 = feature7;
+			_feature8 = feature8;
+		}
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature1), _feature1);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature2), _feature2);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature3), _feature3);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature4), _feature4);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature5), _feature5);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature6), _feature6);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature7), _feature7);
+			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature8), _feature8);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
