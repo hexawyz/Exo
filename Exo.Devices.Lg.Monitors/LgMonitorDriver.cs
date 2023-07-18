@@ -124,6 +124,9 @@ public class LgMonitorDriver :
 		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
 		await transport.SendLgCustomCommandAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
 		byte dscVersion = data[1];
+		// This special call will return the monitor model name. We can then use it as the friendly name.
+		await transport.SendLgCustomCommandAsync(0xCA, 0x00, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
+		friendlyName = "LG " + Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
 		var length = await transport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 		ArrayPool<byte>.Shared.Return(data);
