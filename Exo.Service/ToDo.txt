@@ -48,5 +48,50 @@
       * Metadata should be automatically updated when an assembly is added, removed or modified, even during runtime. All systems must be able to update their runtime caches as well as the serialized data.
       * The centralized sytem may be able to some of the heavy lifting regarding as to what has been added or removed. (e.g. We expect that a removed assembly would not affect metadata from other assemblies)
       * We'd probably track file updates using a simple hash such as MD5 or SHA1. (Of course coupled to a FS watcher during runtime)
-
-
+* Have an event bus to communicate between components in the app
+  * Final model of how everything will integrate is not yet clear (device vs driver vs more general module etc.) BUT
+  * We know that the user should be able to e.g. bind a key to switch a monitor's current video input, or to toggle some lighting settings, for example
+  * Some drivers or components (or both ?) would have the capacity to push an event on the bus, and other components (drivers ?) would be able to react to the event
+    * It's altmost certain that we don't want drivers to listen for events on the bus
+    * Whether drivers should be able to directly emit messages on the bus is yet to be decided
+      * Giving driver a way to directly emit events makes it easier to create new kinds of events without having to create a specific component for mapping the IDeviceFeature to an event
+      * But giving drivers a way to directly emit events MAY reduce the flexibility of configuration
+      * If drivers do not directly emit events ON THE BUS, they might still provide a default configuration for the UI component side
+      * In that case, the user would be able to pick which event the device sends. The UI backend component would bind to the events on various IDeviceFeature objects, and generate event bus events accordingly.
+      * In all cases, UI-oriented components (or services) SHOULD be able to generate events. All events are not necessary low level.
+      * There may also be a necessity to filter out some events, in order to reduce the CPU load and not pollute the event bus => events not listened for are not emitted.
+      * One of the main question to ask is: Is there value in not allowing drivers to directly generate events
+        * The above point seems to indicate that there may indeed be value in not allowing drivers to directly generate events, as the logic to emit an event to the bus or not would be costly to implement there.
+        * But on the other side, having driver determine the low level events that they will send (in some cases) reduces the need for writing a separate UI backend component/service for that driver.
+  * Messages in the event bus would likely hold:
+    * A unique origin key (The originating device)
+    * A event id (e.g. BACKLIGHT_UP)
+  * Message notifications would NOT be first come, first serve
+    * A component listening for messages from a specific device would have precedence over a component listening for events for any device (or all events ?)
+    * A component may want to intercept messages to rewrite them in some cases
+  * Maybe there should be some "no-code" (🤭) UI to let the user determine the message routing rules themselves.
+    * Could be a very useful and powerful tool to have
+    * But it may make the app to hard to access
+    * There need to be sensible defaults in how messages will be handled
+      * Either provide the choice of two exclusive UIs/components (a simple one and an advanced one)
+      * Or have a unified model that work il all cases
+* Remember the idea of the layered architecture:
+  * At the lowest level, we SHOULD have "library code". While that is not mandatory, it would generally help having the device-oritented code of drivers (i.e. implementation of the protocol) separated.
+  * Then, we MUST have the driver interface. This exposes a real or virtual device as such in the backend service.
+  * At the top of the backend, we have services/components that rely on drivers and other internal services (e.g. event bus) to provide useful features to users
+    * There should generally be a close mapping between raw features exposed by drivers and features exposed by components: If no component allows to configure the features of a driver, the driver may be somewhat useless.
+    * Some exceptions could be possible, as for example a driver that has a single purpose that can always be done without configuration. But generally, we'd still want to be able to enable or disable the driver.
+  * Over all of this, the UI should be built. Let's call it the "configuration" UI.
+    * The UI will be hosted in a separate process, but it may (will ?) share code with the backend.
+    * The UI would likely communicate with the backend using a REST API (Named pipes being another option, but there is no clear value ?)
+      * In theory, the REST API could be "public", meaning that it could be used to configure the service without the UI. (But we DON'T NEED it. Maybe we actually WANT to have it private)
+      * There would in all cases be a "service" API in addition to the "configuration" API.
+        * The service API would essentially be used to send commands and get reports from the service. That API MUST be public. (It is its intended purpose)
+        * The configuration API would only be used to configure the service.
+          * It would ideally not need to be used at all once everything is setup properly. (Of course if the user starts the configuration UI, it will be needed)
+          * Everything should be doable using the service API afterwards. i.e. The configuration API is used to configure the service AND determine what features are exposed through the service API.
+          * There may be no value in making that API public. Allowing anybody to change the configuration of the service may be dangerous.
+        * Both APIs would be secured using an authentication mechanism. (internal and/or external: invisible and/or intrusive)
+          * Maybe we want to secure access to the API by requiring the UI to be launched with admin rights. (Would work with a named pipe: is it also possible with a socket ?)
+    * There MUST be a nice WPF/WinUI interface to configure everywthing.
+    * Having a public API to control stuff would be nice too. (ANyway, everything the frontend UI can do should be doable from the PA

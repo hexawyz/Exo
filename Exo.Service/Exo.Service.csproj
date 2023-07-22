@@ -1,14 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
-  </ItemGroup>
+		<PackageReference Include="Grpc.AspNetCore" Version="2.52.0" />
+	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />

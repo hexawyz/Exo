@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Exo.Settings.Ui (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Exo.Settings.Ui (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
