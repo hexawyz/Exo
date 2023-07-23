@@ -30,6 +30,9 @@ public abstract class Driver : IDeviceDriver<IDeviceFeature>, IAsyncDisposable
 	/// <returns>A string that can be used to look for the device configuration.</returns>
 	public DeviceConfigurationKey ConfigurationKey { get; }
 
+	/// <summary>Gets the category of the device managed by this driver.</summary>
+	public abstract DeviceCategory DeviceCategory { get; }
+
 	/// <summary>Gets the list of all features associated with this driver</summary>
 	public abstract IDeviceFeatureCollection<IDeviceFeature> Features { get; }
 

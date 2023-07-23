@@ -34,10 +34,11 @@ public sealed class DeviceInformation
 {
 	private DeviceInformation() { }
 
-	public DeviceInformation(string uniqueId, string friendlyName, string driverTypeName, string[] featureTypeNames)
+	public DeviceInformation(string uniqueId, string friendlyName, DeviceCategory category, string driverTypeName, string[] featureTypeNames)
 	{
 		UniqueId = uniqueId;
 		FriendlyName = friendlyName;
+		Category = category;
 		DriverTypeName = driverTypeName;
 		FeatureTypeNames = featureTypeNames ?? Array.Empty<string>();
 	}
@@ -47,6 +48,8 @@ public sealed class DeviceInformation
 	[DataMember(Order = 2, IsRequired = true)]
 	public string FriendlyName { get; }
 	[DataMember(Order = 3, IsRequired = true)]
+	public DeviceCategory Category { get; }
+	[DataMember(Order = 4, IsRequired = true)]
 	public string DriverTypeName { get; }
 	[DataMember(Order = 5)]
 	public string[] FeatureTypeNames { get; }

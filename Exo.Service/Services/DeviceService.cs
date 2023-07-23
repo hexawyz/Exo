@@ -23,12 +23,13 @@ public class DeviceService : IDeviceService
 					DriverWatchNotificationKind.Enumeration => DeviceNotificationKind.Enumeration,
 					DriverWatchNotificationKind.Addition => DeviceNotificationKind.Arrival,
 					DriverWatchNotificationKind.Removal => DeviceNotificationKind.Removal,
-					_ => throw new System.NotImplementedException()
+					_ => throw new NotImplementedException()
 				},
 				new
 				(
 					notification.DeviceInformation.UniqueId,
 					notification.DeviceInformation.FriendlyName,
+					(Exo.Ui.Contracts.DeviceCategory)notification.DeviceInformation.Category,
 					notification.DeviceInformation.DriverType.ToString(),
 					Array.ConvertAll(notification.DeviceInformation.FeatureTypes, t => t.ToString())
 				)

@@ -192,6 +192,8 @@ public class LgMonitorDriver :
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
 
+	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
+
 	private LgMonitorDriver
 	(
 		HidI2CTransport transport,

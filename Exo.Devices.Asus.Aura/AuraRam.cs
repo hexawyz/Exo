@@ -19,6 +19,7 @@ public class AuraRamDriver :
 	ILightingZoneEffect<RainbowCycleEffect>,
 	ILightingZoneEffect<RainbowWaveEffect>
 {
+
 	// TODO: How should we handle the RAM ?
 	// Aura sticks are generally configured all at once, since they start mapped at the same 0x77 register.
 	// Either we expose all the sticks as a single device, or we map each stick individually. But if we want to map sticks individually, the simple way CreateAsync() will not do.
@@ -66,6 +67,8 @@ public class AuraRamDriver :
 	private readonly ISmBusDriver _smBusDriver;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
 
 	public AuraRamDriver(string friendlyName, DeviceConfigurationKey configurationKey, ISmBusDriver smBusDriver)
 		: base("Aura RAM", default)

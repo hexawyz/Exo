@@ -134,7 +134,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 	{
 		// TODO: Derivate a new Unique ID from the configuration key. (Maybe a GUID)
 		var driverType = driver.GetType();
-		var deviceInformation = new DeviceInformation(driver.ConfigurationKey.DeviceMainId, driver.FriendlyName, GetDriverFeatures(driverType), driverType);
+		var deviceInformation = new DeviceInformation(driver.ConfigurationKey.DeviceMainId, driver.FriendlyName, driver.DeviceCategory, GetDriverFeatures(driverType), driverType);
 
 		if (_driverDictionary.TryAdd(driver, deviceInformation))
 		{
@@ -286,16 +286,18 @@ public readonly struct DriverWatchNotification
 
 public sealed class DeviceInformation
 {
-	public DeviceInformation(string uniqueId, string friendlyName, Type[] featureTypes, Type driverType)
+	public DeviceInformation(string uniqueId, string friendlyName, DeviceCategory Category, Type[] featureTypes, Type driverType)
 	{
 		UniqueId = uniqueId;
 		FriendlyName = friendlyName;
+		this.Category = Category;
 		FeatureTypes = featureTypes;
 		DriverType = driverType;
 	}
 
 	public string UniqueId { get; }
 	public string FriendlyName { get; }
+	public DeviceCategory Category { get; }
 	public Type[] FeatureTypes { get; }
 	public Type DriverType { get; }
 }

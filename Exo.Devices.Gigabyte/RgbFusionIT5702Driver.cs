@@ -504,6 +504,8 @@ public sealed class RgbFusionIT5702Driver :
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
+	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
+
 	private RgbFusionIT5702Driver(HidFullDuplexStream stream, ImmutableArray<string> deviceNames, string productName, int ledCount, DeviceConfigurationKey configurationKey)
 		: base(deviceNames, productName ?? "RGB Fusion 2.0 Controller", configurationKey)
 	{
