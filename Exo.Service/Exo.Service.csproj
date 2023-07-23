@@ -7,14 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.1.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
-		<PackageReference Include="Grpc.AspNetCore" Version="2.52.0" />
 	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
     <ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
+    <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
   </ItemGroup>
 
 	<!-- Detect plugin project names. -->

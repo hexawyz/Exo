@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace Exo.Service;
 
@@ -80,6 +82,9 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 	// Also, this should never be updated outside the lock in order to keep coherency with _driverSet.
 	private readonly ConditionalWeakTable<Type, FeatureCacheEntry> _featureCache = new();
 
+	private Action<Driver>? _driverAdded;
+	private Action<Driver>? _driverRemoved;
+
 	object IInternalDriverRegistry.Lock => _lock;
 
 	bool IInternalDriverRegistry.AddDriver(Driver driver) => AddDriverInLock(driver);
@@ -94,7 +99,12 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 	{
 		lock (_lock)
 		{
-			return AddDriverInLock(driver);
+			if (AddDriverInLock(driver))
+			{
+				_driverAdded?.Invoke(driver);
+				return true;
+			}
+			return false;
 		}
 	}
 
@@ -118,7 +128,12 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 	{
 		lock (_lock)
 		{
-			return RemoveDriverInLock(driver);
+			if (RemoveDriverInLock(driver))
+			{
+				_driverRemoved?.Invoke(driver);
+				return true;
+			}
+			return false;
 		}
 	}
 
@@ -173,4 +188,67 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 
 		return featureDrivers.ToArray();
 	}
+
+	private static readonly UnboundedChannelOptions WatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
+
+	public async IAsyncEnumerable<DriverWatchNotification> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		ChannelReader<(bool IsAdded, Driver Driver)> reader;
+		Action<Driver> onDriverAdded;
+		Action<Driver> onDriverRemoved;
+
+		lock (_lock)
+		{
+			foreach (var driver in _drivers)
+			{
+				yield return new(DriverWatchNotificationKind.Enumeration, driver);
+			}
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			var channel = Channel.CreateUnbounded<(bool IsAdded, Driver Driver)>(WatchChannelOptions);
+			reader = channel.Reader;
+			var writer = channel.Writer;
+
+			onDriverAdded = d => writer.TryWrite((true, d));
+			onDriverRemoved = d => writer.TryWrite((false, d));
+
+			_driverAdded += onDriverAdded;
+			_driverRemoved += onDriverRemoved;
+		}
+		try
+		{
+			await foreach (var (isAdded, driver) in reader.ReadAllAsync(cancellationToken))
+			{
+				yield return new(isAdded ? DriverWatchNotificationKind.Addition : DriverWatchNotificationKind.Removal, driver);
+			}
+		}
+		finally
+		{
+			lock (_lock)
+			{
+				_driverRemoved -= onDriverRemoved;
+				_driverAdded -= onDriverAdded;
+			}
+		}
+	}
+}
+
+public enum DriverWatchNotificationKind
+{
+	Enumeration = 0,
+	Addition = 1,
+	Removal = 2,
+}
+
+public readonly struct DriverWatchNotification
+{
+	public DriverWatchNotification(DriverWatchNotificationKind kind, Driver driver)
+	{
+		Kind = kind;
+		Driver = driver;
+	}
+
+	public DriverWatchNotificationKind Kind { get; }
+	public Driver Driver { get; }
 }

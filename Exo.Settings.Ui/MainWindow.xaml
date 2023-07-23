@@ -6,9 +6,43 @@
     xmlns:local="using:Exo.Settings.Ui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
     mc:Ignorable="d">
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Button x:Name="myButton" Click="myButton_Click">Click Me</Button>
-    </StackPanel>
+    <NavigationView x:Name="navigation" IsSettingsVisible="false" ItemInvoked="NavigationItemInvoked" DataContext="{x:Bind ViewModel}">
+        <!--<NavigationView.MenuItemTemplateSelector>
+            <local:NavigationDataTemplateSelector>
+                <local:NavigationDataTemplateSelector.DeviceDataTemplate>
+                    <DataTemplate x:DataType="vm:DeviceViewModel">
+                        <NavigationViewItem Content="{Binding FriendlyName}">
+                            <NavigationViewItem.Icon>
+                                <FontIcon Glyph="{Binding SymbolIcon}" />
+                            </NavigationViewItem.Icon>
+                        </NavigationViewItem>
+                    </DataTemplate>
+                </local:NavigationDataTemplateSelector.DeviceDataTemplate>
+                <local:NavigationDataTemplateSelector.DefaultDataTemplate>
+                    <DataTemplate>
+                        <NavigationViewItem Icon="{Binding Icon}" Content="{Binding Content}" MenuItemsSource="{Binding MenuItemsSource}" />
+                    </DataTemplate>
+                </local:NavigationDataTemplateSelector.DefaultDataTemplate>
+            </local:NavigationDataTemplateSelector>
+        </NavigationView.MenuItemTemplateSelector>-->
+        <NavigationView.MenuItems>
+            <NavigationViewItem Content="Devices" Tag="Devices">
+                <!--MenuItemsSource="{Binding Devices.Devices}"-->
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE772;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Lighting" Tag="Lighting">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE781;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <ScrollViewer>
+            <Frame x:Name="contentFrame"/>
+        </ScrollViewer>
+    </NavigationView>
 </Window>

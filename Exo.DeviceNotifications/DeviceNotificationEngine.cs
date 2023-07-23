@@ -530,7 +530,7 @@ namespace Exo.DeviceNotifications
 				{
 					var sinks = _sinks;
 
-					if (sinks is null) throw new ObjectDisposedException(nameof(DeviceInterfaceClassSharedNotificationRegistration));
+					ObjectDisposedException.ThrowIf(sinks is null, typeof(DeviceInterfaceClassSharedNotificationRegistration));
 
 					if (Array.IndexOf(sinks, sink) is int index and >= 0)
 					{

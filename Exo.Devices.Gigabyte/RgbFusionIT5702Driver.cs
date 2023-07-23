@@ -429,7 +429,8 @@ public sealed class RgbFusionIT5702Driver :
 				new HidFullDuplexStream(ledDeviceInterfaceName),
 				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 				productName,
-				ledCount
+				ledCount,
+				new("IT5702", topLevelDeviceName, "IT5702", null)
 			);
 		}
 		catch
@@ -502,8 +503,8 @@ public sealed class RgbFusionIT5702Driver :
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
-	private RgbFusionIT5702Driver(HidFullDuplexStream stream, ImmutableArray<string> deviceNames, string productName, int ledCount)
-		: base(deviceNames, productName ?? "RGB Fusion 2.0 Controller", default)
+	private RgbFusionIT5702Driver(HidFullDuplexStream stream, ImmutableArray<string> deviceNames, string productName, int ledCount, DeviceConfigurationKey configurationKey)
+		: base(deviceNames, productName ?? "RGB Fusion 2.0 Controller", configurationKey)
 	{
 		_stream = stream;
 

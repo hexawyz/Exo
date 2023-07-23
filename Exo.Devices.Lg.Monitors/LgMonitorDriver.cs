@@ -32,7 +32,7 @@ public class LgMonitorDriver :
 		Properties.System.DeviceInterface.Hid.VersionNumber,
 	};
 
-	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, CancellationToken cancellationToken)
+	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, ushort productId, CancellationToken cancellationToken)
 	{
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -175,7 +175,9 @@ public class LgMonitorDriver :
 			rawCapabilities,
 			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-			friendlyName
+			friendlyName,
+			// TODO: Try reading the serial number (I believe it is possible?)
+			new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{productId:X4}", null)
 		);
 	}
 
@@ -198,8 +200,9 @@ public class LgMonitorDriver :
 		byte[] rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
 		ImmutableArray<string> deviceNames,
-		string friendlyName
-	) : base(deviceNames, friendlyName, default)
+		string friendlyName,
+		DeviceConfigurationKey configurationKey
+	) : base(deviceNames, friendlyName, configurationKey)
 	{
 		_transport = transport;
 		_nxpVersion = nxpVersion;

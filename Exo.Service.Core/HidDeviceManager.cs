@@ -78,7 +78,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
 		RefreshDriverCache();
-		_deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.Hid, this);
+		_deviceNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.Hid, this);
 		_eventProcessingTask = ProcessAsync(_eventChannel.Reader, cancellationToken);
 		return Task.CompletedTask;
 	}

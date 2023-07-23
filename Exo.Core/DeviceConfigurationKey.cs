@@ -38,4 +38,12 @@ namespace Exo;
 /// <param name="DeviceMainId">The main device ID (or device instance ID) for the driver.</param>
 /// <param name="MovableDeviceKey">A more generic ID for the device, that can match all sufficiently similar devices</param>
 /// <param name="SerialNumber">When available, a string that can serve as a serial number to uniquely identify the physical device.</param>
-public record struct DeviceConfigurationKey(string DriverKey, string DeviceMainId, string MovableDeviceKey, string? SerialNumber);
+public record struct DeviceConfigurationKey(string DriverKey, string DeviceMainId, string MovableDeviceKey, string? SerialNumber)
+{
+	public void Validate()
+	{
+		if (string.IsNullOrEmpty(DriverKey)) throw new InvalidOperationException("The driver key cannot be null.");
+		if (string.IsNullOrEmpty(DeviceMainId)) throw new InvalidOperationException("The device main ID cannot be null.");
+		if (string.IsNullOrEmpty(MovableDeviceKey)) throw new InvalidOperationException("The movable device key cannot be null.");
+	}
+}

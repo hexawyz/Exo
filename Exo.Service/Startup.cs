@@ -1,3 +1,4 @@
+using Exo.Service.Services;
 using Exo.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Logging;
+using ProtoBuf.Grpc.Server;
 
 namespace Exo.Service;
 
@@ -24,7 +26,7 @@ public class Startup
 		services.AddRazorPages();
 		services.AddSingleton
 		(
-			// Remember: We use a Cutom implementation of ServiceBase here…
+			// Remember: We use a Custom implementation of ServiceBase here…
 			sp => sp.GetRequiredService<IHostLifetime>() is WindowsServiceLifetime windowsService ?
 				windowsService.GetDeviceNotificationService() :
 				new NotificationWindow()
@@ -49,7 +51,7 @@ public class Startup
 				);
 			}
 		);
-		services.AddGrpc();
+		services.AddCodeFirstGrpc();
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -72,7 +74,7 @@ public class Startup
 
 		app.UseEndpoints(endpoints =>
 		{
-			//endpoints.MapGrpcService<>();
+			endpoints.MapGrpcService<DeviceService>();
 			endpoints.MapRazorPages();
 		});
 	}
