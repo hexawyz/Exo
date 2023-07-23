@@ -6,6 +6,7 @@ using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Features;
 using Exo.Features.MonitorFeatures;
 
 namespace Exo.Devices.Lg.Monitors;

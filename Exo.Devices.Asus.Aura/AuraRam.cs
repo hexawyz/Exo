@@ -1,6 +1,7 @@
 using Exo.Features.LightingFeatures;
 using Exo.Lighting.Effects;
 using Exo.Lighting;
+using Exo.Features;
 
 namespace Exo.Devices.Asus.Aura;
 

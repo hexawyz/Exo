@@ -1,8 +1,6 @@
-using Exo.Features.MonitorFeatures;
-
 namespace Exo.Devices.Lg.Monitors;
 
-public interface ILgMonitorDeviceFeature : IMonitorDeviceFeature
+public interface ILgMonitorDeviceFeature : IDeviceFeature
 {
 }
 

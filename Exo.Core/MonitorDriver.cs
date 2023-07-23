@@ -1,4 +1,4 @@
-using Exo.Features.MonitorFeatures;
+using Exo.Features;
 
 namespace Exo;
 

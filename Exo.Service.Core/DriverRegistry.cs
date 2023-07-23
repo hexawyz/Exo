@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -72,9 +74,34 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 		}
 	}
 
+	private static readonly ConditionalWeakTable<Type, Type[]> DriverFeatureCache = new();
+
+	private static Type[] GetDriverFeatures(Type driverType)
+		=> DriverFeatureCache.GetValue(driverType, GetNonCachedDriverFeatures);
+
+	private static Type[] GetNonCachedDriverFeatures(Type driverType)
+	{
+		var featureTypes = new List<Type>();
+		foreach (var interfaceType in driverType.GetInterfaces())
+		{
+			var t = interfaceType;
+			while (t.BaseType is not null)
+			{
+				t = t.BaseType;
+			}
+
+			if (t.IsGenericType && t != typeof(IDeviceDriver<IDeviceFeature>) && t.GetGenericTypeDefinition() == typeof(IDeviceDriver<>))
+			{
+				featureTypes.Add(t.GetGenericArguments()[0]);
+			}
+		}
+
+		return featureTypes.ToArray();
+	}
+
 	private readonly object _lock = new();
 	// Set of drivers that can only be accessed within the lock.
-	private readonly HashSet<Driver> _driverSet = new();
+	private readonly Dictionary<Driver, DeviceInformation> _driverDictionary = new();
 	// List of drivers that can be readily accessed outside the lock.
 	private ImmutableArray<Driver> _drivers = ImmutableArray<Driver>.Empty;
 	// Cache of drivers per feature category.
@@ -82,8 +109,8 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 	// Also, this should never be updated outside the lock in order to keep coherency with _driverSet.
 	private readonly ConditionalWeakTable<Type, FeatureCacheEntry> _featureCache = new();
 
-	private Action<Driver>? _driverAdded;
-	private Action<Driver>? _driverRemoved;
+	private Action<Driver, DeviceInformation>? _driverAdded;
+	private Action<DeviceInformation>? _driverRemoved;
 
 	object IInternalDriverRegistry.Lock => _lock;
 
@@ -99,58 +126,60 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 	{
 		lock (_lock)
 		{
-			if (AddDriverInLock(driver))
-			{
-				_driverAdded?.Invoke(driver);
-				return true;
-			}
-			return false;
+			return AddDriverInLock(driver);
 		}
 	}
 
 	private bool AddDriverInLock(Driver driver)
 	{
-		if (_driverSet.Add(driver))
+		// TODO: Derivate a new Unique ID from the configuration key. (Maybe a GUID)
+		var driverType = driver.GetType();
+		var deviceInformation = new DeviceInformation(driver.ConfigurationKey.DeviceMainId, driver.FriendlyName, GetDriverFeatures(driverType), driverType);
+
+		if (_driverDictionary.TryAdd(driver, deviceInformation))
 		{
-			_drivers = _driverSet.ToImmutableArray();
+			_drivers = _driverDictionary.Keys.ToImmutableArray();
 
 			foreach (var kvp in _featureCache)
 			{
 				kvp.Value.TryAdd(driver);
 			}
 
+			_driverAdded?.Invoke(driver, deviceInformation);
 			return true;
 		}
-		return false;
+		else
+		{
+			return false;
+		}
 	}
 
 	public bool RemoveDriver(Driver driver)
 	{
 		lock (_lock)
 		{
-			if (RemoveDriverInLock(driver))
-			{
-				_driverRemoved?.Invoke(driver);
-				return true;
-			}
-			return false;
+			return RemoveDriverInLock(driver);
 		}
 	}
 
 	internal bool RemoveDriverInLock(Driver driver)
 	{
-		if (_driverSet.Remove(driver))
+		if (_driverDictionary.Remove(driver, out var deviceInformation))
 		{
-			_drivers = _driverSet.ToImmutableArray();
+			_drivers = _driverDictionary.Keys.ToImmutableArray();
 
 			foreach (var kvp in _featureCache)
 			{
 				kvp.Value.TryRemove(driver);
 			}
 
+			_driverRemoved?.Invoke(deviceInformation);
 			return true;
 		}
-		return false;
+		else
+		{
+			return false;
+		}
 	}
 
 	public ImmutableArray<Driver> GetDrivers() => _drivers;
@@ -193,34 +222,34 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry
 
 	public async IAsyncEnumerable<DriverWatchNotification> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		ChannelReader<(bool IsAdded, Driver Driver)> reader;
-		Action<Driver> onDriverAdded;
-		Action<Driver> onDriverRemoved;
+		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver? Driver)> reader;
+		Action<Driver, DeviceInformation> onDriverAdded;
+		Action<DeviceInformation> onDriverRemoved;
 
 		lock (_lock)
 		{
-			foreach (var driver in _drivers)
+			foreach (var kvp in _driverDictionary)
 			{
-				yield return new(DriverWatchNotificationKind.Enumeration, driver);
+				yield return new(DriverWatchNotificationKind.Enumeration, kvp.Value, kvp.Key);
 			}
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var channel = Channel.CreateUnbounded<(bool IsAdded, Driver Driver)>(WatchChannelOptions);
+			var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver? Driver)>(WatchChannelOptions);
 			reader = channel.Reader;
 			var writer = channel.Writer;
 
-			onDriverAdded = d => writer.TryWrite((true, d));
-			onDriverRemoved = d => writer.TryWrite((false, d));
+			onDriverAdded = (d, di) => writer.TryWrite((true, di, d));
+			onDriverRemoved = di => writer.TryWrite((false, di, null));
 
 			_driverAdded += onDriverAdded;
 			_driverRemoved += onDriverRemoved;
 		}
 		try
 		{
-			await foreach (var (isAdded, driver) in reader.ReadAllAsync(cancellationToken))
+			await foreach (var (isAdded, deviceInformation, driver) in reader.ReadAllAsync(cancellationToken))
 			{
-				yield return new(isAdded ? DriverWatchNotificationKind.Addition : DriverWatchNotificationKind.Removal, driver);
+				yield return new(isAdded ? DriverWatchNotificationKind.Addition : DriverWatchNotificationKind.Removal, deviceInformation, driver);
 			}
 		}
 		finally
@@ -243,12 +272,30 @@ public enum DriverWatchNotificationKind
 
 public readonly struct DriverWatchNotification
 {
-	public DriverWatchNotification(DriverWatchNotificationKind kind, Driver driver)
+	public DriverWatchNotification(DriverWatchNotificationKind kind, DeviceInformation driverInformation, Driver? driver)
 	{
 		Kind = kind;
+		DeviceInformation = driverInformation;
 		Driver = driver;
 	}
 
 	public DriverWatchNotificationKind Kind { get; }
-	public Driver Driver { get; }
+	public DeviceInformation DeviceInformation { get; }
+	public Driver? Driver { get; }
+}
+
+public sealed class DeviceInformation
+{
+	public DeviceInformation(string uniqueId, string friendlyName, Type[] featureTypes, Type driverType)
+	{
+		UniqueId = uniqueId;
+		FriendlyName = friendlyName;
+		FeatureTypes = featureTypes;
+		DriverType = driverType;
+	}
+
+	public string UniqueId { get; }
+	public string FriendlyName { get; }
+	public Type[] FeatureTypes { get; }
+	public Type DriverType { get; }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -26,10 +27,10 @@ public class DeviceService : IDeviceService
 				},
 				new
 				(
-					notification.Driver.ConfigurationKey.DeviceMainId,
-					notification.Driver.FriendlyName,
-					notification.GetType().FullName,
-					new string[0]
+					notification.DeviceInformation.UniqueId,
+					notification.DeviceInformation.FriendlyName,
+					notification.DeviceInformation.DriverType.ToString(),
+					Array.ConvertAll(notification.DeviceInformation.FeatureTypes, t => t.ToString())
 				)
 			);
 		}

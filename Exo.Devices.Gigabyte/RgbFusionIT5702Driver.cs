@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;

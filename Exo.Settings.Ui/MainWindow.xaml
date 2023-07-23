@@ -10,27 +10,8 @@
     mc:Ignorable="d">
 
     <NavigationView x:Name="navigation" IsSettingsVisible="false" ItemInvoked="NavigationItemInvoked" DataContext="{x:Bind ViewModel}">
-        <!--<NavigationView.MenuItemTemplateSelector>
-            <local:NavigationDataTemplateSelector>
-                <local:NavigationDataTemplateSelector.DeviceDataTemplate>
-                    <DataTemplate x:DataType="vm:DeviceViewModel">
-                        <NavigationViewItem Content="{Binding FriendlyName}">
-                            <NavigationViewItem.Icon>
-                                <FontIcon Glyph="{Binding SymbolIcon}" />
-                            </NavigationViewItem.Icon>
-                        </NavigationViewItem>
-                    </DataTemplate>
-                </local:NavigationDataTemplateSelector.DeviceDataTemplate>
-                <local:NavigationDataTemplateSelector.DefaultDataTemplate>
-                    <DataTemplate>
-                        <NavigationViewItem Icon="{Binding Icon}" Content="{Binding Content}" MenuItemsSource="{Binding MenuItemsSource}" />
-                    </DataTemplate>
-                </local:NavigationDataTemplateSelector.DefaultDataTemplate>
-            </local:NavigationDataTemplateSelector>
-        </NavigationView.MenuItemTemplateSelector>-->
         <NavigationView.MenuItems>
             <NavigationViewItem Content="Devices" Tag="Devices">
-                <!--MenuItemsSource="{Binding Devices.Devices}"-->
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE772;" />
                 </NavigationViewItem.Icon>
