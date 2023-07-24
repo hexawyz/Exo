@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DevicesPage.xaml" />
+    <None Remove="RootPage.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,6 +47,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="RootPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="DevicesPage.xaml">

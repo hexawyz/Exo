@@ -286,11 +286,11 @@ public readonly struct DriverWatchNotification
 
 public sealed class DeviceInformation
 {
-	public DeviceInformation(string uniqueId, string friendlyName, DeviceCategory Category, Type[] featureTypes, Type driverType)
+	public DeviceInformation(string uniqueId, string friendlyName, DeviceCategory category, Type[] featureTypes, Type driverType)
 	{
 		UniqueId = uniqueId;
 		FriendlyName = friendlyName;
-		this.Category = Category;
+		Category = category;
 		FeatureTypes = featureTypes;
 		DriverType = driverType;
 	}

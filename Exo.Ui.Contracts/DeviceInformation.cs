@@ -1,38 +1,13 @@
-using System.Runtime.Serialization;
-using System.ServiceModel;
+﻿using System.Runtime.Serialization;
 
 namespace Exo.Ui.Contracts;
 
 [DataContract]
-public enum DeviceNotificationKind
-{
-	Enumeration = 0,
-	Arrival = 1,
-	Removal = 2,
-	Update = 3,
-}
-
-[DataContract]
-public sealed class DeviceNotification
-{
-	private DeviceNotification() { }
-
-	public DeviceNotification(DeviceNotificationKind notificationKind, DeviceInformation deviceInformation)
-	{
-		NotificationKind = notificationKind;
-		DeviceInformation = deviceInformation;
-	}
-
-	[DataMember(Order = 1)]
-	public DeviceNotificationKind NotificationKind { get; }
-	[DataMember(Order = 2)]
-	public DeviceInformation DeviceInformation { get; }
-}
-
-[DataContract]
 public sealed class DeviceInformation
 {
+#nullable disable
 	private DeviceInformation() { }
+#nullable enable
 
 	public DeviceInformation(string uniqueId, string friendlyName, DeviceCategory category, string driverTypeName, string[] featureTypeNames)
 	{
@@ -53,11 +28,4 @@ public sealed class DeviceInformation
 	public string DriverTypeName { get; }
 	[DataMember(Order = 5)]
 	public string[] FeatureTypeNames { get; }
-}
-
-[ServiceContract]
-public interface IDeviceService
-{
-	[OperationContract]
-	IAsyncEnumerable<DeviceNotification> GetDevicesAsync(CancellationToken cancellationToken);
 }

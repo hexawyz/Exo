@@ -40,7 +40,10 @@ public partial class App : Application
 	/// <param name="args">Details about the launch request and process.</param>
 	protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
 	{
-		_window = new MainWindow();
+		_window = new Window();
+		_window.SystemBackdrop = new MicaBackdrop();
+		_window.ExtendsContentIntoTitleBar = true;
+		_window.Content = new RootPage(_window);
 		_window.Activate();
 	}
 
