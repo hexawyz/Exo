@@ -2,9 +2,9 @@ using System.ServiceModel;
 
 namespace Exo.Ui.Contracts;
 
-[ServiceContract]
+[ServiceContract(Name = "Devices")]
 public interface IDeviceService
 {
 	[OperationContract]
-	IAsyncEnumerable<DeviceNotification> GetDevicesAsync(CancellationToken cancellationToken);
+	IAsyncEnumerable<WatchNotification<DeviceInformation>> WatchDevicesAsync(CancellationToken cancellationToken);
 }

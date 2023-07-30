@@ -81,6 +81,10 @@ internal sealed partial class RootPage : Page
 			type = typeof(DevicesPage);
 			dataContext = ViewModel.Devices;
 			break;
+		case "Lighting":
+			type = typeof(LightingPage);
+			dataContext = ViewModel.Lighting;
+			break;
 		}
 
 		if (type is null) return;

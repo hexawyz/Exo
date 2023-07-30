@@ -16,7 +16,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	public DevicesViewModel(IDeviceService deviceService)
 	{
 		_deviceService = deviceService;
-		_devices = new ObservableCollection<DeviceViewModel>();
+		_devices = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 	}
@@ -25,18 +25,18 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in _deviceService.GetDevicesAsync(cancellationToken))
+			await foreach (var notification in _deviceService.WatchDevicesAsync(cancellationToken))
 			{
 				switch (notification.NotificationKind)
 				{
-				case DeviceNotificationKind.Enumeration:
-				case DeviceNotificationKind.Arrival:
-					_devices.Add(new(notification.DeviceInformation));
+				case WatchNotificationKind.Enumeration:
+				case WatchNotificationKind.Arrival:
+					_devices.Add(new(notification.Details));
 					break;
-				case DeviceNotificationKind.Removal:
+				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _devices.Count; i++)
 					{
-						if (_devices[i].UniqueId == notification.DeviceInformation.UniqueId)
+						if (_devices[i].UniqueId == notification.Details.UniqueId)
 						{
 							_devices.RemoveAt(i);
 							break;
@@ -46,7 +46,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				}
 			}
 		}
-		catch (Exception ex)
+		catch (OperationCanceledException)
 		{
 		}
 	}

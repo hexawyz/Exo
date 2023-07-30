@@ -18,6 +18,15 @@ namespace DeviceTools.HumanInterfaceDevices
 		public const int ErrorNoMoreItems = 0x00000103;
 
 		[StructLayout(LayoutKind.Sequential)]
+		public struct HidAttributes
+		{
+			public uint Size;
+			public ushort VendorId;
+			public ushort ProductId;
+			public ushort VersionNumber;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
 		public struct HidParsingCaps
 		{
 			public ushort Usage;
@@ -240,6 +249,9 @@ namespace DeviceTools.HumanInterfaceDevices
 
 		[DllImport("hid", EntryPoint = "HidD_FreePreparsedData", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryFreePreparsedData(IntPtr preparsedData);
+
+		[DllImport("hid", EntryPoint = "HidD_GetAttributes", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+		public static extern int HidDiscoveryGetAttributes(SafeFileHandle deviceFileHandle, ref HidAttributes attributes);
 
 		[DllImport("hid", EntryPoint = "HidD_GetManufacturerString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryGetManufacturerString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);

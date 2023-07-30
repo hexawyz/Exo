@@ -1,6 +1,7 @@
 namespace Exo.Lighting.Effects;
 
 /// <summary>Represents an effect where colors will cycle through the color wheel.</summary>
+[EffectName("Rainbow Cycle")]
 public readonly struct RainbowCycleEffect : ILightingEffect
 {
 	/// <summary>Returns a boxed instance of the effect.</summary>

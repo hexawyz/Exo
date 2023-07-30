@@ -10,6 +10,7 @@ namespace Exo.Lighting.Effects;
 /// Some lighting controllers may support applying this effect across multiple zones, as if they were a single addressable lighting zone.
 /// </para>
 /// </remarks>
+[EffectName("Rainbow Wave")]
 public readonly struct RainbowWaveEffect : ILightingEffect
 {
 	/// <summary>Returns a boxed instance of the effect.</summary>

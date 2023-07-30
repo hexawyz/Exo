@@ -19,7 +19,7 @@ public interface ILightingZoneEffect<TEffect>
 {
 	/// <summary>Applies the effect to the lighting zone with the specified parameters.</summary>
 	/// <param name="effect">The effect parameters to apply.</param>
-	void ApplyEffect(TEffect effect);
+	void ApplyEffect(in TEffect effect);
 
 	/// <summary>Gets the effect currently applied to the lighting zone if it is of type <typeparamref name="TEffect"/>.</summary>
 	/// <param name="effect">The effect currently applied to the lighting zone, or default value if not found.</param>

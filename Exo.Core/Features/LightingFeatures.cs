@@ -20,7 +20,7 @@ public interface ILightingControllerFeature : ILightingDeviceFeature
 	/// Both interfaces should generally use the sample implementation for the method.
 	/// They are duplicated in both interfaces because a device does not strictly need to implement both, although it is advised to do so when it makes sense.
 	/// </remarks>
-	void ApplyChanges();
+	ValueTask ApplyChangesAsync();
 }
 
 /// <summary>A feature that allows controlling a device as a single unified lighting zone.</summary>
@@ -45,7 +45,7 @@ public interface IUnifiedLightingFeature : ILightingDeviceFeature, ILightingZone
 	/// Both interfaces should generally use the sample implementation for the method.
 	/// They are duplicated in both interfaces because a device does not strictly need to implement both, although it is advised to do so when it makes sense.
 	/// </remarks>
-	void ApplyChanges();
+	ValueTask ApplyChangesAsync();
 }
 
 /// <summary>A feature allowing to persist the applied lighting configuration on the device.</summary>

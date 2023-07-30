@@ -1,31 +1,19 @@
-﻿using System.Runtime.Serialization;
+using System.Collections.Immutable;
+using System.Runtime.Serialization;
 
 namespace Exo.Ui.Contracts;
 
 [DataContract]
 public sealed class DeviceInformation
 {
-#nullable disable
-	private DeviceInformation() { }
-#nullable enable
-
-	public DeviceInformation(string uniqueId, string friendlyName, DeviceCategory category, string driverTypeName, string[] featureTypeNames)
-	{
-		UniqueId = uniqueId;
-		FriendlyName = friendlyName;
-		Category = category;
-		DriverTypeName = driverTypeName;
-		FeatureTypeNames = featureTypeNames ?? Array.Empty<string>();
-	}
-
 	[DataMember(Order = 1, IsRequired = true)]
-	public string UniqueId { get; }
+	public required Guid UniqueId { get; init; }
 	[DataMember(Order = 2, IsRequired = true)]
-	public string FriendlyName { get; }
+	public required string FriendlyName { get; init; }
 	[DataMember(Order = 3, IsRequired = true)]
-	public DeviceCategory Category { get; }
+	public required DeviceCategory Category { get; init; }
 	[DataMember(Order = 4, IsRequired = true)]
-	public string DriverTypeName { get; }
+	public required string DriverTypeName { get; init; }
 	[DataMember(Order = 5)]
-	public string[] FeatureTypeNames { get; }
+	public required ImmutableArray<string> FeatureTypeNames { get; init; }
 }

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Devices.Gigabyte.LightingEffects;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
@@ -29,6 +30,7 @@ public sealed class RgbFusionIT5702Driver :
 	ILightingZoneEffect<DisabledEffect>,
 	ILightingZoneEffect<StaticColorEffect>,
 	ILightingZoneEffect<ColorPulseEffect>,
+	ILightingZoneEffect<VariableColorPulseEffect>,
 	ILightingZoneEffect<ColorFlashEffect>,
 	ILightingZoneEffect<ColorDoubleFlashEffect>,
 	ILightingZoneEffect<RainbowCycleEffect>,
@@ -304,14 +306,14 @@ public sealed class RgbFusionIT5702Driver :
 		public byte R;
 	}
 
-	private static readonly Guid Z490MotherboardUnifiedZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardIoZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardPchZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardPciZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardLed1ZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardLed2ZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardDigitalLed1ZoneId = Guid.Empty;
-	private static readonly Guid Z490MotherboardDigitalLed2ZoneId = Guid.Empty;
+	private static readonly Guid Z490MotherboardUnifiedZoneId = new Guid(0x34D2462C, 0xE510, 0x4A44, 0xA7, 0x0E, 0x14, 0x91, 0x32, 0x87, 0x25, 0xF9);
+	private static readonly Guid Z490MotherboardIoZoneId = new Guid(0xD57413D5, 0x5EA2, 0x49DD, 0xA5, 0x0A, 0x25, 0x83, 0xBB, 0x1B, 0xCA, 0x2A);
+	private static readonly Guid Z490MotherboardPchZoneId = new Guid(0x7D5C9B9F, 0x96A0, 0x472B, 0xA3, 0x4E, 0xFB, 0x10, 0xA8, 0x40, 0x74, 0x22);
+	private static readonly Guid Z490MotherboardPciZoneId = new Guid(0xB4913C2D, 0xEF7F, 0x49A0, 0x8A, 0xE6, 0xB3, 0x39, 0x2F, 0xD0, 0x9F, 0xA1);
+	private static readonly Guid Z490MotherboardLed1ZoneId = new Guid(0xBEC225CD, 0x72F7, 0x43E6, 0xB7, 0xC2, 0x2D, 0xB3, 0x6F, 0x09, 0xF2, 0xAA);
+	private static readonly Guid Z490MotherboardLed2ZoneId = new Guid(0x1D012FD6, 0xA097, 0x4EA8, 0xB0, 0x2C, 0xBD, 0x31, 0xB4, 0xB4, 0xC9, 0xC6);
+	private static readonly Guid Z490MotherboardDigitalLed1ZoneId = new Guid(0x435444B9, 0x2EA9, 0x4F2B, 0x85, 0xDA, 0xC3, 0xDA, 0x05, 0x21, 0x66, 0xE5);
+	private static readonly Guid Z490MotherboardDigitalLed2ZoneId = new Guid(0xDB94A671, 0xB844, 0x4002, 0xA0, 0x96, 0x47, 0x4E, 0x9D, 0x1E, 0x4A, 0x49);
 
 	private static readonly Guid[] Z490MotherboardGuids = new[]
 	{
@@ -542,8 +544,14 @@ public sealed class RgbFusionIT5702Driver :
 
 	public override ValueTask DisposeAsync() => _stream.DisposeAsync();
 
-	void ILightingControllerFeature.ApplyChanges() => ApplyChanges();
-	void IUnifiedLightingFeature.ApplyChanges() => ApplyChanges();
+	ValueTask ILightingControllerFeature.ApplyChangesAsync() => ApplyChangesAsync();
+	ValueTask IUnifiedLightingFeature.ApplyChangesAsync() => ApplyChangesAsync();
+
+	private ValueTask ApplyChangesAsync()
+	{
+		ApplyChanges();
+		return ValueTask.CompletedTask;
+	}
 
 	private void ApplyChanges()
 	{
@@ -654,17 +662,19 @@ public sealed class RgbFusionIT5702Driver :
 	Guid ILightingZone.ZoneId => Z490MotherboardUnifiedZoneId;
 	ILightingEffect ILightingZone.GetCurrentEffect() => _unifiedLightingZone.GetCurrentEffect();
 
-	void ILightingZoneEffect<DisabledEffect>.ApplyEffect(DisabledEffect effect) => ((ILightingZoneEffect<DisabledEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(StaticColorEffect effect) => ((ILightingZoneEffect<StaticColorEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(ColorPulseEffect effect) => ((ILightingZoneEffect<ColorPulseEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(ColorFlashEffect effect) => ((ILightingZoneEffect<ColorFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<RainbowCycleEffect>.ApplyEffect(RainbowCycleEffect effect) => ((ILightingZoneEffect<RainbowCycleEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<RainbowWaveEffect>.ApplyEffect(RainbowWaveEffect effect) => ((ILightingZoneEffect<RainbowWaveEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => ((ILightingZoneEffect<DisabledEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => ((ILightingZoneEffect<StaticColorEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => ((ILightingZoneEffect<ColorPulseEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect) => ((ILightingZoneEffect<VariableColorPulseEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect) => ((ILightingZoneEffect<ColorFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(in ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<RainbowCycleEffect>.ApplyEffect(in RainbowCycleEffect effect) => ((ILightingZoneEffect<RainbowCycleEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<RainbowWaveEffect>.ApplyEffect(in RainbowWaveEffect effect) => ((ILightingZoneEffect<RainbowWaveEffect>)_unifiedLightingZone).ApplyEffect(effect);
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => ((ILightingZoneEffect<DisabledEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => ((ILightingZoneEffect<StaticColorEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => ((ILightingZoneEffect<ColorPulseEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect) => ((ILightingZoneEffect<VariableColorPulseEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorFlashEffect>.TryGetCurrentEffect(out ColorFlashEffect effect) => ((ILightingZoneEffect<ColorFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<RainbowCycleEffect>.TryGetCurrentEffect(out RainbowCycleEffect effect) => ((ILightingZoneEffect<RainbowCycleEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
@@ -675,6 +685,7 @@ public sealed class RgbFusionIT5702Driver :
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>,
 		ILightingZoneEffect<ColorPulseEffect>,
+		ILightingZoneEffect<VariableColorPulseEffect>,
 		ILightingZoneEffect<ColorFlashEffect>,
 		ILightingZoneEffect<ColorDoubleFlashEffect>,
 		ILightingZoneEffect<RainbowCycleEffect>
@@ -745,7 +756,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(DisabledEffect effect)
+		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -760,7 +771,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(StaticColorEffect effect)
+		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -777,8 +788,20 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(ColorPulseEffect effect)
+		private static readonly (ushort FadeInTicks, ushort FadeOutTicks, ushort DurationTicks)[] ColorCycleEffectTimings = new (ushort, ushort, ushort)[]
 		{
+			(1600, 1600, 800),
+			(1400, 1400, 700),
+			(1200, 1200, 500),
+			(1000, 1000, 500),
+			(900, 900, 450),
+			(800, 800, 400),
+		};
+
+		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect)
+		{
+			var timings = ColorCycleEffectTimings[3];
+
 			lock (Owner._lock)
 			{
 				ToggleUnifiedLighting();
@@ -791,9 +814,9 @@ public sealed class RgbFusionIT5702Driver :
 					Color0 = effect.Color,
 					PulseEffect =
 					{
-						FadeInTicks = 1000,
-						FadeOutTicks = 1000,
-						DurationTicks = 500,
+						FadeInTicks = timings.FadeInTicks,
+						FadeOutTicks = timings.FadeOutTicks,
+						DurationTicks = timings.DurationTicks,
 						One = 1,
 					}
 				};
@@ -801,7 +824,33 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(ColorFlashEffect effect)
+		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect)
+		{
+			var timings = ColorCycleEffectTimings[(byte)effect.Speed];
+
+			lock (Owner._lock)
+			{
+				ToggleUnifiedLighting();
+
+				EffectData = new EffectData
+				{
+					LedMask = LedMask,
+					Effect = Effect.Pulse,
+					MaximumBrightness = 100,
+					Color0 = effect.Color,
+					PulseEffect =
+					{
+						FadeInTicks = timings.FadeInTicks,
+						FadeOutTicks = timings.FadeOutTicks,
+						DurationTicks = timings.DurationTicks,
+						One = 1,
+					}
+				};
+				CurrentEffect = effect;
+			}
+		}
+
+		void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -826,7 +875,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(ColorDoubleFlashEffect effect)
+		void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(in ColorDoubleFlashEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -851,7 +900,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<RainbowCycleEffect>.ApplyEffect(RainbowCycleEffect effect)
+		void ILightingZoneEffect<RainbowCycleEffect>.ApplyEffect(in RainbowCycleEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -876,6 +925,7 @@ public sealed class RgbFusionIT5702Driver :
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorFlashEffect>.TryGetCurrentEffect(out ColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<RainbowCycleEffect>.TryGetCurrentEffect(out RainbowCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -887,7 +937,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 		}
 
-		void ILightingZoneEffect<RainbowWaveEffect>.ApplyEffect(RainbowWaveEffect effect)
+		void ILightingZoneEffect<RainbowWaveEffect>.ApplyEffect(in RainbowWaveEffect effect)
 		{
 			lock (Owner._lock)
 			{

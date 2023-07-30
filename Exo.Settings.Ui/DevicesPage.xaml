@@ -6,19 +6,18 @@
     xmlns:local="using:Exo.Settings.Ui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    mc:Ignorable="d">
 
-    <Grid>
+    <ScrollViewer Padding="{StaticResource PageDefaultPadding}">
         <ListView ItemsSource="{Binding Devices}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
-                        <FontIcon Glyph="{Binding IconGlyph}" />
+                        <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
                         <TextBlock Text="{Binding FriendlyName}" Margin="12,0,0,0" />
                     </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-    </Grid>
+    </ScrollViewer>
 </Page>

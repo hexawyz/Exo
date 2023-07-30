@@ -87,12 +87,7 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
-            <StackPanel>
-                <BreadcrumbBar />
-                <ScrollViewer>
-                    <Frame x:Name="RootFrame"/>
-                </ScrollViewer>
-            </StackPanel>
+            <Frame x:Name="RootFrame"/>
         </NavigationView>
     </Grid>
 </Page>

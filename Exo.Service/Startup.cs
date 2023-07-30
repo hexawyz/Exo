@@ -2,6 +2,10 @@ using Exo.Service.Services;
 using Exo.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,6 +38,9 @@ public class Startup
 		services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
 		services.AddSingleton<DriverRegistry>();
+		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DriverRegistry>());
+		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DriverRegistry>());
+		services.AddSingleton<LightingService>();
 		services.AddSingleton<ISystemDeviceDriverRegistry, SystemDeviceDriverRegistry>();
 		services.AddHostedService<HidDeviceManager>
 		(
@@ -46,11 +53,13 @@ public class Startup
 					assemblyLoader,
 					new AssemblyParsedDataCache<HidAssembyDetails>(assemblyLoader),
 					sp.GetRequiredService<ISystemDeviceDriverRegistry>(),
-					sp.GetRequiredService<DriverRegistry>(),
+					sp.GetRequiredService<IDriverRegistry>(),
 					sp.GetRequiredService<IDeviceNotificationService>()
 				);
 			}
 		);
+		services.AddSingleton<GrpcDeviceService>();
+		services.AddSingleton<GrpcLightingService>();
 		services.AddCodeFirstGrpc();
 	}
 
@@ -72,9 +81,12 @@ public class Startup
 
 		app.UseAuthorization();
 
+		var settingsEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Configuration");
+
 		app.UseEndpoints(endpoints =>
 		{
-			endpoints.MapGrpcService<DeviceService>();
+			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapRazorPages();
 		});
 	}

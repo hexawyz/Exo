@@ -43,7 +43,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	private readonly IAssemblyParsedDataCache<HidAssembyDetails> _parsedDataCache;
 	private readonly ISystemDeviceDriverRegistry _systemDeviceDriverRegistry;
 	private readonly IDeviceNotificationService _deviceNotificationService;
-	private readonly DriverRegistry _driverRegistry;
+	private readonly IDriverRegistry _driverRegistry;
 	private readonly Channel<(string DeviceName, EventKind Event)> _eventChannel;
 	private IDisposable? _deviceNotificationRegistration;
 	private Task? _eventProcessingTask;
@@ -59,7 +59,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		IAssemblyLoader assemblyLoader,
 		IAssemblyParsedDataCache<HidAssembyDetails> parsedDataCache,
 		ISystemDeviceDriverRegistry systemDeviceDriverRegistry,
-		DriverRegistry driverRegistry,
+		IDriverRegistry driverRegistry,
 		IDeviceNotificationService deviceNotificationService
 	)
 	{

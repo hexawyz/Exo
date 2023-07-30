@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -107,32 +106,6 @@ public static class DriverFactory
 
 	private static readonly MethodInfo CompleteMethodInfo = typeof(DriverFactory).GetMethod(nameof(Complete), BindingFlags.NonPublic | BindingFlags.Static)!;
 
-	private static bool StartsWithLowerCase(string name)
-		=> char.IsLower(name, 0);
-
-	private static string MakeCamelCase(string pascalCase)
-	{
-		if (pascalCase is null) throw new ArgumentNullException(nameof(pascalCase));
-		if (pascalCase.Length == 0) throw new ArgumentException($"The name {pascalCase} is empty.");
-		var firstRune = Rune.GetRuneAt(pascalCase, 0);
-		if (pascalCase.Length == 0 || Rune.IsLower(firstRune) || !Rune.IsLetter(firstRune)) throw new ArgumentException($"The name {pascalCase} is not Pascal-cased.");
-		var lowerCaseFirstRune = Rune.ToLowerInvariant(firstRune);
-
-		return string.Create
-		(
-			pascalCase.Length - firstRune.Utf16SequenceLength + lowerCaseFirstRune.Utf16SequenceLength,
-			pascalCase,
-			(span, text) =>
-			{
-				var firstRune = Rune.GetRuneAt(text, 0);
-				var lowerCaseFirstRune = Rune.ToLowerInvariant(firstRune);
-
-				lowerCaseFirstRune.EncodeToUtf16(span);
-				text.AsSpan(firstRune.Utf16SequenceLength).CopyTo(span[lowerCaseFirstRune.Utf16SequenceLength..]);
-			}
-		);
-	}
-
 	private static Type? GetOptionalBaseType(Type type)
 	{
 		if (type.IsValueType) return null;
@@ -162,7 +135,7 @@ public static class DriverFactory
 		var allowedProperties = new Dictionary<string, PropertyInfo>();
 		foreach (var property in type.GetProperties())
 		{
-			allowedProperties.Add(MakeCamelCase(property.Name), property);
+			allowedProperties.Add(Naming.MakeCamelCase(property.Name), property);
 		}
 		return allowedProperties;
 	}
@@ -186,7 +159,7 @@ public static class DriverFactory
 		for (int i = 0; i < fixedParameters.Length; i++)
 		{
 			var parameter = parameters[i];
-			if (parameter.Name is not { Length: > 0 } parameterName || !StartsWithLowerCase(parameterName)) throw new ArgumentException($"Parameter {parameter.Name} is not camel-cased.");
+			if (parameter.Name is not { Length: > 0 } parameterName || !Naming.StartsWithLowerCase(parameterName)) throw new ArgumentException($"Parameter {parameter.Name} is not camel-cased.");
 			if (parameter.ParameterType.IsByRef) throw new ArgumentException($"The parameter {parameter.Name} is passed by reference.");
 			fixedParameters[i] = new(parameterName, parameter.ParameterType);
 		}

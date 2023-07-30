@@ -91,18 +91,18 @@ public class AuraRamDriver :
 	public Guid ZoneId { get; }
 
 	public ILightingEffect GetCurrentEffect() => throw new NotImplementedException();
-	public void ApplyEffect(DisabledEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in DisabledEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out DisabledEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(StaticColorEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in StaticColorEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out StaticColorEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(ColorPulseEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in ColorPulseEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out ColorPulseEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(ColorFlashEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in ColorFlashEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out ColorFlashEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(ColorDoubleFlashEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in ColorDoubleFlashEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(RainbowCycleEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in RainbowCycleEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out RainbowCycleEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(RainbowWaveEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in RainbowWaveEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out RainbowWaveEffect effect) => throw new NotImplementedException();
 }
