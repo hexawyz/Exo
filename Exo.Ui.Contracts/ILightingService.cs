@@ -48,5 +48,5 @@ public interface ILightingService
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	[OperationContract]
-	ValueTask<DeviceLightingEffects> WatchEffectsAsync(CancellationToken cancellationToken);
+	IAsyncEnumerable<DeviceLightingEffects> WatchEffectsAsync(CancellationToken cancellationToken);
 }

@@ -113,10 +113,7 @@ public sealed class RgbFusionIT5702Driver :
 		[FieldOffset(3)]
 		public byte Alpha;
 
-		[FieldOffset(0)]
-		public RgbColor RgbColor;
-
-		public EffectColor(byte blue, byte green, byte red) : this()
+		public EffectColor(byte red, byte green, byte blue) : this()
 		{
 			Blue = blue;
 			Green = green;
@@ -124,7 +121,7 @@ public sealed class RgbFusionIT5702Driver :
 		}
 
 		[SkipLocalsInit]
-		public static implicit operator EffectColor(RgbColor color) => new EffectColor { RgbColor = color, Alpha = 0 };
+		public static implicit operator EffectColor(RgbColor color) => new(color.R, color.G, color.B);
 	}
 
 	[StructLayout(LayoutKind.Explicit, Size = 12)]
@@ -318,9 +315,9 @@ public sealed class RgbFusionIT5702Driver :
 	private static readonly Guid[] Z490MotherboardGuids = new[]
 	{
 		Z490MotherboardIoZoneId,
+		Z490MotherboardLed1ZoneId,
 		Z490MotherboardPchZoneId,
 		Z490MotherboardPciZoneId,
-		Z490MotherboardLed1ZoneId,
 		Z490MotherboardLed2ZoneId,
 		Z490MotherboardDigitalLed1ZoneId,
 		Z490MotherboardDigitalLed2ZoneId,
@@ -719,15 +716,21 @@ public sealed class RgbFusionIT5702Driver :
 
 		internal void GetEffectData(out EffectData effectData) => effectData = EffectData;
 
+		protected void ApplyStateChange()
+		{
+			ToggleUnifiedLighting();
+			Owner._state |= LedMask;
+		}
+
 		// Do the necessary changes to enable or disable unified lighting depending on the situation.
 		// Must be called from within the lock.
 		protected void ToggleUnifiedLighting()
 		{
-			bool isUnifyingLightingEnabled = (Owner._state & StateUnifiedLightingEnabled) != 0;
+			bool isUnifiedLightingEnabled = (Owner._state & StateUnifiedLightingEnabled) != 0;
 
 			if (this == Owner._unifiedLightingZone)
 			{
-				if (!isUnifyingLightingEnabled)
+				if (!isUnifiedLightingEnabled)
 				{
 					foreach (var zone in Owner._lightingZones)
 					{
@@ -738,7 +741,7 @@ public sealed class RgbFusionIT5702Driver :
 					Owner._state |= StateUnifiedLightingEnabled | StatePendingChangeUnifiedLighting;
 				}
 			}
-			else if (isUnifyingLightingEnabled)
+			else if (isUnifiedLightingEnabled)
 			{
 				var effect = Owner._unifiedLightingZone.CurrentEffect;
 				ref var effectData = ref Owner._unifiedLightingZone.EffectData;
@@ -760,7 +763,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -775,7 +778,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -804,7 +807,7 @@ public sealed class RgbFusionIT5702Driver :
 
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -830,7 +833,7 @@ public sealed class RgbFusionIT5702Driver :
 
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -854,7 +857,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -879,7 +882,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -904,7 +907,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{
@@ -941,7 +944,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			lock (Owner._lock)
 			{
-				ToggleUnifiedLighting();
+				ApplyStateChange();
 
 				EffectData = new EffectData
 				{

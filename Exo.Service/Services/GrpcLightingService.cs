@@ -12,8 +12,6 @@ namespace Exo.Service.Services;
 internal class GrpcLightingService : ILightingService
 {
 	private readonly LightingService _lightingService;
-	// TODO: Remove and let the serializer do everything earlier?
-	private readonly ConcurrentDictionary<string, WeakReference<Type>> _effectTypeDictionary = new();
 
 	public GrpcLightingService(LightingService lightingService) => _lightingService = lightingService;
 
@@ -52,7 +50,7 @@ internal class GrpcLightingService : ILightingService
 	{
 		foreach (var effectType in supportedEffectTypes)
 		{
-			_ = _effectTypeDictionary.GetOrAdd(effectType.ToString(), (_, t) => new(t), effectType);
+			_ = GrpcEffectSerializer.GetEffectInformation(effectType);
 		}
 	}
 
@@ -69,13 +67,7 @@ internal class GrpcLightingService : ILightingService
 	public ValueTask ApplyMultipleDeviceLightingEffectsAsync(MultipleDeviceLightingEffects effects, CancellationToken cancellationToken) => throw new NotImplementedException();
 
 	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
-	{
-		if (!_effectTypeDictionary.TryGetValue(typeReference.TypeName, out var wr) || !wr.TryGetTarget(out var effectType))
-		{
-			throw new KeyNotFoundException("Information on the specified type was not found.");
-		}
-		return new(GrpcEffectSerializer.GetEffectInformation(effectType));
-	}
+		=> new(GrpcEffectSerializer.GetEffectInformation(typeReference.TypeName));
 
-	public ValueTask<DeviceLightingEffects> WatchEffectsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+	public IAsyncEnumerable<DeviceLightingEffects> WatchEffectsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
 }

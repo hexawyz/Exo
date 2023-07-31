@@ -27,9 +27,9 @@ internal static class GrpcConvert
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)
 		=> notificationKind switch
 		{
-			WatchNotificationKind.Enumeration => Ui.Contracts.WatchNotificationKind.Enumeration,
-			WatchNotificationKind.Addition => Ui.Contracts.WatchNotificationKind.Arrival,
-			WatchNotificationKind.Removal => Ui.Contracts.WatchNotificationKind.Removal,
+			WatchNotificationKind.Enumeration => GrpcWatchNotificationKind.Enumeration,
+			WatchNotificationKind.Addition => GrpcWatchNotificationKind.Arrival,
+			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
 			_ => throw new NotImplementedException()
 		};
 }

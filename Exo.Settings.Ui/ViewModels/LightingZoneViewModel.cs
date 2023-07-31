@@ -121,8 +121,8 @@ internal sealed class LightingZoneViewModel : BindableObject
 		return new()
 		{
 			TypeName = _currentEffect.TypeName,
-			Color = color,
-			Speed = speed,
+			Color = color.GetValueOrDefault(),
+			Speed = speed.GetValueOrDefault(),
 			ExtendedPropertyValues = propertyValues.DrainToImmutable()
 		};
 	}

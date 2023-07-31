@@ -16,7 +16,7 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 	private bool _isBusy;
 	public bool IsNotBusy
 	{
-		get => _isBusy;
+		get => !_isBusy;
 		private set => SetValue(ref _isBusy, !value);
 	}
 
@@ -66,10 +66,9 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { UniqueId = UniqueId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
 			}
 		}
-		catch
+		finally
 		{
 			IsNotBusy = true;
-			throw;
 		}
 	}
 }

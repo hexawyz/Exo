@@ -19,5 +19,9 @@ public readonly struct VariableColorPulseEffect : ISingleColorLightEffect
 	[DefaultValue(3)]
 	public PredeterminedEffectSpeed Speed { get; }
 
-	public VariableColorPulseEffect(RgbColor color, PredeterminedEffectSpeed speed) => Color = color;
+	public VariableColorPulseEffect(RgbColor color, PredeterminedEffectSpeed speed)
+	{
+		Color = color;
+		Speed = speed;
+	}
 }

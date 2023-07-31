@@ -35,13 +35,12 @@ internal static class GrpcEffectSerializer
 			.GetMethods(BindingFlags.Public | BindingFlags.Static)
 			.Where(m => m.Name == "op_Explicit" && m.ReturnType == typeof(float) && m.GetParameters() is { Length: 1 } parameters && parameters[0].ParameterType == typeof(Half))
 			.Single();
-	private static readonly MethodInfo SingleToHalfMethodInfo
-		= typeof(Half)
+	private static readonly MethodInfo SingleToHalfMethodInfo =
+		typeof(Half)
 			.GetMethods(BindingFlags.Public | BindingFlags.Static)
 			.Where(m => m.Name == "op_Explicit" && m.ReturnType == typeof(Half) && m.GetParameters() is { Length: 1 } parameters && parameters[0].ParameterType == typeof(float))
 			.Single();
 
-	private static readonly ConstructorInfo PropertyValueConstructorInfo = typeof(PropertyValue).GetConstructor(Type.EmptyTypes)!;
 	private static readonly PropertyInfo PropertyValueIndexPropertyInfo = typeof(PropertyValue).GetProperty(nameof(PropertyValue.Index))!;
 	private static readonly PropertyInfo PropertyValueValuePropertyInfo = typeof(PropertyValue).GetProperty(nameof(PropertyValue.Value))!;
 
@@ -59,17 +58,23 @@ internal static class GrpcEffectSerializer
 		typeof(ImmutableArray).GetMethod(nameof(ImmutableArray.CreateBuilder), BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes)!;
 	private static readonly PropertyInfo ImmutableArrayItemsPropertyInfo = typeof(ImmutableArray<PropertyValue>).GetProperty("Items")!;
 
-	private static readonly MethodInfo ImmutableArrayBuilderItemsMethodInfo = typeof(ImmutableArray<PropertyValue>.Builder).GetMethod(nameof(ImmutableArray<PropertyValue>.Builder.Add))!;
+	private static readonly MethodInfo ImmutableArrayBuilderAddMethodInfo = typeof(ImmutableArray<PropertyValue>.Builder).GetMethod(nameof(ImmutableArray<PropertyValue>.Builder.Add))!;
 	private static readonly MethodInfo ImmutableArrayBuilderDrainToImmutableMethodInfo =
 		typeof(ImmutableArray<PropertyValue>.Builder).GetMethod(nameof(ImmutableArray<PropertyValue>.Builder.DrainToImmutable))!;
+
+	private static readonly MethodInfo UnsafeAsPropertyValueArrayMethodInfo =
+		typeof(Unsafe)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(m => m.Name == nameof(Unsafe.As) && m.GetGenericArguments() is { Length: 2 })
+			.Single().MakeGenericMethod(typeof(ImmutableArray<PropertyValue>), typeof(PropertyValue[]));
 
 	private sealed class LightingEffectSerializationDetails
 	{
 		public LightingEffectSerializationDetails
 		(
 			LightingEffectInformation effectInformation,
-			DynamicMethod serializeMethod,
-			DynamicMethod deserializeMethod,
+			MethodInfo serializeMethod,
+			MethodInfo deserializeMethod,
 			Func<ILightingEffect, LightingEffect> serialize,
 			Action<LightingService, Guid, Guid, LightingEffect> deserializeAndSet
 		)
@@ -88,10 +93,10 @@ internal static class GrpcEffectSerializer
 		// We'll keep the reference to the instances here, but they will only be used internally in wrapping methods exposed as delegates.
 
 		// Signature: LightingEffect Serialize(TEffect effect)
-		public DynamicMethod SerializeMethod { get; }
+		public MethodInfo SerializeMethod { get; }
 
 		// Signature: TEffect Deserialize(LightingEffect effect)
-		public DynamicMethod DeserializeMethod { get; }
+		public MethodInfo DeserializeMethod { get; }
 
 		public Func<ILightingEffect, LightingEffect> Serialize { get; }
 		public Action<LightingService, Guid, Guid, LightingEffect> DeserializeAndSet { get; }
@@ -107,14 +112,23 @@ internal static class GrpcEffectSerializer
 			d :
 			throw new KeyNotFoundException($"Information for the type {effectTypeName} was not found.");
 
-	internal static LightingEffectInformation GetEffectInformation(string effectTypeName)
+	public static LightingEffectInformation GetEffectInformation(string effectTypeName)
 		=> GetEffectSerializationDetails(effectTypeName).EffectInformation;
 
-	private static LightingEffectSerializationDetails GetEffectSerializationDetails(Type effectType)
-		=> EffectInformationByTypeCache.GetValue(effectType, GetNonCachedEffectDetails);
-
-	internal static LightingEffectInformation GetEffectInformation(Type effectType)
+	public static LightingEffectInformation GetEffectInformation(Type effectType)
 		=> GetEffectSerializationDetails(effectType).EffectInformation;
+
+	private static LightingEffectSerializationDetails GetEffectSerializationDetails(Type effectType)
+		=> EffectInformationByTypeCache.GetValue(effectType, GetNonCachedEffectDetailsAndUpdateNameCache);
+
+	private static LightingEffectSerializationDetails GetNonCachedEffectDetailsAndUpdateNameCache(Type effectType)
+	{
+		var details = GetNonCachedEffectDetails(effectType);
+
+		EffectInformationByTypeNameCache.GetOrAdd(effectType.ToString(), _ => new(null!)).SetTarget(details);
+
+		return details;
+	}
 
 	private readonly struct SerializationPropertyDetails
 	{
@@ -125,6 +139,7 @@ internal static class GrpcEffectSerializer
 		public readonly LocalBuilder? DeserializationLocal { get; init; }
 		public readonly LocalBuilder? DeserializationConditionalLocal { get; init; }
 		public readonly ParameterInfo? ConstructorParameter { get; init; }
+		public readonly PropertyInfo? WellKnownProperty { get; init; }
 	}
 
 	private static LightingEffectSerializationDetails GetNonCachedEffectDetails(Type effectType)
@@ -164,12 +179,10 @@ internal static class GrpcEffectSerializer
 			}
 		}
 
-		string displayName = effectType.GetCustomAttribute<EffectNameAttribute>()?.Name ?? effectType.GetCustomAttribute<DisplayAttribute>()?.Name ?? effectType.Name;
-
 		// The serialization and deserialization methods will be built in parallel, which may make the code a bit confusing,
 		// but it makes sense, since all code here makes use of the properties
-		var serializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), new[] { effectType }, effectType);
-		var deserializeMethod = new DynamicMethod("Deserialize", effectType, new[] { typeof(LightingEffect) }, effectType);
+		var serializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), new[] { effectType }, effectType, true);
+		var deserializeMethod = new DynamicMethod("Deserialize", effectType, new[] { typeof(LightingEffect) }, effectType, true);
 
 		var serializeIlGenerator = serializeMethod.GetILGenerator();
 		var deserializeIlGenerator = deserializeMethod.GetILGenerator();
@@ -179,25 +192,19 @@ internal static class GrpcEffectSerializer
 		// but otherwise, force a single allocation able to fit the number of properties.
 		int listInitialCapacity = properties.Length <= 4 ? properties.Length : 0;
 
-		// We need to do up to three passes for deserialization, but having two passes improves serialization when all properties are well-known.
+		// We need to do up to four passes for deserialization, but having at least two passes improves serialization when all properties are well-known.
 		// The DataIndex will be set negative for well-known properties, and used to write the serialization logic in the second pass.
 		var serializablePropertyDetails = new List<SerializationPropertyDetails>(listInitialCapacity);
+		var defaultPropertyDetails = new List<SerializationPropertyDetails>();
 
 		// Each property to deserialize (except well-known) will require a label for the switch (dataIndex).
 		var deserializationLabels = new List<Label>(listInitialCapacity);
 
-		Dictionary<string, LocalBuilder>? constructorParameterLocals = null; ;
+		Dictionary<string, LocalBuilder>? constructorParameterLocals = null;
 
-		// Deserialization: Setup the IL Generator now. Deserialization of well-known properties will be done in the first pass.
+		// Deserialization: Setup the IL Generator now. Deserialization of well-known properties will be done in the second pass
 
 		var deserializationEffectLocal = deserializeIlGenerator.DeclareLocal(effectType);
-		var deserializationPropertyValuesLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue[])); // We'll unsafe-convert this from ImmutableArray for convenience.
-		var counterLocal = deserializeIlGenerator.DeclareLocal(typeof(int));
-		var deserializationPropertyValueLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue).MakeByRefType());
-
-		var deserializationLoopStartLabel = deserializeIlGenerator.DefineLabel();
-		var deserializationLoopEndLabel = deserializeIlGenerator.DefineLabel();
-		var deserializationDefaultCaseLabel = deserializeIlGenerator.DefineLabel();
 
 		// If there is no specific constructor, we can straight up initialize the effect type and set all properties using the setters.
 		if (constructorParameters is null)
@@ -218,10 +225,7 @@ internal static class GrpcEffectSerializer
 			constructorParameterLocals = new(constructorParameters.Length);
 		}
 
-		// propertyValues = Unsafe.As<ImmutableArray<PropertyValue>, PropertyValue[]>(effect.ExtendedPropertyValues);
-		deserializeIlGenerator.Emit(OpCodes.Ldarg_0);
-		deserializeIlGenerator.Emit(OpCodes.Ldfld, LightingEffectExtendedPropertyValuesPropertyInfo.GetMethod!);
-		deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValuesLocal);
+		// First pass: Validate all properties and prepare the deserialization.
 
 		int currentPropertyDataIndex = 0;
 
@@ -293,43 +297,75 @@ internal static class GrpcEffectSerializer
 				}
 			}
 
-			// Deserialization: Process a well-known property.
-
-			if (dataType < 0)
+			var details = new SerializationPropertyDetails()
 			{
-				if (deserializationLocal is null)
-				{
-					deserializeIlGenerator.Emit(OpCodes.Ldloca, deserializationEffectLocal);
-				}
+				Property = property,
+				DataIndex = dataIndex,
+				DataType = dataType,
+				DeserializationLabel = deserializationLabel,
+				DeserializationLocal = deserializationLocal,
+				DeserializationConditionalLocal = deserializationConditionalLocal,
+				ConstructorParameter = parameter,
+				WellKnownProperty = wellKnownProperty,
+			};
 
-				deserializeIlGenerator.Emit(OpCodes.Ldarg_0);
-				deserializeIlGenerator.Emit(OpCodes.Call, wellKnownProperty!.GetMethod!);
+			serializablePropertyDetails.Add(details);
+			defaultPropertyDetails.Add(details);
+		}
 
-				EmitConversionToTargetType(deserializeIlGenerator, dataType, true);
+		// Deserialization: Initialize the Loop if necessary
 
-				if (deserializationLocal is null)
-				{
-					deserializeIlGenerator.Emit(OpCodes.Call, property.SetMethod!);
-				}
-				else
-				{
-					deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationLocal);
-				}
+		LocalBuilder? deserializationPropertyValuesLocal = null; // We'll unsafe-convert this from ImmutableArray for convenience.
+		LocalBuilder? counterLocal = null;
+		LocalBuilder? deserializationPropertyValueLocal = null;
+
+		Label deserializationLoopStartLabel = default;
+		Label deserializationLoopEndLabel = default;
+		Label deserializationDefaultCaseLabel = default;
+
+		if (deserializationLabels.Count > 0)
+		{
+			var deserializationPropertyValuesImmutableArrayLocal = deserializeIlGenerator.DeclareLocal(typeof(ImmutableArray<PropertyValue>));
+			deserializationPropertyValuesLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue[])); // We'll unsafe-convert this from ImmutableArray for convenience.
+			counterLocal = deserializeIlGenerator.DeclareLocal(typeof(int));
+			deserializationPropertyValueLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue).MakeByRefType());
+
+			deserializationLoopStartLabel = deserializeIlGenerator.DefineLabel();
+			deserializationLoopEndLabel = deserializeIlGenerator.DefineLabel();
+			deserializationDefaultCaseLabel = deserializeIlGenerator.DefineLabel();
+
+			// propertyValues = Unsafe.As<ImmutableArray<PropertyValue>, PropertyValue[]>(effect.ExtendedPropertyValues);
+			deserializeIlGenerator.Emit(OpCodes.Ldarg_0);
+			deserializeIlGenerator.Emit(OpCodes.Call, LightingEffectExtendedPropertyValuesPropertyInfo.GetMethod!);
+			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValuesImmutableArrayLocal);
+			deserializeIlGenerator.Emit(OpCodes.Ldloca, deserializationPropertyValuesImmutableArrayLocal);
+			deserializeIlGenerator.Emit(OpCodes.Call, UnsafeAsPropertyValueArrayMethodInfo); // Could probably be omitted.
+			deserializeIlGenerator.Emit(OpCodes.Ldind_Ref);
+			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValuesLocal);
+		}
+
+		// Second pass: Deserialization: Process well-known properties.
+
+		foreach (var details in defaultPropertyDetails)
+		{
+			if (details.DeserializationLocal is null)
+			{
+				deserializeIlGenerator.Emit(OpCodes.Ldloca, deserializationEffectLocal);
 			}
 
-			serializablePropertyDetails.Add
-			(
-				new()
-				{
-					Property = property,
-					DataIndex = dataIndex,
-					DataType = dataType,
-					DeserializationLabel = deserializationLabel,
-					DeserializationLocal = deserializationLocal,
-					DeserializationConditionalLocal = deserializationConditionalLocal,
-					ConstructorParameter = parameter,
-				}
-			);
+			deserializeIlGenerator.Emit(OpCodes.Ldarg_0);
+			deserializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.GetMethod!);
+
+			EmitConversionToTargetType(deserializeIlGenerator, details.DataType, true);
+
+			if (details.DeserializationLocal is null)
+			{
+				deserializeIlGenerator.Emit(OpCodes.Call, details.Property.SetMethod!);
+			}
+			else
+			{
+				deserializeIlGenerator.Emit(OpCodes.Stloc, details.DeserializationLocal);
+			}
 		}
 
 		if (constructorParametersByName?.Count > 0)
@@ -341,11 +377,13 @@ internal static class GrpcEffectSerializer
 
 		var serializationEffectLocal = serializeIlGenerator.DeclareLocal(typeof(LightingEffect));
 		LocalBuilder? immutableArrayBuilderLocal = null;
+		LocalBuilder? propertyValueLocal = null;
 
 		// We only need an ImmutableArray<>.Builder when there are non-well-known properties.
 		if (deserializationLabels.Count > 0)
 		{
 			immutableArrayBuilderLocal = serializeIlGenerator.DeclareLocal(typeof(ImmutableArray<PropertyValue>.Builder));
+			propertyValueLocal = serializeIlGenerator.DeclareLocal(typeof(PropertyValue));
 		}
 
 		// lightingEffect = new()
@@ -359,33 +397,37 @@ internal static class GrpcEffectSerializer
 
 		// Deserialization: Prepare the loop
 
-		// i = 0;
-		deserializeIlGenerator.Emit(OpCodes.Ldc_I4_0);
-		deserializeIlGenerator.Emit(OpCodes.Stloc, counterLocal);
+		if (deserializationLabels.Count > 0)
+		{
+			// i = 0;
+			deserializeIlGenerator.Emit(OpCodes.Ldc_I4_0);
+			deserializeIlGenerator.Emit(OpCodes.Stloc, counterLocal!);
 
-		deserializeIlGenerator.MarkLabel(deserializationLoopStartLabel);
+			deserializeIlGenerator.MarkLabel(deserializationLoopStartLabel);
 
-		// if (i >= propertyValues.Length) goto LoopEnd;
-		deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal);
-		deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal);
-		deserializeIlGenerator.Emit(OpCodes.Ldlen);
-		deserializeIlGenerator.Emit(OpCodes.Clt);
-		deserializeIlGenerator.Emit(OpCodes.Brfalse, deserializationLoopEndLabel);
+			// if (i >= propertyValues.Length) goto LoopEnd;
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldlen);
+			deserializeIlGenerator.Emit(OpCodes.Clt);
+			deserializeIlGenerator.Emit(OpCodes.Brfalse, deserializationLoopEndLabel);
 
-		// ref readonly var propertyValue = ref propertyValues[i];
-		deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal);
-		deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal);
-		deserializeIlGenerator.Emit(OpCodes.Ldelema);
-		deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValueLocal);
+			// ref readonly var propertyValue = ref propertyValues[i];
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldelema);
+			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValueLocal!);
 
-		// switch (propertyValue.Index)
-		deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueLocal);
-		deserializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.GetMethod!);
-		deserializeIlGenerator.Emit(OpCodes.Switch, deserializationLabels.ToArray());
+			// switch (propertyValue.Index)
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.GetMethod!);
+			deserializeIlGenerator.Emit(OpCodes.Switch, deserializationLabels.ToArray());
 
-		deserializeIlGenerator.Emit(OpCodes.Br, deserializationDefaultCaseLabel);
+			deserializeIlGenerator.Emit(OpCodes.Br, deserializationDefaultCaseLabel);
+		}
 
-		// Second pass:
+		// Third pass:
+
 		var serializableProperties = new ConfigurablePropertyInformation[serializablePropertyDetails.Count];
 		for (int i = 0; i < serializablePropertyDetails.Count; i++)
 		{
@@ -409,7 +451,7 @@ internal static class GrpcEffectSerializer
 
 				}
 				// All compatible integer types are automatically expanded to int32 on the stack, so no additional conversion is needed.
-				serializeIlGenerator.Emit(OpCodes.Call, LightingEffectColorPropertyInfo.SetMethod!);
+				serializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.SetMethod!);
 			}
 			else if (details.DataIndex == -2)
 			{
@@ -418,7 +460,7 @@ internal static class GrpcEffectSerializer
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				serializeIlGenerator.Emit(OpCodes.Conv_U4);
-				serializeIlGenerator.Emit(OpCodes.Call, LightingEffectSpeedPropertyInfo.SetMethod!);
+				serializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.SetMethod!);
 			}
 			else
 			{
@@ -426,12 +468,14 @@ internal static class GrpcEffectSerializer
 
 				// builder.Add(new PropertyValue { Index = index, Value = new DataValue { Storage = effect.Property } });
 				serializeIlGenerator.Emit(OpCodes.Ldloc, immutableArrayBuilderLocal!);
-				serializeIlGenerator.Emit(OpCodes.Newobj, PropertyValueConstructorInfo);
-				serializeIlGenerator.Emit(OpCodes.Dup);
+				serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal!);
+				serializeIlGenerator.Emit(OpCodes.Initobj, typeof(PropertyValue));
+				serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal!);
 				serializeIlGenerator.Emit(OpCodes.Ldc_I4, details.DataIndex);
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.SetMethod!);
-				serializeIlGenerator.Emit(OpCodes.Dup);
+				serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal!);
 				serializeIlGenerator.Emit(OpCodes.Newobj, DataValueConstructorInfo);
+				serializeIlGenerator.Emit(OpCodes.Dup);
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				switch (details.DataType)
@@ -475,6 +519,8 @@ internal static class GrpcEffectSerializer
 					throw new NotImplementedException();
 				}
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueValuePropertyInfo.SetMethod!);
+				serializeIlGenerator.Emit(OpCodes.Ldloc, propertyValueLocal!);
+				serializeIlGenerator.Emit(OpCodes.Call, ImmutableArrayBuilderAddMethodInfo);
 
 				// Deserialization:
 
@@ -580,18 +626,19 @@ internal static class GrpcEffectSerializer
 		serializeIlGenerator.Emit(OpCodes.Ldloc, serializationEffectLocal);
 		serializeIlGenerator.Emit(OpCodes.Ret);
 
-		deserializeIlGenerator.Emit(OpCodes.Ret);
-
 		// Deserialization: Complete the loop.
 
-		// default: break;
-		deserializeIlGenerator.MarkLabel(deserializationDefaultCaseLabel);
+		if (deserializationLabels.Count > 0)
+		{
+			// default: break;
+			deserializeIlGenerator.MarkLabel(deserializationDefaultCaseLabel);
 
-		// goto LoopStart;
-		deserializeIlGenerator.Emit(OpCodes.Br, deserializationLoopStartLabel);
-		deserializeIlGenerator.MarkLabel(deserializationLoopEndLabel);
+			// goto LoopStart;
+			deserializeIlGenerator.Emit(OpCodes.Br, deserializationLoopStartLabel);
+			deserializeIlGenerator.MarkLabel(deserializationLoopEndLabel);
+		}
 
-		// Third pass for the constructor case: We need to finally build the object using all locals.
+		// Fourth pass for the constructor case: We need to finally build the object using all locals.
 		// This is subdivided in two passes: First, calling the constructor, and second, initializing all remaining properties.
 		if (constructorParameters is not null)
 		{
@@ -638,13 +685,18 @@ internal static class GrpcEffectSerializer
 		// This method is necessary to "un-generify" the call to SetEffect<TEffect>.
 		var deserializeAndSetMethod = new DynamicMethod("DeserializeAndSet", typeof(void), new[] { typeof(LightingService), typeof(Guid), typeof(Guid), typeof(LightingEffect) }, effectType);
 		var deserializeAndSetIlGenerator = deserializeAndSetMethod.GetILGenerator();
+		var dasEffectLocal = deserializeAndSetIlGenerator.DeclareLocal(effectType);
 		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_0);
 		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_1);
 		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_2);
 		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_3);
 		deserializeAndSetIlGenerator.Emit(OpCodes.Call, deserializeMethod);
+		deserializeAndSetIlGenerator.Emit(OpCodes.Stloc, dasEffectLocal);
+		deserializeAndSetIlGenerator.Emit(OpCodes.Ldloca, dasEffectLocal);
 		deserializeAndSetIlGenerator.Emit(OpCodes.Callvirt, LightingServiceSetEffectMethodInfo.MakeGenericMethod(effectType));
 		deserializeAndSetIlGenerator.Emit(OpCodes.Ret);
+
+		string displayName = effectType.GetCustomAttribute<EffectNameAttribute>()?.Name ?? effectType.GetCustomAttribute<DisplayAttribute>()?.Name ?? effectType.Name;
 
 		return new
 		(
@@ -700,6 +752,10 @@ internal static class GrpcEffectSerializer
 		//case GrpcDataType.TimeSpan:
 		//case GrpcDataType.DateTime:
 		case GrpcDataType.String:
+			break;
+		case GrpcDataType.ColorRgb24:
+			if (!isInt32) ilGenerator.Emit(OpCodes.Conv_I4);
+			ilGenerator.Emit(OpCodes.Call, RgbColorFromInt32MethodInfo);
 			break;
 		default:
 			throw new NotImplementedException();

@@ -16,12 +16,12 @@ public sealed class LightingEffect
 	/// <summary>Main color of the effect, if applicable.</summary>
 	/// <remarks>This property is applicable to all effects having a property named <c>Color</c> that can be represented as a 32 bit unsigned integer.</remarks>
 	[DataMember(Order = 2)]
-	public uint? Color { get; init; }
+	public uint Color { get; init; }
 
 	/// <summary>Speed of the effect.</summary>
 	/// <remarks>This property is applicable to all effects having a property named <c>Speed</c> that can be represented as a 32 bit unsigned integer.</remarks>
 	[DataMember(Order = 3)]
-	public uint? Speed { get; init; }
+	public uint Speed { get; init; }
 
 	/// <summary>Values for all properties that are not present on this object.</summary>
 	[DataMember(Order = 4)]

@@ -59,7 +59,7 @@
         <ItemsControl ItemsSource="{Binding LightingDevices}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Expander Margin="0,0,0,24" IsEnabled="{Binding IsAvailable}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander Margin="0,0,0,24" IsEnabled="{Binding IsNotBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal">
                                 <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
