@@ -32,7 +32,9 @@ public sealed class RgbFusionIT5702Driver :
 	ILightingZoneEffect<ColorPulseEffect>,
 	ILightingZoneEffect<VariableColorPulseEffect>,
 	ILightingZoneEffect<ColorFlashEffect>,
+	ILightingZoneEffect<VariableColorFlashEffect>,
 	ILightingZoneEffect<ColorDoubleFlashEffect>,
+	ILightingZoneEffect<VariableColorDoubleFlashEffect>,
 	ILightingZoneEffect<RainbowCycleEffect>,
 	ILightingZoneEffect<RainbowWaveEffect>
 {
@@ -664,7 +666,9 @@ public sealed class RgbFusionIT5702Driver :
 	void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => ((ILightingZoneEffect<ColorPulseEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect) => ((ILightingZoneEffect<VariableColorPulseEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect) => ((ILightingZoneEffect<ColorFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<VariableColorFlashEffect>.ApplyEffect(in VariableColorFlashEffect effect) => ((ILightingZoneEffect<VariableColorFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(in ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<VariableColorDoubleFlashEffect>.ApplyEffect(in VariableColorDoubleFlashEffect effect) => ((ILightingZoneEffect<VariableColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<RainbowCycleEffect>.ApplyEffect(in RainbowCycleEffect effect) => ((ILightingZoneEffect<RainbowCycleEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<RainbowWaveEffect>.ApplyEffect(in RainbowWaveEffect effect) => ((ILightingZoneEffect<RainbowWaveEffect>)_unifiedLightingZone).ApplyEffect(effect);
 
@@ -673,7 +677,9 @@ public sealed class RgbFusionIT5702Driver :
 	bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => ((ILightingZoneEffect<ColorPulseEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect) => ((ILightingZoneEffect<VariableColorPulseEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorFlashEffect>.TryGetCurrentEffect(out ColorFlashEffect effect) => ((ILightingZoneEffect<ColorFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<VariableColorFlashEffect>.TryGetCurrentEffect(out VariableColorFlashEffect effect) => ((ILightingZoneEffect<VariableColorFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<VariableColorDoubleFlashEffect>.TryGetCurrentEffect(out VariableColorDoubleFlashEffect effect) => ((ILightingZoneEffect<VariableColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<RainbowCycleEffect>.TryGetCurrentEffect(out RainbowCycleEffect effect) => ((ILightingZoneEffect<RainbowCycleEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<RainbowWaveEffect>.TryGetCurrentEffect(out RainbowWaveEffect effect) => ((ILightingZoneEffect<RainbowWaveEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 
@@ -684,7 +690,9 @@ public sealed class RgbFusionIT5702Driver :
 		ILightingZoneEffect<ColorPulseEffect>,
 		ILightingZoneEffect<VariableColorPulseEffect>,
 		ILightingZoneEffect<ColorFlashEffect>,
+		ILightingZoneEffect<VariableColorFlashEffect>,
 		ILightingZoneEffect<ColorDoubleFlashEffect>,
+		ILightingZoneEffect<VariableColorDoubleFlashEffect>,
 		ILightingZoneEffect<RainbowCycleEffect>
 	{
 		internal byte LedMask { get; }
@@ -791,7 +799,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		private static readonly (ushort FadeInTicks, ushort FadeOutTicks, ushort DurationTicks)[] ColorCycleEffectTimings = new (ushort, ushort, ushort)[]
+		private static readonly (ushort FadeInTicks, ushort FadeOutTicks, ushort DurationTicks)[] ColorPulseEffectTimings = new (ushort, ushort, ushort)[]
 		{
 			(1600, 1600, 800),
 			(1400, 1400, 700),
@@ -803,7 +811,7 @@ public sealed class RgbFusionIT5702Driver :
 
 		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect)
 		{
-			var timings = ColorCycleEffectTimings[3];
+			var timings = ColorPulseEffectTimings[3];
 
 			lock (Owner._lock)
 			{
@@ -829,7 +837,7 @@ public sealed class RgbFusionIT5702Driver :
 
 		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect)
 		{
-			var timings = ColorCycleEffectTimings[(byte)effect.Speed];
+			var timings = ColorPulseEffectTimings[(byte)effect.Speed];
 
 			lock (Owner._lock)
 			{
@@ -853,8 +861,20 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
+		private static readonly (ushort FadeInTicks, ushort FadeOutTicks, ushort DurationTicks)[] ColorFlashEffectTimings = new (ushort, ushort, ushort)[]
+		{
+			(100, 100, 2400),
+			(100, 100, 2200),
+			(100, 100, 2000),
+			(100, 100, 1800),
+			(100, 100, 1600),
+			(100, 100, 1400),
+		};
+
 		void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect)
 		{
+			var timings = ColorFlashEffectTimings[3];
+
 			lock (Owner._lock)
 			{
 				ApplyStateChange();
@@ -867,9 +887,9 @@ public sealed class RgbFusionIT5702Driver :
 					Color0 = effect.Color,
 					FlashEffect =
 					{
-						FadeInTicks = 100,
-						FadeOutTicks = 100,
-						DurationTicks = 1800,
+						FadeInTicks = timings.FadeInTicks,
+						FadeOutTicks = timings.FadeOutTicks,
+						DurationTicks = timings.DurationTicks,
 						One = 1,
 						FlashCount = 1,
 					}
@@ -878,8 +898,47 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
+		void ILightingZoneEffect<VariableColorFlashEffect>.ApplyEffect(in VariableColorFlashEffect effect)
+		{
+			var timings = ColorFlashEffectTimings[(byte)effect.Speed];
+
+			lock (Owner._lock)
+			{
+				ApplyStateChange();
+
+				EffectData = new EffectData
+				{
+					LedMask = LedMask,
+					Effect = Effect.Pulse,
+					MaximumBrightness = 100,
+					Color0 = effect.Color,
+					FlashEffect =
+					{
+						FadeInTicks = timings.FadeInTicks,
+						FadeOutTicks = timings.FadeOutTicks,
+						DurationTicks = timings.DurationTicks,
+						One = 1,
+						FlashCount = 1,
+					}
+				};
+				CurrentEffect = effect;
+			}
+		}
+
+		private static readonly (ushort FadeInTicks, ushort FadeOutTicks, ushort DurationTicks)[] ColorDoubleFlashEffectTimings = new (ushort, ushort, ushort)[]
+		{
+			(100, 100, 2600),
+			(100, 100, 2400),
+			(100, 100, 2200),
+			(100, 100, 2000),
+			(100, 100, 1800),
+			(100, 100, 1600),
+		};
+
 		void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(in ColorDoubleFlashEffect effect)
 		{
+			var timings = ColorDoubleFlashEffectTimings[3];
+
 			lock (Owner._lock)
 			{
 				ApplyStateChange();
@@ -892,9 +951,36 @@ public sealed class RgbFusionIT5702Driver :
 					Color0 = effect.Color,
 					FlashEffect =
 					{
-						FadeInTicks = 100,
-						FadeOutTicks = 100,
-						DurationTicks = 2000,
+						FadeInTicks = timings.FadeInTicks,
+						FadeOutTicks = timings.FadeOutTicks,
+						DurationTicks = timings.DurationTicks,
+						One = 1,
+						FlashCount = 2,
+					}
+				};
+				CurrentEffect = effect;
+			}
+		}
+
+		void ILightingZoneEffect<VariableColorDoubleFlashEffect>.ApplyEffect(in VariableColorDoubleFlashEffect effect)
+		{
+			var timings = ColorDoubleFlashEffectTimings[(byte)effect.Speed];
+
+			lock (Owner._lock)
+			{
+				ApplyStateChange();
+
+				EffectData = new EffectData
+				{
+					LedMask = LedMask,
+					Effect = Effect.Flash,
+					MaximumBrightness = 100,
+					Color0 = effect.Color,
+					FlashEffect =
+					{
+						FadeInTicks = timings.FadeInTicks,
+						FadeOutTicks = timings.FadeOutTicks,
+						DurationTicks = timings.DurationTicks,
 						One = 1,
 						FlashCount = 2,
 					}
@@ -930,7 +1016,9 @@ public sealed class RgbFusionIT5702Driver :
 		bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorFlashEffect>.TryGetCurrentEffect(out ColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<VariableColorFlashEffect>.TryGetCurrentEffect(out VariableColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<VariableColorDoubleFlashEffect>.TryGetCurrentEffect(out VariableColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<RainbowCycleEffect>.TryGetCurrentEffect(out RainbowCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	}
 

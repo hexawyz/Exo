@@ -1,13 +1,13 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Gigabyte.LightingEffects;
 
-/// <summary>Represents a light with a pulsing color effect.</summary>
-[EffectName("Color Pulse (Speed)")]
-public readonly struct VariableColorPulseEffect : ISingleColorLightEffect
+/// <summary>Represents a light with a flashing color effect.</summary>
+[EffectName("Color Flash (Speed)")]
+public readonly struct VariableColorFlashEffect : ISingleColorLightEffect
 {
 	[DataMember(Order = 1)]
 	[Display(Name = "Color")]
@@ -19,7 +19,7 @@ public readonly struct VariableColorPulseEffect : ISingleColorLightEffect
 	[DefaultValue(3)]
 	public PredeterminedEffectSpeed Speed { get; }
 
-	public VariableColorPulseEffect(RgbColor color, PredeterminedEffectSpeed speed)
+	public VariableColorFlashEffect(RgbColor color, PredeterminedEffectSpeed speed)
 	{
 		Color = color;
 		Speed = speed;
