@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Ui.Contracts;
 using Windows.UI;
@@ -20,6 +21,9 @@ internal sealed class LightingZoneViewModel : BindableObject
 	public Guid Id { get; }
 
 	private bool _isModified;
+
+	private PropertyViewModel? _colorProperty;
+	public Color? Color => _colorProperty?.Value as Color?;
 
 	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation)
 	{
@@ -47,7 +51,37 @@ internal sealed class LightingZoneViewModel : BindableObject
 	public ReadOnlyCollection<PropertyViewModel> Properties
 	{
 		get => _properties;
-		private set => SetValue(ref _properties, value);
+		private set
+		{
+			if (SetValue(ref _properties, value))
+			{
+				if (_colorProperty is not null) _colorProperty.PropertyChanged -= OnColorPropertyPropertyChanged;
+
+				PropertyViewModel? colorProperty = null;
+
+				foreach (var property in value)
+				{
+					if (property.Name == nameof(Color) && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
+					{
+						colorProperty = property;
+					}
+				}
+
+				if (colorProperty is not null) colorProperty.PropertyChanged += OnColorPropertyPropertyChanged;
+
+				_colorProperty = colorProperty;
+
+				NotifyPropertyChanged(ChangedProperty.Color);
+			}
+		}
+	}
+
+	private void OnColorPropertyPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(PropertyViewModel.Value))
+		{
+			NotifyPropertyChanged(ChangedProperty.Color);
+		}
 	}
 
 	public bool IsModified
@@ -55,7 +89,7 @@ internal sealed class LightingZoneViewModel : BindableObject
 		get => _isModified;
 		set
 		{
-			if (SetValue(ref _isModified, value))
+			if (SetValue(ref _isModified, value, ChangedProperty.IsModified))
 			{
 				if (value)
 				{

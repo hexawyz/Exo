@@ -71,10 +71,10 @@ internal sealed class PropertyViewModel : BindableObject
 
 	public object? InitialValue
 	{
-		get => _value;
-		set
+		get => _initialValue;
+		private set
 		{
-			if (SetValue(ref _initialValue, value))
+			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
 			{
 				if (!IsModified)
 				{
@@ -89,7 +89,7 @@ internal sealed class PropertyViewModel : BindableObject
 		get => _value;
 		set
 		{
-			if (SetValue(ref _value, value))
+			if (SetValue(ref _value, value, ChangedProperty.Value))
 			{
 				IsModified = value != InitialValue;
 			}
@@ -107,8 +107,10 @@ internal sealed class PropertyViewModel : BindableObject
 	public bool IsModified
 	{
 		get => _isModified;
-		private set => SetValue(ref _isModified, value);
+		private set => SetValue(ref _isModified, value, ChangedProperty.IsModified);
 	}
+
+	public void Reset() => Value = InitialValue;
 
 	public void OnChangesApplied()
 	{
@@ -195,7 +197,7 @@ internal sealed class PropertyViewModel : BindableObject
 					)
 				)
 			);
-		_value = DefaultValue;
+		_value = _initialValue = DefaultValue;
 	}
 
 	public ReadOnlyCollection<EnumerationValueViewModel> EnumerationValues { get; }

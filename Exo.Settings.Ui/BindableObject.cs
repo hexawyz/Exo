@@ -8,6 +8,8 @@ internal abstract class BindableObject : INotifyPropertyChanged
 {
 	public event PropertyChangedEventHandler? PropertyChanged;
 
+	protected void NotifyPropertyChanged(PropertyChangedEventArgs e) => PropertyChanged?.Invoke(this, e);
+
 	protected void NotifyPropertyChanged([CallerMemberName] string? propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
 	protected bool SetValue<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
@@ -31,4 +33,35 @@ internal abstract class BindableObject : INotifyPropertyChanged
 		}
 		return false;
 	}
+
+	protected bool SetValue<T>(ref T storage, T value, PropertyChangedEventArgs e)
+	{
+		if (!EqualityComparer<T>.Default.Equals(value, storage))
+		{
+			storage = value;
+			NotifyPropertyChanged(e);
+			return true;
+		}
+		return false;
+	}
+
+	protected bool SetValue<T>(ref T storage, T value, IEqualityComparer<T> equalityComparer, PropertyChangedEventArgs e)
+	{
+		if (!(equalityComparer ?? EqualityComparer<T>.Default).Equals(value, storage))
+		{
+			storage = value;
+			NotifyPropertyChanged(e);
+			return true;
+		}
+		return false;
+	}
+}
+
+internal static class ChangedProperty
+{
+	public static readonly PropertyChangedEventArgs Color = new(nameof(Color));
+	public static readonly PropertyChangedEventArgs Value = new(nameof(Value));
+	public static readonly PropertyChangedEventArgs InitialValue = new(nameof(InitialValue));
+	public static readonly PropertyChangedEventArgs IsModified = new(nameof(IsModified));
+	public static readonly PropertyChangedEventArgs IsNotBusy = new(nameof(IsNotBusy));
 }

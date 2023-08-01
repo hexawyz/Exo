@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Exo.Ui.Contracts;
+using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -17,14 +18,14 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 	public bool IsNotBusy
 	{
 		get => !_isBusy;
-		private set => SetValue(ref _isBusy, !value);
+		private set => SetValue(ref _isBusy, !value, ChangedProperty.IsNotBusy);
 	}
 
 	private bool _isModified;
 	public bool IsModified
 	{
 		get => _isModified;
-		private set => SetValue(ref _isModified, value);
+		private set => SetValue(ref _isModified, value, ChangedProperty.IsModified);
 	}
 
 	public LightingDeviceViewModel(LightingViewModel lightingViewModel, LightingDeviceInformation lightingDeviceInformation) : base(lightingDeviceInformation.DeviceInformation)
@@ -64,6 +65,10 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 			if (zoneEffects.Count > 0)
 			{
 				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { UniqueId = UniqueId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
+			}
+			foreach (var zone in LightingZones)
+			{
+				zone.OnChangesApplied();
 			}
 		}
 		finally

@@ -29,6 +29,8 @@
             <Thickness x:Key="PageDefaultPadding">24,36,24,0</Thickness>
 
             <local:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
+            <local:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
+            <local:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

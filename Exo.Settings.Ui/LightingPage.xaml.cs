@@ -30,4 +30,6 @@ public sealed partial class LightingPage : Page
 	{
 		await ((LightingDeviceViewModel)((FrameworkElement)sender).DataContext).ApplyChangesAsync(default);
 	}
+
+	private void OnPropertyResetButtonClick(object sender, RoutedEventArgs e) => ((PropertyViewModel)((FrameworkElement)sender).DataContext).Reset();
 }
