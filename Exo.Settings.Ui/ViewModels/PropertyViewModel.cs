@@ -80,6 +80,10 @@ internal sealed class PropertyViewModel : BindableObject
 				{
 					Value = value;
 				}
+				else if (Value == value)
+				{
+					IsModified = false;
+				}
 			}
 		}
 	}

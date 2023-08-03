@@ -190,7 +190,7 @@ internal static class GrpcEffectSerializer
 		// Try to optimize the default capacity of the lists that will hold property details.
 		// We want to avoid allocations if we can, so we shouldn't force array creation if there are less properties than the default list capacity,
 		// but otherwise, force a single allocation able to fit the number of properties.
-		int listInitialCapacity = properties.Length <= 4 ? properties.Length : 0;
+		int listInitialCapacity = properties.Length > 4 ? properties.Length : 0;
 
 		// We need to do up to four passes for deserialization, but having at least two passes improves serialization when all properties are well-known.
 		// The DataIndex will be set negative for well-known properties, and used to write the serialization logic in the second pass.
@@ -310,7 +310,11 @@ internal static class GrpcEffectSerializer
 			};
 
 			serializablePropertyDetails.Add(details);
-			defaultPropertyDetails.Add(details);
+
+			if (wellKnownProperty is not null)
+			{
+				defaultPropertyDetails.Add(details);
+			}
 		}
 
 		// Deserialization: Initialize the Loop if necessary
@@ -403,6 +407,11 @@ internal static class GrpcEffectSerializer
 			deserializeIlGenerator.Emit(OpCodes.Ldc_I4_0);
 			deserializeIlGenerator.Emit(OpCodes.Stloc, counterLocal!);
 
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldnull);
+			deserializeIlGenerator.Emit(OpCodes.Ceq);
+			deserializeIlGenerator.Emit(OpCodes.Brtrue, deserializationLoopEndLabel);
+
 			deserializeIlGenerator.MarkLabel(deserializationLoopStartLabel);
 
 			// if (i >= propertyValues.Length) goto LoopEnd;
@@ -415,7 +424,7 @@ internal static class GrpcEffectSerializer
 			// ref readonly var propertyValue = ref propertyValues[i];
 			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal!);
 			deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal!);
-			deserializeIlGenerator.Emit(OpCodes.Ldelema);
+			deserializeIlGenerator.Emit(OpCodes.Ldelema, typeof(PropertyValue));
 			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValueLocal!);
 
 			// switch (propertyValue.Index)
@@ -531,7 +540,7 @@ internal static class GrpcEffectSerializer
 				}
 
 				// property.Value // reference the property value for assigning the property afterwards
-				deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueLocal);
+				deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueLocal!);
 				deserializeIlGenerator.Emit(OpCodes.Call, PropertyValueValuePropertyInfo.GetMethod!);
 
 				// Read the field matching the DataType.
@@ -632,6 +641,12 @@ internal static class GrpcEffectSerializer
 		{
 			// default: break;
 			deserializeIlGenerator.MarkLabel(deserializationDefaultCaseLabel);
+
+			// i++;
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldc_I4_1);
+			deserializeIlGenerator.Emit(OpCodes.Add);
+			deserializeIlGenerator.Emit(OpCodes.Stloc, counterLocal!);
 
 			// goto LoopStart;
 			deserializeIlGenerator.Emit(OpCodes.Br, deserializationLoopStartLabel);

@@ -15,6 +15,7 @@ internal sealed class LightingZoneViewModel : BindableObject
 	public ReadOnlyCollection<LightingEffectViewModel> SupportedEffects { get; }
 
 	private LightingEffectViewModel? _currentEffect;
+	private LightingEffectViewModel? _initialEffect;
 
 	private ReadOnlyCollection<PropertyViewModel> _properties;
 
@@ -25,6 +26,8 @@ internal sealed class LightingZoneViewModel : BindableObject
 	private PropertyViewModel? _colorProperty;
 	public Color? Color => _colorProperty?.Value as Color?;
 
+	private int _changedPropertyCount = 0;
+
 	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation)
 	{
 		_device = device;
@@ -34,6 +37,17 @@ internal sealed class LightingZoneViewModel : BindableObject
 	}
 
 	public string Name => _device.LightingViewModel.GetZoneName(Id);
+
+	public LightingEffectViewModel? InitialEffect
+	{
+		get => _currentEffect;
+		private set
+		{
+			if (SetValue(ref _initialEffect, value))
+			{
+			}
+		}
+	}
 
 	public LightingEffectViewModel? CurrentEffect
 	{
@@ -53,21 +67,25 @@ internal sealed class LightingZoneViewModel : BindableObject
 		get => _properties;
 		private set
 		{
+			var oldProperties = Properties;
 			if (SetValue(ref _properties, value))
 			{
-				if (_colorProperty is not null) _colorProperty.PropertyChanged -= OnColorPropertyPropertyChanged;
+				foreach (var property in oldProperties)
+				{
+					property.PropertyChanged -= OnPropertyChanged;
+				}
 
 				PropertyViewModel? colorProperty = null;
 
 				foreach (var property in value)
 				{
+					property.PropertyChanged += OnPropertyChanged;
+
 					if (property.Name == nameof(Color) && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
 					{
 						colorProperty = property;
 					}
 				}
-
-				if (colorProperty is not null) colorProperty.PropertyChanged += OnColorPropertyPropertyChanged;
 
 				_colorProperty = colorProperty;
 
@@ -76,18 +94,37 @@ internal sealed class LightingZoneViewModel : BindableObject
 		}
 	}
 
-	private void OnColorPropertyPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(PropertyViewModel.Value))
+		if (sender == _colorProperty && e.PropertyName == nameof(PropertyViewModel.Value))
 		{
 			NotifyPropertyChanged(ChangedProperty.Color);
 		}
+		
+		if (e.PropertyName == nameof(PropertyViewModel.IsModified))
+		{
+			if (((PropertyViewModel)sender!).IsModified)
+			{
+				if (_changedPropertyCount++ == 0)
+				{
+					IsModified = true;
+				}
+			}
+			else
+			{
+				if (--_changedPropertyCount == 0)
+				{
+					IsModified = _initialEffect != _currentEffect;
+				}
+			}
+		}
 	}
 
+	// TODO: Rework the logic behind IsModified here and in the property VM (we probably don't need to store the flag)
 	public bool IsModified
 	{
 		get => _isModified;
-		set
+		private set
 		{
 			if (SetValue(ref _isModified, value, ChangedProperty.IsModified))
 			{
@@ -142,7 +179,7 @@ internal sealed class LightingZoneViewModel : BindableObject
 				}
 				else
 				{
-					DataValue? dataValue = null;
+					DataValue? dataValue = property.GetDataValue();
 
 					if (dataValue is not null)
 					{
@@ -180,6 +217,10 @@ internal sealed class LightingZoneViewModel : BindableObject
 	internal void OnChangesApplied()
 	{
 		IsModified = false;
+		foreach (var property in Properties)
+		{
+			property.OnChangesApplied();
+		}
 	}
 
 	public void Reset()

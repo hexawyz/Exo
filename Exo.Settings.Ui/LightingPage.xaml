@@ -75,11 +75,11 @@
                                                 <StackPanel Orientation="Horizontal">
                                                     <FontIcon Glyph="&#xE950;" />
                                                     <TextBlock Text="{Binding Name, Mode=OneTime}" Margin="12,0,0,0" />
-                                                    <Rectangle Margin="12,0,0,0" Width="16" Height="16" Visibility="{Binding Color, Converter={StaticResource NullabilityToVisibilityConverter}}">
-                                                        <Rectangle.Fill>
+                                                    <Border Margin="12,0,0,0" Width="20" Height="20" Visibility="{Binding Color, Converter={StaticResource NullabilityToVisibilityConverter}}" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
+                                                        <Border.Background>
                                                             <SolidColorBrush Color="{Binding Color, Mode=OneWay}" />
-                                                        </Rectangle.Fill>
-                                                    </Rectangle>
+                                                        </Border.Background>
+                                                    </Border>
                                                 </StackPanel>
                                             </Expander.Header>
                                             <StackPanel Orientation="Vertical">
@@ -87,6 +87,7 @@
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="200" />
                                                         <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="Effect" />
                                                     <ComboBox Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding SupportedEffects}" SelectedValue="{Binding CurrentEffect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch">
@@ -96,6 +97,9 @@
                                                             </DataTemplate>
                                                         </ComboBox.ItemTemplate>
                                                     </ComboBox>
+                                                    <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsModified, Mode=OneWay}">
+                                                        <FontIcon Glyph="&#xE777;" />
+                                                    </Button>
                                                 </Grid>
                                                 <ItemsControl ItemsSource="{Binding Properties}">
                                                     <ItemsControl.ItemTemplate>
@@ -121,8 +125,8 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,12" HorizontalAlignment="Right">
-                                <Button HorizontalAlignment="Right" Content="Cancel" Margin="0,0,6,0" />
-                                <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsModified}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />
+                                <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsModified, Mode=OneWay}" />
+                                <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsModified, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />
                             </StackPanel>
                         </StackPanel>
                     </Expander>
