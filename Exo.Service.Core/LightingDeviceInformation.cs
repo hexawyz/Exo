@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Immutable;
 using Exo.Lighting;
+using Exo.Lighting.Effects;
 
 namespace Exo.Service;
 
@@ -45,15 +47,29 @@ public readonly struct LightingDeviceWatchNotification
 }
 
 /// <summary></summary>
-/// <remarks>Effect notifications are always considered to be updates, even if the initial notifications will enumerate through all the zones.</remarks>
+/// <remarks>
+/// <para>Effect notifications are always considered to be updates, even if the initial notifications will enumerate through all the zones.</para>
+/// <para>
+/// These notifications are kept as simple as possible in order to preserve efficiency when effects change frequently.
+/// As such, this should contain exactly the same information as can be passed to <see cref="LightingService.SetEffect{TEffect}(Guid, Guid, in TEffect)" />.
+/// Most clients of the effect notifications are assumed to already now about the available devices and lighting zones.
+/// </para>
+/// </remarks>
 public readonly struct LightingEffectWatchNotification
 {
-	/// <summary>Gets the device information.</summary>
-	public DeviceInformation DeviceInformation { get; }
+	public LightingEffectWatchNotification(Guid deviceId, Guid zoneId, ILightingEffect effect)
+	{
+		DeviceId = deviceId;
+		ZoneId = zoneId;
+		Effect = effect;
+	}
 
-	/// <summary>Gets the lighting zone information.</summary>
-	public LightingZoneInformation ZoneInformation { get; }
+	/// <summary>Gets the ID of the device on which the effect was applied.</summary>
+	public Guid DeviceId { get; }
 
-	/// <summary>Gets the lighting zone whose current effect has changed.</summary>
-	public ILightingZone Zone { get; }
+	/// <summary>Gets the ID of the lighting zone on which the effect was applied.</summary>
+	public Guid ZoneId { get; }
+
+	/// <summary>Gets the effect that was applied to the zone.</summary>
+	public ILightingEffect Effect { get; }
 }

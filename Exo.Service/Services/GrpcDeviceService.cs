@@ -15,11 +15,11 @@ internal class GrpcDeviceService : IDeviceService
 	{
 		await foreach (var notification in _driverRegistry.WatchAsync(cancellationToken))
 		{
-			yield return new
-			(
-				notification.Kind.ToGrpc(),
-				notification.DeviceInformation.ToGrpc()
-			);
+			yield return new()
+			{
+				NotificationKind = notification.Kind.ToGrpc(),
+				Details = notification.DeviceInformation.ToGrpc(),
+			};
 		}
 	}
 }

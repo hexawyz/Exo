@@ -64,7 +64,7 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 			}
 			if (zoneEffects.Count > 0)
 			{
-				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { UniqueId = UniqueId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
+				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { DeviceId = UniqueId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
 			}
 			foreach (var zone in LightingZones)
 			{

@@ -17,6 +17,7 @@ namespace Exo.Service;
 
 public class LightingService : IAsyncDisposable
 {
+
 	private sealed class LightingDeviceDetails
 	{
 		public LightingDeviceDetails(DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation, Driver driver)
@@ -63,6 +64,7 @@ public class LightingService : IAsyncDisposable
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
 	private Action<WatchNotificationKind, LightingDeviceDetails>[]? _devicesUpdated;
+	private RefReadonlyAction<LightingEffectWatchNotification>[]? _effectUpdated;
 
 	public LightingService(DriverRegistry driverRegistry)
 	{
@@ -92,7 +94,7 @@ public class LightingService : IAsyncDisposable
 						if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
 						{
 							unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
-							_lightingZones.TryAdd((notification.DeviceInformation.UniqueId, unifiedLightingFeature.ZoneId), unifiedLightingFeature);
+							_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId), unifiedLightingFeature);
 						}
 
 						LightingZoneInformation[]? zones = null;
@@ -103,7 +105,7 @@ public class LightingService : IAsyncDisposable
 							int i = 0;
 							foreach (var zone in lightingControllerFeature.LightingZones)
 							{
-								_lightingZones.TryAdd((notification.DeviceInformation.UniqueId, zone.ZoneId), zone);
+								_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, zone.ZoneId), zone);
 								zones[i++] = new LightingZoneInformation(zone.ZoneId, GetSupportedEffects(zone.GetType()).AsImmutable());
 							}
 						}
@@ -111,7 +113,7 @@ public class LightingService : IAsyncDisposable
 						var lightingDeviceInformation = new LightingDeviceInformation(unifiedLightingZone, zones is not null ? zones.AsImmutable() : ImmutableArray<LightingZoneInformation>.Empty);
 						var deviceDetails = new LightingDeviceDetails(notification.DeviceInformation, lightingDeviceInformation, notification.Driver!);
 
-						_lightingDevices[notification.DeviceInformation.UniqueId] = deviceDetails;
+						_lightingDevices[notification.DeviceInformation.DeviceId] = deviceDetails;
 
 						try
 						{
@@ -121,19 +123,38 @@ public class LightingService : IAsyncDisposable
 						{
 							// TODO: Log
 						}
+
+						// Handlers can only be added from within the lock, so we can conditionally emit the new effect notifications based on the needs. (They can be removed at anytime)
+						if (Volatile.Read(ref _effectUpdated) is not null)
+						{
+							if (unifiedLightingZone is not null && _lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId), out var zone))
+							{
+								_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId, zone.GetCurrentEffect()));
+							}
+							if (zones is not null)
+							{
+								foreach (var zoneInformation in zones)
+								{
+									if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zoneInformation.ZoneId), out zone))
+									{
+										_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, zoneInformation.ZoneId, zone.GetCurrentEffect()));
+									}
+								}
+							}
+						}
 						break;
 					case WatchNotificationKind.Removal:
-						if (_lightingDevices.TryRemove(notification.DeviceInformation.UniqueId, out deviceDetails))
+						if (_lightingDevices.TryRemove(notification.DeviceInformation.DeviceId, out deviceDetails))
 						{
-							if (_lightingDevices.TryRemove(notification.DeviceInformation.UniqueId, out var details))
+							if (_lightingDevices.TryRemove(notification.DeviceInformation.DeviceId, out var details))
 							{
 								if (details.LightingDeviceInformation.UnifiedLightingZone is not null)
 								{
-									_lightingZones.TryRemove((notification.DeviceInformation.UniqueId, details.LightingDeviceInformation.UnifiedLightingZone.GetValueOrDefault().ZoneId), out _);
+									_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out _);
 								}
 								foreach (var zone in details.LightingDeviceInformation.LightingZones)
 								{
-									_lightingZones.TryRemove((notification.DeviceInformation.UniqueId, zone.ZoneId), out _);
+									_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, zone.ZoneId), out _);
 								}
 								try
 								{
@@ -206,7 +227,53 @@ public class LightingService : IAsyncDisposable
 
 	public async IAsyncEnumerable<LightingEffectWatchNotification> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		yield break;
+		ChannelReader<LightingEffectWatchNotification> reader;
+
+		var channel = Channel.CreateUnbounded<LightingEffectWatchNotification>(WatchChannelOptions);
+		reader = channel.Reader;
+		var writer = channel.Writer;
+
+		RefReadonlyAction<LightingEffectWatchNotification> onEffectUpdated = (in LightingEffectWatchNotification n) => { writer.TryWrite(n); };
+
+		var initialNotifications = new List<LightingEffectWatchNotification>();
+
+		lock (_lock)
+		{
+			foreach (var kvp in _lightingDevices)
+			{
+				if (kvp.Value.LightingDeviceInformation.UnifiedLightingZone is not null && _lightingZones.TryGetValue((kvp.Key, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var zone))
+				{
+					initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId, zone.GetCurrentEffect()));
+				}
+				foreach (var zoneInformation in kvp.Value.LightingDeviceInformation.LightingZones)
+				{
+					if (_lightingZones.TryGetValue((kvp.Key, zoneInformation.ZoneId), out zone))
+					{
+						initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, zoneInformation.ZoneId, zone.GetCurrentEffect()));
+					}
+				}
+			}
+
+			ArrayExtensions.InterlockedAdd(ref _effectUpdated, onEffectUpdated);
+		}
+
+		try
+		{
+			foreach (var notification in initialNotifications)
+			{
+				yield return notification;
+			}
+			initialNotifications = null;
+
+			await foreach (var notification in reader.ReadAllAsync(cancellationToken))
+			{
+				yield return notification;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _effectUpdated, onEffectUpdated);
+		}
 	}
 
 	public void SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect)
@@ -218,6 +285,28 @@ public class LightingService : IAsyncDisposable
 		}
 
 		SetEffect(zone, effect);
+
+		// We are really careful about the value of the delegate here, as sending a notification implies boxing.
+		// As such, it is best if we can avoid it.
+		// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
+		if (Volatile.Read(ref _effectUpdated) is not null)
+		{
+			// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
+			lock (_lock)
+			{
+				try
+				{
+					if (_effectUpdated is { } onEffectUpdated)
+					{
+						onEffectUpdated.Invoke(new(deviceId, zoneId, effect));
+					}
+				}
+				catch
+				{
+					// TODO: Log
+				}
+			}
+		}
 	}
 
 	private void SetEffect<TEffect>(ILightingZone lightingZone, in TEffect effect)

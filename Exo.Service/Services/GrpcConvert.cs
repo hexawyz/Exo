@@ -10,7 +10,7 @@ internal static class GrpcConvert
 	public static GrpcDeviceInformation ToGrpc(this DeviceInformation deviceInformation)
 		=> new()
 		{
-			UniqueId = deviceInformation.UniqueId,
+			DeviceId = deviceInformation.DeviceId,
 			FriendlyName = deviceInformation.FriendlyName,
 			Category = (Exo.Ui.Contracts.DeviceCategory)deviceInformation.Category,
 			DriverTypeName = deviceInformation.DriverType.ToString(),

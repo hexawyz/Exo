@@ -28,7 +28,8 @@ internal sealed class LightingViewModel : BindableObject
 	private readonly ConcurrentDictionary<string, LightingEffectViewModel> _effectViewModelCache;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly Task _watchTask;
+	private readonly Task _watchDevicesTask;
+	private readonly Task _watchEffectsTask;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 
@@ -38,16 +39,19 @@ internal sealed class LightingViewModel : BindableObject
 		_lightingDevices = new();
 		_effectViewModelCache = new();
 		_cancellationTokenSource = new CancellationTokenSource();
-		_watchTask = WatchAsync(_cancellationTokenSource.Token);
+		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
+		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
 	{
 		_cancellationTokenSource.Cancel();
-		await _watchTask.ConfigureAwait(false);
+		await _watchDevicesTask.ConfigureAwait(false);
+		await _watchEffectsTask.ConfigureAwait(false);
 	}
 
-	private async Task WatchAsync(CancellationToken cancellationToken)
+	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
+	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -57,13 +61,13 @@ internal sealed class LightingViewModel : BindableObject
 				{
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Arrival:
-					await CacheEffectInformationAsync(notification, cancellationToken).ConfigureAwait(false);
+					await CacheEffectInformationAsync(notification, cancellationToken);
 					_lightingDevices.Add(new(this, notification.Details));
 					break;
 				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _lightingDevices.Count; i++)
 					{
-						if (_lightingDevices[i].UniqueId == notification.Details.DeviceInformation.UniqueId)
+						if (_lightingDevices[i].UniqueId == notification.Details.DeviceInformation.DeviceId)
 						{
 							_lightingDevices.RemoveAt(i);
 							break;
@@ -71,6 +75,20 @@ internal sealed class LightingViewModel : BindableObject
 					}
 					break;
 				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
+	private async Task WatchEffectsAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in LightingService.WatchEffectsAsync(cancellationToken))
+			{
 			}
 		}
 		catch (OperationCanceledException)

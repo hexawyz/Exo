@@ -7,7 +7,7 @@ namespace Exo.Ui.Contracts;
 public sealed class DeviceInformation
 {
 	[DataMember(Order = 1, IsRequired = true)]
-	public required Guid UniqueId { get; init; }
+	public required Guid DeviceId { get; init; }
 	[DataMember(Order = 2, IsRequired = true)]
 	public required string FriendlyName { get; init; }
 	[DataMember(Order = 3, IsRequired = true)]

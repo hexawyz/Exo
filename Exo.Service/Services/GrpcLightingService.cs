@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using DeviceTools;
 using Exo.Ui.Contracts;
 
 namespace Exo.Service.Services;
@@ -21,16 +22,16 @@ internal class GrpcLightingService : ILightingService
 		{
 			RegisterEffectTypes(notification);
 
-			yield return new WatchNotification<Ui.Contracts.LightingDeviceInformation>
-			(
-				notification.Kind.ToGrpc(),
-				new()
+			yield return new()
+			{
+				NotificationKind = notification.Kind.ToGrpc(),
+				Details = new()
 				{
 					DeviceInformation = notification.DeviceInformation.ToGrpc(),
 					UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
 					LightingZones = Array.ConvertAll(notification.LightingDeviceInformation.LightingZones.AsMutable(), z => z.ToGrpc()),
-				}
-			);
+				},
+			};
 		}
 	}
 
@@ -58,10 +59,10 @@ internal class GrpcLightingService : ILightingService
 	{
 		foreach (var ze in effects.ZoneEffects)
 		{
-			GrpcEffectSerializer.DeserializeAndSet(_lightingService, effects.UniqueId, ze.ZoneId, ze.Effect!);
+			GrpcEffectSerializer.DeserializeAndSet(_lightingService, effects.DeviceId, ze.ZoneId, ze.Effect!);
 		}
 
-		await _lightingService.ApplyChanges(effects.UniqueId);
+		await _lightingService.ApplyChanges(effects.DeviceId);
 	}
 
 	public ValueTask ApplyMultipleDeviceLightingEffectsAsync(MultipleDeviceLightingEffects effects, CancellationToken cancellationToken) => throw new NotImplementedException();
@@ -69,5 +70,16 @@ internal class GrpcLightingService : ILightingService
 	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
 		=> new(GrpcEffectSerializer.GetEffectInformation(typeReference.TypeName));
 
-	public IAsyncEnumerable<DeviceLightingEffects> WatchEffectsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		await foreach (var notification in _lightingService.WatchEffectsAsync(cancellationToken))
+		{
+			yield return new()
+			{
+				DeviceId = notification.DeviceId,
+				ZoneId = notification.ZoneId,
+				Effect = GrpcEffectSerializer.Serialize(notification.Effect),
+			};
+		}
+	}
 }

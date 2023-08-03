@@ -7,7 +7,7 @@ namespace Exo.Ui.Contracts;
 public sealed class DeviceLightingEffects
 {
 	[DataMember(Order = 1)]
-	public required Guid UniqueId { get; init; }
+	public required Guid DeviceId { get; init; }
 	[DataMember(Order = 2)]
 	public required ImmutableArray<ZoneLightEffect> ZoneEffects { get; init; }
 }

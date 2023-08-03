@@ -100,6 +100,41 @@ internal static class ArrayExtensions
 		throw new AggregateException(exceptions.ToArray());
 	}
 
+	public static void Invoke<T>(this RefReadonlyAction<T>[]? actions, in T obj)
+	{
+		if (actions is null) return;
+
+		int i = 0;
+		try
+		{
+			for (; i < actions.Length; i++)
+			{
+				actions[i](obj);
+			}
+		}
+		catch (Exception ex)
+		{
+			InvokeSlow(actions, obj, i, ex);
+		}
+	}
+
+	private static void InvokeSlow<T>(this RefReadonlyAction<T>[] actions, in T obj, int i, Exception exception)
+	{
+		var exceptions = new List<Exception> { exception };
+		for (; i < actions.Length; i++)
+		{
+			try
+			{
+				actions[i](obj);
+			}
+			catch (Exception ex)
+			{
+				exceptions.Add(ex);
+			}
+		}
+		throw new AggregateException(exceptions.ToArray());
+	}
+
 	public static void Invoke<T1, T2>(this Action<T1, T2>[]? actions, T1 arg1, T2 arg2)
 	{
 		if (actions is null) return;
@@ -170,3 +205,5 @@ internal static class ArrayExtensions
 		throw new AggregateException(exceptions.ToArray());
 	}
 }
+
+internal delegate void RefReadonlyAction<T>(in T obj);

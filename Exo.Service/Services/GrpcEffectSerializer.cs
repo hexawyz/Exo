@@ -56,6 +56,10 @@ internal static class GrpcEffectSerializer
 		typeof(ImmutableArray<PropertyValue>).GetField(nameof(ImmutableArray<PropertyValue>.Empty), BindingFlags.Public | BindingFlags.Static)!;
 	private static readonly MethodInfo ImmutableArrayCreateBuilderMethodInfo =
 		typeof(ImmutableArray).GetMethod(nameof(ImmutableArray.CreateBuilder), BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes)!;
+	private static readonly MethodInfo ImmutableArrayCreateBuilderOfPropertyValueMethodInfo =
+		typeof(ImmutableArray)
+		.GetMethod(nameof(ImmutableArray.CreateBuilder), BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes)!
+		.MakeGenericMethod(typeof(PropertyValue));
 	private static readonly PropertyInfo ImmutableArrayItemsPropertyInfo = typeof(ImmutableArray<PropertyValue>).GetProperty("Items")!;
 
 	private static readonly MethodInfo ImmutableArrayBuilderAddMethodInfo = typeof(ImmutableArray<PropertyValue>.Builder).GetMethod(nameof(ImmutableArray<PropertyValue>.Builder.Add))!;
@@ -92,7 +96,7 @@ internal static class GrpcEffectSerializer
 		// Both serialization methods are strongly typed and can't be exposed as-is in a delegate.
 		// We'll keep the reference to the instances here, but they will only be used internally in wrapping methods exposed as delegates.
 
-		// Signature: LightingEffect Serialize(TEffect effect)
+		// Signature: LightingEffect Serialize(in TEffect effect)
 		public MethodInfo SerializeMethod { get; }
 
 		// Signature: TEffect Deserialize(LightingEffect effect)
@@ -181,7 +185,7 @@ internal static class GrpcEffectSerializer
 
 		// The serialization and deserialization methods will be built in parallel, which may make the code a bit confusing,
 		// but it makes sense, since all code here makes use of the properties
-		var serializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), new[] { effectType }, effectType, true);
+		var serializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), new[] { effectType.MakeByRefType() }, effectType, true);
 		var deserializeMethod = new DynamicMethod("Deserialize", effectType, new[] { typeof(LightingEffect) }, effectType, true);
 
 		var serializeIlGenerator = serializeMethod.GetILGenerator();
@@ -379,25 +383,30 @@ internal static class GrpcEffectSerializer
 
 		// Serialization: Setup the IL generator with the informations we collected in the first pass.
 
-		var serializationEffectLocal = serializeIlGenerator.DeclareLocal(typeof(LightingEffect));
 		LocalBuilder? immutableArrayBuilderLocal = null;
 		LocalBuilder? propertyValueLocal = null;
+		LocalBuilder? rgb24Local = null;
 
 		// We only need an ImmutableArray<>.Builder when there are non-well-known properties.
 		if (deserializationLabels.Count > 0)
 		{
 			immutableArrayBuilderLocal = serializeIlGenerator.DeclareLocal(typeof(ImmutableArray<PropertyValue>.Builder));
 			propertyValueLocal = serializeIlGenerator.DeclareLocal(typeof(PropertyValue));
+
+			serializeIlGenerator.Emit(OpCodes.Call, ImmutableArrayCreateBuilderOfPropertyValueMethodInfo);
+			serializeIlGenerator.Emit(OpCodes.Stloc, immutableArrayBuilderLocal);
+
+			serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal);
+			serializeIlGenerator.Emit(OpCodes.Initobj, typeof(PropertyValue));
 		}
 
 		// lightingEffect = new()
 		serializeIlGenerator.Emit(OpCodes.Newobj, LightingEffectConstructorInfo);
-		serializeIlGenerator.Emit(OpCodes.Stloc, serializationEffectLocal);
 
 		// lightingEffect.TypeName = "TEffect"; // init-only property assignment
-		serializeIlGenerator.Emit(OpCodes.Ldloc, serializationEffectLocal);
+		serializeIlGenerator.Emit(OpCodes.Dup); // From now on, the first element on the stack must always be the effect local. ("lightingEffect")
 		serializeIlGenerator.Emit(OpCodes.Ldstr, effectTypeName);
-		serializeIlGenerator.Emit(OpCodes.Call, LightingEffectTypeNamePropertyInfo.SetMethod!);
+		serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectTypeNamePropertyInfo.SetMethod!);
 
 		// Deserialization: Prepare the loop
 
@@ -450,14 +459,15 @@ internal static class GrpcEffectSerializer
 			if (details.DataIndex == -1)
 			{
 				// lightingEffect.Color = effect.Color;
-				serializeIlGenerator.Emit(OpCodes.Ldloc, serializationEffectLocal);
+				serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				// Special-case the color types (only one for now)
 				if (details.DataType == GrpcDataType.ColorRgb24)
 				{
+					serializeIlGenerator.Emit(OpCodes.Stloc, rgb24Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbColor)));
+					serializeIlGenerator.Emit(OpCodes.Ldloca, rgb24Local);
 					serializeIlGenerator.Emit(OpCodes.Call, RgbColorToInt32MethodInfo);
-
 				}
 				// All compatible integer types are automatically expanded to int32 on the stack, so no additional conversion is needed.
 				serializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.SetMethod!);
@@ -465,7 +475,7 @@ internal static class GrpcEffectSerializer
 			else if (details.DataIndex == -2)
 			{
 				// lightingEffect.Speed = effect.Speed;
-				serializeIlGenerator.Emit(OpCodes.Ldloc, serializationEffectLocal);
+				serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				serializeIlGenerator.Emit(OpCodes.Conv_U4);
@@ -478,13 +488,11 @@ internal static class GrpcEffectSerializer
 				// builder.Add(new PropertyValue { Index = index, Value = new DataValue { Storage = effect.Property } });
 				serializeIlGenerator.Emit(OpCodes.Ldloc, immutableArrayBuilderLocal!);
 				serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal!);
-				serializeIlGenerator.Emit(OpCodes.Initobj, typeof(PropertyValue));
-				serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal!);
+				serializeIlGenerator.Emit(OpCodes.Dup); // propertyValueLocal&
 				serializeIlGenerator.Emit(OpCodes.Ldc_I4, details.DataIndex);
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.SetMethod!);
-				serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal!);
 				serializeIlGenerator.Emit(OpCodes.Newobj, DataValueConstructorInfo);
-				serializeIlGenerator.Emit(OpCodes.Dup);
+				serializeIlGenerator.Emit(OpCodes.Dup); // new DataValue()
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				switch (details.DataType)
@@ -521,6 +529,14 @@ internal static class GrpcEffectSerializer
 				case GrpcDataType.Guid:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueGuidValuePropertyInfo.SetMethod!);
 					break;
+				case GrpcDataType.ColorRgb24:
+					serializeIlGenerator.Emit(OpCodes.Stloc, rgb24Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbColor)));
+					serializeIlGenerator.Emit(OpCodes.Ldloca, rgb24Local);
+					serializeIlGenerator.Emit(OpCodes.Call, RgbColorToInt32MethodInfo);
+					goto case GrpcDataType.UInt32;
+				case GrpcDataType.ColorGrayscale8:
+				case GrpcDataType.ColorGrayscale16:
+				case GrpcDataType.ColorArgb32:
 				case GrpcDataType.DateTime:
 				case GrpcDataType.TimeSpan:
 				default:
@@ -620,7 +636,7 @@ internal static class GrpcEffectSerializer
 		// Serialization: Complete the method.
 
 		// lightingEffect.ExtendedPropertyValues = builder.DrainToImmutable(); // init-only property assignment
-		serializeIlGenerator.Emit(OpCodes.Ldloc, serializationEffectLocal);
+		serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 		if (immutableArrayBuilderLocal is not null)
 		{
 			serializeIlGenerator.Emit(OpCodes.Ldloc, immutableArrayBuilderLocal);
@@ -632,7 +648,6 @@ internal static class GrpcEffectSerializer
 		}
 		serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectExtendedPropertyValuesPropertyInfo.SetMethod!);
 		// return lightingEffect;
-		serializeIlGenerator.Emit(OpCodes.Ldloc, serializationEffectLocal);
 		serializeIlGenerator.Emit(OpCodes.Ret);
 
 		// Deserialization: Complete the loop.
@@ -691,6 +706,7 @@ internal static class GrpcEffectSerializer
 		// This method is necessary to convert the effect type to its proper representation before calling the specialized serialize method.
 		var unwrapAndSerializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), new[] { typeof(ILightingEffect) }, effectType);
 		var unwrapAndSerializeIlGenerator = unwrapAndSerializeMethod.GetILGenerator();
+		unwrapAndSerializeIlGenerator.Emit(OpCodes.Ldarg_0);
 		unwrapAndSerializeIlGenerator.Emit(OpCodes.Unbox, effectType);
 		unwrapAndSerializeIlGenerator.Emit(OpCodes.Call, serializeMethod);
 		unwrapAndSerializeIlGenerator.Emit(OpCodes.Ret);

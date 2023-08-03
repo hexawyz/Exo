@@ -36,7 +36,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _devices.Count; i++)
 					{
-						if (_devices[i].UniqueId == notification.Details.UniqueId)
+						if (_devices[i].UniqueId == notification.Details.DeviceId)
 						{
 							_devices.RemoveAt(i);
 							break;

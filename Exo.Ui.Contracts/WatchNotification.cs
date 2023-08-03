@@ -6,18 +6,8 @@ namespace Exo.Ui.Contracts;
 public sealed class WatchNotification<TDetails>
 	where TDetails : class
 {
-#nullable disable
-	private WatchNotification() { }
-#nullable enable
-
-	public WatchNotification(WatchNotificationKind notificationKind, TDetails details)
-	{
-		NotificationKind = notificationKind;
-		Details = details;
-	}
-
 	[DataMember(Order = 1)]
-	public WatchNotificationKind NotificationKind { get; }
+	public required WatchNotificationKind NotificationKind { get; init; }
 	[DataMember(Order = 2)]
-	public TDetails Details { get; }
+	public required TDetails Details { get; init; }
 }
