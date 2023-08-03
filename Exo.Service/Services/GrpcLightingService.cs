@@ -68,7 +68,7 @@ internal class GrpcLightingService : ILightingService
 	public ValueTask ApplyMultipleDeviceLightingEffectsAsync(MultipleDeviceLightingEffects effects, CancellationToken cancellationToken) => throw new NotImplementedException();
 
 	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
-		=> new(GrpcEffectSerializer.GetEffectInformation(typeReference.TypeName));
+		=> new(GrpcEffectSerializer.GetEffectInformation(typeReference.TypeId));
 
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{

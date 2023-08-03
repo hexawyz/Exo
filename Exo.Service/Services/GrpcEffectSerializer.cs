@@ -22,7 +22,7 @@ internal static class GrpcEffectSerializer
 	private static readonly MethodInfo LightingServiceSetEffectMethodInfo = typeof(LightingService).GetMethod(nameof(LightingService.SetEffect), BindingFlags.Public | BindingFlags.Instance)!;
 
 	private static readonly ConstructorInfo LightingEffectConstructorInfo = typeof(LightingEffect).GetConstructor(Type.EmptyTypes)!;
-	private static readonly PropertyInfo LightingEffectTypeNamePropertyInfo = typeof(LightingEffect).GetProperty(nameof(LightingEffect.TypeName))!;
+	private static readonly PropertyInfo LightingEffectEffectIdPropertyInfo = typeof(LightingEffect).GetProperty(nameof(LightingEffect.EffectId))!;
 	private static readonly PropertyInfo LightingEffectColorPropertyInfo = typeof(LightingEffect).GetProperty(nameof(LightingEffect.Color))!;
 	private static readonly PropertyInfo LightingEffectSpeedPropertyInfo = typeof(LightingEffect).GetProperty(nameof(LightingEffect.Speed))!;
 	private static readonly PropertyInfo LightingEffectExtendedPropertyValuesPropertyInfo = typeof(LightingEffect).GetProperty(nameof(LightingEffect.ExtendedPropertyValues))!;
@@ -109,15 +109,15 @@ internal static class GrpcEffectSerializer
 	private static readonly ConditionalWeakTable<Type, LightingEffectSerializationDetails> EffectInformationByTypeCache = new();
 	private static readonly ConditionalWeakTable<Type, EnumerationValue[]> EnumerationValuesCache = new();
 
-	private static readonly ConcurrentDictionary<string, WeakReference<LightingEffectSerializationDetails>> EffectInformationByTypeNameCache = new();
+	private static readonly ConcurrentDictionary<Guid, WeakReference<LightingEffectSerializationDetails>> EffectInformationByTypeNameCache = new();
 
-	private static LightingEffectSerializationDetails GetEffectSerializationDetails(string effectTypeName)
-		=> EffectInformationByTypeNameCache.TryGetValue(effectTypeName, out var wr) && wr.TryGetTarget(out var d) ?
+	private static LightingEffectSerializationDetails GetEffectSerializationDetails(Guid effectTypeId)
+		=> EffectInformationByTypeNameCache.TryGetValue(effectTypeId, out var wr) && wr.TryGetTarget(out var d) ?
 			d :
-			throw new KeyNotFoundException($"Information for the type {effectTypeName} was not found.");
+			throw new KeyNotFoundException($"Information for the type {effectTypeId} was not found.");
 
-	public static LightingEffectInformation GetEffectInformation(string effectTypeName)
-		=> GetEffectSerializationDetails(effectTypeName).EffectInformation;
+	public static LightingEffectInformation GetEffectInformation(Guid effectTypeId)
+		=> GetEffectSerializationDetails(effectTypeId).EffectInformation;
 
 	public static LightingEffectInformation GetEffectInformation(Type effectType)
 		=> GetEffectSerializationDetails(effectType).EffectInformation;
@@ -129,7 +129,7 @@ internal static class GrpcEffectSerializer
 	{
 		var details = GetNonCachedEffectDetails(effectType);
 
-		EffectInformationByTypeNameCache.GetOrAdd(effectType.ToString(), _ => new(null!)).SetTarget(details);
+		EffectInformationByTypeNameCache.GetOrAdd(details.EffectInformation.EffectId, _ => new(null!)).SetTarget(details);
 
 		return details;
 	}
@@ -149,6 +149,8 @@ internal static class GrpcEffectSerializer
 	private static LightingEffectSerializationDetails GetNonCachedEffectDetails(Type effectType)
 	{
 		string effectTypeName = effectType.FullName!;
+
+		var typeId = effectType.GetCustomAttribute<TypeIdAttribute>()?.Value ?? throw new InvalidOperationException($"The effect type {effectType} does not specify a type ID.");
 
 		var properties = effectType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
@@ -406,7 +408,7 @@ internal static class GrpcEffectSerializer
 		// lightingEffect.TypeName = "TEffect"; // init-only property assignment
 		serializeIlGenerator.Emit(OpCodes.Dup); // From now on, the first element on the stack must always be the effect local. ("lightingEffect")
 		serializeIlGenerator.Emit(OpCodes.Ldstr, effectTypeName);
-		serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectTypeNamePropertyInfo.SetMethod!);
+		serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectEffectIdPropertyInfo.SetMethod!);
 
 		// Deserialization: Prepare the loop
 
@@ -727,14 +729,12 @@ internal static class GrpcEffectSerializer
 		deserializeAndSetIlGenerator.Emit(OpCodes.Callvirt, LightingServiceSetEffectMethodInfo.MakeGenericMethod(effectType));
 		deserializeAndSetIlGenerator.Emit(OpCodes.Ret);
 
-		string displayName = effectType.GetCustomAttribute<EffectNameAttribute>()?.Name ?? effectType.GetCustomAttribute<DisplayAttribute>()?.Name ?? effectType.Name;
-
 		return new
 		(
 			new()
 			{
+				EffectId = typeId,
 				EffectTypeName = effectTypeName,
-				EffectDisplayName = displayName,
 				Properties = serializableProperties.AsImmutable()
 			},
 			serializeMethod,
@@ -949,7 +949,7 @@ internal static class GrpcEffectSerializer
 	//}
 
 	public static void DeserializeAndSet(LightingService lightingService, Guid deviceId, Guid zoneId, LightingEffect effect)
-		=> GetEffectSerializationDetails(effect.TypeName).DeserializeAndSet(lightingService, deviceId, zoneId, effect);
+		=> GetEffectSerializationDetails(effect.EffectId).DeserializeAndSet(lightingService, deviceId, zoneId, effect);
 
 	public static LightingEffect Serialize(ILightingEffect effect)
 		=> GetEffectSerializationDetails(effect.GetType()).Serialize(effect);

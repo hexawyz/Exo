@@ -6,7 +6,7 @@ using Exo.Lighting.Effects;
 namespace Exo.Devices.Gigabyte.LightingEffects;
 
 /// <summary>Represents a light with a pulsing color effect.</summary>
-[EffectName("Color Pulse (Advanced)")]
+[TypeId(0x02531B0C, 0xF13D, 0x4F0F, 0xAC, 0xFD, 0xC3, 0xF0, 0x88, 0x71, 0xA2, 0x7F)]
 public readonly struct AdvancedColorPulseEffect : ISingleColorLightEffect
 {
 	[DataMember(Order = 1)]

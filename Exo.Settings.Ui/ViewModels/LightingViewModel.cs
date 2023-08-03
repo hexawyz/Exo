@@ -25,7 +25,7 @@ internal sealed class LightingViewModel : BindableObject
 
 	internal ILightingService LightingService { get; }
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
-	private readonly ConcurrentDictionary<string, LightingEffectViewModel> _effectViewModelCache;
+	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelCache;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchDevicesTask;
@@ -98,27 +98,27 @@ internal sealed class LightingViewModel : BindableObject
 
 	private async Task CacheEffectInformationAsync(WatchNotification<LightingDeviceInformation> notification, CancellationToken cancellationToken)
 	{
-		if (notification.Details.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectTypeNames, cancellationToken);
+		if (notification.Details.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectIds, cancellationToken);
 		foreach (var zone in notification.Details.LightingZones)
 		{
-			await CacheEffectInformationAsync(zone.SupportedEffectTypeNames, cancellationToken).ConfigureAwait(false);
+			await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
-	private async ValueTask CacheEffectInformationAsync(ImmutableArray<string> effectTypeNames, CancellationToken cancellationToken)
-		=> await Parallel.ForEachAsync(effectTypeNames.AsMutable(), cancellationToken, CacheEffectInformationAsync).ConfigureAwait(false);
+	private async ValueTask CacheEffectInformationAsync(ImmutableArray<Guid> effectIds, CancellationToken cancellationToken)
+		=> await Parallel.ForEachAsync(effectIds.AsMutable(), cancellationToken, CacheEffectInformationAsync).ConfigureAwait(false);
 
-	private async ValueTask CacheEffectInformationAsync(string effectTypeName, CancellationToken cancellationToken)
+	private async ValueTask CacheEffectInformationAsync(Guid effectId, CancellationToken cancellationToken)
 	{
-		if (!_effectViewModelCache.ContainsKey(effectTypeName) &&
-			await LightingService.GetEffectInformationAsync(new EffectTypeReference { TypeName = effectTypeName }, cancellationToken).ConfigureAwait(false) is { } effectInformation)
+		if (!_effectViewModelCache.ContainsKey(effectId) &&
+			await LightingService.GetEffectInformationAsync(new EffectTypeReference { TypeId = effectId }, cancellationToken).ConfigureAwait(false) is { } effectInformation)
 		{
-			_effectViewModelCache.TryAdd(effectTypeName, new(effectInformation));
+			_effectViewModelCache.TryAdd(effectId, new(effectInformation));
 		}
 	}
 
-	public LightingEffectViewModel GetEffect(string effectTypeName)
-		=> _effectViewModelCache.TryGetValue(effectTypeName, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
+	public LightingEffectViewModel GetEffect(Guid effectId)
+		=> _effectViewModelCache.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
 
 	public string GetZoneName(Guid zoneId) => HardcodedGuidNames.TryGetValue(zoneId, out string? zoneName) ? zoneName : $"Unknown {zoneId:B}";
 }

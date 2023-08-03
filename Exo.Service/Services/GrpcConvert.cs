@@ -21,7 +21,7 @@ internal static class GrpcConvert
 		=> new()
 		{
 			ZoneId = zoneInformation.ZoneId,
-			SupportedEffectTypeNames = Array.ConvertAll(zoneInformation.SupportedEffectTypes.AsMutable(), t => t.ToString()).AsImmutable(),
+			SupportedEffectIds = Array.ConvertAll(zoneInformation.SupportedEffectTypes.AsMutable(), t => GrpcEffectSerializer.GetEffectInformation(t).EffectId).AsImmutable(),
 		};
 
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)

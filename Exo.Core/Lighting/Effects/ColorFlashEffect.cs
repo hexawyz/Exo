@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace Exo.Lighting.Effects;
 
 /// <summary>Represents a light with a flashing color effect.</summary>
-[EffectName("Color Flash")]
+[TypeId(0xA3F80010, 0x5663, 0x4ECF, 0x9C, 0x22, 0x03, 0x6E, 0x28, 0x47, 0x8B, 0x7E)]
 public readonly struct ColorFlashEffect : ISingleColorLightEffect
 {
 	[DataMember(Order = 1)]

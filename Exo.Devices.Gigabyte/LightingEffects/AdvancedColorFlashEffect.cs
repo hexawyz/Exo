@@ -6,7 +6,7 @@ using Exo.Lighting.Effects;
 namespace Exo.Devices.Gigabyte.LightingEffects;
 
 /// <summary>Represents a light with a flashing color effect.</summary>
-[EffectName("Color Flash (Advanced)")]
+[TypeId(0x99D1CFC4, 0xB25D, 0x4EEF, 0xAB, 0x17, 0x05, 0x2D, 0xF3, 0xD4, 0x93, 0x2D)]
 public readonly struct AdvancedColorFlashEffect : ISingleColorLightEffect
 {
 	[DataMember(Order = 1)]

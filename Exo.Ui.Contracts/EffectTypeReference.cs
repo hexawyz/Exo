@@ -6,5 +6,5 @@ namespace Exo.Ui.Contracts;
 public sealed class EffectTypeReference
 {
 	[DataMember(Order = 1)]
-	public required string TypeName { get; init; }
+	public required Guid TypeId { get; init; }
 }

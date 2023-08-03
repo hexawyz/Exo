@@ -16,8 +16,8 @@ public class AuraRamDriver :
 	ILightingZoneEffect<ColorPulseEffect>,
 	ILightingZoneEffect<ColorFlashEffect>,
 	ILightingZoneEffect<ColorDoubleFlashEffect>,
-	ILightingZoneEffect<RainbowCycleEffect>,
-	ILightingZoneEffect<RainbowWaveEffect>
+	ILightingZoneEffect<ColorCycleEffect>,
+	ILightingZoneEffect<ColorWaveEffect>
 {
 
 	// TODO: How should we handle the RAM ?
@@ -85,10 +85,10 @@ public class AuraRamDriver :
 
 	public IReadOnlyCollection<ILightingZone> LightingZones { get; }
 
-	public void ApplyChanges() => throw new NotImplementedException();
-
 	public bool IsUnifiedLightingEnabled { get; }
 	public Guid ZoneId { get; }
+
+	public ValueTask ApplyChangesAsync() => throw new NotImplementedException();
 
 	public ILightingEffect GetCurrentEffect() => throw new NotImplementedException();
 	public void ApplyEffect(in DisabledEffect effect) => throw new NotImplementedException();
@@ -101,8 +101,8 @@ public class AuraRamDriver :
 	public bool TryGetCurrentEffect(out ColorFlashEffect effect) => throw new NotImplementedException();
 	public void ApplyEffect(in ColorDoubleFlashEffect effect) => throw new NotImplementedException();
 	public bool TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(in RainbowCycleEffect effect) => throw new NotImplementedException();
-	public bool TryGetCurrentEffect(out RainbowCycleEffect effect) => throw new NotImplementedException();
-	public void ApplyEffect(in RainbowWaveEffect effect) => throw new NotImplementedException();
-	public bool TryGetCurrentEffect(out RainbowWaveEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in ColorCycleEffect effect) => throw new NotImplementedException();
+	public bool TryGetCurrentEffect(out ColorCycleEffect effect) => throw new NotImplementedException();
+	public void ApplyEffect(in ColorWaveEffect effect) => throw new NotImplementedException();
+	public bool TryGetCurrentEffect(out ColorWaveEffect effect) => throw new NotImplementedException();
 }

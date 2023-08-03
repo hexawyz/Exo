@@ -8,10 +8,9 @@ namespace Exo.Ui.Contracts;
 [DataContract]
 public sealed class LightingEffect
 {
-	/// <summary>Name of the effect type.</summary>
-	/// <remarks></remarks>
+	/// <summary>ID of the effect.</summary>
 	[DataMember(Order = 1)]
-	public required string TypeName { get; init; }
+	public required Guid EffectId { get; init; }
 
 	/// <summary>Main color of the effect, if applicable.</summary>
 	/// <remarks>This property is applicable to all effects having a property named <c>Color</c> that can be represented as a 32 bit unsigned integer.</remarks>

@@ -14,9 +14,9 @@ internal sealed class LightingEffectViewModel
 		_effectInformation = effectInformation;
 	}
 
-	public string TypeName => _effectInformation.EffectTypeName;
+	public Guid EffectId => _effectInformation.EffectId;
 
-	public string DisplayName => _effectInformation.EffectDisplayName;
+	public string DisplayName => EffectDatabase.GetEffectName(EffectId);
 
 	public ReadOnlyCollection<PropertyViewModel> CreatePropertyViewModels()
 	{

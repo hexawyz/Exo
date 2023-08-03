@@ -9,5 +9,5 @@ public sealed class LightingZoneInformation
 	[DataMember(Order = 1)]
 	public required Guid ZoneId { get; init; }
 	[DataMember(Order = 2)]
-	public required ImmutableArray<string> SupportedEffectTypeNames { get; init; }
+	public required ImmutableArray<Guid> SupportedEffectIds { get; init; }
 }

@@ -33,7 +33,7 @@ internal sealed class LightingZoneViewModel : BindableObject
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
 		Id = lightingZoneInformation.ZoneId;
-		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>(Array.ConvertAll(lightingZoneInformation.SupportedEffectTypeNames.AsMutable(), _device.LightingViewModel.GetEffect));
+		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>(Array.ConvertAll(lightingZoneInformation.SupportedEffectIds.AsMutable(), _device.LightingViewModel.GetEffect));
 	}
 
 	public string Name => _device.LightingViewModel.GetZoneName(Id);
@@ -191,7 +191,7 @@ internal sealed class LightingZoneViewModel : BindableObject
 
 		return new()
 		{
-			TypeName = _currentEffect.TypeName,
+			EffectId = _currentEffect.EffectId,
 			Color = color.GetValueOrDefault(),
 			Speed = speed.GetValueOrDefault(),
 			ExtendedPropertyValues = propertyValues.DrainToImmutable()

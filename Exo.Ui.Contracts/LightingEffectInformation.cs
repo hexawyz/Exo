@@ -6,13 +6,17 @@ namespace Exo.Ui.Contracts;
 [DataContract]
 public sealed class LightingEffectInformation
 {
-	/// <summary>Name of the effect type.</summary>
+	/// <summary>ID of the effect.</summary>
+	/// <remarks>
+	/// This is the effect type ID, mandatory for all effect types.
+	/// It is used as an unique reference to the effect type, and as a key for UI localization.
+	/// </remarks>
 	[DataMember(Order = 1)]
-	public required string EffectTypeName { get; init; }
+	public required Guid EffectId { get; init; }
 
-	/// <summary>Friendly name of the effect.</summary>
+	/// <summary>Name of the effect type.</summary>
 	[DataMember(Order = 2)]
-	public required string EffectDisplayName { get; init; }
+	public required string EffectTypeName { get; init; }
 
 	/// <summary>Gets the properties of the lighting effect.</summary>
 	/// <remarks>
