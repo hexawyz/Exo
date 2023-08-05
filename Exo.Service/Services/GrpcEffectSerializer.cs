@@ -1,10 +1,12 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -71,6 +73,10 @@ internal static class GrpcEffectSerializer
 			.GetMethods(BindingFlags.Public | BindingFlags.Static)
 			.Where(m => m.Name == nameof(Unsafe.As) && m.GetGenericArguments() is { Length: 2 })
 			.Single().MakeGenericMethod(typeof(ImmutableArray<PropertyValue>), typeof(PropertyValue[]));
+
+	private static readonly ConstructorInfo GuidConstructorInfo =
+		typeof(Guid)
+			.GetConstructor(new[] { typeof(uint), typeof(ushort), typeof(ushort), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte) })!;
 
 	private sealed class LightingEffectSerializationDetails
 	{
@@ -148,9 +154,12 @@ internal static class GrpcEffectSerializer
 
 	private static LightingEffectSerializationDetails GetNonCachedEffectDetails(Type effectType)
 	{
+		Span<byte> typeIdBytes = stackalloc byte[16];
+
 		string effectTypeName = effectType.FullName!;
 
 		var typeId = effectType.GetCustomAttribute<TypeIdAttribute>()?.Value ?? throw new InvalidOperationException($"The effect type {effectType} does not specify a type ID.");
+		typeId.TryWriteBytes(typeIdBytes);
 
 		var properties = effectType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
@@ -405,9 +414,16 @@ internal static class GrpcEffectSerializer
 		// lightingEffect = new()
 		serializeIlGenerator.Emit(OpCodes.Newobj, LightingEffectConstructorInfo);
 
-		// lightingEffect.TypeName = "TEffect"; // init-only property assignment
+		// lightingEffect.EffectId = new Guid(a, b, c, d, e, f, g, h, i, j, k); // init-only property assignment
 		serializeIlGenerator.Emit(OpCodes.Dup); // From now on, the first element on the stack must always be the effect local. ("lightingEffect")
-		serializeIlGenerator.Emit(OpCodes.Ldstr, effectTypeName);
+		serializeIlGenerator.Emit(OpCodes.Ldc_I4, BinaryPrimitives.ReadUInt32LittleEndian(typeIdBytes));
+		serializeIlGenerator.Emit(OpCodes.Ldc_I4, BinaryPrimitives.ReadUInt16LittleEndian(typeIdBytes[4..]));
+		serializeIlGenerator.Emit(OpCodes.Ldc_I4, BinaryPrimitives.ReadUInt16LittleEndian(typeIdBytes[6..]));
+		for (int i = 8; i < typeIdBytes.Length; i++)
+		{
+			serializeIlGenerator.Emit(OpCodes.Ldc_I4, (ushort)typeIdBytes[i]);
+		}
+		serializeIlGenerator.Emit(OpCodes.Newobj, GuidConstructorInfo);
 		serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectEffectIdPropertyInfo.SetMethod!);
 
 		// Deserialization: Prepare the loop
