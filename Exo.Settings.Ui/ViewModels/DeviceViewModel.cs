@@ -17,7 +17,7 @@ internal class DeviceViewModel : BindableObject
 		_deviceInformation = deviceInformation;
 	}
 
-	public Guid UniqueId => _deviceInformation.DeviceId;
+	public Guid DeviceId => _deviceInformation.DeviceId;
 
 	public string FriendlyName => _deviceInformation.FriendlyName;
 

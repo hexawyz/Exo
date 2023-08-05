@@ -6,7 +6,7 @@ using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class PropertyViewModel : BindableObject
+internal sealed class PropertyViewModel : ChangeableBindableObject
 {
 	private static object? GetValue(DataType type, DataValue? value)
 		=> value is not null ?
@@ -67,22 +67,21 @@ internal sealed class PropertyViewModel : BindableObject
 	public object? MaximumValue { get; }
 	public object? DefaultValue { get; }
 
-	private bool _isModified;
-
 	public object? InitialValue
 	{
 		get => _initialValue;
 		private set
 		{
+			bool wasChanged = IsChanged;
 			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
 			{
-				if (!IsModified)
+				if (!wasChanged)
 				{
-					Value = value;
+					_value = _initialValue;
 				}
-				else if (Value == value)
+				else
 				{
-					IsModified = false;
+					OnChangeStateChange(wasChanged);
 				}
 			}
 		}
@@ -93,9 +92,10 @@ internal sealed class PropertyViewModel : BindableObject
 		get => _value;
 		set
 		{
+			bool wasChanged = IsChanged;
 			if (SetValue(ref _value, value, ChangedProperty.Value))
 			{
-				IsModified = value != InitialValue;
+				OnChangeStateChange(wasChanged);
 			}
 		}
 	}
@@ -108,23 +108,11 @@ internal sealed class PropertyViewModel : BindableObject
 
 	public string DisplayName => _propertyInformation.DisplayName;
 
-	public bool IsModified
-	{
-		get => _isModified;
-		private set => SetValue(ref _isModified, value, ChangedProperty.IsModified);
-	}
+	public override bool IsChanged => Value is null ? InitialValue is not null : !Value.Equals(InitialValue);
 
 	public void Reset() => Value = InitialValue;
 
-	public void OnChangesApplied()
-	{
-		if (InitialValue != Value)
-		{
-			InitialValue = Value;
-		}
-	}
-
-	public void SetInitialValue(DataValue value)
+	public void SetInitialValue(DataValue? value)
 	{
 		InitialValue = GetValue(DataType, value);
 	}

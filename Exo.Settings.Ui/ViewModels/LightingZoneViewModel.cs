@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -8,91 +9,109 @@ using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingZoneViewModel : BindableObject
+internal sealed class LightingZoneViewModel : ChangeableBindableObject
 {
 	private readonly LightingDeviceViewModel _device;
 
 	public ReadOnlyCollection<LightingEffectViewModel> SupportedEffects { get; }
 
+	private LightingEffect? _initialEffect;
 	private LightingEffectViewModel? _currentEffect;
-	private LightingEffectViewModel? _initialEffect;
 
 	private ReadOnlyCollection<PropertyViewModel> _properties;
 
 	public Guid Id { get; }
 
-	private bool _isModified;
-
 	private PropertyViewModel? _colorProperty;
+	private PropertyViewModel? _speedProperty;
+	private readonly Dictionary<uint, PropertyViewModel> _propertiesByIndex;
+
 	public Color? Color => _colorProperty?.Value as Color?;
 
 	private int _changedPropertyCount = 0;
+
+	private bool _isBusy;
+	public bool IsNotBusy
+	{
+		get => !_isBusy;
+		private set => SetValue(ref _isBusy, !value, ChangedProperty.IsNotBusy);
+	}
 
 	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation)
 	{
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
+		_propertiesByIndex = new();
 		Id = lightingZoneInformation.ZoneId;
 		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>(Array.ConvertAll(lightingZoneInformation.SupportedEffectIds.AsMutable(), _device.LightingViewModel.GetEffect));
+		OnEffectUpdated();
 	}
 
 	public string Name => _device.LightingViewModel.GetZoneName(Id);
 
-	public LightingEffectViewModel? InitialEffect
-	{
-		get => _currentEffect;
-		private set
-		{
-			if (SetValue(ref _initialEffect, value))
-			{
-			}
-		}
-	}
-
 	public LightingEffectViewModel? CurrentEffect
 	{
 		get => _currentEffect;
-		private set
-		{
-			if (SetValue(ref _currentEffect, value))
-			{
-				Properties = value?.CreatePropertyViewModels() ?? ReadOnlyCollection<PropertyViewModel>.Empty;
-				IsModified = true;
-			}
-		}
+		private set => SetCurrentEffect(value, false);
 	}
 
-	public ReadOnlyCollection<PropertyViewModel> Properties
+	private void SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate)
 	{
-		get => _properties;
-		private set
+		bool wasChanged = IsChanged;
+		if (SetValue(ref _currentEffect, value))
 		{
 			var oldProperties = Properties;
-			if (SetValue(ref _properties, value))
+			var newProperties = value?.CreatePropertyViewModels() ?? ReadOnlyCollection<PropertyViewModel>.Empty;
+			bool colorChanged = _colorProperty is not null;
+
+			if (SetValue(ref _properties, newProperties, ChangedProperty.Properties))
 			{
 				foreach (var property in oldProperties)
 				{
 					property.PropertyChanged -= OnPropertyChanged;
 				}
 
-				PropertyViewModel? colorProperty = null;
+				_propertiesByIndex.Clear();
 
-				foreach (var property in value)
+				_colorProperty = null;
+				_speedProperty = null;
+
+				foreach (var property in newProperties)
 				{
 					property.PropertyChanged += OnPropertyChanged;
 
-					if (property.Name == nameof(Color) && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
+					if (property.Index is not null)
 					{
-						colorProperty = property;
+						_propertiesByIndex[property.Index.GetValueOrDefault()] = property;
+					}
+					else
+					{
+						if (property.Name == nameof(LightingEffect.Color) && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
+						{
+							_colorProperty = property;
+							colorChanged = true;
+						}
+						else if (property.Name == nameof(LightingEffect.Speed) && property.DataType is DataType.Int32)
+						{
+							_speedProperty = property;
+						}
 					}
 				}
 
-				_colorProperty = colorProperty;
-
-				NotifyPropertyChanged(ChangedProperty.Color);
 			}
+			_changedPropertyCount = 0;
+
+			if (isInitialEffectUpdate)
+			{
+				AssignPropertyInitialValues();
+			}
+
+			OnChangeStateChange(wasChanged);
+			if (colorChanged) NotifyPropertyChanged(ChangedProperty.Color);
 		}
 	}
+
+	public ReadOnlyCollection<PropertyViewModel> Properties => _properties;
 
 	private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
@@ -101,44 +120,31 @@ internal sealed class LightingZoneViewModel : BindableObject
 			NotifyPropertyChanged(ChangedProperty.Color);
 		}
 		
-		if (e.PropertyName == nameof(PropertyViewModel.IsModified))
+		if (e.PropertyName == nameof(PropertyViewModel.IsChanged))
 		{
-			if (((PropertyViewModel)sender!).IsModified)
+			bool wasChanged = IsChanged;
+			bool isChanged = wasChanged;
+
+			if (((PropertyViewModel)sender!).IsChanged)
 			{
 				if (_changedPropertyCount++ == 0)
 				{
-					IsModified = true;
+					isChanged = true;
 				}
 			}
 			else
 			{
 				if (--_changedPropertyCount == 0)
 				{
-					IsModified = _initialEffect != _currentEffect;
+					isChanged = IsChanged;
 				}
 			}
+
+			OnChangeStateChange(wasChanged, isChanged);
 		}
 	}
 
-	// TODO: Rework the logic behind IsModified here and in the property VM (we probably don't need to store the flag)
-	public bool IsModified
-	{
-		get => _isModified;
-		private set
-		{
-			if (SetValue(ref _isModified, value, ChangedProperty.IsModified))
-			{
-				if (value)
-				{
-					_device.SetModified();
-				}
-				else
-				{
-					_device.UpdateModified();
-				}
-			}
-		}
-	}
+	public override bool IsChanged => _initialEffect?.EffectId != _currentEffect?.EffectId || _changedPropertyCount != 0;
 
 	public LightingEffect? BuildEffect()
 	{
@@ -214,16 +220,67 @@ internal sealed class LightingZoneViewModel : BindableObject
 		}
 	}
 
-	internal void OnChangesApplied()
+	internal void OnEffectUpdated() => OnEffectUpdated(_device.GetActiveLightingEffect(Id));
+
+	private void OnEffectUpdated(LightingEffect? effect)
 	{
-		IsModified = false;
-		foreach (var property in Properties)
+		bool wasChanged = IsChanged;
+
+		_initialEffect = effect;
+
+		if (!wasChanged)
 		{
-			property.OnChangesApplied();
+			SetCurrentEffect(effect is null ? null : _device.LightingViewModel.GetEffect(effect.EffectId), true);
 		}
+		else if (_initialEffect?.EffectId != CurrentEffect?.EffectId)
+		{
+			return;
+		}
+		else
+		{
+			AssignPropertyInitialValues();
+		}
+	}
+
+	private void AssignPropertyInitialValues()
+	{
+		var effect = _initialEffect;
+		if (effect is not null)
+		{
+			_colorProperty?.SetInitialValue(new() { UnsignedValue = effect.Color });
+			_speedProperty?.SetInitialValue(new() { UnsignedValue = effect.Speed });
+
+			if (!effect.ExtendedPropertyValues.IsDefaultOrEmpty)
+			{
+				foreach (var p in effect.ExtendedPropertyValues)
+				{
+					// TODO: Might be good to take note of the unaffected properties and reset them too.
+					if (_propertiesByIndex.TryGetValue(p.Index, out var property))
+					{
+						property.SetInitialValue(p.Value);
+					}
+				}
+			}
+		}
+		IsNotBusy = true;
 	}
 
 	public void Reset()
 	{
+		if (!IsChanged)
+		{
+			return;
+		}
+		else if (_initialEffect?.EffectId != CurrentEffect?.EffectId)
+		{
+			SetCurrentEffect(_initialEffect is null ? null : _device.LightingViewModel.GetEffect(_initialEffect.EffectId), true);
+		}
+		else
+		{
+			AssignPropertyInitialValues();
+		}
 	}
+
+	internal void OnBeforeApplyingChanges() => IsNotBusy = false;
+	internal void OnAfterApplyingChangesCancellation() => IsNotBusy = true;
 }

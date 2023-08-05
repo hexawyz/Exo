@@ -11,6 +11,7 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class LightingViewModel : BindableObject
 {
+	// TODO: Migrate to external files.
 	private static readonly Dictionary<Guid, string> HardcodedGuidNames = new()
 	{
 		{ new Guid(0x34D2462C, 0xE510, 0x4A44, 0xA7, 0x0E, 0x14, 0x91, 0x32, 0x87, 0x25, 0xF9), "Z490 Motherboard Lighting" },
@@ -25,7 +26,9 @@ internal sealed class LightingViewModel : BindableObject
 
 	internal ILightingService LightingService { get; }
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
-	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelCache;
+	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
+	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
+	private readonly Dictionary<(Guid, Guid), LightingEffect> _activeLightingEffects;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchDevicesTask;
@@ -37,7 +40,9 @@ internal sealed class LightingViewModel : BindableObject
 	{
 		LightingService = lightingService;
 		_lightingDevices = new();
-		_effectViewModelCache = new();
+		_lightingDeviceById = new();
+		_effectViewModelById = new();
+		_activeLightingEffects = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
@@ -61,15 +66,21 @@ internal sealed class LightingViewModel : BindableObject
 				{
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Arrival:
-					await CacheEffectInformationAsync(notification, cancellationToken);
-					_lightingDevices.Add(new(this, notification.Details));
+					{
+						await CacheEffectInformationAsync(notification, cancellationToken);
+						var vm = new LightingDeviceViewModel(this, notification.Details);
+						_lightingDevices.Add(vm);
+						_lightingDeviceById[vm.DeviceId] = vm;
+					}
 					break;
 				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _lightingDevices.Count; i++)
 					{
-						if (_lightingDevices[i].UniqueId == notification.Details.DeviceInformation.DeviceId)
+						var vm = _lightingDevices[i];
+						if (_lightingDevices[i].DeviceId == notification.Details.DeviceInformation.DeviceId)
 						{
 							_lightingDevices.RemoveAt(i);
+							_lightingDeviceById.Remove(vm.DeviceId);
 							break;
 						}
 					}
@@ -89,6 +100,20 @@ internal sealed class LightingViewModel : BindableObject
 		{
 			await foreach (var notification in LightingService.WatchEffectsAsync(cancellationToken))
 			{
+				if (notification.Effect is not null)
+				{
+					_activeLightingEffects[(notification.DeviceId, notification.ZoneId)] = notification.Effect;
+				}
+				else
+				{
+					_activeLightingEffects.Remove((notification.DeviceId, notification.ZoneId));
+				}
+				// We need the effect to be cached before any view model accesses it.
+				if (notification.Effect is not null) await CacheEffectInformationAsync(notification.Effect.EffectId, cancellationToken);
+				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
+				{
+					vm.GetLightingZone(notification.ZoneId).OnEffectUpdated();
+				}
 			}
 		}
 		catch (OperationCanceledException)
@@ -110,15 +135,18 @@ internal sealed class LightingViewModel : BindableObject
 
 	private async ValueTask CacheEffectInformationAsync(Guid effectId, CancellationToken cancellationToken)
 	{
-		if (!_effectViewModelCache.ContainsKey(effectId) &&
+		if (!_effectViewModelById.ContainsKey(effectId) &&
 			await LightingService.GetEffectInformationAsync(new EffectTypeReference { TypeId = effectId }, cancellationToken).ConfigureAwait(false) is { } effectInformation)
 		{
-			_effectViewModelCache.TryAdd(effectId, new(effectInformation));
+			_effectViewModelById.TryAdd(effectId, new(effectInformation));
 		}
 	}
 
 	public LightingEffectViewModel GetEffect(Guid effectId)
-		=> _effectViewModelCache.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
+		=> _effectViewModelById.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
 
 	public string GetZoneName(Guid zoneId) => HardcodedGuidNames.TryGetValue(zoneId, out string? zoneName) ? zoneName : $"Unknown {zoneId:B}";
+
+	public LightingEffect? GetActiveLightingEffect(Guid deviceId, Guid zoneId)
+		=> _activeLightingEffects.TryGetValue((deviceId, zoneId), out var effect) ? effect : null;
 }

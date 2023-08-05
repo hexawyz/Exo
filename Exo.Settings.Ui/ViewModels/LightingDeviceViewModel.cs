@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Exo.Ui.Contracts;
@@ -14,48 +16,63 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 	public LightingZoneViewModel? UnifiedLightingZone { get; }
 	public ReadOnlyCollection<LightingZoneViewModel> LightingZones { get; }
 
-	private bool _isBusy;
-	public bool IsNotBusy
-	{
-		get => !_isBusy;
-		private set => SetValue(ref _isBusy, !value, ChangedProperty.IsNotBusy);
-	}
+	private readonly Dictionary<Guid, LightingZoneViewModel> _lightingZoneById;
 
-	private bool _isModified;
-	public bool IsModified
-	{
-		get => _isModified;
-		private set => SetValue(ref _isModified, value, ChangedProperty.IsModified);
-	}
+	private int _changedZoneCount;
+	private int _busyZoneCount;
+
+	public bool IsNotBusy => _busyZoneCount == 0;
+
+	public bool IsChanged => _changedZoneCount != 0;
 
 	public LightingDeviceViewModel(LightingViewModel lightingViewModel, LightingDeviceInformation lightingDeviceInformation) : base(lightingDeviceInformation.DeviceInformation)
 	{
 		LightingViewModel = lightingViewModel;
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? new LightingZoneViewModel(this, lightingDeviceInformation.UnifiedLightingZone) : null;
 		LightingZones = Array.AsReadOnly(Array.ConvertAll(lightingDeviceInformation.LightingZones, z => new LightingZoneViewModel(this, z)));
-	}
-
-	public void SetModified() => IsModified = true;
-
-	public void UpdateModified()
-	{
-		bool isModified = false;
+		_lightingZoneById = new();
+		if (UnifiedLightingZone is not null)
+		{
+			_lightingZoneById.Add(UnifiedLightingZone.Id, UnifiedLightingZone);
+			UnifiedLightingZone.PropertyChanged += OnLightingZonePropertyChanged;
+		}
 		foreach (var zone in LightingZones)
 		{
-			isModified |= zone.IsModified;
+			_lightingZoneById[zone.Id] = zone;
+			zone.PropertyChanged += OnLightingZonePropertyChanged;
+		}
+	}
+
+	private void OnLightingZonePropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(LightingZoneViewModel.IsChanged))
+		{
+			if ((((LightingZoneViewModel)sender!).IsChanged ? _changedZoneCount++ : --_changedZoneCount) == 0)
+			{
+				NotifyPropertyChanged(ChangedProperty.IsChanged);
+			}
+		}
+		else if (e.PropertyName == nameof(LightingZoneViewModel.IsNotBusy))
+		{
+			if ((((LightingZoneViewModel)sender!).IsNotBusy ? --_busyZoneCount : _busyZoneCount++) == 0)
+			{
+				NotifyPropertyChanged(ChangedProperty.IsNotBusy);
+			}
 		}
 	}
 
 	public async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
-		IsNotBusy = false;
+		if (!IsNotBusy) throw new InvalidOperationException("The device is already busy applying changes.");
+
 		var zoneEffects = ImmutableArray.CreateBuilder<ZoneLightEffect>();
 		try
 		{
 			foreach (var zone in LightingZones)
 			{
-				if (zone.IsModified)
+				if (zone.IsChanged)
 				{
+					zone.OnBeforeApplyingChanges();
 					if (zone.BuildEffect() is { } effect)
 					{
 						zoneEffects.Add(new() { ZoneId = zone.Id, Effect = effect });
@@ -64,16 +81,19 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 			}
 			if (zoneEffects.Count > 0)
 			{
-				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { DeviceId = UniqueId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
+				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { DeviceId = DeviceId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
 			}
+		}
+		catch
+		{
 			foreach (var zone in LightingZones)
 			{
-				zone.OnChangesApplied();
+				zone.OnAfterApplyingChangesCancellation();
 			}
 		}
-		finally
-		{
-			IsNotBusy = true;
-		}
 	}
+
+	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
+
+	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(DeviceId, zoneId);
 }

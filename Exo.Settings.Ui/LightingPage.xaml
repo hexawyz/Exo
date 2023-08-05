@@ -97,7 +97,7 @@
                                                             </DataTemplate>
                                                         </ComboBox.ItemTemplate>
                                                     </ComboBox>
-                                                    <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsModified, Mode=OneWay}">
+                                                    <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsChanged, Mode=OneWay}">
                                                         <FontIcon Glyph="&#xE777;" />
                                                     </Button>
                                                 </Grid>
@@ -112,7 +112,7 @@
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="{Binding DisplayName}" />
                                                                 <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="6,0,6,0" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
-                                                                <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsModified, Mode=OneWay}" Click="OnPropertyResetButtonClick">
+                                                                <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnPropertyResetButtonClick">
                                                                     <FontIcon Glyph="&#xE777;" />
                                                                 </Button>
                                                             </Grid>
@@ -125,8 +125,8 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,12" HorizontalAlignment="Right">
-                                <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsModified, Mode=OneWay}" />
-                                <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsModified, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />
+                                <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" />
+                                <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />
                             </StackPanel>
                         </StackPanel>
                     </Expander>

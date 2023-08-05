@@ -1,10 +1,11 @@
 using System;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
 
+// ⚠️ This class can be instantiated on any thread. Further accesses should come from the UI thread.
 internal sealed class LightingEffectViewModel
 {
 	private readonly LightingEffectInformation _effectInformation;
@@ -16,7 +17,7 @@ internal sealed class LightingEffectViewModel
 
 	public Guid EffectId => _effectInformation.EffectId;
 
-	public string DisplayName => EffectDatabase.GetEffectName(EffectId);
+	public string DisplayName => EffectDatabase.GetEffectDisplayName(EffectId) ?? string.Create(CultureInfo.InvariantCulture, $"Effect {EffectId:B}.");
 
 	public ReadOnlyCollection<PropertyViewModel> CreatePropertyViewModels()
 	{

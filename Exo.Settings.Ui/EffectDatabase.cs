@@ -5,6 +5,7 @@ namespace Exo.Settings.Ui;
 
 internal class EffectDatabase
 {
+	// TODO: Migrate to external files.
 	private static readonly Dictionary<Guid, string> EffectNames = new()
 	{
 		{ new(0xC771A454, 0xCAE5, 0x41CF, 0x91, 0x21, 0xBE, 0xF8, 0xAD, 0xC3, 0x80, 0xED), "(Not Applicable)" },
@@ -23,6 +24,6 @@ internal class EffectDatabase
 		{ new(0x99D1CFC4, 0xB25D, 0x4EEF, 0xAB, 0x17, 0x05, 0x2D, 0xF3, 0xD4, 0x93, 0x2D), "Color Flash (Advanced)" },
 	};
 
-	public static string? GetEffectName(Guid effectId)
-		=> EffectNames.TryGetValue(effectId, out string effectName) ? effectName : null;
+	public static string? GetEffectDisplayName(Guid effectId)
+		=> EffectNames.TryGetValue(effectId, out string name) ? name : null;
 }
