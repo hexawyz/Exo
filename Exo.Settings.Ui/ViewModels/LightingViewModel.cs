@@ -14,6 +14,8 @@ internal sealed class LightingViewModel : BindableObject
 	// TODO: Migrate to external files.
 	private static readonly Dictionary<Guid, string> HardcodedGuidNames = new()
 	{
+		{ new Guid(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99), "LG Monitor" },
+
 		{ new Guid(0x34D2462C, 0xE510, 0x4A44, 0xA7, 0x0E, 0x14, 0x91, 0x32, 0x87, 0x25, 0xF9), "Z490 Motherboard Lighting" },
 		{ new Guid(0xD57413D5, 0x5EA2, 0x49DD, 0xA5, 0x0A, 0x25, 0x83, 0xBB, 0x1B, 0xCA, 0x2A), "IO Shield" },
 		{ new Guid(0x7D5C9B9F, 0x96A0, 0x472B, 0xA3, 0x4E, 0xFB, 0x10, 0xA8, 0x40, 0x74, 0x22), "PCH" },
@@ -124,9 +126,12 @@ internal sealed class LightingViewModel : BindableObject
 	private async Task CacheEffectInformationAsync(WatchNotification<LightingDeviceInformation> notification, CancellationToken cancellationToken)
 	{
 		if (notification.Details.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectIds, cancellationToken);
-		foreach (var zone in notification.Details.LightingZones)
+		if (!notification.Details.LightingZones.IsDefaultOrEmpty)
 		{
-			await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken).ConfigureAwait(false);
+			foreach (var zone in notification.Details.LightingZones)
+			{
+				await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken).ConfigureAwait(false);
+			}
 		}
 	}
 

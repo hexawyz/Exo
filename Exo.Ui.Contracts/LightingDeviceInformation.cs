@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
 namespace Exo.Ui.Contracts;
@@ -10,5 +11,5 @@ public sealed class LightingDeviceInformation
 	[DataMember(Order = 2)]
 	public LightingZoneInformation? UnifiedLightingZone { get; init; }
 	[DataMember(Order = 3)]
-	public required LightingZoneInformation[] LightingZones { get; init; }
+	public required ImmutableArray<LightingZoneInformation> LightingZones { get; init; }
 }

@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices;
 using DeviceTools.HumanInterfaceDevices;
@@ -17,28 +15,6 @@ public sealed class HidI2CTransport : IAsyncDisposable
 	private const int WriteStateReady = 0;
 	private const int WriteStateReserved = 1;
 	private const int WriteStateDisposed = -1;
-
-	private abstract class ResponseWaitState
-	{
-		private TaskCompletionSource _taskCompletionSource = new();
-
-		public TaskCompletionSource TaskCompletionSource => Volatile.Read(ref _taskCompletionSource);
-
-		public abstract void OnDataReceived(ReadOnlySpan<byte> message);
-
-		[DebuggerHidden]
-		[DebuggerStepThrough]
-		[StackTraceHidden]
-		public void SetNewException(Exception exception) => SetException(ExceptionDispatchInfo.SetCurrentStackTrace(exception));
-
-		private void SetException(Exception exception) => TaskCompletionSource.TrySetException(exception);
-
-		public void Reset()
-		{
-			TaskCompletionSource.TrySetCanceled();
-			Volatile.Write(ref _taskCompletionSource, new());
-		}
-	}
 
 	private sealed class HandshakeResponseWaitState : ResponseWaitState
 	{
@@ -91,7 +67,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 				return;
 			}
 
-			if (DdcChecksum(message[..(length + 3)], 0x50) != 0)
+			if (Checksum.Xor(message[..(length + 3)], 0x50) != 0)
 			{
 				SetNewException(new InvalidDataException("The received response has an invalid DDC checksum."));
 				return;
@@ -235,16 +211,6 @@ public sealed class HidI2CTransport : IAsyncDisposable
 
 			TaskCompletionSource.TrySetResult();
 		}
-	}
-
-	private static byte DdcChecksum(ReadOnlySpan<byte> buffer, byte initialValue)
-	{
-		byte b = initialValue;
-		for (int i = 0; i < buffer.Length; i++)
-		{
-			b ^= buffer[i];
-		}
-		return b;
 	}
 
 	private readonly HidFullDuplexStream _stream;
@@ -625,7 +591,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		buffer[1] = 0x82;
 		buffer[2] = (byte)DdcCiCommand.VcpRequest;
 		buffer[3] = vcpCode;
-		buffer[4] = DdcChecksum(buffer[..4], 0x6E);
+		buffer[4] = Checksum.Xor(buffer[..4], 0x6E);
 	}
 
 	private static void WriteDdcVcpGetCapabilitiesRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, ushort offset)
@@ -641,7 +607,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		buffer[2] = (byte)DdcCiCommand.CapabilitiesRequest;
 		buffer[3] = (byte)(offset >> 8);
 		buffer[4] = (byte)offset;
-		buffer[5] = DdcChecksum(buffer[..5], 0x6E);
+		buffer[5] = Checksum.Xor(buffer[..5], 0x6E);
 	}
 
 	private static void WriteDdcVcpReadTableRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, byte vcpCode, ushort offset)
@@ -658,7 +624,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		buffer[3] = vcpCode;
 		buffer[4] = (byte)(offset >> 8);
 		buffer[5] = (byte)offset;
-		buffer[6] = DdcChecksum(buffer[..6], 0x6E);
+		buffer[6] = Checksum.Xor(buffer[..6], 0x6E);
 	}
 
 	private static void WriteDdcVcpSetRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte rawSourceAddress, byte vcpCode, ushort value)
@@ -680,7 +646,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		buffer[3] = vcpCode;
 		buffer[4] = (byte)(value >>> 8);
 		buffer[5] = (byte)value;
-		buffer[6] = DdcChecksum(buffer[..6], 0x6E);
+		buffer[6] = Checksum.Xor(buffer[..6], 0x6E);
 	}
 
 	private async Task ReadAsync(CancellationToken cancellationToken)

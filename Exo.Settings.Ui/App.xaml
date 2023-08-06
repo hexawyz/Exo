@@ -4,7 +4,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
-    xmlns:local="using:Exo.Settings.Ui">
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:converters="using:CommunityToolkit.WinUI.UI.Converters"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -32,6 +34,8 @@
             <local:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
             <local:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
             <local:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
+            <converters:CollectionVisibilityConverter x:Key="CollectionToVisibilityConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

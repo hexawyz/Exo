@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Exo.Settings.Ui.LightingZoneControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance vm:LightingZoneViewModel, IsDesignTimeCreatable=False}">
+    <UserControl.Resources>
+        <!-- TODO: Put back into App.xaml when the color picker palette can actually be set in style. -->
+        <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:PropertyViewModel">
+            <controls:ColorPickerButton SelectedColor="{Binding Value, Mode=TwoWay}" ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}" Loaded="OnColorPickerButtonLoaded" />
+        </DataTemplate>
+        <DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
+            <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+        </DataTemplate>
+        <DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:PropertyViewModel">
+            <NumberBox Value="{Binding Value, Mode=TwoWay}" />
+        </DataTemplate>
+        <DataTemplate x:Key="EnumPropertyTemplate" x:DataType="vm:PropertyViewModel">
+            <ComboBox SelectedValuePath="Value" SelectedValue="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding EnumerationValues, Mode=OneTime}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding DisplayName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </DataTemplate>
+        <DataTemplate x:Key="EnumRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
+            <Slider SnapsTo="StepValues" TickFrequency="1" Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
+                <Slider.ThumbToolTipValueConverter>
+                    <local:EnumerationValueToNameConverter Values="{Binding EnumerationValues, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+        </DataTemplate>
+        <DataTemplate x:Key="FallbackPropertyTemplate" />
+        <local:EffectPropertyTemplateSelector
+                x:Key="EffectPropertyTemplateSelector"
+                NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
+                NumericTemplate="{StaticResource NumericPropertyTemplate}"
+                ColorTemplate="{StaticResource ColorPropertyTemplate}"
+                EnumTemplate="{StaticResource EnumPropertyTemplate}"
+                EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
+                FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
+    </UserControl.Resources>
+    <StackPanel Orientation="Vertical">
+        <Grid HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="Effect" />
+            <ComboBox Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding SupportedEffects}" SelectedValue="{Binding CurrentEffect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding DisplayName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsChanged, Mode=OneWay}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Properties}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,6,0,6" HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="{Binding DisplayName}" />
+                        <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="6,0,6,0" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
+                        <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnPropertyResetButtonClick">
+                            <FontIcon Glyph="&#xE777;" />
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

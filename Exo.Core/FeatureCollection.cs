@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace Exo;
@@ -384,6 +385,36 @@ public static class FeatureCollection
 		where TFeature7 : class, TFeature
 		where TFeature8 : class, TFeature
 		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(implementation);
+
+	/// <summary>Creates a feature collection as a merge of two other collections.</summary>
+	/// <typeparam name="TFeature1">The base feature type of the first collection.</typeparam>
+	/// <typeparam name="TFeature2">The base feature type of the second collection.</typeparam>
+	/// <param name="features1">The first feature collection.</param>
+	/// <param name="features2">The second feature collection.</param>
+	/// <returns>A device collection that exposes all features of the merged collections.</returns>
+	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2>(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2)
+		where TFeature1 : class, IDeviceFeature
+		where TFeature2 : class, IDeviceFeature
+		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2);
+
+	/// <summary>Creates a feature collection as a merge of three other collections.</summary>
+	/// <typeparam name="TFeature1">The base feature type of the first collection.</typeparam>
+	/// <typeparam name="TFeature2">The base feature type of the second collection.</typeparam>
+	/// <typeparam name="TFeature3">The base feature type of the third collection.</typeparam>
+	/// <param name="features1">The first feature collection.</param>
+	/// <param name="features2">The second feature collection.</param>
+	/// <param name="features3">The third feature collection.</param>
+	/// <returns>A device collection that exposes all features of the merged collections.</returns>
+	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2, TFeature3>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature2> features2,
+		IDeviceFeatureCollection<TFeature3> features3
+	)
+		where TFeature1 : class, IDeviceFeature
+		where TFeature2 : class, IDeviceFeature
+		where TFeature3 : class, IDeviceFeature
+		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, features3);
 }
 
 /// <summary>Quickly instantiate new feature collections.</summary>
@@ -396,10 +427,31 @@ public static class FeatureCollection
 internal static class FeatureCollection<TFeature>
 	where TFeature : class, IDeviceFeature
 {
-	static FeatureCollection()
+	private static class Compatibility<TOtherFeature>
+		where TOtherFeature : class, IDeviceFeature
 	{
-		FeatureCollection.ValidateInterfaceType(typeof(TFeature));
+		public static readonly bool IsSubclass = typeof(TFeature).IsAssignableFrom(typeof(TOtherFeature));
+
+		internal static readonly Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?> RelaxedGetFeature = CreateGetFeatureDelegate();
+
+		private static Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?> CreateGetFeatureDelegate()
+		{
+			var dynamicMethod = new DynamicMethod(nameof(GetFeature), typeof(TOtherFeature), new[] { typeof(IDeviceFeatureCollection<TFeature>) });
+			var ilGenerator = dynamicMethod.GetILGenerator();
+
+			ilGenerator.Emit(OpCodes.Ldarg_0);
+			ilGenerator.Emit(OpCodes.Callvirt, typeof(TFeature).GetMethod(nameof(GetFeature))!.MakeGenericMethod(typeof(TOtherFeature)));
+			ilGenerator.Emit(OpCodes.Ret);
+
+			return dynamicMethod.CreateDelegate<Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?>>();
+		}
 	}
+
+	public static T? GetFeature<T>(IDeviceFeatureCollection<TFeature> features)
+		where T : class, IDeviceFeature
+		=> Compatibility<T>.RelaxedGetFeature(features);
+
+	static FeatureCollection() => FeatureCollection.ValidateInterfaceType(typeof(TFeature));
 
 	internal static IDeviceFeatureCollection<TFeature> Empty() => EmptyFeatureCollection.Instance;
 
@@ -562,6 +614,22 @@ internal static class FeatureCollection<TFeature>
 		where TFeature7 : class, TFeature
 		where TFeature8 : class, TFeature
 		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4), typeof(TFeature5), typeof(TFeature6), typeof(TFeature7), typeof(TFeature8) }, feature);
+
+	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1, TFeature2>(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2)
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		=> new MergedFeatureCollection<TFeature1, TFeature2>(features1, features2);
+
+	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1, TFeature2, TFeature3>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature2> features2,
+		IDeviceFeatureCollection<TFeature3> features3
+	)
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		=> new MergedFeatureCollection<TFeature1, TFeature2, TFeature3>(features1, features2, features3);
 
 	private sealed class EmptyFeatureCollection : IDeviceFeatureCollection<TFeature>
 	{
@@ -1149,6 +1217,126 @@ internal static class FeatureCollection<TFeature>
 			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature6), _feature6);
 			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature7), _feature7);
 			yield return new KeyValuePair<Type, TFeature>(typeof(TFeature8), _feature8);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private sealed class MergedFeatureCollection<TFeature1, TFeature2> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+	{
+		static MergedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+		}
+
+		private readonly IDeviceFeatureCollection<TFeature1> _features1;
+		private readonly IDeviceFeatureCollection<TFeature2> _features2;
+
+		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2)
+		{
+			_features1 = features1;
+			_features2 = features2;
+		}
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (typeof(TFeature1).IsAssignableFrom(type)) return _features1[type];
+				else if (typeof(TFeature2).IsAssignableFrom(type)) return _features2[type];
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
+			else return null;
+		}
+
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			foreach (var kvp in _features1)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature1>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			foreach (var kvp in _features2)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature2>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private sealed class MergedFeatureCollection<TFeature1, TFeature2, TFeature3> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+	{
+		static MergedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+		}
+
+		private readonly IDeviceFeatureCollection<TFeature1> _features1;
+		private readonly IDeviceFeatureCollection<TFeature2> _features2;
+		private readonly IDeviceFeatureCollection<TFeature3> _features3;
+
+		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2, IDeviceFeatureCollection<TFeature3> features3)
+		{
+			_features1 = features1;
+			_features2 = features2;
+			_features3 = features3;
+		}
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (typeof(TFeature1).IsAssignableFrom(type)) return _features1[type];
+				else if (typeof(TFeature2).IsAssignableFrom(type)) return _features2[type];
+				else if (typeof(TFeature3).IsAssignableFrom(type)) return _features3[type];
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
+			else if (FeatureCollection<TFeature3>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature3>.GetFeature<T>(_features3);
+			else return null;
+		}
+
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			foreach (var kvp in _features1)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature1>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			foreach (var kvp in _features2)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature2>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			foreach (var kvp in _features3)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature3>, KeyValuePair<Type, TFeature>>(kvp);
+			}
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

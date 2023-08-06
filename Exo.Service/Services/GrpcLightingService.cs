@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using DeviceTools;
 using Exo.Ui.Contracts;
 
 namespace Exo.Service.Services;
@@ -29,7 +27,7 @@ internal class GrpcLightingService : ILightingService
 				{
 					DeviceInformation = notification.DeviceInformation.ToGrpc(),
 					UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
-					LightingZones = Array.ConvertAll(notification.LightingDeviceInformation.LightingZones.AsMutable(), z => z.ToGrpc()),
+					LightingZones = ImmutableArray.CreateRange(notification.LightingDeviceInformation.LightingZones, z => z.ToGrpc()),
 				},
 			};
 		}

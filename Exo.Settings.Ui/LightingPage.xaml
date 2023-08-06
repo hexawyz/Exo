@@ -12,41 +12,6 @@
     d:DataContext="{d:DesignInstance vm:LightingViewModel, IsDesignTimeCreatable=False}">
 
     <Page.Resources>
-        <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <controls:ColorPickerButton SelectedColor="{Binding Value, Mode=TwoWay}" ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}" Loaded="OnColorPickerButtonLoaded" />
-        </DataTemplate>
-        <DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
-        </DataTemplate>
-        <DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <NumberBox Value="{Binding Value, Mode=TwoWay}" />
-        </DataTemplate>
-        <DataTemplate x:Key="EnumPropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <ComboBox SelectedValuePath="Value" SelectedValue="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding EnumerationValues, Mode=OneTime}" HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding DisplayName}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </DataTemplate>
-        <DataTemplate x:Key="EnumRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <Slider SnapsTo="StepValues" TickFrequency="1" Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
-                <Slider.ThumbToolTipValueConverter>
-                    <local:EnumerationValueToNameConverter Values="{Binding EnumerationValues, Mode=OneTime}" />
-                </Slider.ThumbToolTipValueConverter>
-            </Slider>
-        </DataTemplate>
-        <DataTemplate x:Key="FallbackPropertyTemplate">
-        </DataTemplate>
-        <local:EffectPropertyTemplateSelector
-            x:Key="EffectPropertyTemplateSelector"
-            NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
-            NumericTemplate="{StaticResource NumericPropertyTemplate}"
-            ColorTemplate="{StaticResource ColorPropertyTemplate}"
-            EnumTemplate="{StaticResource EnumPropertyTemplate}"
-            EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
-            FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
     </Page.Resources>
 
     <ScrollViewer Padding="{StaticResource PageDefaultPadding}" HorizontalContentAlignment="Stretch">
@@ -61,7 +26,8 @@
                             </StackPanel>
                         </Expander.Header>
                         <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
-                            <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch">
+                            <local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}" LightingZone="{Binding UnifiedLightingZone}" />
+                            <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Expander Margin="0,12,0,12" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
@@ -76,44 +42,7 @@
                                                     </Border>
                                                 </StackPanel>
                                             </Expander.Header>
-                                            <StackPanel Orientation="Vertical">
-                                                <Grid HorizontalAlignment="Stretch">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="200" />
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="Effect" />
-                                                    <ComboBox Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding SupportedEffects}" SelectedValue="{Binding CurrentEffect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch">
-                                                        <ComboBox.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <TextBlock Text="{Binding DisplayName}" />
-                                                            </DataTemplate>
-                                                        </ComboBox.ItemTemplate>
-                                                    </ComboBox>
-                                                    <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsChanged, Mode=OneWay}">
-                                                        <FontIcon Glyph="&#xE777;" />
-                                                    </Button>
-                                                </Grid>
-                                                <ItemsControl ItemsSource="{Binding Properties}">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Grid Margin="0,6,0,6" HorizontalAlignment="Stretch">
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="200" />
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="{Binding DisplayName}" />
-                                                                <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="6,0,6,0" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
-                                                                <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnPropertyResetButtonClick">
-                                                                    <FontIcon Glyph="&#xE777;" />
-                                                                </Button>
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
+                                            <local:LightingZoneControl LightingZone="{Binding}" />
                                         </Expander>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

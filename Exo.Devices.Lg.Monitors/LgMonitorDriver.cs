@@ -6,8 +6,12 @@ using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Devices.Lg.Monitors.LightingEffects;
 using Exo.Features;
+using Exo.Features.LightingFeatures;
 using Exo.Features.MonitorFeatures;
+using Exo.Lighting;
+using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Lg.Monitors;
 
@@ -16,6 +20,7 @@ public class LgMonitorDriver :
 	HidDriver,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
+	IDeviceDriver<ILightingDeviceFeature>,
 	IRawVcpFeature,
 	IBrightnessFeature,
 	IContrastFeature,
@@ -23,8 +28,18 @@ public class LgMonitorDriver :
 	IMonitorRawCapabilitiesFeature,
 	ILgMonitorScalerVersionFeature,
 	ILgMonitorNxpVersionFeature,
-	ILgMonitorDisplayStreamCompressionVersionFeature
+	ILgMonitorDisplayStreamCompressionVersionFeature,
+	IUnifiedLightingFeature,
+	ILightingZoneEffect<DisabledEffect>,
+	ILightingZoneEffect<StaticColorPreset1Effect>,
+	ILightingZoneEffect<StaticColorPreset2Effect>,
+	ILightingZoneEffect<StaticColorPreset3Effect>,
+	ILightingZoneEffect<StaticColorPreset4Effect>,
+	ILightingZoneEffect<ColorCycleEffect>,
+	ILightingZoneEffect<ColorWaveEffect>
 {
+	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
+
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
 	{
 		Properties.System.Devices.DeviceInstanceId,
@@ -75,7 +90,8 @@ public class LgMonitorDriver :
 		}
 
 		string[] deviceNames = new string[deviceInterfaces.Length + 1];
-		string? deviceInterfaceName = null;
+		string? i2cDeviceInterfaceName = null;
+		string? lightingDeviceInterfaceName = null;
 		string topLevelDeviceName = devices[0].Id;
 		ushort nxpVersion = 0xFFFF;
 
@@ -104,31 +120,35 @@ public class LgMonitorDriver :
 
 			if (usagePage == 0xFF00 && usageId == 0x01)
 			{
-				deviceInterfaceName = deviceInterface.Id;
+				i2cDeviceInterfaceName = deviceInterface.Id;
 
 				if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.VersionNumber.Key, out ushort version))
 				{
 					nxpVersion = version;
 				}
 			}
+			else if (usagePage == 0xFF01 && usageId == 0x01)
+			{
+				lightingDeviceInterfaceName = deviceInterface.Id;
+			}
 		}
 
-		if (deviceInterfaceName is null)
+		if (i2cDeviceInterfaceName is null || lightingDeviceInterfaceName is null)
 		{
-			throw new InvalidOperationException($"Could not find device interface with correct HID usages on the device interface {devices[0].Id}.");
+			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device interface {devices[0].Id}.");
 		}
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
-		var transport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(deviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
-		(ushort scalerVersion, _, _) = await transport.GetVcpFeatureAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
+		var i2cTransport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(i2cDeviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
+		(ushort scalerVersion, _, _) = await i2cTransport.GetVcpFeatureAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
 		var data = ArrayPool<byte>.Shared.Rent(1000);
 		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
-		await transport.SendLgCustomCommandAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+		await i2cTransport.SendLgCustomCommandAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
 		byte dscVersion = data[1];
 		// This special call will return the monitor model name. We can then use it as the friendly name.
-		await transport.SendLgCustomCommandAsync(0xCA, 0x00, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
+		await i2cTransport.SendLgCustomCommandAsync(0xCA, 0x00, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
 		friendlyName = "LG " + Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
-		var length = await transport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+		var length = await i2cTransport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 		ArrayPool<byte>.Shared.Return(data);
 		if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
@@ -169,7 +189,8 @@ public class LgMonitorDriver :
 		//}
 		return new LgMonitorDriver
 		(
-			transport,
+			i2cTransport,
+			new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName)),
 			nxpVersion,
 			scalerVersion,
 			dscVersion,
@@ -182,21 +203,26 @@ public class LgMonitorDriver :
 		);
 	}
 
-	private readonly HidI2CTransport _transport;
+	private readonly HidI2CTransport _i2cTransport;
+	private readonly UltraGearLightingTransport _lightingTransport;
+	private ILightingEffect _currentEffect;
+	private bool _currentEffectChanged;
 	private readonly ushort _nxpVersion;
 	private readonly ushort _scalerVersion;
 	private readonly byte _dscVersion;
 	private readonly byte[] _rawCapabilities;
 	private readonly MonitorCapabilities _parsedCapabilities;
-	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
+	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
 	private LgMonitorDriver
 	(
 		HidI2CTransport transport,
+		UltraGearLightingTransport lightingTransport,
 		ushort nxpVersion,
 		ushort scalerVersion,
 		byte dscVersion,
@@ -207,7 +233,9 @@ public class LgMonitorDriver :
 		DeviceConfigurationKey configurationKey
 	) : base(deviceNames, friendlyName, configurationKey)
 	{
-		_transport = transport;
+		_i2cTransport = transport;
+		_lightingTransport = lightingTransport;
+		_currentEffect = DisabledEffect.SharedInstance;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
 		_dscVersion = dscVersion;
@@ -221,23 +249,16 @@ public class LgMonitorDriver :
 			IRawVcpFeature,
 			IBrightnessFeature,
 			IContrastFeature>(this);
+		_lightingFeatures = FeatureCollection.Create<
+			ILightingDeviceFeature,
+			IUnifiedLightingFeature>(this);
 		_lgMonitorFeatures = FeatureCollection.Create<
 			ILgMonitorDeviceFeature,
 			LgMonitorDriver,
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_allFeatures = FeatureCollection.Create<
-			IDeviceFeature,
-			LgMonitorDriver,
-			IMonitorRawCapabilitiesFeature,
-			IMonitorCapabilitiesFeature,
-			IRawVcpFeature,
-			IBrightnessFeature,
-			IContrastFeature,
-			ILgMonitorScalerVersionFeature,
-			ILgMonitorNxpVersionFeature,
-			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
+		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures);
 	}
 
 	// The firmware archive explicitly names the SV, DV and NV as "Scaler", "DSC" and "NXP"
@@ -250,31 +271,108 @@ public class LgMonitorDriver :
 
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureCollection<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
+	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
-	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
+	public override ValueTask DisposeAsync() => _i2cTransport.DisposeAsync();
 
-	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => new(_transport.SetVcpFeatureAsync(vcpCode, value, cancellationToken));
+	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync(vcpCode, value, cancellationToken));
 
 	public async ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
-		var result = await _transport.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
+		var result = await _i2cTransport.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
 		return new(result.CurrentValue, result.MaximumValue, result.IsTemporary);
 	}
 
 	public async ValueTask<ContinuousValue> GetBrightnessAsync(CancellationToken cancellationToken)
 	{
-		var result = await _transport.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
+		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
 		return new(0, result.CurrentValue, result.MaximumValue);
 	}
 
-	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => new(_transport.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken));
+	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken));
 
 	public async ValueTask<ContinuousValue> GetContrastAsync(CancellationToken cancellationToken)
 	{
-		var result = await _transport.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
+		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
 		return new(0, result.CurrentValue, result.MaximumValue);
 	}
 
-	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_transport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));
+	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));
+
+	ValueTask IUnifiedLightingFeature.ApplyChangesAsync()
+	{
+		if (!Volatile.Read(ref _currentEffectChanged)) return ValueTask.CompletedTask;
+
+		return new ValueTask(ApplyChangesAsyncCore());
+	}
+
+	private async Task ApplyChangesAsyncCore()
+	{
+		switch (CurrentEffect)
+		{
+		case DisabledEffect:
+			// This would preserve the current lighting, so it might be worth to consider setting a static color effect here, although the LG app does not do this.
+			await _lightingTransport.EnableLightingAsync(false, default).ConfigureAwait(false);
+			break;
+		case StaticColorPreset1Effect:
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
+			break;
+		case StaticColorPreset2Effect:
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static2, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static2, default).ConfigureAwait(false);
+			break;
+		case StaticColorPreset3Effect:
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static3, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static3, default).ConfigureAwait(false);
+			break;
+		case StaticColorPreset4Effect:
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
+			break;
+		case ColorCycleEffect:
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
+			break;
+		case ColorWaveEffect:
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
+			break;
+		}
+		Volatile.Write(ref _currentEffectChanged, false);
+	}
+
+	// TODO: Use a lock for effect setting.
+	private ILightingEffect CurrentEffect
+	{
+		get => Volatile.Read(ref _currentEffect);
+		set
+		{
+			_currentEffect = value;
+			Volatile.Write(ref _currentEffectChanged, true);
+		}
+	}
+
+	bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => true;
+
+	Guid ILightingZone.ZoneId => LightingZoneGuid;
+
+	ILightingEffect ILightingZone.GetCurrentEffect() => _currentEffect;
+
+	void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => CurrentEffect = DisabledEffect.SharedInstance;
+	void ILightingZoneEffect<StaticColorPreset1Effect>.ApplyEffect(in StaticColorPreset1Effect effect) => CurrentEffect = StaticColorPreset1Effect.SharedInstance;
+	void ILightingZoneEffect<StaticColorPreset2Effect>.ApplyEffect(in StaticColorPreset2Effect effect) => CurrentEffect = StaticColorPreset2Effect.SharedInstance;
+	void ILightingZoneEffect<StaticColorPreset3Effect>.ApplyEffect(in StaticColorPreset3Effect effect) => CurrentEffect = StaticColorPreset3Effect.SharedInstance;
+	void ILightingZoneEffect<StaticColorPreset4Effect>.ApplyEffect(in StaticColorPreset4Effect effect) => CurrentEffect = StaticColorPreset4Effect.SharedInstance;
+	void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect) => CurrentEffect = ColorCycleEffect.SharedInstance;
+	void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => CurrentEffect = ColorWaveEffect.SharedInstance;
+
+	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<StaticColorPreset1Effect>.TryGetCurrentEffect(out StaticColorPreset1Effect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<StaticColorPreset2Effect>.TryGetCurrentEffect(out StaticColorPreset2Effect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<StaticColorPreset3Effect>.TryGetCurrentEffect(out StaticColorPreset3Effect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<StaticColorPreset4Effect>.TryGetCurrentEffect(out StaticColorPreset4Effect effect) => CurrentEffect.TryGetEffect(out effect);
 }

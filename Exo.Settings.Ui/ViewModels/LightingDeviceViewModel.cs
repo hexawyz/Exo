@@ -20,16 +20,29 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 
 	private int _changedZoneCount;
 	private int _busyZoneCount;
+	private bool _useUnifiedLighting;
 
 	public bool IsNotBusy => _busyZoneCount == 0;
 
 	public bool IsChanged => _changedZoneCount != 0;
 
+	public bool UseUnifiedLighting
+	{
+		get => _useUnifiedLighting;
+		set
+		{
+			if (value == UnifiedLightingZone is null) throw new InvalidOperationException(value ? "This device does not support unified lighting." : "This device only supports unified lighting.");
+			SetValue(ref _useUnifiedLighting, value);
+		}
+	}
+
 	public LightingDeviceViewModel(LightingViewModel lightingViewModel, LightingDeviceInformation lightingDeviceInformation) : base(lightingDeviceInformation.DeviceInformation)
 	{
 		LightingViewModel = lightingViewModel;
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? new LightingZoneViewModel(this, lightingDeviceInformation.UnifiedLightingZone) : null;
-		LightingZones = Array.AsReadOnly(Array.ConvertAll(lightingDeviceInformation.LightingZones, z => new LightingZoneViewModel(this, z)));
+		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
+			ReadOnlyCollection<LightingZoneViewModel>.Empty :
+			Array.AsReadOnly(Array.ConvertAll(lightingDeviceInformation.LightingZones.AsMutable(), z => new LightingZoneViewModel(this, z)));
 		_lightingZoneById = new();
 		if (UnifiedLightingZone is not null)
 		{
@@ -41,6 +54,7 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 			_lightingZoneById[zone.Id] = zone;
 			zone.PropertyChanged += OnLightingZonePropertyChanged;
 		}
+		_useUnifiedLighting = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty;
 	}
 
 	private void OnLightingZonePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -68,14 +82,25 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 		var zoneEffects = ImmutableArray.CreateBuilder<ZoneLightEffect>();
 		try
 		{
-			foreach (var zone in LightingZones)
+			if (UseUnifiedLighting && UnifiedLightingZone is not null)
 			{
-				if (zone.IsChanged)
+				if (UnifiedLightingZone.BuildEffect() is { } effect)
 				{
-					zone.OnBeforeApplyingChanges();
-					if (zone.BuildEffect() is { } effect)
+					UnifiedLightingZone.OnBeforeApplyingChanges();
+					zoneEffects.Add(new() { ZoneId = UnifiedLightingZone.Id, Effect = effect });
+				}
+			}
+			else
+			{
+				foreach (var zone in LightingZones)
+				{
+					if (zone.IsChanged)
 					{
-						zoneEffects.Add(new() { ZoneId = zone.Id, Effect = effect });
+						if (zone.BuildEffect() is { } effect)
+						{
+							zone.OnBeforeApplyingChanges();
+							zoneEffects.Add(new() { ZoneId = zone.Id, Effect = effect });
+						}
 					}
 				}
 			}

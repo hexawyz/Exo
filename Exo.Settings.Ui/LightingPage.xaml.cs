@@ -28,13 +28,5 @@ public sealed partial class LightingPage : Page
 		InitializeComponent();
 	}
 
-	private async void OnApplyButtonClick(object sender, RoutedEventArgs e)
-	{
-		await ((LightingDeviceViewModel)((FrameworkElement)sender).DataContext).ApplyChangesAsync(default);
-	}
-
-	private void OnPropertyResetButtonClick(object sender, RoutedEventArgs e) => ((PropertyViewModel)((FrameworkElement)sender).DataContext).Reset();
-
-	// Works around the bug that prevents ColorPicker.CustomPalette from being styled 😐
-	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e) => ((ColorPickerButton)sender).ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
+	private async void OnApplyButtonClick(object sender, RoutedEventArgs e) => await ((LightingDeviceViewModel)((FrameworkElement)sender).DataContext).ApplyChangesAsync(default);
 }
