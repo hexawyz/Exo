@@ -13,6 +13,8 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Exo.Settings.Ui.ViewModels;
+using CommunityToolkit.WinUI.UI.Controls;
+using CommunityToolkit.WinUI.UI;
 
 namespace Exo.Settings.Ui;
 
@@ -32,4 +34,7 @@ public sealed partial class LightingPage : Page
 	}
 
 	private void OnPropertyResetButtonClick(object sender, RoutedEventArgs e) => ((PropertyViewModel)((FrameworkElement)sender).DataContext).Reset();
+
+	// Works around the bug that prevents ColorPicker.CustomPalette from being styled 😐
+	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e) => ((ColorPickerButton)sender).ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
 }

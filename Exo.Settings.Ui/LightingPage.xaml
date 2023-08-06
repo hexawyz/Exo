@@ -13,13 +13,7 @@
 
     <Page.Resources>
         <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <controls:ColorPickerButton SelectedColor="{Binding Value, Mode=TwoWay}">
-                <controls:ColorPickerButton.ColorPickerStyle>
-                    <Style TargetType="controls:ColorPicker">
-                        <Setter Property="ColorSpectrumShape" Value="Ring" />
-                    </Style>
-                </controls:ColorPickerButton.ColorPickerStyle>
-            </controls:ColorPickerButton>
+            <controls:ColorPickerButton SelectedColor="{Binding Value, Mode=TwoWay}" ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}" Loaded="OnColorPickerButtonLoaded" />
         </DataTemplate>
         <DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
             <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />

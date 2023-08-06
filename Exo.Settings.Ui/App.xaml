@@ -3,6 +3,7 @@
     x:Class="Exo.Settings.Ui.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:local="using:Exo.Settings.Ui">
     <Application.Resources>
         <ResourceDictionary>
@@ -31,6 +32,13 @@
             <local:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
             <local:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
             <local:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
+
+            <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
+
+            <Style x:Key="RgbLightingColorPickerStyle" TargetType="controls:ColorPicker">
+                <Setter Property="ColorSpectrumShape" Value="Ring" />
+                <Setter Target="CustomPalette" Value="{StaticResource RgbLightingDefaultPalette}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
