@@ -8,6 +8,7 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly ServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
+	private string _title;
 
 	public SettingsViewModel()
 	{
@@ -18,4 +19,10 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public DevicesViewModel Devices => _devicesViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
+
+	public string Title
+	{
+		get => _title;
+		set => SetValue(ref _title, value);
+	}
 }

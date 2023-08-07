@@ -23,13 +23,15 @@
                     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
-            
+
             <Thickness x:Key="NavigationViewContentMargin">0,48,0,0</Thickness>
 
             <SolidColorBrush x:Key="WindowCaptionBackground">Transparent</SolidColorBrush>
             <SolidColorBrush x:Key="WindowCaptionBackgroundDisabled">Transparent</SolidColorBrush>
 
-            <Thickness x:Key="PageDefaultPadding">24,36,24,0</Thickness>
+            <Thickness x:Key="ContentPagePadding">0,24,0,0</Thickness>
+            <Thickness x:Key="ContentPageHeaderMargin">24,0,24,12</Thickness>
+            <Thickness x:Key="ContentPageContentPadding">24,0,24,0</Thickness>
 
             <local:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
             <local:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
