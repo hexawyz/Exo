@@ -274,7 +274,11 @@ public class LgMonitorDriver :
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
-	public override ValueTask DisposeAsync() => _i2cTransport.DisposeAsync();
+	public override async ValueTask DisposeAsync()
+	{
+		await _i2cTransport.DisposeAsync().ConfigureAwait(false);
+		await _lightingTransport.DisposeAsync().ConfigureAwait(false);
+	}
 
 	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync(vcpCode, value, cancellationToken));
 

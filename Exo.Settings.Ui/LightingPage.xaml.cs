@@ -28,5 +28,7 @@ public sealed partial class LightingPage : Page
 		InitializeComponent();
 	}
 
-	private async void OnApplyButtonClick(object sender, RoutedEventArgs e) => await ((LightingDeviceViewModel)((FrameworkElement)sender).DataContext).ApplyChangesAsync(default);
+	private async void OnDeviceApplyButtonClick(object sender, RoutedEventArgs e) => await ((LightingDeviceViewModel)((FrameworkElement)sender).DataContext).ApplyChangesAsync(default);
+
+	private void OnDeviceResetButtonClick(object sender, RoutedEventArgs e) => ((LightingDeviceViewModel)((FrameworkElement)sender).DataContext).Reset();
 }

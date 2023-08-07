@@ -65,4 +65,5 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs IsChanged = new(nameof(IsChanged));
 	public static readonly PropertyChangedEventArgs IsNotBusy = new(nameof(IsNotBusy));
 	public static readonly PropertyChangedEventArgs Properties = new(nameof(Properties));
+	public static readonly PropertyChangedEventArgs CurrentEffect = new(nameof(CurrentEffect));
 }

@@ -58,7 +58,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	private void SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate)
 	{
 		bool wasChanged = IsChanged;
-		if (SetValue(ref _currentEffect, value))
+		if (SetValue(ref _currentEffect, value, ChangedProperty.CurrentEffect))
 		{
 			var oldProperties = Properties;
 			var newProperties = value?.CreatePropertyViewModels() ?? ReadOnlyCollection<PropertyViewModel>.Empty;
@@ -232,14 +232,19 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		{
 			SetCurrentEffect(effect is null ? null : _device.LightingViewModel.GetEffect(effect.EffectId), true);
 		}
-		else if (_initialEffect?.EffectId != CurrentEffect?.EffectId)
+		else if (_initialEffect?.EffectId == CurrentEffect?.EffectId)
 		{
-			return;
+			if (Properties.Count > 0)
+			{
+				AssignPropertyInitialValues();
+			}
+			else
+			{
+				OnChangeStateChange(wasChanged);
+			}
 		}
-		else
-		{
-			AssignPropertyInitialValues();
-		}
+
+		IsNotBusy = true;
 	}
 
 	private void AssignPropertyInitialValues()
@@ -262,7 +267,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 				}
 			}
 		}
-		IsNotBusy = true;
 	}
 
 	public void Reset()

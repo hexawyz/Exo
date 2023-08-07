@@ -55,14 +55,14 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,6,0,6" Text="Effect" />
-            <ComboBox Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding SupportedEffects}" SelectedValue="{Binding CurrentEffect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch">
+            <ComboBox Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding SupportedEffects}" SelectedItem="{Binding CurrentEffect, Mode=TwoWay}" HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding DisplayName}" />
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsChanged, Mode=OneWay}">
+            <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnEffectResetButtonClick">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>

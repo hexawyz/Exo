@@ -33,4 +33,6 @@ internal sealed partial class LightingZoneControl : UserControl
 
 	// Works around the bug that prevents ColorPicker.CustomPalette from being styled 😐
 	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e) => ((ColorPickerButton)sender).ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
+
+	private void OnEffectResetButtonClick(object sender, RoutedEventArgs e) => ((LightingZoneViewModel)((FrameworkElement)sender).DataContext).Reset();
 }

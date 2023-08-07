@@ -1,10 +1,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 
 namespace Exo.Devices.Lg.Monitors;
 
-internal sealed class UltraGearLightingTransport
+internal sealed class UltraGearLightingTransport : IAsyncDisposable
 {
 	private enum Command : byte
 	{
@@ -51,6 +52,13 @@ internal sealed class UltraGearLightingTransport
 		ResetWriteBuffer(MessageLength);
 		_cancellationTokenSource = new();
 		_readTask = ReadAsync(_cancellationTokenSource.Token);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		_cancellationTokenSource.Cancel();
+		Volatile.Write(ref _currentWaitState, DisposedSentinel);
+		await _readTask.ConfigureAwait(false);
 	}
 
 	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
@@ -140,51 +148,24 @@ internal sealed class UltraGearLightingTransport
 
 	private void EndWrite(ResponseWaitState waitState) => Interlocked.CompareExchange(ref _currentWaitState, null, waitState);
 
-	public async Task SetActiveEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
-	{
-		// TODO: The request generation code could be migrated into the command state. See if it's worth it. (Might not be interesting for long commands)
-		var waitState = new CommandResponseWaitState(Command.SetActiveEffect, Direction.Set);
-		BeginWrite(waitState);
-		var buffer = WriteBuffer;
-		try
-		{
-			WriteSimpleRequest(buffer.Span[1..], waitState.Command, waitState.Direction, 0, (byte)effect);
-			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-			await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-		}
-		finally
-		{
-			EndWrite(waitState);
-		}
-	}
+	public Task SetActiveEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
+		=> ExecuteSimpleCommandAsync(Command.SetActiveEffect, Direction.Set, 0, (byte)effect, cancellationToken);
 
-	public async Task EnableLightingAsync(bool enable, CancellationToken cancellationToken)
-	{
-		// TODO: The request generation code could be migrated into the command state. See if it's worth it. (Might not be interesting for long commands)
-		var waitState = new CommandResponseWaitState(Command.EnableLighting, Direction.Set);
-		BeginWrite(waitState);
-		var buffer = WriteBuffer;
-		try
-		{
-			WriteSimpleRequest(buffer.Span[1..], waitState.Command, waitState.Direction, enable ? (byte)1 : (byte)2, 0);
-			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-			await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-		}
-		finally
-		{
-			EndWrite(waitState);
-		}
-	}
+	public Task EnableLightingAsync(bool enable, CancellationToken cancellationToken)
+		=> ExecuteSimpleCommandAsync(Command.EnableLighting, Direction.Set, enable ? (byte)1 : (byte)2, 0, cancellationToken);
 
-	public async Task EnableLightingEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
+	public Task EnableLightingEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
+		=> ExecuteSimpleCommandAsync(Command.EnableLightingEffect, Direction.Set, 3, (byte)effect, cancellationToken);
+
+	private async Task ExecuteSimpleCommandAsync(Command command, Direction direction, byte parameter1, byte parameter2, CancellationToken cancellationToken)
 	{
 		// TODO: The request generation code could be migrated into the command state. See if it's worth it. (Might not be interesting for long commands)
-		var waitState = new CommandResponseWaitState(Command.EnableLightingEffect, Direction.Set);
+		var waitState = new CommandResponseWaitState(command, direction);
 		BeginWrite(waitState);
 		var buffer = WriteBuffer;
 		try
 		{
-			WriteSimpleRequest(buffer.Span[1..], waitState.Command, waitState.Direction, 3, (byte)effect);
+			WriteSimpleRequest(buffer.Span[1..], waitState.Command, waitState.Direction, parameter1, parameter2);
 			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 			await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 		}

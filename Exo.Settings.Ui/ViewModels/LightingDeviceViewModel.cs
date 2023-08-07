@@ -118,6 +118,27 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 		}
 	}
 
+	public void Reset()
+	{
+		if (UseUnifiedLighting && UnifiedLightingZone is not null)
+		{
+			if (UnifiedLightingZone.IsChanged)
+			{
+				UnifiedLightingZone.Reset();
+			}
+		}
+		else
+		{
+			foreach (var zone in LightingZones)
+			{
+				if (zone.IsChanged)
+				{
+					zone.Reset();
+				}
+			}
+		}
+	}
+
 	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
 
 	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(DeviceId, zoneId);
