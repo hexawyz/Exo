@@ -24,16 +24,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.SourceGenerator
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8BFF-41F1-8589-922D8BE1B233}"
 	ProjectSection(SolutionItems) = preProject
-		Apple USB Keyboard.md = Apple USB Keyboard.md
-		Corsair HX1200i.md = Corsair HX1200i.md
-		Design Philosophy.md = Design Philosophy.md
-		Gigabyte Z490 Vision D.md = Gigabyte Z490 Vision D.md
-		LG 27GP950.md = LG 27GP950.md
-		Logitech Bolt.txt = Logitech Bolt.txt
-		Logitech MX Keys.md = Logitech MX Keys.md
-		NZXT Kraken Z63.md = NZXT Kraken Z63.md
-		Razer Mamba Chroma.md = Razer Mamba Chroma.md
-		ViewSonic VP2785-4K.md = ViewSonic VP2785-4K.md
+		Docs\Apple USB Keyboard.md = Docs\Apple USB Keyboard.md
+		Docs\Corsair HX1200i.md = Docs\Corsair HX1200i.md
+		Docs\Design Philosophy.md = Docs\Design Philosophy.md
+		Docs\Gigabyte Z490 Vision D.md = Docs\Gigabyte Z490 Vision D.md
+		Docs\LG 27GP950.md = Docs\LG 27GP950.md
+		Docs\Logitech Bolt.txt = Docs\Logitech Bolt.txt
+		Docs\Logitech MX Keys.md = Docs\Logitech MX Keys.md
+		Docs\NZXT Kraken Z63.md = Docs\NZXT Kraken Z63.md
+		Docs\Razer Mamba Chroma.md = Docs\Razer Mamba Chroma.md
+		Docs\Useful Bits.md = Docs\Useful Bits.md
+		Docs\ViewSonic VP2785-4K.md = Docs\ViewSonic VP2785-4K.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.DisplayDevices", "DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj", "{066B767B-6335-4AD0-98C6-3B313A8A0689}"
