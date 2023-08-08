@@ -11,8 +11,8 @@ namespace Exo.Lighting.Effects;
 /// </para>
 /// </remarks>
 [TypeId(0xB93254E0, 0xD39C, 0x40DF, 0xBF, 0x1F, 0x89, 0xD6, 0xCE, 0xB6, 0x16, 0x15)]
-public readonly struct ColorWaveEffect : ILightingEffect
+public readonly struct ColorWaveEffect : ISingletonLightingEffect
 {
-	/// <summary>Returns a boxed instance of the effect.</summary>
-	public static readonly ILightingEffect SharedInstance = new ColorWaveEffect();
+	/// <summary>Gets a boxed instance of the effect.</summary>
+	public static ISingletonLightingEffect SharedInstance { get; } = new ColorWaveEffect();
 }

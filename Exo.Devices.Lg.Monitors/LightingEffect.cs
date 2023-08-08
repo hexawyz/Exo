@@ -1,4 +1,4 @@
-﻿namespace Exo.Devices.Lg.Monitors;
+namespace Exo.Devices.Lg.Monitors;
 
 public enum LightingEffect : byte
 {
@@ -8,5 +8,6 @@ public enum LightingEffect : byte
 	Static4 = 4,
 	Peaceful = 5,
 	Dynamic = 6,
+	AudioSync = 7,
 	VideoSync = 8,
 }

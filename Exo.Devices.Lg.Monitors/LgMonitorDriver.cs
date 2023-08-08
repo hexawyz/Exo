@@ -30,7 +30,9 @@ public class LgMonitorDriver :
 	ILgMonitorNxpVersionFeature,
 	ILgMonitorDisplayStreamCompressionVersionFeature,
 	IUnifiedLightingFeature,
+	IAddressableLightingZone<RgbColor>,
 	ILightingZoneEffect<DisabledEffect>,
+	//ILightingZoneEffect<StaticColorEffect>,
 	ILightingZoneEffect<StaticColorPreset1Effect>,
 	ILightingZoneEffect<StaticColorPreset2Effect>,
 	ILightingZoneEffect<StaticColorPreset3Effect>,
@@ -138,8 +140,13 @@ public class LgMonitorDriver :
 			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device interface {devices[0].Id}.");
 		}
 
+		var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName));
+
+		byte ledCount = await lightingTransport.GetLedCountAsync(cancellationToken).ConfigureAwait(false);
+
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
 		var i2cTransport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(i2cDeviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
+
 		(ushort scalerVersion, _, _) = await i2cTransport.GetVcpFeatureAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
 		var data = ArrayPool<byte>.Shared.Rent(1000);
 		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
@@ -190,10 +197,11 @@ public class LgMonitorDriver :
 		return new LgMonitorDriver
 		(
 			i2cTransport,
-			new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName)),
+			lightingTransport,
 			nxpVersion,
 			scalerVersion,
 			dscVersion,
+			ledCount,
 			rawCapabilities,
 			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
@@ -210,6 +218,7 @@ public class LgMonitorDriver :
 	private readonly ushort _nxpVersion;
 	private readonly ushort _scalerVersion;
 	private readonly byte _dscVersion;
+	private readonly byte _ledCount;
 	private readonly byte[] _rawCapabilities;
 	private readonly MonitorCapabilities _parsedCapabilities;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
@@ -226,6 +235,7 @@ public class LgMonitorDriver :
 		ushort nxpVersion,
 		ushort scalerVersion,
 		byte dscVersion,
+		byte ledCount,
 		byte[] rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
 		ImmutableArray<string> deviceNames,
@@ -239,6 +249,7 @@ public class LgMonitorDriver :
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
 		_dscVersion = dscVersion;
+		_ledCount = ledCount;
 		_rawCapabilities = rawCapabilities;
 		_parsedCapabilities = parsedCapabilities;
 		_monitorFeatures = FeatureCollection.Create<
@@ -319,6 +330,13 @@ public class LgMonitorDriver :
 			// This would preserve the current lighting, so it might be worth to consider setting a static color effect here, although the LG app does not do this.
 			await _lightingTransport.EnableLightingAsync(false, default).ConfigureAwait(false);
 			break;
+		//case StaticColorEffect staticColor:
+		//	// We implement the static color effect using the video sync mode, which is essentially addressable mode.
+		//	// Maybe there are subtle differences with true addressable mode, but I'm not aware of them. (Is there even any actual difference between audio & video modes ?)
+		//	await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+		//	await _lightingTransport.EnableLightingEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+		//	await _lightingTransport.SetVideoSyncColors(staticColor.Color, 36, default).ConfigureAwait(false);
+		//	break;
 		case StaticColorPreset1Effect:
 			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
 			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
@@ -343,8 +361,41 @@ public class LgMonitorDriver :
 			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
 			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
 			break;
+		case AddressableColorEffect:
+			// NB: It seems that the dynamic effect will self-disable after a while if not updated. (10s)
+			// TODO: Find an acceptable way to manage this. Either force keep-alive the effect or track long delays between updates to re-enable the effect.
+			await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+
+			//_ = TestDynamicEffectAsync();
+
+			break;
 		}
 		Volatile.Write(ref _currentEffectChanged, false);
+	}
+
+	// Just used to validate that the effect works.
+	// This is a very basic effect that should probably be moved into its own class later.
+	private async Task TestDynamicEffectAsync()
+	{
+		var colors = new RgbColor[40];
+
+		for (int i = 0; i < 10; i++)
+		{
+			int j = 4 * i;
+			colors[j + 0] = new(0x00, 0x40, 0x40);
+			colors[j + 1] = new(0x00, 0xFF, 0xFF);
+			colors[j + 2] = new(0x00, 0x40, 0x40);
+			colors[j + 3] = new(0x00, 0x00, 0x00);
+		}
+
+		int k = 0;
+		while (true)
+		{
+			await this.SetColorsAsync(colors.AsSpan(k, 36));
+			k = (k + 1) & 3;
+			await Task.Delay(150);
+		}
 	}
 
 	// TODO: Use a lock for effect setting.
@@ -365,18 +416,33 @@ public class LgMonitorDriver :
 	ILightingEffect ILightingZone.GetCurrentEffect() => _currentEffect;
 
 	void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => CurrentEffect = DisabledEffect.SharedInstance;
+	//void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => CurrentEffect = effect;
 	void ILightingZoneEffect<StaticColorPreset1Effect>.ApplyEffect(in StaticColorPreset1Effect effect) => CurrentEffect = StaticColorPreset1Effect.SharedInstance;
 	void ILightingZoneEffect<StaticColorPreset2Effect>.ApplyEffect(in StaticColorPreset2Effect effect) => CurrentEffect = StaticColorPreset2Effect.SharedInstance;
 	void ILightingZoneEffect<StaticColorPreset3Effect>.ApplyEffect(in StaticColorPreset3Effect effect) => CurrentEffect = StaticColorPreset3Effect.SharedInstance;
 	void ILightingZoneEffect<StaticColorPreset4Effect>.ApplyEffect(in StaticColorPreset4Effect effect) => CurrentEffect = StaticColorPreset4Effect.SharedInstance;
 	void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect) => CurrentEffect = ColorCycleEffect.SharedInstance;
 	void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => CurrentEffect = ColorWaveEffect.SharedInstance;
+	void ILightingZoneEffect<AddressableColorEffect>.ApplyEffect(in AddressableColorEffect effect) => CurrentEffect = AddressableColorEffect.SharedInstance;
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	//bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset1Effect>.TryGetCurrentEffect(out StaticColorPreset1Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset2Effect>.TryGetCurrentEffect(out StaticColorPreset2Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset3Effect>.TryGetCurrentEffect(out StaticColorPreset3Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset4Effect>.TryGetCurrentEffect(out StaticColorPreset4Effect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<AddressableColorEffect>.TryGetCurrentEffect(out AddressableColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+
+	int IAddressableLightingZone.AddressableLightCount => _ledCount;
+	bool IAddressableLightingZone.AllowsRandomAccesses => false;
+
+	ValueTask IAddressableLightingZone<RgbColor>.SetColorsAsync(int index, ReadOnlySpan<RgbColor> colors)
+	{
+		if (index != 0) throw new ArgumentOutOfRangeException(nameof(index));
+		if (colors.Length != _ledCount) throw new ArgumentException("The number of colors received is incorrect.");
+
+		return new ValueTask(_lightingTransport.SetVideoSyncColors(colors, default));
+	}
 }

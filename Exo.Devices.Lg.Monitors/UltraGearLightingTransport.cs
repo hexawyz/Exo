@@ -9,6 +9,9 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 {
 	private enum Command : byte
 	{
+		SetVideoSyncColors = 0xC1,
+		SetAudioSyncColors = 0xC2,
+		GetLedInformation = 0xC5,
 		SetActiveEffect = 0xC7,
 		EnableLightingEffect = 0xCA,
 		EnableLighting = 0xCF,
@@ -34,13 +37,39 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		public override void OnDataReceived(ReadOnlySpan<byte> message) => TaskCompletionSource.TrySetResult();
 	}
 
+	private class LedInformationCommandResponseWaitState : CommandResponseWaitState
+	{
+		public byte LedCount { get; private set; }
+
+		public LedInformationCommandResponseWaitState() : base(Command.GetLedInformation, Direction.Get) { }
+
+		public override void OnDataReceived(ReadOnlySpan<byte> message)
+		{
+			LedCount = message[0];
+			TaskCompletionSource.TrySetResult();
+		}
+	}
+
 	private static readonly object DisposedSentinel = new object();
 
+	// The message length is hardcoded to 64 bytes.
+	// This cannot be changed without a major refactoring of the rest of the code.
+	private const int HidMessageLength = 64;
+
 	// The message length is hardcoded to 64 bytes + report ID.
-	private const int MessageLength = 65;
+	private const int HidBufferLength = HidMessageLength + 1;
+
+	// The write buffer length will hold up to two messages plus a report ID byte.
+	private const int WriteBufferLength = HidBufferLength + HidMessageLength;
 
 	private readonly HidFullDuplexStream _stream;
+
 	private readonly byte[] _buffers;
+	// We need to track the last written length at two different places because some operations will use only one buffer while others will use two.
+	// Single-buffer operations will not clear the second buffer, but further multi-buffer operation must still be aware of the facts.
+	private ushort _lastWrittenLengthSingleBuffer;
+	private ushort _lastWrittenLengthTwoBuffers;
+
 	private object? _currentWaitState;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _readTask;
@@ -48,8 +77,9 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 	public UltraGearLightingTransport(HidFullDuplexStream stream)
 	{
 		_stream = stream;
-		_buffers = GC.AllocateUninitializedArray<byte>(2 * MessageLength, true);
-		ResetWriteBuffer(MessageLength);
+		// Allocate 1 read buffer + 1 write buffer with extra capacity for one message.
+		_buffers = GC.AllocateUninitializedArray<byte>(HidBufferLength + WriteBufferLength, true);
+		ResetWriteBuffer(_buffers.AsSpan(HidBufferLength), WriteBufferLength);
 		_cancellationTokenSource = new();
 		_readTask = ReadAsync(_cancellationTokenSource.Token);
 	}
@@ -61,14 +91,15 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		await _readTask.ConfigureAwait(false);
 	}
 
-	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, HidBufferLength, HidBufferLength);
+	private Memory<byte> WriteBuffers => MemoryMarshal.CreateFromPinnedArray(_buffers, HidBufferLength, WriteBufferLength);
 
 	// We'll always keep the write buffer ready for further operations.
 	// ATM there are no regular write operations taking less than 11 bytes total, and those will always start with the same prefix, so we can avoid clearing the buffer in these cases.
-	private void ResetWriteBuffer(int messageLength)
-	{
-		var buffer = WriteBuffer.Span;
+	//private void ResetWriteBuffer(int messageLength) => ResetWriteBuffer(WriteBuffer.Span, messageLength);
 
+	private static void ResetWriteBuffer(Span<byte> buffer, int messageLength)
+	{
 		buffer[..messageLength].Clear();
 		// Initialize the write report with the standard write header
 		buffer[1] = 0x53;
@@ -148,6 +179,13 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 
 	private void EndWrite(ResponseWaitState waitState) => Interlocked.CompareExchange(ref _currentWaitState, null, waitState);
 
+	public async Task<byte> GetLedCountAsync(CancellationToken cancellationToken)
+	{
+		var ws = new LedInformationCommandResponseWaitState();
+		await ExecuteSimpleCommandAsync(ws, 0, 0, cancellationToken).ConfigureAwait(false);
+		return ws.LedCount;
+	}
+
 	public Task SetActiveEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
 		=> ExecuteSimpleCommandAsync(Command.SetActiveEffect, Direction.Set, 0, (byte)effect, cancellationToken);
 
@@ -157,15 +195,111 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 	public Task EnableLightingEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
 		=> ExecuteSimpleCommandAsync(Command.EnableLightingEffect, Direction.Set, 3, (byte)effect, cancellationToken);
 
-	private async Task ExecuteSimpleCommandAsync(Command command, Direction direction, byte parameter1, byte parameter2, CancellationToken cancellationToken)
+	public Task SetAudioSyncColors(ReadOnlySpan<RgbColor> ledColors, CancellationToken cancellationToken)
+		=> SetDynamicColors(Command.SetAudioSyncColors, ledColors, cancellationToken);
+
+	public Task SetAudioSyncColors(RgbColor color, byte count, CancellationToken cancellationToken)
+		=> SetDynamicColors(Command.SetAudioSyncColors, color, count, cancellationToken);
+
+	public Task SetVideoSyncColors(ReadOnlySpan<RgbColor> ledColors, CancellationToken cancellationToken)
+		=> SetDynamicColors(Command.SetVideoSyncColors, ledColors, cancellationToken);
+
+	public Task SetVideoSyncColors(RgbColor color, byte count, CancellationToken cancellationToken)
+		=> SetDynamicColors(Command.SetVideoSyncColors, color, count, cancellationToken);
+
+	private Task SetDynamicColors(Command command, RgbColor color, byte colorCount, CancellationToken cancellationToken)
 	{
-		// TODO: The request generation code could be migrated into the command state. See if it's worth it. (Might not be interesting for long commands)
-		var waitState = new CommandResponseWaitState(command, direction);
+		var waitState = new CommandResponseWaitState(command, Direction.Set);
 		BeginWrite(waitState);
+		var buffer = WriteBuffers;
+		int writtenLength = WriteColorBuffers(buffer.Span, command, color, colorCount);
+		// Clear the extra data from previous writes.
+		// This may clear the second buffer unnecessarily, but it should still be easier to manage it that way.
+		if (_lastWrittenLengthTwoBuffers > writtenLength)
+		{
+			buffer.Span[writtenLength.._lastWrittenLengthTwoBuffers].Clear();
+		}
+		_lastWrittenLengthTwoBuffers = _lastWrittenLengthSingleBuffer = (ushort)writtenLength;
+		return ExecuteMultipartRequestAsync(waitState, writtenLength > HidBufferLength ? buffer : buffer[..HidBufferLength], cancellationToken);
+	}
+
+	private Task SetDynamicColors(Command command, ReadOnlySpan<RgbColor> ledColors, CancellationToken cancellationToken)
+	{
+		var waitState = new CommandResponseWaitState(command, Direction.Set);
+		BeginWrite(waitState);
+		var buffer = WriteBuffers;
+		int writtenLength = WriteColorBuffers(buffer.Span, command, MemoryMarshal.AsBytes(ledColors));
+		// Clear the extra data from previous writes.
+		// This may clear the second buffer unnecessarily, but it should still be easier to manage it that way.
+		if (_lastWrittenLengthTwoBuffers > writtenLength)
+		{
+			buffer.Span[writtenLength.._lastWrittenLengthTwoBuffers].Clear();
+		}
+		_lastWrittenLengthTwoBuffers = _lastWrittenLengthSingleBuffer = (ushort)writtenLength;
+		return ExecuteMultipartRequestAsync(waitState, writtenLength > HidBufferLength ? buffer : buffer[..HidBufferLength], cancellationToken);
+	}
+
+	private static int WriteColorBuffers(Span<byte> buffer, Command command, RgbColor color, byte colorCount)
+	{
+		// Using the two static buffers that we have, we can write up to 39 colors.
+		if (colorCount > 39) throw new InvalidOperationException("Too many colors specified.");
+
+		int writeLength = 1 + 3 * colorCount;
+		WriteRequestHeader(buffer[1..], command, Direction.Set, (byte)writeLength);
+		writeLength += 6;
+		buffer[6] = 0; // No idea what this byte should be but it does seem to be an offset.
+		MemoryMarshal.Cast<byte, RgbColor>(buffer.Slice(7, colorCount * 3)).Fill(color);
+		WriteRequestTrailer(buffer[1..], writeLength - 1);
+
+		writeLength += 3;
+
+		return writeLength;
+	}
+
+	private static int WriteColorBuffers(Span<byte> buffer, Command command, ReadOnlySpan<byte> data)
+	{
+		// Using the two static buffers that we have, we can write exactly 118 data bytes and nothing more
+		if (data.IsEmpty || data.Length > 118) throw new InvalidOperationException("Too many colors specified.");
+
+		int writeLength = 1 + data.Length;
+		WriteRequestHeader(buffer[1..], command, Direction.Set, (byte)writeLength);
+		writeLength += 6;
+		buffer[6] = 0; // No idea what this byte should be but it does seem to be an offset.
+		data.CopyTo(buffer[7..]);
+		WriteRequestTrailer(buffer[1..], writeLength - 1);
+
+		writeLength += 3;
+
+		return writeLength;
+	}
+
+	private Task ExecuteSimpleCommandAsync(Command command, Direction direction, byte parameter1, byte parameter2, CancellationToken cancellationToken)
+		=> ExecuteSimpleCommandAsync(new(command, direction), parameter1, parameter2, cancellationToken);
+
+	private Task ExecuteSimpleCommandAsync(CommandResponseWaitState waitState, byte parameter1, byte parameter2, CancellationToken cancellationToken)
+	{
+		BeginWrite(waitState);
+
 		var buffer = WriteBuffer;
+		var span = WriteBuffer.Span;
+
+		WriteSimpleRequest(span[1..], waitState.Command, waitState.Direction, parameter1, parameter2);
+
+		// Clear the extra buffer contents from the last write.
+		// The condition will be true sometimes, depending on the usage, but it should generally be false.
+		if (_lastWrittenLengthSingleBuffer > 11)
+		{
+			span[11..Math.Min(HidBufferLength, (int)_lastWrittenLengthSingleBuffer)].Clear();
+		}
+		_lastWrittenLengthSingleBuffer = 11;
+
+		return ExecuteRequestAsync(waitState, buffer, cancellationToken);
+	}
+
+	private async Task ExecuteRequestAsync(CommandResponseWaitState waitState, Memory<byte> buffer, CancellationToken cancellationToken)
+	{
 		try
 		{
-			WriteSimpleRequest(buffer.Span[1..], waitState.Command, waitState.Direction, parameter1, parameter2);
 			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 			await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 		}
@@ -175,17 +309,44 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		}
 	}
 
-	private static void WriteSimpleRequest(Span<byte> buffer, Command command, Direction direction, byte parameter1, byte parameter2)
+	// NB: This is a destructive operation for the buffer.
+	// The last byte of each block will be erased, except for the last one.
+	private async Task ExecuteMultipartRequestAsync(CommandResponseWaitState waitState, Memory<byte> buffer, CancellationToken cancellationToken)
+	{
+		var remaining = buffer;
+		try
+		{
+			while (true)
+			{
+				await _stream.WriteAsync(remaining[..HidBufferLength], cancellationToken).ConfigureAwait(false);
+				remaining = remaining.Slice(HidBufferLength - 1);
+				if (remaining.Length == 1) break;
+				remaining.Span[0] = 0;
+			}
+			await waitState.TaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			EndWrite(waitState);
+		}
+	}
+
+	private static void WriteRequestHeader(Span<byte> buffer, Command command, Direction direction, byte dataLength)
 	{
 		buffer[2] = (byte)command;
 		buffer[3] = (byte)direction;
-		buffer[4] = 2; // Number of parameters
-		buffer[5] = parameter1;
-		buffer[6] = parameter2;
-		CompleteRequest(buffer, 7);
+		buffer[4] = dataLength;
 	}
 
-	private static void CompleteRequest(Span<byte> buffer, byte writtenLength)
+	private static void WriteSimpleRequest(Span<byte> buffer, Command command, Direction direction, byte parameter1, byte parameter2)
+	{
+		WriteRequestHeader(buffer, command, direction, 2);
+		buffer[5] = parameter1;
+		buffer[6] = parameter2;
+		WriteRequestTrailer(buffer, 7);
+	}
+
+	private static void WriteRequestTrailer(Span<byte> buffer, int writtenLength)
 	{
 		byte checksum = Checksum.Xor(buffer[..writtenLength], 0);
 		buffer = buffer[writtenLength..];
