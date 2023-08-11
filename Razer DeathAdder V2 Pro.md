@@ -60,12 +60,12 @@ Let's ignore the checksum byte and trim the requests to compare various requests
 001f 000000 02 00 86  # ?
 001f 000000 08 0f 03  # ?
 001f 000000 06 0f 02 00 00 08 00 01 # ?
-001f 000000 08 0f 03 0000000000 ff5f04 # Set color ?
-001f 000000 08 0f 03 0000000000 ff5e04 # Set color ?
-001f 000000 08 0f 03 0000000000 ff6004 # Set color ?
-001f 000000 08 0f 03 0000000000 00ff00 # Set color ? (To green, done in the UI)
-001f 000000 03 0f 04 01 00 54 # ?
-001f 000000 03 0f 04 01 00 ed # ?
+001f 000000 08 0f 03 0000000000 ff5f04 # Set color
+001f 000000 08 0f 03 0000000000 ff5e04 # Set color
+001f 000000 08 0f 03 0000000000 ff6004 # Set color
+001f 000000 08 0f 03 0000000000 00ff00 # Set color (To green, done in the UI)
+001f 000000 03 0f 04 01 00 54 # Set brightness
+001f 000000 03 0f 04 01 00 ed # Set brightness
 
 The excerpts below are the parts where I tried to adjust the effect brightness:
 
@@ -481,3 +481,49 @@ HID Report
         Report Count (63)
         Feature (Data,Var,Abs)
         End Collection
+
+## Calling the device through razer drivers
+
+Provided we install the drivers on our computer without synapse, is should be possible to access the Razer protocol features without actually relying on Synapse software.
+Regarding this, the question of how to get our hands on the drivers remain.
+Installing Synapse 3 to get the drivers for the device installed on the disk is a solution that works, but not one that is flexible.
+Synapse 3 will only (download ?) & install drivers for the devices that are required, which is a wise choice. (It is a feature I thought about for a much later version Exo, so I can't blame them :))
+It will have to do for now, though. (I'm assuming it would be possible to manually download those from their servers, but I'm unsure this is acceptable)
+
+From what I can see, the drivers do, as I suspected, provide a way to bypass the standard Windows HID stack and emit or receive HID reports that Windows would deem invalid.
+
+Thankfully, they do this in a quite simple way, by exposing a custom Get/Set Feature Report as IO Control Codes.
+
+For the Dock, I got the following IO Control codes:
+
+SetFeature: 0x88883010
+GetFeature: 0x88883014
+
+The calls are as straightforward as they get. No shenanigans here.
+I'm assuming these are 100% compatible with the standard Widows HidD_SetFeature / HidD_GetFeature, meaning that they would include the Report ID byte. If not, it will be easy to detect.
+
+I still don't know if these IO control codes are universal, and on which device interface they should be used.
+It is possible they work on all device interfaces, but I doubt their software would open one at random.
+
+I'm assuming the SetFeature/GetFeature stuff is quite universal across drivers for this generation of hardware, as I have a hard time imagining Razer writing 100% custom drivers for each and every device.
+It is however possible that their build system would generate drivers for each device with slightly different parameters and use different IoControl codes just for the sake of doing it.
+(That's actually what I would do if I wanted to make my stuff hard to interoperate with, as they seemingly did here by hiding their features from Windows user mode)
+
+As for the device to open, it would seem that the drivers create device notes under the following custom device class GUID: e3be005d-d130-4910-88ff-09ae02f680e9
+Those devices would generally have a name like those:
+
+ \\?\RZCONTROL#VID_1532&PID_007D&MI_00#a&1ddbaa2e&0#{e3be005d-d130-4910-88ff-09ae02f680e9}
+ \\?\RZCONTROL#VID_1532&PID_007E&MI_00#a&33f42eb&0#{e3be005d-d130-4910-88ff-09ae02f680e9}
+
+Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaannnnd… It works !
+
+Just sending that one command to the dock device is enough to change its color:
+
+00001f000000080f030000000000ea1134000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cb00
+
+And just to be sure, the same command manually adjusted for generating to green (00FF00) works:
+
+00001f000000080f03000000000000ff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fb00
+
+It does seem to immediately switch the dock to "static color" at the same time, so there is definitely something more to do here, but having this working is definitely great news.
+Having to deal with the razer custom drivers is certainly less than ideal, but at least it is easy to work with in that case.
