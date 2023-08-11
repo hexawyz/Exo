@@ -1,6 +1,6 @@
-﻿namespace Exo.Devices.Lg.Monitors;
+namespace Exo;
 
-internal static class Checksum
+public static class Checksum
 {
 	public static byte Xor(ReadOnlySpan<byte> buffer, byte initialValue)
 	{

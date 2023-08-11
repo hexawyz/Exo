@@ -246,6 +246,22 @@ public static class FeatureCollection
 		where TFeature8 : class, TFeature
 		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
 
+	/// <summary>Creates a feature collection for a type implementing one feature.</summary>
+	/// <remarks>
+	/// This method is only provided as syntactic sugar for a smooth transition from adding or removing a feature implementation in the code.
+	/// The same effect can be achieved by relying on <see cref="Create{TFeature, TSingleFeature}(TSingleFeature)"/>.
+	/// </remarks>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <typeparam name="TImplementation">The feature implementation type.</typeparam>
+	/// <typeparam name="TSingleFeature">The type of the single feature.</typeparam>
+	/// <param name="implementation">The implementation of all features.</param>
+	/// <returns>A device collection that contains one feature.</returns>
+	public static IDeviceFeatureCollection<TFeature> Create<TFeature, TImplementation, TSingleFeature>(TImplementation implementation)
+		where TFeature : class, IDeviceFeature
+		where TImplementation : class, TSingleFeature
+		where TSingleFeature : class, TFeature
+		=> Create<TFeature, TSingleFeature>(implementation);
+
 	/// <summary>Creates a feature collection for a type implementing two features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
 	/// <typeparam name="TImplementation">The feature implementation type.</typeparam>

@@ -320,7 +320,7 @@ namespace DeviceTools
 			IntPtr context
 		);
 
-		[DllImport(DevQueryLibrary, EntryPoint = "DevCreateObjectQueryFromId", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+		[DllImport(DevQueryLibrary, EntryPoint = "DevCreateObjectQueryFromIds", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 #if NET5_0_OR_GREATER
 		public static unsafe extern SafeDeviceQueryHandle DeviceCreateObjectQueryFromIds
 #else

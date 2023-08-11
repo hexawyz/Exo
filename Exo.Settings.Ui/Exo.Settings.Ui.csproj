@@ -47,9 +47,6 @@
     <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Proto\" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

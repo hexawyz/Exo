@@ -88,6 +88,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Settings.Ui", "Exo.Sett
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Contracts", "Exo.Ui.Contracts\Exo.Ui.Contracts.csproj", "{658A0673-82C3-4A90-AF76-BC070208FDCD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Razer", "Exo.Devices.Razer\Exo.Devices.Razer.csproj", "{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -588,6 +590,22 @@ Global
 		{658A0673-82C3-4A90-AF76-BC070208FDCD}.Release|x64.Build.0 = Release|Any CPU
 		{658A0673-82C3-4A90-AF76-BC070208FDCD}.Release|x86.ActiveCfg = Release|Any CPU
 		{658A0673-82C3-4A90-AF76-BC070208FDCD}.Release|x86.Build.0 = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|arm64.Build.0 = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|x64.Build.0 = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Debug|x86.Build.0 = Debug|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|arm64.ActiveCfg = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|arm64.Build.0 = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|x64.ActiveCfg = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|x64.Build.0 = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|x86.ActiveCfg = Release|Any CPU
+		{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
