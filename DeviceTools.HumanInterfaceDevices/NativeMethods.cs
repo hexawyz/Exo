@@ -93,7 +93,13 @@ namespace DeviceTools.HumanInterfaceDevices
 			[FieldOffset(15)]
 			public bool IsAbsolute;
 
-			// There are currently 10 reserved / undocumented uint values in the middle of the structure.
+			// This crucially important field was previously indicated as "Reserved"…
+			// hidpi.h says "Available in API version >= 2 only."
+			// But what is version 2 of this API ? 🤷
+			[FieldOffset(16)]
+			public ushort ReportCount;
+
+			// There are currently 9 reserved / undocumented uint values in the middle of the structure.
 
 			[FieldOffset(56)]
 			public RangeCaps Range;
@@ -176,8 +182,8 @@ namespace DeviceTools.HumanInterfaceDevices
 		{
 			// A few fields are left unused compared to the alternative Range structure.
 #pragma warning disable CS0169, IDE0051, RCS1213
-			private readonly ushort _reserved1;
 			public ushort Usage;
+			private readonly ushort _reserved1;
 			public ushort StringIndex;
 			private readonly ushort _reserved2;
 			public ushort DesignatorIndex;

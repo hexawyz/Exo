@@ -357,6 +357,7 @@ internal static class Program
 						PrintUsageAndPage("║ │ Button", button.UsagePage, button.NotRange.Usage);
 						Console.WriteLine($"║ │ Data Index: {button.NotRange.DataIndex}");
 					}
+					Console.WriteLine($"║ │ Report Count: {button.ReportCount}");
 					if (button.IsStringRange)
 					{
 						Console.WriteLine($@"║ │ String #{button.Range.StringMin} .. #{button.Range.StringMax}: ""{device.GetString(button.Range.StringMin)}"" .. ""{device.GetString(button.Range.StringMax)}""");
