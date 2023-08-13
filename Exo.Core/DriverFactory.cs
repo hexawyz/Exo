@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Exo;
 
@@ -25,7 +21,7 @@ public static class DriverFactory
 		RequiredParameterMismatch = 4,
 		UnallowedByRefParameter = 5,
 		OptionalParameterNotFound = 6,
-		OptionalParameterTypeMismatch = 6,
+		OptionalParameterTypeMismatch = 7,
 	}
 
 	public readonly struct ValidationResult

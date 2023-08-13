@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
@@ -409,44 +410,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			_ => throw new InvalidOperationException(),
 		};
 
-		// If the device is a receiver, setup it so that notifications are received, and child devices enumerated.
-		if (device is RegisterAccessReceiver)
-		{
-			try
-			{
-				// Enable device arrival notifications, and set the "software present" flag.
-				await transport.RegisterAccessSetRegisterWithRetryAsync
-				(
-					255,
-					Address.EnableHidPlusPlusNotifications,
-					new EnableHidPlusPlusNotifications.Parameters
-					{
-						ReceiverReportingFlags = ReceiverReportingFlags.WirelessNotifications | ReceiverReportingFlags.SoftwarePresent
-					},
-					retryCount,
-					cancellationToken
-				).ConfigureAwait(false);
-
-				// Enumerate all connected devices.
-				await transport.RegisterAccessSetRegisterWithRetryAsync
-				(
-					255,
-					Address.ConnectionState,
-					new ConnectionState.SetRequest
-					{
-						Action = ConnectionStateAction.FakeDeviceArrival
-					},
-					retryCount,
-					cancellationToken
-				).ConfigureAwait(false);
-			}
-			catch
-			{
-				await device.DisposeAsync().ConfigureAwait(false);
-				throw;
-			}
-		}
-
 		return device;
 	}
 
@@ -754,6 +717,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		private LightweightSingleProducerSingleConsumerQueue<(DeviceEventKind kind, HidPlusPlusDevice device, int Version)> _eventQueue;
 		private readonly Task _deviceWatcherTask;
 		private readonly Task _eventProcessingTask;
+		private bool _deviceWatchStarted;
 
 		public event ReceiverDeviceEventHandler? DeviceDiscovered;
 		public event ReceiverDeviceEventHandler? DeviceConnected;
@@ -783,7 +747,16 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			while (true)
 			{
-				var task = await _deviceOperationTaskQueue.DequeueAsync().ConfigureAwait(false);
+				Task task;
+
+				try
+				{
+					task = await _deviceOperationTaskQueue.DequeueAsync().ConfigureAwait(false);
+				}
+				catch (ObjectDisposedException)
+				{
+					return;
+				}
 
 				try
 				{
@@ -791,6 +764,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				}
 				catch (Exception ex)
 				{
+					// TODO: Make the necessary so that this can be observed somewhere ?
 				}
 			}
 		}
@@ -818,8 +792,86 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				}
 				catch (Exception ex)
 				{
+					// TODO: Make the necessary so that this can be observed somewhere ?
 				}
 			}
+		}
+
+		/// <summary>Gets the devices currently known.</summary>
+		/// <remarks>
+		/// <para>
+		/// This method is executed concurrently with device discovery. It is not guaranteed to return a strictly consistent result.
+		/// The list of devices will, however, not change frequently after the initial discovery.
+		/// Only device pairing or unpairing can affect the observed list of devices.
+		/// </para>
+		/// <para>
+		/// In order to properly track devices, it is recommended to track devices by first setting up the events <see cref="DeviceDiscovered"/>,
+		/// <see cref="DeviceConnected"/> and <see cref="DeviceDisconnected"/> before calling <see cref="StartWatchingDevicesAsync(CancellationToken)"/>.
+		/// </para>
+		/// <para>Before <see cref="StartWatchingDevicesAsync(CancellationToken)"/> is called, no child device will be registered.</para>
+		/// </remarks>
+		public async Task<HidPlusPlusDevice[]> GetCurrentDevicesAsync()
+		{
+			var devices = new List<HidPlusPlusDevice>();
+
+			foreach (var state in Transport.Devices)
+			{
+				switch (state.CustomState)
+				{
+				case HidPlusPlusDevice device: devices.Add(device); break;
+				case Task<HidPlusPlusDevice> task:
+					try
+					{
+						devices.Add(await task.ConfigureAwait(false));
+					}
+					catch { }
+					break;
+				}
+			}
+
+			return devices.ToArray();
+		}
+
+		public Task StartWatchingDevicesAsync(CancellationToken cancellationToken)
+			=> StartWatchingDevicesAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
+
+		public async Task StartWatchingDevicesAsync(int retryCount, CancellationToken cancellationToken)
+		{
+			await EnableDeviceNotificationsAsync(retryCount, cancellationToken).ConfigureAwait(false);
+			Volatile.Write(ref _deviceWatchStarted, true);
+			await EnumerateDevicesAsync(retryCount, cancellationToken).ConfigureAwait(false);
+		}
+
+		internal async Task EnableDeviceNotificationsAsync(int retryCount, CancellationToken cancellationToken)
+		{
+			// Enable device arrival notifications, and set the "software present" flag.
+			await Transport.RegisterAccessSetRegisterWithRetryAsync
+			(
+				255,
+				Address.EnableHidPlusPlusNotifications,
+				new EnableHidPlusPlusNotifications.Parameters
+				{
+					ReceiverReportingFlags = ReceiverReportingFlags.WirelessNotifications | ReceiverReportingFlags.SoftwarePresent
+				},
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
+		}
+
+		internal async Task EnumerateDevicesAsync(int retryCount, CancellationToken cancellationToken)
+		{
+			// Enumerate all connected devices.
+			await Transport.RegisterAccessSetRegisterWithRetryAsync
+			(
+				255,
+				Address.ConnectionState,
+				new ConnectionState.SetRequest
+				{
+					Action = ConnectionStateAction.FakeDeviceArrival
+				},
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
 		}
 
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
@@ -847,6 +899,10 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			// Once we create the device object, it will automatically process the notifications.
 			if (header.SubId == SubId.DeviceConnect)
 			{
+				// Ignore device connect notifications if the StartWatchingDevicesAsync method ahs not been called.
+				// This ensures that consumers of the class have a chance to observe all devices through events.
+				if (!Volatile.Read(ref _deviceWatchStarted)) return;
+
 				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
 
 				// All (Quad) HID++ 2.0 should adhere to this product ID mapping for now. It is important to know this in advance because the device might be offline.
@@ -942,7 +998,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 					Volatile.Write(ref Transport.Devices[deviceIndex].CustomState, task);
 
-					await task;
+					await task.ConfigureAwait(false);
 				}
 				catch
 				{

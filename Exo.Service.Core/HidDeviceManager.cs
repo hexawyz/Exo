@@ -50,8 +50,6 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	private readonly ConcurrentDictionary<HidVendorKey, DriverTypeReference> _vendorDrivers;
 	private readonly ConcurrentDictionary<HidProductKey, DriverTypeReference> _productDrivers;
 	private readonly ConcurrentDictionary<HidProductVersionKey, DriverTypeReference> _productVersionDrivers;
-	private readonly ConditionalWeakTable<Type, Func<Task<Driver>>> _driverFactoryMethods;
-	private readonly Dictionary<(ushort ProductId, ushort VendorId, ushort? VersionNumber), (AssemblyName AssemblyName, string TypeName)> _knownHidDrivers;
 
 	public HidDeviceManager
 	(
@@ -265,10 +263,16 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 			if (current.Assembly.GetName().Name == DriverAssemblyName && current.FullName == DriverTypeFullName)
 			{
-				foreach (var interfaceType in type.GetInterfaces())
-				{
-					if (interfaceType.Assembly.GetName().Name == SystemDeviceDriverAssemblyName && interfaceType.FullName == SystemDeviceDriverTypeFullName)
-					{
+				// Disable the check on implementation of ISystemDeviceDriver in order to improve flexibility of the model.
+				// This is less that ideal, but this should be addressed with the more complete device factory model to be introduced later.
+				// For now, relaxing this criterion allows factory methods to provide more varied implementations depending on the actual device.
+				// This will notably help for cases where the same base implementation is used for system devices and child devices.
+				// Providing the ISystemDeviceDriver interface is only required/possible for devices that actually system devices.
+				// In the later model, this information will be decoupled from the driver instance and fed directly to the driver registry.
+				//foreach (var interfaceType in type.GetInterfaces())
+				//{
+				//	if (interfaceType.Assembly.GetName().Name == SystemDeviceDriverAssemblyName && interfaceType.FullName == SystemDeviceDriverTypeFullName)
+				//	{
 						var result = DriverFactory.ValidateDriver<HidDriverFactory, HidDriverCreationContext, HidDriverWrapper>(type);
 
 						if (result.ErrorCode == DriverFactory.ValidationErrorCode.None)
@@ -279,9 +283,9 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 						// TODO: Emit an appropriate error or warning here.
 
 						return false;
-					}
-				}
-				return false;
+				//	}
+				//}
+				//return false;
 			}
 
 			current = current.BaseType;

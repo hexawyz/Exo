@@ -20,7 +20,13 @@ internal sealed class HidDriverWrapper : IDriverCreationResult, ISystemDeviceDri
 
 	public async ValueTask DisposeAsync()
 	{
-		await ((ISystemDeviceDriver)Driver).DisposeAsync().ConfigureAwait(false);
-		_nestedDriverRegistry?.Dispose();
+		try
+		{
+			await ((ISystemDeviceDriver)Driver).DisposeAsync().ConfigureAwait(false);
+		}
+		finally
+		{
+			_nestedDriverRegistry?.Dispose();
+		}
 	}
 }
