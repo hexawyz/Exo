@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 
 namespace Exo.Devices.Lg.Monitors;
@@ -89,6 +88,7 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		_cancellationTokenSource.Cancel();
 		Volatile.Write(ref _currentWaitState, DisposedSentinel);
 		await _readTask.ConfigureAwait(false);
+		await _stream.DisposeAsync().ConfigureAwait(false);
 	}
 
 	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, HidBufferLength, HidBufferLength);

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
+using DeviceTools.HumanInterfaceDevices;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
@@ -16,6 +17,7 @@ namespace Exo.Devices.Razer;
 [ProductId(VendorIdSource.Usb, 0x1532, 0x007E)] // Dock
 public sealed class RazerDeviceDriver :
 	HidDriver,
+	IRazerDeviceNotificationSink,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IUnifiedLightingFeature,
 	ILightingZoneEffect<DisabledEffect>,
@@ -83,6 +85,7 @@ public sealed class RazerDeviceDriver :
 
 		string[] deviceNames = new string[hidDeviceInterfaces.Length + 2];
 		string topLevelDeviceName = devices[0].Id;
+		string? notificationDeviceName = null;
 
 		// Set the razer control device as the first device name for now.
 		deviceNames[0] = razerControlDeviceName;
@@ -94,6 +97,33 @@ public sealed class RazerDeviceDriver :
 		{
 			var deviceInterface = hidDeviceInterfaces[i];
 			deviceNames[i + 1] = deviceInterface.Id;
+
+			if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage) &&
+				deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId) &&
+				usagePage == (ushort)HidUsagePage.GenericDesktop && usageId == 0)
+			{
+				using (var device = HidDevice.FromPath(deviceInterface.Id))
+				{
+					// TODO: Might finally be time to work on that HID descriptor part 😫
+					// Also, I don't know why Windows insist on declaring the values we are looking for as button. The HID descriptor clearly indicates values between 0 and 255…
+					var nodes = device.GetButtonCapabilities(NativeMethods.HidParsingReportType.Input);
+
+					// Thanks to the button caps we can check the Report ID.
+					// We are looking for the HID device interface tied to the collection with Report ID 5.
+					// (Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
+					if (nodes[0].ReportID == 5)
+					{
+						if (notificationDeviceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
+
+						notificationDeviceName = deviceInterface.Id;
+					}
+				}
+			}
+		}
+
+		if (notificationDeviceName is null)
+		{
+			throw new InvalidOperationException("The device interface for device notifications was not found.");
 		}
 
 		var transport = new RazerProtocolTransport(Device.OpenHandle(razerControlDeviceName, DeviceAccess.None));
@@ -103,6 +133,7 @@ public sealed class RazerDeviceDriver :
 		return new RazerDeviceDriver
 		(
 			transport,
+			new(notificationDeviceName),
 			productId == 0x007E ? DeviceCategory.Usb : DeviceCategory.Mouse,
 			productId == 0x007E ? DockLightingZoneGuid : DeathAdderV2ProLightingZoneGuid,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
@@ -112,6 +143,8 @@ public sealed class RazerDeviceDriver :
 	}
 
 	private readonly RazerProtocolTransport _transport;
+	private readonly RazerDeviceNotificationWatcher _watcher;
+	private ILightingEffect _appliedEffect;
 	private ILightingEffect _currentEffect;
 	private readonly Guid _lightingZoneId;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
@@ -124,6 +157,7 @@ public sealed class RazerDeviceDriver :
 
 	private RazerDeviceDriver(
 		RazerProtocolTransport transport,
+		HidFullDuplexStream notificationStream,
 		DeviceCategory deviceCategory,
 		Guid lightingZoneId,
 		ImmutableArray<string> deviceNames,
@@ -132,6 +166,8 @@ public sealed class RazerDeviceDriver :
 	) : base(deviceNames, friendlyName, configurationKey)
 	{
 		_transport = transport;
+		_watcher = new(notificationStream, this);
+		_appliedEffect = DisabledEffect.SharedInstance;
 		_currentEffect = DisabledEffect.SharedInstance;
 		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, RazerDeviceDriver, IUnifiedLightingFeature>(this);
 		_allFeatures = FeatureCollection.Create<IDeviceFeature, RazerDeviceDriver, IUnifiedLightingFeature>(this);
@@ -145,16 +181,25 @@ public sealed class RazerDeviceDriver :
 		return ValueTask.CompletedTask;
 	}
 
+	public void OnDeviceArrival()
+	{
+		ApplyChanges(_appliedEffect);
+	}
+
+	public void OnDeviceRemoval()
+	{
+	}
+
 	// TODO
 	bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => true;
 
 	ValueTask IUnifiedLightingFeature.ApplyChangesAsync()
 	{
-		ApplyChanges();
+		ApplyChanges(_appliedEffect = _currentEffect);
 		return ValueTask.CompletedTask;
 	}
 
-	private void ApplyChanges()
+	private void ApplyChanges(ILightingEffect effect)
 	{
 		switch (_currentEffect)
 		{

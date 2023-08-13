@@ -193,6 +193,29 @@ namespace DeviceTools.HumanInterfaceDevices
 #pragma warning restore CS0169, IDE0051, RCS1213
 		}
 
+		public unsafe struct HidParsingExtendedAttributesHeader
+		{
+#pragma warning disable CS0169, IDE0051, RCS1213
+			public byte NumGlobalUnknowns;
+			private readonly byte _reserved1;
+			private readonly byte _reserved2;
+			private readonly byte _reserved3;
+			public HidParsingUnknownToken* GlobalUnknowns;
+#pragma warning restore CS0169, IDE0051, RCS1213
+			// Data follow this header
+		}
+
+		public struct HidParsingUnknownToken
+		{
+#pragma warning disable CS0169, IDE0051, RCS1213
+			public byte Token;
+			private readonly byte _reserved1;
+			private readonly byte _reserved2;
+			private readonly byte _reserved3;
+			public uint BitField;
+#pragma warning restore CS0169, IDE0051, RCS1213
+		}
+
 		[StructLayout(LayoutKind.Sequential)]
 		public struct HidParsingLinkCollectionNode
 		{
@@ -250,6 +273,27 @@ namespace DeviceTools.HumanInterfaceDevices
 			NotImplemented = 0xC0110020,
 		}
 
+		public static readonly uint HidLibraryVersion = GetHidLibraryVersion();
+
+		private static unsafe uint GetHidLibraryVersion()
+		{
+			uint version = 1;
+			var library = NativeLibrary.Load("hid");
+			try
+			{
+				if (NativeLibrary.TryGetExport(library, "HidP_GetVersionInternal", out nint address))
+				{
+					((delegate*<out uint, uint>)address)(out version);
+				}
+			}
+			finally
+			{
+				NativeLibrary.Free(library);
+			}
+
+			return version;
+		}
+
 		[DllImport("hid", EntryPoint = "HidD_GetPreparsedData", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern int HidDiscoveryGetPreparsedData(SafeFileHandle deviceFileHandle, out IntPtr preparsedData);
 
@@ -292,6 +336,9 @@ namespace DeviceTools.HumanInterfaceDevices
 
 		[DllImport("hid", EntryPoint = "HidP_GetValueCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
 		private static extern HidParsingResult HidParsingGetValueCaps(HidParsingReportType reportType, ref /* HidParsingValueCaps */ byte firstValueCap, ref ushort valueCapsLength, ref byte preparsedData);
+
+		[DllImport("hid", EntryPoint = "HidP_GetValueCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
+		private static extern HidParsingResult HidP_GetExtendedAttributes(HidParsingReportType reportType, ushort dataIndex, ref byte preparsedData, ref byte attributes, ref uint attributeByteCount);
 
 		// Work around P/Invoke refusing to consider bool as blittable…
 		public static HidParsingResult HidParsingGetValueCaps(HidParsingReportType reportType, ref HidParsingValueCaps firstValueCap, ref ushort buttonCapsLength, ref byte preparsedData)
