@@ -29,6 +29,9 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 		{ DeviceCategory.Webcam, "\uE960" },
 		{ DeviceCategory.Camera, "\uE722" },
 		{ DeviceCategory.Smartphone, "\uE8EA" },
+		{ DeviceCategory.Battery, "\uF5FC" },
+		{ DeviceCategory.MouseDock, "\uE95F" },
+		{ DeviceCategory.MousePad, "\uE7FB" },
 	};
 
 	public object Convert(object value, Type targetType, object parameter, string language)

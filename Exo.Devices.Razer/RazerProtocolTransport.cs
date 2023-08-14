@@ -1,4 +1,6 @@
-using System.Drawing;
+using System.Buffers.Binary;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
@@ -47,6 +49,36 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 	private void SetFeature(ReadOnlySpan<byte> buffer) => _deviceHandle.IoControl(SetFeatureIoControlCode, buffer, default);
 	private void GetFeature(Span<byte> buffer) => _deviceHandle.IoControl(GetFeatureIoControlCode, default, buffer);
+
+	public bool Handshake()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x08;
+
+				buffer[6] = 0x02;
+				buffer[7] = 0x00;
+				buffer[8] = 0x86;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				return TryReadResponse(buffer, 0x08, 0x00, 0x86, 4);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
 
 	public void SetBrightness(byte value)
 	{
@@ -128,28 +160,106 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 				SetFeature(buffer);
 
-				buffer.Clear();
+				ReadResponse(buffer, 0x08, 0x00, 0x82, 0);
 
-				GetFeature(buffer);
-				ValidateChecksum(buffer);
+				var value = buffer[9..^2];
 
-				if (buffer[1] == 0x02 && buffer[2] == 0x08 && buffer[6] == 0x16 && buffer[7] == 0x00 && buffer[8] == 0x82)
-				{
-					var value = buffer[9..^2];
+				int length = value.IndexOf((byte)0);
 
-					int length = value.IndexOf((byte)0);
+				if (length < 0) length = value.Length;
 
-					if (length < 0) length = value.Length;
-
-					return Encoding.ASCII.GetString(value[..length]);
-				}
-
-				throw new InvalidDataException("Failed to read the serial number.");
+				return Encoding.ASCII.GetString(value[..length]);
 			}
 			finally
 			{
 				// TODO: Improve computations to take into account the written length.
 				buffer.Clear();
+			}
+		}
+	}
+
+	public PairedDeviceInformation[] GetDevicePairingInformation()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x08;
+
+				buffer[6] = 0x31;
+				buffer[7] = 0x00;
+				buffer[8] = 0xbf;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x08, 0x00, 0xbf, 0);
+
+				byte deviceCount = buffer[9];
+
+				if (deviceCount < 0) return Array.Empty<PairedDeviceInformation>();
+				// We couldn't hold information for more than 26 devices in the 90 bytes-long buffer.
+				if (deviceCount > 26) throw new InvalidDataException("The returned number of paired devices appears to be too large.");
+
+				var devices = new PairedDeviceInformation[deviceCount];
+
+				for (int i = 0; i < devices.Length; i++)
+				{
+					int j = 10 + 3 * i;
+
+					devices[i] = new(buffer[j] == 1, BigEndian.ReadUInt16(buffer[j + 1]));
+				}
+
+				return devices;
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	private void ReadResponse(Span<byte> buffer, byte commandByte1, byte commandByte2, byte commandByte3, int errorResponseRetryCount)
+	{
+		if (!TryReadResponse(buffer, commandByte1, commandByte2, commandByte3, errorResponseRetryCount))
+		{
+			throw new InvalidOperationException("The device did not return a valid response.");
+		}
+	}
+
+	private bool TryReadResponse(Span<byte> buffer, byte commandByte1, byte commandByte2, byte commandByte3, int errorResponseRetryCount)
+	{
+		while (true)
+		{
+			buffer.Clear();
+
+			GetFeature(buffer);
+			ValidateChecksum(buffer);
+
+			if (buffer[2] == commandByte1 && buffer[7] == commandByte2 && buffer[8] == commandByte3)
+			{
+				switch (buffer[1])
+				{
+				case 0x01:
+					continue;
+				case 0x02:
+					return true;
+				case 0x04:
+					if (errorResponseRetryCount == 0) return false;
+					continue;
+				default:
+					throw new InvalidDataException("The response could not be decoded properly.");
+				}
+			}
+			else
+			{
+				throw new InvalidDataException("The response was invalid.");
 			}
 		}
 	}

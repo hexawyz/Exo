@@ -18,7 +18,10 @@ internal class GrpcLightingService : ILightingService
 	{
 		await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken))
 		{
-			RegisterEffectTypes(notification);
+			if (notification.Kind is not WatchNotificationKind.Removal)
+			{
+				RegisterEffectTypes(notification);
+			}
 
 			yield return new()
 			{

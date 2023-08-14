@@ -1,8 +1,10 @@
-﻿namespace Exo.Devices.Razer;
+namespace Exo.Devices.Razer;
 
 internal interface IRazerDeviceNotificationSink
 {
-	void OnDeviceArrival();
+	void OnDeviceArrival(byte deviceIndex);
 
-	void OnDeviceRemoval();
+	void OnDeviceRemoval(byte deviceIndex);
+
+	void OnDeviceDpiChange(byte deviceIndex, ushort dpi1, ushort dpi2);
 }

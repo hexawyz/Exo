@@ -142,26 +142,23 @@ public class LightingService : IAsyncDisposable
 						}
 						break;
 					case WatchNotificationKind.Removal:
-						if (_lightingDevices.TryRemove(notification.DeviceInformation.DeviceId, out deviceDetails))
+						if (_lightingDevices.TryRemove(notification.DeviceInformation.DeviceId, out var details))
 						{
-							if (_lightingDevices.TryRemove(notification.DeviceInformation.DeviceId, out var details))
+							if (details.LightingDeviceInformation.UnifiedLightingZone is not null)
 							{
-								if (details.LightingDeviceInformation.UnifiedLightingZone is not null)
-								{
-									_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out _);
-								}
-								foreach (var zone in details.LightingDeviceInformation.LightingZones)
-								{
-									_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, zone.ZoneId), out _);
-								}
-								try
-								{
-									_devicesUpdated.Invoke(notification.Kind, deviceDetails);
-								}
-								catch (AggregateException)
-								{
-									// TODO: Log
-								}
+								_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out _);
+							}
+							foreach (var zone in details.LightingDeviceInformation.LightingZones)
+							{
+								_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, zone.ZoneId), out _);
+							}
+							try
+							{
+								_devicesUpdated.Invoke(notification.Kind, details);
+							}
+							catch (AggregateException)
+							{
+								// TODO: Log
 							}
 						}
 						break;

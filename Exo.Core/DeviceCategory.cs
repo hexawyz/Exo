@@ -27,4 +27,7 @@ public enum DeviceCategory
 	Webcam,
 	Camera,
 	Smartphone,
+	Battery,
+	MouseDock,
+	MousePad,
 }

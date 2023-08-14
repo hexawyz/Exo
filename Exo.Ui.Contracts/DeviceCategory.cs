@@ -47,4 +47,10 @@ public enum DeviceCategory
 	Camera,
 	[EnumMember]
 	Smartphone,
+	[EnumMember]
+	Battery,
+	[EnumMember]
+	MouseDock,
+	[EnumMember]
+	MousePad,
 }

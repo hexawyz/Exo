@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using DeviceTools.HumanInterfaceDevices;
 
 namespace Exo.Devices.Razer;
@@ -62,11 +62,11 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 		if (span[0] == 9)
 		{
 			// There are two parameters to this notification.
-			// The second one could be a device index but hard to know for sure.
+			// The second one is very likely a one-based device index, so we'll use it as such for now.
 			switch (span[1])
 			{
-			case 2: sink.OnDeviceRemoval(); break;
-			case 3: sink.OnDeviceArrival(); break;
+			case 2: sink.OnDeviceRemoval(span[2]); break;
+			case 3: sink.OnDeviceArrival(span[2]); break;
 			}
 		}
 	}
