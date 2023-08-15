@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
@@ -12,9 +11,13 @@ namespace Exo.Devices.Logitech;
 
 // This driver is a catch-all for Logitech devices. On first approximation, they should all implement the proprietary HID++ protocol.
 [DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
-[VendorId(VendorIdSource.Usb, 0x046D)]
-public abstract class LogitechUniversalDriver : Driver
+[VendorId(VendorIdSource.Usb, LogitechUsbVendorId)]
+public abstract class LogitechUniversalDriver : Driver,
+	ISerialNumberDeviceFeature,
+	IDeviceIdDeviceFeature
 {
+	private const int LogitechUsbVendorId = 0x046D;
+
 	// Hardcoded value for the software ID. Hoping it will not conflict with anything still in use today.
 	private const int SoftwareId = 3;
 
@@ -29,11 +32,14 @@ public abstract class LogitechUniversalDriver : Driver
 
 	private static readonly Property[] RequestedDeviceProperties = new Property[]
 	{
-		Properties.System.Devices.DeviceInstanceId,
+		//Properties.System.Devices.DeviceInstanceId,
 		Properties.System.Devices.Parent,
+		Properties.System.Devices.BusTypeGuid,
+		Properties.System.Devices.ClassGuid,
+		Properties.System.Devices.EnumeratorName,
 	};
 
-	public static async Task<LogitechUniversalDriver> CreateAsync(string deviceName, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
+	public static async Task<LogitechUniversalDriver> CreateAsync(string deviceName, ushort productId, ushort version, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
 	{
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -56,7 +62,7 @@ public abstract class LogitechUniversalDriver : Driver
 
 		if (deviceInterfaces.Length == 0)
 		{
-			throw new InvalidOperationException("No device interfaces compatible with logitech HID++ found.");
+			throw new InvalidOperationException("No device interfaces compatible with logi HID++ found.");
 		}
 
 		// Also fetch all the devices with the same container ID, so that we can find the top-level device.
@@ -73,7 +79,7 @@ public abstract class LogitechUniversalDriver : Driver
 			throw new InvalidOperationException();
 		}
 
-		var parentDevices = devices.ToDictionary(d => (string)d.Properties[Properties.System.Devices.DeviceInstanceId.Key]!, d => (string)d.Properties[Properties.System.Devices.Parent.Key]!);
+		var devicesById = devices.ToDictionary(d => d.Id);
 
 		string[] deviceNames = new string[deviceInterfaces.Length + 1];
 		HidPlusPlusProtocolFlavor protocolFlavor = default;
@@ -82,7 +88,7 @@ public abstract class LogitechUniversalDriver : Driver
 		string? veryLongInterfaceName = null;
 		SupportedReports discoveredReports = 0;
 		SupportedReports expectedReports = 0;
-		ushort productId = 0;
+		DeviceIdSource deviceIdSource = DeviceIdSource.Unknown;
 
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
@@ -94,11 +100,7 @@ public abstract class LogitechUniversalDriver : Driver
 				throw new InvalidOperationException($"No HID product ID associated with the device interface {deviceInterface.Id}.");
 			}
 
-			if (productId == 0)
-			{
-				productId = pid;
-			}
-			else if (pid != productId)
+			if (pid != productId)
 			{
 				throw new InvalidOperationException($"Inconsistent product ID for the device interface {deviceInterface.Id}.");
 			}
@@ -110,13 +112,52 @@ public abstract class LogitechUniversalDriver : Driver
 
 			// We must go from Device Interface to Device (Top Level Collection) to Device (USB/BT Interface) to Device (Parent)
 			// Like most code here, we don't expect this to fail in normal conditions, so throwing an exception here is acceptable.
-			var topLevelDeviceName = parentDevices[parentDevices[deviceInstanceId]];
+			var device = devicesById[deviceInstanceId];
+			var parentDevice = devicesById[(string)device.Properties[Properties.System.Devices.Parent.Key]!];
+			var topLevelDevice = devicesById[(string)parentDevice.Properties[Properties.System.Devices.Parent.Key]!];
+			string topLevelDeviceName = topLevelDevice.Id;
 
 			// We also verify that all device interfaces point towards the same top level parent. Otherwise, it would indicate that the logic should be reworked.
 			// PS: I don't know, if there is a simple way to detect if a device node is a multi interface device node or not, hence the naïve lookup above where we assume a static structure.
 			if (deviceNames[^1] is null)
 			{
 				deviceNames[^1] = topLevelDeviceName;
+
+				// Try to find the appropriate device ID source based on the device enumerator.
+
+				Guid guid;
+
+				if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out guid))
+				{
+					if (guid == DeviceBusTypesGuids.Usb)
+					{
+						deviceIdSource = DeviceIdSource.Usb;
+						goto DeviceIdSourceResolved;
+					}
+				}
+
+				if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.ClassGuid.Key, out guid))
+				{
+					if (guid == DeviceClassGuids.Usb)
+					{
+						deviceIdSource = DeviceIdSource.Usb;
+						goto DeviceIdSourceResolved;
+					}
+					if (guid == DeviceClassGuids.Bluetooth)
+					{
+						if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.EnumeratorName.Key, out string? enumeratorName))
+						{
+							if (enumeratorName == "BTHLE")
+							{
+								deviceIdSource = DeviceIdSource.BluetoothLowEnergy;
+								goto DeviceIdSourceResolved;
+							}
+							deviceIdSource = DeviceIdSource.Bluetooth;
+							goto DeviceIdSourceResolved;
+						}
+					}
+				}
+			DeviceIdSourceResolved:;
 			}
 			else if (deviceNames[^1] != topLevelDeviceName)
 			{
@@ -225,7 +266,7 @@ public abstract class LogitechUniversalDriver : Driver
 		//var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], deviceType is null ? "logi-universal" : deviceType.GetValueOrDefault().ToString(), serialNumber);
 		var configurationKey = new DeviceConfigurationKey("logi", deviceNames[^1], "logi-universal", hppDevice.SerialNumber);
 
-		var driver = CreateDriver(driverRegistry, Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames), hppDevice, configurationKey);
+		var driver = CreateDriver(driverRegistry, Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames), hppDevice, configurationKey, deviceIdSource, version);
 
 		// TODO: Watching devices should probably only done once the driver has been registered to the driver manager.
 		if (driver is SystemDrivers.Receiver receiver)
@@ -244,68 +285,39 @@ public abstract class LogitechUniversalDriver : Driver
 		return driver;
 	}
 
-	private static LogitechUniversalDriver CreateDriver(Optional<IDriverRegistry> driverRegistry, ImmutableArray<string> deviceNames, HidPlusPlusDevice hppDevice, DeviceConfigurationKey configurationKey)
+	private static LogitechUniversalDriver CreateDriver
+	(
+		Optional<IDriverRegistry> driverRegistry,
+		ImmutableArray<string> deviceNames,
+		HidPlusPlusDevice hppDevice,
+		DeviceConfigurationKey configurationKey,
+		DeviceIdSource deviceIdSource,
+		ushort versionNumber
+	)
 	{
 		switch (hppDevice)
 		{
 		case HidPlusPlusDevice.UnifyingReceiver unifyingReceiver:
-			return new SystemDrivers.UnifyingReceiver(unifyingReceiver, deviceNames, configurationKey, driverRegistry.GetOrCreateValue());
+			return new SystemDrivers.UnifyingReceiver(unifyingReceiver, deviceNames, configurationKey, deviceIdSource, versionNumber, driverRegistry.GetOrCreateValue());
 		case HidPlusPlusDevice.BoltReceiver boltReceiver:
-			return new SystemDrivers.BoltReceiver(boltReceiver, deviceNames, configurationKey, driverRegistry.GetOrCreateValue());
+			return new SystemDrivers.BoltReceiver(boltReceiver, deviceNames, configurationKey, deviceIdSource, versionNumber, driverRegistry.GetOrCreateValue());
 		case HidPlusPlusDevice.RegisterAccessReceiver receiver:
-			return new SystemDrivers.Receiver(receiver, deviceNames, configurationKey, driverRegistry.GetOrCreateValue());
+			return new SystemDrivers.Receiver(receiver, deviceNames, configurationKey, deviceIdSource, versionNumber, driverRegistry.GetOrCreateValue());
 		case HidPlusPlusDevice.RegisterAccessDirect rapDirect:
 			driverRegistry.Dispose();
 			return rapDirect.DeviceType switch
 			{
-				RegisterAccessDeviceType.Keyboard => new SystemDrivers.RegisterAccessDirectKeyboard(rapDirect, deviceNames, configurationKey),
-				RegisterAccessDeviceType.Mouse => new SystemDrivers.RegisterAccessDirectMouse(rapDirect, deviceNames, configurationKey),
-				_ => new SystemDrivers.RegisterAccessDirectGeneric
-				(
-					rapDirect,
-					deviceNames,
-					configurationKey,
-					rapDirect.DeviceType switch
-					{
-						RegisterAccessDeviceType.Keyboard => DeviceCategory.Keyboard,
-						RegisterAccessDeviceType.Mouse => DeviceCategory.Mouse,
-						RegisterAccessDeviceType.Numpad => DeviceCategory.Numpad,
-						RegisterAccessDeviceType.Trackball => DeviceCategory.Mouse,
-						RegisterAccessDeviceType.Touchpad => DeviceCategory.Touchpad,
-						_ => DeviceCategory.Touchpad
-					}
-				)
+				RegisterAccessDeviceType.Keyboard => new SystemDrivers.RegisterAccessDirectKeyboard(rapDirect, deviceNames, configurationKey, deviceIdSource, versionNumber),
+				RegisterAccessDeviceType.Mouse => new SystemDrivers.RegisterAccessDirectMouse(rapDirect, deviceNames, configurationKey, deviceIdSource, versionNumber),
+				_ => new SystemDrivers.RegisterAccessDirectGeneric(rapDirect, deviceNames, configurationKey, deviceIdSource, versionNumber, GetDeviceCategory(rapDirect.DeviceType)),
 			};
 		case HidPlusPlusDevice.FeatureAccessDirect fapDirect:
 			driverRegistry.Dispose();
 			return fapDirect.DeviceType switch
 			{
-				FeatureAccessDeviceType.Keyboard => new SystemDrivers.FeatureAccessDirectKeyboard(fapDirect, deviceNames, configurationKey),
-				FeatureAccessDeviceType.Mouse => new SystemDrivers.FeatureAccessDirectMouse(fapDirect, deviceNames, configurationKey),
-				_ => new SystemDrivers.FeatureAccessDirectGeneric
-				(
-					fapDirect,
-					deviceNames,
-					configurationKey,
-					fapDirect.DeviceType switch
-					{
-						FeatureAccessDeviceType.Keyboard => DeviceCategory.Keyboard,
-						FeatureAccessDeviceType.Numpad => DeviceCategory.Keyboard,
-						FeatureAccessDeviceType.Mouse => DeviceCategory.Mouse,
-						FeatureAccessDeviceType.Trackpad => DeviceCategory.Touchpad,
-						FeatureAccessDeviceType.Trackball => DeviceCategory.Mouse,
-						FeatureAccessDeviceType.Headset => DeviceCategory.Headset,
-						FeatureAccessDeviceType.Webcam => DeviceCategory.Webcam,
-						FeatureAccessDeviceType.SteeringWheel => DeviceCategory.Gamepad,
-						FeatureAccessDeviceType.Joystick => DeviceCategory.Gamepad,
-						FeatureAccessDeviceType.Gamepad => DeviceCategory.Gamepad,
-						FeatureAccessDeviceType.Speaker => DeviceCategory.Speaker,
-						FeatureAccessDeviceType.Microphone => DeviceCategory.Microphone,
-						FeatureAccessDeviceType.IlluminationLight => DeviceCategory.Lighting,
-						FeatureAccessDeviceType.CarSimPedals => DeviceCategory.Gamepad,
-						_ => DeviceCategory.Other
-					}
-				)
+				FeatureAccessDeviceType.Keyboard => new SystemDrivers.FeatureAccessDirectKeyboard(fapDirect, deviceNames, configurationKey, deviceIdSource, versionNumber),
+				FeatureAccessDeviceType.Mouse => new SystemDrivers.FeatureAccessDirectMouse(fapDirect, deviceNames, configurationKey, deviceIdSource, versionNumber),
+				_ => new SystemDrivers.FeatureAccessDirectGeneric(fapDirect, deviceNames, configurationKey, deviceIdSource, versionNumber, GetDeviceCategory(fapDirect.DeviceType)),
 			};
 		default:
 			throw new InvalidOperationException("Unsupported device type.");
@@ -321,57 +333,53 @@ public abstract class LogitechUniversalDriver : Driver
 			configurationKey = new DeviceConfigurationKey("logi", $"{parentDeviceName}#{rapDirect.DeviceIndex}", "logi-universal", rapDirect.SerialNumber);
 			return rapDirect.DeviceType switch
 			{
-				RegisterAccessDeviceType.Keyboard => new BaseDrivers.RegisterAccessThroughReceiverKeyboard(rapDirect, configurationKey),
-				RegisterAccessDeviceType.Mouse => new BaseDrivers.RegisterAccessThroughReceiverMouse(rapDirect, configurationKey),
-				_ => new BaseDrivers.RegisterAccessThroughReceiverGeneric
-				(
-					rapDirect,
-					configurationKey,
-					rapDirect.DeviceType switch
-					{
-						RegisterAccessDeviceType.Keyboard => DeviceCategory.Keyboard,
-						RegisterAccessDeviceType.Mouse => DeviceCategory.Mouse,
-						RegisterAccessDeviceType.Numpad => DeviceCategory.Numpad,
-						RegisterAccessDeviceType.Trackball => DeviceCategory.Mouse,
-						RegisterAccessDeviceType.Touchpad => DeviceCategory.Touchpad,
-						_ => DeviceCategory.Touchpad
-					}
-				)
+				RegisterAccessDeviceType.Keyboard => new BaseDrivers.RegisterAccessThroughReceiverKeyboard(rapDirect, configurationKey, DeviceIdSource.Usb, 0),
+				RegisterAccessDeviceType.Mouse => new BaseDrivers.RegisterAccessThroughReceiverMouse(rapDirect, configurationKey, DeviceIdSource.Usb, 0),
+				_ => new BaseDrivers.RegisterAccessThroughReceiverGeneric(rapDirect, configurationKey, DeviceIdSource.Usb, 0, GetDeviceCategory(rapDirect.DeviceType)),
 			};
 		case HidPlusPlusDevice.FeatureAccessThroughReceiver fapDirect:
 			configurationKey = new DeviceConfigurationKey("logi", $"{parentDeviceName}#{fapDirect.DeviceIndex}", "logi-universal", fapDirect.SerialNumber);
 			return fapDirect.DeviceType switch
 			{
-				FeatureAccessDeviceType.Keyboard => new BaseDrivers.FeatureAccessThroughReceiverKeyboard(fapDirect, configurationKey),
-				FeatureAccessDeviceType.Mouse => new BaseDrivers.FeatureAccessThroughReceiverMouse(fapDirect, configurationKey),
-				_ => new BaseDrivers.FeatureAccessThroughReceiverGeneric
-				(
-					fapDirect,
-					configurationKey,
-					fapDirect.DeviceType switch
-					{
-						FeatureAccessDeviceType.Keyboard => DeviceCategory.Keyboard,
-						FeatureAccessDeviceType.Numpad => DeviceCategory.Keyboard,
-						FeatureAccessDeviceType.Mouse => DeviceCategory.Mouse,
-						FeatureAccessDeviceType.Trackpad => DeviceCategory.Touchpad,
-						FeatureAccessDeviceType.Trackball => DeviceCategory.Mouse,
-						FeatureAccessDeviceType.Headset => DeviceCategory.Headset,
-						FeatureAccessDeviceType.Webcam => DeviceCategory.Webcam,
-						FeatureAccessDeviceType.SteeringWheel => DeviceCategory.Gamepad,
-						FeatureAccessDeviceType.Joystick => DeviceCategory.Gamepad,
-						FeatureAccessDeviceType.Gamepad => DeviceCategory.Gamepad,
-						FeatureAccessDeviceType.Speaker => DeviceCategory.Speaker,
-						FeatureAccessDeviceType.Microphone => DeviceCategory.Microphone,
-						FeatureAccessDeviceType.IlluminationLight => DeviceCategory.Lighting,
-						FeatureAccessDeviceType.CarSimPedals => DeviceCategory.Gamepad,
-						_ => DeviceCategory.Other
-					}
-				)
+				FeatureAccessDeviceType.Keyboard => new BaseDrivers.FeatureAccessThroughReceiverKeyboard(fapDirect, configurationKey, DeviceIdSource.Usb, 0),
+				FeatureAccessDeviceType.Mouse => new BaseDrivers.FeatureAccessThroughReceiverMouse(fapDirect, configurationKey, DeviceIdSource.Usb, 0),
+				_ => new BaseDrivers.FeatureAccessThroughReceiverGeneric(fapDirect, configurationKey, DeviceIdSource.Usb, 0, GetDeviceCategory(fapDirect.DeviceType)),
 			};
 		default:
 			throw new InvalidOperationException("Unsupported device type.");
 		};
 	}
+
+	private static DeviceCategory GetDeviceCategory(RegisterAccessDeviceType deviceType)
+		=> deviceType switch
+		{
+			RegisterAccessDeviceType.Keyboard => DeviceCategory.Keyboard,
+			RegisterAccessDeviceType.Mouse => DeviceCategory.Mouse,
+			RegisterAccessDeviceType.Numpad => DeviceCategory.Numpad,
+			RegisterAccessDeviceType.Trackball => DeviceCategory.Mouse,
+			RegisterAccessDeviceType.Touchpad => DeviceCategory.Touchpad,
+			_ => DeviceCategory.Touchpad
+		};
+
+	private static DeviceCategory GetDeviceCategory(FeatureAccessDeviceType deviceType)
+		=> deviceType switch
+		{
+			FeatureAccessDeviceType.Keyboard => DeviceCategory.Keyboard,
+			FeatureAccessDeviceType.Numpad => DeviceCategory.Keyboard,
+			FeatureAccessDeviceType.Mouse => DeviceCategory.Mouse,
+			FeatureAccessDeviceType.Trackpad => DeviceCategory.Touchpad,
+			FeatureAccessDeviceType.Trackball => DeviceCategory.Mouse,
+			FeatureAccessDeviceType.Headset => DeviceCategory.Headset,
+			FeatureAccessDeviceType.Webcam => DeviceCategory.Webcam,
+			FeatureAccessDeviceType.SteeringWheel => DeviceCategory.Gamepad,
+			FeatureAccessDeviceType.Joystick => DeviceCategory.Gamepad,
+			FeatureAccessDeviceType.Gamepad => DeviceCategory.Gamepad,
+			FeatureAccessDeviceType.Speaker => DeviceCategory.Speaker,
+			FeatureAccessDeviceType.Microphone => DeviceCategory.Microphone,
+			FeatureAccessDeviceType.IlluminationLight => DeviceCategory.Lighting,
+			FeatureAccessDeviceType.CarSimPedals => DeviceCategory.Gamepad,
+			_ => DeviceCategory.Other,
+		};
 
 	private static string InferDeviceName(HidPlusPlusDevice device)
 		=> device switch
@@ -388,11 +396,15 @@ public abstract class LogitechUniversalDriver : Driver
 		=> device.DeviceType is FeatureAccessDeviceType.Unknown ? "HID++ 2.0 device" : device.DeviceType.ToString();
 
 	private readonly HidPlusPlusDevice _device;
+	private readonly DeviceIdSource _deviceIdSource;
+	private readonly ushort _versionNumber;
 
-	protected LogitechUniversalDriver(HidPlusPlusDevice device, DeviceConfigurationKey configurationKey)
+	protected LogitechUniversalDriver(HidPlusPlusDevice device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 		: base(device.FriendlyName ?? InferDeviceName(device), configurationKey)
 	{
 		_device = device;
+		_deviceIdSource = deviceIdSource;
+		_versionNumber = versionNumber;
 	}
 
 	// NB: This calls DisposeAsync on all devices, but child devices will not actually be disposed, as they are managed by their parent.
@@ -400,48 +412,48 @@ public abstract class LogitechUniversalDriver : Driver
 
 	private abstract class RegisterAccess : LogitechUniversalDriver
 	{
-		public RegisterAccess(HidPlusPlusDevice.RegisterAccess device, DeviceConfigurationKey configurationKey)
-			: base(device, configurationKey)
+		public RegisterAccess(HidPlusPlusDevice.RegisterAccess device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
 		}
 	}
 
 	private abstract class FeatureAccess : LogitechUniversalDriver
 	{
-		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, DeviceConfigurationKey configurationKey)
-			: base(device, configurationKey)
+		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
 		}
 	}
 
 	private abstract class RegisterAccessDirect : RegisterAccess
 	{
-		public RegisterAccessDirect(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey)
-			: base(device, configurationKey)
+		public RegisterAccessDirect(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
 		}
 	}
 
 	private abstract class RegisterAccessThroughReceiver : RegisterAccess
 	{
-		public RegisterAccessThroughReceiver(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey)
-			: base(device, configurationKey)
+		public RegisterAccessThroughReceiver(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
 		}
 	}
 
 	private abstract class FeatureAccessDirect : FeatureAccess
 	{
-		public FeatureAccessDirect(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey)
-			: base(device, configurationKey)
+		public FeatureAccessDirect(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
 		}
 	}
 
 	private abstract class FeatureAccessThroughReceiver : FeatureAccess
 	{
-		public FeatureAccessThroughReceiver(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey)
-			: base(device, configurationKey)
+		public FeatureAccessThroughReceiver(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
 		}
 	}
@@ -452,154 +464,196 @@ public abstract class LogitechUniversalDriver : Driver
 	{
 		internal class RegisterAccessDirectGeneric : RegisterAccessDirect
 		{
-			public RegisterAccessDirectGeneric(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public RegisterAccessDirectGeneric(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectGeneric, IDeviceIdDeviceFeature>(this);
 				DeviceCategory = category;
 			}
 
 			public override DeviceCategory DeviceCategory { get; }
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class RegisterAccessDirectKeyboard : RegisterAccessDirect, IDeviceDriver<IKeyboardDeviceFeature>
 		{
-			public RegisterAccessDirectKeyboard(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public RegisterAccessDirectKeyboard(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectKeyboard, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
 			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class RegisterAccessDirectMouse : RegisterAccessDirect, IDeviceDriver<IMouseDeviceFeature>
 		{
-			public RegisterAccessDirectMouse(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public RegisterAccessDirectMouse(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectMouse, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class RegisterAccessThroughReceiverGeneric : RegisterAccessThroughReceiver
 		{
-			public RegisterAccessThroughReceiverGeneric(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public RegisterAccessThroughReceiverGeneric(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverGeneric, IDeviceIdDeviceFeature>(this);
 				DeviceCategory = category;
 			}
 
 			public override DeviceCategory DeviceCategory { get; }
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class RegisterAccessThroughReceiverKeyboard : RegisterAccessThroughReceiver, IDeviceDriver<IKeyboardDeviceFeature>
 		{
-			public RegisterAccessThroughReceiverKeyboard(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public RegisterAccessThroughReceiverKeyboard(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
 			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class RegisterAccessThroughReceiverMouse : RegisterAccessThroughReceiver, IDeviceDriver<IMouseDeviceFeature>
 		{
-			public RegisterAccessThroughReceiverMouse(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public RegisterAccessThroughReceiverMouse(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverMouse, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class FeatureAccessDirectGeneric : FeatureAccessDirect
 		{
-			public FeatureAccessDirectGeneric(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public FeatureAccessDirectGeneric(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature>(this);
 				DeviceCategory = category;
 			}
 
 			public override DeviceCategory DeviceCategory { get; }
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class FeatureAccessDirectKeyboard : FeatureAccessDirect, IDeviceDriver<IKeyboardDeviceFeature>
 		{
-			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
 			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal class FeatureAccessDirectMouse : FeatureAccessDirect, IDeviceDriver<IMouseDeviceFeature>
 		{
-			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal sealed class FeatureAccessThroughReceiverGeneric : FeatureAccessThroughReceiver
 		{
-			public FeatureAccessThroughReceiverGeneric(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public FeatureAccessThroughReceiverGeneric(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceCategory = category;
+				_allFeatures = HasSerialNumber ?
+					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory { get; }
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal sealed class FeatureAccessThroughReceiverKeyboard : FeatureAccessThroughReceiver, IDeviceDriver<IKeyboardDeviceFeature>
 		{
-			public FeatureAccessThroughReceiverKeyboard(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public FeatureAccessThroughReceiverKeyboard(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = HasSerialNumber ?
+					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
 			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
 		internal sealed class FeatureAccessThroughReceiverMouse : FeatureAccessThroughReceiver, IDeviceDriver<IMouseDeviceFeature>
 		{
-			public FeatureAccessThroughReceiverMouse(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
+			public FeatureAccessThroughReceiverMouse(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
+				_allFeatures = HasSerialNumber ?
+					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 	}
 
@@ -611,14 +665,24 @@ public abstract class LogitechUniversalDriver : Driver
 			private readonly IDriverRegistry _driverRegistry;
 			private readonly Dictionary<HidPlusPlusDevice, LogitechUniversalDriver?> _children;
 			private readonly object _lock;
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public Receiver(HidPlusPlusDevice.RegisterAccessReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, IDriverRegistry driverRegistry)
-				: base(device, configurationKey)
+			public Receiver
+			(
+				HidPlusPlusDevice.RegisterAccessReceiver device,
+				ImmutableArray<string> deviceNames,
+				DeviceConfigurationKey configurationKey,
+				DeviceIdSource deviceIdSource,
+				ushort versionNumber,
+				IDriverRegistry driverRegistry
+			)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				_driverRegistry = driverRegistry;
 				_children = new();
 				_lock = new();
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdDeviceFeature>(this);
 				DeviceNames = deviceNames;
 				device.DeviceDiscovered += OnChildDeviceDiscovered;
 				device.DeviceConnected += OnChildDeviceConnected;
@@ -669,23 +733,23 @@ public abstract class LogitechUniversalDriver : Driver
 				_driverRegistry.Dispose();
 			}
 
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.UsbWirelessReceiver;
 		}
 
 		internal class UnifyingReceiver : Receiver
 		{
-			public UnifyingReceiver(HidPlusPlusDevice.UnifyingReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, IDriverRegistry driverRegistry)
-				: base(device, deviceNames, configurationKey, driverRegistry)
+			public UnifyingReceiver(HidPlusPlusDevice.UnifyingReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, IDriverRegistry driverRegistry)
+				: base(device, deviceNames, configurationKey, deviceIdSource, versionNumber, driverRegistry)
 			{
 			}
 		}
 
 		internal class BoltReceiver : Receiver
 		{
-			public BoltReceiver(HidPlusPlusDevice.BoltReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, IDriverRegistry driverRegistry)
-				: base(device, deviceNames, configurationKey, driverRegistry)
+			public BoltReceiver(HidPlusPlusDevice.BoltReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, IDriverRegistry driverRegistry)
+				: base(device, deviceNames, configurationKey, deviceIdSource, versionNumber, driverRegistry)
 			{
 			}
 		}
@@ -694,8 +758,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public RegisterAccessDirectGeneric(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey, category)
+			public RegisterAccessDirectGeneric(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber, category)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -705,8 +769,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public RegisterAccessDirectKeyboard(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			public RegisterAccessDirectKeyboard(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -716,8 +780,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public RegisterAccessDirectMouse(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			public RegisterAccessDirectMouse(HidPlusPlusDevice.RegisterAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -727,8 +791,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public RegisterAccessThroughReceiverGeneric(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey, category)
+			public RegisterAccessThroughReceiverGeneric(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber, category)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -738,8 +802,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public RegisterAccessThroughReceiverKeyboard(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			public RegisterAccessThroughReceiverKeyboard(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -749,8 +813,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public RegisterAccessThroughReceiverMouse(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			public RegisterAccessThroughReceiverMouse(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -760,8 +824,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public FeatureAccessDirectGeneric(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceCategory category)
-				: base(device, configurationKey, category)
+			public FeatureAccessDirectGeneric(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
+				: base(device, configurationKey, deviceIdSource, versionNumber, category)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -771,8 +835,8 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceNames = deviceNames;
 			}
@@ -782,11 +846,20 @@ public abstract class LogitechUniversalDriver : Driver
 		{
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey)
-				: base(device, configurationKey)
+			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, ImmutableArray<string> deviceNames, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
+				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				DeviceNames = deviceNames;
 			}
 		}
 	}
+
+	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
+
+	public string SerialNumber
+		=> HasSerialNumber ?
+			ConfigurationKey.SerialNumber! :
+			throw new NotSupportedException("This device does not support the Serial Number feature.");
+
+	public DeviceId DeviceId => new(_deviceIdSource, VendorIdSource.Usb, LogitechUsbVendorId, _device.ProductId, _versionNumber);
 }

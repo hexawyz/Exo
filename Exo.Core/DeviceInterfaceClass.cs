@@ -32,7 +32,7 @@ public enum DeviceInterfaceClass
 	HiddenVolume,
 	UnifiedAccessRpmb,
 	ComPort,
-	SerenumBusEnumerator,
+	SerialAndParallelPort,
 	Modem,
 	Net,
 	I2C,

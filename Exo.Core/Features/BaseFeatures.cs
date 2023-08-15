@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DeviceTools;
 
 namespace Exo.Features;
 
@@ -20,7 +16,7 @@ namespace Exo.Features;
 /// </para>
 /// <para>
 /// However, more advanced setups may be needed, for example in the case where a driver would be able to expose multiple devices of the same kind.
-/// This would be the case for Logitech USB Unifying or Bolt receivers, which merge multiple keyboards and mouse into a single logical one, while still allowing independant access to each of them.
+/// This would be the case for Logitech USB Unifying or Bolt receivers, which merge multiple keyboards and mouse into a single logical one, while still allowing independent access to each of them.
 /// Given that most feature sets wouldn't intersect each other, we can expect the need for this to be quite niche. However, it exists.
 /// </para>
 /// </remarks>
@@ -77,4 +73,32 @@ public interface IMonitorDeviceFeature : IDeviceFeature
 /// </remarks>
 public interface ILightingDeviceFeature : IDeviceFeature
 {
+}
+
+/// <summary>Devices can allow access to their serial number by providing this feature.</summary>
+public interface ISerialNumberDeviceFeature : IDeviceFeature
+{
+	/// <summary>Gets the serial number of this device.</summary>
+	string SerialNumber { get; }
+}
+
+/// <summary>Devices can allow access to their battery level by providing this feature.</summary>
+public interface IBatteryLevelDeviceFeature : IDeviceFeature
+{
+	/// <summary>This event is raised when the battery level of the device has changed.</summary>
+	event Action<Driver, float> BatteryLevelChanged;
+
+	/// <summary>Gets the current battery level.</summary>
+	float BatteryLevel { get; }
+}
+
+/// <summary>Devices can expose their standard device ID by providing this feature.</summary>
+/// <remarks>
+/// Many devices will have a standardized device ID, such as PCI, USB and Bluetooth devices.
+/// Some devices not connected through these means may still have a way to communicate their standard ID in one of the known namespaces.
+/// If the device ID is known, it should be exposed through this feature.
+/// </remarks>
+public interface IDeviceIdDeviceFeature : IDeviceFeature
+{
+	DeviceId DeviceId { get; }
 }

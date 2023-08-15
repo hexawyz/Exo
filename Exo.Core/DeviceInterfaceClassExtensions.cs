@@ -1,4 +1,3 @@
-﻿using System;
 using DeviceTools;
 
 namespace Exo;
@@ -38,7 +37,7 @@ public static class DeviceInterfaceClassExtensions
 			DeviceInterfaceClass.HiddenVolume => DeviceInterfaceClassGuids.HiddenVolume,
 			DeviceInterfaceClass.UnifiedAccessRpmb => DeviceInterfaceClassGuids.UnifiedAccessRpmb,
 			DeviceInterfaceClass.ComPort => DeviceInterfaceClassGuids.ComPort,
-			DeviceInterfaceClass.SerenumBusEnumerator => DeviceInterfaceClassGuids.SerenumBusEnumerator,
+			DeviceInterfaceClass.SerialAndParallelPort => DeviceInterfaceClassGuids.SerialAndParallelPort,
 			DeviceInterfaceClass.Modem => DeviceInterfaceClassGuids.Modem,
 			DeviceInterfaceClass.Net => DeviceInterfaceClassGuids.Net,
 			DeviceInterfaceClass.I2C => DeviceInterfaceClassGuids.I2C,

@@ -1,8 +1,7 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using DeviceTools;
+
+namespace DeviceTools;
 
 public readonly struct DevicePropertyDictionary : IReadOnlyDictionary<PropertyKey, object?>, IDictionary<PropertyKey, object?>
 {
@@ -31,6 +30,8 @@ public readonly struct DevicePropertyDictionary : IReadOnlyDictionary<PropertyKe
 	public IEnumerable<object?> Values => Properties.Values;
 	ICollection<object?> IDictionary<PropertyKey, object?>.Values => Properties.Values;
 
+	//public bool ContainsKey(Property property) => Properties.ContainsKey(property.Key);
+
 	public bool ContainsKey(PropertyKey key) => Properties.ContainsKey(key);
 
 	public bool TryGetValue(PropertyKey key, out object? value) => Properties.TryGetValue(key, out value);
@@ -52,6 +53,27 @@ public readonly struct DevicePropertyDictionary : IReadOnlyDictionary<PropertyKe
 			return false;
 		}
 	}
+
+	// This does not play nice with nullable stuff :(
+//#if NETSTANDARD
+//	public bool TryGetValue<T>(Property<T> property, out T? value)
+//#else
+//	public bool TryGetValue<T>(Property<T> property, [NotNullWhen(true)] out T? value)
+//#endif
+//	{
+//		if (Properties.TryGetValue(property.Key, out var obj) && obj is T v)
+//		{
+//			value = v;
+//			return true;
+//		}
+//		else
+//		{
+//			value = default;
+//			return false;
+//		}
+//	}
+
+	//public T? GetValue<T>(Property<T> property) => (T?)Properties[property.Key];
 
 	public IEnumerator<KeyValuePair<PropertyKey, object?>> GetEnumerator() => Properties.GetEnumerator();
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
