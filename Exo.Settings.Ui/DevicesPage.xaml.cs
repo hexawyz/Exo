@@ -25,4 +25,17 @@ internal sealed partial class DevicesPage : Page
 	{
 		InitializeComponent();
 	}
+
+	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
+
+	private void OnDeviceButtonClick(object sender, RoutedEventArgs e)
+	{
+		var device = (DeviceViewModel)((FrameworkElement)sender).DataContext;
+		Frame.Navigate(typeof(DevicePage), device.Id);
+	}
+
+	protected override void OnNavigatedTo(NavigationEventArgs e)
+	{
+		ViewModel.Title = "Devices";
+	}
 }

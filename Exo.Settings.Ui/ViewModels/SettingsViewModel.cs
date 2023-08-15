@@ -15,6 +15,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_connectionManager = new("Local\\Exo.Service.Configuration");
 		_devicesViewModel = new(_connectionManager.Channel.CreateGrpcService<IDeviceService>());
 		_lightingViewModel = new(_connectionManager.Channel.CreateGrpcService<ILightingService>());
+		_title = string.Empty;
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;

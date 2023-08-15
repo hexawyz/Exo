@@ -104,7 +104,6 @@
                     VerticalScrollBarVisibility="Auto"
                     VerticalScrollMode="Auto">
                     <Frame
-                        DataContext="{x:Null}"
                         x:Name="ContentFrame"
                         Padding="{StaticResource NavigationContentScrollViewerPadding}" />
                 </ScrollViewer>

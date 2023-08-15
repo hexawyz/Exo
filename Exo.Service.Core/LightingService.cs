@@ -102,18 +102,18 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 						if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
 						{
 							unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
-							if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId), out var state))
+							if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId), out var state))
 							{
 								// We restore the effect from the saved state if available.
 								state.LightingZone = unifiedLightingFeature;
-								EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId, state.SerializedCurrentEffect);
+								EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId, state.SerializedCurrentEffect);
 								shouldApplyChanges = true;
 							}
 							else
 							{
 								var effect = unifiedLightingFeature.GetCurrentEffect();
 								state = new() { LightingZone = unifiedLightingFeature, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
-								_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId), state);
+								_lightingZones.TryAdd((notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId), state);
 							}
 						}
 
@@ -125,18 +125,18 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 							int i = 0;
 							foreach (var zone in lightingControllerFeature.LightingZones)
 							{
-								if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zone.ZoneId), out var state))
+								if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, zone.ZoneId), out var state))
 								{
 									// We restore the effect from the saved state if available.
 									state.LightingZone = zone;
-									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.DeviceId, zone.ZoneId, state.SerializedCurrentEffect);
+									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, zone.ZoneId, state.SerializedCurrentEffect);
 									shouldApplyChanges = true;
 								}
 								else
 								{
 									var effect = zone.GetCurrentEffect();
 									state = new() { LightingZone = zone, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
-									_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, zone.ZoneId), state);
+									_lightingZones.TryAdd((notification.DeviceInformation.Id, zone.ZoneId), state);
 								}
 
 								zones[i++] = new LightingZoneInformation(zone.ZoneId, GetSupportedEffects(zone.GetType()).AsImmutable());
@@ -146,7 +146,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 						var lightingDeviceInformation = new LightingDeviceInformation(unifiedLightingZone, zones is not null ? zones.AsImmutable() : ImmutableArray<LightingZoneInformation>.Empty);
 						var deviceDetails = new LightingDeviceDetails(notification.DeviceInformation, lightingDeviceInformation, notification.Driver!);
 
-						_lightingDevices[notification.DeviceInformation.DeviceId] = deviceDetails;
+						_lightingDevices[notification.DeviceInformation.Id] = deviceDetails;
 
 						if (shouldApplyChanges)
 						{
@@ -179,28 +179,28 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 						// Handlers can only be added from within the lock, so we can conditionally emit the new effect notifications based on the needs. (They can be removed at anytime)
 						if (Volatile.Read(ref _effectUpdated) is not null)
 						{
-							if (unifiedLightingZone is not null && _lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId), out var state))
+							if (unifiedLightingZone is not null && _lightingZones.TryGetValue((notification.DeviceInformation.Id, unifiedLightingZone.ZoneId), out var state))
 							{
-								_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
+								_effectUpdated.Invoke(new(notification.DeviceInformation.Id, unifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
 							}
 							if (zones is not null)
 							{
 								foreach (var zoneInformation in zones)
 								{
-									if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zoneInformation.ZoneId), out state))
+									if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, zoneInformation.ZoneId), out state))
 									{
-										_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, zoneInformation.ZoneId, state.SerializedCurrentEffect));
+										_effectUpdated.Invoke(new(notification.DeviceInformation.Id, zoneInformation.ZoneId, state.SerializedCurrentEffect));
 									}
 								}
 							}
 						}
 						break;
 					case WatchNotificationKind.Removal:
-						if (_lightingDevices.TryRemove(notification.DeviceInformation.DeviceId, out var details))
+						if (_lightingDevices.TryRemove(notification.DeviceInformation.Id, out var details))
 						{
 							if (details.LightingDeviceInformation.UnifiedLightingZone is not null)
 							{
-								if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
+								if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
 								{
 									Volatile.Write(ref state.LightingZone, null);
 								}
@@ -208,7 +208,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 							foreach (var zone in details.LightingDeviceInformation.LightingZones)
 							{
-								if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zone.ZoneId), out var state))
+								if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, zone.ZoneId), out var state))
 								{
 									Volatile.Write(ref state.LightingZone, null);
 								}
@@ -309,13 +309,13 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			{
 				if (kvp.Value.LightingDeviceInformation.UnifiedLightingZone is not null && _lightingZones.TryGetValue((kvp.Key, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
 				{
-					initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
+					initialNotifications.Add(new(kvp.Value.DeviceInformation.Id, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
 				}
 				foreach (var zoneInformation in kvp.Value.LightingDeviceInformation.LightingZones)
 				{
 					if (_lightingZones.TryGetValue((kvp.Key, zoneInformation.ZoneId), out state))
 					{
-						initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, zoneInformation.ZoneId, state.SerializedCurrentEffect));
+						initialNotifications.Add(new(kvp.Value.DeviceInformation.Id, zoneInformation.ZoneId, state.SerializedCurrentEffect));
 					}
 				}
 			}

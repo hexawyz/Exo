@@ -73,17 +73,17 @@ internal sealed class LightingViewModel : BindableObject
 						await CacheEffectInformationAsync(notification, cancellationToken);
 						var vm = new LightingDeviceViewModel(this, notification.Details);
 						_lightingDevices.Add(vm);
-						_lightingDeviceById[vm.DeviceId] = vm;
+						_lightingDeviceById[vm.Id] = vm;
 					}
 					break;
 				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _lightingDevices.Count; i++)
 					{
 						var vm = _lightingDevices[i];
-						if (_lightingDevices[i].DeviceId == notification.Details.DeviceInformation.DeviceId)
+						if (_lightingDevices[i].Id == notification.Details.DeviceInformation.Id)
 						{
 							_lightingDevices.RemoveAt(i);
-							_lightingDeviceById.Remove(vm.DeviceId);
+							_lightingDeviceById.Remove(vm.Id);
 							break;
 						}
 					}

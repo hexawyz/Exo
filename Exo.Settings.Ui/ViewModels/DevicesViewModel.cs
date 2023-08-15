@@ -10,6 +10,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 {
 	private readonly IDeviceService _deviceService;
 	private readonly ObservableCollection<DeviceViewModel> _devices;
+
+	// The selected device is the device currently being observed.
+	private DeviceViewModel? _selectedDevice; 
+
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
 
@@ -31,12 +35,23 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				{
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Arrival:
-					_devices.Add(new(notification.Details));
+					ExtendedDeviceInformation extendedDeviceInformation;
+					try
+					{
+						extendedDeviceInformation = await _deviceService.GetExtendedDeviceInformationAsync(new() { Id = notification.Details.Id }, cancellationToken);
+					}
+					catch (Exception ex) when (ex is not OperationCanceledException)
+					{
+						// Exceptions here would likely be caused by a driver removal.
+						// Disconnection from the service is not yet handled.
+						continue;
+					}
+					_devices.Add(new(notification.Details, extendedDeviceInformation));
 					break;
 				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _devices.Count; i++)
 					{
-						if (_devices[i].DeviceId == notification.Details.DeviceId)
+						if (_devices[i].Id == notification.Details.Id)
 						{
 							_devices.RemoveAt(i);
 							break;
@@ -57,5 +72,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		_cancellationTokenSource.Cancel();
 		await _watchTask.ConfigureAwait(false);
+	}
+
+	public DeviceViewModel? SelectedDevice
+	{
+		get => _selectedDevice;
+		set => SetValue(ref _selectedDevice, value);
 	}
 }

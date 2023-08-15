@@ -11,7 +11,7 @@ using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceViewModel : DeviceViewModel
+internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 {
 	public LightingViewModel LightingViewModel { get; }
 	public LightingZoneViewModel? UnifiedLightingZone { get; }
@@ -107,7 +107,7 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 			}
 			if (zoneEffects.Count > 0)
 			{
-				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { DeviceId = DeviceId, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
+				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { DeviceId = Id, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
 			}
 		}
 		catch
@@ -142,5 +142,5 @@ internal sealed class LightingDeviceViewModel : DeviceViewModel
 
 	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
 
-	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(DeviceId, zoneId);
+	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(Id, zoneId);
 }

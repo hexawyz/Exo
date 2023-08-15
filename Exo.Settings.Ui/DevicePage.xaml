@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Exo.Settings.Ui.DevicePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+
+    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice, Mode=TwoWay}">
+        <Expander Visibility="{Binding DeviceId, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon Glyph="&#xE8EC;" />
+                    <TextBlock Text="Device ID" Margin="{StaticResource TitleTextIconMargin}" />
+                </StackPanel>
+            </Expander.Header>
+            <Grid HorizontalAlignment="Stretch" DataContext="{Binding DeviceId, Mode=OneTime}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="Source" />
+                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=Source}" />
+                <TextBlock Grid.Column="0" Grid.Row="1" Text="Vendor ID Source" />
+                <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding VendorIdSource}" />
+                <TextBlock Grid.Column="0" Grid.Row="2" Text="Vendor ID" />
+                <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding VendorId}" />
+                <TextBlock Grid.Column="0" Grid.Row="3" Text="Product ID" />
+                <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId}" />
+                <TextBlock Grid.Column="0" Grid.Row="4" Text="Version" />
+                <TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version}" />
+            </Grid>
+        </Expander>
+    </StackPanel>
+</Page>

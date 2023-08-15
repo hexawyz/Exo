@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -37,14 +38,18 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	// TODO: This must be moved into configuration.
 	// This assigns a unique ID to each device based on the configuration key. It is needed so that device settings can be restored.
-	private static readonly ConcurrentDictionary<string, Guid> DeviceIdDictionary = new();
+	private static readonly ConcurrentDictionary<string, Guid> DeviceUniqueIdDictionary = new();
 
-	private static Guid GetDeviceId(DeviceConfigurationKey configurationKey)
-		=> DeviceIdDictionary.GetOrAdd(configurationKey.DeviceMainId, _ => Guid.NewGuid());
+	private static Guid GetDeviceUniqueId(DeviceConfigurationKey configurationKey)
+		=> DeviceUniqueIdDictionary.GetOrAdd(configurationKey.DeviceMainId, _ => Guid.NewGuid());
 
 	private readonly object _lock = new();
+
 	// Set of drivers that can only be accessed within the lock.
-	private readonly Dictionary<Driver, DeviceInformation> _driverDictionary = new();
+	private readonly Dictionary<Driver, DeviceInformation> _deviceInformationsByDriver = new();
+
+	// Map of drivers by device ID that can only be updated within the lock.
+	private readonly ConcurrentDictionary<Guid, Driver> _driversByUniqueId = new();
 
 	private Action<bool, Driver, DeviceInformation>[]? _driverUpdated;
 
@@ -70,12 +75,14 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		// TODO: Make the GUID persistent in the configuration. (So that a given device gets the same GUID everytime)
 		// Of course, the GUID shall be associated with the device configuration key.
-		var deviceId = GetDeviceId(driver.ConfigurationKey);
+		var deviceId = GetDeviceUniqueId(driver.ConfigurationKey);
 		var driverType = driver.GetType();
 		var deviceInformation = new DeviceInformation(deviceId, driver.FriendlyName, driver.DeviceCategory, GetDriverFeatures(driverType), driverType);
 
-		if (_driverDictionary.TryAdd(driver, deviceInformation))
+		if (_deviceInformationsByDriver.TryAdd(driver, deviceInformation))
 		{
+			_driversByUniqueId[deviceId] = driver;
+
 			try
 			{
 				_driverUpdated.Invoke(true, driver, deviceInformation);
@@ -102,8 +109,10 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	internal bool RemoveDriverInLock(Driver driver)
 	{
-		if (_driverDictionary.Remove(driver, out var deviceInformation))
+		if (_deviceInformationsByDriver.Remove(driver, out var deviceInformation))
 		{
+			_driversByUniqueId.TryRemove(new(deviceInformation.Id, driver));
+
 			try
 			{
 				_driverUpdated.Invoke(false, driver, deviceInformation);
@@ -140,8 +149,8 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_driverDictionary.Count, 10));
-			foreach (var kvp in _driverDictionary)
+			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceInformationsByDriver.Count, 10));
+			foreach (var kvp in _deviceInformationsByDriver)
 			{
 				initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, kvp.Value, kvp.Key);
 			}
@@ -199,8 +208,8 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_driverDictionary.Count, 10));
-			foreach (var kvp in _driverDictionary)
+			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceInformationsByDriver.Count, 10));
+			foreach (var kvp in _deviceInformationsByDriver)
 			{
 				if (kvp.Key is IDeviceDriver<TFeature>)
 				{
@@ -236,4 +245,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			ArrayExtensions.InterlockedRemove(ref _driverUpdated, onDriverUpdated);
 		}
 	}
+
+	public bool TryGetDriver(Guid deviceId, [NotNullWhen(true)] out Driver? driver)
+		=> _driversByUniqueId.TryGetValue(deviceId, out driver);
 }

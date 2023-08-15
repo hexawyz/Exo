@@ -50,6 +50,11 @@
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Page Update="DevicePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <Page Update="LightingZoneControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

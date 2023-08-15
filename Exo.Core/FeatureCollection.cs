@@ -448,10 +448,12 @@ internal static class FeatureCollection<TFeature>
 	{
 		public static readonly bool IsSubclass = typeof(TFeature).IsAssignableFrom(typeof(TOtherFeature));
 
-		internal static readonly Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?> RelaxedGetFeature = CreateGetFeatureDelegate();
+		internal static readonly Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?>? RelaxedGetFeature = CreateGetFeatureDelegate();
 
-		private static Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?> CreateGetFeatureDelegate()
+		private static Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?>? CreateGetFeatureDelegate()
 		{
+			if (!IsSubclass) return null;
+
 			var dynamicMethod = new DynamicMethod(nameof(GetFeature), typeof(TOtherFeature), new[] { typeof(IDeviceFeatureCollection<TFeature>) });
 			var ilGenerator = dynamicMethod.GetILGenerator();
 
@@ -463,9 +465,9 @@ internal static class FeatureCollection<TFeature>
 		}
 	}
 
-	public static T? GetFeature<T>(IDeviceFeatureCollection<TFeature> features)
-		where T : class, IDeviceFeature
-		=> Compatibility<T>.RelaxedGetFeature(features);
+	public static TOtherFeature? GetFeature<TOtherFeature>(IDeviceFeatureCollection<TFeature> features)
+		where TOtherFeature : class, IDeviceFeature
+		=> Compatibility<TOtherFeature>.RelaxedGetFeature?.Invoke(features);
 
 	static FeatureCollection() => FeatureCollection.ValidateInterfaceType(typeof(TFeature));
 

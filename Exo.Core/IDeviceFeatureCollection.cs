@@ -15,5 +15,6 @@ namespace Exo
 	{
 		TFeature? this[Type type] { get; }
 		T? GetFeature<T>() where T : class, TFeature;
+		bool HasFeature<T>() where T : class, TFeature => GetFeature<T>() is not null;
 	}
 }

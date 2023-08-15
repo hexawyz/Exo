@@ -8,9 +8,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:DevicesViewModel, IsDesignTimeCreatable=False}">
+    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <ItemsControl ItemsSource="{Binding Devices}" HorizontalContentAlignment="Stretch">
+    <ItemsControl ItemsSource="{Binding Devices.Devices}" HorizontalContentAlignment="Stretch">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <Button Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12" Click="OnDeviceButtonClick">

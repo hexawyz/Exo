@@ -6,14 +6,14 @@ public sealed class DeviceInformation
 {
 	public DeviceInformation(Guid uniqueId, string friendlyName, DeviceCategory category, Type[] featureTypes, Type driverType)
 	{
-		DeviceId = uniqueId;
+		Id = uniqueId;
 		FriendlyName = friendlyName;
 		Category = category;
 		FeatureTypes = featureTypes;
 		DriverType = driverType;
 	}
 
-	public Guid DeviceId { get; }
+	public Guid Id { get; }
 	public string FriendlyName { get; }
 	public DeviceCategory Category { get; }
 	public Type[] FeatureTypes { get; }
