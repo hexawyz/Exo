@@ -74,16 +74,13 @@ internal sealed partial class RootPage : Page
 	private void OnNavigationItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
 	{
 		Type? type = null;
-		string? title = null;
 		switch (args.InvokedItemContainer.Tag)
 		{
 		case "Devices":
 			type = typeof(DevicesPage);
-			title = "Devices";
 			break;
 		case "Lighting":
 			type = typeof(LightingPage);
-			title = "Lighting";
 			break;
 		}
 
@@ -92,7 +89,11 @@ internal sealed partial class RootPage : Page
 		if (ContentFrame.CurrentSourcePageType != type)
 		{
 			ContentFrame.Navigate(type);
-			ViewModel.Title = title!;
 		}
+	}
+
+	private void OnNavigationBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
+	{
+		ContentFrame.GoBack();
 	}
 }

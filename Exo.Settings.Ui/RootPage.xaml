@@ -70,8 +70,10 @@
             IsTabStop="False"
             IsSettingsVisible="False"
             IsTitleBarAutoPaddingEnabled="True"
+            IsBackEnabled="{x:Bind ContentFrame.CanGoBack, Mode=OneWay}"
             DisplayModeChanged="OnPaneDisplayModeChanged"
             ItemInvoked="OnNavigationItemInvoked"
+            BackRequested="OnNavigationBackRequested"
             DataContext="{x:Bind ViewModel}">
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Devices" Tag="Devices">

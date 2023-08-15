@@ -36,4 +36,9 @@ public sealed partial class DevicePage : Page
 
 		ViewModel.Title = selectedDevice is not null ? selectedDevice.FriendlyName : "<Unknown Device>";
 	}
+
+	protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+	{
+		ViewModel.Devices.SelectedDevice = null;
+	}
 }
