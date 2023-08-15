@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 /// <summary>Data types used and supported in the service and UI.</summary>
 [DataContract]

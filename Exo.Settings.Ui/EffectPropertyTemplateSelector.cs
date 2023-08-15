@@ -1,6 +1,5 @@
-using System;
+using Exo.Contracts;
 using Exo.Settings.Ui.ViewModels;
-using Exo.Ui.Contracts;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 

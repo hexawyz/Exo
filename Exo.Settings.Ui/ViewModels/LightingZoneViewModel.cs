@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.WinUI.Helpers;
+using Exo.Contracts;
 using Exo.Ui.Contracts;
 using Windows.UI;
 

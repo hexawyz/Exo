@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 /// <summary>Information on a property that can be configured through the UI.</summary>
 [DataContract]

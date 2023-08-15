@@ -1,4 +1,5 @@
 using System.ServiceModel;
+using Exo.Contracts;
 
 namespace Exo.Ui.Contracts;
 

@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Exo.Contracts;
 using Exo.Ui.Contracts;
 using Windows.UI;
 

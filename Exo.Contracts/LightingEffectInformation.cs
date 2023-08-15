@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 [DataContract]
 public sealed class LightingEffectInformation

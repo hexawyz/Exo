@@ -9,6 +9,9 @@
 
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>Exo.Service.Core</_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 			<_Parameter1>Exo.Service</_Parameter1>
 		</AssemblyAttribute>
 	</ItemGroup>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.WinUI.Helpers;
+using Exo.Contracts;
 using Exo.Ui.Contracts;
 using Windows.UI;
 

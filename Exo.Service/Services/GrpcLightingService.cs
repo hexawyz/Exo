@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Exo.Contracts;
 using Exo.Ui.Contracts;
 
 namespace Exo.Service.Services;
@@ -52,7 +53,7 @@ internal class GrpcLightingService : ILightingService
 	{
 		foreach (var effectType in supportedEffectTypes)
 		{
-			_ = GrpcEffectSerializer.GetEffectInformation(effectType);
+			_ = EffectSerializer.GetEffectInformation(effectType);
 		}
 	}
 
@@ -60,7 +61,7 @@ internal class GrpcLightingService : ILightingService
 	{
 		foreach (var ze in effects.ZoneEffects)
 		{
-			GrpcEffectSerializer.DeserializeAndSet(_lightingService, effects.DeviceId, ze.ZoneId, ze.Effect!);
+			EffectSerializer.DeserializeAndSet(_lightingService, effects.DeviceId, ze.ZoneId, ze.Effect!);
 		}
 
 		await _lightingService.ApplyChanges(effects.DeviceId);
@@ -69,7 +70,7 @@ internal class GrpcLightingService : ILightingService
 	public ValueTask ApplyMultipleDeviceLightingEffectsAsync(MultipleDeviceLightingEffects effects, CancellationToken cancellationToken) => throw new NotImplementedException();
 
 	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
-		=> new(GrpcEffectSerializer.GetEffectInformation(typeReference.TypeId));
+		=> new(EffectSerializer.GetEffectInformation(typeReference.TypeId));
 
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
@@ -79,7 +80,7 @@ internal class GrpcLightingService : ILightingService
 			{
 				DeviceId = notification.DeviceId,
 				ZoneId = notification.ZoneId,
-				Effect = GrpcEffectSerializer.Serialize(notification.Effect),
+				Effect = notification.SerializeEffect(),
 			};
 		}
 	}

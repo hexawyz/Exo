@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 /// <summary>Represents the value of a property.</summary>
 /// <remarks>

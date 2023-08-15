@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 [DataContract]
 public readonly struct EnumerationValue

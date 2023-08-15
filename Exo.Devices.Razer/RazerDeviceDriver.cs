@@ -256,13 +256,14 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 	(
 		RazerProtocolTransport transport,
 		ushort productId,
+		byte deviceIndex,
 		DeviceInformation deviceInfo,
 		string friendlyName,
 		string topLevelDeviceName,
 		string serialNumber
 	)
 	{
-		var configurationKey = new DeviceConfigurationKey("RazerDevice", $"{topLevelDeviceName}#IX_{1:X2}&PID_{productId:X4}", $"Razer_Device_{productId:X4}", serialNumber);
+		var configurationKey = new DeviceConfigurationKey("RazerDevice", $"{topLevelDeviceName}#IX_{deviceIndex:X2}&PID_{productId:X4}", $"Razer_Device_{productId:X4}", serialNumber);
 
 		return deviceInfo.DeviceCategory switch
 		{
@@ -467,7 +468,7 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				{
 					var serialNumber = _transport.GetSerialNumber();
 
-					driver = CreateChildDevice(_transport, state.ProductId, deviceInformation, deviceInformation.FriendlyName, ConfigurationKey.DeviceMainId, serialNumber);
+					driver = CreateChildDevice(_transport, state.ProductId, (byte)deviceIndex, deviceInformation, deviceInformation.FriendlyName, ConfigurationKey.DeviceMainId, serialNumber);
 				}
 				catch (Exception ex)
 				{
@@ -602,7 +603,9 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 	{
 		private ILightingEffect _appliedEffect;
 		private ILightingEffect _currentEffect;
+		private byte _currentBrightness;
 		private readonly Guid _lightingZoneId;
+		private readonly object _lock;
 		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 		// How do we use this ?
@@ -619,7 +622,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			_currentEffect = DisabledEffect.SharedInstance;
 			_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
 			_allFeatures = FeatureCollection.Create<IDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
+			_lock = new();
 			_lightingZoneId = lightingZoneId;
+			_currentBrightness = 0x54; // 33%
+			// Unless it is possible to retrieve the current settings from the device, we should reset the effect.
+			ApplyEffect(DisabledEffect.SharedInstance, _currentBrightness, true);
 		}
 
 		IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
@@ -630,17 +637,53 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 
 		ValueTask IUnifiedLightingFeature.ApplyChangesAsync()
 		{
-			ApplyChanges(_appliedEffect = _currentEffect);
+			lock (_lock)
+			{
+				if (!ReferenceEquals(_appliedEffect, _currentEffect))
+				{
+					ApplyEffect(_currentEffect, _currentBrightness, _appliedEffect is DisabledEffect);
+					_appliedEffect = _currentEffect;
+				}
+			}
 			return ValueTask.CompletedTask;
 		}
 
-		private void ApplyChanges(ILightingEffect effect)
+		private void ApplyEffect(ILightingEffect effect, byte brightness, bool forceBrightnessUpdate)
 		{
-			switch (_currentEffect)
+			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
-			case DisabledEffect: _transport.SetStaticColor(default); break;
-			case StaticColorEffect staticColorEffect: _transport.SetStaticColor(staticColorEffect.Color); break;
+				_transport.SetStaticColor(default);
+				_transport.SetBrightness(0);
+				return;
 			}
+
+			// It seems brightness must be restored from zero first before setting a color effect.
+			// Otherwise, the device might restore to its default effect. (e.g. Color Cycle)
+			if (forceBrightnessUpdate)
+			{
+				_transport.SetBrightness(brightness);
+			}
+
+			switch (effect)
+			{
+			case StaticColorEffect staticColorEffect:
+				_transport.SetStaticColor(staticColorEffect.Color);
+				break;
+			}
+		}
+
+		private void SetCurrentEffect(ILightingEffect effect)
+		{
+			lock (_lock)
+			{
+				_currentEffect = effect;
+			}
+		}
+
+		// TODO: Determine how this should be exposed.
+		public void SetDefaultBrightness(byte brightness)
+		{
+			_currentBrightness = brightness;
 		}
 
 		// TODO: Devices can support multiple lighting zones OR a single zone. We must support both scenarios.
@@ -648,8 +691,8 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 
 		ILightingEffect ILightingZone.GetCurrentEffect() => _currentEffect;
 
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => _currentEffect = DisabledEffect.SharedInstance;
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => _currentEffect = effect;
+		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => SetCurrentEffect(DisabledEffect.SharedInstance);
+		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
 
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => _currentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _currentEffect.TryGetEffect(out effect);

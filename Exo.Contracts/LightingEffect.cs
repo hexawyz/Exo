@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 /// <summary>Represents a lighting effect.</summary>
 /// <remarks>Some common effect properties are present on the type itself, in order to avoid the overhead that would be associated with extended property values</remarks>
@@ -24,5 +24,5 @@ public sealed class LightingEffect
 
 	/// <summary>Values for all properties that are not present on this object.</summary>
 	[DataMember(Order = 4)]
-	public required ImmutableArray<PropertyValue> ExtendedPropertyValues { get; init; }
+	public required ImmutableArray<PropertyValue> ExtendedPropertyValues { get; init; } = ImmutableArray<PropertyValue>.Empty;
 }

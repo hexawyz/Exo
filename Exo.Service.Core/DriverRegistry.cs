@@ -1,7 +1,7 @@
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -35,6 +35,13 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		return featureTypes.ToArray();
 	}
 
+	// TODO: This must be moved into configuration.
+	// This assigns a unique ID to each device based on the configuration key. It is needed so that device settings can be restored.
+	private static readonly ConcurrentDictionary<string, Guid> DeviceIdDictionary = new();
+
+	private static Guid GetDeviceId(DeviceConfigurationKey configurationKey)
+		=> DeviceIdDictionary.GetOrAdd(configurationKey.DeviceMainId, _ => Guid.NewGuid());
+
 	private readonly object _lock = new();
 	// Set of drivers that can only be accessed within the lock.
 	private readonly Dictionary<Driver, DeviceInformation> _driverDictionary = new();
@@ -63,7 +70,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		// TODO: Make the GUID persistent in the configuration. (So that a given device gets the same GUID everytime)
 		// Of course, the GUID shall be associated with the device configuration key.
-		var deviceId = Guid.NewGuid();
+		var deviceId = GetDeviceId(driver.ConfigurationKey);
 		var driverType = driver.GetType();
 		var deviceInformation = new DeviceInformation(deviceId, driver.FriendlyName, driver.DeviceCategory, GetDriverFeatures(driverType), driverType);
 

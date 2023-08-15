@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
@@ -13,9 +14,8 @@ using Exo.Lighting.Effects;
 
 namespace Exo.Service;
 
-public class LightingService : IAsyncDisposable
+public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 {
-
 	private sealed class LightingDeviceDetails
 	{
 		public LightingDeviceDetails(DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation, Driver driver)
@@ -28,6 +28,12 @@ public class LightingService : IAsyncDisposable
 		public DeviceInformation DeviceInformation { get; }
 		public LightingDeviceInformation LightingDeviceInformation { get; }
 		public Driver Driver { get; }
+	}
+
+	private sealed class LightingZoneState
+	{
+		public ILightingZone? LightingZone;
+		public required LightingEffect SerializedCurrentEffect;
 	}
 
 	private static readonly ConditionalWeakTable<Type, Type[]> SupportedEffectCache = new();
@@ -57,7 +63,7 @@ public class LightingService : IAsyncDisposable
 
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, LightingDeviceDetails> _lightingDevices;
-	private readonly ConcurrentDictionary<(Guid, Guid), ILightingZone> _lightingZones;
+	private readonly ConcurrentDictionary<(Guid, Guid), LightingZoneState> _lightingZones;
 	private readonly object _lock; // Only needed in order to output a reliable stream out of the service… 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
@@ -80,19 +86,35 @@ public class LightingService : IAsyncDisposable
 		{
 			await foreach (var notification in _deviceWatcher.WatchAsync<ILightingDeviceFeature>(cancellationToken))
 			{
+				ValueTask applyChangesTask = ValueTask.CompletedTask;
+
 				lock (_lock)
 				{
 					switch (notification.Kind)
 					{
 					case WatchNotificationKind.Enumeration:
 					case WatchNotificationKind.Addition:
+						bool shouldApplyChanges = false;
+
 						var lightingDriver = Unsafe.As<IDeviceDriver<ILightingDeviceFeature>>(notification.Driver!);
 
 						LightingZoneInformation? unifiedLightingZone = null;
 						if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
 						{
 							unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
-							_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId), unifiedLightingFeature);
+							if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId), out var state))
+							{
+								// We restore the effect from the saved state if available.
+								state.LightingZone = unifiedLightingFeature;
+								EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId, state.SerializedCurrentEffect);
+								shouldApplyChanges = true;
+							}
+							else
+							{
+								var effect = unifiedLightingFeature.GetCurrentEffect();
+								state = new() { LightingZone = unifiedLightingFeature, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
+								_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, unifiedLightingFeature.ZoneId), state);
+							}
 						}
 
 						LightingZoneInformation[]? zones = null;
@@ -103,7 +125,20 @@ public class LightingService : IAsyncDisposable
 							int i = 0;
 							foreach (var zone in lightingControllerFeature.LightingZones)
 							{
-								_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, zone.ZoneId), zone);
+								if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zone.ZoneId), out var state))
+								{
+									// We restore the effect from the saved state if available.
+									state.LightingZone = zone;
+									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.DeviceId, zone.ZoneId, state.SerializedCurrentEffect);
+									shouldApplyChanges = true;
+								}
+								else
+								{
+									var effect = zone.GetCurrentEffect();
+									state = new() { LightingZone = zone, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
+									_lightingZones.TryAdd((notification.DeviceInformation.DeviceId, zone.ZoneId), state);
+								}
+
 								zones[i++] = new LightingZoneInformation(zone.ZoneId, GetSupportedEffects(zone.GetType()).AsImmutable());
 							}
 						}
@@ -112,6 +147,25 @@ public class LightingService : IAsyncDisposable
 						var deviceDetails = new LightingDeviceDetails(notification.DeviceInformation, lightingDeviceInformation, notification.Driver!);
 
 						_lightingDevices[notification.DeviceInformation.DeviceId] = deviceDetails;
+
+						if (shouldApplyChanges)
+						{
+							try
+							{
+								if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lcf)
+								{
+									applyChangesTask = lcf.ApplyChangesAsync();
+								}
+								else if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } ulf)
+								{
+									applyChangesTask = ulf.ApplyChangesAsync();
+								}
+							}
+							catch
+							{
+								// TODO: Log
+							}
+						}
 
 						try
 						{
@@ -125,17 +179,17 @@ public class LightingService : IAsyncDisposable
 						// Handlers can only be added from within the lock, so we can conditionally emit the new effect notifications based on the needs. (They can be removed at anytime)
 						if (Volatile.Read(ref _effectUpdated) is not null)
 						{
-							if (unifiedLightingZone is not null && _lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId), out var zone))
+							if (unifiedLightingZone is not null && _lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId), out var state))
 							{
-								_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId, zone.GetCurrentEffect()));
+								_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, unifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
 							}
 							if (zones is not null)
 							{
 								foreach (var zoneInformation in zones)
 								{
-									if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zoneInformation.ZoneId), out zone))
+									if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zoneInformation.ZoneId), out state))
 									{
-										_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, zoneInformation.ZoneId, zone.GetCurrentEffect()));
+										_effectUpdated.Invoke(new(notification.DeviceInformation.DeviceId, zoneInformation.ZoneId, state.SerializedCurrentEffect));
 									}
 								}
 							}
@@ -146,12 +200,20 @@ public class LightingService : IAsyncDisposable
 						{
 							if (details.LightingDeviceInformation.UnifiedLightingZone is not null)
 							{
-								_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out _);
+								if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
+								{
+									Volatile.Write(ref state.LightingZone, null);
+								}
 							}
+
 							foreach (var zone in details.LightingDeviceInformation.LightingZones)
 							{
-								_lightingZones.TryRemove((notification.DeviceInformation.DeviceId, zone.ZoneId), out _);
+								if (_lightingZones.TryGetValue((notification.DeviceInformation.DeviceId, zone.ZoneId), out var state))
+								{
+									Volatile.Write(ref state.LightingZone, null);
+								}
 							}
+
 							try
 							{
 								_devicesUpdated.Invoke(notification.Kind, details);
@@ -163,6 +225,15 @@ public class LightingService : IAsyncDisposable
 						}
 						break;
 					}
+				}
+
+				try
+				{
+					await applyChangesTask.ConfigureAwait(false);
+				}
+				catch
+				{
+					// TODO: Log
 				}
 			}
 		}
@@ -236,15 +307,15 @@ public class LightingService : IAsyncDisposable
 		{
 			foreach (var kvp in _lightingDevices)
 			{
-				if (kvp.Value.LightingDeviceInformation.UnifiedLightingZone is not null && _lightingZones.TryGetValue((kvp.Key, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var zone))
+				if (kvp.Value.LightingDeviceInformation.UnifiedLightingZone is not null && _lightingZones.TryGetValue((kvp.Key, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
 				{
-					initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId, zone.GetCurrentEffect()));
+					initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
 				}
 				foreach (var zoneInformation in kvp.Value.LightingDeviceInformation.LightingZones)
 				{
-					if (_lightingZones.TryGetValue((kvp.Key, zoneInformation.ZoneId), out zone))
+					if (_lightingZones.TryGetValue((kvp.Key, zoneInformation.ZoneId), out state))
 					{
-						initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, zoneInformation.ZoneId, zone.GetCurrentEffect()));
+						initialNotifications.Add(new(kvp.Value.DeviceInformation.DeviceId, zoneInformation.ZoneId, state.SerializedCurrentEffect));
 					}
 				}
 			}
@@ -271,34 +342,53 @@ public class LightingService : IAsyncDisposable
 		}
 	}
 
+	// There are two entry points for SetEffect.
+	// This one will set the effect based on a serialized version of it.
+	public void SetEffect(Guid deviceId, Guid zoneId, LightingEffect effect)
+		=> EffectSerializer.DeserializeAndSet(this, deviceId, zoneId, effect);
+
+	// There are two entry points for SetEffect.
+	// This one will set the effect based on a strongly typed value.
 	public void SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect)
 		where TEffect : struct, ILightingEffect
+		=> SetEffectInternal(deviceId, zoneId, effect, EffectSerializer.Serialize(effect), false);
+
+	void ILightingServiceInternal.SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
+		=> SetEffectInternal(deviceId, zoneId, effect, serializedEffect, isRestore);
+
+	private void SetEffectInternal<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
+		where TEffect : struct, ILightingEffect
 	{
-		if (!_lightingZones.TryGetValue((deviceId, zoneId), out var zone))
+		if (!_lightingZones.TryGetValue((deviceId, zoneId), out var state) || state.LightingZone is not { } zone)
 		{
 			throw new InvalidOperationException($"Could not find the zone with ID {zoneId:B} on the specified device.");
 		}
 
 		SetEffect(zone, effect);
 
-		// We are really careful about the value of the delegate here, as sending a notification implies boxing.
-		// As such, it is best if we can avoid it.
-		// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
-		if (Volatile.Read(ref _effectUpdated) is not null)
+		state.SerializedCurrentEffect = serializedEffect;
+
+		if (!isRestore)
 		{
-			// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
-			lock (_lock)
+			// We are really careful about the value of the delegate here, as sending a notification implies boxing.
+			// As such, it is best if we can avoid it.
+			// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
+			if (Volatile.Read(ref _effectUpdated) is not null)
 			{
-				try
+				// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
+				lock (_lock)
 				{
-					if (_effectUpdated is { } onEffectUpdated)
+					try
 					{
-						onEffectUpdated.Invoke(new(deviceId, zoneId, effect));
+						if (_effectUpdated is { } onEffectUpdated)
+						{
+							onEffectUpdated.Invoke(new(deviceId, zoneId, serializedEffect));
+						}
 					}
-				}
-				catch
-				{
-					// TODO: Log
+					catch
+					{
+						// TODO: Log
+					}
 				}
 			}
 		}

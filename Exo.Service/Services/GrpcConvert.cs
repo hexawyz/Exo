@@ -1,4 +1,5 @@
 using System;
+using Exo.Contracts;
 using GrpcDeviceInformation = Exo.Ui.Contracts.DeviceInformation;
 using GrpcLightingZoneInformation = Exo.Ui.Contracts.LightingZoneInformation;
 using GrpcWatchNotificationKind = Exo.Ui.Contracts.WatchNotificationKind;
@@ -21,7 +22,7 @@ internal static class GrpcConvert
 		=> new()
 		{
 			ZoneId = zoneInformation.ZoneId,
-			SupportedEffectIds = Array.ConvertAll(zoneInformation.SupportedEffectTypes.AsMutable(), t => GrpcEffectSerializer.GetEffectInformation(t).EffectId).AsImmutable(),
+			SupportedEffectIds = Array.ConvertAll(zoneInformation.SupportedEffectTypes.AsMutable(), t => EffectSerializer.GetEffectInformation(t).EffectId).AsImmutable(),
 		};
 
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)

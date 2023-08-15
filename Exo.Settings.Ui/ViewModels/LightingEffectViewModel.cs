@@ -1,7 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using Exo.Ui.Contracts;
+using Exo.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
 

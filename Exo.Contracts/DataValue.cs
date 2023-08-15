@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Exo.Ui.Contracts;
+namespace Exo.Contracts;
 
 /// <summary>This is used to provide values for non-deterministically typed data.</summary>
 /// <remarks>

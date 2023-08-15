@@ -18,6 +18,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Exo.Contracts\Exo.Contracts.csproj" />
 		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
 	</ItemGroup>
 

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Exo.Contracts;
 using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;

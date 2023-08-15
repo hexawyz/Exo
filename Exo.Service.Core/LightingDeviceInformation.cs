@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using Exo.Contracts;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 
@@ -57,11 +58,11 @@ public readonly struct LightingDeviceWatchNotification
 /// </remarks>
 public readonly struct LightingEffectWatchNotification
 {
-	public LightingEffectWatchNotification(Guid deviceId, Guid zoneId, ILightingEffect effect)
+	public LightingEffectWatchNotification(Guid deviceId, Guid zoneId, LightingEffect serializedEffect)
 	{
 		DeviceId = deviceId;
 		ZoneId = zoneId;
-		Effect = effect;
+		_serializedEffect = serializedEffect;
 	}
 
 	/// <summary>Gets the ID of the device on which the effect was applied.</summary>
@@ -70,6 +71,12 @@ public readonly struct LightingEffectWatchNotification
 	/// <summary>Gets the ID of the lighting zone on which the effect was applied.</summary>
 	public Guid ZoneId { get; }
 
-	/// <summary>Gets the effect that was applied to the zone.</summary>
-	public ILightingEffect Effect { get; }
+	private readonly LightingEffect _serializedEffect;
+
+	///// <summary>Gets the effect that was applied to the zone.</summary>
+	//public ILightingEffect GetEffect() => null;
+
+	/// <summary>Gets the effect that was applied to the zone as a serialized structure.</summary>
+	public LightingEffect SerializeEffect() => _serializedEffect;
+
 }

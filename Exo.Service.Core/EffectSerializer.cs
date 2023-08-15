@@ -12,16 +12,17 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
-using Exo.Ui.Contracts;
-using GrpcDataType = Exo.Ui.Contracts.DataType;
+using Exo.Contracts;
+using SerializerDataType = Exo.Contracts.DataType;
 
-namespace Exo.Service.Services;
+namespace Exo.Service;
 
 /// <summary>This implements custom serialization for lighting effects.</summary>
 /// <remarks>This serialization infrastructure is needed for UI management of lighting effects.</remarks>
-internal static class GrpcEffectSerializer
+public static class EffectSerializer
 {
-	private static readonly MethodInfo LightingServiceSetEffectMethodInfo = typeof(LightingService).GetMethod(nameof(LightingService.SetEffect), BindingFlags.Public | BindingFlags.Instance)!;
+	private static readonly MethodInfo LightingServiceInternalSetEffectMethodInfo =
+		typeof(ILightingServiceInternal).GetMethod(nameof(ILightingServiceInternal.SetEffect), BindingFlags.Public | BindingFlags.Instance)!;
 
 	private static readonly ConstructorInfo LightingEffectConstructorInfo = typeof(LightingEffect).GetConstructor(Type.EmptyTypes)!;
 	private static readonly PropertyInfo LightingEffectEffectIdPropertyInfo = typeof(LightingEffect).GetProperty(nameof(LightingEffect.EffectId))!;
@@ -86,7 +87,8 @@ internal static class GrpcEffectSerializer
 			MethodInfo serializeMethod,
 			MethodInfo deserializeMethod,
 			Func<ILightingEffect, LightingEffect> serialize,
-			Action<LightingService, Guid, Guid, LightingEffect> deserializeAndSet
+			Action<LightingService, Guid, Guid, LightingEffect> deserializeAndSet,
+			Action<LightingService, Guid, Guid, LightingEffect> deserializeAndRestore
 		)
 		{
 			EffectInformation = effectInformation;
@@ -94,6 +96,7 @@ internal static class GrpcEffectSerializer
 			DeserializeMethod = deserializeMethod;
 			Serialize = serialize;
 			DeserializeAndSet = deserializeAndSet;
+			DeserializeAndRestore = deserializeAndRestore;
 		}
 
 		public LightingEffectInformation EffectInformation { get; }
@@ -109,7 +112,10 @@ internal static class GrpcEffectSerializer
 		public MethodInfo DeserializeMethod { get; }
 
 		public Func<ILightingEffect, LightingEffect> Serialize { get; }
+
 		public Action<LightingService, Guid, Guid, LightingEffect> DeserializeAndSet { get; }
+
+		public Action<LightingService, Guid, Guid, LightingEffect> DeserializeAndRestore { get; }
 	}
 
 	private static readonly ConditionalWeakTable<Type, LightingEffectSerializationDetails> EffectInformationByTypeCache = new();
@@ -144,7 +150,7 @@ internal static class GrpcEffectSerializer
 	{
 		public required readonly PropertyInfo Property { get; init; }
 		public required readonly int DataIndex { get; init; }
-		public required readonly GrpcDataType DataType { get; init; }
+		public required readonly SerializerDataType DataType { get; init; }
 		public readonly Label? DeserializationLabel { get; init; }
 		public readonly LocalBuilder? DeserializationLocal { get; init; }
 		public readonly LocalBuilder? DeserializationConditionalLocal { get; init; }
@@ -268,7 +274,7 @@ internal static class GrpcEffectSerializer
 
 			var dataType = GetDataType(property.PropertyType);
 
-			if (dataType == GrpcDataType.Other) throw new InvalidOperationException($"Could not map {property.PropertyType} for property {property.Name} of effect {effectType}.");
+			if (dataType == SerializerDataType.Other) throw new InvalidOperationException($"Could not map {property.PropertyType} for property {property.Name} of effect {effectType}.");
 
 			int dataIndex;
 			Label? deserializationLabel = null;
@@ -481,7 +487,7 @@ internal static class GrpcEffectSerializer
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				// Special-case the color types (only one for now)
-				if (details.DataType == GrpcDataType.ColorRgb24)
+				if (details.DataType == SerializerDataType.ColorRgb24)
 				{
 					serializeIlGenerator.Emit(OpCodes.Stloc, rgb24Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbColor)));
 					serializeIlGenerator.Emit(OpCodes.Ldloca, rgb24Local);
@@ -515,48 +521,48 @@ internal static class GrpcEffectSerializer
 				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
 				switch (details.DataType)
 				{
-				case GrpcDataType.UInt8:
-				case GrpcDataType.UInt16:
-				case GrpcDataType.UInt32:
-				case GrpcDataType.Boolean:
+				case SerializerDataType.UInt8:
+				case SerializerDataType.UInt16:
+				case SerializerDataType.UInt32:
+				case SerializerDataType.Boolean:
 					serializeIlGenerator.Emit(OpCodes.Conv_U8);
-					goto case GrpcDataType.UInt64;
-				case GrpcDataType.UInt64:
+					goto case SerializerDataType.UInt64;
+				case SerializerDataType.UInt64:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueUnsignedValuePropertyInfo.SetMethod!);
 					break;
-				case GrpcDataType.Int8:
-				case GrpcDataType.Int16:
-				case GrpcDataType.Int32:
+				case SerializerDataType.Int8:
+				case SerializerDataType.Int16:
+				case SerializerDataType.Int32:
 					serializeIlGenerator.Emit(OpCodes.Conv_I8);
-					goto case GrpcDataType.Int64;
-				case GrpcDataType.Int64:
+					goto case SerializerDataType.Int64;
+				case SerializerDataType.Int64:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSignedValuePropertyInfo.SetMethod!);
 					break;
-				case GrpcDataType.Float16:
+				case SerializerDataType.Float16:
 					serializeIlGenerator.Emit(OpCodes.Call, HalfToSingleMethodInfo);
-					goto case GrpcDataType.Float32;
-				case GrpcDataType.Float32:
+					goto case SerializerDataType.Float32;
+				case SerializerDataType.Float32:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSingleValuePropertyInfo.SetMethod!);
 					break;
-				case GrpcDataType.Float64:
+				case SerializerDataType.Float64:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueDoubleValuePropertyInfo.SetMethod!);
 					break;
-				case GrpcDataType.String:
+				case SerializerDataType.String:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueStringValuePropertyInfo.SetMethod!);
 					break;
-				case GrpcDataType.Guid:
+				case SerializerDataType.Guid:
 					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueGuidValuePropertyInfo.SetMethod!);
 					break;
-				case GrpcDataType.ColorRgb24:
+				case SerializerDataType.ColorRgb24:
 					serializeIlGenerator.Emit(OpCodes.Stloc, rgb24Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbColor)));
 					serializeIlGenerator.Emit(OpCodes.Ldloca, rgb24Local);
 					serializeIlGenerator.Emit(OpCodes.Call, RgbColorToInt32MethodInfo);
-					goto case GrpcDataType.UInt32;
-				case GrpcDataType.ColorGrayscale8:
-				case GrpcDataType.ColorGrayscale16:
-				case GrpcDataType.ColorArgb32:
-				case GrpcDataType.DateTime:
-				case GrpcDataType.TimeSpan:
+					goto case SerializerDataType.UInt32;
+				case SerializerDataType.ColorGrayscale8:
+				case SerializerDataType.ColorGrayscale16:
+				case SerializerDataType.ColorArgb32:
+				case SerializerDataType.DateTime:
+				case SerializerDataType.TimeSpan:
 				default:
 					// TODO
 					throw new NotImplementedException();
@@ -580,34 +586,34 @@ internal static class GrpcEffectSerializer
 				// Read the field matching the DataType.
 				switch (details.DataType)
 				{
-				case GrpcDataType.UInt8:
-				case GrpcDataType.UInt16:
-				case GrpcDataType.UInt32:
-				case GrpcDataType.Boolean:
-				case GrpcDataType.UInt64:
+				case SerializerDataType.UInt8:
+				case SerializerDataType.UInt16:
+				case SerializerDataType.UInt32:
+				case SerializerDataType.Boolean:
+				case SerializerDataType.UInt64:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueUnsignedValuePropertyInfo.GetMethod!);
 					break;
-				case GrpcDataType.Int8:
-				case GrpcDataType.Int16:
-				case GrpcDataType.Int32:
-				case GrpcDataType.Int64:
+				case SerializerDataType.Int8:
+				case SerializerDataType.Int16:
+				case SerializerDataType.Int32:
+				case SerializerDataType.Int64:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSignedValuePropertyInfo.GetMethod!);
 					break;
-				case GrpcDataType.Float16:
-				case GrpcDataType.Float32:
+				case SerializerDataType.Float16:
+				case SerializerDataType.Float32:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSingleValuePropertyInfo.GetMethod!);
 					break;
-				case GrpcDataType.Float64:
+				case SerializerDataType.Float64:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueDoubleValuePropertyInfo.GetMethod!);
 					break;
-				case GrpcDataType.String:
+				case SerializerDataType.String:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueStringValuePropertyInfo.GetMethod!);
 					break;
-				case GrpcDataType.Guid:
+				case SerializerDataType.Guid:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueGuidValuePropertyInfo.GetMethod!);
 					break;
-				case GrpcDataType.DateTime:
-				case GrpcDataType.TimeSpan:
+				case SerializerDataType.DateTime:
+				case SerializerDataType.TimeSpan:
 				default:
 					// TODO
 					throw new NotImplementedException();
@@ -654,17 +660,18 @@ internal static class GrpcEffectSerializer
 		// Serialization: Complete the method.
 
 		// lightingEffect.ExtendedPropertyValues = builder.DrainToImmutable(); // init-only property assignment
-		serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 		if (immutableArrayBuilderLocal is not null)
 		{
+			serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 			serializeIlGenerator.Emit(OpCodes.Ldloc, immutableArrayBuilderLocal);
 			serializeIlGenerator.Emit(OpCodes.Callvirt, ImmutableArrayBuilderDrainToImmutableMethodInfo);
+			serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectExtendedPropertyValuesPropertyInfo.SetMethod!);
 		}
-		else
-		{
-			serializeIlGenerator.Emit(OpCodes.Ldsfld, ImmutableArrayEmptyFieldInfo);
-		}
-		serializeIlGenerator.Emit(OpCodes.Callvirt, LightingEffectExtendedPropertyValuesPropertyInfo.SetMethod!);
+		// Disable this part of the code for now, as LightingEffect already provides the default value. (Needs the DUP and CALLVIRT to be moved outside of the if to be re-enabled)
+		//else
+		//{
+		//	serializeIlGenerator.Emit(OpCodes.Ldsfld, ImmutableArrayEmptyFieldInfo);
+		//}
 		// return lightingEffect;
 		serializeIlGenerator.Emit(OpCodes.Ret);
 
@@ -732,18 +739,8 @@ internal static class GrpcEffectSerializer
 		// Deserialization: Create the DeserializeAndSet method.
 
 		// This method is necessary to "un-generify" the call to SetEffect<TEffect>.
-		var deserializeAndSetMethod = new DynamicMethod("DeserializeAndSet", typeof(void), new[] { typeof(LightingService), typeof(Guid), typeof(Guid), typeof(LightingEffect) }, effectType);
-		var deserializeAndSetIlGenerator = deserializeAndSetMethod.GetILGenerator();
-		var dasEffectLocal = deserializeAndSetIlGenerator.DeclareLocal(effectType);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_0);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_1);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_2);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Ldarg_3);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Call, deserializeMethod);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Stloc, dasEffectLocal);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Ldloca, dasEffectLocal);
-		deserializeAndSetIlGenerator.Emit(OpCodes.Callvirt, LightingServiceSetEffectMethodInfo.MakeGenericMethod(effectType));
-		deserializeAndSetIlGenerator.Emit(OpCodes.Ret);
+		var deserializeAndSetMethod = CreateDeserializeAndSetMethod(effectType, deserializeMethod, false);
+		var deserializeAndRestoreMethod = CreateDeserializeAndSetMethod(effectType, deserializeMethod, true);
 
 		return new
 		(
@@ -756,51 +753,79 @@ internal static class GrpcEffectSerializer
 			serializeMethod,
 			deserializeMethod,
 			unwrapAndSerializeMethod.CreateDelegate<Func<ILightingEffect, LightingEffect>>(),
-			deserializeAndSetMethod.CreateDelegate<Action<LightingService, Guid, Guid, LightingEffect>>()
+			deserializeAndSetMethod.CreateDelegate<Action<LightingService, Guid, Guid, LightingEffect>>(),
+			deserializeAndRestoreMethod.CreateDelegate<Action<LightingService, Guid, Guid, LightingEffect>>()
 		);
 	}
 
-	private static void EmitConversionToTargetType(ILGenerator ilGenerator, GrpcDataType dataType, bool isInt32)
+	private static DynamicMethod CreateDeserializeAndSetMethod(Type effectType, DynamicMethod deserializeMethod, bool isRestore)
+	{
+		var method = new DynamicMethod
+		(
+			isRestore ? "DeserializeAndRestore" : "DeserializeAndSet",
+			typeof(void), new[] { typeof(LightingService), typeof(Guid), typeof(Guid), typeof(LightingEffect) },
+			effectType
+		);
+
+		var ilGenerator = method.GetILGenerator();
+		var dasEffectLocal = ilGenerator.DeclareLocal(effectType);
+		ilGenerator.Emit(OpCodes.Ldarg_0);
+		ilGenerator.Emit(OpCodes.Ldarg_1);
+		ilGenerator.Emit(OpCodes.Ldarg_2);
+		ilGenerator.Emit(OpCodes.Ldarg_3);
+		ilGenerator.Emit(OpCodes.Call, deserializeMethod);
+		ilGenerator.Emit(OpCodes.Stloc, dasEffectLocal);
+		ilGenerator.Emit(OpCodes.Ldloca, dasEffectLocal);
+		ilGenerator.Emit(OpCodes.Ldarg_3);
+		ilGenerator.Emit(isRestore ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+		//ilGenerator.Emit(OpCodes.Constrained, typeof(LightingService));
+		ilGenerator.Emit(OpCodes.Callvirt, LightingServiceInternalSetEffectMethodInfo.MakeGenericMethod(effectType));
+		ilGenerator.Emit(OpCodes.Ret);
+
+		return method;
+	}
+
+	private static void EmitConversionToTargetType(ILGenerator ilGenerator, SerializerDataType dataType, bool isInt32)
 	{
 		// Convert the read value into the appropriate type.
 		switch (dataType)
 		{
-		case GrpcDataType.Boolean:
+		case SerializerDataType.Boolean:
 			ilGenerator.Emit(OpCodes.Ldc_I4_0);
 			ilGenerator.Emit(OpCodes.Cgt_Un);
 			break;
-		case GrpcDataType.UInt8:
+		case SerializerDataType.UInt8:
 			ilGenerator.Emit(OpCodes.Conv_U1);
 			break;
-		case GrpcDataType.Int8:
+		case SerializerDataType.Int8:
 			ilGenerator.Emit(OpCodes.Conv_I1);
 			break;
-		case GrpcDataType.UInt16:
+		case SerializerDataType.UInt16:
 			ilGenerator.Emit(OpCodes.Conv_U2);
 			break;
-		case GrpcDataType.Int16:
+		case SerializerDataType.Int16:
 			ilGenerator.Emit(OpCodes.Conv_I2);
 			break;
-		case GrpcDataType.UInt32:
+		case SerializerDataType.UInt32:
 			if (!isInt32) ilGenerator.Emit(OpCodes.Conv_U4);
 			break;
-		case GrpcDataType.Int32:
+		case SerializerDataType.Int32:
 			if (!isInt32) ilGenerator.Emit(OpCodes.Conv_I4);
 			break;
-		case GrpcDataType.Float16:
+		case SerializerDataType.Float16:
 			ilGenerator.Emit(OpCodes.Call, SingleToHalfMethodInfo);
 			break;
-		case GrpcDataType.UInt64:
-		case GrpcDataType.Int64:
-		case GrpcDataType.Float32:
-		case GrpcDataType.Float64:
-		case GrpcDataType.Guid:
+		case SerializerDataType.UInt64:
+		case SerializerDataType.Int64:
+		case SerializerDataType.Float32:
+		case SerializerDataType.Float64:
+		case SerializerDataType.Guid:
 		// TODO
-		//case GrpcDataType.TimeSpan:
-		//case GrpcDataType.DateTime:
-		case GrpcDataType.String:
+		//case SerializerDataType.TimeSpan:
+		//case SerializerDataType.DateTime:
+		case SerializerDataType.String:
 			break;
-		case GrpcDataType.ColorRgb24:
+		case SerializerDataType.ColorRgb24:
 			if (!isInt32) ilGenerator.Emit(OpCodes.Conv_I4);
 			ilGenerator.Emit(OpCodes.Call, RgbColorFromInt32MethodInfo);
 			break;
@@ -809,53 +834,53 @@ internal static class GrpcEffectSerializer
 		}
 	}
 
-	private static bool IsSigned(GrpcDataType type)
+	private static bool IsSigned(SerializerDataType type)
 	{
 		switch (type)
 		{
-		case GrpcDataType.Int8:
-		case GrpcDataType.Int16:
-		case GrpcDataType.Int32:
-		case GrpcDataType.Int64:
-		case GrpcDataType.Float16:
-		case GrpcDataType.Float32:
-		case GrpcDataType.Float64:
+		case SerializerDataType.Int8:
+		case SerializerDataType.Int16:
+		case SerializerDataType.Int32:
+		case SerializerDataType.Int64:
+		case SerializerDataType.Float16:
+		case SerializerDataType.Float32:
+		case SerializerDataType.Float64:
 			return true;
 		default:
 			return false;
 		}
 	}
 
-	private static bool IsColor(GrpcDataType type)
+	private static bool IsColor(SerializerDataType type)
 	{
 		switch (type)
 		{
-		case GrpcDataType.ColorGrayscale8:
-		case GrpcDataType.ColorGrayscale16:
-		case GrpcDataType.ColorRgb24:
-		case GrpcDataType.ColorArgb32:
+		case SerializerDataType.ColorGrayscale8:
+		case SerializerDataType.ColorGrayscale16:
+		case SerializerDataType.ColorRgb24:
+		case SerializerDataType.ColorArgb32:
 			return true;
 		default:
 			return false;
 		}
 	}
 
-	private static bool IsUInt32Compatible(GrpcDataType type)
+	private static bool IsUInt32Compatible(SerializerDataType type)
 	{
 		switch (type)
 		{
-		case GrpcDataType.UInt8:
-		case GrpcDataType.Int8:
-		case GrpcDataType.UInt16:
-		case GrpcDataType.Int16:
-		case GrpcDataType.UInt32:
-		case GrpcDataType.Int32:
-		case GrpcDataType.UInt64:
-		case GrpcDataType.Int64:
-		case GrpcDataType.ColorGrayscale8:
-		case GrpcDataType.ColorGrayscale16:
-		case GrpcDataType.ColorRgb24:
-		case GrpcDataType.ColorArgb32:
+		case SerializerDataType.UInt8:
+		case SerializerDataType.Int8:
+		case SerializerDataType.UInt16:
+		case SerializerDataType.Int16:
+		case SerializerDataType.UInt32:
+		case SerializerDataType.Int32:
+		case SerializerDataType.UInt64:
+		case SerializerDataType.Int64:
+		case SerializerDataType.ColorGrayscale8:
+		case SerializerDataType.ColorGrayscale16:
+		case SerializerDataType.ColorRgb24:
+		case SerializerDataType.ColorArgb32:
 			return true;
 		default:
 			return false;
@@ -896,77 +921,82 @@ internal static class GrpcEffectSerializer
 		return values;
 	}
 
-	private static DataValue? GetValue(GrpcDataType dataType, object? value)
+	private static DataValue? GetValue(SerializerDataType dataType, object? value)
 	{
 		if (value is null) return null;
 
 		switch (dataType)
 		{
-		case GrpcDataType.UInt8:
-		case GrpcDataType.UInt16:
-		case GrpcDataType.UInt32:
-		case GrpcDataType.UInt64:
+		case SerializerDataType.UInt8:
+		case SerializerDataType.UInt16:
+		case SerializerDataType.UInt32:
+		case SerializerDataType.UInt64:
 			return new() { UnsignedValue = Convert.ToUInt64(value) };
-		case GrpcDataType.Int8:
-		case GrpcDataType.Int16:
-		case GrpcDataType.Int32:
-		case GrpcDataType.Int64:
+		case SerializerDataType.Int8:
+		case SerializerDataType.Int16:
+		case SerializerDataType.Int32:
+		case SerializerDataType.Int64:
 			return new() { SignedValue = Convert.ToInt64(value) };
-		case GrpcDataType.Float32:
+		case SerializerDataType.Float32:
 			return new() { SingleValue = Convert.ToSingle(value) };
-		case GrpcDataType.Float64:
+		case SerializerDataType.Float64:
 			return new() { DoubleValue = Convert.ToDouble(value) };
-		case GrpcDataType.Boolean:
+		case SerializerDataType.Boolean:
 			return new() { UnsignedValue = Convert.ToBoolean(value) ? 1U : 0U };
 		default: return null;
 		}
 	}
 
-	private static GrpcDataType GetDataType(Type type)
+	private static SerializerDataType GetDataType(Type type)
 	{
 		switch (Type.GetTypeCode(type))
 		{
-		case TypeCode.Boolean: return GrpcDataType.Boolean;
-		case TypeCode.Byte: return GrpcDataType.UInt8;
-		case TypeCode.SByte: return GrpcDataType.Int8;
-		case TypeCode.UInt16: return GrpcDataType.UInt16;
-		case TypeCode.Int16: return GrpcDataType.Int16;
-		case TypeCode.UInt32: return GrpcDataType.UInt32;
-		case TypeCode.Int32: return GrpcDataType.Int32;
-		case TypeCode.UInt64: return GrpcDataType.UInt64;
-		case TypeCode.Int64: return GrpcDataType.Int64;
-		case TypeCode.Single: return GrpcDataType.Float32;
-		case TypeCode.Double: return GrpcDataType.Float64;
-		case TypeCode.String: return GrpcDataType.String;
+		case TypeCode.Boolean: return SerializerDataType.Boolean;
+		case TypeCode.Byte: return SerializerDataType.UInt8;
+		case TypeCode.SByte: return SerializerDataType.Int8;
+		case TypeCode.UInt16: return SerializerDataType.UInt16;
+		case TypeCode.Int16: return SerializerDataType.Int16;
+		case TypeCode.UInt32: return SerializerDataType.UInt32;
+		case TypeCode.Int32: return SerializerDataType.Int32;
+		case TypeCode.UInt64: return SerializerDataType.UInt64;
+		case TypeCode.Int64: return SerializerDataType.Int64;
+		case TypeCode.Single: return SerializerDataType.Float32;
+		case TypeCode.Double: return SerializerDataType.Float64;
+		case TypeCode.String: return SerializerDataType.String;
 		default:
 			if (type == typeof(RgbColor))
 			{
-				return GrpcDataType.ColorRgb24;
+				return SerializerDataType.ColorRgb24;
 			}
 			else if (type == typeof(TimeSpan))
 			{
-				return GrpcDataType.TimeSpan;
+				return SerializerDataType.TimeSpan;
 			}
 			else if (type == typeof(DateTime))
 			{
-				return GrpcDataType.DateTime;
+				return SerializerDataType.DateTime;
 			}
 			else if (type == typeof(Half))
 			{
-				return GrpcDataType.Float16;
+				return SerializerDataType.Float16;
 			}
-			return GrpcDataType.Other;
+			return SerializerDataType.Other;
 		}
 	}
 
-	//public static ILightingEffect Deserialize()
-	//{
-	//	return null;
-	//}
+	public static ILightingEffect Deserialize()
+	{
+		// TODO
+		throw new NotImplementedException();
+	}
 
 	public static void DeserializeAndSet(LightingService lightingService, Guid deviceId, Guid zoneId, LightingEffect effect)
 		=> GetEffectSerializationDetails(effect.EffectId).DeserializeAndSet(lightingService, deviceId, zoneId, effect);
 
+	internal static void DeserializeAndRestore(LightingService lightingService, Guid deviceId, Guid zoneId, LightingEffect effect)
+		=> GetEffectSerializationDetails(effect.EffectId).DeserializeAndRestore(lightingService, deviceId, zoneId, effect);
+
+	// TODO: Effects that implement ISingletonLightingEffect should return a cached value.
 	public static LightingEffect Serialize(ILightingEffect effect)
 		=> GetEffectSerializationDetails(effect.GetType()).Serialize(effect);
 }
