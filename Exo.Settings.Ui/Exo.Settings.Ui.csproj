@@ -12,7 +12,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="ContentPage.xaml" />
+    <None Remove="DevicePage.xaml" />
     <None Remove="DevicesPage.xaml" />
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
@@ -51,11 +51,6 @@
   </ItemGroup>
   <ItemGroup>
     <Page Update="LightingZoneControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="ContentPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

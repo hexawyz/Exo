@@ -14,11 +14,11 @@
     <ItemsControl ItemsSource="{Binding LightingDevices}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <Expander Margin="0,0,0,24" IsEnabled="{Binding IsNotBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsNotBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                     <Expander.Header>
                         <StackPanel Orientation="Horizontal">
                             <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-                            <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="12,0,0,0" />
+                            <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
                         </StackPanel>
                     </Expander.Header>
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
@@ -26,11 +26,11 @@
                         <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Expander Margin="0,12,0,12" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Expander Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                                         <Expander.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <FontIcon Glyph="&#xE950;" />
-                                                <TextBlock Text="{Binding Name, Mode=OneTime}" Margin="12,0,0,0" />
+                                                <TextBlock Text="{Binding Name, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
                                                 <Border Margin="12,0,0,0" Width="20" Height="20" Visibility="{Binding Color, Converter={StaticResource NullabilityToVisibilityConverter}}" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
                                                     <Border.Background>
                                                         <SolidColorBrush Color="{Binding Color, Mode=OneWay}" />
@@ -43,7 +43,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,12" HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
                             <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Click="OnDeviceResetButtonClick" />
                             <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnDeviceApplyButtonClick" />
                         </StackPanel>

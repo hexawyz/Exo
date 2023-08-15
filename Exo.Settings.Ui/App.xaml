@@ -29,9 +29,16 @@
             <SolidColorBrush x:Key="WindowCaptionBackground">Transparent</SolidColorBrush>
             <SolidColorBrush x:Key="WindowCaptionBackgroundDisabled">Transparent</SolidColorBrush>
 
-            <Thickness x:Key="ContentPagePadding">0,24,0,0</Thickness>
-            <Thickness x:Key="ContentPageHeaderMargin">24,0,24,12</Thickness>
-            <Thickness x:Key="ContentPageContentPadding">24,0,24,0</Thickness>
+            <Thickness x:Key="NavigationContentPadding">0,24,0,0</Thickness>
+            <Thickness x:Key="NavigationContentHeaderMargin">24,0,24,12</Thickness>
+            <Thickness x:Key="NavigationContentScrollViewerPadding">24,0,24,0</Thickness>
+            
+            <Thickness x:Key="ContentPagePadding">0,0,0,24</Thickness>
+
+            <Thickness x:Key="TitleTextIconMargin">12,0,0,0</Thickness>
+            <Thickness x:Key="VerticalItemSpacing">0,2,0,2</Thickness>
+
+            <GridLength x:Key="PropertyLabelColumnWidth">200</GridLength>
 
             <local:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
             <local:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />

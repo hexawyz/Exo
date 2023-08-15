@@ -85,7 +85,30 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
-            <Frame x:Name="RootFrame"/>
+
+            <Grid Padding="{StaticResource NavigationContentPadding}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Margin="{StaticResource NavigationContentHeaderMargin}"
+                    Text="{Binding Title}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+
+                <ScrollViewer
+                    Grid.Row="1"
+                    VerticalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Auto">
+                    <Frame
+                        DataContext="{x:Null}"
+                        x:Name="ContentFrame"
+                        Padding="{StaticResource NavigationContentScrollViewerPadding}" />
+                </ScrollViewer>
+            </Grid>
         </NavigationView>
     </Grid>
 </Page>

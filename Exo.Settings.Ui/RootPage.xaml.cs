@@ -74,22 +74,29 @@ internal sealed partial class RootPage : Page
 	private void OnNavigationItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
 	{
 		Type? type = null;
-		string? parameter = null;
+		object? dataContext = null;
+		string? title = null;
 		switch (args.InvokedItemContainer.Tag)
 		{
 		case "Devices":
-			type = typeof(ContentPage);
-			parameter = "Devices";
+			type = typeof(DevicesPage);
+			dataContext = ViewModel.Devices;
+			title = "Devices";
 			break;
 		case "Lighting":
-			type = typeof(ContentPage);
-			parameter = "Lighting";
+			type = typeof(LightingPage);
+			dataContext = ViewModel.Lighting;
+			title = "Lighting";
 			break;
 		}
 
-		if (type is null || parameter is null) return;
+		if (type is null) return;
 
-		RootFrame.Navigate(type, parameter, args.RecommendedNavigationTransitionInfo);
-		((Page)RootFrame.Content).DataContext = ViewModel;
+		if (ContentFrame.CurrentSourcePageType != type)
+		{
+			ContentFrame.Navigate(type);
+			((Page)ContentFrame.Content).DataContext = dataContext;
+			ViewModel.Title = title!;
+		}
 	}
 }
