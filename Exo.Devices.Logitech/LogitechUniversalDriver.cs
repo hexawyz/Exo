@@ -333,17 +333,17 @@ public abstract class LogitechUniversalDriver : Driver,
 			configurationKey = new DeviceConfigurationKey("logi", $"{parentDeviceName}#{rapDirect.DeviceIndex}", "logi-universal", rapDirect.SerialNumber);
 			return rapDirect.DeviceType switch
 			{
-				RegisterAccessDeviceType.Keyboard => new BaseDrivers.RegisterAccessThroughReceiverKeyboard(rapDirect, configurationKey, DeviceIdSource.Usb, 0),
-				RegisterAccessDeviceType.Mouse => new BaseDrivers.RegisterAccessThroughReceiverMouse(rapDirect, configurationKey, DeviceIdSource.Usb, 0),
-				_ => new BaseDrivers.RegisterAccessThroughReceiverGeneric(rapDirect, configurationKey, DeviceIdSource.Usb, 0, GetDeviceCategory(rapDirect.DeviceType)),
+				RegisterAccessDeviceType.Keyboard => new BaseDrivers.RegisterAccessThroughReceiverKeyboard(rapDirect, configurationKey, DeviceIdSource.Usb, 0xFFFF),
+				RegisterAccessDeviceType.Mouse => new BaseDrivers.RegisterAccessThroughReceiverMouse(rapDirect, configurationKey, DeviceIdSource.Usb, 0xFFFF),
+				_ => new BaseDrivers.RegisterAccessThroughReceiverGeneric(rapDirect, configurationKey, DeviceIdSource.Usb, 0xFFFF, GetDeviceCategory(rapDirect.DeviceType)),
 			};
 		case HidPlusPlusDevice.FeatureAccessThroughReceiver fapDirect:
 			configurationKey = new DeviceConfigurationKey("logi", $"{parentDeviceName}#{fapDirect.DeviceIndex}", "logi-universal", fapDirect.SerialNumber);
 			return fapDirect.DeviceType switch
 			{
-				FeatureAccessDeviceType.Keyboard => new BaseDrivers.FeatureAccessThroughReceiverKeyboard(fapDirect, configurationKey, DeviceIdSource.Usb, 0),
-				FeatureAccessDeviceType.Mouse => new BaseDrivers.FeatureAccessThroughReceiverMouse(fapDirect, configurationKey, DeviceIdSource.Usb, 0),
-				_ => new BaseDrivers.FeatureAccessThroughReceiverGeneric(fapDirect, configurationKey, DeviceIdSource.Usb, 0, GetDeviceCategory(fapDirect.DeviceType)),
+				FeatureAccessDeviceType.Keyboard => new BaseDrivers.FeatureAccessThroughReceiverKeyboard(fapDirect, configurationKey, DeviceIdSource.Usb, 0xFFFF),
+				FeatureAccessDeviceType.Mouse => new BaseDrivers.FeatureAccessThroughReceiverMouse(fapDirect, configurationKey, DeviceIdSource.Usb, 0xFFFF),
+				_ => new BaseDrivers.FeatureAccessThroughReceiverGeneric(fapDirect, configurationKey, DeviceIdSource.Usb, 0xFFFF, GetDeviceCategory(fapDirect.DeviceType)),
 			};
 		default:
 			throw new InvalidOperationException("Unsupported device type.");

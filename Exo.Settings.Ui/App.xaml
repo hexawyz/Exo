@@ -43,6 +43,7 @@
             <local:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
             <converters:CollectionVisibilityConverter x:Key="CollectionToVisibilityConverter" />
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <local:StringFormatConverter x:Key="StringFormatConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

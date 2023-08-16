@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
@@ -12,11 +13,17 @@ namespace Exo.Devices.Razer;
 // Like the Logitech driver, this will likely benefit from a refactoring of the device discovery, allowing to create drivers with different features on-demand.
 // For now, it will only exactly support the features for Razer DeathAdder V2 & Dock, but it will need more flexibility to support other devices using the same protocol.
 // NB: This driver relies on system drivers provided by Razer to access device features. The protocol part is still implemented here, but we need the driver to get access to the device.
-[ProductId(VendorIdSource.Usb, 0x1532, 0x007C)] // Mouse
-[ProductId(VendorIdSource.Usb, 0x1532, 0x007D)] // Mouse via Dongle
-[ProductId(VendorIdSource.Usb, 0x1532, 0x007E)] // Dock
-public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
+[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // Mouse
+[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // Mouse via Dongle
+[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // Dock
+public abstract class RazerDeviceDriver :
+	Driver,
+	IRazerDeviceNotificationSink,
+	ISerialNumberDeviceFeature,
+	IDeviceIdDeviceFeature
 {
+	private const ushort RazerVendorId = 0x1532;
+
 	// It does not seem we can retrieve enough metadata from the devices themselves, so we need to have some manually entered data here.
 	private readonly struct DeviceInformation
 	{
@@ -68,7 +75,14 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 		Properties.System.DeviceInterface.Hid.VersionNumber,
 	};
 
-	public static async Task<RazerDeviceDriver> CreateAsync(string deviceName, ushort productId, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
+	private static readonly Property[] RequestedDeviceProperties = new Property[]
+	{
+		Properties.System.Devices.BusTypeGuid,
+		Properties.System.Devices.ClassGuid,
+		Properties.System.Devices.EnumeratorName,
+	};
+
+	public static async Task<RazerDeviceDriver> CreateAsync(string deviceName, ushort productId, ushort version, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
 	{
 		// Start by retrieving the local device metadata. It will throw if missing, which is what we want.
 		// We need this for two reasons:
@@ -116,20 +130,44 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 		var devices = await DeviceQuery.FindAllAsync
 		(
 			DeviceObjectKind.Device,
-			Array.Empty<Property>(),
-			Properties.System.Devices.ContainerId == containerId & Properties.System.Devices.Children.Exists(),
+			RequestedDeviceProperties,
+			Properties.System.Devices.ContainerId == containerId & Properties.System.Devices.Children.Exists() & Properties.System.Devices.ClassGuid != DeviceClassGuids.Hid,
 			cancellationToken
 		).ConfigureAwait(false);
 
 		string[] deviceNames = new string[hidDeviceInterfaces.Length + 2];
-		string topLevelDeviceName = devices[0].Id;
+		var topLevelDevice = devices[0];
 		string? notificationDeviceName = null;
+		DeviceIdSource deviceIdSource = DeviceIdSource.Unknown;
 
 		// Set the razer control device as the first device name for now.
 		deviceNames[0] = razerControlDeviceName;
 
+		if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.ClassGuid.Key, out Guid guid))
+		{
+			if (guid == DeviceClassGuids.Usb)
+			{
+				deviceIdSource = DeviceIdSource.Usb;
+				goto DeviceIdSourceResolved;
+			}
+			if (guid == DeviceClassGuids.Bluetooth)
+			{
+				if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.EnumeratorName.Key, out string? enumeratorName))
+				{
+					if (enumeratorName == "BTHLE")
+					{
+						deviceIdSource = DeviceIdSource.BluetoothLowEnergy;
+						goto DeviceIdSourceResolved;
+					}
+					deviceIdSource = DeviceIdSource.Bluetooth;
+					goto DeviceIdSourceResolved;
+				}
+			}
+		DeviceIdSourceResolved:;
+		}
+
 		// Set the top level device name as the last device name now.
-		deviceNames[^1] = topLevelDeviceName;
+		deviceNames[^1] = topLevelDevice.Id;
 
 		for (int i = 0; i < hidDeviceInterfaces.Length; i++)
 		{
@@ -178,11 +216,13 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			transport,
 			new(notificationDeviceName),
 			driverRegistry,
+			deviceIdSource,
 			productId,
+			version,
 			deviceInfo,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 			friendlyName,
-			topLevelDeviceName,
+			topLevelDevice.Id,
 			serialNumber
 		);
 
@@ -200,7 +240,9 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 		RazerProtocolTransport transport,
 		HidFullDuplexStream notificationStream,
 		Optional<IDriverRegistry> driverRegistry,
+		DeviceIdSource deviceIdSource,
 		ushort productId,
+		ushort versionNumber,
 		DeviceInformation deviceInfo,
 		ImmutableArray<string> deviceNames,
 		string friendlyName,
@@ -218,7 +260,10 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			RazerDeviceCategory.Mouse => new SystemDevice.Mouse
 			(
@@ -227,7 +272,10 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			RazerDeviceCategory.Dock => new SystemDevice.Generic
 			(
@@ -237,7 +285,10 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			RazerDeviceCategory.UsbReceiver => new SystemDevice.UsbReceiver
 			(
@@ -246,7 +297,10 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				driverRegistry.GetOrCreateValue(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
@@ -255,7 +309,9 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 	private static RazerDeviceDriver CreateChildDevice
 	(
 		RazerProtocolTransport transport,
+		DeviceIdSource deviceIdSource,
 		ushort productId,
+		ushort versionNumber,
 		byte deviceIndex,
 		DeviceInformation deviceInfo,
 		string friendlyName,
@@ -272,14 +328,20 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				transport,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			RazerDeviceCategory.Mouse => new Mouse
 			(
 				transport,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			RazerDeviceCategory.Dock => new Generic
 			(
@@ -287,21 +349,34 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				DeviceCategory.MouseDock,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
-				configurationKey
+				configurationKey,
+				deviceIdSource,
+				productId,
+				versionNumber
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
 	}
 
 	private readonly RazerProtocolTransport _transport;
+	private readonly DeviceIdSource _deviceIdSource;
+	private readonly ushort _productId;
+	private readonly ushort _versionNumber;
 
-	private RazerDeviceDriver(
+	private RazerDeviceDriver
+	(
 		RazerProtocolTransport transport,
 		string friendlyName,
-		DeviceConfigurationKey configurationKey
+		DeviceConfigurationKey configurationKey,
+		DeviceIdSource deviceIdSource,
+		ushort productId,
+		ushort versionNumber
 	) : base(friendlyName, configurationKey)
 	{
 		_transport = transport;
+		_deviceIdSource = deviceIdSource;
+		_productId = productId;
+		_versionNumber = versionNumber;
 	}
 
 	// The transport must only be disposed for root devices.
@@ -319,6 +394,15 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 	{
 	}
 
+	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
+
+	public string SerialNumber
+		=> HasSerialNumber ?
+			ConfigurationKey.SerialNumber! :
+			throw new NotSupportedException("This device does not support the Serial Number feature.");
+
+	public DeviceId DeviceId => new(_deviceIdSource, VendorIdSource.Usb, RazerVendorId, _productId, _versionNumber);
+
 	private class Generic : BaseDevice
 	{
 		public override DeviceCategory DeviceCategory { get; }
@@ -328,8 +412,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			DeviceCategory deviceCategory,
 			Guid lightingZoneId,
 			string friendlyName,
-			DeviceConfigurationKey configurationKey
-		) : base(transport, lightingZoneId, friendlyName, configurationKey)
+			DeviceConfigurationKey configurationKey,
+			DeviceIdSource deviceIdSource,
+			ushort productId,
+			ushort versionNumber
+		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 		{
 			DeviceCategory = deviceCategory;
 		}
@@ -343,8 +430,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			RazerProtocolTransport transport,
 			Guid lightingZoneId,
 			string friendlyName,
-			DeviceConfigurationKey configurationKey
-		) : base(transport, lightingZoneId, friendlyName, configurationKey)
+			DeviceConfigurationKey configurationKey,
+			DeviceIdSource deviceIdSource,
+			ushort productId,
+			ushort versionNumber
+		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 		{
 		}
 	}
@@ -357,8 +447,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			RazerProtocolTransport transport,
 			Guid lightingZoneId,
 			string friendlyName,
-			DeviceConfigurationKey configurationKey
-		) : base(transport, lightingZoneId, friendlyName, configurationKey)
+			DeviceConfigurationKey configurationKey,
+			DeviceIdSource deviceIdSource,
+			ushort productId,
+			ushort versionNumber
+		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 		{
 		}
 	}
@@ -382,10 +475,13 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			// As of now, there can be only two devices, but we can use an array here to be more future-proof. (Still need to understand how to address these other devices)
 			private readonly PairedDeviceState[] _pairedDevices;
 
+			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
 			public ImmutableArray<string> DeviceNames { get; }
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.UsbWirelessReceiver;
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => FeatureCollection.Empty<IDeviceFeature>();
+
+			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
 			public UsbReceiver(
 				RazerProtocolTransport transport,
@@ -393,11 +489,15 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				IDriverRegistry driverRegistry,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
-				DeviceConfigurationKey configurationKey
-			) : base(transport, friendlyName, configurationKey)
+				DeviceConfigurationKey configurationKey,
+				DeviceIdSource deviceIdSource,
+				ushort productId,
+				ushort versionNumber
+			) : base(transport, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 			{
 				_driverRegistry = driverRegistry;
 				DeviceNames = deviceNames;
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, UsbReceiver, IDeviceIdDeviceFeature>(this);
 				var childDevices = transport.GetDevicePairingInformation();
 				_pairedDevices = new PairedDeviceState[childDevices.Length];
 				for (int i = 0; i < childDevices.Length; i++)
@@ -468,7 +568,18 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				{
 					var serialNumber = _transport.GetSerialNumber();
 
-					driver = CreateChildDevice(_transport, state.ProductId, (byte)deviceIndex, deviceInformation, deviceInformation.FriendlyName, ConfigurationKey.DeviceMainId, serialNumber);
+					driver = CreateChildDevice
+					(
+						_transport,
+						DeviceIdSource.Unknown,
+						state.ProductId,
+						0xFFFF,
+						(byte)deviceIndex,
+						deviceInformation,
+						deviceInformation.FriendlyName,
+						ConfigurationKey.DeviceMainId,
+						serialNumber
+					);
 				}
 				catch (Exception ex)
 				{
@@ -525,8 +636,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				Guid lightingZoneId,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
-				DeviceConfigurationKey configurationKey
-			) : base(transport, deviceCategory, lightingZoneId, friendlyName, configurationKey)
+				DeviceConfigurationKey configurationKey,
+				DeviceIdSource deviceIdSource,
+				ushort productId,
+				ushort versionNumber
+			) : base(transport, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -552,8 +666,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				Guid lightingZoneId,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
-				DeviceConfigurationKey configurationKey
-			) : base(transport, lightingZoneId, friendlyName, configurationKey)
+				DeviceConfigurationKey configurationKey,
+				DeviceIdSource deviceIdSource,
+				ushort productId,
+				ushort versionNumber
+			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -579,8 +696,11 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 				Guid lightingZoneId,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
-				DeviceConfigurationKey configurationKey
-			) : base(transport, lightingZoneId, friendlyName, configurationKey)
+				DeviceConfigurationKey configurationKey,
+				DeviceIdSource deviceIdSource,
+				ushort productId,
+				ushort versionNumber
+			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -615,16 +735,22 @@ public abstract class RazerDeviceDriver : Driver, IRazerDeviceNotificationSink
 			RazerProtocolTransport transport,
 			Guid lightingZoneId,
 			string friendlyName,
-			DeviceConfigurationKey configurationKey
-		) : base(transport, friendlyName, configurationKey)
+			DeviceConfigurationKey configurationKey,
+			DeviceIdSource deviceIdSource,
+			ushort productId,
+			ushort versionNumber
+		) : base(transport, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 		{
 			_appliedEffect = DisabledEffect.SharedInstance;
 			_currentEffect = DisabledEffect.SharedInstance;
 			_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
-			_allFeatures = FeatureCollection.Create<IDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
+			_allFeatures = HasSerialNumber ?
+				FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IUnifiedLightingFeature>(this) :
+				FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IUnifiedLightingFeature>(this);
 			_lock = new();
 			_lightingZoneId = lightingZoneId;
 			_currentBrightness = 0x54; // 33%
+
 			// Unless it is possible to retrieve the current settings from the device, we should reset the effect.
 			ApplyEffect(DisabledEffect.SharedInstance, _currentBrightness, true);
 		}

@@ -35,11 +35,11 @@
                 <TextBlock Grid.Column="0" Grid.Row="1" Text="Vendor ID Source" />
                 <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding VendorIdSource}" />
                 <TextBlock Grid.Column="0" Grid.Row="2" Text="Vendor ID" />
-                <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding VendorId}" />
+                <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding VendorId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
                 <TextBlock Grid.Column="0" Grid.Row="3" Text="Product ID" />
-                <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId}" />
+                <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
                 <TextBlock Grid.Column="0" Grid.Row="4" Text="Version" />
-                <TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version}" />
+                <TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
             </Grid>
         </Expander>
     </StackPanel>
