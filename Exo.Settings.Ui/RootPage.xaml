@@ -94,12 +94,24 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock
-                    Margin="{StaticResource NavigationContentHeaderMargin}"
-                    Text="{Binding Title}"
-                    Style="{StaticResource TitleTextBlockStyle}"
-                    TextTrimming="CharacterEllipsis"
-                    TextWrapping="NoWrap" />
+                <Grid Margin="{StaticResource NavigationContentHeaderMargin}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Text="{Binding Title}"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap" />
+                    <FontIcon
+                        Grid.Column="3"
+                        DataContext="{Binding Devices.SelectedDevice, Mode=TwoWay}"
+                        Visibility="{Binding BatteryLevel, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                        Glyph="{Binding BatteryLevel, Converter={StaticResource BatteryLevelToGlyphConverter}}"
+                        ToolTipService.ToolTip="{Binding BatteryLevel, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
+                </Grid>
 
                 <ScrollViewer
                     Grid.Row="1"

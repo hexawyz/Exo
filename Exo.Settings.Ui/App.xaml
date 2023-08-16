@@ -44,6 +44,7 @@
             <converters:CollectionVisibilityConverter x:Key="CollectionToVisibilityConverter" />
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <local:StringFormatConverter x:Key="StringFormatConverter" />
+            <local:BatteryLevelToGlyphConverter x:Key="BatteryLevelToGlyphConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

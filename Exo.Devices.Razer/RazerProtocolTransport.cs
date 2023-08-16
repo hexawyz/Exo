@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
@@ -176,6 +175,38 @@ internal sealed class RazerProtocolTransport : IDisposable
 				if (length < 0) length = value.Length;
 
 				return Encoding.ASCII.GetString(value[..length]);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	public byte GetBatteryLevel()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x02;
+				buffer[7] = 0x07;
+				buffer[8] = 0x80;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x07, 0x80, 0);
+
+				return buffer[10];
 			}
 			finally
 			{

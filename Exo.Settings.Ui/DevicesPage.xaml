@@ -17,12 +17,20 @@
                     <Grid HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
                         <TextBlock Grid.Column="1" Text="{Binding FriendlyName}" Margin="{StaticResource TitleTextIconMargin}" />
-                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="{StaticResource CaptionTextBlockFontSize}" />
+                        <FontIcon
+                            Grid.Column="2"
+                            Margin="12,0,0,0"
+                            Visibility="{Binding BatteryLevel, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                            Glyph="{Binding BatteryLevel, Converter={StaticResource BatteryLevelToGlyphConverter}}"
+                            ToolTipService.ToolTip="{Binding BatteryLevel, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
+                        <FontIcon Grid.Column="4" Glyph="&#xE76C;" FontSize="{StaticResource CaptionTextBlockFontSize}" />
                     </Grid>
                 </Button>
             </DataTemplate>

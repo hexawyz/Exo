@@ -19,6 +19,7 @@ namespace Exo.Devices.Razer;
 public abstract class RazerDeviceDriver :
 	Driver,
 	IRazerDeviceNotificationSink,
+	IRazerPeriodicEventHandler,
 	ISerialNumberDeviceFeature,
 	IDeviceIdDeviceFeature
 {
@@ -27,15 +28,18 @@ public abstract class RazerDeviceDriver :
 	// It does not seem we can retrieve enough metadata from the devices themselves, so we need to have some manually entered data here.
 	private readonly struct DeviceInformation
 	{
-		public DeviceInformation(RazerDeviceCategory deviceCategory, ushort actualDeviceProductId, Guid? lightingZoneGuid, string friendlyName)
+		public DeviceInformation(RazerDeviceCategory deviceCategory, RazerDeviceFlags flags, ushort actualDeviceProductId, Guid? lightingZoneGuid, string friendlyName)
 		{
 			DeviceCategory = deviceCategory;
+			Flags = flags;
 			ActualDeviceProductId = actualDeviceProductId;
 			LightingZoneGuid = lightingZoneGuid;
 			FriendlyName = friendlyName;
 		}
 
 		public RazerDeviceCategory DeviceCategory { get; }
+
+		public RazerDeviceFlags Flags { get; }
 
 		// Razer devices seem to share the same PID between the device and the dongle it was delivered with.
 		// This property indicates the product ID containing the information of the device associated with a dongle PID.
@@ -55,6 +59,13 @@ public abstract class RazerDeviceDriver :
 		Dock = 4,
 	}
 
+	[Flags]
+	private enum RazerDeviceFlags : byte
+	{
+		None = 0,
+		HasBattery = 1,
+	}
+
 	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new Guid(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
 
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
@@ -62,9 +73,9 @@ public abstract class RazerDeviceDriver :
 
 	private static readonly Dictionary<ushort, DeviceInformation> DeviceInformations = new()
 	{
-		{ 0x007C, new(RazerDeviceCategory.Mouse, 0x007C, DeathAdderV2ProLightingZoneGuid, "Razer DeathAdder V2 Pro") },
-		{ 0x007D, new(RazerDeviceCategory.UsbReceiver, 0x007C, null, "Razer DeathAdder V2 Pro HyperSpeed Dongle") },
-		{ 0x007E, new(RazerDeviceCategory.Dock, 0x007E, DockLightingZoneGuid, "Razer Mouse Dock") },
+		{ 0x007C, new(RazerDeviceCategory.Mouse, RazerDeviceFlags.HasBattery, 0x007C, DeathAdderV2ProLightingZoneGuid, "Razer DeathAdder V2 Pro") },
+		{ 0x007D, new(RazerDeviceCategory.UsbReceiver, RazerDeviceFlags.None, 0x007C, null, "Razer DeathAdder V2 Pro HyperSpeed Dongle") },
+		{ 0x007E, new(RazerDeviceCategory.Dock, RazerDeviceFlags.None, 0x007E, DockLightingZoneGuid, "Razer Mouse Dock") },
 	};
 
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
@@ -214,6 +225,7 @@ public abstract class RazerDeviceDriver :
 		var device = CreateDevice
 		(
 			transport,
+			new(60_000),
 			new(notificationDeviceName),
 			driverRegistry,
 			deviceIdSource,
@@ -238,6 +250,7 @@ public abstract class RazerDeviceDriver :
 	private static RazerDeviceDriver CreateDevice
 	(
 		RazerProtocolTransport transport,
+		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		HidFullDuplexStream notificationStream,
 		Optional<IDriverRegistry> driverRegistry,
 		DeviceIdSource deviceIdSource,
@@ -256,11 +269,13 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.Keyboard => new SystemDevice.Keyboard
 			(
 				transport,
+				periodicEventGenerator,
 				notificationStream,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
+				deviceInfo.Flags,
 				deviceIdSource,
 				productId,
 				versionNumber
@@ -268,11 +283,13 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse => new SystemDevice.Mouse
 			(
 				transport,
+				periodicEventGenerator,
 				notificationStream,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
+				deviceInfo.Flags,
 				deviceIdSource,
 				productId,
 				versionNumber
@@ -280,12 +297,14 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.Dock => new SystemDevice.Generic
 			(
 				transport,
+				periodicEventGenerator,
 				notificationStream,
 				DeviceCategory.MouseDock,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
+				deviceInfo.Flags,
 				deviceIdSource,
 				productId,
 				versionNumber
@@ -293,6 +312,7 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.UsbReceiver => new SystemDevice.UsbReceiver
 			(
 				transport,
+				periodicEventGenerator,
 				notificationStream,
 				driverRegistry.GetOrCreateValue(),
 				deviceNames,
@@ -309,6 +329,7 @@ public abstract class RazerDeviceDriver :
 	private static RazerDeviceDriver CreateChildDevice
 	(
 		RazerProtocolTransport transport,
+		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		DeviceIdSource deviceIdSource,
 		ushort productId,
 		ushort versionNumber,
@@ -326,9 +347,11 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.Keyboard => new Keyboard
 			(
 				transport,
+				periodicEventGenerator,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
 				configurationKey,
+				deviceInfo.Flags,
 				deviceIdSource,
 				productId,
 				versionNumber
@@ -336,9 +359,11 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse => new Mouse
 			(
 				transport,
+				periodicEventGenerator,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
 				configurationKey,
+				deviceInfo.Flags,
 				deviceIdSource,
 				productId,
 				versionNumber
@@ -346,10 +371,12 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceCategory.Dock => new Generic
 			(
 				transport,
+				periodicEventGenerator,
 				DeviceCategory.MouseDock,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
 				configurationKey,
+				deviceInfo.Flags,
 				deviceIdSource,
 				productId,
 				versionNumber
@@ -358,7 +385,13 @@ public abstract class RazerDeviceDriver :
 		};
 	}
 
+	// The transport is used to communicate with the device.
 	private readonly RazerProtocolTransport _transport;
+
+	// The periodic event generator is used to manage periodic events on the transport.
+	// It *could* be merged with the transport for practical reasons but the two features are not related enough.
+	private readonly RazerProtocolPeriodicEventGenerator _periodicEventGenerator;
+
 	private readonly DeviceIdSource _deviceIdSource;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
@@ -366,6 +399,7 @@ public abstract class RazerDeviceDriver :
 	private RazerDeviceDriver
 	(
 		RazerProtocolTransport transport,
+		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
 		DeviceIdSource deviceIdSource,
@@ -374,6 +408,7 @@ public abstract class RazerDeviceDriver :
 	) : base(friendlyName, configurationKey)
 	{
 		_transport = transport;
+		_periodicEventGenerator = periodicEventGenerator;
 		_deviceIdSource = deviceIdSource;
 		_productId = productId;
 		_versionNumber = versionNumber;
@@ -382,17 +417,26 @@ public abstract class RazerDeviceDriver :
 	// The transport must only be disposed for root devices.
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-	public virtual void OnDeviceArrival(byte deviceIndex)
+	// Method used to dispose resources in root instances.
+	// Child devices will share the parent resources, so they should not call this method.
+	private void DisposeRootResources()
 	{
+		// Disposing the periodic event generator first should reduce the risk of errors related to accessing a disposed transport.
+		_periodicEventGenerator.Dispose();
+		_transport.Dispose();
 	}
 
-	public virtual void OnDeviceRemoval(byte deviceIndex)
-	{
-	}
+	void IRazerPeriodicEventHandler.HandlePeriodicEvent() => HandlePeriodicEvent();
 
-	public virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpi1, ushort dpi2)
-	{
-	}
+	protected virtual void HandlePeriodicEvent() { }
+
+	void IRazerDeviceNotificationSink.OnDeviceArrival(byte deviceIndex) => OnDeviceArrival(deviceIndex);
+	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte deviceIndex) => OnDeviceRemoval(deviceIndex);
+	void IRazerDeviceNotificationSink.OnDeviceDpiChange(byte deviceIndex, ushort dpi1, ushort dpi2) => OnDeviceDpiChange(deviceIndex, dpi1, dpi2);
+
+	protected virtual void OnDeviceArrival(byte deviceIndex) { }
+	protected virtual void OnDeviceRemoval(byte deviceIndex) { }
+	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpi1, ushort dpi2) { }
 
 	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
 
@@ -409,14 +453,16 @@ public abstract class RazerDeviceDriver :
 
 		public Generic(
 			RazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			DeviceCategory deviceCategory,
 			Guid lightingZoneId,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
+			RazerDeviceFlags deviceFlags,
 			DeviceIdSource deviceIdSource,
 			ushort productId,
 			ushort versionNumber
-		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
 			DeviceCategory = deviceCategory;
 		}
@@ -428,13 +474,15 @@ public abstract class RazerDeviceDriver :
 
 		public Mouse(
 			RazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
+			RazerDeviceFlags deviceFlags,
 			DeviceIdSource deviceIdSource,
 			ushort productId,
 			ushort versionNumber
-		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
 		}
 	}
@@ -445,13 +493,15 @@ public abstract class RazerDeviceDriver :
 
 		public Keyboard(
 			RazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
+			RazerDeviceFlags deviceFlags,
 			DeviceIdSource deviceIdSource,
 			ushort productId,
 			ushort versionNumber
-		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
 		}
 	}
@@ -485,6 +535,7 @@ public abstract class RazerDeviceDriver :
 
 			public UsbReceiver(
 				RazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				IDriverRegistry driverRegistry,
 				ImmutableArray<string> deviceNames,
@@ -493,7 +544,7 @@ public abstract class RazerDeviceDriver :
 				DeviceIdSource deviceIdSource,
 				ushort productId,
 				ushort versionNumber
-			) : base(transport, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 			{
 				_driverRegistry = driverRegistry;
 				DeviceNames = deviceNames;
@@ -514,11 +565,12 @@ public abstract class RazerDeviceDriver :
 
 			public override async ValueTask DisposeAsync()
 			{
-				_transport.Dispose();
+				await base.DisposeAsync().ConfigureAwait(false);
+				DisposeRootResources();
 				await _watcher.DisposeAsync().ConfigureAwait(false);
 			}
 
-			public override void OnDeviceArrival(byte deviceIndex)
+			protected override void OnDeviceArrival(byte deviceIndex)
 			{
 				// TODO: Log invalid device index.
 				if (deviceIndex > _pairedDevices.Length) return;
@@ -526,7 +578,7 @@ public abstract class RazerDeviceDriver :
 				HandleNewDevice(deviceIndex);
 			}
 
-			public override void OnDeviceRemoval(byte deviceIndex)
+			protected override void OnDeviceRemoval(byte deviceIndex)
 			{
 				// TODO: Log invalid device index.
 				if (deviceIndex > _pairedDevices.Length) return;
@@ -571,6 +623,7 @@ public abstract class RazerDeviceDriver :
 					driver = CreateChildDevice
 					(
 						_transport,
+						_periodicEventGenerator,
 						DeviceIdSource.Unknown,
 						state.ProductId,
 						0xFFFF,
@@ -629,18 +682,21 @@ public abstract class RazerDeviceDriver :
 
 			public ImmutableArray<string> DeviceNames { get; }
 
-			public Generic(
+			public Generic
+			(
 				RazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				DeviceCategory deviceCategory,
 				Guid lightingZoneId,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
+				RazerDeviceFlags deviceFlags,
 				DeviceIdSource deviceIdSource,
 				ushort productId,
 				ushort versionNumber
-			) : base(transport, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+			) : base(transport, periodicEventGenerator, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -648,7 +704,8 @@ public abstract class RazerDeviceDriver :
 
 			public override async ValueTask DisposeAsync()
 			{
-				_transport.Dispose();
+				await base.DisposeAsync().ConfigureAwait(false);
+				DisposeRootResources();
 				await _watcher.DisposeAsync().ConfigureAwait(false);
 			}
 		}
@@ -660,17 +717,20 @@ public abstract class RazerDeviceDriver :
 			public ImmutableArray<string> DeviceNames { get; }
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			public Mouse(
+			public Mouse
+			(
 				RazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				Guid lightingZoneId,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
+				RazerDeviceFlags deviceFlags,
 				DeviceIdSource deviceIdSource,
 				ushort productId,
 				ushort versionNumber
-			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -678,7 +738,8 @@ public abstract class RazerDeviceDriver :
 
 			public override async ValueTask DisposeAsync()
 			{
-				_transport.Dispose();
+				await base.DisposeAsync().ConfigureAwait(false);
+				DisposeRootResources();
 				await _watcher.DisposeAsync().ConfigureAwait(false);
 			}
 		}
@@ -692,15 +753,17 @@ public abstract class RazerDeviceDriver :
 
 			public Keyboard(
 				RazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				Guid lightingZoneId,
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
+				RazerDeviceFlags deviceFlags,
 				DeviceIdSource deviceIdSource,
 				ushort productId,
 				ushort versionNumber
-			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -708,7 +771,8 @@ public abstract class RazerDeviceDriver :
 
 			public override async ValueTask DisposeAsync()
 			{
-				_transport.Dispose();
+				await base.DisposeAsync().ConfigureAwait(false);
+				DisposeRootResources();
 				await _watcher.DisposeAsync().ConfigureAwait(false);
 			}
 		}
@@ -717,6 +781,7 @@ public abstract class RazerDeviceDriver :
 	private abstract class BaseDevice :
 		RazerDeviceDriver,
 		IDeviceDriver<ILightingDeviceFeature>,
+		IBatteryLevelDeviceFeature,
 		IUnifiedLightingFeature,
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>
@@ -724,35 +789,94 @@ public abstract class RazerDeviceDriver :
 		private ILightingEffect _appliedEffect;
 		private ILightingEffect _currentEffect;
 		private byte _currentBrightness;
+		private readonly RazerDeviceFlags _deviceFlags;
 		private readonly Guid _lightingZoneId;
 		private readonly object _lock;
 		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 		// How do we use this ?
 		private readonly byte _deviceIndex;
+		private byte _batteryLevel;
+
+		private bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
 
 		protected BaseDevice(
 			RazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
+			RazerDeviceFlags deviceFlags,
 			DeviceIdSource deviceIdSource,
 			ushort productId,
 			ushort versionNumber
-		) : base(transport, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
 		{
 			_appliedEffect = DisabledEffect.SharedInstance;
 			_currentEffect = DisabledEffect.SharedInstance;
-			_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
-			_allFeatures = HasSerialNumber ?
-				FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IUnifiedLightingFeature>(this) :
-				FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IUnifiedLightingFeature>(this);
 			_lock = new();
 			_lightingZoneId = lightingZoneId;
 			_currentBrightness = 0x54; // 33%
+			_deviceFlags = deviceFlags;
+
+			if (HasBattery)
+			{
+				_batteryLevel = _transport.GetBatteryLevel();
+				_periodicEventGenerator.Register(this);
+			}
+
+			_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
+			_allFeatures = HasSerialNumber ?
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IUnifiedLightingFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IUnifiedLightingFeature>(this);
 
 			// Unless it is possible to retrieve the current settings from the device, we should reset the effect.
 			ApplyEffect(DisabledEffect.SharedInstance, _currentBrightness, true);
+		}
+
+		public override ValueTask DisposeAsync()
+		{
+			if (HasBattery)
+			{
+				_periodicEventGenerator.Unregister(this);
+			}
+			return base.DisposeAsync();
+		}
+
+		protected override void HandlePeriodicEvent()
+		{
+			if (HasBattery)
+			{
+				byte oldBatteryLevel = _batteryLevel;
+				byte newBatteryLevel = _transport.GetBatteryLevel();
+
+				if (oldBatteryLevel != newBatteryLevel)
+				{
+					Volatile.Write(ref _batteryLevel, newBatteryLevel);
+
+					if (BatteryLevelChanged is { } batteryLevelChanged)
+					{
+						_ = Task.Run
+						(
+							() =>
+							{
+								try
+								{
+									batteryLevelChanged.Invoke(this, newBatteryLevel / 255f);
+								}
+								catch (Exception ex)
+								{
+									// TODO: Log
+								}
+							}
+						);
+					}
+				}
+			}
 		}
 
 		IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
@@ -778,7 +902,6 @@ public abstract class RazerDeviceDriver :
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
-				_transport.SetStaticColor(default);
 				_transport.SetBrightness(0);
 				return;
 			}
@@ -822,5 +945,15 @@ public abstract class RazerDeviceDriver :
 
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => _currentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _currentEffect.TryGetEffect(out effect);
+
+		private event Action<Driver, float> BatteryLevelChanged;
+
+		event Action<Driver, float> IBatteryLevelDeviceFeature.BatteryLevelChanged
+		{
+			add => BatteryLevelChanged += value;
+			remove => BatteryLevelChanged -= value;
+		}
+
+		float IBatteryLevelDeviceFeature.BatteryLevel => _batteryLevel / 255f;
 	}
 }
