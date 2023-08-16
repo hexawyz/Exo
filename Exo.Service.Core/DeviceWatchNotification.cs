@@ -2,7 +2,7 @@ namespace Exo.Service;
 
 public readonly struct DeviceWatchNotification
 {
-	public DeviceWatchNotification(WatchNotificationKind kind, DeviceInformation driverInformation, Driver? driver)
+	public DeviceWatchNotification(WatchNotificationKind kind, DeviceInformation driverInformation, Driver driver)
 	{
 		Kind = kind;
 		DeviceInformation = driverInformation;
@@ -18,9 +18,8 @@ public readonly struct DeviceWatchNotification
 
 	/// <summary>Gets the actual driver instance.</summary>
 	/// <remarks>
-	/// This property is not assigned any value for a <see cref="WatchNotificationKind.Removal"/> notification.
+	/// Use of the driver instance for the <see cref="WatchNotificationKind.Removal"/> notification must be limited to cleanup operations such as unregistering handlers.
 	/// While the <see cref="Driver"/> instance may still be valid, and possibly somewhat useable, we consider it lost.
-	/// The removal notification essentially serves for a way to notify consumers that they should remove their reference to the driver instance.
 	/// </remarks>
-	public Driver? Driver { get; }
+	public Driver Driver { get; }
 }

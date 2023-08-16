@@ -136,13 +136,13 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	/// <returns>An asynchronous enumerable providing live access to all devices.</returns>
 	public async IAsyncEnumerable<DeviceWatchNotification> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver? Driver)> reader;
+		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)> reader;
 
-		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver? Driver)>(WatchChannelOptions);
+		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)>(WatchChannelOptions);
 		reader = channel.Reader;
 		var writer = channel.Writer;
 
-		var onDriverUpdated = (bool b, Driver d, DeviceInformation di) => { writer.TryWrite((b, di, b ? d : null)); };
+		var onDriverUpdated = (bool b, Driver d, DeviceInformation di) => { writer.TryWrite((b, di, d)); };
 
 		DeviceWatchNotification[]? initialNotifications;
 		int initialNotificationCount = 0;
@@ -248,4 +248,18 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	public bool TryGetDriver(Guid deviceId, [NotNullWhen(true)] out Driver? driver)
 		=> _driversByUniqueId.TryGetValue(deviceId, out driver);
+
+	public bool TryGetDeviceId(Driver driver, [NotNullWhen(true)] out Guid deviceId)
+	{
+		if (_deviceInformationsByDriver.TryGetValue(driver, out var info))
+		{
+			deviceId = info.Id;
+			return true;
+		}
+		else
+		{
+			deviceId = default;
+			return false;
+		}
+	}		
 }

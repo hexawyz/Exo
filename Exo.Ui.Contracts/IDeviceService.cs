@@ -10,4 +10,7 @@ public interface IDeviceService
 
 	[OperationContract]
 	ValueTask<ExtendedDeviceInformation> GetExtendedDeviceInformationAsync(DeviceRequest request, CancellationToken cancellationToken);
+
+	[OperationContract]
+	IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync(CancellationToken cancellationToken);
 }
