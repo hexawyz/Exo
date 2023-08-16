@@ -1234,9 +1234,32 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	public abstract class FeatureAccess : HidPlusPlusDevice
 	{
+		// Provide cached indices of supported features.
+		// Unsupported features will have the default value of zero and can be detected as such.
+		private protected sealed class FeatureIndices
+		{
+			public FeatureIndices(ReadOnlyDictionary<HidPlusPlusFeature, byte> features)
+			{
+				byte index;
+				
+				if (features.TryGetValue(HidPlusPlusFeature.BatteryUnifiedLevelStatus, out index))
+				{
+					BatteryUnifiedLevelStatusFeatureIndex = index;
+				}
+				if (features.TryGetValue(HidPlusPlusFeature.UnifiedBattery, out index))
+				{
+					UnifiedBatteryFeatureIndex = index;
+				}
+			}
+
+			public readonly byte BatteryUnifiedLevelStatusFeatureIndex;
+			public readonly byte UnifiedBatteryFeatureIndex;
+		}
+
 		// Fields are not readonly because devices seen through a receiver can be discovered while disconnected.
 		// The values should be updated when the device is connected.
 		private protected ReadOnlyDictionary<HidPlusPlusFeature, byte>? CachedFeatures;
+		private protected FeatureIndices? CachedFeatureIndices;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
 		// NB: We probably don't need Volatile reads here, as this data isn't supposed to be updated often, and we expect it to be read as a response to a connection notification.
@@ -1245,6 +1268,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			get => _deviceType;
 			private protected set => Volatile.Write(ref Unsafe.As<FeatureAccessProtocol.DeviceType, byte>(ref _deviceType), (byte)value);
 		}
+
+		public event Action<FeatureAccess, byte> BatteryLevelChanged;
 
 		private protected FeatureAccess
 		(
@@ -1261,19 +1286,98 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			_deviceType = deviceType;
 			CachedFeatures = cachedFeatures;
+			CachedFeatureIndices = cachedFeatures is not null ? new FeatureIndices(cachedFeatures) : null;
+			var device = Transport.Devices[deviceIndex];
+			device.NotificationReceived += HandleNotification;
 		}
 
 		public override HidPlusPlusProtocolFlavor ProtocolFlavor => HidPlusPlusProtocolFlavor.FeatureAccess;
 
+		public bool HasBatteryInformation
+			=> CachedFeatureIndices is not null ?
+				CachedFeatureIndices.UnifiedBatteryFeatureIndex != 0 || CachedFeatureIndices.BatteryUnifiedLevelStatusFeatureIndex != 0 :
+				throw new InvalidOperationException("The device has not yet been connected.");
+
+		protected virtual void HandleNotification(ReadOnlySpan<byte> message)
+		{
+			if (message.Length < 7) return;
+
+			// The cached feature indices should technically never be null once the device is connected and sending actual notifications.
+			if (CachedFeatureIndices is not { } featureIndices) return;
+
+			ref var header = ref Unsafe.As<byte, FeatureAccessHeader>(ref MemoryMarshal.GetReference(message));
+
+			if (header.FeatureIndex == featureIndices.UnifiedBatteryFeatureIndex)
+			{
+				if (header.FunctionId == UnifiedBattery.GetStatus.EventId && message.Length >= 20)
+				{
+					ref var data = ref Unsafe.As<byte, FeatureAccessLongMessage<UnifiedBattery.GetStatus.Response>>(ref MemoryMarshal.GetReference(message)).Parameters;
+
+					byte chargeLevel = data.StateOfCharge;
+
+					if (BatteryLevelChanged is { } batteryLevelChanged)
+					{
+						_ = Task.Run
+						(
+							() =>
+							{
+								batteryLevelChanged.Invoke(this, chargeLevel);
+							}
+						);
+					}
+				}
+			}
+			else if (header.FeatureIndex == featureIndices.BatteryUnifiedLevelStatusFeatureIndex && featureIndices.UnifiedBatteryFeatureIndex == 0)
+			{
+				ref var data = ref Unsafe.As<byte, FeatureAccessShortMessage<BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>>(ref MemoryMarshal.GetReference(message)).Parameters;
+
+				byte chargeLevel = data.BatteryDischargeLevel;
+
+				// It seems that the charge level can be reported as zero when the device is charging. (Which explains the Windows 0% notification when starting the keyboard plugged)
+				// We can try to rely on the battery status to provide a better approximate in some cases.
+				if (data.BatteryDischargeLevel == 0)
+				{
+					switch (data.BatteryStatus)
+					{
+					case BatteryUnifiedLevelStatus.BatteryStatus.ChargeComplete:
+						chargeLevel = 100;
+						break;
+					case BatteryUnifiedLevelStatus.BatteryStatus.ChargeInFinalStage:
+						chargeLevel = 80;
+						break;
+					case BatteryUnifiedLevelStatus.BatteryStatus.Recharging:
+						// TODO: Must make it possible to communicate unknown battery level.
+						chargeLevel = 50;
+						break;
+					}
+				}
+
+				if (BatteryLevelChanged is { } batteryLevelChanged)
+				{
+					_ = Task.Run
+					(
+						() =>
+						{
+							batteryLevelChanged.Invoke(this, chargeLevel);
+						}
+					);
+				}
+			}
+		}
+
 		public ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsync(CancellationToken cancellationToken)
+			=> GetFeaturesWithRetryAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
+
+		protected ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesWithRetryAsync(int retryCount, CancellationToken cancellationToken)
 			=> CachedFeatures is not null ?
 				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(CachedFeatures) :
-				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(GetFeaturesAsyncCore(cancellationToken));
+				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(GetFeaturesWithRetryAsyncCore(retryCount, cancellationToken));
 
-		private async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsyncCore(CancellationToken cancellationToken)
+		private async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesWithRetryAsyncCore(int retryCount, CancellationToken cancellationToken)
 		{
-			var features = await Transport.GetFeaturesAsync(DeviceIndex, cancellationToken).ConfigureAwait(false);
+			var features = await Transport.GetFeaturesWithRetryAsync(DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
+			Volatile.Write(ref CachedFeatureIndices, new(features));
 			Volatile.Write(ref CachedFeatures, features);
 
 			return features;
@@ -1424,7 +1528,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
-		private void HandleNotification(ReadOnlySpan<byte> message)
+		protected override void HandleNotification(ReadOnlySpan<byte> message)
 		{
 			if (message.Length < 7) return;
 
@@ -1488,16 +1592,17 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					Receiver.OnDeviceDisconnected(this, version);
 				}
 			}
+			else
+			{
+				base.HandleNotification(message);
+			}
 		}
 
 		private async Task UpdateDeviceInformationAsync(int retryCount, int version, CancellationToken cancellationToken)
 		{
 			var transport = Transport;
 
-			if (CachedFeatures is not { } features)
-			{
-				features = await transport.GetFeaturesWithRetryAsync(DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
-			}
+			var features = await GetFeaturesWithRetryAsync(retryCount, cancellationToken).ConfigureAwait(false);
 
 			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
@@ -1506,6 +1611,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			{
 				DeviceType = retrievedType;
 				FriendlyName = retrievedName;
+			}
+
+			if (HasBatteryInformation)
+			{
+				// TODO: Initialize battery information. (Especially important for devices with very low frequency charge information)
 			}
 
 			Volatile.Write(ref _isInitialized, true);

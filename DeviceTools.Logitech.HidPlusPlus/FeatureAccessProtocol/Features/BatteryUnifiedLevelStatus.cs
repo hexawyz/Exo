@@ -9,6 +9,7 @@ public static class BatteryUnifiedLevelStatus
 
 	public static class GetBatteryLevelStatus
 	{
+		public const byte EventId = 0;
 		public const byte FunctionId = 0;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
@@ -28,7 +29,7 @@ public static class BatteryUnifiedLevelStatus
 
 	public static class GetBatteryCapability
 	{
-		public const byte FunctionId = 0;
+		public const byte FunctionId = 1;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
 		public struct Response : IMessageResponseParameters, ILongMessageParameters

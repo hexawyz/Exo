@@ -418,12 +418,61 @@ public abstract class LogitechUniversalDriver : Driver,
 		}
 	}
 
-	private abstract class FeatureAccess : LogitechUniversalDriver
+	private abstract class FeatureAccess : LogitechUniversalDriver, IBatteryLevelDeviceFeature
 	{
+		private byte _batteryLevel;
+
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
+			if (HasBattery)
+			{
+				device.BatteryLevelChanged += OnBatteryLevelChanged;
+			}
 		}
+
+		private void OnBatteryLevelChanged(HidPlusPlusDevice.FeatureAccess arg1, byte batteryLevel)
+		{
+			byte oldBatteryLevel = Volatile.Read(ref _batteryLevel);
+			byte newBatteryLevel = batteryLevel;
+
+			if (oldBatteryLevel != newBatteryLevel)
+			{
+				Volatile.Write(ref _batteryLevel, newBatteryLevel);
+
+				if (BatteryLevelChanged is { } batteryLevelChanged)
+				{
+					_ = Task.Run
+					(
+						() =>
+						{
+							try
+							{
+								batteryLevelChanged.Invoke(this, newBatteryLevel / 100f);
+							}
+							catch (Exception ex)
+							{
+								// TODO: Log
+							}
+						}
+					);
+				}
+			}
+		}
+
+		protected HidPlusPlusDevice.FeatureAccess Device => Unsafe.As<HidPlusPlusDevice.FeatureAccess>(_device);
+
+		protected bool HasBattery => Device.HasBatteryInformation;
+
+		private event Action<Driver, float>? BatteryLevelChanged;
+
+		event Action<Driver, float> IBatteryLevelDeviceFeature.BatteryLevelChanged
+		{
+			add => BatteryLevelChanged += value;
+			remove => BatteryLevelChanged -= value;
+		}
+
+		float IBatteryLevelDeviceFeature.BatteryLevel => _batteryLevel / 100f;
 	}
 
 	private abstract class RegisterAccessDirect : RegisterAccess
@@ -563,7 +612,13 @@ public abstract class LogitechUniversalDriver : Driver,
 			public FeatureAccessDirectGeneric(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature>(this);
+				_allFeatures = HasSerialNumber ?
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature>(this);
 				DeviceCategory = category;
 			}
 
@@ -578,7 +633,13 @@ public abstract class LogitechUniversalDriver : Driver,
 			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature>(this);
+				_allFeatures = HasSerialNumber ?
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -594,7 +655,13 @@ public abstract class LogitechUniversalDriver : Driver,
 			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature>(this);
+				_allFeatures = HasSerialNumber ?
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
@@ -612,8 +679,12 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				DeviceCategory = category;
 				_allFeatures = HasSerialNumber ?
-					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
-					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature>(this);
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory { get; }
@@ -628,8 +699,12 @@ public abstract class LogitechUniversalDriver : Driver,
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				_allFeatures = HasSerialNumber ?
-					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
-					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature>(this);
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -646,8 +721,12 @@ public abstract class LogitechUniversalDriver : Driver,
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
 				_allFeatures = HasSerialNumber ?
-					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
-					FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature>(this);
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+					HasBattery ?
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;

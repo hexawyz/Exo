@@ -11,6 +11,7 @@ public enum HidPlusPlusFeature : ushort
 	DeviceFriendlyName = 0x0007,
 	ConfigurationChange = 0x0020,
 	BatteryUnifiedLevelStatus = 0x1000,
+	UnifiedBattery = 0x1004,
 	ChangeHost = 0x1814,
 	BacklightV1 = 0x1981,
 	BacklightV2 = 0x1982,
