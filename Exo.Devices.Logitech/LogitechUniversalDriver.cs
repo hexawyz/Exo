@@ -4,6 +4,7 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
 using Exo.Features;
+using static DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features.UnifiedBattery;
 using FeatureAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.DeviceType;
 using RegisterAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.DeviceType;
 
@@ -427,8 +428,15 @@ public abstract class LogitechUniversalDriver : Driver,
 		{
 			if (HasBattery)
 			{
+				_batteryLevel = device.BatteryLevel ?? 0;
 				device.BatteryLevelChanged += OnBatteryLevelChanged;
 			}
+		}
+
+		public override ValueTask DisposeAsync()
+		{
+			Device.BatteryLevelChanged -= OnBatteryLevelChanged;
+			return base.DisposeAsync();
 		}
 
 		private void OnBatteryLevelChanged(HidPlusPlusDevice.FeatureAccess arg1, byte batteryLevel)
