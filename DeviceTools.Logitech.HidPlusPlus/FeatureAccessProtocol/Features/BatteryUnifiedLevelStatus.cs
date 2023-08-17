@@ -35,7 +35,14 @@ public static class BatteryUnifiedLevelStatus
 		public struct Response : IMessageResponseParameters, ILongMessageParameters
 		{
 			public byte NumberOfLevels;
-			public byte Flags;
+
+			private byte _flags;
+			public BatteryCapabilityFlags Flags
+			{
+				get => (BatteryCapabilityFlags)_flags;
+				set => _flags = (byte)value;
+			}
+
 			public byte BatteryStatus;
 
 			private byte _nominalBatteryLife0;
@@ -60,6 +67,15 @@ public static class BatteryUnifiedLevelStatus
 		InvalidBatteryType = 5,
 		ThermalError = 6,
 		OtherChargingError = 7,
+	}
+
+	[Flags]
+	public enum BatteryCapabilityFlags : byte
+	{
+		None = 0,
+		DisableBatteryOnScreenDisplay = 1,
+		EnableMileageCalculation = 2,
+		Rechargeable = 3,
 	}
 }
 #pragma warning restore IDE0044 // Add readonly modifier

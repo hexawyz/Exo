@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Channels;
 
 namespace Exo.Service;
 
@@ -203,6 +204,15 @@ internal static class ArrayExtensions
 			}
 		}
 		throw new AggregateException(exceptions.ToArray());
+	}
+
+	public static void TryWrite<T>(this ChannelWriter<T>[]? writers, T item)
+	{
+		if (writers is null) return;
+		foreach (var writer in writers)
+		{
+			writer.TryWrite(item);
+		}
 	}
 }
 

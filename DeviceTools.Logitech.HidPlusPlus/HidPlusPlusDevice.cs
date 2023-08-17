@@ -1,17 +1,14 @@
-using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -1249,10 +1246,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			protected FeatureAccess Device { get; }
 
-			public abstract byte? BatteryLevel { get; }
+			public abstract BatteryPowerState PowerState { get; }
 
 			protected BatteryState(FeatureAccess device) => Device = device;
 
+			public abstract Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken);
 			public abstract Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken);
 		}
 
@@ -1262,10 +1260,96 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			private readonly byte _featureIndex;
 
-			private byte _batteryLevel;
-			public override byte? BatteryLevel => Volatile.Read(ref _batteryLevel);
+			private UnifiedBattery.BatteryLevels _supportedBatteryLevels;
+			private UnifiedBattery.BatteryFlags _batteryFlags;
+
+			private uint _batteryLevelAndStatus;
+
+			public override BatteryPowerState PowerState => GetBatteryPowerState(Volatile.Read(ref _batteryLevelAndStatus));
+
+			private BatteryPowerState GetBatteryPowerState(uint batteryLevelAndStatus)
+				=> GetBatteryPowerState
+				(
+					(byte)batteryLevelAndStatus,
+					(UnifiedBattery.BatteryLevels)(byte)(batteryLevelAndStatus >> 8),
+					(UnifiedBattery.ChargingStatus)(byte)(batteryLevelAndStatus >> 16),
+					((byte)(batteryLevelAndStatus >> 24) & 1) != 0
+				);
+
+			private BatteryPowerState GetBatteryPowerState
+			(
+				byte batteryLevelPercentage,
+				UnifiedBattery.BatteryLevels batteryLevel,
+				UnifiedBattery.ChargingStatus chargingStatus,
+				bool isExternalPowerConnected
+			)
+			{
+				byte rawBatteryLevel = 0;
+
+				if ((_batteryFlags & UnifiedBattery.BatteryFlags.StateOfCharge) != 0)
+				{
+					rawBatteryLevel = batteryLevelPercentage;
+				}
+				else
+				{
+					if ((batteryLevel & UnifiedBattery.BatteryLevels.Full) != 0)
+					{
+						rawBatteryLevel = 100;
+					}
+					else if ((batteryLevel & UnifiedBattery.BatteryLevels.Good) != 0)
+					{
+						rawBatteryLevel = 60;
+					}
+					else if ((batteryLevel & UnifiedBattery.BatteryLevels.Low) != 0)
+					{
+						rawBatteryLevel = 20;
+					}
+					else if ((batteryLevel & UnifiedBattery.BatteryLevels.Critical) != 0)
+					{
+						rawBatteryLevel = 10;
+					}
+				}
+
+				var chargeStatus = BatteryChargeStatus.Discharging;
+				var externalPowerStatus = isExternalPowerConnected ? BatteryExternalPowerStatus.IsConnected : BatteryExternalPowerStatus.None;
+
+				switch (chargingStatus)
+				{
+				case UnifiedBattery.ChargingStatus.Discharging:
+					chargeStatus = BatteryChargeStatus.Discharging;
+					break;
+				case UnifiedBattery.ChargingStatus.Charging:
+					chargeStatus = BatteryChargeStatus.Charging;
+					break;
+				case UnifiedBattery.ChargingStatus.SlowCharging:
+					chargeStatus = BatteryChargeStatus.Charging; // TODO: Is it slow charging or close to completion ?
+					externalPowerStatus |= BatteryExternalPowerStatus.IsChargingBelowOptimalSpeed;
+					break;
+				case UnifiedBattery.ChargingStatus.ChargingComplete:
+					chargeStatus = BatteryChargeStatus.ChargingComplete;
+					break;
+				case UnifiedBattery.ChargingStatus.ChargingError:
+					chargeStatus = BatteryChargeStatus.ChargingError;
+					break;
+				}
+
+				return new(rawBatteryLevel, chargeStatus, externalPowerStatus);
+			}
 
 			public UnifiedBatteryState(FeatureAccess device, byte featureIndex) : base(device) => _featureIndex = featureIndex;
+
+			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				var response = await Device.SendAsync<UnifiedBattery.GetCapabilities.Response>
+				(
+					_featureIndex,
+					UnifiedBattery.GetCapabilities.FunctionId,
+					cancellationToken
+				).ConfigureAwait(false);
+
+				_supportedBatteryLevels = response.SupportedBatteryLevels;
+				_batteryFlags = response.BatteryFlags;
+			}
 
 			public override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
 			{
@@ -1279,35 +1363,35 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				ProcessStatusResponse(ref response);
 			}
 
-			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> message)
+			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
 			{
-				if (message.Length < 16) return;
+				if (response.Length < 16) return;
 
-				ref var data = ref Unsafe.As<byte, UnifiedBattery.GetStatus.Response>(ref MemoryMarshal.GetReference(message));
+				ProcessStatusResponse(ref Unsafe.As<byte, UnifiedBattery.GetStatus.Response>(ref MemoryMarshal.GetReference(response)));
 			}
 
 			private void ProcessStatusResponse(ref UnifiedBattery.GetStatus.Response response)
 			{
-				byte oldBatteryLevel;
-				byte newBatteryLevel;
+				uint oldBatteryLevelAndStatus;
+				uint newBatteryLevelAndStatus;
 
 				lock (this)
 				{
-					oldBatteryLevel = _batteryLevel;
-					newBatteryLevel = response.StateOfCharge;
+					oldBatteryLevelAndStatus = _batteryLevelAndStatus;
+					newBatteryLevelAndStatus = response.StateOfCharge | (uint)response.BatteryLevel << 8 | (uint)response.ChargingStatus << 16 | (response.HasExternalPower ? 1U << 24 : 0);
 
-					if (newBatteryLevel != oldBatteryLevel)
+					if (newBatteryLevelAndStatus != oldBatteryLevelAndStatus)
 					{
-						Volatile.Write(ref _batteryLevel, newBatteryLevel);
+						Volatile.Write(ref _batteryLevelAndStatus, newBatteryLevelAndStatus);
 					}
 				}
 
-				if (newBatteryLevel != oldBatteryLevel)
+				if (newBatteryLevelAndStatus != oldBatteryLevelAndStatus)
 				{
 					var device = Device;
-					if (Device.BatteryLevelChanged is { } batteryLevelChanged)
+					if (Device.BatteryChargeStateChanged is { } batteryChargeStateChanged)
 					{
-						_ = Task.Run(() => batteryLevelChanged.Invoke(device, newBatteryLevel));
+						_ = Task.Run(() => batteryChargeStateChanged.Invoke(device, GetBatteryPowerState(newBatteryLevelAndStatus)));
 					}
 				}
 			}
@@ -1319,16 +1403,68 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			private readonly byte _featureIndex;
 
-			private short _batteryLevel;
-			public override byte? BatteryLevel => GetBatteryLevel(Volatile.Read(ref _batteryLevel));
+			private byte _levelCount;
+			private BatteryUnifiedLevelStatus.BatteryCapabilityFlags _capabilityFlags;
 
-			private static byte? GetBatteryLevel(short batteryLevel)
-				=> (ushort)batteryLevel <= 255 ? (byte)batteryLevel : null;
+			private uint _batteryLevelAndStatus;
+
+			public override BatteryPowerState PowerState => GetBatteryPowerState(Volatile.Read(ref _batteryLevelAndStatus));
+
+			private static BatteryPowerState GetBatteryPowerState(uint batteryLevelAndStatus)
+				=> GetBatteryPowerState((short)batteryLevelAndStatus, (BatteryUnifiedLevelStatus.BatteryStatus)(byte)(batteryLevelAndStatus >> 16));
+
+			private static BatteryPowerState GetBatteryPowerState(short batteryLevel, BatteryUnifiedLevelStatus.BatteryStatus batteryStatus)
+			{
+				var chargeStatus = BatteryChargeStatus.Discharging;
+				var externalPowerStatus = BatteryExternalPowerStatus.None;
+
+				switch (batteryStatus)
+				{
+				case BatteryUnifiedLevelStatus.BatteryStatus.Discharging:
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.Recharging:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.Charging, BatteryExternalPowerStatus.IsConnected);
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.ChargeInFinalStage:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.ChargingNearlyComplete, BatteryExternalPowerStatus.IsConnected);
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.ChargeComplete:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.ChargingComplete, BatteryExternalPowerStatus.IsConnected);
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.RechargingBelowOptimalSpeed:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.Charging, BatteryExternalPowerStatus.IsConnected | BatteryExternalPowerStatus.IsChargingBelowOptimalSpeed);
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.InvalidBatteryType:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.InvalidBatteryType, BatteryExternalPowerStatus.None);
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.ThermalError:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.BatteryTooHot, BatteryExternalPowerStatus.None);
+					break;
+				case BatteryUnifiedLevelStatus.BatteryStatus.OtherChargingError:
+					(chargeStatus, externalPowerStatus) = (BatteryChargeStatus.InvalidBatteryType, BatteryExternalPowerStatus.None);
+					break;
+				}
+
+				return new((ushort)batteryLevel <= 255 ?(byte)batteryLevel :null, chargeStatus, externalPowerStatus);
+			}
 
 			public LegacyBatteryState(FeatureAccess device, byte featureIndex) : base(device)
 			{
 				_featureIndex = featureIndex;
-				_batteryLevel = -1;
+				_batteryLevelAndStatus = 0xFFFF;
+			}
+
+			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				var response = await Device.SendAsync<BatteryUnifiedLevelStatus.GetBatteryCapability.Response>
+				(
+					_featureIndex,
+					BatteryUnifiedLevelStatus.GetBatteryCapability.FunctionId,
+					cancellationToken
+				).ConfigureAwait(false);
+
+				_levelCount = response.NumberOfLevels;
+				_capabilityFlags = response.Flags;
 			}
 
 			public override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
@@ -1343,53 +1479,52 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				ProcessStatusResponse(ref response);
 			}
 
-			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> message)
+			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
 			{
-				if (message.Length < 16) return;
+				if (response.Length < 16) return;
 
-				ref var data = ref Unsafe.As<byte, BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>(ref MemoryMarshal.GetReference(message));
+				ProcessStatusResponse(ref Unsafe.As<byte, BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>(ref MemoryMarshal.GetReference(response)));
 			}
 
 			private void ProcessStatusResponse(ref BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response response)
 			{
-				short oldBatteryLevel;
-				short newBatteryLevel;
+				uint oldBatteryLevelAndStatus;
+				uint newBatteryLevelAndStatus;
 
 				lock (this)
 				{
-					oldBatteryLevel = _batteryLevel;
-					newBatteryLevel = response.BatteryDischargeLevel;
+					oldBatteryLevelAndStatus = _batteryLevelAndStatus;
+					short newBatteryLevel = response.BatteryDischargeLevel;
 
 					// It seems that the charge level can be reported as zero when the device is charging. (Which explains the Windows 0% notification when starting the keyboard plugged)
 					// We can try to rely on the battery status to provide a better approximate in some cases.
-					if (response.BatteryDischargeLevel == 0)
+					if (response.BatteryStatus is BatteryUnifiedLevelStatus.BatteryStatus.ChargeComplete)
 					{
-						switch (response.BatteryStatus)
-						{
-						case BatteryUnifiedLevelStatus.BatteryStatus.ChargeComplete:
-							newBatteryLevel = 100;
-							break;
-						case BatteryUnifiedLevelStatus.BatteryStatus.ChargeInFinalStage:
-							newBatteryLevel = 80;
-							break;
-						case BatteryUnifiedLevelStatus.BatteryStatus.Recharging:
-							newBatteryLevel = -1;
-							break;
-						}
+						newBatteryLevel = 100;
+					}
+					else if (response.BatteryStatus is BatteryUnifiedLevelStatus.BatteryStatus.ChargeInFinalStage)
+					{
+						newBatteryLevel = 90;
+					}
+					else if (response.BatteryDischargeLevel == 0)
+					{
+						newBatteryLevel = -1;
 					}
 
-					if (newBatteryLevel != oldBatteryLevel)
+					newBatteryLevelAndStatus = (uint)response.BatteryStatus << 16 | (ushort)newBatteryLevel;
+
+					if (newBatteryLevelAndStatus != oldBatteryLevelAndStatus)
 					{
-						Volatile.Write(ref _batteryLevel, newBatteryLevel);
+						Volatile.Write(ref _batteryLevelAndStatus, newBatteryLevelAndStatus);
 					}
 				}
 
-				if (newBatteryLevel != oldBatteryLevel)
+				if (newBatteryLevelAndStatus != oldBatteryLevelAndStatus)
 				{
 					var device = Device;
-					if (Device.BatteryLevelChanged is { } batteryLevelChanged)
+					if (Device.BatteryChargeStateChanged is { } batteryChargeStateChanged)
 					{
-						_ = Task.Run(() => batteryLevelChanged.Invoke(device, GetBatteryLevel(newBatteryLevel) ?? 0));
+						_ = Task.Run(() => batteryChargeStateChanged.Invoke(device, GetBatteryPowerState(newBatteryLevelAndStatus)));
 					}
 				}
 			}
@@ -1410,7 +1545,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			private protected set => Volatile.Write(ref Unsafe.As<FeatureAccessProtocol.DeviceType, byte>(ref _deviceType), (byte)value);
 		}
 
-		public event Action<FeatureAccess, byte> BatteryLevelChanged;
+		public event Action<FeatureAccess, BatteryPowerState>? BatteryChargeStateChanged;
 
 		private protected FeatureAccess
 		(
@@ -1464,7 +1599,10 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				_batteryState is not null :
 				throw new InvalidOperationException("The device has not yet been connected.");
 
-		public byte? BatteryLevel => _batteryState?.BatteryLevel;
+		public BatteryPowerState BatteryPowerState
+			=> _batteryState is not null ?
+				_batteryState.PowerState :
+				throw new InvalidOperationException("The device has no battery support.");
 
 		protected virtual void HandleNotification(ReadOnlySpan<byte> message)
 		{
@@ -1489,6 +1627,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			if (_batteryState is { } batteryState)
 			{
+				await batteryState.RefreshBatteryCapabilitiesAsync(retryCount, cancellationToken).ConfigureAwait(false);
 				await batteryState.RefreshBatteryStatusAsync(retryCount, cancellationToken).ConfigureAwait(false);
 			}
 		}
@@ -1771,11 +1910,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	{
 		public abstract HidPlusPlusFeature Feature { get; }
 
-		internal void HandleNotificationInternal(byte eventId, ReadOnlySpan<byte> message)
+		internal void HandleNotificationInternal(byte eventId, ReadOnlySpan<byte> response)
 		{
 			try
 			{
-				HandleNotification(eventId, message);
+				HandleNotification(eventId, response);
 			}
 			catch (Exception)
 			{
@@ -1783,7 +1922,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
-		protected abstract void HandleNotification(byte eventId, ReadOnlySpan<byte> message);
+		protected abstract void HandleNotification(byte eventId, ReadOnlySpan<byte> response);
 	}
 }
-

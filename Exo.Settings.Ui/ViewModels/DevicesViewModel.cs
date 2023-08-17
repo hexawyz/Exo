@@ -14,8 +14,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
-	// Used to store battery levels when the device view model is not accessible.
-	private readonly Dictionary<Guid, float> _pendingBatteryLevels;
+	// Used to store battery changes when the device view model is not accessible.
+	private readonly Dictionary<Guid, BatteryStateViewModel> _pendingBatteryChanges;
 
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice; 
@@ -29,7 +29,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		_deviceService = deviceService;
 		_devices = new();
 		_devicesById = new();
-		_pendingBatteryLevels = new();
+		_pendingBatteryChanges = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_deviceWatchTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_batteryWatchTask = WatchBatteryChangesAsync(_cancellationTokenSource.Token);
@@ -58,9 +58,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 							continue;
 						}
 						var device = new DeviceViewModel(notification.Details, extendedDeviceInformation);
-						if (_pendingBatteryLevels.Remove(notification.Details.Id, out float batteryLevel))
+						if (_pendingBatteryChanges.Remove(notification.Details.Id, out var batteryStatus))
 						{
-							device.BatteryLevel = batteryLevel;
+							device.BatteryState = batteryStatus;
 						}
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
@@ -73,7 +73,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 						{
 							_devices.RemoveAt(i);
 							_devicesById.Remove(notification.Details.Id);
-							_pendingBatteryLevels.Remove(notification.Details.Id, out _);
+							_pendingBatteryChanges.Remove(notification.Details.Id, out _);
 							break;
 						}
 					}
@@ -92,13 +92,14 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		{
 			await foreach (var notification in _deviceService.WatchBatteryChangesAsync(cancellationToken))
 			{
+				var status = new BatteryStateViewModel(notification);
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
 				{
-					device.BatteryLevel = notification.BatteryLevel;
+					device.BatteryState = status;
 				}
 				else
 				{
-					_pendingBatteryLevels.Add(notification.DeviceId, notification.BatteryLevel);
+					_pendingBatteryChanges.Add(notification.DeviceId, status);
 				}
 			}
 		}

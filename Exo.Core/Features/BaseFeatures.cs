@@ -83,13 +83,13 @@ public interface ISerialNumberDeviceFeature : IDeviceFeature
 }
 
 /// <summary>Devices can allow access to their battery level by providing this feature.</summary>
-public interface IBatteryLevelDeviceFeature : IDeviceFeature
+public interface IBatteryStateDeviceFeature : IDeviceFeature
 {
 	/// <summary>This event is raised when the battery level of the device has changed.</summary>
-	event Action<Driver, float> BatteryLevelChanged;
+	event Action<Driver, BatteryState> BatteryStateChanged;
 
 	/// <summary>Gets the current battery level.</summary>
-	float BatteryLevel { get; }
+	BatteryState BatteryState { get; }
 }
 
 /// <summary>Devices can expose their standard device ID by providing this feature.</summary>
@@ -101,4 +101,49 @@ public interface IBatteryLevelDeviceFeature : IDeviceFeature
 public interface IDeviceIdDeviceFeature : IDeviceFeature
 {
 	DeviceId DeviceId { get; }
+}
+
+public record struct BatteryState
+{
+	public float? Level { get; init; }
+	public BatteryStatus BatteryStatus { get; init; }
+	public ExternalPowerStatus ExternalPowerStatus { get; init; }
+}
+
+public enum BatteryStatus : byte
+{
+	/// <summary>Indicates an unknown battery charging status.</summary>
+	Unknown = 0,
+
+	/// <summary>Indicates an battery that is neither charging nor discharging.</summary>
+	// Quite unlikely but we might need this status at some point?
+	Idle = 1,
+
+	/// <summary>Indicates a battery that is discharging.</summary>
+	/// <remarks>This is generally the case when the device is disconnected from power.</remarks>
+	Discharging = 2,
+
+	/// <summary>Indicates a battery that is charging.</summary>
+	Charging = 3,
+	/// <summary>Indicates a battery that is charging and close to completion.</summary>
+	ChargingNearlyComplete = 4,
+	/// <summary>Indicates a battery that is completely charged.</summary>
+	/// <remarks>Charge level of such a battery shall always be 100%, and it can be assumed as such in the code.</remarks>
+	ChargingComplete = 5,
+
+	/// <summary>Indicates a non-specific battery-related error.</summary>
+	Error = 128,
+	/// <summary>Indicates a battery that is too hot.</summary>
+	TooHot = 129,
+	/// <summary>Indicates a missing battery.</summary>
+	Missing = 130,
+	/// <summary>Indicates an invalid battery.</summary>
+	Invalid = 131,
+}
+
+public enum ExternalPowerStatus : byte
+{
+	IsDisconnected = 0,
+	IsConnected = 1,
+	IsSlowCharger = 2,
 }

@@ -23,5 +23,5 @@ public sealed class ExtendedDeviceInformation
 
 	/// <summary>Indicates if the device has a battery that can report its level.</summary>
 	[DataMember(Order = 3)]
-	public bool HasBatteryLevel { get; init; }
+	public bool HasBatteryState { get; init; }
 }

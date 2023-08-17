@@ -16,11 +16,11 @@ internal class DeviceViewModel : BaseDeviceViewModel
 
 	public string? SerialNumber => _extendedDeviceInformation.SerialNumber;
 
-	private float? _batteryLevel;
+	private BatteryStateViewModel? _batteryState;
 
-	public float? BatteryLevel
+	public BatteryStateViewModel? BatteryState
 	{
-		get => _batteryLevel;
-		set => SetValue(ref _batteryLevel, value, ChangedProperty.BatteryLevel);
+		get => _batteryState;
+		set => SetValue(ref _batteryState, value, ChangedProperty.BatteryState);
 	}
 }

@@ -142,7 +142,10 @@ public abstract class RazerDeviceDriver :
 		(
 			DeviceObjectKind.Device,
 			RequestedDeviceProperties,
-			Properties.System.Devices.ContainerId == containerId & Properties.System.Devices.Children.Exists() & Properties.System.Devices.ClassGuid != DeviceClassGuids.Hid,
+			Properties.System.Devices.ContainerId == containerId &
+			Properties.System.Devices.Children.Exists() &
+			Properties.System.Devices.ClassGuid != DeviceClassGuids.Hid &
+			Properties.System.Devices.BusTypeGuid != DeviceBusTypesGuids.Hid,
 			cancellationToken
 		).ConfigureAwait(false);
 
@@ -154,24 +157,36 @@ public abstract class RazerDeviceDriver :
 		// Set the razer control device as the first device name for now.
 		deviceNames[0] = razerControlDeviceName;
 
-		if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.ClassGuid.Key, out Guid guid))
 		{
-			if (guid == DeviceClassGuids.Usb)
+			Guid guid;
+			if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out guid))
 			{
-				deviceIdSource = DeviceIdSource.Usb;
-				goto DeviceIdSourceResolved;
-			}
-			if (guid == DeviceClassGuids.Bluetooth)
-			{
-				if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.EnumeratorName.Key, out string? enumeratorName))
+				if (guid == DeviceBusTypesGuids.Usb)
 				{
-					if (enumeratorName == "BTHLE")
+					deviceIdSource = DeviceIdSource.Usb;
+					goto DeviceIdSourceResolved;
+				}
+			}
+
+			if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.ClassGuid.Key, out guid))
+			{
+				if (guid == DeviceClassGuids.Usb)
+				{
+					deviceIdSource = DeviceIdSource.Usb;
+					goto DeviceIdSourceResolved;
+				}
+				if (guid == DeviceClassGuids.Bluetooth)
+				{
+					if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.EnumeratorName.Key, out string? enumeratorName))
 					{
-						deviceIdSource = DeviceIdSource.BluetoothLowEnergy;
+						if (enumeratorName == "BTHLE")
+						{
+							deviceIdSource = DeviceIdSource.BluetoothLowEnergy;
+							goto DeviceIdSourceResolved;
+						}
+						deviceIdSource = DeviceIdSource.Bluetooth;
 						goto DeviceIdSourceResolved;
 					}
-					deviceIdSource = DeviceIdSource.Bluetooth;
-					goto DeviceIdSourceResolved;
 				}
 			}
 		DeviceIdSourceResolved:;
@@ -781,7 +796,7 @@ public abstract class RazerDeviceDriver :
 	private abstract class BaseDevice :
 		RazerDeviceDriver,
 		IDeviceDriver<ILightingDeviceFeature>,
-		IBatteryLevelDeviceFeature,
+		IBatteryStateDeviceFeature,
 		IUnifiedLightingFeature,
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>
@@ -828,10 +843,10 @@ public abstract class RazerDeviceDriver :
 			_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
 			_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryLevelDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature, IUnifiedLightingFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IUnifiedLightingFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IBatteryLevelDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature, IUnifiedLightingFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IUnifiedLightingFeature>(this);
 
 			// Unless it is possible to retrieve the current settings from the device, we should reset the effect.
@@ -858,7 +873,7 @@ public abstract class RazerDeviceDriver :
 				{
 					Volatile.Write(ref _batteryLevel, newBatteryLevel);
 
-					if (BatteryLevelChanged is { } batteryLevelChanged)
+					if (BatteryStateChanged is { } batteryStateChanged)
 					{
 						_ = Task.Run
 						(
@@ -866,7 +881,7 @@ public abstract class RazerDeviceDriver :
 							{
 								try
 								{
-									batteryLevelChanged.Invoke(this, newBatteryLevel / 255f);
+									batteryStateChanged.Invoke(this, BuildBatteryState(newBatteryLevel));
 								}
 								catch (Exception ex)
 								{
@@ -946,14 +961,33 @@ public abstract class RazerDeviceDriver :
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => _currentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _currentEffect.TryGetEffect(out effect);
 
-		private event Action<Driver, float> BatteryLevelChanged;
+		private event Action<Driver, BatteryState> BatteryStateChanged;
 
-		event Action<Driver, float> IBatteryLevelDeviceFeature.BatteryLevelChanged
+		event Action<Driver, BatteryState> IBatteryStateDeviceFeature.BatteryStateChanged
 		{
-			add => BatteryLevelChanged += value;
-			remove => BatteryLevelChanged -= value;
+			add => BatteryStateChanged += value;
+			remove => BatteryStateChanged -= value;
 		}
 
-		float IBatteryLevelDeviceFeature.BatteryLevel => _batteryLevel / 255f;
+		BatteryState IBatteryStateDeviceFeature.BatteryState
+			=> BuildBatteryState(Volatile.Read(ref _batteryLevel));
+
+		private BatteryState BuildBatteryState(byte rawLevel)
+		{
+			// Reasoning:
+			// If the device is directly connected to USB, it is not in wireless mode.
+			// If the device is wireless, it is discharging. Otherwise, it is charging up to 100%.
+			// This is based on the current state of things. It could change depending on the technical possibilities.
+			bool isWired = _deviceIdSource == DeviceIdSource.Usb;
+
+			return new()
+			{
+				Level = rawLevel / 255f,
+				BatteryStatus = isWired ?
+					_batteryLevel == 255 ? BatteryStatus.ChargingComplete : BatteryStatus.Charging :
+					BatteryStatus.Discharging,
+				ExternalPowerStatus = isWired ? ExternalPowerStatus.IsConnected : ExternalPowerStatus.IsDisconnected,
+			};
+		}
 	}
 }

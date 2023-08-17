@@ -27,9 +27,9 @@
                         <FontIcon
                             Grid.Column="2"
                             Margin="12,0,0,0"
-                            Visibility="{Binding BatteryLevel, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                            Glyph="{Binding BatteryLevel, Converter={StaticResource BatteryLevelToGlyphConverter}}"
-                            ToolTipService.ToolTip="{Binding BatteryLevel, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
+                            Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                            Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
+                            ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
                         <FontIcon Grid.Column="4" Glyph="&#xE76C;" FontSize="{StaticResource CaptionTextBlockFontSize}" />
                     </Grid>
                 </Button>

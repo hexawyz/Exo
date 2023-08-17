@@ -50,8 +50,8 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 		{
 			serialNumber = serialNumberFeature.SerialNumber;
 		}
-		bool hasBatteryLevel = driver.Features.HasFeature<IBatteryLevelDeviceFeature>();
-		return new(new ExtendedDeviceInformation { DeviceId = deviceId, SerialNumber = serialNumber, HasBatteryLevel = hasBatteryLevel });
+		bool hasBatteryState = driver.Features.HasFeature<IBatteryStateDeviceFeature>();
+		return new(new ExtendedDeviceInformation { DeviceId = deviceId, SerialNumber = serialNumber, HasBatteryState = hasBatteryState });
 	}
 
 	public IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync(CancellationToken cancellationToken)
@@ -59,8 +59,8 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 	private sealed class BatteryWatcher : IAsyncDisposable
 	{
-		private readonly ConcurrentDictionary<Guid, StrongBox<float>> _currentBatteryLevels;
-		private Action<Guid, float>[]? _batteryLevelUpdated;
+		private readonly ConcurrentDictionary<Guid, BatteryChangeNotification> _currentBatteryStates;
+		private ChannelWriter<BatteryChangeNotification>[]? _changeListeners;
 		private object? _lock;
 		private TaskCompletionSource<CancellationToken> _startRunTaskCompletionSource;
 		private CancellationTokenSource? _currentRunCancellationTokenSource;
@@ -70,7 +70,7 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 		public BatteryWatcher(DriverRegistry driverRegistry)
 		{
-			_currentBatteryLevels = new();
+			_currentBatteryStates = new();
 			_lock = new();
 			_startRunTaskCompletionSource = new();
 			_disposeCancellationTokenSource = new();
@@ -103,14 +103,23 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 		private async Task WatchDevicesAsync(DriverRegistry driverRegistry, object @lock, CancellationToken cancellationToken)
 		{
-			Action<Driver, float> onBatteryLevelChanged = (driver, level) =>
+			Action<Driver, BatteryState> onBatteryStateChanged = (driver, state) =>
 			{
 				// The update must be ignored if _currentBatteryLevels does not contain the ID.
 				// This avoids having to acquire the lock here.
-				if (driverRegistry.TryGetDeviceId(driver, out var deviceId) && _currentBatteryLevels.TryGetValue(deviceId, out var currentBatteryLevel))
+				if (driverRegistry.TryGetDeviceId(driver, out var deviceId) && _currentBatteryStates.TryGetValue(deviceId, out var oldNotification))
 				{
-					currentBatteryLevel.Value = level;
-					_batteryLevelUpdated.Invoke(deviceId, level);
+					var notification = new BatteryChangeNotification
+					{
+						DeviceId = deviceId,
+						Level = state.Level,
+						BatteryStatus = (Ui.Contracts.BatteryStatus)state.BatteryStatus, ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)state.ExternalPowerStatus
+					};
+
+					if (_currentBatteryStates.TryUpdate(deviceId, notification, oldNotification))
+					{
+						Volatile.Read(ref _changeListeners).TryWrite(notification);
+					}
 				}
 			};
 
@@ -135,12 +144,19 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 									{
 										var deviceId = notification.DeviceInformation.Id;
 
-										if (notification.Driver!.Features.GetFeature<IBatteryLevelDeviceFeature>() is { } batteryLevelFeature)
+										if (notification.Driver!.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
 										{
-											float batteryLevel = batteryLevelFeature.BatteryLevel;
-											_currentBatteryLevels.TryAdd(deviceId, new(batteryLevel));
-											_batteryLevelUpdated.Invoke(deviceId, batteryLevel);
-											batteryLevelFeature.BatteryLevelChanged += onBatteryLevelChanged;
+											var state = batteryStateFeature.BatteryState;
+											var batteryNotification = new BatteryChangeNotification
+											{
+												DeviceId = deviceId,
+												Level = state.Level,
+												BatteryStatus = (Ui.Contracts.BatteryStatus)state.BatteryStatus,
+												ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)state.ExternalPowerStatus
+											};
+											_currentBatteryStates.TryAdd(deviceId, batteryNotification);
+											_changeListeners.TryWrite(batteryNotification);
+											batteryStateFeature.BatteryStateChanged += onBatteryStateChanged;
 										}
 									}
 									catch (Exception ex)
@@ -151,10 +167,10 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 								case WatchNotificationKind.Removal:
 									try
 									{
-										if (_currentBatteryLevels.TryRemove(notification.DeviceInformation.Id, out _) &&
-											notification.Driver!.Features.GetFeature<IBatteryLevelDeviceFeature>() is { } batteryLevelFeature)
+										if (_currentBatteryStates.TryRemove(notification.DeviceInformation.Id, out _) &&
+											notification.Driver!.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
 										{
-											batteryLevelFeature.BatteryLevelChanged -= onBatteryLevelChanged;
+											batteryStateFeature.BatteryStateChanged -= onBatteryStateChanged;
 										}
 									}
 									catch (Exception ex)
@@ -180,21 +196,19 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 		public async IAsyncEnumerable<BatteryChangeNotification> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 		{
-			ChannelReader<(Guid DeviceId, float BatteryLevel)> reader;
+			ChannelReader<BatteryChangeNotification> reader;
 
-			var channel = Channel.CreateUnbounded<(Guid DeviceId, float BatteryLevel)>(WatchChannelOptions);
+			var channel = Channel.CreateUnbounded<BatteryChangeNotification>(WatchChannelOptions);
 			reader = channel.Reader;
 			var writer = channel.Writer;
 
-			var onBatteryLevelUpdated = (Guid i, float l) => { writer.TryWrite((i, l)); };
-
-			KeyValuePair<Guid, StrongBox<float>>[]? currentLevels;
+			BatteryChangeNotification[]? currentStates;
 			var @lock = Lock;
 			lock (@lock)
 			{
-				currentLevels = _currentBatteryLevels.ToArray();
+				currentStates = _currentBatteryStates.Values.ToArray();
 
-				ArrayExtensions.InterlockedAdd(ref _batteryLevelUpdated, onBatteryLevelUpdated);
+				ArrayExtensions.InterlockedAdd(ref _changeListeners, writer);
 
 				if (_watcherCount == 0)
 				{
@@ -207,20 +221,20 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 			try
 			{
 				// Publish the initial battery levels.
-				foreach (var kvp in currentLevels)
+				foreach (var state in currentStates)
 				{
-					yield return new() { DeviceId = kvp.Key, BatteryLevel = kvp.Value.Value };
+					yield return state;
 				}
-				currentLevels = null;
+				currentStates = null;
 
-				await foreach (var (deviceId, batteryLevel) in reader.ReadAllAsync(cancellationToken))
+				await foreach (var state in reader.ReadAllAsync(cancellationToken))
 				{
-					yield return new() { DeviceId = deviceId, BatteryLevel = batteryLevel };
+					yield return state;
 				}
 			}
 			finally
 			{
-				ArrayExtensions.InterlockedRemove(ref _batteryLevelUpdated, onBatteryLevelUpdated);
+				ArrayExtensions.InterlockedRemove(ref _changeListeners, writer);
 
 				lock (@lock)
 				{
