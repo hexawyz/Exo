@@ -18,6 +18,11 @@
                 </StackPanel>
             </Expander.Header>
             <Grid HorizontalAlignment="Stretch" DataContext="{Binding DeviceId, Mode=OneTime}">
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Margin" Value="0,6,0,6" />
+                    </Style>
+                </Grid.Resources>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
                     <ColumnDefinition Width="*" />

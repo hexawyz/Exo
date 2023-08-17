@@ -258,7 +258,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			productId,
 			SoftwareId,
 			friendlyName,
-			new TimeSpan(500 * TimeSpan.TicksPerMillisecond)
+			new TimeSpan(1 * TimeSpan.TicksPerSecond)
 		);
 
 		// HID++ devices will expose multiple interfaces, each with their own top-level collection.

@@ -11,7 +11,7 @@ public static class HidPlusPlusTransportExtensions
 {
 	/// <summary>The default retry count that will be used.</summary>
 	/// <remarks>The retry count should be kept quite low. It is set at <c>1</c> for now, but it will be increased if necessary.</remarks>
-	public const int DefaultRetryCount = 1;
+	public const int DefaultRetryCount = 2;
 
 	/// <summary>The default delay that will be applied before retrying a request when the device is busy.</summary>
 	/// <remarks>

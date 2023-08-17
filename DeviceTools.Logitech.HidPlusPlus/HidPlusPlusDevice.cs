@@ -408,10 +408,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			_ => throw new InvalidOperationException(),
 		};
 
-		if (parent is null)
-		{
-			await device.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
-		}
+		await device.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
 
 		return device;
 	}
@@ -493,10 +490,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			new FeatureAccessDirect(transport, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber) :
 			new FeatureAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
 
-		if (parent is null)
-		{
-			await device.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
-		}
+		await device.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
 
 		return device;
 	}
@@ -1233,7 +1227,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		private void DisposeInternal()
 		{
 			var device = Transport.Devices[DeviceIndex];
-			device.NotificationReceived += HandleNotification;
+			device.NotificationReceived -= HandleNotification;
 			Volatile.Write(ref device.CustomState, null);
 		}
 
@@ -1340,10 +1334,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
 			{
-				var response = await Device.SendAsync<UnifiedBattery.GetCapabilities.Response>
+				var response = await Device.SendWithRetryAsync<UnifiedBattery.GetCapabilities.Response>
 				(
 					_featureIndex,
 					UnifiedBattery.GetCapabilities.FunctionId,
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -1353,10 +1348,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			public override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
 			{
-				var response = await Device.SendAsync<UnifiedBattery.GetStatus.Response>
+				var response = await Device.SendWithRetryAsync<UnifiedBattery.GetStatus.Response>
 				(
 					_featureIndex,
 					UnifiedBattery.GetStatus.FunctionId,
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -1456,10 +1452,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
 			{
-				var response = await Device.SendAsync<BatteryUnifiedLevelStatus.GetBatteryCapability.Response>
+				var response = await Device.SendWithRetryAsync<BatteryUnifiedLevelStatus.GetBatteryCapability.Response>
 				(
 					_featureIndex,
 					BatteryUnifiedLevelStatus.GetBatteryCapability.FunctionId,
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -1469,10 +1466,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 			public override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
 			{
-				var response = await Device.SendAsync<BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>
+				var response = await Device.SendWithRetryAsync<BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>
 				(
 					_featureIndex,
 					BatteryUnifiedLevelStatus.GetBatteryLevelStatus.FunctionId,
+					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -1638,7 +1636,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
-		// To be called once the device is connected.
+		// Can be called multiple times. It can be called on a disconnected device.
 		private protected override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 		{
 			if (_batteryState is { } batteryState)
@@ -1676,6 +1674,39 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 		public Task<byte> GetFeatureIndexAsync(HidPlusPlusFeature feature, CancellationToken cancellationToken)
 			=> Transport.GetFeatureIndexAsync(DeviceIndex, feature, cancellationToken);
+
+		public Task<TResponseParameters> SendWithRetryAsync<TResponseParameters>
+		(
+			byte featureIndex,
+			byte functionId,
+			int retryCount,
+			CancellationToken cancellationToken
+		)
+			where TResponseParameters : struct, IMessageResponseParameters
+			=> Transport.FeatureAccessSendWithRetryAsync<TResponseParameters>(DeviceIndex, featureIndex, functionId, retryCount, cancellationToken);
+
+		public Task SendWithRetryAsync<TRequestParameters>
+		(
+			byte featureIndex,
+			byte functionId,
+			in TRequestParameters requestParameters,
+			int retryCount,
+			CancellationToken cancellationToken
+		)
+			where TRequestParameters : struct, IMessageRequestParameters
+			=> Transport.FeatureAccessSendWithRetryAsync(DeviceIndex, featureIndex, functionId, requestParameters, retryCount, cancellationToken);
+
+		public Task<TResponseParameters> SendWithRetryAsync<TRequestParameters, TResponseParameters>
+		(
+			byte featureIndex,
+			byte functionId,
+			in TRequestParameters requestParameters,
+			int retryCount,
+			CancellationToken cancellationToken
+		)
+			where TRequestParameters : struct, IMessageRequestParameters
+			where TResponseParameters : struct, IMessageResponseParameters
+			=> Transport.FeatureAccessSendWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, featureIndex, functionId, requestParameters, retryCount, cancellationToken);
 
 		public Task<TResponseParameters> SendAsync<TResponseParameters>
 		(
@@ -1763,7 +1794,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			// If the device is connected and we reach this point in the code, relevant information will already have been fetched and passed through the parameters.
 			_isInitialized = deviceConnectionInfo.IsLinkEstablished;
 			var device = Transport.Devices[deviceIndex];
-			device.NotificationReceived += HandleNotification;
 			Volatile.Write(ref device.CustomState, this);
 			Receiver.OnDeviceDiscovered(this);
 			if (deviceConnectionInfo.IsLinkEstablished) Receiver.OnDeviceConnected(this, _version);
