@@ -1622,6 +1622,22 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
+		public override ValueTask DisposeAsync()
+		{
+			DisposeInternal(false);
+			return ValueTask.CompletedTask;
+		}
+
+		private protected void DisposeInternal(bool clearState)
+		{
+			var device = Transport.Devices[DeviceIndex];
+			device.NotificationReceived -= HandleNotification;
+			if (clearState)
+			{
+				Volatile.Write(ref device.CustomState, null);
+			}
+		}
+
 		// To be called once the device is connected.
 		private protected override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 		{
@@ -1652,7 +1668,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 			else
 			{
-				features = Volatile.Read(ref CachedFeatures);
+				features = Volatile.Read(ref CachedFeatures)!;
 			}
 
 			return features;
@@ -1818,7 +1834,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
 				if (parameters.WirelessProductId != ProductId)
 				{
-					DisposeInternal();
+					DisposeInternal(true);
 					Receiver.HandleNotification(message);
 					return;
 				}
@@ -1893,13 +1909,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			Volatile.Write(ref _isInitialized, true);
 
 			Receiver.OnDeviceConnected(this, version);
-		}
-
-		private void DisposeInternal()
-		{
-			var device = Transport.Devices[DeviceIndex];
-			device.NotificationReceived += HandleNotification;
-			Volatile.Write(ref device.CustomState, null);
 		}
 
 		// Instances of this class should not be disposed externally. The DisposeAsync method does nothing.
