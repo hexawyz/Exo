@@ -42,7 +42,7 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 		string? serialNumber = null;
 		DeviceId? deviceId = null;
-		if (driver.Features.GetFeature<IDeviceIdDeviceFeature>() is { } deviceIdFeature)
+		if (driver.Features.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
 		{
 			deviceId = deviceIdFeature.DeviceId.ToGrpc();
 		}

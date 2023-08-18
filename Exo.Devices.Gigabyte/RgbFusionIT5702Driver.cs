@@ -20,10 +20,11 @@ using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Gigabyte;
 
-[ProductId(VendorIdSource.Usb, 0x048D, 0x5702)]
+[ProductId(VendorIdSource.Usb, IteVendorId, 0x5702)]
 public sealed class RgbFusionIT5702Driver :
 	HidDriver,
 	IDeviceDriver<ILightingDeviceFeature>,
+	IDeviceIdFeature,
 	ILightingControllerFeature,
 	IPersistentLightingFeature,
 	IUnifiedLightingFeature,
@@ -40,6 +41,8 @@ public sealed class RgbFusionIT5702Driver :
 	ILightingZoneEffect<ColorCycleEffect>,
 	ILightingZoneEffect<ColorWaveEffect>
 {
+	private const int IteVendorId = 0x048D;
+
 	internal enum Effect : byte
 	{
 		None = 0,
@@ -345,7 +348,7 @@ public sealed class RgbFusionIT5702Driver :
 		Properties.System.DeviceInterface.Hid.UsageId,
 	};
 
-	public static async Task<RgbFusionIT5702Driver> CreateAsync(string deviceName, CancellationToken cancellationToken)
+	public static async Task<RgbFusionIT5702Driver> CreateAsync(string deviceName, ushort productId, ushort version, CancellationToken cancellationToken)
 	{
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -431,6 +434,8 @@ public sealed class RgbFusionIT5702Driver :
 			return new RgbFusionIT5702Driver
 			(
 				new HidFullDuplexStream(ledDeviceInterfaceName),
+				productId,
+				version,
 				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 				productName,
 				ledCount,
@@ -509,13 +514,25 @@ public sealed class RgbFusionIT5702Driver :
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
 
-	private RgbFusionIT5702Driver(HidFullDuplexStream stream, ImmutableArray<string> deviceNames, string productName, int ledCount, DeviceConfigurationKey configurationKey)
+	private readonly ushort _productId;
+	private readonly ushort _versionNumber;
+
+	private RgbFusionIT5702Driver
+	(
+		HidFullDuplexStream stream,
+		ushort productId,
+		ushort versionNumber,
+		ImmutableArray<string> deviceNames,
+		string productName,
+		int ledCount,
+		DeviceConfigurationKey configurationKey
+	)
 		: base(deviceNames, productName ?? "RGB Fusion 2.0 Controller", configurationKey)
 	{
 		_stream = stream;
 
 		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, RgbFusionIT5702Driver, ILightingControllerFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
-		_allFeatures = FeatureCollection.Create<IDeviceFeature, RgbFusionIT5702Driver, ILightingControllerFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
+		_allFeatures = FeatureCollection.Create<IDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature, ILightingControllerFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
 
 		_unifiedLightingZone = new WaveLightingZone((byte)((1 << ledCount) - 1), Z490MotherboardUnifiedZoneId, this);
 		_lightingZones = new LightingZone[ledCount];
@@ -531,6 +548,9 @@ public sealed class RgbFusionIT5702Driver :
 
 		// Initialize the state to mark everything as pending updates, so that everything works properly.
 		_state = StatePendingChangeLedMask | StatePendingChangeAddressable | StatePendingChangeUnifiedLighting;
+
+		_productId = productId;
+		_versionNumber = versionNumber;
 
 		// Test:
 		//(_unifiedLightingZone as ILightingZoneEffect<StaticColorEffect>).ApplyEffect(new StaticColorEffect(new(255, 0, 255)));
@@ -1117,4 +1137,6 @@ public sealed class RgbFusionIT5702Driver :
 		{
 		}
 	}
+
+	DeviceId IDeviceIdFeature.DeviceId => new(DeviceIdSource.Usb, VendorIdSource.Usb, IteVendorId, _productId, _versionNumber);
 }

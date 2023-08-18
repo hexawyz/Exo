@@ -98,7 +98,7 @@ public interface IBatteryStateDeviceFeature : IDeviceFeature
 /// Some devices not connected through these means may still have a way to communicate their standard ID in one of the known namespaces.
 /// If the device ID is known, it should be exposed through this feature.
 /// </remarks>
-public interface IDeviceIdDeviceFeature : IDeviceFeature
+public interface IDeviceIdFeature : IDeviceFeature
 {
 	DeviceId DeviceId { get; }
 }

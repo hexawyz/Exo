@@ -403,34 +403,84 @@ public static class FeatureCollection
 		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(implementation);
 
 	/// <summary>Creates a feature collection as a merge of two other collections.</summary>
+	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
+	/// <typeparam name="TFeature1">The base feature type of the first collection.</typeparam>
+	/// <param name="features1">The first feature collection.</param>
+	/// <param name="fallbackFeatures">The base features to use as a fallback.</param>
+	/// <returns>A device collection that exposes all features of the merged collections.</returns>
+	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<IDeviceFeature>? fallbackFeatures = null
+	)
+		where TFeature1 : class, IDeviceFeature
+		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, fallbackFeatures);
+
+	/// <summary>Creates a feature collection as a merge of three other collections.</summary>
+	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
 	/// <typeparam name="TFeature1">The base feature type of the first collection.</typeparam>
 	/// <typeparam name="TFeature2">The base feature type of the second collection.</typeparam>
 	/// <param name="features1">The first feature collection.</param>
 	/// <param name="features2">The second feature collection.</param>
+	/// <param name="fallbackFeatures">The base features to use as a fallback.</param>
 	/// <returns>A device collection that exposes all features of the merged collections.</returns>
-	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2>(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2)
+	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature2> features2,
+		IDeviceFeatureCollection<IDeviceFeature>? fallbackFeatures = null
+	)
 		where TFeature1 : class, IDeviceFeature
 		where TFeature2 : class, IDeviceFeature
-		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2);
+		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, fallbackFeatures);
 
-	/// <summary>Creates a feature collection as a merge of three other collections.</summary>
+	/// <summary>Creates a feature collection as a merge of four other collections.</summary>
+	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
 	/// <typeparam name="TFeature1">The base feature type of the first collection.</typeparam>
 	/// <typeparam name="TFeature2">The base feature type of the second collection.</typeparam>
 	/// <typeparam name="TFeature3">The base feature type of the third collection.</typeparam>
 	/// <param name="features1">The first feature collection.</param>
 	/// <param name="features2">The second feature collection.</param>
 	/// <param name="features3">The third feature collection.</param>
+	/// <param name="fallbackFeatures">The base features to use as a fallback.</param>
 	/// <returns>A device collection that exposes all features of the merged collections.</returns>
 	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2, TFeature3>
 	(
 		IDeviceFeatureCollection<TFeature1> features1,
 		IDeviceFeatureCollection<TFeature2> features2,
-		IDeviceFeatureCollection<TFeature3> features3
+		IDeviceFeatureCollection<TFeature3> features3,
+		IDeviceFeatureCollection<IDeviceFeature>? fallbackFeatures = null
 	)
 		where TFeature1 : class, IDeviceFeature
 		where TFeature2 : class, IDeviceFeature
 		where TFeature3 : class, IDeviceFeature
-		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, features3);
+		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, features3, fallbackFeatures);
+
+	/// <summary>Creates a feature collection as a merge of five other collections.</summary>
+	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
+	/// <typeparam name="TFeature1">The base feature type of the first collection.</typeparam>
+	/// <typeparam name="TFeature2">The base feature type of the second collection.</typeparam>
+	/// <typeparam name="TFeature3">The base feature type of the third collection.</typeparam>
+	/// <typeparam name="TFeature3">The base feature type of the fourth collection.</typeparam>
+	/// <param name="features1">The first feature collection.</param>
+	/// <param name="features2">The second feature collection.</param>
+	/// <param name="features3">The third feature collection.</param>
+	/// <param name="features4">The fourth feature collection.</param>
+	/// <param name="fallbackFeatures">The base features to use as a fallback.</param>
+	/// <returns>A device collection that exposes all features of the merged collections.</returns>
+	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2, TFeature3, TFeature4>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature2> features2,
+		IDeviceFeatureCollection<TFeature3> features3,
+		IDeviceFeatureCollection<TFeature4> features4,
+		IDeviceFeatureCollection<IDeviceFeature>? fallbackFeatures = null
+	)
+		where TFeature1 : class, IDeviceFeature
+		where TFeature2 : class, IDeviceFeature
+		where TFeature3 : class, IDeviceFeature
+		where TFeature4 : class, IDeviceFeature
+		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, features3, features4, fallbackFeatures);
 }
 
 /// <summary>Quickly instantiate new feature collections.</summary>
@@ -458,7 +508,7 @@ internal static class FeatureCollection<TFeature>
 			var ilGenerator = dynamicMethod.GetILGenerator();
 
 			ilGenerator.Emit(OpCodes.Ldarg_0);
-			ilGenerator.Emit(OpCodes.Callvirt, typeof(TFeature).GetMethod(nameof(GetFeature))!.MakeGenericMethod(typeof(TOtherFeature)));
+			ilGenerator.Emit(OpCodes.Callvirt, typeof(IDeviceFeatureCollection<TFeature>).GetMethod(nameof(GetFeature))!.MakeGenericMethod(typeof(TOtherFeature)));
 			ilGenerator.Emit(OpCodes.Ret);
 
 			return dynamicMethod.CreateDelegate<Func<IDeviceFeatureCollection<TFeature>, TOtherFeature?>>();
@@ -633,21 +683,49 @@ internal static class FeatureCollection<TFeature>
 		where TFeature8 : class, TFeature
 		=> Create(new() { typeof(TFeature1), typeof(TFeature2), typeof(TFeature3), typeof(TFeature4), typeof(TFeature5), typeof(TFeature6), typeof(TFeature7), typeof(TFeature8) }, feature);
 
-	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1, TFeature2>(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2)
+	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature>? fallbackFeatures
+	)
+		where TFeature1 : class, TFeature
+		=> new MergedFeatureCollection<TFeature1>(features1, fallbackFeatures);
+
+	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1, TFeature2>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature2> features2,
+		IDeviceFeatureCollection<TFeature>? fallbackFeatures
+	)
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
-		=> new MergedFeatureCollection<TFeature1, TFeature2>(features1, features2);
+		=> new MergedFeatureCollection<TFeature1, TFeature2>(features1, features2, fallbackFeatures);
 
 	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1, TFeature2, TFeature3>
 	(
 		IDeviceFeatureCollection<TFeature1> features1,
 		IDeviceFeatureCollection<TFeature2> features2,
-		IDeviceFeatureCollection<TFeature3> features3
+		IDeviceFeatureCollection<TFeature3> features3,
+		IDeviceFeatureCollection<TFeature>? fallbackFeatures
 	)
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
-		=> new MergedFeatureCollection<TFeature1, TFeature2, TFeature3>(features1, features2, features3);
+		=> new MergedFeatureCollection<TFeature1, TFeature2, TFeature3>(features1, features2, features3, fallbackFeatures);
+
+	public static IDeviceFeatureCollection<TFeature> CreateMerged<TFeature1, TFeature2, TFeature3, TFeature4>
+	(
+		IDeviceFeatureCollection<TFeature1> features1,
+		IDeviceFeatureCollection<TFeature2> features2,
+		IDeviceFeatureCollection<TFeature3> features3,
+		IDeviceFeatureCollection<TFeature4> features4,
+		IDeviceFeatureCollection<TFeature>? fallbackFeatures
+	)
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+		=> new MergedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4>(features1, features2, features3, features4, fallbackFeatures);
 
 	private sealed class EmptyFeatureCollection : IDeviceFeatureCollection<TFeature>
 	{
@@ -1240,6 +1318,60 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
+	private sealed class MergedFeatureCollection<TFeature1> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+	{
+		static MergedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+		}
+
+		private readonly IDeviceFeatureCollection<TFeature1> _features1;
+		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
+
+		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature>? fallbackFeatures)
+		{
+			_features1 = features1;
+			_fallbackFeatures = fallbackFeatures;
+		}
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (typeof(TFeature1).IsAssignableFrom(type)) return _features1[type];
+				else if (_fallbackFeatures is not null) return _fallbackFeatures[type];
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
+			else return null;
+		}
+
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			foreach (var kvp in _features1)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature1>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			if (_fallbackFeatures != null)
+			{
+				foreach (var kvp in _fallbackFeatures)
+				{
+					yield return kvp;
+				}
+			}
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
 	private sealed class MergedFeatureCollection<TFeature1, TFeature2> : IDeviceFeatureCollection<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
@@ -1253,11 +1385,13 @@ internal static class FeatureCollection<TFeature>
 
 		private readonly IDeviceFeatureCollection<TFeature1> _features1;
 		private readonly IDeviceFeatureCollection<TFeature2> _features2;
+		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
 
-		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2)
+		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2, IDeviceFeatureCollection<TFeature>? fallbackFeatures)
 		{
 			_features1 = features1;
 			_features2 = features2;
+			_fallbackFeatures = fallbackFeatures;
 		}
 
 		public TFeature? this[Type type]
@@ -1266,6 +1400,7 @@ internal static class FeatureCollection<TFeature>
 			{
 				if (typeof(TFeature1).IsAssignableFrom(type)) return _features1[type];
 				else if (typeof(TFeature2).IsAssignableFrom(type)) return _features2[type];
+				else if (_fallbackFeatures is not null) return _fallbackFeatures[type];
 				else return null;
 			}
 		}
@@ -1275,6 +1410,7 @@ internal static class FeatureCollection<TFeature>
 		{
 			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
 			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
+			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
 			else return null;
 		}
 
@@ -1288,6 +1424,13 @@ internal static class FeatureCollection<TFeature>
 			foreach (var kvp in _features2)
 			{
 				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature2>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			if (_fallbackFeatures != null)
+			{
+				foreach (var kvp in _fallbackFeatures)
+				{
+					yield return kvp;
+				}
 			}
 		}
 
@@ -1312,12 +1455,20 @@ internal static class FeatureCollection<TFeature>
 		private readonly IDeviceFeatureCollection<TFeature1> _features1;
 		private readonly IDeviceFeatureCollection<TFeature2> _features2;
 		private readonly IDeviceFeatureCollection<TFeature3> _features3;
+		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
 
-		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2, IDeviceFeatureCollection<TFeature3> features3)
+		public MergedFeatureCollection
+		(
+			IDeviceFeatureCollection<TFeature1> features1,
+			IDeviceFeatureCollection<TFeature2> features2,
+			IDeviceFeatureCollection<TFeature3> features3,
+			IDeviceFeatureCollection<TFeature>? fallbackFeatures
+		)
 		{
 			_features1 = features1;
 			_features2 = features2;
 			_features3 = features3;
+			_fallbackFeatures = fallbackFeatures;
 		}
 
 		public TFeature? this[Type type]
@@ -1327,6 +1478,7 @@ internal static class FeatureCollection<TFeature>
 				if (typeof(TFeature1).IsAssignableFrom(type)) return _features1[type];
 				else if (typeof(TFeature2).IsAssignableFrom(type)) return _features2[type];
 				else if (typeof(TFeature3).IsAssignableFrom(type)) return _features3[type];
+				else if (_fallbackFeatures is not null) return _fallbackFeatures[type];
 				else return null;
 			}
 		}
@@ -1337,6 +1489,7 @@ internal static class FeatureCollection<TFeature>
 			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
 			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
 			else if (FeatureCollection<TFeature3>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature3>.GetFeature<T>(_features3);
+			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
 			else return null;
 		}
 
@@ -1354,6 +1507,110 @@ internal static class FeatureCollection<TFeature>
 			foreach (var kvp in _features3)
 			{
 				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature3>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			if (_fallbackFeatures != null)
+			{
+				foreach (var kvp in _fallbackFeatures)
+				{
+					yield return kvp;
+				}
+			}
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	private sealed class MergedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4> : IDeviceFeatureCollection<TFeature>
+		where TFeature1 : class, TFeature
+		where TFeature2 : class, TFeature
+		where TFeature3 : class, TFeature
+		where TFeature4 : class, TFeature
+	{
+		static MergedFeatureCollection()
+		{
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+		}
+
+		private readonly IDeviceFeatureCollection<TFeature1> _features1;
+		private readonly IDeviceFeatureCollection<TFeature2> _features2;
+		private readonly IDeviceFeatureCollection<TFeature3> _features3;
+		private readonly IDeviceFeatureCollection<TFeature4> _features4;
+		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
+
+		public MergedFeatureCollection
+		(
+			IDeviceFeatureCollection<TFeature1> features1,
+			IDeviceFeatureCollection<TFeature2> features2,
+			IDeviceFeatureCollection<TFeature3> features3,
+			IDeviceFeatureCollection<TFeature4> features4,
+			IDeviceFeatureCollection<TFeature>? fallbackFeatures
+		)
+		{
+			_features1 = features1;
+			_features2 = features2;
+			_features3 = features3;
+			_features4 = features4;
+			_fallbackFeatures = fallbackFeatures;
+		}
+
+		public TFeature? this[Type type]
+		{
+			get
+			{
+				if (typeof(TFeature1).IsAssignableFrom(type)) return _features1[type];
+				else if (typeof(TFeature2).IsAssignableFrom(type)) return _features2[type];
+				else if (typeof(TFeature3).IsAssignableFrom(type)) return _features3[type];
+				else if (typeof(TFeature4).IsAssignableFrom(type)) return _features4[type];
+				else if (_fallbackFeatures is not null) return _fallbackFeatures[type];
+				else return null;
+			}
+		}
+
+		public T? GetFeature<T>()
+			where T : class, TFeature
+		{
+			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
+			else if (FeatureCollection<TFeature3>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature3>.GetFeature<T>(_features3);
+			else if (FeatureCollection<TFeature4>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature4>.GetFeature<T>(_features4);
+			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
+			else return null;
+		}
+
+
+		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
+		{
+			foreach (var kvp in _features1)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature1>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			foreach (var kvp in _features2)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature2>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			foreach (var kvp in _features3)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature3>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			foreach (var kvp in _features4)
+			{
+				yield return Unsafe.BitCast<KeyValuePair<Type, TFeature4>, KeyValuePair<Type, TFeature>>(kvp);
+			}
+			if (_fallbackFeatures != null)
+			{
+				foreach (var kvp in _fallbackFeatures)
+				{
+					yield return kvp;
+				}
 			}
 		}
 

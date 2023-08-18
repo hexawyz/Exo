@@ -15,12 +15,13 @@ using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Lg.Monitors;
 
-[ProductId(VendorIdSource.Usb, 0x043E, 0x9A8A)]
+[ProductId(VendorIdSource.Usb, LgVendorId, 0x9A8A)]
 public class LgMonitorDriver :
 	HidDriver,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
+	IDeviceIdFeature,
 	IRawVcpFeature,
 	IBrightnessFeature,
 	IContrastFeature,
@@ -40,6 +41,8 @@ public class LgMonitorDriver :
 	ILightingZoneEffect<ColorCycleEffect>,
 	ILightingZoneEffect<ColorWaveEffect>
 {
+	private const int LgVendorId = 0x043E;
+
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
 
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
@@ -47,10 +50,9 @@ public class LgMonitorDriver :
 		Properties.System.Devices.DeviceInstanceId,
 		Properties.System.DeviceInterface.Hid.UsagePage,
 		Properties.System.DeviceInterface.Hid.UsageId,
-		Properties.System.DeviceInterface.Hid.VersionNumber,
 	};
 
-	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, ushort productId, CancellationToken cancellationToken)
+	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, ushort productId, ushort version, CancellationToken cancellationToken)
 	{
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -95,7 +97,6 @@ public class LgMonitorDriver :
 		string? i2cDeviceInterfaceName = null;
 		string? lightingDeviceInterfaceName = null;
 		string topLevelDeviceName = devices[0].Id;
-		ushort nxpVersion = 0xFFFF;
 
 		// Set the top level device name as the last device name now.
 		deviceNames[^1] = topLevelDeviceName;
@@ -123,11 +124,6 @@ public class LgMonitorDriver :
 			if (usagePage == 0xFF00 && usageId == 0x01)
 			{
 				i2cDeviceInterfaceName = deviceInterface.Id;
-
-				if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.VersionNumber.Key, out ushort version))
-				{
-					nxpVersion = version;
-				}
 			}
 			else if (usagePage == 0xFF01 && usageId == 0x01)
 			{
@@ -198,7 +194,8 @@ public class LgMonitorDriver :
 		(
 			i2cTransport,
 			lightingTransport,
-			nxpVersion,
+			productId,
+			version,
 			scalerVersion,
 			dscVersion,
 			ledCount,
@@ -225,6 +222,7 @@ public class LgMonitorDriver :
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+	private readonly ushort _productId;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
@@ -232,6 +230,7 @@ public class LgMonitorDriver :
 	(
 		HidI2CTransport transport,
 		UltraGearLightingTransport lightingTransport,
+		ushort productId,
 		ushort nxpVersion,
 		ushort scalerVersion,
 		byte dscVersion,
@@ -246,6 +245,7 @@ public class LgMonitorDriver :
 		_i2cTransport = transport;
 		_lightingTransport = lightingTransport;
 		_currentEffect = DisabledEffect.SharedInstance;
+		_productId = productId;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
 		_dscVersion = dscVersion;
@@ -269,7 +269,8 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures);
+		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceIdFeature>(this);
+		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures, baseFeatures);
 	}
 
 	// The firmware archive explicitly names the SV, DV and NV as "Scaler", "DSC" and "NXP"
@@ -445,4 +446,6 @@ public class LgMonitorDriver :
 
 		return new ValueTask(_lightingTransport.SetVideoSyncColors(colors, default));
 	}
+
+	DeviceId IDeviceIdFeature.DeviceId => new(DeviceIdSource.Usb, VendorIdSource.Usb, LgVendorId, _productId, _nxpVersion);
 }

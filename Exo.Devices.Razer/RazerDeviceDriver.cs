@@ -21,7 +21,7 @@ public abstract class RazerDeviceDriver :
 	IRazerDeviceNotificationSink,
 	IRazerPeriodicEventHandler,
 	ISerialNumberDeviceFeature,
-	IDeviceIdDeviceFeature
+	IDeviceIdFeature
 {
 	private const ushort RazerVendorId = 0x1532;
 
@@ -563,7 +563,7 @@ public abstract class RazerDeviceDriver :
 			{
 				_driverRegistry = driverRegistry;
 				DeviceNames = deviceNames;
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, UsbReceiver, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, UsbReceiver, IDeviceIdFeature>(this);
 				var childDevices = transport.GetDevicePairingInformation();
 				_pairedDevices = new PairedDeviceState[childDevices.Length];
 				for (int i = 0; i < childDevices.Length; i++)
@@ -843,11 +843,11 @@ public abstract class RazerDeviceDriver :
 			_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, BaseDevice, IUnifiedLightingFeature>(this);
 			_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature, IUnifiedLightingFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature, IUnifiedLightingFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature, IUnifiedLightingFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdDeviceFeature, IUnifiedLightingFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature, IUnifiedLightingFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IUnifiedLightingFeature>(this);
 
 			// Unless it is possible to retrieve the current settings from the device, we should reset the effect.
 			ApplyEffect(DisabledEffect.SharedInstance, _currentBrightness, true);

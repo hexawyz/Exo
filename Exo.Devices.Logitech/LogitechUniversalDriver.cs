@@ -15,7 +15,7 @@ namespace Exo.Devices.Logitech;
 [VendorId(VendorIdSource.Usb, LogitechUsbVendorId)]
 public abstract class LogitechUniversalDriver : Driver,
 	ISerialNumberDeviceFeature,
-	IDeviceIdDeviceFeature
+	IDeviceIdFeature
 {
 	private const int LogitechUsbVendorId = 0x046D;
 
@@ -535,7 +535,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			public RegisterAccessDirectGeneric(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectGeneric, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectGeneric, IDeviceIdFeature>(this);
 				DeviceCategory = category;
 			}
 
@@ -550,7 +550,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			public RegisterAccessDirectKeyboard(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectKeyboard, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectKeyboard, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -566,7 +566,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			public RegisterAccessDirectMouse(HidPlusPlusDevice.RegisterAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectMouse, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessDirectMouse, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
@@ -582,7 +582,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			public RegisterAccessThroughReceiverGeneric(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber, DeviceCategory category)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverGeneric, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverGeneric, IDeviceIdFeature>(this);
 				DeviceCategory = category;
 			}
 
@@ -597,7 +597,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			public RegisterAccessThroughReceiverKeyboard(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverKeyboard, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -613,7 +613,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			public RegisterAccessThroughReceiverMouse(HidPlusPlusDevice.RegisterAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverMouse, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, RegisterAccessThroughReceiverMouse, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
@@ -631,11 +631,11 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdDeviceFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature>(this);
 				DeviceCategory = category;
 			}
 
@@ -652,11 +652,11 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdDeviceFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -674,11 +674,11 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdDeviceFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
@@ -697,11 +697,11 @@ public abstract class LogitechUniversalDriver : Driver,
 				DeviceCategory = category;
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdDeviceFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory { get; }
@@ -717,11 +717,11 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdDeviceFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -739,11 +739,11 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdDeviceFeature>(this);
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature>(this);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
@@ -778,7 +778,7 @@ public abstract class LogitechUniversalDriver : Driver,
 				_driverRegistry = driverRegistry;
 				_children = new();
 				_lock = new();
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdDeviceFeature>(this);
+				_allFeatures = FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature>(this);
 				DeviceNames = deviceNames;
 				device.DeviceDiscovered += OnChildDeviceDiscovered;
 				device.DeviceConnected += OnChildDeviceConnected;
