@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
@@ -29,7 +29,10 @@ public abstract partial class HidPlusPlusDevice
 			device.NotificationReceived += HandleNotification;
 			Volatile.Write(ref device.CustomState, this);
 			Receiver.OnDeviceDiscovered(this);
-			if (deviceConnectionInfo.IsLinkEstablished) Receiver.OnDeviceConnected(this, _version);
+			if (deviceConnectionInfo.IsLinkEstablished)
+			{
+				Receiver.RegisterNotificationTask(HandleDeviceConnectionAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, _version, default));
+			}
 		}
 
 		private protected override void RaiseConnected(int version)
@@ -113,7 +116,7 @@ public abstract partial class HidPlusPlusDevice
 					int version = Interlocked.Increment(ref _version);
 					if (isConnected)
 					{
-						Receiver.OnDeviceConnected(this, version);
+						Receiver.RegisterNotificationTask(HandleDeviceConnectionAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, version, default));
 					}
 					else
 					{
@@ -138,6 +141,13 @@ public abstract partial class HidPlusPlusDevice
 					Receiver.OnDeviceDisconnected(this, version);
 				}
 			}
+		}
+
+		private async Task HandleDeviceConnectionAsync(int retryCount, int version, CancellationToken cancellationToken)
+		{
+			await InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
+
+			Receiver.OnDeviceConnected(this, version);
 		}
 
 		private void DisposeInternal()
