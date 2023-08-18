@@ -661,23 +661,4 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	// To be implemented by child devices for raising the event at both the receiver and device level. (Should call RaiseDeviceConnected/RaiseDeviceDisconnected before)
 	private protected virtual void RaiseConnected(int version) { }
 	private protected virtual void RaiseDisconnected(int version) { }
-
-	private abstract class NotificationHandler
-	{
-		public abstract HidPlusPlusFeature Feature { get; }
-
-		internal void HandleNotificationInternal(byte eventId, ReadOnlySpan<byte> response)
-		{
-			try
-			{
-				HandleNotification(eventId, response);
-			}
-			catch (Exception)
-			{
-				// TODO: Log ?
-			}
-		}
-
-		protected abstract void HandleNotification(byte eventId, ReadOnlySpan<byte> response);
-	}
 }

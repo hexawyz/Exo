@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
@@ -11,6 +11,25 @@ public abstract partial class HidPlusPlusDevice
 {
 	public abstract class FeatureAccess : HidPlusPlusDevice
 	{
+		private abstract class NotificationHandler
+		{
+			public abstract HidPlusPlusFeature Feature { get; }
+
+			internal void HandleNotificationInternal(byte eventId, ReadOnlySpan<byte> response)
+			{
+				try
+				{
+					HandleNotification(eventId, response);
+				}
+				catch (Exception)
+				{
+					// TODO: Log ?
+				}
+			}
+
+			protected abstract void HandleNotification(byte eventId, ReadOnlySpan<byte> response);
+		}
+
 		private abstract class BatteryState : NotificationHandler
 		{
 			protected FeatureAccess Device { get; }
