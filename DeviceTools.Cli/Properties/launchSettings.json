@@ -1,8 +1,13 @@
 {
-  "profiles": {
-    "DeviceTools.Cli": {
-      "commandName": "Project",
-      "nativeDebugging": true
+    "profiles": {
+        "DeviceTools.Cli": {
+            "commandName": "Project",
+            "nativeDebugging": true
+        },
+        "DeviceTools.Cli (Output to File)": {
+            "commandName": "Project",
+            "commandLineArgs": "> out.txt",
+            "nativeDebugging": true
+        }
     }
-  }
 }
