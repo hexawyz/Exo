@@ -258,7 +258,8 @@ public abstract class LogitechUniversalDriver : Driver,
 			productId,
 			SoftwareId,
 			friendlyName,
-			new TimeSpan(1 * TimeSpan.TicksPerSecond)
+			new TimeSpan(1 * TimeSpan.TicksPerSecond),
+			cancellationToken
 		);
 
 		// HID++ devices will expose multiple interfaces, each with their own top-level collection.
@@ -452,8 +453,8 @@ public abstract class LogitechUniversalDriver : Driver,
 					_ => BatteryStatus.Error,
 				},
 				ExternalPowerStatus =
-						((batteryPowerState.ExternalPowerStatus & BatteryExternalPowerStatus.IsConnected) != 0 ? ExternalPowerStatus.IsConnected : 0) |
-						((batteryPowerState.ExternalPowerStatus & BatteryExternalPowerStatus.IsChargingBelowOptimalSpeed) != 0 ? ExternalPowerStatus.IsSlowCharger : 0)
+					((batteryPowerState.ExternalPowerStatus & BatteryExternalPowerStatus.IsConnected) != 0 ? ExternalPowerStatus.IsConnected : 0) |
+					((batteryPowerState.ExternalPowerStatus & BatteryExternalPowerStatus.IsChargingBelowOptimalSpeed) != 0 ? ExternalPowerStatus.IsSlowCharger : 0)
 			};
 
 		private void OnBatteryChargeStateChanged(HidPlusPlusDevice.FeatureAccess device, BatteryPowerState batteryPowerState)

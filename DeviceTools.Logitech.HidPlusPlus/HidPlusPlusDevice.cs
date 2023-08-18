@@ -1,8 +1,10 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
@@ -171,7 +173,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		ushort productId,
 		byte softwareId,
 		string? externalFriendlyName,
-		TimeSpan requestTimeout
+		TimeSpan requestTimeout,
+		CancellationToken cancellationToken
 	)
 	{
 		if ((uint)expectedProtocolFlavor is >= (uint)HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess) throw new ArgumentOutOfRangeException(nameof(expectedProtocolFlavor));
@@ -181,9 +184,10 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			// Creating the device should pose little to no problem, but we will do additional checks once the instance is created.
 			var transport = new HidPlusPlusTransport(shortMessageStream, longMessageStream, veryLongMessageStream, softwareId, requestTimeout);
+			HidPlusPlusDevice device;
 			try
 			{
-				return await CreateAsync
+				device = await CreateAsync
 				(
 					null,
 					transport,
@@ -194,12 +198,23 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					externalFriendlyName,
 					null,
 					HidPlusPlusTransportExtensions.DefaultRetryCount,
-					default
+					cancellationToken
 				).ConfigureAwait(false);
 			}
 			catch
 			{
 				await transport.DisposeAsync().ConfigureAwait(false);
+				throw;
+			}
+
+			try
+			{
+				await device.InitializeAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken).ConfigureAwait(false);
+				return device;
+			}
+			catch
+			{
+				await device.DisposeAsync().ConfigureAwait(false);
 				throw;
 			}
 		}
@@ -408,8 +423,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			_ => throw new InvalidOperationException(),
 		};
 
-		await device.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
-
 		return device;
 	}
 
@@ -489,8 +502,6 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		HidPlusPlusDevice device = parent is null ?
 			new FeatureAccessDirect(transport, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber) :
 			new FeatureAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
-
-		await device.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
 
 		return device;
 	}
@@ -628,7 +639,9 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	public abstract ValueTask DisposeAsync();
 
-	// To be called for device initialization after the device is created for a direct device, or when the device is (re)connected for a child device.
+	// The initialize method is called immediately after device creation if the device is connected.
+	// For devices connected to a receiver, it will be called every time the device is connected, to allow refreshing the cached status.
+	// NB: For child devices, calls to this method are handled as part of the lifecycle.
 	private protected virtual Task InitializeAsync(int retryCount, CancellationToken cancellationToken) => Task.CompletedTask;
 
 	// The below methods are used to raise connect/disconnect events on receivers and receiver-connected devices.
@@ -1441,7 +1454,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					break;
 				}
 
-				return new((ushort)batteryLevel <= 255 ?(byte)batteryLevel :null, chargeStatus, externalPowerStatus);
+				return new((ushort)batteryLevel <= 255 ? (byte)batteryLevel : null, chargeStatus, externalPowerStatus);
 			}
 
 			public LegacyBatteryState(FeatureAccess device, byte featureIndex) : base(device)
@@ -1771,7 +1784,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		protected RegisterAccessReceiver Receiver => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport);
 		protected sealed override HidPlusPlusTransport Transport => Receiver.Transport;
 
-		private bool _isInitialized;
+		private bool _isInfoInitialized;
 
 		// 0 (default) if last published device state is disconnected; 1 if last published device state is connected.
 		private bool _lastPublishedStateWasConnected;
@@ -1792,11 +1805,14 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			: base(parent, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
 			// If the device is connected and we reach this point in the code, relevant information will already have been fetched and passed through the parameters.
-			_isInitialized = deviceConnectionInfo.IsLinkEstablished;
+			_isInfoInitialized = deviceConnectionInfo.IsLinkEstablished;
 			var device = Transport.Devices[deviceIndex];
 			Volatile.Write(ref device.CustomState, this);
 			Receiver.OnDeviceDiscovered(this);
-			if (deviceConnectionInfo.IsLinkEstablished) Receiver.OnDeviceConnected(this, _version);
+			if (deviceConnectionInfo.IsLinkEstablished)
+			{
+				Receiver.RegisterNotificationTask(HandleDeviceConnectionAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, _version, true, default));
+			}
 		}
 
 		private protected override void RaiseConnected(int version)
@@ -1880,15 +1896,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					int version = Interlocked.Increment(ref _version);
 					if (isConnected)
 					{
-						if (!Volatile.Read(ref _isInitialized))
-						{
-							Receiver.RegisterNotificationTask(UpdateDeviceInformationAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, version, default));
-							Volatile.Write(ref _isInitialized, true);
-						}
-						else
-						{
-							Receiver.OnDeviceConnected(this, version);
-						}
+						Receiver.RegisterNotificationTask(HandleDeviceConnectionAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, version, Volatile.Read(ref _isInfoInitialized), default));
 					}
 					else
 					{
@@ -1919,24 +1927,27 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			}
 		}
 
-		private async Task UpdateDeviceInformationAsync(int retryCount, int version, CancellationToken cancellationToken)
+		private async Task HandleDeviceConnectionAsync(int retryCount, int version, bool wasInfoInitialized, CancellationToken cancellationToken)
 		{
 			var transport = Transport;
 
-			var features = await GetFeaturesWithRetryAsync(retryCount, cancellationToken).ConfigureAwait(false);
-
-			var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
-
-			// Update the device information if we were able to retrieve the device name.
-			if (retrievedName is not null)
+			if (!wasInfoInitialized)
 			{
-				DeviceType = retrievedType;
-				FriendlyName = retrievedName;
+				var features = await GetFeaturesWithRetryAsync(retryCount, cancellationToken).ConfigureAwait(false);
+
+				var (retrievedType, retrievedName) = await FeatureAccessGetDeviceNameAndTypeAsync(transport, features, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
+
+				// Update the device information if we were able to retrieve the device name.
+				if (retrievedName is not null)
+				{
+					DeviceType = retrievedType;
+					FriendlyName = retrievedName;
+				}
+
+				Volatile.Write(ref _isInfoInitialized, true);
 			}
 
 			await InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
-
-			Volatile.Write(ref _isInitialized, true);
 
 			Receiver.OnDeviceConnected(this, version);
 		}
