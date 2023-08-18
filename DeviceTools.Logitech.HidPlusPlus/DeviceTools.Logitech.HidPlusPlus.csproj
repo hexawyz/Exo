@@ -11,4 +11,10 @@
 		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Compile Update="HidPlusPlusDevice.*.cs">
+			<DependentUpon>HidPlusPlusDevice.cs</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
 </Project>
