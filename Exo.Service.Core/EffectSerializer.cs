@@ -591,6 +591,7 @@ public static class EffectSerializer
 				case SerializerDataType.UInt32:
 				case SerializerDataType.Boolean:
 				case SerializerDataType.UInt64:
+				case SerializerDataType.ColorRgb24:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueUnsignedValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.Int8:

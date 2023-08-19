@@ -59,8 +59,14 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 	private static void HandleNotification(IRazerDeviceNotificationSink sink, Span<byte> span)
 	{
 		// This supposedly indicates a device connect notification.
-		if (span[0] == 9)
+		switch (span[0])
 		{
+		case 2:
+			// This is a DPI notification. I'm not entirely sure in which condition this is sent, but it is hopefully triggered when the DPI switches are used.
+			// There is nothing looking like a device ID here, though. I'm wondering how notifications for multiple devices work in that case.
+			sink.OnDeviceDpiChange(1, BigEndian.ReadUInt16(span[1]), BigEndian.ReadUInt16(span[3]));
+			break;
+		case 9:
 			// There are two parameters to this notification.
 			// The second one is very likely a one-based device index, so we'll use it as such for now.
 			switch (span[1])
@@ -68,6 +74,7 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 			case 2: sink.OnDeviceRemoval(span[2]); break;
 			case 3: sink.OnDeviceArrival(span[2]); break;
 			}
+			break;
 		}
 	}
 }

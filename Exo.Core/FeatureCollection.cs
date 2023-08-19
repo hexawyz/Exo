@@ -408,7 +408,7 @@ public static class FeatureCollection
 	/// <param name="features1">The first feature collection.</param>
 	/// <param name="fallbackFeatures">The base features to use as a fallback.</param>
 	/// <returns>A device collection that exposes all features of the merged collections.</returns>
-	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1, TFeature2>
+	public static IDeviceFeatureCollection<IDeviceFeature> CreateMerged<TFeature1>
 	(
 		IDeviceFeatureCollection<TFeature1> features1,
 		IDeviceFeatureCollection<IDeviceFeature>? fallbackFeatures = null

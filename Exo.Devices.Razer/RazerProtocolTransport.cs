@@ -3,6 +3,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
+using Exo.Devices.Razer.LightingEffects;
+using Exo.Lighting.Effects;
 using Microsoft.Win32.SafeHandles;
 
 namespace Exo.Devices.Razer;
@@ -115,7 +117,144 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
-	public void SetStaticColor(RgbColor color)
+	// NB: I'm really unsure about this one. It could be used entirely wrong, but it seems to return an info we need?
+	internal byte GetDeviceInformationXXXXX()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x32;
+				buffer[7] = 0x0f;
+				buffer[8] = 0x80;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x0f, 0x80, 0);
+
+				return buffer[9];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	internal ILightingEffect? GetSavedEffect(byte flag)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x0c;
+				buffer[7] = 0x0f;
+				buffer[8] = 0x82;
+
+				buffer[9] = 0x01;
+				buffer[10] = flag;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x0f, 0x82, 0);
+
+				byte colorCount = buffer[14];
+				RgbColor color1 = colorCount > 0 ? new(buffer[15], buffer[16], buffer[17]) : default;
+				RgbColor color2 = colorCount > 1 ? new(buffer[18], buffer[19], buffer[20]) : default;
+
+				return buffer[11] switch
+				{
+					0 => DisabledEffect.SharedInstance,
+					1 => new StaticColorEffect(color1),
+					2 => colorCount switch
+					{
+						0 => RandomColorPulseEffect.SharedInstance,
+						1 => new ColorPulseEffect(color1),
+						_ => new TwoColorPulseEffect(color1, color2),
+					},
+					3 => ColorCycleEffect.SharedInstance,
+					4 => ColorWaveEffect.SharedInstance,
+					5 => new ReactiveEffect(color1),
+					_ => null,
+				};
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	public void SetEffect(bool persist, byte effect, byte colorCount, RgbColor color1, RgbColor color2)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x0c;
+				buffer[7] = 0x0f;
+				buffer[8] = 0x02;
+
+				buffer[9] = persist ? (byte)0x01 : (byte)0x00;
+				buffer[10] = 0x00;
+				buffer[11] = effect;
+				buffer[12] = 0x01;
+				buffer[13] = 0x28;
+
+				if (colorCount > 0)
+				{
+					buffer[14] = colorCount;
+
+					buffer[15] = color1.R;
+					buffer[16] = color1.G;
+					buffer[17] = color1.B;
+					if (colorCount > 1)
+					{
+						buffer[18] = color2.R;
+						buffer[19] = color2.G;
+						buffer[20] = color2.B;
+					}
+				}
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x0f, 0x02, 0);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	public void SetDynamicColor(RgbColor color)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));

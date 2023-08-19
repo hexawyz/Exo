@@ -409,14 +409,16 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	{
 		if (_lightingDevices.TryGetValue(deviceId, out var device))
 		{
+			var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)device.Driver;
+
 			// TODO: Improve the situation on this. There should only be a single ApplyChangesAsync method.
-			if (device.Driver is ILightingControllerFeature controllerFeature)
+			if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lcf)
 			{
-				await controllerFeature.ApplyChangesAsync().ConfigureAwait(false);
+				await lcf.ApplyChangesAsync().ConfigureAwait(false);
 			}
-			else if (device.Driver is IUnifiedLightingFeature unifiedLightingFeature)
+			else if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } ulf)
 			{
-				await unifiedLightingFeature.ApplyChangesAsync().ConfigureAwait(false);
+				await ulf.ApplyChangesAsync().ConfigureAwait(false);
 			}
 		}
 	}

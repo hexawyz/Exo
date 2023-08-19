@@ -35,6 +35,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 		Razer DeathAdder V2 Pro.md = Razer DeathAdder V2 Pro.md
 		Docs\Razer Mamba Chroma.md = Docs\Razer Mamba Chroma.md
 		Docs\Useful Bits.md = Docs\Useful Bits.md
+		Useful Bits.md = Useful Bits.md
 		Docs\ViewSonic VP2785-4K.md = Docs\ViewSonic VP2785-4K.md
 	EndProjectSection
 EndProject
@@ -90,7 +91,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Contracts", "Exo.Ui.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Razer", "Exo.Devices.Razer\Exo.Devices.Razer.csproj", "{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Contracts", "Exo.Contracts\Exo.Contracts.csproj", "{6710ECBD-BEB2-4524-8B32-056C83144559}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Contracts", "Exo.Contracts\Exo.Contracts.csproj", "{6710ECBD-BEB2-4524-8B32-056C83144559}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
