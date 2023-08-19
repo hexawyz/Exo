@@ -9,13 +9,19 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 {
-	private readonly IDeviceService _deviceService;
 	private readonly ObservableCollection<DeviceViewModel> _devices;
+
+	private readonly IDeviceService _deviceService;
+	private readonly IMouseService _mouseService;
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
+
 	// Used to store battery changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, BatteryStateViewModel> _pendingBatteryChanges;
+
+	// Used to store DPI changes when the device view model is not accessible.
+	private readonly Dictionary<Guid, DpiViewModel> _pendingDpiChanges;
 
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice; 
@@ -23,16 +29,21 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _deviceWatchTask;
 	private readonly Task _batteryWatchTask;
+	private readonly Task _dpiWatchTask;
 
-	public DevicesViewModel(IDeviceService deviceService)
+	public DevicesViewModel(IDeviceService deviceService, IMouseService mouseService)
 	{
 		_deviceService = deviceService;
+		_mouseService = mouseService;
+
 		_devices = new();
 		_devicesById = new();
 		_pendingBatteryChanges = new();
+		_pendingDpiChanges = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_deviceWatchTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_batteryWatchTask = WatchBatteryChangesAsync(_cancellationTokenSource.Token);
+		_dpiWatchTask = WatchDpiChangesAsync(_cancellationTokenSource.Token);
 	}
 
 	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
@@ -61,6 +72,13 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 						if (_pendingBatteryChanges.Remove(notification.Details.Id, out var batteryStatus))
 						{
 							device.BatteryState = batteryStatus;
+						}
+						if (_pendingDpiChanges.Remove(notification.Details.Id, out var dpi))
+						{
+							if (device.MouseFeatures is { } mouseFeatures)
+							{
+								mouseFeatures.CurrentDpi = dpi;
+							}
 						}
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
@@ -100,6 +118,30 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				else
 				{
 					_pendingBatteryChanges.Add(notification.DeviceId, status);
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchDpiChangesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in _mouseService.WatchDpiChangesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
+				{
+					if (device.MouseFeatures is { } mouseFeatures)
+					{
+						mouseFeatures.CurrentDpi = new(notification.Dpi);
+					}
+				}
+				else
+				{
+					_pendingDpiChanges.Add(notification.DeviceId, new(notification.Dpi));
 				}
 			}
 		}

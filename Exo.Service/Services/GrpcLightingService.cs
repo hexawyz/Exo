@@ -17,7 +17,7 @@ internal class GrpcLightingService : ILightingService
 
 	public async IAsyncEnumerable<WatchNotification<Ui.Contracts.LightingDeviceInformation>> WatchLightingDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken))
+		await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
 		{
 			if (notification.Kind is not WatchNotificationKind.Removal)
 			{

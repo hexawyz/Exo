@@ -23,7 +23,7 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 	public async IAsyncEnumerable<WatchNotification<Ui.Contracts.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _driverRegistry.WatchAsync(cancellationToken))
+		await foreach (var notification in _driverRegistry.WatchAsync(cancellationToken).ConfigureAwait(false))
 		{
 			yield return new()
 			{
@@ -113,7 +113,8 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 					{
 						DeviceId = deviceId,
 						Level = state.Level,
-						BatteryStatus = (Ui.Contracts.BatteryStatus)state.BatteryStatus, ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)state.ExternalPowerStatus
+						BatteryStatus = (Ui.Contracts.BatteryStatus)state.BatteryStatus,
+						ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)state.ExternalPowerStatus
 					};
 
 					if (_currentBatteryStates.TryUpdate(deviceId, notification, oldNotification))

@@ -13,7 +13,7 @@ internal sealed class SettingsViewModel : BindableObject
 	public SettingsViewModel()
 	{
 		_connectionManager = new("Local\\Exo.Service.Configuration");
-		_devicesViewModel = new(_connectionManager.Channel.CreateGrpcService<IDeviceService>());
+		_devicesViewModel = new(_connectionManager.Channel.CreateGrpcService<IDeviceService>(), _connectionManager.Channel.CreateGrpcService<IMouseService>());
 		_lightingViewModel = new(_connectionManager.Channel.CreateGrpcService<ILightingService>());
 		_title = string.Empty;
 	}

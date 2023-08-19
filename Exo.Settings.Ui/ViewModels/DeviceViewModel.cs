@@ -1,4 +1,5 @@
 using Exo.Ui.Contracts;
+using Windows.Services.Maps.OfflineMaps;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -10,6 +11,10 @@ internal class DeviceViewModel : BaseDeviceViewModel
 		: base(deviceInformation)
 	{
 		_extendedDeviceInformation = extendedDeviceInformation;
+		if (!deviceInformation.FeatureTypeNames.IsDefaultOrEmpty && deviceInformation.FeatureTypeNames.Contains("Exo.Features.IMouseDeviceFeature"))
+		{
+			MouseFeatures = new(this);
+		}
 	}
 
 	public DeviceId? DeviceId => _extendedDeviceInformation.DeviceId;
@@ -23,4 +28,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 		get => _batteryState;
 		set => SetValue(ref _batteryState, value, ChangedProperty.BatteryState);
 	}
+
+	// If the device is a mouse, this hosts the mouse-related features.
+	public MouseDeviceFeaturesViewModel? MouseFeatures { get; }
 }

@@ -456,6 +456,8 @@ public abstract class RazerDeviceDriver :
 	protected virtual void OnDeviceRemoval(byte deviceIndex) { }
 	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) { }
 
+	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
+
 	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
 
 	public string SerialNumber
@@ -525,7 +527,7 @@ public abstract class RazerDeviceDriver :
 		IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
 		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
-		protected override void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY)
+		protected override void OnDeviceDpiChange(ushort dpiX, ushort dpiY)
 		{
 			uint newDpi = (uint)dpiY << 16 | dpiX;
 			uint oldDpi = Interlocked.Exchange(ref _currentDpi, newDpi);
@@ -743,6 +745,16 @@ public abstract class RazerDeviceDriver :
 
 					_driverRegistry.RemoveDriver(oldDriver);
 					DisposeDriver(oldDriver);
+				}
+			}
+
+			protected override void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY)
+			{
+				if (deviceIndex > _pairedDevices.Length) return;
+
+				if (Volatile.Read(ref _pairedDevices[deviceIndex - 1].Driver) is { } driver)
+				{
+					driver.OnDeviceDpiChange(dpiX, dpiY);
 				}
 			}
 

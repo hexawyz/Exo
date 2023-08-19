@@ -10,7 +10,7 @@
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
     <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice, Mode=TwoWay}">
-        <Expander Visibility="{Binding DeviceId, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceId, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon Glyph="&#xE8EC;" />
@@ -45,6 +45,35 @@
                 <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
                 <TextBlock Grid.Column="0" Grid.Row="4" Text="Version" />
                 <TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
+            </Grid>
+        </Expander>
+        <Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon Glyph="&#xE7C9;" />
+                    <TextBlock Text="DPI" Margin="{StaticResource TitleTextIconMargin}" />
+                </StackPanel>
+            </Expander.Header>
+            <Grid HorizontalAlignment="Stretch" DataContext="{Binding MouseFeatures, Mode=OneTime}">
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="Current DPI" />
+                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=CurrentDpi}" />
             </Grid>
         </Expander>
     </StackPanel>

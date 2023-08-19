@@ -60,6 +60,7 @@ public class Startup
 		);
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
+		services.AddSingleton<GrpcMouseService>();
 		services.AddCodeFirstGrpc();
 	}
 
@@ -87,6 +88,7 @@ public class Startup
 		{
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapRazorPages();
 		});
 	}
