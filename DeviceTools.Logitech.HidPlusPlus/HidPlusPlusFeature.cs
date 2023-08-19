@@ -64,6 +64,7 @@ public enum HidPlusPlusFeature : ushort
 	DisableKeys = 0x4521,
 	DisableKeysByUsage = 0x4522,
 	DualPlatform = 0x4530,
+	MultiPlatform = 0x4531,
 	KeyboardInternationalLayouts = 0x4550,
 	Crown = 0x4600,
 
