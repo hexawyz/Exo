@@ -11,7 +11,10 @@ public abstract partial class HidPlusPlusDevice
 {
 	public abstract class FeatureAccess : HidPlusPlusDevice
 	{
-		private abstract class NotificationHandler
+		// NB: This would probably be exposed somehow so that notifications can be registered externally, but the API needs to be reworked.
+		// Notably, there is the problem of matching the notification handler with the device and getting the proper feature index.
+		// Internally, this is handled by providing the information in the constructor, but externally, that would be a weird thing to do.
+		private abstract class FeatureHandler
 		{
 			public abstract HidPlusPlusFeature Feature { get; }
 
@@ -27,16 +30,26 @@ public abstract partial class HidPlusPlusDevice
 				}
 			}
 
-			protected abstract void HandleNotification(byte eventId, ReadOnlySpan<byte> response);
+			protected virtual void HandleNotification(byte eventId, ReadOnlySpan<byte> response) { }
 		}
 
-		private abstract class BatteryState : NotificationHandler
+		private abstract class InternalFeatureHandler : FeatureHandler
 		{
 			protected FeatureAccess Device { get; }
+			protected byte FeatureIndex { get; }
 
+			protected InternalFeatureHandler(FeatureAccess device, byte featureIndex)
+			{
+				Device = device;
+				FeatureIndex = featureIndex;
+			}
+		}
+
+		private abstract class BatteryState : InternalFeatureHandler
+		{
 			public abstract BatteryPowerState PowerState { get; }
 
-			protected BatteryState(FeatureAccess device) => Device = device;
+			protected BatteryState(FeatureAccess device, byte featureIndex) : base(device, featureIndex) { }
 
 			public abstract Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken);
 			public abstract Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken);
@@ -45,8 +58,6 @@ public abstract partial class HidPlusPlusDevice
 		private sealed class UnifiedBatteryState : BatteryState
 		{
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.UnifiedBattery;
-
-			private readonly byte _featureIndex;
 
 			private UnifiedBattery.BatteryLevels _supportedBatteryLevels;
 			private UnifiedBattery.BatteryFlags _batteryFlags;
@@ -124,13 +135,13 @@ public abstract partial class HidPlusPlusDevice
 				return new(rawBatteryLevel, chargeStatus, externalPowerStatus);
 			}
 
-			public UnifiedBatteryState(FeatureAccess device, byte featureIndex) : base(device) => _featureIndex = featureIndex;
+			public UnifiedBatteryState(FeatureAccess device, byte featureIndex) : base(device, featureIndex) { }
 
 			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
 			{
 				var response = await Device.SendWithRetryAsync<UnifiedBattery.GetCapabilities.Response>
 				(
-					_featureIndex,
+					FeatureIndex,
 					UnifiedBattery.GetCapabilities.FunctionId,
 					retryCount,
 					cancellationToken
@@ -144,7 +155,7 @@ public abstract partial class HidPlusPlusDevice
 			{
 				var response = await Device.SendWithRetryAsync<UnifiedBattery.GetStatus.Response>
 				(
-					_featureIndex,
+					FeatureIndex,
 					UnifiedBattery.GetStatus.FunctionId,
 					retryCount,
 					cancellationToken
@@ -156,6 +167,8 @@ public abstract partial class HidPlusPlusDevice
 			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
 			{
 				if (response.Length < 16) return;
+
+				if (eventId != UnifiedBattery.GetStatus.EventId) return;
 
 				ProcessStatusResponse(ref Unsafe.As<byte, UnifiedBattery.GetStatus.Response>(ref MemoryMarshal.GetReference(response)));
 			}
@@ -190,8 +203,6 @@ public abstract partial class HidPlusPlusDevice
 		private sealed class LegacyBatteryState : BatteryState
 		{
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.BatteryUnifiedLevelStatus;
-
-			private readonly byte _featureIndex;
 
 			private byte _levelCount;
 			private BatteryUnifiedLevelStatus.BatteryCapabilityFlags _capabilityFlags;
@@ -238,9 +249,8 @@ public abstract partial class HidPlusPlusDevice
 				return new((ushort)batteryLevel <= 255 ? (byte)batteryLevel : null, chargeStatus, externalPowerStatus);
 			}
 
-			public LegacyBatteryState(FeatureAccess device, byte featureIndex) : base(device)
+			public LegacyBatteryState(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
 			{
-				_featureIndex = featureIndex;
 				_batteryLevelAndStatus = 0xFFFF;
 			}
 
@@ -248,7 +258,7 @@ public abstract partial class HidPlusPlusDevice
 			{
 				var response = await Device.SendWithRetryAsync<BatteryUnifiedLevelStatus.GetBatteryCapability.Response>
 				(
-					_featureIndex,
+					FeatureIndex,
 					BatteryUnifiedLevelStatus.GetBatteryCapability.FunctionId,
 					retryCount,
 					cancellationToken
@@ -262,7 +272,7 @@ public abstract partial class HidPlusPlusDevice
 			{
 				var response = await Device.SendWithRetryAsync<BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>
 				(
-					_featureIndex,
+					FeatureIndex,
 					BatteryUnifiedLevelStatus.GetBatteryLevelStatus.FunctionId,
 					retryCount,
 					cancellationToken
@@ -274,6 +284,8 @@ public abstract partial class HidPlusPlusDevice
 			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
 			{
 				if (response.Length < 16) return;
+
+				if (eventId != BatteryUnifiedLevelStatus.GetBatteryLevelStatus.EventId) return;
 
 				ProcessStatusResponse(ref Unsafe.As<byte, BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>(ref MemoryMarshal.GetReference(response)));
 			}
@@ -322,12 +334,59 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
+		private sealed class DpiState : InternalFeatureHandler
+		{
+			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.AdjustableDpi;
+
+			private byte _sensorCount;
+
+			public DpiState(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
+			{
+			}
+
+			public async Task RefreshDataAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				byte sensorCount =
+				(
+					await Device.SendWithRetryAsync<AdjustableDpi.GetSensorCount.Response>(FeatureIndex, AdjustableDpi.GetSensorCount.FunctionId, retryCount, cancellationToken)
+						.ConfigureAwait(false)
+				).SensorCount;
+
+				// Can't make any sense of these informations. Usefulness of this feature may depend on the model, but everything reported here seems relatively inaccurate.
+				// The DPI list seemed to include the max DPI supported by the mouse, which is good, but the current DPI info seems to only be valid in host mode.
+				// Other infos were pure rubbish ?
+				//for (int i = 0; i < sensorCount; i++)
+				//{
+				//	var dpiInformation = await Device.SendWithRetryAsync<AdjustableDpi.GetSensorDpi.Request, AdjustableDpi.GetSensorDpi.Response>
+				//	(
+				//		FeatureIndex,
+				//		AdjustableDpi.GetSensorDpi.FunctionId,
+				//		new() { SensorIndex = (byte)i },
+				//		retryCount,
+				//		cancellationToken
+				//	).ConfigureAwait(false);
+
+				//	var dpiList = await Device.SendWithRetryAsync<AdjustableDpi.GetSensorDpiList.Request, AdjustableDpi.GetSensorDpiList.Response>
+				//	(
+				//		FeatureIndex,
+				//		AdjustableDpi.GetSensorDpiList.FunctionId,
+				//		new() { SensorIndex = (byte)i },
+				//		retryCount,
+				//		cancellationToken
+				//	).ConfigureAwait(false);
+				//}
+
+				_sensorCount = sensorCount;
+			}
+		}
+
 		// Fields are not readonly because devices seen through a receiver can be discovered while disconnected.
 		// The values should be updated when the device is connected.
 		private protected ReadOnlyDictionary<HidPlusPlusFeature, byte>? CachedFeatures;
 		// An array of notification handlers, with one slot for each feature index.
-		private NotificationHandler[]? _notificationHandlers;
+		private FeatureHandler[]? _notificationHandlers;
 		private BatteryState? _batteryState;
+		private DpiState? _dpiState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
 		// NB: We probably don't need Volatile reads here, as this data isn't supposed to be updated often, and we expect it to be read as a response to a connection notification.
@@ -356,7 +415,7 @@ public abstract partial class HidPlusPlusDevice
 			CachedFeatures = cachedFeatures;
 			if (cachedFeatures is not null)
 			{
-				_notificationHandlers = new NotificationHandler[cachedFeatures.Count];
+				_notificationHandlers = new FeatureHandler[cachedFeatures.Count];
 				RegisterDefaultNotificationHandlers(cachedFeatures);
 			}
 			var device = Transport.Devices[deviceIndex];
@@ -381,6 +440,13 @@ public abstract partial class HidPlusPlusDevice
 				batteryState = new LegacyBatteryState(this, index);
 				Volatile.Write(ref _batteryState, batteryState);
 				Volatile.Write(ref _notificationHandlers![index], batteryState);
+			}
+
+			if (features.TryGetValue(HidPlusPlusFeature.AdjustableDpi, out index))
+			{
+				var dpiState = new DpiState(this, index);
+				Volatile.Write(ref _dpiState, dpiState);
+				Volatile.Write(ref _notificationHandlers![index], dpiState);
 			}
 		}
 
@@ -438,6 +504,10 @@ public abstract partial class HidPlusPlusDevice
 				await batteryState.RefreshBatteryCapabilitiesAsync(retryCount, cancellationToken).ConfigureAwait(false);
 				await batteryState.RefreshBatteryStatusAsync(retryCount, cancellationToken).ConfigureAwait(false);
 			}
+			if (_dpiState is { } dpiState)
+			{
+				await dpiState.RefreshDataAsync(retryCount, cancellationToken).ConfigureAwait(false);
+			}
 		}
 
 		public ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsync(CancellationToken cancellationToken)
@@ -453,7 +523,7 @@ public abstract partial class HidPlusPlusDevice
 			var features = await Transport.GetFeaturesWithRetryAsync(DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
 			// Ensure that features are only initialized once.
-			if (Interlocked.CompareExchange(ref _notificationHandlers, new NotificationHandler[features.Count], null) is null)
+			if (Interlocked.CompareExchange(ref _notificationHandlers, new FeatureHandler[features.Count], null) is null)
 			{
 				RegisterDefaultNotificationHandlers(features);
 				Volatile.Write(ref CachedFeatures, features);

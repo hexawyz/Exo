@@ -21,5 +21,5 @@ public struct FeatureAccessShortMessage<TParameters>
 public struct FeatureAccessShortMessage
 {
 	public FeatureAccessHeader Header;
-	public RawLongMessageParameters Parameters;
+	public RawShortMessageParameters Parameters;
 }

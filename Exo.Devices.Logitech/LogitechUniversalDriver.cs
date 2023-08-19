@@ -42,6 +42,10 @@ public abstract class LogitechUniversalDriver : Driver,
 
 	public static async Task<LogitechUniversalDriver> CreateAsync(string deviceName, ushort productId, ushort version, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
 	{
+		// Need to find a way to exclude those better, but it will probably be more gracefully solved with the future device discovery and registration model.
+		if (productId == 0xC231) throw new NotSupportedException("Logitech Hub Virtual Mouse is not supported.");
+		if (productId == 0xC232) throw new NotSupportedException("Logitech Hub Virtual Keyboard is not supported.");
+
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
 			throw new InvalidOperationException();
