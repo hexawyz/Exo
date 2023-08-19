@@ -7,14 +7,20 @@ namespace Exo.Features.MouseFeatures;
 /// Mouses that support dynamic DPI changes should also expose <see cref="IMouseDynamicDpiFeature"/>.
 /// </para>
 /// </remarks>
-public interface IMouseDpiFeature
+public interface IMouseDpiFeature : IMouseDeviceFeature
 {
 	/// <summary>Gets the current DPI of the mouse.</summary>
-	/// <remarks>This value can change if the mouse supports different DPI settings.</remarks>
-	int CurrentDpi { get; }
+	/// <remarks>
+	/// <para>This value can change if the mouse supports different DPI settings.</para>
+	/// <para>
+	/// Some devices can use a different DPI setting for vertical and horizontal directions.
+	/// Other devices should return the same value for both directions.
+	/// </para>
+	/// </remarks>
+	DotsPerInch CurrentDpi { get; }
 }
 
 public interface IMouseDynamicDpiFeature : IMouseDpiFeature
 {
-	event Action<Driver, int> DpiChanged;
+	event Action<Driver, DotsPerInch> DpiChanged;
 }

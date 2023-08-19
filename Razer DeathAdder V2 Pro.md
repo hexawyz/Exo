@@ -128,6 +128,17 @@ To extract a large number of requests from a capture: (Sadly doesn't work for th
 `tshark' -r "INPUT.pcapng" -T fields -e usb.irp_info.direction -e usb.data_fragment "usb.data_len >= 90 and usb.device_address == 48" > OUTPUT.txt`
 
 Sending invalid requests to the device seem to generate responses starting with `03`. I am thus assuming that `03` indicates an invalid command. (Maybe due to the state of the device)
+It seems responses starting with `05` can also be received to indicate an error. (Trying to enable the reactive effect on the dock does that 🙂)
+
+So far, I'm assuming the meaning is that of a status code:
+
+	- `00` Request
+	- `01` Please Retry (It seems the checksum can often be invalid in this case ? Did not notice that before, but the dock seems to do that)
+	- `02` Success
+	- `03` Invalid Command Parameter ?
+	- `04` Not Available
+	- `05` Invalid Command Parameter ?
+	- `NN` Other error
 
 ## Requests sent to devices when the service is starting
 
@@ -157,7 +168,7 @@ GET => 02 08 000000 020086 00000000000000000000000000000000000000000000000000000
 This really could be the handshake command. It is sent by the Razer Synapse Installer, and always sent when a device is detected by Synapse Service.
 It will return an error if the device is not connected to the dongle. (But then how does all that work when there are two devices ???)
 It seems the service retries that one **many** times until it works, and it reads the (`04`) response up to 5 times per try.
-The five read retries are probably not necessary, as it seems the devices will always repond to the last command.
+The five read retries are probably not necessary, as it seems the devices will always respond to the last command.
 That is also probably why no-op replies usually includes the whole request. (So that services can determine if they are reading the proper reply)
 
 SET => 00 08 000000 160082 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009400
@@ -501,7 +512,7 @@ See for example `0c0f82` and `060f02` that I've been looking at here… They see
 A lot of commands in the dumps here are either `0N` or `8N`. It could very well be that the `8N` commands are read commands associated with a corresponding `0N` write command.
 We also have a similar sequence (yet unexplained) of `020084` and `020004` above, which would kinda support this too.
 It is possible that `84` is the "get current effect" command (without all the parameters like `82`) and that `04` is used above to reset the effect to default ?
-This will be relatively easy to test later.
+This will be relatively easy to test later => Confirmed by transforming the "Set DPI" feature sent by synapse into a "Get DPI" 🙂 (`070405 00 1900 1900` into `070485` returning `070485 00 1900 1900`)
 
 So, what if we take the sequence `0c0f82 00040301280100ff0000ff00` above and just replace `82` by `02` ? => It does actually set the color cycle effect.
 We have always seen clearly see two colors here (the default green), so maybe they could be some effect parameters ?

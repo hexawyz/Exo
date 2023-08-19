@@ -6,6 +6,7 @@ using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Razer.LightingEffects;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
+using Exo.Features.MouseFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 
@@ -468,6 +469,8 @@ public abstract class RazerDeviceDriver :
 	{
 		public override DeviceCategory DeviceCategory { get; }
 
+		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+
 		public Generic(
 			RazerProtocolTransport transport,
 			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
@@ -482,12 +485,24 @@ public abstract class RazerDeviceDriver :
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
 			DeviceCategory = deviceCategory;
+			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, CreateBaseFeatures());
 		}
+
+		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 	}
 
-	private class Mouse : BaseDevice
+	private class Mouse :
+		BaseDevice,
+		IDeviceDriver<IMouseDeviceFeature>,
+		IMouseDpiFeature,
+		IMouseDynamicDpiFeature
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
+
+		private uint _currentDpi;
+
+		private readonly IDeviceFeatureCollection<IMouseDeviceFeature> _mouseFeatures;
+		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 		public Mouse(
 			RazerProtocolTransport transport,
@@ -501,12 +516,61 @@ public abstract class RazerDeviceDriver :
 			ushort versionNumber
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
+			var dpi = transport.GetDpi();
+			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
+			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature>(this);
+			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, _mouseFeatures, CreateBaseFeatures());
+		}
+
+		IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
+		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
+
+		protected override void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY)
+		{
+			uint newDpi = (uint)dpiY << 16 | dpiX;
+			uint oldDpi = Interlocked.Exchange(ref _currentDpi, newDpi);
+
+			if (newDpi != oldDpi)
+			{
+				if (DpiChanged is { } dpiChanged)
+				{
+					_ = Task.Run
+					(
+						() =>
+						{
+							try
+							{
+								dpiChanged(this, GetDpi(newDpi));
+							}
+							catch (Exception ex)
+							{
+								// TODO: Log
+							}
+						}
+					);
+				}
+			}
+		}
+
+		private static DotsPerInch GetDpi(uint rawValue)
+			=> new((ushort)rawValue, (ushort)(rawValue >> 16));
+
+		private event Action<Driver, DotsPerInch>? DpiChanged;
+
+		DotsPerInch IMouseDpiFeature.CurrentDpi => GetDpi(Volatile.Read(ref _currentDpi));
+
+		event Action<Driver, DotsPerInch> IMouseDynamicDpiFeature.DpiChanged
+		{
+			add => DpiChanged += value;
+			remove => DpiChanged -= value;
 		}
 	}
 
 	private class Keyboard : BaseDevice
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
+
+		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 		public Keyboard(
 			RazerProtocolTransport transport,
@@ -520,7 +584,10 @@ public abstract class RazerDeviceDriver :
 			ushort versionNumber
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
+			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, CreateBaseFeatures());
 		}
+
+		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 	}
 
 	// Classes implementing ISystemDeviceDriver and relying on their own Notification Watcher.
@@ -883,7 +950,6 @@ public abstract class RazerDeviceDriver :
 		private readonly RazerDeviceFlags _deviceFlags;
 		private readonly object _lock;
 		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
-		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 		// How do we use this ?
 		private readonly byte _deviceIndex;
 		private byte _batteryLevel;
@@ -917,16 +983,7 @@ public abstract class RazerDeviceDriver :
 
 			_lightingFeatures = HasReactiveLighting ?
 				FeatureCollection.Create<ILightingDeviceFeature, UnifiedReactiveLightingZone, IUnifiedLightingFeature>(new(this, lightingZoneId)) :
-				FeatureCollection.Create<ILightingDeviceFeature, UnifiedBasicLightingZone, IUnifiedLightingFeature>(new(this, lightingZoneId)) ;
-
-			var baseFeatures = HasSerialNumber ?
-					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
-					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
-			_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, baseFeatures);
+				FeatureCollection.Create<ILightingDeviceFeature, UnifiedReactiveLightingZone, IUnifiedLightingFeature>(new(this, lightingZoneId));
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
 			byte flag = transport.GetDeviceInformationXXXXX();
@@ -946,6 +1003,15 @@ public abstract class RazerDeviceDriver :
 			}
 			return base.DisposeAsync();
 		}
+
+		protected IDeviceFeatureCollection<IDeviceFeature> CreateBaseFeatures()
+			=> HasSerialNumber ?
+				HasBattery ?
+					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+				HasBattery ?
+					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
 		protected override void HandlePeriodicEvent()
 		{
@@ -979,8 +1045,8 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
+		protected IDeviceFeatureCollection<ILightingDeviceFeature> LightingFeatures => _lightingFeatures;
 		IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
-		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
 		private ValueTask ApplyChangesAsync()
 		{

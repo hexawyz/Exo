@@ -323,6 +323,71 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
+	public DotsPerInch GetDpi()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x07;
+				buffer[7] = 0x04;
+				buffer[8] = 0x85;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x04, 0x85, 0);
+
+				return new(BigEndian.ReadUInt16(buffer[10]), BigEndian.ReadUInt16(buffer[12]));
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	public void SetDpi(DotsPerInch dpi)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x07;
+				buffer[7] = 0x04;
+				buffer[8] = 0x05;
+
+				BigEndian.Write(ref buffer[10], dpi.Horizontal);
+				BigEndian.Write(ref buffer[12], dpi.Vertical);
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x04, 0x85, 0);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
 	public byte GetBatteryLevel()
 	{
 		var @lock = Volatile.Read(ref _lock);
@@ -417,7 +482,6 @@ internal sealed class RazerProtocolTransport : IDisposable
 			buffer.Clear();
 
 			GetFeature(buffer);
-			ValidateChecksum(buffer);
 
 			if (buffer[2] == commandByte1 && buffer[7] == commandByte2 && buffer[8] == commandByte3)
 			{
@@ -426,10 +490,14 @@ internal sealed class RazerProtocolTransport : IDisposable
 				case 0x01:
 					continue;
 				case 0x02:
+					ValidateChecksum(buffer);
 					return true;
 				case 0x04:
 					if (errorResponseRetryCount == 0) return false;
 					continue;
+				case 0x05:
+					// TODO: Try to analyze the meaning further.
+					throw new InvalidOperationException("Unsupported parameter.");
 				default:
 					throw new InvalidDataException("The response could not be decoded properly.");
 				}
