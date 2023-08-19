@@ -983,7 +983,7 @@ public abstract class RazerDeviceDriver :
 
 			_lightingFeatures = HasReactiveLighting ?
 				FeatureCollection.Create<ILightingDeviceFeature, UnifiedReactiveLightingZone, IUnifiedLightingFeature>(new(this, lightingZoneId)) :
-				FeatureCollection.Create<ILightingDeviceFeature, UnifiedReactiveLightingZone, IUnifiedLightingFeature>(new(this, lightingZoneId));
+				FeatureCollection.Create<ILightingDeviceFeature, UnifiedBasicLightingZone, IUnifiedLightingFeature>(new(this, lightingZoneId));
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
 			byte flag = transport.GetDeviceInformationXXXXX();
