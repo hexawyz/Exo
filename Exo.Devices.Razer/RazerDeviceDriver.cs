@@ -604,7 +604,7 @@ public abstract class RazerDeviceDriver :
 			private struct PairedDeviceState
 			{
 				public RazerDeviceDriver? Driver;
-				public readonly ushort ProductId;
+				public ushort ProductId;
 
 				public PairedDeviceState(ushort productId) : this() => ProductId = productId;
 			}
@@ -690,12 +690,19 @@ public abstract class RazerDeviceDriver :
 				// Don't recreate a driver if one is already present.
 				if (Volatile.Read(ref state.Driver) is not null) return;
 
-				// TODO: Refresh device info ?
-				// I'm assuming we should receive notifications of some form when devices are paired or unpaired.
-				if (state.ProductId == 0xFFFF) return;
+				var basicDeviceInformation = _transport.GetDeviceInformation();
+
+				// Update the state in case the paired device has changed.
+				if (state.ProductId != basicDeviceInformation.ProductId)
+				{
+					state.ProductId = basicDeviceInformation.ProductId;
+				}
+
+				// If the device is already disconnected, skip everything else.
+				if (!basicDeviceInformation.IsConnected) return;
 
 				// TODO: Log unsupported device.
-				if (!DeviceInformations.TryGetValue(state.ProductId, out var deviceInformation)) return;
+				if (!DeviceInformations.TryGetValue(basicDeviceInformation.ProductId, out var deviceInformation)) return;
 
 				// Child devices would generally share a PID with their USB receiver, we need to get the information for the device and not the receiver.
 				if (deviceInformation.ActualDeviceProductId != state.ProductId)
@@ -1137,25 +1144,25 @@ public abstract class RazerDeviceDriver :
 			switch (effect)
 			{
 			case StaticColorEffect staticColorEffect:
-				_transport.SetEffect(shouldPersist, 1, 1, staticColorEffect.Color, staticColorEffect.Color);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color);
 				break;
 			case RandomColorPulseEffect:
-				_transport.SetEffect(shouldPersist, 2, 0, default, default);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.Breathing, 0, default, default);
 				break;
 			case ColorPulseEffect colorPulseEffect:
-				_transport.SetEffect(shouldPersist, 2, 1, colorPulseEffect.Color, default);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default);
 				break;
 			case TwoColorPulseEffect twoColorPulseEffect:
-				_transport.SetEffect(shouldPersist, 2, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor);
 				break;
 			case ColorCycleEffect:
-				_transport.SetEffect(shouldPersist, 3, 0, default, default);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default);
 				break;
 			case ColorWaveEffect:
-				_transport.SetEffect(shouldPersist, 4, 0, default, default);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.Wave, 0, default, default);
 				break;
 			case ReactiveEffect reactiveEffect:
-				_transport.SetEffect(shouldPersist, 5, 1, reactiveEffect.Color, default);
+				_transport.SetEffect(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default);
 				break;
 			}
 		}

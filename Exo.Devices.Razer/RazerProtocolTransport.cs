@@ -64,14 +64,14 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x08;
 
 				buffer[6] = 0x02;
-				buffer[7] = 0x00;
+				buffer[7] = (byte)RazerDeviceFeature.General;
 				buffer[8] = 0x86;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				return TryReadResponse(buffer, 0x08, 0x00, 0x86, 4);
+				return TryReadResponse(buffer, 0x08, RazerDeviceFeature.General, 0x86, 4);
 			}
 			finally
 			{
@@ -94,7 +94,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x03;
-				buffer[7] = 0x0f;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
 				buffer[8] = 0x04;
 
 				buffer[9] = 0x01;
@@ -105,7 +105,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x0f, 0x04, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x04, 0);
 
 				return buffer[11];
 			}
@@ -131,14 +131,14 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x32;
-				buffer[7] = 0x0f;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
 				buffer[8] = 0x80;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x0f, 0x80, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x80, 0);
 
 				return buffer[9];
 			}
@@ -163,7 +163,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x0c;
-				buffer[7] = 0x0f;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
 				buffer[8] = 0x82;
 
 				buffer[9] = 0x01;
@@ -173,25 +173,25 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x0f, 0x82, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x82, 0);
 
 				byte colorCount = buffer[14];
 				RgbColor color1 = colorCount > 0 ? new(buffer[15], buffer[16], buffer[17]) : default;
 				RgbColor color2 = colorCount > 1 ? new(buffer[18], buffer[19], buffer[20]) : default;
 
-				return buffer[11] switch
+				return (RazerLightingEffect)buffer[11] switch
 				{
-					0 => DisabledEffect.SharedInstance,
-					1 => new StaticColorEffect(color1),
-					2 => colorCount switch
+					RazerLightingEffect.Disabled => DisabledEffect.SharedInstance,
+					RazerLightingEffect.Static => new StaticColorEffect(color1),
+					RazerLightingEffect.Breathing => colorCount switch
 					{
 						0 => RandomColorPulseEffect.SharedInstance,
 						1 => new ColorPulseEffect(color1),
 						_ => new TwoColorPulseEffect(color1, color2),
 					},
-					3 => ColorCycleEffect.SharedInstance,
-					4 => ColorWaveEffect.SharedInstance,
-					5 => new ReactiveEffect(color1),
+					RazerLightingEffect.SpectrumCycle => ColorCycleEffect.SharedInstance,
+					RazerLightingEffect.Wave => ColorWaveEffect.SharedInstance,
+					RazerLightingEffect.Reactive => new ReactiveEffect(color1),
 					_ => null,
 				};
 			}
@@ -203,7 +203,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
-	public void SetEffect(bool persist, byte effect, byte colorCount, RgbColor color1, RgbColor color2)
+	public void SetEffect(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -216,12 +216,12 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x0c;
-				buffer[7] = 0x0f;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
 				buffer[8] = 0x02;
 
 				buffer[9] = persist ? (byte)0x01 : (byte)0x00;
 				buffer[10] = 0x00;
-				buffer[11] = effect;
+				buffer[11] = (byte)effect;
 				buffer[12] = 0x01;
 				buffer[13] = 0x28;
 
@@ -244,7 +244,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x0f, 0x02, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x02, 0);
 			}
 			finally
 			{
@@ -265,8 +265,9 @@ internal sealed class RazerProtocolTransport : IDisposable
 			try
 			{
 				buffer[2] = 0x1f;
+
 				buffer[6] = 0x08;
-				buffer[7] = 0x0f;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
 				buffer[8] = 0x03;
 
 				buffer[14] = color.R;
@@ -298,14 +299,14 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x08;
 
 				buffer[6] = 0x16;
-				buffer[7] = 0x00;
+				buffer[7] = (byte)RazerDeviceFeature.General;
 				buffer[8] = 0x82;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x08, 0x00, 0x82, 0);
+				ReadResponse(buffer, 0x08, (byte)RazerDeviceFeature.General, 0x82, 0);
 
 				var value = buffer[9..^2];
 
@@ -336,14 +337,14 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x07;
-				buffer[7] = 0x04;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
 				buffer[8] = 0x85;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x04, 0x85, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x85, 0);
 
 				return new(BigEndian.ReadUInt16(buffer[10]), BigEndian.ReadUInt16(buffer[12]));
 			}
@@ -368,7 +369,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x07;
-				buffer[7] = 0x04;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
 				buffer[8] = 0x05;
 
 				BigEndian.Write(ref buffer[10], dpi.Horizontal);
@@ -378,7 +379,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x04, 0x85, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x85, 0);
 			}
 			finally
 			{
@@ -401,14 +402,14 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x02;
-				buffer[7] = 0x07;
+				buffer[7] = (byte)RazerDeviceFeature.Power;
 				buffer[8] = 0x84;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x07, 0x84, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Power, 0x84, 0);
 
 				return (buffer[10] & 1) != 0;
 			}
@@ -433,16 +434,48 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x02;
-				buffer[7] = 0x07;
+				buffer[7] = (byte)RazerDeviceFeature.Power;
 				buffer[8] = 0x80;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x1f, 0x07, 0x80, 0);
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Power, 0x80, 0);
 
 				return buffer[10];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	public PairedDeviceInformation GetDeviceInformation()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x31;
+				buffer[7] = (byte)RazerDeviceFeature.General;
+				buffer[8] = 0xc5;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.General, 0xc5, 0);
+
+				return new(buffer[9] == 1, BigEndian.ReadUInt16(buffer[10]));
 			}
 			finally
 			{
@@ -465,14 +498,16 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[2] = 0x08;
 
 				buffer[6] = 0x31;
-				buffer[7] = 0x00;
+				buffer[7] = (byte)RazerDeviceFeature.General;
 				buffer[8] = 0xbf;
+
+				buffer[9] = 0x10;
 
 				UpdateChecksum(buffer);
 
 				SetFeature(buffer);
 
-				ReadResponse(buffer, 0x08, 0x00, 0xbf, 0);
+				ReadResponse(buffer, 0x08, RazerDeviceFeature.General, 0xbf, 0);
 
 				byte deviceCount = buffer[9];
 
@@ -499,15 +534,15 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
-	private void ReadResponse(Span<byte> buffer, byte commandByte1, byte commandByte2, byte commandByte3, int errorResponseRetryCount)
+	private void ReadResponse(Span<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount)
 	{
-		if (!TryReadResponse(buffer, commandByte1, commandByte2, commandByte3, errorResponseRetryCount))
+		if (!TryReadResponse(buffer, commandByte1, feature, commandByte3, errorResponseRetryCount))
 		{
 			throw new InvalidOperationException("The device did not return a valid response.");
 		}
 	}
 
-	private bool TryReadResponse(Span<byte> buffer, byte commandByte1, byte commandByte2, byte commandByte3, int errorResponseRetryCount)
+	private bool TryReadResponse(Span<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount)
 	{
 		while (true)
 		{
@@ -515,7 +550,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 			GetFeature(buffer);
 
-			if (buffer[2] == commandByte1 && buffer[7] == commandByte2 && buffer[8] == commandByte3)
+			if (buffer[2] == commandByte1 && buffer[7] == (byte)feature && buffer[8] == commandByte3)
 			{
 				switch (buffer[1])
 				{
