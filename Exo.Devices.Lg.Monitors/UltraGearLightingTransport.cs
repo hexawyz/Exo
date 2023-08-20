@@ -12,7 +12,9 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		SetAudioSyncColors = 0xC2,
 		GetLedInformation = 0xC5,
 		SetActiveEffect = 0xC7,
+		GetActiveEffect = 0xC8,
 		EnableLightingEffect = 0xCA,
+		LightingStatus = 0xCE,
 		EnableLighting = 0xCF,
 	}
 
@@ -45,6 +47,33 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		public override void OnDataReceived(ReadOnlySpan<byte> message)
 		{
 			LedCount = message[0];
+			TaskCompletionSource.TrySetResult();
+		}
+	}
+
+	private class ActiveEffectResponseWaitState : CommandResponseWaitState
+	{
+		public LightingEffect Effect { get; private set; }
+
+		public ActiveEffectResponseWaitState() : base(Command.GetActiveEffect, Direction.Get) { }
+
+		public override void OnDataReceived(ReadOnlySpan<byte> message)
+		{
+			Effect = (LightingEffect)message[5];
+			TaskCompletionSource.TrySetResult();
+		}
+	}
+
+	private class LightingStatusResponseWaitState : CommandResponseWaitState
+	{
+		public bool IsLightingEnabled { get; private set; }
+
+		public LightingStatusResponseWaitState() : base(Command.LightingStatus, Direction.Get) { }
+
+		public override void OnDataReceived(ReadOnlySpan<byte> message)
+		{
+			// 1 = ON; 2 = OFF;
+			IsLightingEnabled = message[1] == 1;
 			TaskCompletionSource.TrySetResult();
 		}
 	}
@@ -188,6 +217,20 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 
 	public Task SetActiveEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
 		=> ExecuteSimpleCommandAsync(Command.SetActiveEffect, Direction.Set, 0, (byte)effect, cancellationToken);
+
+	public async Task<LightingEffect> GetActiveEffectAsync(CancellationToken cancellationToken)
+	{
+		var ws = new ActiveEffectResponseWaitState();
+		await ExecuteSimpleCommandAsync(ws, 0, 0, cancellationToken).ConfigureAwait(false);
+		return ws.Effect;
+	}
+
+	public async Task<bool> IsLightingEnabledAsync(CancellationToken cancellationToken)
+	{
+		var ws = new LightingStatusResponseWaitState();
+		await ExecuteSimpleCommandAsync(ws, 0, 0, cancellationToken).ConfigureAwait(false);
+		return ws.IsLightingEnabled;
+	}
 
 	public Task EnableLightingAsync(bool enable, CancellationToken cancellationToken)
 		=> ExecuteSimpleCommandAsync(Command.EnableLighting, Direction.Set, enable ? (byte)1 : (byte)2, 0, cancellationToken);

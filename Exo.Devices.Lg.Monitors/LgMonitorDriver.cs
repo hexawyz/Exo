@@ -139,6 +139,10 @@ public class LgMonitorDriver :
 		var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName));
 
 		byte ledCount = await lightingTransport.GetLedCountAsync(cancellationToken).ConfigureAwait(false);
+		var activeEffect = await lightingTransport.GetActiveEffectAsync(cancellationToken).ConfigureAwait(false);
+		bool isLightingEnabled = await lightingTransport.IsLightingEnabledAsync(cancellationToken).ConfigureAwait(false);
+		// In the current model, we don't really have a use for the current menu selection if lighting is disabled, so we can just override the active effect here to force the effect to disabled.
+		if (!isLightingEnabled) activeEffect = 0;
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
 		var i2cTransport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(i2cDeviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
@@ -199,6 +203,7 @@ public class LgMonitorDriver :
 			scalerVersion,
 			dscVersion,
 			ledCount,
+			activeEffect,
 			rawCapabilities,
 			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
@@ -235,6 +240,7 @@ public class LgMonitorDriver :
 		ushort scalerVersion,
 		byte dscVersion,
 		byte ledCount,
+		LightingEffect activeEffect,
 		byte[] rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
 		ImmutableArray<string> deviceNames,
@@ -244,7 +250,18 @@ public class LgMonitorDriver :
 	{
 		_i2cTransport = transport;
 		_lightingTransport = lightingTransport;
-		_currentEffect = DisabledEffect.SharedInstance;
+		_currentEffect = activeEffect switch
+		{
+			LightingEffect.Static1 => StaticColorPreset1Effect.SharedInstance,
+			LightingEffect.Static2 => StaticColorPreset2Effect.SharedInstance,
+			LightingEffect.Static3 => StaticColorPreset3Effect.SharedInstance,
+			LightingEffect.Static4 => StaticColorPreset4Effect.SharedInstance,
+			LightingEffect.Peaceful => ColorCycleEffect.SharedInstance,
+			LightingEffect.Dynamic => ColorWaveEffect.SharedInstance,
+			// I'm unsure what would happen here if the current effect was reported as audio sync or video sync ?
+			// If these modes are reported, we need to explicitly disable the lighting.
+			_ => DisabledEffect.SharedInstance,
+		};
 		_productId = productId;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
