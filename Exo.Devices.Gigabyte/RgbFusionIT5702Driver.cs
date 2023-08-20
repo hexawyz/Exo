@@ -533,8 +533,22 @@ public sealed class RgbFusionIT5702Driver :
 	{
 		_stream = stream;
 
-		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, RgbFusionIT5702Driver, ILightingControllerFeature, ILightingDeferredChangesFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
-		_allFeatures = FeatureCollection.Create<IDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature, ILightingControllerFeature, ILightingDeferredChangesFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
+		_lightingFeatures = FeatureCollection.Create<
+			ILightingDeviceFeature,
+			RgbFusionIT5702Driver,
+			ILightingControllerFeature,
+			ILightingBrightnessFeature,
+			IUnifiedLightingFeature,
+			ILightingDeferredChangesFeature,
+			IPersistentLightingFeature>(this);
+		_allFeatures = FeatureCollection.Create<
+			IDeviceFeature,
+			RgbFusionIT5702Driver,
+			ILightingControllerFeature,
+			ILightingBrightnessFeature,
+			IUnifiedLightingFeature,
+			ILightingDeferredChangesFeature,
+			IPersistentLightingFeature>(this);
 
 		_unifiedLightingZone = new WaveLightingZone((byte)((1 << ledCount) - 1), Z490MotherboardUnifiedZoneId, this);
 		_lightingZones = new LightingZone[ledCount];

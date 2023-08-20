@@ -899,7 +899,11 @@ public abstract class RazerDeviceDriver :
 		IDeviceDriver<ILightingDeviceFeature>,
 		IBatteryStateDeviceFeature
 	{
-		private abstract class LightingZone : ILightingZone, ILightingZoneEffect<DisabledEffect>, ILightingDeferredChangesFeature
+		private abstract class LightingZone :
+			ILightingZone,
+			ILightingZoneEffect<DisabledEffect>,
+			ILightingDeferredChangesFeature,
+			ILightingBrightnessFeature
 		{
 			protected BaseDevice Device { get; }
 
@@ -917,6 +921,14 @@ public abstract class RazerDeviceDriver :
 			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 
 			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => Device.ApplyChangesAsync();
+
+			byte ILightingBrightnessFeature.MaximumBrightness => 255;
+			byte ILightingBrightnessFeature.CurrentBrightness
+			{
+				get => Device._currentBrightness;
+				// TODO
+				set => Device._currentBrightness = value;
+			}
 		}
 
 		private class BasicLightingZone : LightingZone,
@@ -1015,8 +1027,17 @@ public abstract class RazerDeviceDriver :
 			}
 
 			_lightingFeatures = HasReactiveLighting ?
-				FeatureCollection.Create<ILightingDeviceFeature, UnifiedReactiveLightingZone, ILightingDeferredChangesFeature, IUnifiedLightingFeature>(new(this, lightingZoneId)) :
-				FeatureCollection.Create<ILightingDeviceFeature, UnifiedBasicLightingZone, ILightingDeferredChangesFeature, IUnifiedLightingFeature>(new(this, lightingZoneId));
+				FeatureCollection.Create<
+					ILightingDeviceFeature,
+					UnifiedReactiveLightingZone,
+					ILightingDeferredChangesFeature,
+					IUnifiedLightingFeature,
+					ILightingBrightnessFeature>(new(this, lightingZoneId)) :
+				FeatureCollection.Create<ILightingDeviceFeature,
+					UnifiedBasicLightingZone,
+					ILightingDeferredChangesFeature,
+					IUnifiedLightingFeature,
+					ILightingBrightnessFeature>(new(this, lightingZoneId));
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
 			byte flag = transport.GetDeviceInformationXXXXX();
