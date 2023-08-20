@@ -24,6 +24,7 @@ public sealed class RgbFusionIT5702Driver :
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	ILightingControllerFeature,
+	ILightingDeferredChangesFeature,
 	IPersistentLightingFeature,
 	IUnifiedLightingFeature,
 	ILightingBrightnessFeature,
@@ -532,8 +533,8 @@ public sealed class RgbFusionIT5702Driver :
 	{
 		_stream = stream;
 
-		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, RgbFusionIT5702Driver, ILightingControllerFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
-		_allFeatures = FeatureCollection.Create<IDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature, ILightingControllerFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
+		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, RgbFusionIT5702Driver, ILightingControllerFeature, ILightingDeferredChangesFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
+		_allFeatures = FeatureCollection.Create<IDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature, ILightingControllerFeature, ILightingDeferredChangesFeature, IUnifiedLightingFeature, IPersistentLightingFeature>(this);
 
 		_unifiedLightingZone = new WaveLightingZone((byte)((1 << ledCount) - 1), Z490MotherboardUnifiedZoneId, this);
 		_lightingZones = new LightingZone[ledCount];
@@ -567,8 +568,7 @@ public sealed class RgbFusionIT5702Driver :
 
 	public override ValueTask DisposeAsync() => _stream.DisposeAsync();
 
-	ValueTask ILightingControllerFeature.ApplyChangesAsync() => ApplyChangesAsync();
-	ValueTask IUnifiedLightingFeature.ApplyChangesAsync() => ApplyChangesAsync();
+	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => ApplyChangesAsync();
 
 	private ValueTask ApplyChangesAsync()
 	{

@@ -152,13 +152,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 						{
 							try
 							{
-								if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lcf)
+								if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 								{
-									applyChangesTask = lcf.ApplyChangesAsync();
-								}
-								else if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } ulf)
-								{
-									applyChangesTask = ulf.ApplyChangesAsync();
+									applyChangesTask = dcf.ApplyChangesAsync();
 								}
 							}
 							catch
@@ -411,14 +407,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 		{
 			var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)device.Driver;
 
-			// TODO: Improve the situation on this. There should only be a single ApplyChangesAsync method.
-			if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lcf)
+			if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 			{
-				await lcf.ApplyChangesAsync().ConfigureAwait(false);
-			}
-			else if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } ulf)
-			{
-				await ulf.ApplyChangesAsync().ConfigureAwait(false);
+				await dcf.ApplyChangesAsync().ConfigureAwait(false);
 			}
 		}
 	}

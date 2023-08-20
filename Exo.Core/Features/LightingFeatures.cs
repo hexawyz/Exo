@@ -14,12 +14,19 @@ public interface ILightingControllerFeature : ILightingDeviceFeature
 	/// </remarks>
 	/// <returns></returns>
 	IReadOnlyCollection<ILightingZone> LightingZones { get; }
+}
+
+/// <summary>A feature allowing to apply deferred lighting changes to a device.</summary>
+/// <remarks>
+/// <para>
+/// While not strictly mandatory, lighting drivers should implement a deferred changes mode to allow for more predictable operation.
+/// This features provides the <see cref="ApplyChangesAsync"/> method that will apply all the pending changes.
+/// </para>
+/// <para>In the absence of this feature, it is assumed that lighting changes are applied immediately.</para>
+/// </remarks>
+public interface ILightingDeferredChangesFeature : ILightingDeviceFeature
+{
 	/// <summary>Applies changes to the current lighting effects.</summary>
-	/// <remarks>
-	/// This method is interchangeable with <see cref="IUnifiedLightingFeature.ApplyChanges"/>.
-	/// Both interfaces should generally use the sample implementation for the method.
-	/// They are duplicated in both interfaces because a device does not strictly need to implement both, although it is advised to do so when it makes sense.
-	/// </remarks>
 	ValueTask ApplyChangesAsync();
 }
 
@@ -39,13 +46,6 @@ public interface IUnifiedLightingFeature : ILightingDeviceFeature, ILightingZone
 {
 	/// <summary>Gets a value indicating whether lighting is currently unified on the device.</summary>
 	bool IsUnifiedLightingEnabled { get; }
-	/// <summary>Applies changes to the current lighting effects.</summary>
-	/// <remarks>
-	/// This method is interchangeable with <see cref="ILightingControllerFeature.ApplyChanges"/>.
-	/// Both interfaces should generally use the sample implementation for the method.
-	/// They are duplicated in both interfaces because a device does not strictly need to implement both, although it is advised to do so when it makes sense.
-	/// </remarks>
-	ValueTask ApplyChangesAsync();
 }
 
 /// <summary>A feature allowing to persist the applied lighting configuration on the device.</summary>

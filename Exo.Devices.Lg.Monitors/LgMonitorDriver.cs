@@ -32,6 +32,7 @@ public class LgMonitorDriver :
 	ILgMonitorNxpVersionFeature,
 	ILgMonitorDisplayStreamCompressionVersionFeature,
 	IUnifiedLightingFeature,
+	ILightingDeferredChangesFeature,
 	ILightingBrightnessFeature,
 	IAddressableLightingZone<RgbColor>,
 	ILightingZoneEffect<DisabledEffect>,
@@ -308,7 +309,8 @@ public class LgMonitorDriver :
 			ILightingDeviceFeature,
 			LgMonitorDriver,
 			IUnifiedLightingFeature,
-			ILightingBrightnessFeature>(this);
+			ILightingDeferredChangesFeature,
+			ILightingBrightnessFeature >(this);
 		_lgMonitorFeatures = FeatureCollection.Create<
 			ILgMonitorDeviceFeature,
 			LgMonitorDriver,
@@ -362,7 +364,7 @@ public class LgMonitorDriver :
 
 	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));
 
-	ValueTask IUnifiedLightingFeature.ApplyChangesAsync()
+	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync()
 	{
 		int state;
 
