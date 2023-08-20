@@ -44,7 +44,7 @@ public readonly struct ContinuousValue : IEquatable<ContinuousValue>
 	public static bool operator !=(ContinuousValue left, ContinuousValue right) => !(left == right);
 }
 
-public interface IBrightnessFeature : IMonitorDeviceFeature
+public interface IMonitorBrightnessFeature : IMonitorDeviceFeature
 {
 	ValueTask<ContinuousValue> GetBrightnessAsync(CancellationToken cancellationToken);
 	ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken);

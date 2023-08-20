@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Channels;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
@@ -23,7 +24,7 @@ public class LgMonitorDriver :
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	IRawVcpFeature,
-	IBrightnessFeature,
+	IMonitorBrightnessFeature,
 	IContrastFeature,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
@@ -31,6 +32,7 @@ public class LgMonitorDriver :
 	ILgMonitorNxpVersionFeature,
 	ILgMonitorDisplayStreamCompressionVersionFeature,
 	IUnifiedLightingFeature,
+	ILightingBrightnessFeature,
 	IAddressableLightingZone<RgbColor>,
 	ILightingZoneEffect<DisabledEffect>,
 	//ILightingZoneEffect<StaticColorEffect>,
@@ -140,9 +142,9 @@ public class LgMonitorDriver :
 
 		byte ledCount = await lightingTransport.GetLedCountAsync(cancellationToken).ConfigureAwait(false);
 		var activeEffect = await lightingTransport.GetActiveEffectAsync(cancellationToken).ConfigureAwait(false);
-		bool isLightingEnabled = await lightingTransport.IsLightingEnabledAsync(cancellationToken).ConfigureAwait(false);
+		var lightingStatus = await lightingTransport.GetLightingStatusAsync(cancellationToken).ConfigureAwait(false);
 		// In the current model, we don't really have a use for the current menu selection if lighting is disabled, so we can just override the active effect here to force the effect to disabled.
-		if (!isLightingEnabled) activeEffect = 0;
+		if (!lightingStatus.IsLightingEnabled) activeEffect = 0;
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
 		var i2cTransport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(i2cDeviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
@@ -204,6 +206,9 @@ public class LgMonitorDriver :
 			dscVersion,
 			ledCount,
 			activeEffect,
+			lightingStatus.CurrentBrightnessLevel,
+			lightingStatus.MinimumBrightnessLevel,
+			lightingStatus.MaximumBrightnessLevel,
 			rawCapabilities,
 			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
@@ -213,21 +218,35 @@ public class LgMonitorDriver :
 		);
 	}
 
+	const int StateEffectChanged = 0x01;
+	const int StateBrightnessChanged = 0x02;
+	const int StateLocked = 0x100;
+
 	private readonly HidI2CTransport _i2cTransport;
 	private readonly UltraGearLightingTransport _lightingTransport;
 	private ILightingEffect _currentEffect;
-	private bool _currentEffectChanged;
+	// Protect against concurrent accesses using a combination of lock and state.
+	// Concurrent accesses should not happen, but I believe this is not enforced anywhere yet. (i.e. In the lighting service)
+	// The protection here is quite simple and will prevent incorrect uses at the cost of raising exceptions.
+	// The state value can only change within the lock, and if the state is locked, an exception must be thrown.
+	// The state is locked when the ApplyChangesAsync method is executing, and unlocked afterwards.
+	private readonly object _lock;
+	private int _state;
+	private readonly ushort _productId;
 	private readonly ushort _nxpVersion;
 	private readonly ushort _scalerVersion;
 	private readonly byte _dscVersion;
 	private readonly byte _ledCount;
+	private readonly byte _appliedBrightness;
+	private byte _currentBrightness;
+	private readonly byte _minimumBrightness;
+	private readonly byte _maximumBrightness;
 	private readonly byte[] _rawCapabilities;
 	private readonly MonitorCapabilities _parsedCapabilities;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
-	private readonly ushort _productId;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
@@ -241,6 +260,9 @@ public class LgMonitorDriver :
 		byte dscVersion,
 		byte ledCount,
 		LightingEffect activeEffect,
+		byte currentBrightness,
+		byte minimumBrightness,
+		byte maximumBrightness,
 		byte[] rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
 		ImmutableArray<string> deviceNames,
@@ -262,11 +284,16 @@ public class LgMonitorDriver :
 			// If these modes are reported, we need to explicitly disable the lighting.
 			_ => DisabledEffect.SharedInstance,
 		};
+		_lock = new();
 		_productId = productId;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
 		_dscVersion = dscVersion;
 		_ledCount = ledCount;
+		_appliedBrightness = currentBrightness;
+		_currentBrightness = currentBrightness;
+		_minimumBrightness = minimumBrightness;
+		_maximumBrightness = maximumBrightness;
 		_rawCapabilities = rawCapabilities;
 		_parsedCapabilities = parsedCapabilities;
 		_monitorFeatures = FeatureCollection.Create<
@@ -275,11 +302,13 @@ public class LgMonitorDriver :
 			IMonitorRawCapabilitiesFeature,
 			IMonitorCapabilitiesFeature,
 			IRawVcpFeature,
-			IBrightnessFeature,
+			IMonitorBrightnessFeature,
 			IContrastFeature>(this);
 		_lightingFeatures = FeatureCollection.Create<
 			ILightingDeviceFeature,
-			IUnifiedLightingFeature>(this);
+			LgMonitorDriver,
+			IUnifiedLightingFeature,
+			ILightingBrightnessFeature>(this);
 		_lgMonitorFeatures = FeatureCollection.Create<
 			ILgMonitorDeviceFeature,
 			LgMonitorDriver,
@@ -335,61 +364,81 @@ public class LgMonitorDriver :
 
 	ValueTask IUnifiedLightingFeature.ApplyChangesAsync()
 	{
-		if (!Volatile.Read(ref _currentEffectChanged)) return ValueTask.CompletedTask;
+		int state;
 
-		return new ValueTask(ApplyChangesAsyncCore());
+		lock (_lock)
+		{
+			EnsureStateIsUnlocked();
+
+			if (_state == 0) return ValueTask.CompletedTask;
+
+			state = _state;
+
+			_state = state | StateLocked;
+		}
+
+		return new ValueTask(ApplyChangesAsyncCore(state));
 	}
 
-	private async Task ApplyChangesAsyncCore()
+	// This method does not actually execute from within the lock (we would need an async lock), but the state has the lock flag preventing concurrent accesses.
+	private async Task ApplyChangesAsyncCore(int state)
 	{
-		switch (CurrentEffect)
+		if ((state & StateBrightnessChanged) != 0)
 		{
-		case DisabledEffect:
-			// This would preserve the current lighting, so it might be worth to consider setting a static color effect here, although the LG app does not do this.
-			await _lightingTransport.EnableLightingAsync(false, default).ConfigureAwait(false);
-			break;
-		//case StaticColorEffect staticColor:
-		//	// We implement the static color effect using the video sync mode, which is essentially addressable mode.
-		//	// Maybe there are subtle differences with true addressable mode, but I'm not aware of them. (Is there even any actual difference between audio & video modes ?)
-		//	await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
-		//	await _lightingTransport.EnableLightingEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
-		//	await _lightingTransport.SetVideoSyncColors(staticColor.Color, 36, default).ConfigureAwait(false);
-		//	break;
-		case StaticColorPreset1Effect:
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
-			break;
-		case StaticColorPreset2Effect:
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static2, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static2, default).ConfigureAwait(false);
-			break;
-		case StaticColorPreset3Effect:
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static3, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static3, default).ConfigureAwait(false);
-			break;
-		case StaticColorPreset4Effect:
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
-			break;
-		case ColorCycleEffect:
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
-			break;
-		case ColorWaveEffect:
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
-			break;
-		case AddressableColorEffect:
-			// NB: It seems that the dynamic effect will self-disable after a while if not updated. (10s)
-			// TODO: Find an acceptable way to manage this. Either force keep-alive the effect or track long delays between updates to re-enable the effect.
-			await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
-			await _lightingTransport.EnableLightingEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
-
-			//_ = TestDynamicEffectAsync();
-
-			break;
+			await _lightingTransport.SetLightingStatusAsync(_currentEffect is not DisabledEffect, _currentBrightness, default).ConfigureAwait(false);
 		}
-		Volatile.Write(ref _currentEffectChanged, false);
+
+		if ((state & StateEffectChanged) != 0)
+		{
+			switch (CurrentEffect)
+			{
+			case DisabledEffect:
+				// This would preserve the current lighting, so it might be worth to consider setting a static color effect here, although the LG app does not do this.
+				await _lightingTransport.SetLightingStatusAsync(false, 0, default).ConfigureAwait(false);
+				break;
+			//case StaticColorEffect staticColor:
+			//	// We implement the static color effect using the video sync mode, which is essentially addressable mode.
+			//	// Maybe there are subtle differences with true addressable mode, but I'm not aware of them. (Is there even any actual difference between audio & video modes ?)
+			//	await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+			//	await _lightingTransport.EnableLightingEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+			//	await _lightingTransport.SetVideoSyncColors(staticColor.Color, 36, default).ConfigureAwait(false);
+			//	break;
+			case StaticColorPreset1Effect:
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static1, default).ConfigureAwait(false);
+				break;
+			case StaticColorPreset2Effect:
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static2, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static2, default).ConfigureAwait(false);
+				break;
+			case StaticColorPreset3Effect:
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static3, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static3, default).ConfigureAwait(false);
+				break;
+			case StaticColorPreset4Effect:
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
+				break;
+			case ColorCycleEffect:
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
+				break;
+			case ColorWaveEffect:
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
+				break;
+			case AddressableColorEffect:
+				// NB: It seems that the dynamic effect will self-disable after a while if not updated. (10s)
+				// TODO: Find an acceptable way to manage this. Either force keep-alive the effect or track long delays between updates to re-enable the effect.
+				await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
+
+				//_ = TestDynamicEffectAsync();
+
+				break;
+			}
+		}
+		Volatile.Write(ref _state, 0);
 	}
 
 	// Just used to validate that the effect works.
@@ -416,15 +465,23 @@ public class LgMonitorDriver :
 		}
 	}
 
-	// TODO: Use a lock for effect setting.
 	private ILightingEffect CurrentEffect
 	{
 		get => Volatile.Read(ref _currentEffect);
 		set
 		{
-			_currentEffect = value;
-			Volatile.Write(ref _currentEffectChanged, true);
+			lock (_lock)
+			{
+				EnsureStateIsUnlocked();
+				_currentEffect = value;
+				_state |= StateEffectChanged;
+			}
 		}
+	}
+
+	private void EnsureStateIsUnlocked()
+	{
+		if ((_state & StateLocked) != 0) throw new InvalidOperationException("A concurrent operation is currently being executed.");
 	}
 
 	bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => true;
@@ -465,4 +522,23 @@ public class LgMonitorDriver :
 	}
 
 	DeviceId IDeviceIdFeature.DeviceId => new(DeviceIdSource.Usb, VendorIdSource.Usb, LgVendorId, _productId, _nxpVersion);
+
+	byte ILightingBrightnessFeature.MinimumBrightness => _minimumBrightness;
+	byte ILightingBrightnessFeature.MaximumBrightness => _maximumBrightness;
+
+	byte ILightingBrightnessFeature.CurrentBrightness
+	{
+		get => _currentBrightness;
+		set
+		{
+			if (value < _minimumBrightness || value > _maximumBrightness) throw new ArgumentOutOfRangeException(nameof(value));
+
+			lock (_lock)
+			{
+				EnsureStateIsUnlocked();
+				_currentBrightness = value;
+				_state |= StateBrightnessChanged;
+			}
+		}
+	}
 }

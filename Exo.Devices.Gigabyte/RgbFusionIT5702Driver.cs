@@ -1,9 +1,7 @@
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -28,6 +26,7 @@ public sealed class RgbFusionIT5702Driver :
 	ILightingControllerFeature,
 	IPersistentLightingFeature,
 	IUnifiedLightingFeature,
+	ILightingBrightnessFeature,
 	ILightingZoneEffect<DisabledEffect>,
 	ILightingZoneEffect<StaticColorEffect>,
 	ILightingZoneEffect<ColorPulseEffect>,
@@ -39,6 +38,7 @@ public sealed class RgbFusionIT5702Driver :
 	ILightingZoneEffect<ColorDoubleFlashEffect>,
 	ILightingZoneEffect<VariableColorDoubleFlashEffect>,
 	ILightingZoneEffect<ColorCycleEffect>,
+	ILightingZoneEffect<ColorCycleWithBrightnessEffect>,
 	ILightingZoneEffect<ColorWaveEffect>
 {
 	private const int IteVendorId = 0x048D;
@@ -501,6 +501,7 @@ public sealed class RgbFusionIT5702Driver :
 	private readonly HidFullDuplexStream _stream;
 	private readonly object _lock = new object();
 	private uint _state;
+	private byte _defaultBrightness;
 	private readonly EffectColor[] _palette = new EffectColor[7 * 4];
 	private readonly byte[] _rgb = new byte[2 * 3 * 32];
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
@@ -545,6 +546,7 @@ public sealed class RgbFusionIT5702Driver :
 		}
 		_lightingZoneCollection = new(_lightingZones);
 		_palette = (EffectColor[])DefaultPalette.Clone();
+		_defaultBrightness = 100;
 
 		// Initialize the state to mark everything as pending updates, so that everything works properly.
 		_state = StatePendingChangeLedMask | StatePendingChangeAddressable | StatePendingChangeUnifiedLighting;
@@ -557,8 +559,8 @@ public sealed class RgbFusionIT5702Driver :
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorPulseEffect>).ApplyEffect(new ColorPulseEffect(new(255, 0, 255)));
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorFlashEffect>).ApplyEffect(new ColorFlashEffect(new(255, 0, 255)));
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorDoubleFlashEffect>).ApplyEffect(new ColorDoubleFlashEffect(new(255, 0, 255)));
-		//(_unifiedLightingZone as ILightingZoneEffect<RainbowCycleEffect>).ApplyEffect(new RainbowCycleEffect());
-		//(_unifiedLightingZone as ILightingZoneEffect<RainbowWaveEffect>).ApplyEffect(new RainbowWaveEffect());
+		//(_unifiedLightingZone as ILightingZoneEffect<ColorCycleEffect>).ApplyEffect(new ColorCycleEffect());
+		//(_unifiedLightingZone as ILightingZoneEffect<ColorWaveEffect>).ApplyEffect(new ColorWaveEffect());
 		ApplyChanges();
 		//ApplyPaletteColors();
 	}
@@ -660,12 +662,13 @@ public sealed class RgbFusionIT5702Driver :
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
 
 	// TODO: Determine if it should apply settings first.
-	public void PersistCurrentConfiguration()
+	public ValueTask PersistCurrentConfigurationAsync()
 	{
 		lock (_lock)
 		{
 			PersistCurrentConfigurationInternal(_stream);
 		}
+		return ValueTask.CompletedTask;
 	}
 
 	private static void PersistCurrentConfigurationInternal(HidFullDuplexStream stream)
@@ -694,6 +697,7 @@ public sealed class RgbFusionIT5702Driver :
 	void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(in ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<VariableColorDoubleFlashEffect>.ApplyEffect(in VariableColorDoubleFlashEffect effect) => ((ILightingZoneEffect<VariableColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect) => ((ILightingZoneEffect<ColorCycleEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<ColorCycleWithBrightnessEffect>.ApplyEffect(in ColorCycleWithBrightnessEffect effect) => ((ILightingZoneEffect<ColorCycleWithBrightnessEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => ((ILightingZoneEffect<ColorWaveEffect>)_unifiedLightingZone).ApplyEffect(effect);
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => ((ILightingZoneEffect<DisabledEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
@@ -707,6 +711,7 @@ public sealed class RgbFusionIT5702Driver :
 	bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<VariableColorDoubleFlashEffect>.TryGetCurrentEffect(out VariableColorDoubleFlashEffect effect) => ((ILightingZoneEffect<VariableColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => ((ILightingZoneEffect<ColorCycleEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<ColorCycleWithBrightnessEffect>.TryGetCurrentEffect(out ColorCycleWithBrightnessEffect effect) => ((ILightingZoneEffect<ColorCycleWithBrightnessEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => ((ILightingZoneEffect<ColorWaveEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 
 	private class LightingZone
@@ -721,7 +726,8 @@ public sealed class RgbFusionIT5702Driver :
 		ILightingZoneEffect<AdvancedColorFlashEffect>,
 		ILightingZoneEffect<ColorDoubleFlashEffect>,
 		ILightingZoneEffect<VariableColorDoubleFlashEffect>,
-		ILightingZoneEffect<ColorCycleEffect>
+		ILightingZoneEffect<ColorCycleEffect>,
+		ILightingZoneEffect<ColorCycleWithBrightnessEffect>
 	{
 		internal byte LedMask { get; }
 		public Guid ZoneId { get; }
@@ -795,6 +801,21 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
+		// Update the effect data.
+		internal void ApplyBrightnessChange()
+		{
+			if (EffectData.Effect != 0 && CurrentEffect is not IBrightnessLightingEffect)
+			{
+				byte defaultBrightness = Owner._defaultBrightness;
+
+				if (EffectData.MaximumBrightness != defaultBrightness)
+				{
+					EffectData.MaximumBrightness = defaultBrightness;
+					Owner._state |= LedMask;
+				}
+			}
+		}
+
 		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
 		{
 			lock (Owner._lock)
@@ -820,7 +841,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Static,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 				};
 				CurrentEffect = effect;
@@ -849,7 +870,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Pulse,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					PulseEffect =
 					{
@@ -875,7 +896,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Pulse,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					PulseEffect =
 					{
@@ -899,7 +920,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Pulse,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					PulseEffect =
 					{
@@ -935,7 +956,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Flash,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					FlashEffect =
 					{
@@ -962,7 +983,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Flash,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					FlashEffect =
 					{
@@ -987,7 +1008,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Flash,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					FlashEffect =
 					{
@@ -1024,7 +1045,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Flash,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					FlashEffect =
 					{
@@ -1051,7 +1072,7 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Flash,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					Color0 = effect.Color,
 					FlashEffect =
 					{
@@ -1076,7 +1097,31 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.ColorCycle,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
+					ColorCycleEffect =
+					{
+						ColorDurationInTicks = 760,
+						TransitionDurationInTicks = 660,
+						ColorCount = 7,
+					}
+				};
+				CurrentEffect = ColorCycleEffect.SharedInstance;
+			}
+		}
+
+		void ILightingZoneEffect<ColorCycleWithBrightnessEffect>.ApplyEffect(in ColorCycleWithBrightnessEffect effect)
+		{
+			if ((nint)(effect.BrightnessLevel - 1) > 99) throw new ArgumentException("Invalid brightness value.");
+
+			lock (Owner._lock)
+			{
+				ApplyStateChange();
+
+				EffectData = new EffectData
+				{
+					LedMask = LedMask,
+					Effect = Effect.ColorCycle,
+					MaximumBrightness = effect.BrightnessLevel,
 					ColorCycleEffect =
 					{
 						ColorDurationInTicks = 760,
@@ -1099,6 +1144,7 @@ public sealed class RgbFusionIT5702Driver :
 		bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableColorDoubleFlashEffect>.TryGetCurrentEffect(out VariableColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ColorCycleWithBrightnessEffect>.TryGetCurrentEffect(out ColorCycleWithBrightnessEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	}
 
 	private class WaveLightingZone : LightingZone, ILightingZoneEffect<ColorWaveEffect>
@@ -1117,14 +1163,14 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					LedMask = LedMask,
 					Effect = Effect.Wave,
-					MaximumBrightness = 100,
+					MaximumBrightness = Owner._defaultBrightness,
 					WaveEffect =
 					{
 						DurationTicks = 570,
 						ColorCount = 7,
 					}
 				};
-				CurrentEffect = effect;
+				CurrentEffect = ColorWaveEffect.SharedInstance;
 			}
 		}
 
@@ -1139,4 +1185,33 @@ public sealed class RgbFusionIT5702Driver :
 	}
 
 	DeviceId IDeviceIdFeature.DeviceId => new(DeviceIdSource.Usb, VendorIdSource.Usb, IteVendorId, _productId, _versionNumber);
+
+	byte ILightingBrightnessFeature.MaximumBrightness => 100;
+
+	byte ILightingBrightnessFeature.CurrentBrightness
+	{
+		get => Volatile.Read(ref _defaultBrightness);
+		set
+		{
+			if ((nint)(value - 1) > 99) throw new ArgumentOutOfRangeException(nameof(value));
+
+			lock (_lock)
+			{
+				_defaultBrightness = value;
+
+				// Propagate the brightness change to all zones.
+				if ((_state & StateUnifiedLightingEnabled) != 0)
+				{
+					_unifiedLightingZone.ApplyBrightnessChange();
+				}
+				else
+				{
+					foreach (var zone in _lightingZones)
+					{
+						zone.ApplyBrightnessChange();
+					}
+				}
+			}
+		}
+	}
 }

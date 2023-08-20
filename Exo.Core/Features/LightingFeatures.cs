@@ -52,5 +52,48 @@ public interface IUnifiedLightingFeature : ILightingDeviceFeature, ILightingZone
 /// <remarks>Availability of this feature is not guaranteed.</remarks>
 public interface IPersistentLightingFeature : ILightingDeviceFeature
 {
-	void PersistCurrentConfiguration();
+	ValueTask PersistCurrentConfigurationAsync();
+}
+
+/// <summary>A feature allowing to update the brightness level used for lighting effects.</summary>
+/// <remarks>
+/// <para>
+/// Most lighting devices have a brightness setting that is used when displaying colors of predefined effects.
+/// This setting is mostly useful for effects whose colors can't be defined by the user, but they would generally apply to all non-dynamic effects.
+/// </para>
+/// <para>Effects implementing <see cref="IBrightnessLightingEffect"/> will override the default brightness, but use the same minimum and maximum values.</para>
+/// </remarks>
+public interface ILightingBrightnessFeature : ILightingDeviceFeature
+{
+	/// <summary>Get the minimum brightness level.</summary>
+	/// <remarks>
+	/// <para>
+	/// This value represents the minimum non-null valid brightness for the device.
+	/// For all intents and purposes, the technical minimum brightness will always be <c>0</c>, but setting the brightness to <c>0</c> would result in a disabled effect.
+	/// </para>
+	/// <para>Most implementations should return the default value of <c>1</c> here.</para>
+	/// <para>The technical minimum brightness is always considered to be <c>0</c>, but setting the value <c>0</c> is generally not practical, except in certain circumstances.</para>
+	/// </remarks>
+	byte MinimumBrightness => 1;
+
+	/// <summary>Get the maximum brightness level.</summary>
+	/// <remarks>
+	/// <para>
+	/// This value generally corresponds to the number of brightness levels the device supports.
+	/// It can be used to compute the brightness percentage.
+	/// </para>
+	/// <para>
+	/// Generally, devices will support setting 100 or 255 levels of brightness, but some devices may use more unusual values.
+	/// Brightness values could always be abstracted to <c>100%</c> but it is more helpful to surface the ticks in the UI when possible.
+	/// </para>
+	/// </remarks>
+	byte MaximumBrightness { get; }
+
+	/// <summary>Gets or sets the current brightness level.</summary>
+	/// <remarks>The brightness value must be between <see cref="MinimumBrightness"/> and <see cref="MaximumBrightness"/> inclusive.</remarks>
+	/// <exception cref="ArgumentOutOfRangeException">The <paramref name="brightness"/> parameter is out of range.</exception>
+	byte CurrentBrightness { get; set; }
+
+	/// <summary>Gets the brightness as a percentage.</summary>
+	float BrightnessPercentage => CurrentBrightness / (float)MaximumBrightness;
 }

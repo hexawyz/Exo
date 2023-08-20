@@ -14,8 +14,8 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		SetActiveEffect = 0xC7,
 		GetActiveEffect = 0xC8,
 		EnableLightingEffect = 0xCA,
-		LightingStatus = 0xCE,
-		EnableLighting = 0xCF,
+		GetLightingStatus = 0xCE,
+		SetLightingStatus = 0xCF,
 	}
 
 	private enum Direction : byte
@@ -67,13 +67,19 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 	private class LightingStatusResponseWaitState : CommandResponseWaitState
 	{
 		public bool IsLightingEnabled { get; private set; }
+		public byte MinimumBrightnessLevel { get; private set; }
+		public byte MaximumBrightnessLevel { get; private set; }
+		public byte CurrentBrightnessLevel { get; private set; }
 
-		public LightingStatusResponseWaitState() : base(Command.LightingStatus, Direction.Get) { }
+		public LightingStatusResponseWaitState() : base(Command.GetLightingStatus, Direction.Get) { }
 
 		public override void OnDataReceived(ReadOnlySpan<byte> message)
 		{
 			// 1 = ON; 2 = OFF;
 			IsLightingEnabled = message[1] == 1;
+			MinimumBrightnessLevel = message[3];
+			MaximumBrightnessLevel = message[4];
+			CurrentBrightnessLevel = message[5];
 			TaskCompletionSource.TrySetResult();
 		}
 	}
@@ -225,15 +231,15 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 		return ws.Effect;
 	}
 
-	public async Task<bool> IsLightingEnabledAsync(CancellationToken cancellationToken)
+	public async Task<LightingInformation> GetLightingStatusAsync(CancellationToken cancellationToken)
 	{
 		var ws = new LightingStatusResponseWaitState();
 		await ExecuteSimpleCommandAsync(ws, 0, 0, cancellationToken).ConfigureAwait(false);
-		return ws.IsLightingEnabled;
+		return new(ws.IsLightingEnabled, ws.MinimumBrightnessLevel, ws.MaximumBrightnessLevel, ws.CurrentBrightnessLevel);
 	}
 
-	public Task EnableLightingAsync(bool enable, CancellationToken cancellationToken)
-		=> ExecuteSimpleCommandAsync(Command.EnableLighting, Direction.Set, enable ? (byte)1 : (byte)2, 0, cancellationToken);
+	public Task SetLightingStatusAsync(bool enable, byte brightnessLevel, CancellationToken cancellationToken)
+		=> ExecuteSimpleCommandAsync(Command.SetLightingStatus, Direction.Set, enable ? (byte)1 : (byte)2, brightnessLevel, cancellationToken);
 
 	public Task EnableLightingEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
 		=> ExecuteSimpleCommandAsync(Command.EnableLightingEffect, Direction.Set, 3, (byte)effect, cancellationToken);
