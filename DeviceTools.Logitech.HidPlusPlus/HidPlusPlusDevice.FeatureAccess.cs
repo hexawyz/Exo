@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Microsoft.VisualBasic;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -30,6 +31,8 @@ public abstract partial class HidPlusPlusDevice
 				}
 			}
 
+			public virtual async Task InitializeAsync(int retryCount, CancellationToken cancellationToken) { }
+
 			protected virtual void HandleNotification(byte eventId, ReadOnlySpan<byte> response) { }
 		}
 
@@ -43,6 +46,7 @@ public abstract partial class HidPlusPlusDevice
 				Device = device;
 				FeatureIndex = featureIndex;
 			}
+
 		}
 
 		private abstract class BatteryState : InternalFeatureHandler
@@ -51,8 +55,14 @@ public abstract partial class HidPlusPlusDevice
 
 			protected BatteryState(FeatureAccess device, byte featureIndex) : base(device, featureIndex) { }
 
-			public abstract Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken);
-			public abstract Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken);
+			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				await RefreshBatteryCapabilitiesAsync(retryCount, cancellationToken).ConfigureAwait(false);
+				await RefreshBatteryStatusAsync(retryCount, cancellationToken).ConfigureAwait(false);
+			}
+
+			protected abstract Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken);
+			protected abstract Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken);
 		}
 
 		private sealed class UnifiedBatteryState : BatteryState
@@ -137,7 +147,7 @@ public abstract partial class HidPlusPlusDevice
 
 			public UnifiedBatteryState(FeatureAccess device, byte featureIndex) : base(device, featureIndex) { }
 
-			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
+			protected override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
 			{
 				var response = await Device.SendWithRetryAsync<UnifiedBattery.GetCapabilities.Response>
 				(
@@ -151,7 +161,7 @@ public abstract partial class HidPlusPlusDevice
 				_batteryFlags = response.BatteryFlags;
 			}
 
-			public override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
+			protected override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
 			{
 				var response = await Device.SendWithRetryAsync<UnifiedBattery.GetStatus.Response>
 				(
@@ -254,7 +264,7 @@ public abstract partial class HidPlusPlusDevice
 				_batteryLevelAndStatus = 0xFFFF;
 			}
 
-			public override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
+			protected override async Task RefreshBatteryCapabilitiesAsync(int retryCount, CancellationToken cancellationToken)
 			{
 				var response = await Device.SendWithRetryAsync<BatteryUnifiedLevelStatus.GetBatteryCapability.Response>
 				(
@@ -268,7 +278,7 @@ public abstract partial class HidPlusPlusDevice
 				_capabilityFlags = response.Flags;
 			}
 
-			public override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
+			protected override async Task RefreshBatteryStatusAsync(int retryCount, CancellationToken cancellationToken)
 			{
 				var response = await Device.SendWithRetryAsync<BatteryUnifiedLevelStatus.GetBatteryLevelStatus.Response>
 				(
@@ -344,7 +354,7 @@ public abstract partial class HidPlusPlusDevice
 			{
 			}
 
-			public async Task RefreshDataAsync(int retryCount, CancellationToken cancellationToken)
+			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 			{
 				byte sensorCount =
 				(
@@ -380,13 +390,28 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
+		private sealed class OnboardProfileState : InternalFeatureHandler
+		{
+			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.OnboardProfiles;
+
+			public OnboardProfileState(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
+			{
+			}
+
+			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				//var data = await Device.SendWithRetryAsync<RawLongMessageParameters>(FeatureIndex, 0, retryCount, cancellationToken).ConfigureAwait(false);
+			}
+		}
+
 		// Fields are not readonly because devices seen through a receiver can be discovered while disconnected.
 		// The values should be updated when the device is connected.
 		private protected ReadOnlyDictionary<HidPlusPlusFeature, byte>? CachedFeatures;
 		// An array of notification handlers, with one slot for each feature index.
-		private FeatureHandler[]? _notificationHandlers;
+		private FeatureHandler[]? _featureHandlers;
 		private BatteryState? _batteryState;
 		private DpiState? _dpiState;
+		private OnboardProfileState? _onboardProfileState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
 		// NB: We probably don't need Volatile reads here, as this data isn't supposed to be updated often, and we expect it to be read as a response to a connection notification.
@@ -415,14 +440,14 @@ public abstract partial class HidPlusPlusDevice
 			CachedFeatures = cachedFeatures;
 			if (cachedFeatures is not null)
 			{
-				_notificationHandlers = new FeatureHandler[cachedFeatures.Count];
-				RegisterDefaultNotificationHandlers(cachedFeatures);
+				_featureHandlers = new FeatureHandler[cachedFeatures.Count];
+				RegisterDefaultFeatureHandlers(cachedFeatures);
 			}
 			var device = Transport.Devices[deviceIndex];
 			device.NotificationReceived += HandleNotification;
 		}
 
-		private void RegisterDefaultNotificationHandlers(ReadOnlyDictionary<HidPlusPlusFeature, byte> features)
+		private void RegisterDefaultFeatureHandlers(ReadOnlyDictionary<HidPlusPlusFeature, byte> features)
 		{
 			byte index;
 			BatteryState batteryState;
@@ -433,20 +458,27 @@ public abstract partial class HidPlusPlusDevice
 			{
 				batteryState = new UnifiedBatteryState(this, index);
 				Volatile.Write(ref _batteryState, batteryState);
-				Volatile.Write(ref _notificationHandlers![index], batteryState);
+				Volatile.Write(ref _featureHandlers![index], batteryState);
 			}
 			else if (features.TryGetValue(HidPlusPlusFeature.BatteryUnifiedLevelStatus, out index))
 			{
 				batteryState = new LegacyBatteryState(this, index);
 				Volatile.Write(ref _batteryState, batteryState);
-				Volatile.Write(ref _notificationHandlers![index], batteryState);
+				Volatile.Write(ref _featureHandlers![index], batteryState);
 			}
 
 			if (features.TryGetValue(HidPlusPlusFeature.AdjustableDpi, out index))
 			{
 				var dpiState = new DpiState(this, index);
 				Volatile.Write(ref _dpiState, dpiState);
-				Volatile.Write(ref _notificationHandlers![index], dpiState);
+				Volatile.Write(ref _featureHandlers![index], dpiState);
+			}
+
+			if (features.TryGetValue(HidPlusPlusFeature.OnboardProfiles, out index))
+			{
+				var onboardProfileState = new OnboardProfileState(this, index);
+				Volatile.Write(ref _onboardProfileState, onboardProfileState);
+				Volatile.Write(ref _featureHandlers![index], onboardProfileState);
 			}
 		}
 
@@ -467,7 +499,7 @@ public abstract partial class HidPlusPlusDevice
 			if (message.Length < 7) return;
 
 			// The notification handlers should technically never be null once the device is connected and sending actual notifications.
-			if (Volatile.Read(ref _notificationHandlers) is not { } handlers) return;
+			if (Volatile.Read(ref _featureHandlers) is not { } handlers) return;
 
 			ref var header = ref Unsafe.As<byte, FeatureAccessHeader>(ref MemoryMarshal.GetReference(message));
 
@@ -499,14 +531,15 @@ public abstract partial class HidPlusPlusDevice
 		// Can be called multiple times. It can be called on a disconnected device.
 		private protected override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 		{
-			if (_batteryState is { } batteryState)
+			if (_featureHandlers is { } handlers)
 			{
-				await batteryState.RefreshBatteryCapabilitiesAsync(retryCount, cancellationToken).ConfigureAwait(false);
-				await batteryState.RefreshBatteryStatusAsync(retryCount, cancellationToken).ConfigureAwait(false);
-			}
-			if (_dpiState is { } dpiState)
-			{
-				await dpiState.RefreshDataAsync(retryCount, cancellationToken).ConfigureAwait(false);
+				for (int i = 0; i < handlers.Length; i++)
+				{
+					if (_featureHandlers[i] is { } handler)
+					{
+						await handler.InitializeAsync(retryCount, cancellationToken).ConfigureAwait(false);
+					}
+				}
 			}
 		}
 
@@ -523,9 +556,9 @@ public abstract partial class HidPlusPlusDevice
 			var features = await Transport.GetFeaturesWithRetryAsync(DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
 			// Ensure that features are only initialized once.
-			if (Interlocked.CompareExchange(ref _notificationHandlers, new FeatureHandler[features.Count], null) is null)
+			if (Interlocked.CompareExchange(ref _featureHandlers, new FeatureHandler[features.Count], null) is null)
 			{
-				RegisterDefaultNotificationHandlers(features);
+				RegisterDefaultFeatureHandlers(features);
 				Volatile.Write(ref CachedFeatures, features);
 			}
 			else
