@@ -7,4 +7,6 @@ internal interface IRazerDeviceNotificationSink
 	void OnDeviceRemoval(byte deviceIndex);
 
 	void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY);
+
+	void OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower);
 }

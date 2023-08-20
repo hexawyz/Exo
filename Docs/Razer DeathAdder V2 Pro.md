@@ -1720,6 +1720,9 @@ As it contains the sequence 0x1900, repeated two times, it is probably DPI relat
 
 There is no information that could be a device index here, however.
 
+We can sometimes observe a notification starting with ID `0c`. As the parameters were empty, the meaning was not really obvious, but I noticed that when puttin the mouse on the dock for charging,
+that same command was emitted as `0c01`. So I guess that's that 😁
+
 ## Operations when the device is not connected
 
 If we start the service with the device disconnected from the dongle, the responses start with `04`:

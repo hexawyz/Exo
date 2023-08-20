@@ -75,6 +75,11 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 			case 3: sink.OnDeviceArrival(span[2]); break;
 			}
 			break;
+		case 12:
+			// This notification seems to indicate when the device is charging or not.
+			// It is sent when connected to or disconnected from the dock, even when at 100%.
+			sink.OnDeviceExternalPowerChange(1, (span[1] & 1) != 0);
+			break;
 		}
 	}
 }

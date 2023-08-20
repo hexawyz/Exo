@@ -451,12 +451,15 @@ public abstract class RazerDeviceDriver :
 	void IRazerDeviceNotificationSink.OnDeviceArrival(byte deviceIndex) => OnDeviceArrival(deviceIndex);
 	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte deviceIndex) => OnDeviceRemoval(deviceIndex);
 	void IRazerDeviceNotificationSink.OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(deviceIndex, dpiX, dpiY);
+	void IRazerDeviceNotificationSink.OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(deviceIndex, isConnectedToExternalPower);
 
 	protected virtual void OnDeviceArrival(byte deviceIndex) { }
 	protected virtual void OnDeviceRemoval(byte deviceIndex) { }
 	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) { }
+	protected virtual void OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) { }
 
 	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
+	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) { }
 
 	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
 
@@ -758,6 +761,16 @@ public abstract class RazerDeviceDriver :
 				}
 			}
 
+			protected override void OnDeviceExternalPowerChange(byte deviceIndex, bool isCharging)
+			{
+				if (deviceIndex > _pairedDevices.Length) return;
+
+				if (Volatile.Read(ref _pairedDevices[deviceIndex - 1].Driver) is { } driver)
+				{
+					driver.OnDeviceExternalPowerChange(isCharging);
+				}
+			}
+
 			// This is some kind of fire and forget driver disposal, but we always catch the exceptions.
 			private async void DisposeDriver(RazerDeviceDriver driver)
 			{
@@ -960,14 +973,16 @@ public abstract class RazerDeviceDriver :
 		private ILightingEffect _currentEffect;
 		private byte _currentBrightness;
 		private readonly RazerDeviceFlags _deviceFlags;
-		private readonly object _lock;
+		private readonly object _lightingLock;
+		private readonly object _batteryStateLock;
 		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 		// How do we use this ?
 		private readonly byte _deviceIndex;
-		private byte _batteryLevel;
+		private ushort _batteryLevelAndChargingStatus;
 
 		private bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
 		private bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
+		private bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
 
 		protected BaseDevice(
 			RazerProtocolTransport transport,
@@ -983,13 +998,14 @@ public abstract class RazerDeviceDriver :
 		{
 			_appliedEffect = DisabledEffect.SharedInstance;
 			_currentEffect = DisabledEffect.SharedInstance;
-			_lock = new();
+			_lightingLock = new();
+			_batteryStateLock = new();
 			_currentBrightness = 0x54; // 33%
 			_deviceFlags = deviceFlags;
 
 			if (HasBattery)
 			{
-				_batteryLevel = _transport.GetBatteryLevel();
+				_batteryLevelAndChargingStatus =  _transport.GetBatteryLevel();
 				_periodicEventGenerator.Register(this);
 			}
 
@@ -1029,12 +1045,43 @@ public abstract class RazerDeviceDriver :
 		{
 			if (HasBattery)
 			{
-				byte oldBatteryLevel = _batteryLevel;
-				byte newBatteryLevel = _transport.GetBatteryLevel();
+				ApplyBatteryLevelAndChargeStatusUpdate(1, _transport.GetBatteryLevel(), false);
+			}
+		}
 
-				if (oldBatteryLevel != newBatteryLevel)
+		protected override void OnDeviceExternalPowerChange(bool isCharging)
+			=> ApplyBatteryLevelAndChargeStatusUpdate(2, 0, isCharging);
+
+		private void ApplyBatteryLevelAndChargeStatusUpdate(byte changeType, byte newBatteryLevel, bool isCharging)
+		{
+			if (changeType == 0) return;
+
+			lock (_batteryStateLock)
+			{
+				ushort oldBatteryLevelAndChargingStatus = _batteryLevelAndChargingStatus;
+				ushort newBatteryLevelAndChargingStatus = 0;
+
+				if ((changeType & 1) != 0)
 				{
-					Volatile.Write(ref _batteryLevel, newBatteryLevel);
+					newBatteryLevelAndChargingStatus = newBatteryLevel;
+				}
+				else
+				{
+					newBatteryLevelAndChargingStatus = (byte)oldBatteryLevelAndChargingStatus;
+				}
+
+				if ((changeType & 2) != 0)
+				{
+					newBatteryLevelAndChargingStatus = (ushort)(newBatteryLevelAndChargingStatus | (isCharging ? 0x100 : 0));
+				}
+				else
+				{
+					newBatteryLevelAndChargingStatus = (ushort)(newBatteryLevelAndChargingStatus | (oldBatteryLevelAndChargingStatus & 0xFF00));
+				}
+
+				if (oldBatteryLevelAndChargingStatus != newBatteryLevelAndChargingStatus)
+				{
+					Volatile.Write(ref _batteryLevelAndChargingStatus, newBatteryLevelAndChargingStatus);
 
 					if (BatteryStateChanged is { } batteryStateChanged)
 					{
@@ -1044,7 +1091,7 @@ public abstract class RazerDeviceDriver :
 							{
 								try
 								{
-									batteryStateChanged.Invoke(this, BuildBatteryState(newBatteryLevel));
+									batteryStateChanged.Invoke(this, BuildBatteryState(newBatteryLevelAndChargingStatus));
 								}
 								catch (Exception ex)
 								{
@@ -1062,7 +1109,7 @@ public abstract class RazerDeviceDriver :
 
 		private ValueTask ApplyChangesAsync()
 		{
-			lock (_lock)
+			lock (_lightingLock)
 			{
 				if (!ReferenceEquals(_appliedEffect, _currentEffect))
 				{
@@ -1117,7 +1164,7 @@ public abstract class RazerDeviceDriver :
 
 		private void SetCurrentEffect(ILightingEffect effect)
 		{
-			lock (_lock)
+			lock (_lightingLock)
 			{
 				_currentEffect = effect;
 			}
@@ -1138,23 +1185,27 @@ public abstract class RazerDeviceDriver :
 		}
 
 		BatteryState IBatteryStateDeviceFeature.BatteryState
-			=> BuildBatteryState(Volatile.Read(ref _batteryLevel));
+			=> BuildBatteryState(Volatile.Read(ref _batteryLevelAndChargingStatus));
 
-		private BatteryState BuildBatteryState(byte rawLevel)
+		private BatteryState BuildBatteryState(ushort rawBatteryLevelAndChargingStatus)
 		{
 			// Reasoning:
 			// If the device is directly connected to USB, it is not in wireless mode.
 			// If the device is wireless, it is discharging. Otherwise, it is charging up to 100%.
 			// This is based on the current state of things. It could change depending on the technical possibilities.
-			bool isWired = _deviceIdSource == DeviceIdSource.Usb;
+			bool isWired = IsWired;
+
+			bool isCharging = (rawBatteryLevelAndChargingStatus & 0x100) != 0;
+			byte batteryLevel = (byte)rawBatteryLevelAndChargingStatus;
 
 			return new()
 			{
-				Level = rawLevel / 255f,
-				BatteryStatus = isWired ?
-					_batteryLevel == 255 ? BatteryStatus.ChargingComplete : BatteryStatus.Charging :
+				Level = batteryLevel / 255f,
+				BatteryStatus = isWired || isCharging ?
+					batteryLevel == 255 ? BatteryStatus.ChargingComplete : BatteryStatus.Charging :
 					BatteryStatus.Discharging,
-				ExternalPowerStatus = isWired ? ExternalPowerStatus.IsConnected : ExternalPowerStatus.IsDisconnected,
+				// NB: What meaning should we put behind external power ? If the mouse is on a dock it technically has external power, but it is not usable…
+				ExternalPowerStatus = isWired || isCharging ? ExternalPowerStatus.IsConnected : ExternalPowerStatus.IsDisconnected,
 			};
 		}
 	}
