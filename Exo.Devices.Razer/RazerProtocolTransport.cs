@@ -388,6 +388,38 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
+	public bool IsConnectedToExternalPower()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x02;
+				buffer[7] = 0x07;
+				buffer[8] = 0x84;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, 0x07, 0x84, 0);
+
+				return (buffer[10] & 1) != 0;
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
 	public byte GetBatteryLevel()
 	{
 		var @lock = Volatile.Read(ref _lock);

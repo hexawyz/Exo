@@ -780,7 +780,15 @@ Battery status ?
 00 1f 000000 020780 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008500
 01 1f 000000 020780 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008500
 02 1f 000000 020780 00 ff 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007a00
-Battery status ?
+
+Confirmed to be battery status (Also confirmed to not contain external power status. The `00` is always `00` from what I've observed. Mouse wired or connected to the dock doesn't change)
+Now that I've also confidently determined that all calls with the pattern "xxxx8x" are reads (it is probably only a single bit indicating read/write, as there are also values such as "bb")
+And also confirmed that the device do send external power notifications…
+I'm quite wondering if the `020784` command sent before the battery check would be a way to manually read that information. (Because I need that information for consistency)
+It also seems that the second byte is some kind of feature group (similar to HID++ features), and the third bit would be a function ID or some kind of register.
+Looking at the power-related examples above (low power mode and power saving), they all have `07` as a second byte. And RGB stuff all had `0f` there.
+Worst case, we should be able to send "read" calls to all values hoping it doesn't destroy the device, in order to find the info we need?
+The command `020784` seems to return `00 01` when the mouse is docked (contrary to the `00 00` above), so it seems to match expectations 🎉
 
 001f00000002078000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008500
 021f00000002078000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007a00

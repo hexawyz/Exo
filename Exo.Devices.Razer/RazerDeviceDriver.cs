@@ -1005,7 +1005,7 @@ public abstract class RazerDeviceDriver :
 
 			if (HasBattery)
 			{
-				_batteryLevelAndChargingStatus =  _transport.GetBatteryLevel();
+				ApplyBatteryLevelAndChargeStatusUpdate(3, _transport.GetBatteryLevel(), _transport.IsConnectedToExternalPower());
 				_periodicEventGenerator.Register(this);
 			}
 
@@ -1045,7 +1045,7 @@ public abstract class RazerDeviceDriver :
 		{
 			if (HasBattery)
 			{
-				ApplyBatteryLevelAndChargeStatusUpdate(1, _transport.GetBatteryLevel(), false);
+				ApplyBatteryLevelAndChargeStatusUpdate(3, _transport.GetBatteryLevel(), _transport.IsConnectedToExternalPower());
 			}
 		}
 
