@@ -4,8 +4,8 @@ using System.Runtime.Serialization;
 namespace Exo.Ui.Contracts;
 
 [DataContract]
-public sealed class MultipleDeviceLightingEffects
+public sealed class MultiDeviceLightingUpdates
 {
 	[DataMember(Order = 1)]
-	public required ImmutableArray<DeviceLightingEffects> DeviceEffects { get; init; }
+	public required ImmutableArray<DeviceLightingUpdate> DeviceEffects { get; init; }
 }

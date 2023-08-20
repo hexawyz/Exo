@@ -76,7 +76,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{Binding DisplayName}" />
-                        <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="6,0,6,0" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
+                        <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource RowContentMargin}" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
                         <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnPropertyResetButtonClick">
                             <FontIcon Glyph="&#xE777;" />
                         </Button>

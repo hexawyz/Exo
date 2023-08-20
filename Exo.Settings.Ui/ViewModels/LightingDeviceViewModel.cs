@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Exo.Contracts;
 using Exo.Ui.Contracts;
-using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -16,6 +15,7 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 	public LightingViewModel LightingViewModel { get; }
 	public LightingZoneViewModel? UnifiedLightingZone { get; }
 	public ReadOnlyCollection<LightingZoneViewModel> LightingZones { get; }
+	public LightingDeviceBrightnessViewModel? Brightness { get; }
 
 	private readonly Dictionary<Guid, LightingZoneViewModel> _lightingZoneById;
 
@@ -56,6 +56,10 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 			zone.PropertyChanged += OnLightingZonePropertyChanged;
 		}
 		_useUnifiedLighting = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty;
+		if (lightingDeviceInformation.BrightnessCapabilities is { } brightnessCapabilities)
+		{
+			Brightness = new(brightnessCapabilities);
+		}
 	}
 
 	private void OnLightingZonePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -107,7 +111,7 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 			}
 			if (zoneEffects.Count > 0)
 			{
-				await LightingViewModel.LightingService.ApplyDeviceLightingEffectsAsync(new() { DeviceId = Id, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
+				await LightingViewModel.LightingService.ApplyDeviceLightingChangesAsync(new() { DeviceId = Id, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
 			}
 		}
 		catch
