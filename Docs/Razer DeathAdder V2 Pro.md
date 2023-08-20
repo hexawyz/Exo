@@ -140,6 +140,300 @@ So far, I'm assuming the meaning is that of a status code:
 	- `05` Invalid Command Parameter ?
 	- `NN` Other error
 
+## Observations from all the stuff below
+
+NB: I've yet to understand how USB receivers would work with multiple devices. (I've only got one)
+
+### General observations
+
+Data larger than one byte in the protocol tend to use the Big Endian byte order.
+
+Percentages are generally expressed as byte values from 0 to 255 instead of 0 to 100. (e.g. 33% will be the value 84 or 0x54)
+
+### Format used in message structures below
+
+<NAME:TYPE> => This is an element of the message named NAME with the following TYPE.
+
+TYPE:
+U8: 8-bit unsigned integer
+U16: 16-bit unsigned integer
+RGB: <R:U8> <G:U8> <B:U8>
+P8: percentage scaled from 0 to 255, expressed as a 8-bit unsigned integer.
+X[N]: Array of N items of type X
+
+### Device notifications
+
+Because the core protocol is based on raw get/set feature calls on the root device itself and does not actually follows the standard HID operation mode, hence requiring specific drivers,
+notifications are emitted on a separate and much more standard channel. They will use standard HID output reports accessible through standard ReadFile calls (FileStream in .NET).
+
+These HID reports are exposed on Device Interface 5.
+The report ID `05` is used to transmit notifications from the connected device or its child devices, as packets of exactly 16 bytes including the report ID.
+Other report IDs with the same structure exist, but I've not observed them in any trace yet.
+Because notifications do not always contain a device ID, I suspect these other reports could be used in this case?
+
+#### Structure of a notification.
+
+All notifications follow a very simple format:
+
+``` 
+<Report ID:U8> <ID:U8> <Data:U8[14]>
+```
+
+The HID report ID is part of the HID protocol and will be `05`.
+
+The ID is a notification ID.
+
+The rest is message data associated with the notification ID.
+
+#### Known notifications
+
+##### 02 - Device DPI
+
+Structure:
+
+```
+<DPI X:U16> <DPI Y:U16>
+```
+
+This notification will be sent when a DPI change request has been processed by the device as the result of clicking one of the DPI buttons.
+It will always be sent, even if the DPI did not actually change, for example if it was already at the minimum or maximum setting.
+
+##### 09 - Device Connection Status Change
+
+Structure:
+
+```
+<Status:U8> <Device Index:U8>
+```
+
+This notification is sent when a device connected to a receiver changes from being offline to online, or from being online to offline.
+
+The Status will be `02` if the device is now offline, and `03` if the device is now online.
+
+The device index seems like a fair interpretation, but it stills need to be confirmed.
+
+##### 0C - External Power
+
+Structure:
+
+```
+<Status:U8>
+```
+
+This notification is sent when the device is connected to or disconnected from external power.
+
+Status will be `00` if the device is not connected and `01` if the device is connected.
+
+### Function/Register based protocol
+
+The core protocol is composed of SET/GET feature calls to the root device itself. It does not strictly follow the HID spec, and is not exposed by any HID report.
+On windows, a special driver is needed to communicate with the device. The official Razer driver will expose a new "Razer control" device interface to communicate.
+
+IO Control Codes are used to implement the GET and SET feature calls:
+
+- SetFeature: 0x88883010
+- GetFeature: 0x88883014
+
+Packets are always 91 bytes long, including the report ID which is `00`.
+This means that commands themselves are 90 bytes long.
+
+All messages follow a common pattern:
+
+```
+<Status:U8> <Unknown_0:U8> <Zero:U8[3]> <Length:U8> <Feature:U8> <Register:U8> <Data:U8[80]> <Checksum:U8> <Zero:U8>
+```
+
+The Status byte will be as follows:
+
+- `00` Request
+- `01` Retry again
+- `02` Success
+- `03` Error (Invalid Parameter ?)
+- `04` Device Not Available
+- `05` Error (Invalid Parameter ?)
+
+The following byte, labelled as unknown, is either `08` or `1f`, but usually `1f`. I suspect this indicates the device to communicate. Maybe a channel ID or internal chip ID.
+
+These are followed by three bytes seemingly always zero.
+
+Then, the next three bytes form the actual command:
+
+The first byte seems to be a data length of some sort. It seems to often be the same in matching request and response messages, but sometimes differ.
+However, the number is always larger than or matching the number of non-zero bytes in the response,
+indicating that it could be the the max requested length for requests and the response length for responses?
+
+The second byte appears to be a Category or Feature ID similar to what is used by logitech HID++. Some values were observed in the requests below:
+
+- `00` General / Core device features
+- `02`
+- `04` Profile-related (DPI levels)
+- `05`
+- `06` Mouse-related (DPI, etc.)
+- `07` Power
+- `0b`
+- `0f` Lighting
+
+The third byte appears to be composed of multiple parts:
+
+The most significant bit is the read/write bit. Set, it will indicate a read command. Unset, it will indicate a write command.
+The 7 remaining bits indicate the register or function ID.
+
+e.g. `80` would mean "Read register 0", and `00` would mean "Write register 0"
+
+⚠️ Still needs confirmation for values such as `bb`: Is it paired with `ab`, or is it something else ?
+
+All the bytes following this, up to the last two, represent the command data.
+
+This data is followed by a checksum byte which is a XOR checksum of all previous bytes but the first two bytes. It is followed by a null byte.
+
+Unless the command was a successful read, status responses seem to always include the whole original command, meaning the checksum is also unchanged in that case.
+
+#### Features
+
+##### 00 - General
+
+###### 02 - Serial Number
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Serial Number:U8[]>
+```
+
+The serial number is a null-terminated string. (If less long than the response buffer)
+
+###### 04 - ???
+
+###### 05 - ???
+
+###### 06 - ???
+
+###### 07 - ???
+
+###### AB - ???
+
+##### 07 - Power
+
+###### 00 - Battery Level
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Zero:U8> <BatteryLevel:P8>
+```
+
+###### 01 - Low Power Mode
+
+Write:
+
+```
+<BatteryLevel:P8>
+```
+
+The low power mode is entered after when the device's battery level goes below the specified percentage.
+
+###### 03 - Power Saving
+
+Write:
+
+```
+<Duration:U16>
+```
+
+The duration before the device enters sleep mode is expressed in seconds.
+
+###### 04 - External Power Status
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Status:U8>
+```
+
+Status is `01` if external power is connected, and `00` otherwise.
+
+##### 0F - Lighting
+
+###### 00 - Lighting device information ??
+
+Read Response:
+
+```
+<Magic:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8>
+```
+
+The meaning of the bytes is not certain, but the first byte returned seems to be important for other commands.
+It could very well be a "RGB Lighting feature version" thing.
+
+Typical response examples:
+
+04 19 03 02 02 (Razer DeathAdder V2 Pro)
+05 19 03 01 02 (Razer Mouse Dock)
+
+###### 02 - Current Lighting Effect
+
+Read Request:
+
+```
+<Persist?:U8> <Magic:U8>
+```
+
+Read Response:
+
+```
+<Zero:U8> <Magic:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
+```
+
+Write:
+
+```
+<Persist:U8> <Zero:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
+```
+
+The parameters passed to read commands are usually `01` followed by the "magic" byte read from the device information earlier.
+This value seems to be important, and *can* be passed at the same place in write responses, but it does not seem necessary.
+Passing another value than this or zero in a write may result in weird behavior of the device.
+
+###### 03 - Current Color
+
+Write:
+
+```
+<Zero:U8[5]> <Color:RGB>
+```
+
+This sets the current color of the device, in "streamable"/addressable mode.
+It ignores the current effect and overrides it.
+
+###### 04 - Brightness
+
+Read Request:
+
+```
+<Persist?:U8>
+```
+
+Read Response:
+
+```
+<Persist?:U8> <Zero:U8> <Brightness:P8>
+```
+
+Write:
+
+```
+<Persist?:U8> <Zero:U8> <Brightness:P8>
+```
+
+This commands reads or writes the lighting level used for all lighting on the device.
+I'm assuming the first byte is a persistance flag similar to setting the color effect, but it needs to be verified.
+
 ## Requests sent to devices when the service is starting
 
 ### Dock
