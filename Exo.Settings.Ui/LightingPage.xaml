@@ -22,7 +22,7 @@
                         </StackPanel>
                     </Expander.Header>
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
-                        <Grid Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
+                        <Grid Margin="0,0,0,12" Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
                                 <ColumnDefinition Width="*" />
@@ -30,6 +30,7 @@
                             <TextBlock Text="Brightness" Margin="{StaticResource RowLabelMargin}" />
                             <Slider
                                 Grid.Column="1"
+                                Style="{StaticResource BrightnessSliderStyle}"
                                 DataContext="{Binding Brightness}"
                                 Margin="{StaticResource RowContentMargin}"
                                 Value="{Binding Level, Mode=TwoWay}"

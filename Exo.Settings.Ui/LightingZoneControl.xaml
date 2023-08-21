@@ -39,7 +39,12 @@
         </DataTemplate>
         <DataTemplate x:Key="FallbackPropertyTemplate" />
         <DataTemplate x:Key="BrightnessTemplate">
-            <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
+            <Slider
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource BrightnessSliderStyle}">
                 <Slider.ThumbToolTipValueConverter>
                     <local:BrightnessValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
                 </Slider.ThumbToolTipValueConverter>
