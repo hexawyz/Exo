@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Ui.Contracts;
 
@@ -6,7 +6,7 @@ namespace Exo.Ui.Contracts;
 public sealed class LightingBrightnessCapabilities
 {
 	[DataMember(Order = 1)]
-	public ushort MinimumBrightness { get; init; }
+	public byte MinimumBrightness { get; init; }
 	[DataMember(Order = 2)]
-	public ushort MaximumBrightness { get; init; }
+	public byte MaximumBrightness { get; init; }
 }

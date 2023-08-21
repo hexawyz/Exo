@@ -158,13 +158,25 @@ internal sealed class PropertyViewModel : ChangeableBindableObject
 		}
 	}
 
-	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation)
+	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation, LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
 	{
 		_propertyInformation = propertyInformation;
 		var dataType = _propertyInformation.DataType;
-		MinimumValue = GetValue(dataType, _propertyInformation.MinimumValue);
-		MaximumValue = GetValue(dataType, _propertyInformation.MaximumValue);
-		DefaultValue = GetValue(dataType, _propertyInformation.DefaultValue) ?? GetDefaultValueForType(dataType);
+		if (dataType == DataType.UInt8 && propertyInformation.Name == "BrightnessLevel")
+		{
+			if (brightnessCapabilities is not null)
+			{
+				MinimumValue = brightnessCapabilities.MinimumLevel;
+				MaximumValue = brightnessCapabilities.MaximumLevel;
+				DefaultValue = brightnessCapabilities.MaximumLevel;
+			}
+		}
+		else
+		{
+			MinimumValue = GetValue(dataType, _propertyInformation.MinimumValue);
+			MaximumValue = GetValue(dataType, _propertyInformation.MaximumValue);
+			DefaultValue = GetValue(dataType, _propertyInformation.DefaultValue) ?? GetDefaultValueForType(dataType);
+		}
 		EnumerationValues = _propertyInformation.EnumerationValues.IsDefaultOrEmpty ?
 			ReadOnlyCollection<EnumerationValueViewModel>.Empty :
 			Array.AsReadOnly

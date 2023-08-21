@@ -1,5 +1,4 @@
 using System;
-using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
@@ -7,34 +6,29 @@ namespace Exo.Settings.Ui;
 
 internal sealed class BrightnessValueToPercentConverter : DependencyObject, IValueConverter
 {
-	public LightingDeviceBrightnessViewModel? BrightnessRange
+	public int MaximumValue
 	{
-		get => (LightingDeviceBrightnessViewModel)GetValue(BrightnessRangeProperty);
-		set => SetValue(BrightnessRangeProperty, value);
+		get { return System.Convert.ToInt32(GetValue(MaximumValueProperty)); }
+		set { SetValue(MaximumValueProperty, System.Convert.ToInt32(value)); }
 	}
 
-	// Using a DependencyProperty as the backing store for Values.  This enables animation, styling, binding, etc...
-	public static readonly DependencyProperty BrightnessRangeProperty =
-		DependencyProperty.Register
-		(
-			"BrightnessRange",
-			typeof(LightingDeviceBrightnessViewModel),
-			typeof(BrightnessValueToPercentConverter),
-			new PropertyMetadata(null)
-		);
+	public static readonly DependencyProperty MaximumValueProperty =
+		DependencyProperty.Register("MaximumValue", typeof(int), typeof(BrightnessValueToPercentConverter), new PropertyMetadata(100));
 
 	public object? Convert(object value, Type targetType, object parameter, string language)
 	{
-		if (value is not null && BrightnessRange is { } range)
+		if (value is not null && MaximumValue is var max and > 0)
 		{
-			byte b = System.Convert.ToByte(value);
+			int v = System.Convert.ToInt32(value);
 
-			double percent = b / (double)range.MaximumLevel;
+			double percent = v / (double)max;
+
+			string format = max > 100 ? "P1" : "P0";
 
 			if (percent < 0) percent = 0;
 			else if (percent > 1) percent = 1;
 
-			return percent.ToString("P0");
+			return percent.ToString(format);
 		}
 
 		return value?.ToString();

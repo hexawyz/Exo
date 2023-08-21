@@ -22,9 +22,6 @@
                         </StackPanel>
                     </Expander.Header>
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
-                        <StackPanel.Resources>
-                            <local:BrightnessValueToPercentConverter x:Key="BrightnessValueToPercentConverter" BrightnessRange="{Binding Brightness}" />
-                        </StackPanel.Resources>
                         <Grid Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
@@ -37,8 +34,11 @@
                                 Margin="{StaticResource RowContentMargin}"
                                 Value="{Binding Level, Mode=TwoWay}"
                                 Minimum="{Binding MinimumLevel, Mode=OneTime}"
-                                Maximum="{Binding MaximumLevel, Mode=OneTime}"
-                                ThumbToolTipValueConverter="{StaticResource BrightnessValueToPercentConverter}" />
+                                Maximum="{Binding MaximumLevel, Mode=OneTime}">
+                                <Slider.ThumbToolTipValueConverter>
+                                    <local:BrightnessValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
+                                </Slider.ThumbToolTipValueConverter>
+                            </Slider>
                         </Grid>
                         <local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}" LightingZone="{Binding UnifiedLightingZone}" />
                         <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">

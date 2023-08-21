@@ -9,6 +9,7 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 {
 	public DataTemplate NumericRangeTemplate { get; set; }
 	public DataTemplate NumericTemplate { get; set; }
+	public DataTemplate BrightnessTemplate { get; set; }
 	public DataTemplate TextTemplate { get; set; }
 	public DataTemplate GrayscaleTemplate { get; set; }
 	public DataTemplate ColorTemplate { get; set; }
@@ -42,6 +43,10 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 						return EnumRangeTemplate;
 					}
 					return EnumTemplate;
+				}
+				else if (p.Name == "BrightnessLevel")
+				{
+					return BrightnessTemplate;
 				}
 				goto case DataType.Float16;
 			case DataType.Float16:

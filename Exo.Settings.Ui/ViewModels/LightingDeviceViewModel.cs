@@ -15,6 +15,7 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 	public LightingViewModel LightingViewModel { get; }
 	public LightingZoneViewModel? UnifiedLightingZone { get; }
 	public ReadOnlyCollection<LightingZoneViewModel> LightingZones { get; }
+	public LightingDeviceBrightnessCapabilitiesViewModel? BrightnessCapabilities { get; }
 	public LightingDeviceBrightnessViewModel? Brightness { get; }
 
 	private readonly Dictionary<Guid, LightingZoneViewModel> _lightingZoneById;
@@ -58,6 +59,7 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 		_useUnifiedLighting = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty;
 		if (lightingDeviceInformation.BrightnessCapabilities is { } brightnessCapabilities)
 		{
+			BrightnessCapabilities = new(brightnessCapabilities);
 			Brightness = new(brightnessCapabilities);
 		}
 	}

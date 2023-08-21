@@ -12,8 +12,8 @@ internal sealed class LightingDeviceBrightnessViewModel : BindableObject
 
 	public double MinimumLevelPercent => _capabilities.MinimumBrightness / (double)_capabilities.MaximumBrightness;
 
-	public ushort MinimumLevel => _capabilities.MinimumBrightness;
-	public ushort MaximumLevel => _capabilities.MaximumBrightness;
+	public byte MinimumLevel => _capabilities.MinimumBrightness;
+	public byte MaximumLevel => _capabilities.MaximumBrightness;
 
 	public bool IsChanged => _currentBrightness != _initialBrightness;
 

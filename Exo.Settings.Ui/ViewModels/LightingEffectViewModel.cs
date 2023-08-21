@@ -19,7 +19,7 @@ internal sealed class LightingEffectViewModel
 
 	public string DisplayName => EffectDatabase.GetEffectDisplayName(EffectId) ?? string.Create(CultureInfo.InvariantCulture, $"Effect {EffectId:B}.");
 
-	public ReadOnlyCollection<PropertyViewModel> CreatePropertyViewModels()
+	public ReadOnlyCollection<PropertyViewModel> CreatePropertyViewModels(LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
 	{
 		var properties = _effectInformation.Properties;
 
@@ -29,7 +29,7 @@ internal sealed class LightingEffectViewModel
 
 		for (int i = 0; i < properties.Length; i++)
 		{
-			vm[i] = new(properties[i]);
+			vm[i] = new(properties[i], brightnessCapabilities);
 		}
 
 		return Array.AsReadOnly(vm);

@@ -38,10 +38,18 @@
             </Slider>
         </DataTemplate>
         <DataTemplate x:Key="FallbackPropertyTemplate" />
+        <DataTemplate x:Key="BrightnessTemplate">
+            <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
+                <Slider.ThumbToolTipValueConverter>
+                    <local:BrightnessValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+        </DataTemplate>
         <local:EffectPropertyTemplateSelector
                 x:Key="EffectPropertyTemplateSelector"
                 NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
                 NumericTemplate="{StaticResource NumericPropertyTemplate}"
+                BrightnessTemplate="{StaticResource BrightnessTemplate}"
                 ColorTemplate="{StaticResource ColorPropertyTemplate}"
                 EnumTemplate="{StaticResource EnumPropertyTemplate}"
                 EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"

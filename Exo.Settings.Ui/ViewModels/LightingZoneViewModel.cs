@@ -62,7 +62,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		if (SetValue(ref _currentEffect, value, ChangedProperty.CurrentEffect))
 		{
 			var oldProperties = Properties;
-			var newProperties = value?.CreatePropertyViewModels() ?? ReadOnlyCollection<PropertyViewModel>.Empty;
+			var newProperties = value?.CreatePropertyViewModels(_device.BrightnessCapabilities) ?? ReadOnlyCollection<PropertyViewModel>.Empty;
 			bool colorChanged = _colorProperty is not null;
 
 			if (SetValue(ref _properties, newProperties, ChangedProperty.Properties))
