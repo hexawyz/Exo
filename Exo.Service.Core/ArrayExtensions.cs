@@ -9,6 +9,41 @@ namespace Exo.Service;
 
 internal static class ArrayExtensions
 {
+	public static int Length<T>(this ImmutableArray<T> array)
+		=> !array.IsDefault ? array.Length : 0;
+
+	public static int GetHashCode<T>(this ImmutableArray<T> array)
+		=> GetHashCode(AsMutable(array));
+
+	public static int GetHashCode<T>(this T[] array)
+	{
+		if (array is null) return 0;
+
+		return array.Length switch
+		{
+			0 => 0,
+			1 => array[0]?.GetHashCode() ?? 0,
+			2 => HashCode.Combine(array[0], array[1]),
+			3 => HashCode.Combine(array[0], array[1], array[2]),
+			4 => HashCode.Combine(array[0], array[1], array[2], array[3]),
+			5 => HashCode.Combine(array[0], array[1], array[2], array[3], array[4]),
+			6 => HashCode.Combine(array[0], array[1], array[2], array[3], array[4], array[5]),
+			7 => HashCode.Combine(array[0], array[1], array[2], array[3], array[4], array[5], array[6]),
+			8 => HashCode.Combine(array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]),
+			_ => LongArrayGetHashCode(array),
+		};
+	}
+
+	private static int LongArrayGetHashCode<T>(this T[] array)
+	{
+		var hash = new HashCode();
+		for (int i = 0; i < array.Length; i++)
+		{
+			hash.Add(array[i]);
+		}
+		return hash.ToHashCode();
+	}
+
 	public static ImmutableArray<T> AsImmutable<T>(this T[] array) => Unsafe.As<T[], ImmutableArray<T>>(ref array);
 
 	public static T[] AsMutable<T>(this ImmutableArray<T> array) => Unsafe.As<ImmutableArray<T>, T[]>(ref array);

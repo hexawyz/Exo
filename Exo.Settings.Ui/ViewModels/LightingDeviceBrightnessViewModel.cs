@@ -2,11 +2,11 @@ using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceBrightnessViewModel : BindableObject
+internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObject
 {
 	private readonly LightingBrightnessCapabilities _capabilities;
-	private ushort _initialBrightness;
-	private ushort _currentBrightness;
+	private byte _initialBrightness;
+	private byte _currentBrightness;
 
 	public LightingDeviceBrightnessViewModel(LightingBrightnessCapabilities capabilities) => _capabilities = capabilities;
 
@@ -15,9 +15,9 @@ internal sealed class LightingDeviceBrightnessViewModel : BindableObject
 	public byte MinimumLevel => _capabilities.MinimumBrightness;
 	public byte MaximumLevel => _capabilities.MaximumBrightness;
 
-	public bool IsChanged => _currentBrightness != _initialBrightness;
+	public override bool IsChanged => _currentBrightness != _initialBrightness;
 
-	public ushort Level
+	public byte Level
 	{
 		get => _currentBrightness;
 		set
@@ -26,26 +26,27 @@ internal sealed class LightingDeviceBrightnessViewModel : BindableObject
 
 			if (SetValue(ref _currentBrightness, value))
 			{
-				if (IsChanged != wasChanged)
-				{
-					NotifyPropertyChanged(ChangedProperty.IsChanged);
-				}
+				OnChangeStateChange(wasChanged);
 			}
 		}
 	}
 
-	public void SetInitialBrightness(ushort value)
+	public void SetInitialBrightness(byte value)
 	{
 		if (_initialBrightness != value)
 		{
 			bool wasChanged = IsChanged;
 
+			bool wasCurrentValueInitial = _initialBrightness == _currentBrightness;
+
 			_initialBrightness = value;
 
-			if (IsChanged != wasChanged)
+			if (wasCurrentValueInitial)
 			{
-				NotifyPropertyChanged(ChangedProperty.IsChanged);
+				_currentBrightness = value;
 			}
+
+			OnChangeStateChange(wasChanged);
 		}
 	}
 

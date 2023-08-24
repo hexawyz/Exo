@@ -1,4 +1,3 @@
-﻿using System;
 using Exo.Contracts;
 
 namespace Exo.Service;
@@ -34,5 +33,4 @@ public readonly struct LightingEffectWatchNotification
 
 	/// <summary>Gets the effect that was applied to the zone as a serialized structure.</summary>
 	public LightingEffect SerializeEffect() => _serializedEffect;
-
 }

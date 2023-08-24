@@ -3,10 +3,10 @@ namespace Exo.Service;
 // TODO: Refactor this (away?)
 public readonly struct LightingDeviceWatchNotification
 {
-	public LightingDeviceWatchNotification(WatchNotificationKind kind, DeviceInformation driverInformation, LightingDeviceInformation lightingDeviceInformation, Driver? driver)
+	public LightingDeviceWatchNotification(WatchNotificationKind kind, DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation, Driver driver)
 	{
 		Kind = kind;
-		DeviceInformation = driverInformation;
+		DeviceInformation = deviceInformation;
 		LightingDeviceInformation = lightingDeviceInformation;
 		Driver = driver;
 	}
@@ -27,5 +27,5 @@ public readonly struct LightingDeviceWatchNotification
 	/// While the <see cref="Driver"/> instance may still be valid, and possibly somewhat useable, we consider it lost.
 	/// The removal notification essentially serves for a way to notify consumers that they should remove their reference to the driver instance.
 	/// </remarks>
-	public Driver? Driver { get; }
+	public Driver Driver { get; }
 }

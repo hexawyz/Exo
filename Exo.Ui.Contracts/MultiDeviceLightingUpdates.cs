@@ -7,5 +7,5 @@ namespace Exo.Ui.Contracts;
 public sealed class MultiDeviceLightingUpdates
 {
 	[DataMember(Order = 1)]
-	public required ImmutableArray<DeviceLightingUpdate> DeviceEffects { get; init; }
+	public required ImmutableArray<DeviceLightingUpdate> DeviceUpdates { get; init; }
 }

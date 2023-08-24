@@ -522,7 +522,7 @@ public abstract class RazerDeviceDriver :
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
 		{
 			var dpi = transport.GetDpi();
-			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
+			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature>(this);
 			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, _mouseFeatures, CreateBaseFeatures());
 		}
@@ -925,9 +925,8 @@ public abstract class RazerDeviceDriver :
 			byte ILightingBrightnessFeature.MaximumBrightness => 255;
 			byte ILightingBrightnessFeature.CurrentBrightness
 			{
-				get => Device._currentBrightness;
-				// TODO
-				set => Device._currentBrightness = value;
+				get => Device.CurrentBrightness;
+				set => Device.CurrentBrightness = value;
 			}
 		}
 
@@ -988,6 +987,7 @@ public abstract class RazerDeviceDriver :
 
 		private ILightingEffect _appliedEffect;
 		private ILightingEffect _currentEffect;
+		private byte _appliedBrightness;
 		private byte _currentBrightness;
 		private readonly RazerDeviceFlags _deviceFlags;
 		private readonly object _lightingLock;
@@ -1044,7 +1044,7 @@ public abstract class RazerDeviceDriver :
 			_appliedEffect = transport.GetSavedEffect(flag) ?? DisabledEffect.SharedInstance;
 
 			// Reapply the persisted effect. (In case it was overridden by a temporary effect)
-			ApplyEffect(_appliedEffect, false, _currentBrightness, true);
+			ApplyEffect(_appliedEffect, _currentBrightness, false, true);
 
 			_currentEffect = _appliedEffect;
 		}
@@ -1133,25 +1133,42 @@ public abstract class RazerDeviceDriver :
 		protected IDeviceFeatureCollection<ILightingDeviceFeature> LightingFeatures => _lightingFeatures;
 		IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
+		private byte CurrentBrightness
+		{
+			get => Volatile.Read(ref _currentBrightness);
+			set
+			{
+				lock (_lightingLock)
+				{
+					_currentBrightness = value;
+				}
+			}
+		}
+
 		private ValueTask ApplyChangesAsync()
 		{
 			lock (_lightingLock)
 			{
 				if (!ReferenceEquals(_appliedEffect, _currentEffect))
 				{
-					ApplyEffect(_currentEffect, false, _currentBrightness, _appliedEffect is DisabledEffect);
+					ApplyEffect(_currentEffect, _currentBrightness, false, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness);
 					_appliedEffect = _currentEffect;
 				}
+				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
+				{
+					_transport.SetBrightness(false, _currentBrightness);
+				}
+				_appliedBrightness = _currentBrightness;
 			}
 			return ValueTask.CompletedTask;
 		}
 
-		private void ApplyEffect(ILightingEffect effect, bool shouldPersist, byte brightness, bool forceBrightnessUpdate)
+		private void ApplyEffect(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate)
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
 				_transport.SetEffect(shouldPersist, 0, 0, default, default);
-				_transport.SetBrightness(0);
+				_transport.SetBrightness(shouldPersist, 0);
 				return;
 			}
 
@@ -1159,7 +1176,7 @@ public abstract class RazerDeviceDriver :
 			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
 			if (forceBrightnessUpdate)
 			{
-				_transport.SetBrightness(brightness);
+				_transport.SetBrightness(shouldPersist, brightness);
 			}
 
 			switch (effect)

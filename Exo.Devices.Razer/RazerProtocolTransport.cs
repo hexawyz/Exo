@@ -81,7 +81,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
-	public byte SetBrightness(byte value)
+	public byte SetBrightness(bool persist, byte value)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -97,7 +97,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[7] = (byte)RazerDeviceFeature.Lighting;
 				buffer[8] = 0x04;
 
-				buffer[9] = 0x01;
+				buffer[9] = persist ? (byte)0x01 : (byte)0x00;
 
 				buffer[11] = value;
 
@@ -106,6 +106,40 @@ internal sealed class RazerProtocolTransport : IDisposable
 				SetFeature(buffer);
 
 				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x04, 0);
+
+				return buffer[11];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Clear();
+			}
+		}
+	}
+
+	public byte GetBrightness()
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		lock (@lock)
+		{
+			var buffer = Buffer;
+
+			try
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x01;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
+				buffer[8] = 0x84;
+
+				//buffer[9] = 0x01;
+
+				UpdateChecksum(buffer);
+
+				SetFeature(buffer);
+
+				ReadResponse(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x84, 0);
 
 				return buffer[11];
 			}

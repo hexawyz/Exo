@@ -195,13 +195,13 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	public async IAsyncEnumerable<DeviceWatchNotification> WatchAsync<TFeature>([EnumeratorCancellation] CancellationToken cancellationToken)
 		where TFeature : class, IDeviceFeature
 	{
-		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver? Driver)> reader;
+		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)> reader;
 
-		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver? Driver)>(WatchChannelOptions);
+		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)>(WatchChannelOptions);
 		reader = channel.Reader;
 		var writer = channel.Writer;
 
-		var onDriverUpdated = (bool b, Driver d, DeviceInformation di) => { if (d is IDeviceDriver<TFeature>) writer.TryWrite((b, di, b ? d : null)); };
+		var onDriverUpdated = (bool b, Driver d, DeviceInformation di) => { if (d is IDeviceDriver<TFeature>) writer.TryWrite((b, di, d)); };
 
 		DeviceWatchNotification[]? initialNotifications;
 		int initialNotificationCount = 0;

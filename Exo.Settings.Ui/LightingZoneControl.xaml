@@ -42,7 +42,7 @@
             <Slider
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
-                Value="{Binding Value, Mode=TwoWay}"
+                Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
                 HorizontalAlignment="Stretch"
                 Style="{StaticResource BrightnessSliderStyle}">
                 <Slider.ThumbToolTipValueConverter>

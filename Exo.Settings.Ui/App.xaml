@@ -49,6 +49,7 @@
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <local:StringFormatConverter x:Key="StringFormatConverter" />
             <local:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
+            <local:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 
@@ -57,17 +58,20 @@
                 <Setter Target="CustomPalette" Value="{StaticResource RgbLightingDefaultPalette}" />
             </Style>
 
-            <LinearGradientBrush x:Key="BrightnessLinearGradientBrush">
+            <LinearGradientBrush x:Key="BrightnessLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
                 <GradientStop Color="Black" Offset="0" />
                 <GradientStop Color="White" Offset="1" />
             </LinearGradientBrush>
 
+            <SolidColorBrush x:Key="ColorSliderForeground">White</SolidColorBrush>
             <SolidColorBrush x:Key="BrightnessSliderForeground">White</SolidColorBrush>
 
-            <!-- Based on Community Toolkit ColorPicker -->
-            <Style x:Key="BrightnessSliderStyle" TargetType="Slider">
-                <Setter Property="Background" Value="{StaticResource BrightnessLinearGradientBrush}" />
-                <Setter Property="Foreground" Value="{StaticResource BrightnessSliderForeground}" />
+            <!--
+                Based on Community Toolkit ColorPicker/ColorPickerSlider.
+                This will be used in parts of the application where a slider is needed 
+            -->
+            <Style x:Key="ColorSliderStyle" TargetType="Slider">
+                <Setter Property="Foreground" Value="{StaticResource ColorSliderForeground}" />
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="Template">
                     <Setter.Value>
@@ -210,125 +214,13 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-
-            <!-- Based on Win UI 2/3 ColorPicker -->
-            <Style x:Key="BrightnessSliderStyleV0" TargetType="Slider">
-                <Setter Property="CornerRadius" Value="{StaticResource ColorPickerSliderCornerRadius}" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Slider">
-                            <Grid>
-                                <Grid.Resources>
-                                    <Style x:Key="SliderThumbStyle" TargetType="Thumb">
-                                        <Setter Property="BorderThickness" Value="1"/>
-                                        <Setter Property="Background" Value="{ThemeResource ColorPickerSliderThumbBackground}"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="Thumb">
-                                                    <Border BorderBrush="{ThemeResource SliderThumbBorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            Background="{ThemeResource SliderOuterThumbBackground}"
-                                            CornerRadius="{ThemeResource SliderThumbCornerRadius}">
-                                                        <Ellipse x:Name="SliderInnerThumb"
-                                                Fill="{TemplateBinding Background}"                                                  
-                                                Width="{ThemeResource ColorPickerSliderInnerThumbWidth}"
-                                                Height="{ThemeResource ColorPickerSliderInnerThumbHeight}">
-                                                        </Ellipse>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </Grid.Resources>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <VisualStateManager.VisualStateGroups>
-                                    <VisualStateGroup x:Name="CommonStates">
-                                        <VisualState x:Name="Normal"/>
-                                        <VisualState x:Name="Pressed">
-                                            <VisualState.Setters>
-                                                <Setter Target="HorizontalThumb.Background" Value="{ThemeResource ColorPickerSliderThumbBackgroundPressed}"/>
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="Disabled">
-                                            <VisualState.Setters>
-                                                <Setter Target="HeaderContentPresenter.Foreground" Value="{ThemeResource ColorPickerHeaderContentDisabled}"/>
-                                                <Setter Target="HorizontalThumb.Background" Value="{ThemeResource ColorPickerSliderThumbBackgroundDisabled}"/>
-                                                <Setter Target="HorizontalTrackRect.Fill" Value="{ThemeResource ColorPickerSliderTrackFillDisabled}"/>
-                                                <Setter Target="HorizontalDecreaseRect.Fill" Value="{ThemeResource ColorPickerSliderTrackFillDisabled}"/>
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="PointerOver">
-                                            <VisualState.Setters>
-                                                <Setter Target="HorizontalThumb.Background" Value="{ThemeResource ColorPickerSliderThumbBackgroundPointerOver}"/>
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                    <VisualStateGroup x:Name="FocusEngagementStates">
-                                        <VisualState x:Name="FocusDisengaged"/>
-                                        <VisualState x:Name="FocusEngagedHorizontal">
-                                            <VisualState.Setters>
-                                                <Setter Target="SliderContainer.(Control.IsTemplateFocusTarget)" Value="False"/>
-                                                <Setter Target="HorizontalThumb.(Control.IsTemplateFocusTarget)" Value="True"/>
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="FocusEngagedVertical">
-                                            <VisualState.Setters>
-                                                <Setter Target="SliderContainer.(Control.IsTemplateFocusTarget)" Value="False"/>
-                                                <Setter Target="VerticalThumb.(Control.IsTemplateFocusTarget)" Value="True"/>
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                </VisualStateManager.VisualStateGroups>
-                                <ContentPresenter x:Name="HeaderContentPresenter" ContentTemplate="{TemplateBinding HeaderTemplate}" Content="{TemplateBinding Header}" Foreground="{ThemeResource SliderHeaderForeground}" FontWeight="{ThemeResource SliderHeaderThemeFontWeight}" Margin="{ThemeResource SliderHeaderThemeMargin}" TextWrapping="Wrap" Visibility="Collapsed" x:DeferLoadStrategy="Lazy"/>
-                                <Grid x:Name="SliderContainer"
-                                    Background="Transparent"
-                                    Control.IsTemplateFocusTarget="True"
-                                    Grid.Row="1"
-                                    CornerRadius="{TemplateBinding CornerRadius}">
-                                    <Grid x:Name="HorizontalTemplate" MinHeight="32">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="{ThemeResource SliderPreContentMargin}" />
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="{ThemeResource SliderPostContentMargin}" />
-                                        </Grid.RowDefinitions>
-                                        <Rectangle x:Name="HorizontalTrackRect" Grid.ColumnSpan="3" RenderTransformOrigin="0.5, 0.5" Fill="{StaticResource BrightnessLinearGradientBrush}" Height="{ThemeResource SliderHorizontalThumbHeight}" Grid.Row="1" Opacity="1"
-                                            RadiusX="{Binding CornerRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource TopLeftCornerRadiusDoubleValueConverter}}"
-                                            RadiusY="{Binding CornerRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BottomRightCornerRadiusDoubleValueConverter}}" />
-                                        <Rectangle x:Name="HorizontalDecreaseRect" Fill="Transparent" Grid.Row="1" Opacity="0" />
-                                        <Thumb x:Name="HorizontalThumb" AutomationProperties.AccessibilityView="Raw" Grid.Column="1" DataContext="{TemplateBinding Value}" Height="{ThemeResource SliderHorizontalThumbHeight}" Grid.Row="0" Grid.RowSpan="3" Style="{StaticResource SliderThumbStyle}" Width="{ThemeResource SliderHorizontalThumbWidth}" />
-                                    </Grid>
-                                    <Grid x:Name="VerticalTemplate" MinWidth="32">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="{ThemeResource SliderPreContentMargin}" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="{ThemeResource SliderPostContentMargin}" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <Rectangle x:Name="VerticalTrackRect" Grid.RowSpan="3" RenderTransformOrigin="0.5, 0.5" Fill="{StaticResource BrightnessLinearGradientBrush}" Width="{ThemeResource ColorPickerSliderInnerThumbWidth}" Grid.Column="1" Opacity="1"
-                                            RadiusX="{Binding CornerRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource TopLeftCornerRadiusDoubleValueConverter}}"
-                                            RadiusY="{Binding CornerRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BottomRightCornerRadiusDoubleValueConverter}}" />
-                                        <Rectangle x:Name="VerticalDecreaseRect" Fill="Transparent" Grid.Column="1" Grid.Row="2" Opacity="0" />
-                                        <Thumb x:Name="VerticalThumb" AutomationProperties.AccessibilityView="Raw" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" DataContext="{TemplateBinding Value}" Height="{ThemeResource SliderHorizontalThumbHeight}" Style="{StaticResource SliderThumbStyle}" Width="{ThemeResource SliderHorizontalThumbWidth}" />
-                                    </Grid>
-                                </Grid>
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
+            
+            <!--
+                TODO: The gradient should be made relative to the minimum.
+            -->
+            <Style x:Key="BrightnessSliderStyle" TargetType="Slider" BasedOn="{StaticResource ColorSliderStyle}">
+                <Setter Property="Background" Value="{StaticResource BrightnessLinearGradientBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource BrightnessSliderForeground}" />
             </Style>
         </ResourceDictionary>
     </Application.Resources>

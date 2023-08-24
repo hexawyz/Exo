@@ -32,10 +32,12 @@ internal sealed class LightingViewModel : BindableObject
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
 	private readonly Dictionary<(Guid, Guid), LightingEffect> _activeLightingEffects;
+	private readonly Dictionary<Guid, byte> _brightnessLevels;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchDevicesTask;
 	private readonly Task _watchEffectsTask;
+	private readonly Task _watchBrightnessTask;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 
@@ -46,9 +48,11 @@ internal sealed class LightingViewModel : BindableObject
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
 		_activeLightingEffects = new();
+		_brightnessLevels = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
+		_watchBrightnessTask = WatchBrightnessAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -56,6 +60,7 @@ internal sealed class LightingViewModel : BindableObject
 		_cancellationTokenSource.Cancel();
 		await _watchDevicesTask.ConfigureAwait(false);
 		await _watchEffectsTask.ConfigureAwait(false);
+		await _watchBrightnessTask.ConfigureAwait(false);
 	}
 
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
@@ -124,6 +129,25 @@ internal sealed class LightingViewModel : BindableObject
 		}
 	}
 
+	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
+	private async Task WatchBrightnessAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in LightingService.WatchBrightnessAsync(cancellationToken))
+			{
+				_brightnessLevels[notification.DeviceId] = notification.BrightnessLevel;
+				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
+				{
+					vm.OnBrightnessUpdated();
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
 	private async Task CacheEffectInformationAsync(WatchNotification<LightingDeviceInformation> notification, CancellationToken cancellationToken)
 	{
 		if (notification.Details.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectIds, cancellationToken);
@@ -155,4 +179,7 @@ internal sealed class LightingViewModel : BindableObject
 
 	public LightingEffect? GetActiveLightingEffect(Guid deviceId, Guid zoneId)
 		=> _activeLightingEffects.TryGetValue((deviceId, zoneId), out var effect) ? effect : null;
+
+	public byte? GetBrightness(Guid deviceId)
+		=> _brightnessLevels.TryGetValue(deviceId, out var brightness) ? brightness : null;
 }

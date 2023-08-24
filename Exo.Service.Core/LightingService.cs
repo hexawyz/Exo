@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
@@ -16,18 +13,69 @@ namespace Exo.Service;
 
 public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 {
-	private sealed class LightingDeviceDetails
+	private sealed class DeviceState
 	{
-		public LightingDeviceDetails(DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation, Driver driver)
+		private LatestDeviceDetails? _deviceDetails;
+		private Driver? _driver;
+
+		public DeviceState()
+		{
+			LightingZones = new();
+		}
+
+		// Should actually never be null after initialization, but that is difficult to enforce here.
+		public LatestDeviceDetails? DeviceDetails
+		{
+			get => Volatile.Read(ref _deviceDetails);
+			set => Volatile.Write(ref _deviceDetails, value);
+		}
+
+		public Driver? Driver
+		{
+			get => Volatile.Read(ref _driver);
+			set => Volatile.Write(ref _driver, value);
+		}
+
+		// Gets the object used to restrict concurrent accesses to the device.
+		// (Yes, we'll lock on the object itself. Let's make of good use of those object header bytes here.)
+		public object Lock => this;
+
+		// The state for the brightness will be preserved here.
+		public byte? Brightness { get; set; }
+
+		// The state for each lighting zone will be preserved too.
+		public ConcurrentDictionary<Guid, LightingZoneState> LightingZones { get; }
+	}
+
+	// This information is put in a separate class because it needs to be updated atomically.
+	// Device details will *generally* not change, but if they change for any reason, we should avoid any tearing on the data structures.
+	// For this reason, we need to have *correct* equality comparers on all the contained types.
+	// Comparing two objects will have a cost, but keeping long-lived objects untouched should be better for the GC.
+	// The idea is that this data can, and *will* be persisted in configuration.
+	// For later features, we need to be able to reference devices that are *not* online, and possibly schedule effects on them.
+	// TODO: Persistance of DeviceInformation should be moved to driver registry.
+	private sealed class LatestDeviceDetails : IEquatable<LatestDeviceDetails?>
+	{
+		public LatestDeviceDetails(DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation)
 		{
 			DeviceInformation = deviceInformation;
-			Driver = driver;
 			LightingDeviceInformation = lightingDeviceInformation;
 		}
 
 		public DeviceInformation DeviceInformation { get; }
 		public LightingDeviceInformation LightingDeviceInformation { get; }
-		public Driver Driver { get; }
+
+		public override bool Equals(object? obj) => Equals(obj as LatestDeviceDetails);
+
+		public bool Equals(LatestDeviceDetails? other)
+			=> other is not null &&
+				EqualityComparer<DeviceInformation>.Default.Equals(DeviceInformation, other.DeviceInformation) &&
+				LightingDeviceInformation.Equals(other.LightingDeviceInformation);
+
+		public override int GetHashCode() => HashCode.Combine(DeviceInformation, LightingDeviceInformation);
+
+		public static bool operator ==(LatestDeviceDetails? left, LatestDeviceDetails? right) => EqualityComparer<LatestDeviceDetails>.Default.Equals(left, right);
+		public static bool operator !=(LatestDeviceDetails? left, LatestDeviceDetails? right) => !(left == right);
 	}
 
 	private sealed class LightingZoneState
@@ -62,180 +110,21 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	}
 
 	private readonly IDeviceWatcher _deviceWatcher;
-	private readonly ConcurrentDictionary<Guid, LightingDeviceDetails> _lightingDevices;
-	private readonly ConcurrentDictionary<(Guid, Guid), LightingZoneState> _lightingZones;
+	private readonly ConcurrentDictionary<Guid, DeviceState> _lightingDeviceStates;
 	private readonly object _lock; // Only needed in order to output a reliable stream out of the service… 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
-	private Action<WatchNotificationKind, LightingDeviceDetails>[]? _devicesUpdated;
-	private RefReadonlyAction<LightingEffectWatchNotification>[]? _effectUpdated;
+	private ChannelWriter<LightingDeviceWatchNotification>[]? _deviceListeners;
+	private ChannelWriter<LightingEffectWatchNotification>[]? _effectChangeListeners;
+	private ChannelWriter<LightingBrightnessWatchNotification>[]? _brightnessChangeListeners;
 
 	public LightingService(DriverRegistry driverRegistry)
 	{
 		_deviceWatcher = driverRegistry;
-		_lightingDevices = new();
-		_lightingZones = new();
+		_lightingDeviceStates = new();
 		_lock = new();
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
-	}
-
-	private async Task WatchAsync(CancellationToken cancellationToken)
-	{
-		try
-		{
-			await foreach (var notification in _deviceWatcher.WatchAsync<ILightingDeviceFeature>(cancellationToken))
-			{
-				ValueTask applyChangesTask = ValueTask.CompletedTask;
-
-				lock (_lock)
-				{
-					switch (notification.Kind)
-					{
-					case WatchNotificationKind.Enumeration:
-					case WatchNotificationKind.Addition:
-						bool shouldApplyChanges = false;
-
-						var lightingDriver = Unsafe.As<IDeviceDriver<ILightingDeviceFeature>>(notification.Driver!);
-
-						LightingZoneInformation? unifiedLightingZone = null;
-						if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
-						{
-							unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
-							if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId), out var state))
-							{
-								// We restore the effect from the saved state if available.
-								state.LightingZone = unifiedLightingFeature;
-								EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId, state.SerializedCurrentEffect);
-								shouldApplyChanges = true;
-							}
-							else
-							{
-								var effect = unifiedLightingFeature.GetCurrentEffect();
-								state = new() { LightingZone = unifiedLightingFeature, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
-								_lightingZones.TryAdd((notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId), state);
-							}
-						}
-
-						LightingZoneInformation[]? zones = null;
-						if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lightingControllerFeature)
-						{
-							zones = new LightingZoneInformation[lightingControllerFeature.LightingZones.Count];
-
-							int i = 0;
-							foreach (var zone in lightingControllerFeature.LightingZones)
-							{
-								if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, zone.ZoneId), out var state))
-								{
-									// We restore the effect from the saved state if available.
-									state.LightingZone = zone;
-									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, zone.ZoneId, state.SerializedCurrentEffect);
-									shouldApplyChanges = true;
-								}
-								else
-								{
-									var effect = zone.GetCurrentEffect();
-									state = new() { LightingZone = zone, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
-									_lightingZones.TryAdd((notification.DeviceInformation.Id, zone.ZoneId), state);
-								}
-
-								zones[i++] = new LightingZoneInformation(zone.ZoneId, GetSupportedEffects(zone.GetType()).AsImmutable());
-							}
-						}
-
-						var lightingDeviceInformation = new LightingDeviceInformation(unifiedLightingZone, zones is not null ? zones.AsImmutable() : ImmutableArray<LightingZoneInformation>.Empty);
-						var deviceDetails = new LightingDeviceDetails(notification.DeviceInformation, lightingDeviceInformation, notification.Driver!);
-
-						_lightingDevices[notification.DeviceInformation.Id] = deviceDetails;
-
-						if (shouldApplyChanges)
-						{
-							try
-							{
-								if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
-								{
-									applyChangesTask = dcf.ApplyChangesAsync();
-								}
-							}
-							catch
-							{
-								// TODO: Log
-							}
-						}
-
-						try
-						{
-							_devicesUpdated.Invoke(notification.Kind, deviceDetails);
-						}
-						catch (AggregateException)
-						{
-							// TODO: Log
-						}
-
-						// Handlers can only be added from within the lock, so we can conditionally emit the new effect notifications based on the needs. (They can be removed at anytime)
-						if (Volatile.Read(ref _effectUpdated) is not null)
-						{
-							if (unifiedLightingZone is not null && _lightingZones.TryGetValue((notification.DeviceInformation.Id, unifiedLightingZone.ZoneId), out var state))
-							{
-								_effectUpdated.Invoke(new(notification.DeviceInformation.Id, unifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
-							}
-							if (zones is not null)
-							{
-								foreach (var zoneInformation in zones)
-								{
-									if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, zoneInformation.ZoneId), out state))
-									{
-										_effectUpdated.Invoke(new(notification.DeviceInformation.Id, zoneInformation.ZoneId, state.SerializedCurrentEffect));
-									}
-								}
-							}
-						}
-						break;
-					case WatchNotificationKind.Removal:
-						if (_lightingDevices.TryRemove(notification.DeviceInformation.Id, out var details))
-						{
-							if (details.LightingDeviceInformation.UnifiedLightingZone is not null)
-							{
-								if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
-								{
-									Volatile.Write(ref state.LightingZone, null);
-								}
-							}
-
-							foreach (var zone in details.LightingDeviceInformation.LightingZones)
-							{
-								if (_lightingZones.TryGetValue((notification.DeviceInformation.Id, zone.ZoneId), out var state))
-								{
-									Volatile.Write(ref state.LightingZone, null);
-								}
-							}
-
-							try
-							{
-								_devicesUpdated.Invoke(notification.Kind, details);
-							}
-							catch (AggregateException)
-							{
-								// TODO: Log
-							}
-						}
-						break;
-					}
-				}
-
-				try
-				{
-					await applyChangesTask.ConfigureAwait(false);
-				}
-				catch
-				{
-					// TODO: Log
-				}
-			}
-		}
-		catch (OperationCanceledException)
-		{
-		}
 	}
 
 	public async ValueTask DisposeAsync()
@@ -244,79 +133,247 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 		await _watchTask.ConfigureAwait(false);
 	}
 
-	private static readonly UnboundedChannelOptions WatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
+	private async Task WatchAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in _deviceWatcher.WatchAsync<ILightingDeviceFeature>(cancellationToken))
+			{
+				switch (notification.Kind)
+				{
+				case WatchNotificationKind.Enumeration:
+				case WatchNotificationKind.Addition:
+					await OnDriverAddedAsync(notification).ConfigureAwait(false);
+					break;
+				case WatchNotificationKind.Removal:
+					OnDriverRemoved(notification);
+					break;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private static LightingDeviceWatchNotification CreateNotification(WatchNotificationKind kind, DeviceState deviceState)
+		=> new(kind, deviceState.DeviceDetails!.DeviceInformation, deviceState.DeviceDetails.LightingDeviceInformation, deviceState.Driver!);
+
+	private ValueTask OnDriverAddedAsync(DeviceWatchNotification notification)
+	{
+		var applyChangesTask = ValueTask.CompletedTask;
+		bool shouldApplyChanges = false;
+		bool isNewState = false;
+		LightingZoneInformation? unifiedLightingZone = null;
+		LightingZoneInformation[]? zones = null;
+
+		if (!_lightingDeviceStates.TryGetValue(notification.DeviceInformation.Id, out var deviceState))
+		{
+			deviceState = new();
+			isNewState = true;
+		}
+
+		var lightingZoneStates = deviceState.LightingZones;
+
+		var lightingDriver = Unsafe.As<IDeviceDriver<ILightingDeviceFeature>>(notification.Driver!);
+
+		lock (_lock)
+		{
+			lock (deviceState.Lock)
+			{
+				if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } lightingBrightnessFeature)
+				{
+					if (!isNewState && deviceState.Brightness is not null)
+					{
+						SetBrightness(notification.DeviceInformation.Id, deviceState.Brightness.GetValueOrDefault(), true);
+						shouldApplyChanges = true;
+					}
+					else
+					{
+						deviceState.Brightness = lightingBrightnessFeature.CurrentBrightness;
+					}
+				}
+				else
+				{
+					// TODO: Should we consider preserving the brightness value if a device's driver loses the brightness feature at some point ?
+					deviceState.Brightness = null;
+				}
+
+				if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
+				{
+					unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
+					if (lightingZoneStates.TryGetValue(unifiedLightingFeature.ZoneId, out var lightingZoneState))
+					{
+						// We restore the effect from the saved state if available.
+						lightingZoneState.LightingZone = unifiedLightingFeature;
+						EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingFeature.ZoneId, lightingZoneState.SerializedCurrentEffect);
+						shouldApplyChanges = true;
+					}
+					else
+					{
+						var effect = unifiedLightingFeature.GetCurrentEffect();
+						lightingZoneState = new() { LightingZone = unifiedLightingFeature, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
+						lightingZoneStates.TryAdd(unifiedLightingFeature.ZoneId, lightingZoneState);
+					}
+				}
+
+				if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lightingControllerFeature)
+				{
+					zones = new LightingZoneInformation[lightingControllerFeature.LightingZones.Count];
+
+					int i = 0;
+					foreach (var zone in lightingControllerFeature.LightingZones)
+					{
+						if (lightingZoneStates.TryGetValue(zone.ZoneId, out var lightingZoneState))
+						{
+							// We restore the effect from the saved state if available.
+							lightingZoneState.LightingZone = zone;
+							EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, zone.ZoneId, lightingZoneState.SerializedCurrentEffect);
+							shouldApplyChanges = true;
+						}
+						else
+						{
+							var effect = zone.GetCurrentEffect();
+							lightingZoneState = new() { LightingZone = zone, SerializedCurrentEffect = EffectSerializer.Serialize(effect) };
+							lightingZoneStates.TryAdd(zone.ZoneId, lightingZoneState);
+						}
+
+						zones[i++] = new LightingZoneInformation(zone.ZoneId, GetSupportedEffects(zone.GetType()).AsImmutable());
+					}
+				}
+
+				if (shouldApplyChanges)
+				{
+					try
+					{
+						if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
+						{
+							applyChangesTask = dcf.ApplyChangesAsync();
+						}
+					}
+					catch
+					{
+						// TODO: Log
+					}
+				}
+
+				var details = new LatestDeviceDetails
+				(
+					notification.DeviceInformation,
+					new
+					(
+						unifiedLightingZone,
+						zones is not null ? zones.AsImmutable() : ImmutableArray<LightingZoneInformation>.Empty,
+						deviceState.Brightness is not null
+					)
+				);
+
+				if (details != deviceState.DeviceDetails)
+				{
+					deviceState.DeviceDetails = details;
+				}
+				deviceState.Driver = notification.Driver;
+
+				if (isNewState)
+				{
+					_lightingDeviceStates.TryAdd(notification.DeviceInformation.Id, deviceState);
+				}
+
+				try
+				{
+					_deviceListeners.TryWrite(CreateNotification(notification.Kind, deviceState));
+				}
+				catch (AggregateException)
+				{
+					// TODO: Log
+				}
+			}
+
+			// Handlers can only be added from within the lock, so we can conditionally emit the new effect notifications based on the needs. (Handlers can be removed at anytime)
+			if (Volatile.Read(ref _brightnessChangeListeners) is not null && deviceState.Brightness is not null)
+			{
+				_brightnessChangeListeners.TryWrite(new(notification.DeviceInformation.Id, deviceState.Brightness.GetValueOrDefault()));
+			}
+			if (Volatile.Read(ref _effectChangeListeners) is not null)
+			{
+				if (unifiedLightingZone is not null && lightingZoneStates.TryGetValue(unifiedLightingZone.ZoneId, out var state))
+				{
+					_effectChangeListeners.TryWrite(new(notification.DeviceInformation.Id, unifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
+				}
+				if (zones is not null)
+				{
+					foreach (var zoneInformation in zones)
+					{
+						if (lightingZoneStates.TryGetValue(zoneInformation.ZoneId, out state))
+						{
+							_effectChangeListeners.TryWrite(new(notification.DeviceInformation.Id, zoneInformation.ZoneId, state.SerializedCurrentEffect));
+						}
+					}
+				}
+			}
+		}
+
+		return applyChangesTask;
+	}
+
+	private void OnDriverRemoved(DeviceWatchNotification notification)
+	{
+		if (_lightingDeviceStates.TryGetValue(notification.DeviceInformation.Id, out var deviceState))
+		{
+			var lightingZoneStates = deviceState.LightingZones;
+			var lightingDeviceInformation = deviceState.DeviceDetails!.LightingDeviceInformation;
+
+			lock (_lock)
+			{
+				var n = CreateNotification(notification.Kind, deviceState);
+
+				lock (deviceState.Lock)
+				{
+					if (lightingDeviceInformation.UnifiedLightingZone is not null)
+					{
+						if (lightingZoneStates.TryGetValue(lightingDeviceInformation.UnifiedLightingZone.ZoneId, out var state))
+						{
+							Volatile.Write(ref state.LightingZone, null);
+						}
+					}
+
+					foreach (var zone in lightingDeviceInformation.LightingZones)
+					{
+						if (lightingZoneStates.TryGetValue(zone.ZoneId, out var state))
+						{
+							Volatile.Write(ref state.LightingZone, null);
+						}
+					}
+				}
+
+				try
+				{
+					_deviceListeners.TryWrite(n);
+				}
+				catch (AggregateException)
+				{
+					// TODO: Log
+				}
+			}
+		}
+	}
 
 	public async IAsyncEnumerable<LightingDeviceWatchNotification> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation, Driver? Driver)> reader;
-
-		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation, Driver? Driver)>(WatchChannelOptions);
-		reader = channel.Reader;
+		var channel = Watcher.CreateSingleWriterChannel<LightingDeviceWatchNotification>();
+		var reader = channel.Reader;
 		var writer = channel.Writer;
-
-		var onDriverUpdated = (WatchNotificationKind k, LightingDeviceDetails d) => { writer.TryWrite((k != WatchNotificationKind.Removal, d.DeviceInformation, d.LightingDeviceInformation, d.Driver)); };
 
 		var initialNotifications = new List<LightingDeviceWatchNotification>();
 
 		lock (_lock)
 		{
-			foreach (var kvp in _lightingDevices)
+			foreach (var deviceState in _lightingDeviceStates.Values)
 			{
-				initialNotifications.Add(new(WatchNotificationKind.Enumeration, kvp.Value.DeviceInformation, kvp.Value.LightingDeviceInformation, kvp.Value.Driver));
+				initialNotifications.Add(CreateNotification(WatchNotificationKind.Enumeration, deviceState));
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _devicesUpdated, onDriverUpdated);
-		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var (isAdded, deviceInformation, lightingDeviceInformation, driver) in reader.ReadAllAsync(cancellationToken))
-			{
-				yield return new(isAdded ? WatchNotificationKind.Addition : WatchNotificationKind.Removal, deviceInformation, lightingDeviceInformation, driver);
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _devicesUpdated, onDriverUpdated);
-		}
-	}
-
-	public async IAsyncEnumerable<LightingEffectWatchNotification> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		ChannelReader<LightingEffectWatchNotification> reader;
-
-		var channel = Channel.CreateUnbounded<LightingEffectWatchNotification>(WatchChannelOptions);
-		reader = channel.Reader;
-		var writer = channel.Writer;
-
-		RefReadonlyAction<LightingEffectWatchNotification> onEffectUpdated = (in LightingEffectWatchNotification n) => { writer.TryWrite(n); };
-
-		var initialNotifications = new List<LightingEffectWatchNotification>();
-
-		lock (_lock)
-		{
-			foreach (var kvp in _lightingDevices)
-			{
-				if (kvp.Value.LightingDeviceInformation.UnifiedLightingZone is not null && _lightingZones.TryGetValue((kvp.Key, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId), out var state))
-				{
-					initialNotifications.Add(new(kvp.Value.DeviceInformation.Id, kvp.Value.LightingDeviceInformation.UnifiedLightingZone.ZoneId, state.SerializedCurrentEffect));
-				}
-				foreach (var zoneInformation in kvp.Value.LightingDeviceInformation.LightingZones)
-				{
-					if (_lightingZones.TryGetValue((kvp.Key, zoneInformation.ZoneId), out state))
-					{
-						initialNotifications.Add(new(kvp.Value.DeviceInformation.Id, zoneInformation.ZoneId, state.SerializedCurrentEffect));
-					}
-				}
-			}
-
-			ArrayExtensions.InterlockedAdd(ref _effectUpdated, onEffectUpdated);
+			ArrayExtensions.InterlockedAdd(ref _deviceListeners, writer);
 		}
 
 		try
@@ -334,7 +391,97 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _effectUpdated, onEffectUpdated);
+			ArrayExtensions.InterlockedRemove(ref _deviceListeners, writer);
+		}
+	}
+
+	public async IAsyncEnumerable<LightingEffectWatchNotification> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateChannel<LightingEffectWatchNotification>();
+		var reader = channel.Reader;
+		var writer = channel.Writer;
+
+		var initialNotifications = new List<LightingEffectWatchNotification>();
+
+		lock (_lock)
+		{
+			foreach (var deviceState in _lightingDeviceStates.Values)
+			{
+				var details = deviceState.DeviceDetails!;
+				var lightingZoneStates = deviceState.LightingZones;
+
+				if (details.LightingDeviceInformation.UnifiedLightingZone is not null && lightingZoneStates.TryGetValue(details.LightingDeviceInformation.UnifiedLightingZone.ZoneId, out var zoneState))
+				{
+					initialNotifications.Add(new(details.DeviceInformation.Id, details.LightingDeviceInformation.UnifiedLightingZone.ZoneId, zoneState.SerializedCurrentEffect));
+				}
+				foreach (var zoneInformation in details.LightingDeviceInformation.LightingZones)
+				{
+					if (lightingZoneStates.TryGetValue(zoneInformation.ZoneId, out zoneState))
+					{
+						initialNotifications.Add(new(details.DeviceInformation.Id, zoneInformation.ZoneId, zoneState.SerializedCurrentEffect));
+					}
+				}
+			}
+
+			ArrayExtensions.InterlockedAdd(ref _effectChangeListeners, writer);
+		}
+
+		try
+		{
+			foreach (var notification in initialNotifications)
+			{
+				yield return notification;
+			}
+			initialNotifications = null;
+
+			await foreach (var notification in reader.ReadAllAsync(cancellationToken))
+			{
+				yield return notification;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _effectChangeListeners, writer);
+		}
+	}
+
+	public async IAsyncEnumerable<LightingBrightnessWatchNotification> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateChannel<LightingBrightnessWatchNotification>();
+		var reader = channel.Reader;
+		var writer = channel.Writer;
+
+		var initialNotifications = new List<LightingBrightnessWatchNotification>();
+
+		lock (_lock)
+		{
+			foreach (var deviceState in _lightingDeviceStates.Values)
+			{
+				if (deviceState.Brightness is byte brightness)
+				{
+					initialNotifications.Add(new(deviceState.DeviceDetails!.DeviceInformation.Id, brightness));
+				}
+			}
+
+			ArrayExtensions.InterlockedAdd(ref _brightnessChangeListeners, writer);
+		}
+
+		try
+		{
+			foreach (var notification in initialNotifications)
+			{
+				yield return notification;
+			}
+			initialNotifications = null;
+
+			await foreach (var notification in reader.ReadAllAsync(cancellationToken))
+			{
+				yield return notification;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _brightnessChangeListeners, writer);
 		}
 	}
 
@@ -355,35 +502,43 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	private void SetEffectInternal<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
 		where TEffect : struct, ILightingEffect
 	{
-		if (!_lightingZones.TryGetValue((deviceId, zoneId), out var state) || state.LightingZone is not { } zone)
+		if (!_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
 		{
-			throw new InvalidOperationException($"Could not find the zone with ID {zoneId:B} on the specified device.");
+			throw new InvalidOperationException($"Could not find the specified device.");
 		}
 
-		SetEffect(zone, effect);
-
-		state.SerializedCurrentEffect = serializedEffect;
-
-		if (!isRestore)
+		lock (deviceState.Lock)
 		{
-			// We are really careful about the value of the delegate here, as sending a notification implies boxing.
-			// As such, it is best if we can avoid it.
-			// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
-			if (Volatile.Read(ref _effectUpdated) is not null)
+			if (!deviceState.LightingZones.TryGetValue(zoneId, out var zoneState))
 			{
-				// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
-				lock (_lock)
+				throw new InvalidOperationException($"Could not find the zone with ID {zoneId:B} on the specified device.");
+			}
+
+			if (zoneState.LightingZone is { } zone)
+			{
+				SetEffect(zone, effect);
+			}
+
+			zoneState.SerializedCurrentEffect = serializedEffect;
+
+			if (!isRestore)
+			{
+				// We are really careful about the value of the delegate here, as sending a notification implies boxing.
+				// As such, it is best if we can avoid it.
+				// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
+				if (Volatile.Read(ref _effectChangeListeners) is not null)
 				{
-					try
+					// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
+					lock (_lock)
 					{
-						if (_effectUpdated is { } onEffectUpdated)
+						try
 						{
-							onEffectUpdated.Invoke(new(deviceId, zoneId, serializedEffect));
+							_effectChangeListeners.TryWrite(new(deviceId, zoneId, serializedEffect));
 						}
-					}
-					catch
-					{
-						// TODO: Log
+						catch
+						{
+							// TODO: Log
+						}
 					}
 				}
 			}
@@ -401,16 +556,65 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 		zone.ApplyEffect(effect);
 	}
 
-	public async ValueTask ApplyChanges(Guid deviceId)
-	{
-		if (_lightingDevices.TryGetValue(deviceId, out var device))
-		{
-			var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)device.Driver;
+	public void SetBrightness(Guid deviceId, byte brightness) => SetBrightness(deviceId, brightness, false);
 
-			if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
+	private void SetBrightness(Guid deviceId, byte brightness, bool isRestore)
+	{
+		if (_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			lock (deviceState.Lock)
 			{
-				await dcf.ApplyChangesAsync().ConfigureAwait(false);
+				if (deviceState.Driver is null) return;
+
+				var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)deviceState.Driver;
+
+				if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } bf)
+				{
+					bf.CurrentBrightness = brightness;
+				}
+			}
+
+			if (!isRestore)
+			{
+				if (Volatile.Read(ref _brightnessChangeListeners) is not null)
+				{
+					// We probably strictly need this lock for consistency with the WatchBrightnessAsync setup.
+					lock (_lock)
+					{
+						try
+						{
+							_brightnessChangeListeners.TryWrite(new(deviceId, brightness));
+						}
+						catch
+						{
+							// TODO: Log
+						}
+					}
+				}
 			}
 		}
+	}
+
+	public ValueTask ApplyChanges(Guid deviceId)
+	{
+		ValueTask applyChangesTask = ValueTask.CompletedTask;
+
+		if (_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			lock (deviceState.Lock)
+			{
+				if (deviceState.Driver is null) goto Completed;
+
+				var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)deviceState.Driver;
+
+				if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
+				{
+					applyChangesTask = dcf.ApplyChangesAsync();
+				}
+			}
+		}
+
+	Completed:;
+		return applyChangesTask;
 	}
 }

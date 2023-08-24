@@ -26,7 +26,10 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 
 	public bool IsNotBusy => _busyZoneCount == 0;
 
-	public bool IsChanged => _changedZoneCount != 0;
+	public bool IsChanged => AreZonesChanged || IsBrightnessChanged;
+
+	private bool AreZonesChanged => _changedZoneCount != 0;
+	private bool IsBrightnessChanged => Brightness?.IsChanged == true;
 
 	public bool UseUnifiedLighting
 	{
@@ -61,6 +64,19 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 		{
 			BrightnessCapabilities = new(brightnessCapabilities);
 			Brightness = new(brightnessCapabilities);
+			Brightness.PropertyChanged += OnBrightnessPropertyChanged;
+		}
+		OnBrightnessUpdated();
+	}
+
+	private void OnBrightnessPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(LightingZoneViewModel.IsChanged))
+		{
+			if (!AreZonesChanged)
+			{
+				NotifyPropertyChanged(ChangedProperty.IsChanged);
+			}
 		}
 	}
 
@@ -68,14 +84,14 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 	{
 		if (e.PropertyName == nameof(LightingZoneViewModel.IsChanged))
 		{
-			if ((((LightingZoneViewModel)sender!).IsChanged ? _changedZoneCount++ : --_changedZoneCount) == 0)
+			if ((((LightingZoneViewModel)sender!).IsChanged ? _changedZoneCount++ : --_changedZoneCount) == 0 && !IsBrightnessChanged)
 			{
 				NotifyPropertyChanged(ChangedProperty.IsChanged);
 			}
 		}
 		else if (e.PropertyName == nameof(LightingZoneViewModel.IsNotBusy))
 		{
-			if ((((LightingZoneViewModel)sender!).IsNotBusy ? --_busyZoneCount : _busyZoneCount++) == 0)
+			if ((((LightingZoneViewModel)sender!).IsNotBusy ? --_busyZoneCount : _busyZoneCount++) == 0 && !IsBrightnessChanged)
 			{
 				NotifyPropertyChanged(ChangedProperty.IsNotBusy);
 			}
@@ -113,7 +129,16 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 			}
 			if (zoneEffects.Count > 0)
 			{
-				await LightingViewModel.LightingService.ApplyDeviceLightingChangesAsync(new() { DeviceId = Id, ZoneEffects = zoneEffects.DrainToImmutable() }, cancellationToken);
+				await LightingViewModel.LightingService.ApplyDeviceLightingChangesAsync
+				(
+					new()
+					{
+						DeviceId = Id,
+						BrightnessLevel = Brightness?.Level ?? 0,
+						ZoneEffects = zoneEffects.DrainToImmutable()
+					},
+					cancellationToken
+				);
 			}
 		}
 		catch
@@ -149,4 +174,12 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
 
 	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(Id, zoneId);
+
+	public void OnBrightnessUpdated()
+	{
+		if (Brightness is { } vm && LightingViewModel.GetBrightness(Id) is byte brightnessLevel)
+		{
+			vm.SetInitialBrightness(brightnessLevel);
+		}
+	}
 }

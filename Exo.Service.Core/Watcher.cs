@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
@@ -6,11 +7,21 @@ namespace Exo.Service;
 
 internal static class Watcher
 {
-	internal static readonly UnboundedChannelOptions WatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
+	private static readonly UnboundedChannelOptions SingleWriterWatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
+	private static readonly UnboundedChannelOptions MultiWriterWatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
+
+	public static Channel<T> CreateSingleWriterChannel<T>()
+		where T : notnull
+		=> Channel.CreateUnbounded<T>(SingleWriterWatchChannelOptions);
+
+	public static Channel<T> CreateChannel<T>()
+		where T : notnull
+		=> Channel.CreateUnbounded<T>(MultiWriterWatchChannelOptions);
 }
 
 public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 	where TKey : notnull
+	where TValue : notnull
 {
 	private readonly ConcurrentDictionary<TKey, TValue> _currentStates;
 	private ChannelWriter<TValue>[]? _changeListeners;
@@ -92,7 +103,7 @@ public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 		return false;
 	}
 
-	protected bool TryGetValue(TKey key, out TValue value)
+	protected bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		=> _currentStates.TryGetValue(key, out value);
 
 	protected bool Remove(TKey key)
@@ -117,7 +128,7 @@ public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 	{
 		ChannelReader<TValue> reader;
 
-		var channel = Channel.CreateUnbounded<TValue>(Watcher.WatchChannelOptions);
+		var channel = Watcher.CreateChannel<TValue>();
 		reader = channel.Reader;
 		var writer = channel.Writer;
 

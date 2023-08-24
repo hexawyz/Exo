@@ -70,24 +70,48 @@ internal class GrpcLightingService : ILightingService
 		}
 	}
 
-	public async ValueTask ApplyDeviceLightingChangesAsync(DeviceLightingUpdate effects, CancellationToken cancellationToken)
+	public async ValueTask ApplyDeviceLightingChangesAsync(DeviceLightingUpdate update, CancellationToken cancellationToken)
 	{
-		foreach (var ze in effects.ZoneEffects)
+		if (update.BrightnessLevel != 0)
 		{
-			EffectSerializer.DeserializeAndSet(_lightingService, effects.DeviceId, ze.ZoneId, ze.Effect!);
+			_lightingService.SetBrightness(update.DeviceId, update.BrightnessLevel);
 		}
 
-		await _lightingService.ApplyChanges(effects.DeviceId);
+		foreach (var ze in update.ZoneEffects)
+		{
+			EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+		}
+
+		await _lightingService.ApplyChanges(update.DeviceId);
 	}
 
-	public ValueTask ApplyMultiDeviceLightingChangesAsync(MultiDeviceLightingUpdates effects, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public async ValueTask ApplyMultiDeviceLightingChangesAsync(MultiDeviceLightingUpdates updates, CancellationToken cancellationToken)
+	{
+		foreach (var update in updates.DeviceUpdates)
+		{
+			if (update.BrightnessLevel != 0)
+			{
+				_lightingService.SetBrightness(update.DeviceId, update.BrightnessLevel);
+			}
+
+			foreach (var ze in update.ZoneEffects)
+			{
+				EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+			}
+		}
+
+		foreach (var update in updates.DeviceUpdates)
+		{
+			await _lightingService.ApplyChanges(update.DeviceId).ConfigureAwait(false);
+		}
+	}
 
 	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
 		=> new(EffectSerializer.GetEffectInformation(typeReference.TypeId));
 
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _lightingService.WatchEffectsAsync(cancellationToken))
+		await foreach (var notification in _lightingService.WatchEffectsAsync(cancellationToken).ConfigureAwait(false))
 		{
 			yield return new()
 			{
@@ -98,5 +122,15 @@ internal class GrpcLightingService : ILightingService
 		}
 	}
 
-	public IAsyncEnumerable<DeviceBrightnessLevel> WatchBrightnessAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+	public async IAsyncEnumerable<DeviceBrightnessLevel> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		await foreach (var notification in _lightingService.WatchBrightnessAsync(cancellationToken).ConfigureAwait(false))
+		{
+			yield return new()
+			{
+				DeviceId = notification.DeviceId,
+				BrightnessLevel = notification.BrightnessLevel,
+			};
+		}
+	}
 }
