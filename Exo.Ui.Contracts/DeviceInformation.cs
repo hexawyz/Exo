@@ -21,5 +21,5 @@ public sealed class DeviceInformation
 	public required string DriverTypeName { get; init; }
 
 	[DataMember(Order = 5)]
-	public required ImmutableArray<string> FeatureTypeNames { get; init; }
+	public required ImmutableArray<Guid> FeatureTypeNames { get; init; }
 }

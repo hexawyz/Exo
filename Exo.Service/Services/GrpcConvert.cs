@@ -1,11 +1,10 @@
-using System;
-using GrpcDeviceInformation = Exo.Ui.Contracts.DeviceInformation;
-using GrpcLightingZoneInformation = Exo.Ui.Contracts.LightingZoneInformation;
-using GrpcWatchNotificationKind = Exo.Ui.Contracts.WatchNotificationKind;
+using DeviceTools;
 using GrpcDeviceId = Exo.Ui.Contracts.DeviceId;
 using GrpcDeviceIdSource = Exo.Ui.Contracts.DeviceIdSource;
+using GrpcDeviceInformation = Exo.Ui.Contracts.DeviceInformation;
+using GrpcLightingZoneInformation = Exo.Ui.Contracts.LightingZoneInformation;
 using GrpcVendorIdSource = Exo.Ui.Contracts.VendorIdSource;
-using DeviceTools;
+using GrpcWatchNotificationKind = Exo.Ui.Contracts.WatchNotificationKind;
 
 namespace Exo.Service.Services;
 
@@ -18,7 +17,7 @@ internal static class GrpcConvert
 			FriendlyName = deviceInformation.FriendlyName,
 			Category = (Exo.Ui.Contracts.DeviceCategory)deviceInformation.Category,
 			DriverTypeName = deviceInformation.DriverType.ToString(),
-			FeatureTypeNames = Array.ConvertAll(deviceInformation.FeatureTypes, t => t.ToString()).AsImmutable(),
+			FeatureTypeNames = Array.ConvertAll(deviceInformation.FeatureTypes, FeatureCollection.GetGuid).AsImmutable(),
 		};
 
 	public static GrpcLightingZoneInformation ToGrpc(this LightingZoneInformation zoneInformation)

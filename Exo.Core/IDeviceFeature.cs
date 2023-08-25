@@ -1,6 +1,7 @@
 namespace Exo;
 
 /// <summary>Base interface used to tag all device-related features.</summary>
+[TypeId(0x7D989093, 0xB4F6, 0x4D41, 0x8E, 0xE8, 0x56, 0x5E, 0x37, 0xA4, 0x15, 0x37)]
 public interface IDeviceFeature
 {
 }

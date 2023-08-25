@@ -20,18 +20,22 @@ namespace Exo.Features;
 /// Given that most feature sets wouldn't intersect each other, we can expect the need for this to be quite niche. However, it exists.
 /// </para>
 /// </remarks>
+[TypeId(0x42DFB612, 0xBC98, 0x49E8, 0x85, 0xD4, 0xF4, 0xD7, 0x99, 0x79, 0x65, 0x05)]
 public interface ICompositeDeviceFeature : IDeviceFeature
 {
 }
 
+[TypeId(0x207EC5E4, 0x42DF, 0x4ACD, 0x8C, 0xA6, 0x05, 0xE4, 0xDF, 0xA3, 0x46, 0xAB)]
 public interface IKeyboardDeviceFeature : IDeviceFeature
 {
 }
 
+[TypeId(0xC3B7ED20, 0x9E91, 0x4BC9, 0xB8, 0x69, 0x1E, 0xEF, 0xE7, 0xBF, 0xAD, 0xC5)]
 public interface IMouseDeviceFeature : IDeviceFeature
 {
 }
 
+[TypeId(0x8B06210F, 0x8EDA, 0x483D, 0xB3, 0xBD, 0x30, 0xB5, 0xFA, 0xC7, 0x3E, 0x90)]
 public interface IMonitorDeviceFeature : IDeviceFeature
 {
 }
@@ -71,6 +75,7 @@ public interface IMonitorDeviceFeature : IDeviceFeature
 /// a specific <c>ApplyChanges</c> or <c>Flush</c> method implemented on the effect.
 /// </para>
 /// </remarks>
+[TypeId(0x71BBF8D6, 0x9BA0, 0x4A5E, 0x93, 0x08, 0x6C, 0xD5, 0x32, 0x66, 0x21, 0x81)]
 public interface ILightingDeviceFeature : IDeviceFeature
 {
 }
