@@ -1,3 +1,5 @@
+using Exo.Ui;
+
 namespace Exo.Settings.Ui.ViewModels;
 
 internal abstract class ChangeableBindableObject : BindableObject

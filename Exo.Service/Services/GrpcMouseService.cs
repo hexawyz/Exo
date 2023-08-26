@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Threading.Channels;
 using Exo.Ui.Contracts;
 
@@ -42,6 +43,17 @@ public class GrpcMouseService : IMouseService
 	//	}
 	//}
 
-	public IAsyncEnumerable<DpiChangeNotification> WatchDpiChangesAsync(CancellationToken cancellationToken)
-		=> _dpiWatcher.WatchAsync(cancellationToken);
+	public async IAsyncEnumerable<DpiChangeNotification> WatchDpiChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		await foreach (var notification in _dpiWatcher.WatchAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (notification.NotificationKind == WatchNotificationKind.Removal) continue;
+
+			yield return new()
+			{
+				DeviceId = notification.Key,
+				Dpi = new() { Horizontal = notification.NewValue.Horizontal, Vertical = notification.NewValue.Vertical }
+			};
+		}
+	}
 }

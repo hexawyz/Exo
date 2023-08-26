@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Exo.Ui;
 using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;

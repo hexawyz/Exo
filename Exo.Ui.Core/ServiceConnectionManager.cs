@@ -1,18 +1,10 @@
-using System;
-using System.IO;
 using System.IO.Pipes;
-using System.Net.Http;
 using System.Security.Principal;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Net.Client;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace Exo.Ui;
 
-namespace Exo.Settings.Ui;
-
-internal sealed class ServiceConnectionManager : IDisposable
+public sealed class ServiceConnectionManager : IDisposable
 {
 	private readonly string _pipeName;
 	private readonly SocketsHttpHandler _handler;

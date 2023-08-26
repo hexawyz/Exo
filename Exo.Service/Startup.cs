@@ -40,8 +40,13 @@ public class Startup
 		services.AddSingleton<DriverRegistry>();
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DriverRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DriverRegistry>());
+		services.AddSingleton<BatteryWatcher>();
+		services.AddSingleton<DpiWatcher>();
 		services.AddSingleton<LightingService>();
+		services.AddSingleton<BatteryService>();
+		services.AddSingleton<OverlayNotificationService>();
 		services.AddSingleton<ISystemDeviceDriverRegistry, SystemDeviceDriverRegistry>();
+		// NB: This will be refactored at some point, but this should probably not be a Hosted Service ?
 		services.AddHostedService<HidDeviceManager>
 		(
 			sp =>
@@ -58,6 +63,7 @@ public class Startup
 				);
 			}
 		);
+		services.AddHostedService<CoreServices>();
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcMouseService>();
@@ -83,12 +89,14 @@ public class Startup
 		app.UseAuthorization();
 
 		var settingsEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Configuration");
+		var overlayEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Overlay");
 
 		app.UseEndpoints(endpoints =>
 		{
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapRazorPages();
 		});
 	}

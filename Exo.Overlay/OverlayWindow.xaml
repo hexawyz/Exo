@@ -1,0 +1,50 @@
+<Window x:Class="Exo.Overlay.OverlayWindow"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:Exo.Overlay"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=local:OverlayViewModel, IsDesignTimeCreatable=False}"
+    Title="Exo"
+    Height="200"
+    Width="200"
+    AllowsTransparency="True"
+    WindowStyle="None"
+    Background="Transparent"
+    IsHitTestVisible="False"
+    ShowInTaskbar="False"
+    Focusable="False"
+    ShowActivated="False"
+    Topmost="True"
+    Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityHiddenConverter}, Mode=TwoWay}">
+    <Window.Resources>
+        <sys:Double x:Key="Radius">10</sys:Double>
+        <GridLength x:Key="RadiusGridLength">10</GridLength>
+        <GridLength x:Key="IconSize">160</GridLength>
+        <SolidColorBrush x:Key="OverlayBackground">Black</SolidColorBrush>
+        <SolidColorBrush x:Key="OverlayForeground">White</SolidColorBrush>
+    </Window.Resources>
+    <Grid Opacity="0.75" IsHitTestVisible="False" Focusable="False">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource RadiusGridLength}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource IconSize}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource RadiusGridLength}" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="{StaticResource RadiusGridLength}" />
+            <RowDefinition Height="{StaticResource IconSize}" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="{StaticResource RadiusGridLength}" />
+        </Grid.RowDefinitions>
+        <Rectangle Grid.ColumnSpan="5" Grid.RowSpan="4" IsHitTestVisible="False" Focusable="False" RadiusX="{StaticResource Radius}" RadiusY="{StaticResource Radius}" Fill="{StaticResource OverlayBackground}" />
+        <Viewbox Grid.Column="2" Grid.Row="1" IsHitTestVisible="False" Focusable="False">
+            <TextBlock Foreground="{StaticResource OverlayForeground}" FontFamily="Segoe Fluent Icons" Text="{Binding Glyph}" />
+        </Viewbox>
+        <TextBlock Grid.Column="2" Grid.Row="2" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource OverlayForeground}" Text="{Binding Description}" />
+    </Grid>
+</Window>

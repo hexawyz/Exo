@@ -1,9 +1,8 @@
-﻿using Exo.Features;
-using Exo.Ui.Contracts;
+using Exo.Features;
 
-namespace Exo.Service.Services;
+namespace Exo.Service;
 
-internal sealed class BatteryWatcher : Watcher<Guid, BatteryChangeNotification>
+public sealed class BatteryWatcher : Watcher<Guid, BatteryState>
 {
 	private readonly DriverRegistry _driverRegistry;
 
@@ -18,17 +17,9 @@ internal sealed class BatteryWatcher : Watcher<Guid, BatteryChangeNotification>
 		{
 			// The update must be ignored if _currentBatteryLevels does not contain the ID.
 			// This avoids having to acquire the lock here.
-			if (_driverRegistry.TryGetDeviceId(driver, out var deviceId) && TryGetValue(deviceId, out var oldNotification))
+			if (_driverRegistry.TryGetDeviceId(driver, out var deviceId) && TryGetValue(deviceId, out var oldState))
 			{
-				var notification = new BatteryChangeNotification
-				{
-					DeviceId = deviceId,
-					Level = state.Level,
-					BatteryStatus = (Ui.Contracts.BatteryStatus)state.BatteryStatus,
-					ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)state.ExternalPowerStatus
-				};
-
-				TryUpdate(deviceId, notification, oldNotification);
+				TryUpdate(deviceId, state, oldState);
 			}
 		};
 
@@ -44,15 +35,7 @@ internal sealed class BatteryWatcher : Watcher<Guid, BatteryChangeNotification>
 
 					if (notification.Driver!.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
 					{
-						var state = batteryStateFeature.BatteryState;
-						var batteryNotification = new BatteryChangeNotification
-						{
-							DeviceId = deviceId,
-							Level = state.Level,
-							BatteryStatus = (Ui.Contracts.BatteryStatus)state.BatteryStatus,
-							ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)state.ExternalPowerStatus
-						};
-						if (Add(deviceId, batteryNotification))
+						if (Add(deviceId, batteryStateFeature.BatteryState))
 						{
 							batteryStateFeature.BatteryStateChanged += onBatteryStateChanged;
 						}
@@ -66,7 +49,7 @@ internal sealed class BatteryWatcher : Watcher<Guid, BatteryChangeNotification>
 			case WatchNotificationKind.Removal:
 				try
 				{
-					if (Remove(notification.DeviceInformation.Id) &&
+					if (Remove(notification.DeviceInformation.Id, out var v) &&
 						notification.Driver!.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
 					{
 						batteryStateFeature.BatteryStateChanged -= onBatteryStateChanged;

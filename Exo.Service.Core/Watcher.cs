@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Exo.Features;
 
 namespace Exo.Service;
 
@@ -19,12 +20,29 @@ internal static class Watcher
 		=> Channel.CreateUnbounded<T>(MultiWriterWatchChannelOptions);
 }
 
-public abstract class Watcher<TKey, TValue> : IAsyncDisposable
+// Maybe we don't need the variability on the TResult parameter and could merge this back with the base implementation.
+public abstract class Watcher<TKey, TValue> : Watcher<TKey, TValue, ChangeWatchNotification<TKey, TValue>>
 	where TKey : notnull
-	where TValue : notnull
+{
+	protected override ChangeWatchNotification<TKey, TValue> CreateEnumerationResult(TKey key, TValue value)
+		=> new(WatchNotificationKind.Enumeration, key, value, default);
+
+	protected override ChangeWatchNotification<TKey, TValue> CreateAddResult(TKey key, TValue value)
+		=> new(WatchNotificationKind.Addition, key, value, default);
+
+	protected override ChangeWatchNotification<TKey, TValue> CreateRemoveResult(TKey key, TValue value)
+		=> new(WatchNotificationKind.Removal, key, default, value);
+
+	protected override ChangeWatchNotification<TKey, TValue> CreateUpdateResult(TKey key, TValue newValue, TValue oldValue)
+		=> new(WatchNotificationKind.Update, key, newValue, oldValue);
+}
+
+public abstract class Watcher<TKey, TValue, TResult> : IAsyncDisposable
+	where TKey : notnull
+	where TResult : notnull
 {
 	private readonly ConcurrentDictionary<TKey, TValue> _currentStates;
-	private ChannelWriter<TValue>[]? _changeListeners;
+	private ChannelWriter<TResult>[]? _changeListeners;
 	private object? _lock;
 	private TaskCompletionSource<CancellationToken> _startRunTaskCompletionSource;
 	private CancellationTokenSource? _currentRunCancellationTokenSource;
@@ -90,13 +108,21 @@ public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 
 	protected abstract Task WatchAsyncCore(CancellationToken cancellationToken);
 
+	protected abstract TResult CreateEnumerationResult(TKey key, TValue value);
+
+	protected abstract TResult CreateAddResult(TKey key, TValue value);
+
+	protected abstract TResult CreateRemoveResult(TKey key, TValue value);
+
+	protected abstract TResult CreateUpdateResult(TKey key, TValue newValue, TValue oldValue);
+
 	protected bool Add(TKey key, TValue value)
 	{
 		lock (_lock!)
 		{
 			if (_currentStates.TryAdd(key, value))
 			{
-				_changeListeners.TryWrite(value);
+				_changeListeners.TryWrite(CreateAddResult(key, value));
 				return true;
 			}
 		}
@@ -106,11 +132,16 @@ public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 	protected bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		=> _currentStates.TryGetValue(key, out value);
 
-	protected bool Remove(TKey key)
+	protected bool Remove(TKey key, [MaybeNullWhen(false)] out TValue value)
 	{
 		lock (_lock!)
 		{
-			return _currentStates.TryRemove(key, out _);
+			if (_currentStates.TryRemove(key, out value))
+			{
+				Volatile.Read(ref _changeListeners).TryWrite(CreateRemoveResult(key, value));
+				return true;
+			}
+			return false;
 		}
 	}
 
@@ -118,27 +149,23 @@ public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 	{
 		if (_currentStates.TryUpdate(key, newValue, comparisonValue))
 		{
-			Volatile.Read(ref _changeListeners).TryWrite(newValue);
+			Volatile.Read(ref _changeListeners).TryWrite(CreateUpdateResult(key, newValue, comparisonValue));
 			return true;
 		}
 		return false;
 	}
 
-	public async IAsyncEnumerable<TValue> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<TResult> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		ChannelReader<TValue> reader;
+		var channel = Watcher.CreateChannel<TResult>();
 
-		var channel = Watcher.CreateChannel<TValue>();
-		reader = channel.Reader;
-		var writer = channel.Writer;
-
-		TValue[]? initialValues;
+		KeyValuePair<TKey, TValue>[]? initialValues;
 		var @lock = Lock;
 		lock (@lock)
 		{
-			initialValues = _currentStates.Values.ToArray();
+			initialValues = _currentStates.ToArray();
 
-			ArrayExtensions.InterlockedAdd(ref _changeListeners, writer);
+			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
 
 			if (_watcherCount == 0)
 			{
@@ -153,18 +180,18 @@ public abstract class Watcher<TKey, TValue> : IAsyncDisposable
 			// Publish the initial battery levels.
 			foreach (var state in initialValues)
 			{
-				yield return state;
+				yield return CreateEnumerationResult(state.Key, state.Value);
 			}
 			initialValues = null;
 
-			await foreach (var state in reader.ReadAllAsync(cancellationToken))
+			await foreach (var state in channel.Reader.ReadAllAsync(cancellationToken))
 			{
 				yield return state;
 			}
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _changeListeners, writer);
+			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
 
 			lock (@lock)
 			{

@@ -1,9 +1,7 @@
 using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Hosting;
 using Serilog;
 
 namespace Exo.Service;
@@ -34,7 +32,14 @@ public class Program
 							o.PipeSecurity = pipeSecurity;
 						}
 					)
-					.ConfigureKestrel(o => o.ListenNamedPipe(@"Local\Exo.Service.Configuration", listenOptions => listenOptions.Protocols = HttpProtocols.Http2))
+					.ConfigureKestrel
+					(
+						o =>
+						{
+							o.ListenNamedPipe(@"Local\Exo.Service.Configuration", listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
+							o.ListenNamedPipe(@"Local\Exo.Service.Overlay", listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
+						}
+					)
 			)
 			.UseSerilog((ctx, logger) => logger.ReadFrom.Configuration(ctx.Configuration));
 }

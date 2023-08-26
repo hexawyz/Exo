@@ -249,6 +249,22 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	public bool TryGetDriver(Guid deviceId, [NotNullWhen(true)] out Driver? driver)
 		=> _driversByUniqueId.TryGetValue(deviceId, out driver);
 
+	// TODO: This should be improved to get direct access to device information.
+	// This will be done as part of the refactoring to make device state persisted and permanent. (So that disconnected devices can be reported)
+	public bool TryGetDeviceName(Guid deviceId, [NotNullWhen(true)] out string? deviceName)
+	{
+		if (_driversByUniqueId.TryGetValue(deviceId, out var driver) && _deviceInformationsByDriver.TryGetValue(driver, out var info))
+		{
+			deviceName = info.FriendlyName;
+			return true;
+		}
+		else
+		{
+			deviceName = null;
+			return false;
+		}
+	}
+
 	public bool TryGetDeviceId(Driver driver, [NotNullWhen(true)] out Guid deviceId)
 	{
 		if (_deviceInformationsByDriver.TryGetValue(driver, out var info))

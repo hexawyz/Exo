@@ -51,6 +51,19 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 		return new(new ExtendedDeviceInformation { DeviceId = deviceId, SerialNumber = serialNumber, HasBatteryState = hasBatteryState });
 	}
 
-	public IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync(CancellationToken cancellationToken)
-		=> _batteryWatcher.WatchAsync(cancellationToken);
+	public async IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		await foreach (var notification in _batteryWatcher.WatchAsync(cancellationToken))
+		{
+			if (notification.NotificationKind == WatchNotificationKind.Removal) continue;
+
+			yield return new()
+			{
+				DeviceId = notification.Key,
+				Level = notification.NewValue.Level,
+				BatteryStatus = (Ui.Contracts.BatteryStatus)notification.NewValue.BatteryStatus,
+				ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)notification.NewValue.ExternalPowerStatus
+			};
+		}
+	}
 }
