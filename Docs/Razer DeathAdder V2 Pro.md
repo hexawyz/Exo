@@ -472,25 +472,13 @@ It ignores the current effect and overrides it.
 
 ###### 04 - Brightness
 
-Read Request:
-
-```
-<Persist?:U8>
-```
-
-Read Response:
-
-```
-<Persist?:U8> <Zero:U8> <Brightness:P8>
-```
-
 Write:
 
 ```
 <Persist?:U8> <Zero:U8> <Brightness:P8>
 ```
 
-This commands reads or writes the lighting level used for all lighting on the device.
+This writes the lighting level used for all lighting on the device. (Reading doesn't seem to work)
 I'm assuming the first byte is a persistance flag similar to setting the color effect, but it needs to be verified.
 
 ## Requests sent to devices when the service is starting
