@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
 using DeviceTools.DisplayDevices.Configuration;
 
 namespace DeviceTools.DisplayDevices
@@ -11,12 +12,23 @@ namespace DeviceTools.DisplayDevices
 	internal static partial class NativeMethods
 	{
 		public const int ErrorInsufficientBuffer = 122;
+		public const int ErrorInvalidParameter = 0x57;
+
+		// HRESULT version of ErrorInvalidParameter
+		public const uint ErrorInvalidArgument = 0x80070057;
 
 		public const uint DisplayConfigPathModeIndexInvalid = 0xffffffff;
 		public const ushort DisplayConfigPathTargetModeIndexInvalid = 0xffff;
 		public const ushort DisplayConfigPathDesktopImageIndexInvalid = 0xffff;
 		public const ushort DisplayConfigPathSourceModeIndexInvalid = 0xffff;
 		public const ushort DisplayConfigPathCloneGroupInvalid = 0xffff;
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct Point
+		{
+			public int X;
+			public int Y;
+		}
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Rectangle
@@ -42,6 +54,20 @@ namespace DeviceTools.DisplayDevices
 		{
 			None = 0,
 			Primary = 1,
+		}
+
+		public enum MonitorFromPointFlags
+		{
+			DefaultToNull = 0,
+			DefaultToPrimary = 1,
+			DefaultToNearest = 2,
+		}
+
+		public enum MonitorDpiType
+		{
+			EffectiveDpi = 0,
+			AngularDpi = 1,
+			RawDpi = 2,
 		}
 
 		public struct DisplayDevice
@@ -227,22 +253,6 @@ namespace DeviceTools.DisplayDevices
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
-		public struct Point
-		{
-			public int X;
-			public int Y;
-		}
-
-		[StructLayout(LayoutKind.Sequential)]
-		public struct Rect
-		{
-			public int Left;
-			public int Top;
-			public int Right;
-			public int Bottom;
-		}
-
-		[StructLayout(LayoutKind.Sequential)]
 		public struct DisplayConfig2DRegion
 		{
 			public uint Cx;
@@ -308,8 +318,8 @@ namespace DeviceTools.DisplayDevices
 		public struct DisplayConfigDesktopImageInfo
 		{
 			public Point PathSourceSize;
-			public Rect DesktopImageRegion;
-			public Rect DesktopImageClip;
+			public Rectangle DesktopImageRegion;
+			public Rectangle DesktopImageClip;
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
@@ -371,6 +381,12 @@ namespace DeviceTools.DisplayDevices
 
 		[DllImport("User32", EntryPoint = "GetMonitorInfoW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern unsafe uint GetMonitorInfo(IntPtr monitor, ref LogicalMonitorInfoEx monitorInfo);
+
+		[DllImport("User32", EntryPoint = "MonitorFromPoint", ExactSpelling = true, SetLastError = true)]
+		public static extern IntPtr MonitorFromPoint(Point point, MonitorFromPointFlags flags);
+
+		[DllImport("Shcore", EntryPoint = "GetDpiForMonitor", ExactSpelling = true, SetLastError = true)]
+		public static extern unsafe uint GetDpiForMonitor(IntPtr monitor, MonitorDpiType dpiType, uint* dpiX, uint* dpiY);
 
 		[DllImport("Dxva2", ExactSpelling = true, SetLastError = true)]
 		public static extern uint GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr monitorHandle, out uint numberOfPhysicalMonitors);

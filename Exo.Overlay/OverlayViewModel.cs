@@ -136,7 +136,7 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 				}
 				// TODO: Handle notification override => Push to a channel and handle the timer dynamically.
 				IsVisible = true;
-				await Task.Delay(2_000);
+				await Task.Delay(3_000);
 				IsVisible = false;
 			}
 		}

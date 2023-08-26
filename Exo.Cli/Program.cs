@@ -31,7 +31,7 @@ namespace Exo.Cli
 				for (currentPathIndex = 0; currentPathIndex < displayConfiguration.Paths.Count; currentPathIndex++)
 				{
 					var path = displayConfiguration.Paths[currentPathIndex];
-					if (path.SourceInfo.GetDeviceName() == logicalMonitor.Name)
+					if (path.SourceInfo.GetDeviceName() == logicalMonitor.GetMonitorInformation().DeviceName)
 					{
 						foundSource = path.SourceInfo;
 
