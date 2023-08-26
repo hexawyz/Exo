@@ -7,7 +7,7 @@
     xmlns:local="clr-namespace:Exo.Overlay"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance Type=local:OverlayViewModel, IsDesignTimeCreatable=False}"
+    d:DataContext="{d:DesignInstance Type=local:OverlayTestViewModel, IsDesignTimeCreatable=True}"
     Title="Exo"
     Height="200"
     Width="200"
@@ -23,11 +23,12 @@
     <Window.Resources>
         <sys:Double x:Key="Radius">10</sys:Double>
         <GridLength x:Key="RadiusGridLength">10</GridLength>
-        <GridLength x:Key="IconSize">160</GridLength>
+        <GridLength x:Key="IconSize">140</GridLength>
         <SolidColorBrush x:Key="OverlayBackground">Black</SolidColorBrush>
+        <SolidColorBrush x:Key="OverlayInactiveForeground">Gray</SolidColorBrush>
         <SolidColorBrush x:Key="OverlayForeground">White</SolidColorBrush>
     </Window.Resources>
-    <Grid Opacity="0.75" IsHitTestVisible="False" Focusable="False">
+    <Grid Opacity="0.75" IsHitTestVisible="False" Focusable="False" DataContext="{Binding Content}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="{StaticResource RadiusGridLength}" />
             <ColumnDefinition Width="*" />
@@ -39,12 +40,28 @@
             <RowDefinition Height="{StaticResource RadiusGridLength}" />
             <RowDefinition Height="{StaticResource IconSize}" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="{StaticResource RadiusGridLength}" />
         </Grid.RowDefinitions>
-        <Rectangle Grid.ColumnSpan="5" Grid.RowSpan="4" IsHitTestVisible="False" Focusable="False" RadiusX="{StaticResource Radius}" RadiusY="{StaticResource Radius}" Fill="{StaticResource OverlayBackground}" />
+        <Rectangle
+            Grid.ColumnSpan="5"
+            Grid.RowSpan="5"
+            IsHitTestVisible="False"
+            Focusable="False"
+            RadiusX="{StaticResource Radius}"
+            RadiusY="{StaticResource Radius}"
+            Fill="{StaticResource OverlayBackground}" />
         <Viewbox Grid.Column="2" Grid.Row="1" IsHitTestVisible="False" Focusable="False">
             <TextBlock Foreground="{StaticResource OverlayForeground}" FontFamily="Segoe Fluent Icons" Text="{Binding Glyph}" />
         </Viewbox>
-        <TextBlock Grid.Column="2" Grid.Row="2" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource OverlayForeground}" Text="{Binding Description}" />
+        <local:LevelBar
+            Grid.Column="2"
+            Grid.Row="2"
+            Margin="0, 5, 0, 5"
+            ActiveFill="{StaticResource OverlayForeground}"
+            InactiveFill="{StaticResource OverlayInactiveForeground}"
+            Value="{Binding CurrentLevel, Mode=OneWay}"
+            Maximum="{Binding LevelCount, Mode=OneWay}"></local:LevelBar>
+        <TextBlock Grid.Column="2" Grid.Row="3" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource OverlayForeground}" Text="{Binding Description}" />
     </Grid>
 </Window>

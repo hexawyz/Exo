@@ -90,46 +90,36 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 				case OverlayNotificationKind.ScrollLockOn:
 					break;
 				case OverlayNotificationKind.FnLockOff:
-					Glyph = "\uE785";
-					Description = request.DeviceName;
+					Content = new("\uE785", request.DeviceName);
 					break;
 				case OverlayNotificationKind.FnLockOn:
-					Glyph = "\uE72E";
-					Description = request.DeviceName;
+					Content = new("\uE72E", request.DeviceName);
 					break;
 				case OverlayNotificationKind.MonitorBrightnessDown:
-					Glyph = "\uEC8A";
-					Description = request.DeviceName;
+					Content = new("\uEC8A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.MonitorBrightnessUp:
-					Glyph = "\uE706";
-					Description = request.DeviceName;
+					Content = new("\uE706", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.KeyboardBacklightDown:
-					Glyph = "\uED3A";
-					Description = request.DeviceName;
+					Content = new("\uED3A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.KeyboardBacklightUp:
-					Glyph = "\uED39";
-					Description = request.DeviceName;
+					Content = new("\uED39", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.BatteryLow:
-					Glyph = GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1);
-					Description = request.DeviceName;
+					Content = new(GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryFullyCharged:
-					Glyph = BatteryChargingGlyphs[10];
-					Description = request.DeviceName;
+					Content = new(BatteryChargingGlyphs[10], request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerDisconnected:
 					// TODO: Better glyph when charge status is unknown.
-					Glyph = request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F";
-					Description = request.DeviceName;
+					Content = new(request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerConnected:
 					// TODO: Change the unknown level glyph to be coherent with the disconnected status.
-					Glyph = request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\U0001F50C\uFE0F";
-					Description = request.DeviceName;
+					Content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\U0001F50C\uFE0F", request.DeviceName);
 					break;
 				default:
 					continue;
@@ -145,18 +135,11 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 		}
 	}
 
-	private string? _glyph;
-	public string? Glyph
+	private OverlayContentViewModel? _content;
+	public OverlayContentViewModel? Content
 	{
-		get => _glyph;
-		set => SetValue(ref _glyph, value, ChangedProperty.Glyph);
-	}
-
-	private string? _description;
-	public string? Description
-	{
-		get => _description;
-		set => SetValue(ref _description, value, ChangedProperty.Description);
+		get => _content;
+		set => SetValue(ref _content, value, ChangedProperty.Content);
 	}
 
 	private bool _isVisible;
