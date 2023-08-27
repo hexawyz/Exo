@@ -88,7 +88,10 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 				case OverlayNotificationKind.Custom:
 					break;
 				case OverlayNotificationKind.CapsLockOff:
+					content = new("\uE84A", request.DeviceName);
+					break;
 				case OverlayNotificationKind.CapsLockOn:
+					content = new("\uE84B", request.DeviceName);
 					break;
 				case OverlayNotificationKind.NumLockOff:
 				case OverlayNotificationKind.NumLockOn:

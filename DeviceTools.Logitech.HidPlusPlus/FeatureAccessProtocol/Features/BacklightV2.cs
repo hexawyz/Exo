@@ -12,7 +12,7 @@ public static class BacklightV2
 		public const byte FunctionId = 0;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
-		public struct Response : IMessageResponseParameters, IShortMessageParameters
+		public struct Response : IMessageResponseParameters, ILongMessageParameters
 		{
 			private byte _backlightEnable;
 

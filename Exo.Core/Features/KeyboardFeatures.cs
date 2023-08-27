@@ -2,6 +2,11 @@ namespace Exo.Features.KeyboardFeatures;
 
 public interface IKeyboardLockKeysFeature : IKeyboardDeviceFeature
 {
+	/// <summary>This event is raised when the locked keys have changed.</summary>
+	event Action<Driver, LockKeys> LockedKeysChanged;
+
+	/// <summary>Gets the current locked keys.</summary>
+	LockKeys LockedKeys { get; }
 }
 
 public interface IKeyboardBacklightFeature : IKeyboardDeviceFeature

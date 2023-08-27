@@ -1,20 +1,20 @@
-using Exo.Features;
+﻿using Exo.Features;
 using Exo.Features.KeyboardFeatures;
 
 namespace Exo.Service;
 
-public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
+public sealed class LockedKeysWatcher : Watcher<Guid, LockKeys>
 {
 	private readonly DriverRegistry _driverRegistry;
 
-	public BacklightWatcher(DriverRegistry driverRegistry)
+	public LockedKeysWatcher(DriverRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 	}
 
 	protected override async Task WatchAsyncCore(CancellationToken cancellationToken)
 	{
-		Action<Driver, BacklightState> onBacklightStateChanged = (driver, state) =>
+		Action<Driver, LockKeys> onLockedKeysChanged = (driver, state) =>
 		{
 			if (_driverRegistry.TryGetDeviceId(driver, out var deviceId) && TryGetValue(deviceId, out var oldState))
 			{
@@ -32,11 +32,11 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					if (((IDeviceDriver< IKeyboardDeviceFeature>)notification.Driver!).Features.GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
+					if (((IDeviceDriver<IKeyboardDeviceFeature>)notification.Driver!).Features.GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
 					{
-						if (Add(deviceId, backlightFeature.BacklightState))
+						if (Add(deviceId, lockKeysFeature.LockedKeys))
 						{
-							backlightFeature.BacklightStateChanged += onBacklightStateChanged;
+							lockKeysFeature.LockedKeysChanged += onLockedKeysChanged;
 						}
 					}
 				}
@@ -49,9 +49,9 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 				try
 				{
 					if (Remove(notification.DeviceInformation.Id, out var v) &&
-						((IDeviceDriver<IKeyboardDeviceFeature>)notification.Driver!).Features.GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
+						((IDeviceDriver<IKeyboardDeviceFeature>)notification.Driver!).Features.GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
 					{
-						backlightFeature.BacklightStateChanged -= onBacklightStateChanged;
+						lockKeysFeature.LockedKeysChanged -= onLockedKeysChanged;
 					}
 				}
 				catch (Exception ex)

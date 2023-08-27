@@ -5,6 +5,7 @@ using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
 using Exo.Features;
 using Exo.Features.KeyboardFeatures;
+using static DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features.BacklightV2;
 using BacklightState = Exo.Features.KeyboardFeatures.BacklightState;
 using FeatureAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.DeviceType;
 using RegisterAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.DeviceType;
@@ -425,20 +426,16 @@ public abstract class LogitechUniversalDriver : Driver,
 		}
 	}
 
-	private abstract class FeatureAccess : LogitechUniversalDriver, IBatteryStateDeviceFeature, IKeyboardBacklightFeature
+	private abstract class FeatureAccess : LogitechUniversalDriver, IBatteryStateDeviceFeature, IKeyboardBacklightFeature, IKeyboardLockKeysFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 			: base(device, configurationKey, deviceIdSource, versionNumber)
 		{
-			if (HasBattery)
-			{
-				device.BatteryChargeStateChanged += OnBatteryChargeStateChanged;
-			}
+			if (HasBattery) device.BatteryChargeStateChanged += OnBatteryChargeStateChanged;
 
-			if (HasBacklight)
-			{
-				device.BacklightStateChanged += OnBacklightStateChanged;
-			}
+			if (HasBacklight) device.BacklightStateChanged += OnBacklightStateChanged;
+
+			if (HasLockKeys) device.LockKeysChanged += OnLockKeysChanged;
 		}
 
 		public override ValueTask DisposeAsync()
@@ -495,6 +492,27 @@ public abstract class LogitechUniversalDriver : Driver,
 			}
 		}
 
+		private void OnLockKeysChanged(HidPlusPlusDevice.FeatureAccess device, DeviceTools.Logitech.HidPlusPlus.LockKeys lockKeys)
+		{
+			if (LockKeysChanged is { } lockKeysChanged)
+			{
+				_ = Task.Run
+				(
+					() =>
+					{
+						try
+						{
+							lockKeysChanged.Invoke(this, (LockKeys)(byte)lockKeys);
+						}
+						catch (Exception ex)
+						{
+							// TODO: Log
+						}
+					}
+				);
+			}
+		}
+
 		private void OnBacklightStateChanged(HidPlusPlusDevice.FeatureAccess device, DeviceTools.Logitech.HidPlusPlus.BacklightState backlightState)
 		{
 			if (BacklightStateChanged is { } backlightStateChanged)
@@ -522,8 +540,11 @@ public abstract class LogitechUniversalDriver : Driver,
 
 		protected bool HasBacklight => Device.HasBacklight;
 
+		protected bool HasLockKeys => Device.HasLockKeys;
+
 		private event Action<Driver, BatteryState>? BatteryStateChanged;
 		private event Action<Driver, BacklightState>? BacklightStateChanged;
+		private event Action<Driver, LockKeys>? LockKeysChanged;
 
 		event Action<Driver, BatteryState> IBatteryStateDeviceFeature.BatteryStateChanged
 		{
@@ -540,6 +561,14 @@ public abstract class LogitechUniversalDriver : Driver,
 		}
 
 		BacklightState IKeyboardBacklightFeature.BacklightState => BuildBacklightState(Device.BacklightState);
+
+		event Action<Driver, LockKeys> IKeyboardLockKeysFeature.LockedKeysChanged
+		{
+			add => LockKeysChanged += value;
+			remove => LockKeysChanged -= value;
+		}
+
+		LockKeys IKeyboardLockKeysFeature.LockedKeys => (LockKeys)(byte)Device.LockKeys;
 	}
 
 	private abstract class RegisterAccessDirect : RegisterAccess
@@ -701,9 +730,13 @@ public abstract class LogitechUniversalDriver : Driver,
 			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_keyboardFeatures = HasBacklight ?
-					FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardBacklightFeature>(this) :
-					FeatureCollection.Empty<IKeyboardDeviceFeature>();
+				_keyboardFeatures = HasLockKeys ?
+					HasBacklight ?
+						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardLockKeysFeature, IKeyboardBacklightFeature>(this) :
+						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardLockKeysFeature>(this) :
+					HasBacklight ?
+						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardBacklightFeature>(this) :
+						FeatureCollection.Empty<IKeyboardDeviceFeature>();
 
 				var baseFeatures = HasSerialNumber ?
 					HasBattery ?
@@ -773,9 +806,13 @@ public abstract class LogitechUniversalDriver : Driver,
 			public FeatureAccessThroughReceiverKeyboard(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_keyboardFeatures = HasBacklight ?
-					FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardBacklightFeature>(this) :
-					FeatureCollection.Empty<IKeyboardDeviceFeature>();
+				_keyboardFeatures = HasLockKeys ?
+					HasBacklight ?
+						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardLockKeysFeature, IKeyboardBacklightFeature>(this) :
+						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardLockKeysFeature>(this) :
+					HasBacklight ?
+						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardBacklightFeature>(this) :
+						FeatureCollection.Empty<IKeyboardDeviceFeature>();
 
 				var baseFeatures = HasSerialNumber ?
 					HasBattery ?

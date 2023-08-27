@@ -202,7 +202,7 @@ public abstract partial class HidPlusPlusDevice
 				if (newBatteryLevelAndStatus != oldBatteryLevelAndStatus)
 				{
 					var device = Device;
-					if (Device.BatteryChargeStateChanged is { } batteryChargeStateChanged)
+					if (device.BatteryChargeStateChanged is { } batteryChargeStateChanged)
 					{
 						_ = Task.Run(() => batteryChargeStateChanged.Invoke(device, GetBatteryPowerState(newBatteryLevelAndStatus)));
 					}
@@ -336,7 +336,7 @@ public abstract partial class HidPlusPlusDevice
 				if (newBatteryLevelAndStatus != oldBatteryLevelAndStatus)
 				{
 					var device = Device;
-					if (Device.BatteryChargeStateChanged is { } batteryChargeStateChanged)
+					if (device.BatteryChargeStateChanged is { } batteryChargeStateChanged)
 					{
 						_ = Task.Run(() => batteryChargeStateChanged.Invoke(device, GetBatteryPowerState(newBatteryLevelAndStatus)));
 					}
@@ -418,13 +418,16 @@ public abstract partial class HidPlusPlusDevice
 
 			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 			{
-				var backlightInfo = await Device.SendWithRetryAsync<BacklightV2.GetBacklightInfo.Response>(FeatureIndex, 0, retryCount, cancellationToken).ConfigureAwait(false);
+				var backlightInfo = await Device
+					.SendWithRetryAsync<BacklightV2.GetBacklightInfo.Response>(FeatureIndex, BacklightV2.GetBacklightInfo.FunctionId, retryCount, cancellationToken)
+					.ConfigureAwait(false);
+
 				ProcessStatusResponse(ref backlightInfo);
 			}
 
 			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
 			{
-				if (eventId != BatteryUnifiedLevelStatus.GetBatteryLevelStatus.EventId) return;
+				if (eventId != BacklightV2.GetBacklightInfo.EventId) return;
 
 				if (response.Length < 3) return;
 
@@ -468,7 +471,7 @@ public abstract partial class HidPlusPlusDevice
 				if (newBacklightLevelAndCount != oldBacklightLevelAndCount)
 				{
 					var device = Device;
-					if (Device.BacklightStateChanged is { } backlightStateChanged)
+					if (device.BacklightStateChanged is { } backlightStateChanged)
 					{
 						_ = Task.Run(() => backlightStateChanged.Invoke(device, GetBacklightState(newBacklightLevelAndCount)));
 					}
@@ -481,6 +484,63 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
+		private sealed class LockKeyFeatureHandler : InternalFeatureHandler
+		{
+			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.LockKeyState;
+
+			private byte _lockKeys;
+
+			public LockKeys LockKeys => (LockKeys)_lockKeys;
+
+			public LockKeyFeatureHandler(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
+			{
+			}
+
+			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				var lockKeys = await Device
+					.SendWithRetryAsync<LockKeyState.GetLockKeyStatus.Response>(FeatureIndex, LockKeyState.GetLockKeyStatus.FunctionId, retryCount, cancellationToken)
+					.ConfigureAwait(false);
+
+				ProcessStatusResponse(ref lockKeys);
+			}
+
+			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
+			{
+				if (eventId != LockKeyState.GetLockKeyStatus.EventId) return;
+
+				if (response.Length < 3) return;
+
+				ProcessStatusResponse(ref Unsafe.As<byte, LockKeyState.GetLockKeyStatus.Response>(ref MemoryMarshal.GetReference(response)));
+			}
+
+			private void ProcessStatusResponse(ref LockKeyState.GetLockKeyStatus.Response response)
+			{
+				byte newLockKeys, oldLockKeys;
+
+				newLockKeys = (byte)response.LockedKeys;
+
+				lock (this)
+				{
+					oldLockKeys = _lockKeys;
+
+					if (newLockKeys != oldLockKeys)
+					{
+						_lockKeys = newLockKeys;
+					}
+				}
+
+				if (newLockKeys != oldLockKeys)
+				{
+					var device = Device;
+					if (device.LockKeysChanged is { } lockKeysChanged)
+					{
+						_ = Task.Run(() => lockKeysChanged.Invoke(device, (LockKeys)newLockKeys));
+					}
+				}
+			}
+		}
+
 		// Fields are not readonly because devices seen through a receiver can be discovered while disconnected.
 		// The values should be updated when the device is connected.
 		private protected ReadOnlyDictionary<HidPlusPlusFeature, byte>? CachedFeatures;
@@ -489,6 +549,7 @@ public abstract partial class HidPlusPlusDevice
 		private BatteryState? _batteryState;
 		private DpiState? _dpiState;
 		private BacklightV2State? _backlightState;
+		private LockKeyFeatureHandler? _lockKeyFeatureHandler;
 		private OnboardProfileState? _onboardProfileState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
@@ -501,6 +562,7 @@ public abstract partial class HidPlusPlusDevice
 
 		public event Action<FeatureAccess, BatteryPowerState>? BatteryChargeStateChanged;
 		public event Action<FeatureAccess, BacklightState>? BacklightStateChanged;
+		public event Action<FeatureAccess, LockKeys>? LockKeysChanged;
 
 		private protected FeatureAccess
 		(
@@ -560,6 +622,13 @@ public abstract partial class HidPlusPlusDevice
 				Volatile.Write(ref _featureHandlers![index], backlightState);
 			}
 
+			if (features.TryGetValue(HidPlusPlusFeature.LockKeyState, out index))
+			{
+				var lockKeyFeatureHandler = new LockKeyFeatureHandler(this, index);
+				Volatile.Write(ref _lockKeyFeatureHandler, lockKeyFeatureHandler);
+				Volatile.Write(ref _featureHandlers![index], lockKeyFeatureHandler);
+			}
+
 			if (features.TryGetValue(HidPlusPlusFeature.OnboardProfiles, out index))
 			{
 				var onboardProfileState = new OnboardProfileState(this, index);
@@ -588,6 +657,16 @@ public abstract partial class HidPlusPlusDevice
 		public BacklightState BacklightState
 			=> _backlightState is not null ?
 				_backlightState.BacklightState :
+				throw new InvalidOperationException("The device has no backlight support.");
+
+		public bool HasLockKeys
+			=> CachedFeatures is not null ?
+				_lockKeyFeatureHandler is not null :
+				throw new InvalidOperationException("The device has not yet been connected.");
+
+		public LockKeys LockKeys
+			=> _lockKeyFeatureHandler is not null ?
+				_lockKeyFeatureHandler.LockKeys :
 				throw new InvalidOperationException("The device has no backlight support.");
 
 		protected virtual void HandleNotification(ReadOnlySpan<byte> message)

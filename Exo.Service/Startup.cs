@@ -42,6 +42,7 @@ public class Startup
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DriverRegistry>());
 		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<DpiWatcher>();
+		services.AddSingleton<LockedKeysWatcher>();
 		services.AddSingleton<BacklightWatcher>();
 		services.AddSingleton<LightingService>();
 		services.AddSingleton<BatteryService>();

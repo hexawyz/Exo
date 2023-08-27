@@ -103,4 +103,12 @@ public enum OverlayNotificationKind
 	/// <remarks>This notification does not need to be provided the battery level.</remarks>
 	[EnumMember]
 	BatteryError,
+
+	/// <summary>Indicates a DPI increase.</summary>
+	[EnumMember]
+	MouseDpiDown,
+
+	/// <summary>Indicates a DPI decrease.</summary>
+	[EnumMember]
+	MouseDpiUp,
 }

@@ -37,4 +37,13 @@ public sealed class OverlayRequest
 	/// <remarks>This is used in conjunction with <see cref="Level"/>.</remarks>
 	[DataMember(Order = 4)]
 	public uint MaxLevel { get; init; }
+
+	/// <summary>A numeric value associated with the notification.</summary>
+	/// <remarks>
+	/// This can be used for values that cannot fit on a level scale.
+	/// It can still be used as a complement to <see cref="Level"/> and <see cref="MaxLevel"/>.
+	/// For example, providing the exact mouse DPI value while also providing the predefined DPI level index.
+	/// </remarks>
+	[DataMember(Order = 5)]
+	public long Value { get; init; }
 }
