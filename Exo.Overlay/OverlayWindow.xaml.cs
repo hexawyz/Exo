@@ -65,7 +65,7 @@ internal partial class OverlayWindow : Window
 			int width = (int)(Size * dpi.Horizontal / 96);
 			int height = (int)(Size * dpi.Vertical / 96);
 			int left = bounds.Left + (int)((uint)(bounds.Width - width) / 2);
-			int top = bounds.Top + (int)(2 * (uint)(bounds.Height - height) / 3);
+			int top = bounds.Top + (int)(7 * (uint)(bounds.Height - height) / 8);
 			_absoluteBounds = new(left, top, width, height);
 			if (_windowHandle != 0)
 			{
