@@ -5,7 +5,13 @@ namespace Exo.Service;
 // This seems simpler than making all those services hosted services.
 public sealed class CoreServices : IHostedService
 {
-	public CoreServices(LightingService lightingService, BatteryService batteryService, OverlayNotificationService overlayNotificationService) { }
+	public CoreServices
+	(
+		LightingService lightingService,
+		BatteryService batteryService,
+		KeyboardService keyboardService,
+		OverlayNotificationService overlayNotificationService
+	) { }
 
 	public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

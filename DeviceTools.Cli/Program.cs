@@ -237,7 +237,7 @@ internal static class Program
 	{
 		foreach (var monitor in LogicalMonitor.GetAll())
 		{
-			Console.WriteLine($"Logical monitor name: {monitor.Name}");
+			Console.WriteLine($"Logical monitor device name: {monitor.GetMonitorInformation().DeviceName}");
 
 			foreach (var physicalMonitor in monitor.GetPhysicalMonitors())
 			{

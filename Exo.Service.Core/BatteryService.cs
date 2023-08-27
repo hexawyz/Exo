@@ -3,7 +3,7 @@ using Exo.Overlay.Contracts;
 
 namespace Exo.Service;
 
-public class BatteryService : IAsyncDisposable
+public sealed class BatteryService : IAsyncDisposable
 {
 	private readonly BatteryWatcher _batteryWatcher;
 

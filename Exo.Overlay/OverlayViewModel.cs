@@ -118,8 +118,7 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 					Content = new(request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerConnected:
-					// TODO: Change the unknown level glyph to be coherent with the disconnected status.
-					Content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\U0001F50C\uFE0F", request.DeviceName);
+					Content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", request.DeviceName);
 					break;
 				default:
 					continue;

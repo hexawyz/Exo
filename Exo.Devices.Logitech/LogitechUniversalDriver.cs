@@ -4,7 +4,8 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
 using Exo.Features;
-using static DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features.UnifiedBattery;
+using Exo.Features.KeyboardFeatures;
+using BacklightState = Exo.Features.KeyboardFeatures.BacklightState;
 using FeatureAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.DeviceType;
 using RegisterAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.DeviceType;
 
@@ -424,7 +425,7 @@ public abstract class LogitechUniversalDriver : Driver,
 		}
 	}
 
-	private abstract class FeatureAccess : LogitechUniversalDriver, IBatteryStateDeviceFeature
+	private abstract class FeatureAccess : LogitechUniversalDriver, IBatteryStateDeviceFeature, IKeyboardBacklightFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 			: base(device, configurationKey, deviceIdSource, versionNumber)
@@ -432,6 +433,11 @@ public abstract class LogitechUniversalDriver : Driver,
 			if (HasBattery)
 			{
 				device.BatteryChargeStateChanged += OnBatteryChargeStateChanged;
+			}
+
+			if (HasBacklight)
+			{
+				device.BacklightStateChanged += OnBacklightStateChanged;
 			}
 		}
 
@@ -461,6 +467,13 @@ public abstract class LogitechUniversalDriver : Driver,
 					((batteryPowerState.ExternalPowerStatus & BatteryExternalPowerStatus.IsChargingBelowOptimalSpeed) != 0 ? ExternalPowerStatus.IsSlowCharger : 0)
 			};
 
+		private static BacklightState BuildBacklightState(DeviceTools.Logitech.HidPlusPlus.BacklightState backlightState)
+			=> new()
+			{
+				CurrentLevel = backlightState.CurrentLevel,
+				MaximumLevel = (byte)(backlightState.LevelCount - 1),
+			};
+
 		private void OnBatteryChargeStateChanged(HidPlusPlusDevice.FeatureAccess device, BatteryPowerState batteryPowerState)
 		{
 			if (BatteryStateChanged is { } batteryStateChanged)
@@ -482,11 +495,35 @@ public abstract class LogitechUniversalDriver : Driver,
 			}
 		}
 
+		private void OnBacklightStateChanged(HidPlusPlusDevice.FeatureAccess device, DeviceTools.Logitech.HidPlusPlus.BacklightState backlightState)
+		{
+			if (BacklightStateChanged is { } backlightStateChanged)
+			{
+				_ = Task.Run
+				(
+					() =>
+					{
+						try
+						{
+							backlightStateChanged.Invoke(this, BuildBacklightState(backlightState));
+						}
+						catch (Exception ex)
+						{
+							// TODO: Log
+						}
+					}
+				);
+			}
+		}
+
 		protected HidPlusPlusDevice.FeatureAccess Device => Unsafe.As<HidPlusPlusDevice.FeatureAccess>(_device);
 
 		protected bool HasBattery => Device.HasBatteryInformation;
 
+		protected bool HasBacklight => Device.HasBacklight;
+
 		private event Action<Driver, BatteryState>? BatteryStateChanged;
+		private event Action<Driver, BacklightState>? BacklightStateChanged;
 
 		event Action<Driver, BatteryState> IBatteryStateDeviceFeature.BatteryStateChanged
 		{
@@ -495,6 +532,14 @@ public abstract class LogitechUniversalDriver : Driver,
 		}
 
 		BatteryState IBatteryStateDeviceFeature.BatteryState => BuildBatteryState(Device.BatteryPowerState);
+
+		event Action<Driver, BacklightState> IKeyboardBacklightFeature.BacklightStateChanged
+		{
+			add => BacklightStateChanged += value;
+			remove => BacklightStateChanged -= value;
+		}
+
+		BacklightState IKeyboardBacklightFeature.BacklightState => BuildBacklightState(Device.BacklightState);
 	}
 
 	private abstract class RegisterAccessDirect : RegisterAccess
@@ -650,23 +695,30 @@ public abstract class LogitechUniversalDriver : Driver,
 
 		internal class FeatureAccessDirectKeyboard : FeatureAccessDirect, IDeviceDriver<IKeyboardDeviceFeature>
 		{
+			private readonly IDeviceFeatureCollection<IKeyboardDeviceFeature> _keyboardFeatures;
 			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = HasSerialNumber ?
+				_keyboardFeatures = HasBacklight ?
+					FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardBacklightFeature>(this) :
+					FeatureCollection.Empty<IKeyboardDeviceFeature>();
+
+				var baseFeatures = HasSerialNumber ?
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature>(this);
+
+				_allFeatures = FeatureCollection.CreateMerged(_keyboardFeatures, baseFeatures);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
+			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => _keyboardFeatures;
 			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 
@@ -715,23 +767,30 @@ public abstract class LogitechUniversalDriver : Driver,
 
 		internal sealed class FeatureAccessThroughReceiverKeyboard : FeatureAccessThroughReceiver, IDeviceDriver<IKeyboardDeviceFeature>
 		{
+			private readonly IDeviceFeatureCollection<IKeyboardDeviceFeature> _keyboardFeatures;
 			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 			public FeatureAccessThroughReceiverKeyboard(HidPlusPlusDevice.FeatureAccessThroughReceiver device, DeviceConfigurationKey configurationKey, DeviceIdSource deviceIdSource, ushort versionNumber)
 				: base(device, configurationKey, deviceIdSource, versionNumber)
 			{
-				_allFeatures = HasSerialNumber ?
+				_keyboardFeatures = HasBacklight ?
+					FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardBacklightFeature>(this) :
+					FeatureCollection.Empty<IKeyboardDeviceFeature>();
+
+				var baseFeatures = HasSerialNumber ?
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature>(this);
+
+				_allFeatures = FeatureCollection.CreateMerged(_keyboardFeatures, baseFeatures);
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
+			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => _keyboardFeatures;
 			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 		}
 

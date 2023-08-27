@@ -42,8 +42,10 @@ public class Startup
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DriverRegistry>());
 		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<DpiWatcher>();
+		services.AddSingleton<BacklightWatcher>();
 		services.AddSingleton<LightingService>();
 		services.AddSingleton<BatteryService>();
+		services.AddSingleton<KeyboardService>();
 		services.AddSingleton<OverlayNotificationService>();
 		services.AddSingleton<ISystemDeviceDriverRegistry, SystemDeviceDriverRegistry>();
 		// NB: This will be refactored at some point, but this should probably not be a Hosted Service ?
