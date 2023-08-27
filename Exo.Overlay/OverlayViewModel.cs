@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Exo.Overlay.Contracts;
 using Exo.Ui;
 using ProtoBuf.Grpc.Client;
@@ -50,15 +51,19 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 
 	private readonly ServiceConnectionManager _connectionManager;
 	private readonly IOverlayNotificationService _overlayNotificationService;
+	private readonly Channel<OverlayContentViewModel> _overlayChannel;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
+	private readonly Task _updateTask;
 
 	public OverlayViewModel()
 	{
 		_connectionManager = new("Local\\Exo.Service.Overlay");
 		_overlayNotificationService = _connectionManager.Channel.CreateGrpcService<IOverlayNotificationService>();
+		_overlayChannel = Channel.CreateUnbounded<OverlayContentViewModel>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = true });
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
+		_updateTask = ProcessOverlayUpdatesAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -67,6 +72,7 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 
 		_cancellationTokenSource.Cancel();
 		await _watchTask.ConfigureAwait(false);
+		await _updateTask.ConfigureAwait(false);
 		_cancellationTokenSource.Dispose();
 	}
 
@@ -76,6 +82,7 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 		{
 			await foreach (var request in _overlayNotificationService.WatchOverlayRequestsAsync(cancellationToken))
 			{
+				OverlayContentViewModel? content = null;
 				switch (request.NotificationKind)
 				{
 				case OverlayNotificationKind.Custom:
@@ -90,48 +97,84 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 				case OverlayNotificationKind.ScrollLockOn:
 					break;
 				case OverlayNotificationKind.FnLockOff:
-					Content = new("\uE785", request.DeviceName);
+					content = new("\uE785", request.DeviceName);
 					break;
 				case OverlayNotificationKind.FnLockOn:
-					Content = new("\uE72E", request.DeviceName);
+					content = new("\uE72E", request.DeviceName);
 					break;
 				case OverlayNotificationKind.MonitorBrightnessDown:
-					Content = new("\uEC8A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new("\uEC8A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.MonitorBrightnessUp:
-					Content = new("\uE706", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new("\uE706", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.KeyboardBacklightDown:
-					Content = new("\uED3A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new("\uED3A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.KeyboardBacklightUp:
-					Content = new("\uED39", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new("\uED39", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
 					break;
 				case OverlayNotificationKind.BatteryLow:
-					Content = new(GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), request.DeviceName);
+					content = new(GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryFullyCharged:
-					Content = new(BatteryChargingGlyphs[10], request.DeviceName);
+					content = new(BatteryChargingGlyphs[10], request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerDisconnected:
 					// TODO: Better glyph when charge status is unknown.
-					Content = new(request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", request.DeviceName);
+					content = new(request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", request.DeviceName);
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerConnected:
-					Content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", request.DeviceName);
+					content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", request.DeviceName);
 					break;
 				default:
 					continue;
 				}
-				// TODO: Handle notification override => Push to a channel and handle the timer dynamically.
-				IsVisible = true;
-				await Task.Delay(3_000);
-				IsVisible = false;
+				if (content is not null)
+				{
+					_overlayChannel.Writer.TryWrite(content);
+				}
 			}
 		}
 		catch (OperationCanceledException)
 		{
+			_overlayChannel.Writer.TryComplete();
 		}
+	}
+
+	private async Task ProcessOverlayUpdatesAsync(CancellationToken cancellationToken)
+	{
+		var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		var cancelTask = Task.CompletedTask;
+
+		await foreach (var overlay in _overlayChannel.Reader.ReadAllAsync(cancellationToken))
+		{
+			if (!cancelTask.IsCompleted)
+			{
+				cts.Cancel();
+				cts.Dispose();
+				await cancelTask;
+				cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			}
+
+			Content = overlay;
+			IsVisible = true;
+			cancelTask = DelayedCancelOverlayAsync(3_000, cts.Token);
+		}
+	}
+
+	private async Task DelayedCancelOverlayAsync(int delay, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await Task.Delay(delay, cancellationToken);
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		if (cancellationToken.IsCancellationRequested) return;
+		IsVisible = false;
 	}
 
 	private OverlayContentViewModel? _content;
