@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
@@ -211,7 +211,7 @@ public abstract partial class HidPlusPlusDevice
 
 		// Get device information from the pairing data in the receiver.
 		// For HID++ 2.0 devices, this may be less good than what will be discovered through the device itself, but this will work even when the device is disconnected.
-		protected virtual async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
+		protected virtual async Task<(DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
 		(
 			byte deviceIndex,
 			int retryCount,
@@ -220,7 +220,7 @@ public abstract partial class HidPlusPlusDevice
 		{
 			if (deviceIndex is 0x00 or > 0x0F) return default;
 
-			RegisterAccessProtocol.DeviceType deviceType = RegisterAccessProtocol.DeviceType.Unknown;
+			DeviceType deviceType = DeviceType.Unknown;
 			string? deviceName = null;
 			string? serialNumber = null;
 
@@ -235,9 +235,9 @@ public abstract partial class HidPlusPlusDevice
 					cancellationToken
 				);
 
-				deviceType = (RegisterAccessProtocol.DeviceType)pairingInformationResponse.DeviceType;
+				deviceType = (DeviceType)pairingInformationResponse.DeviceType;
 			}
-			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidParameter)
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == ErrorCode.InvalidParameter)
 			{
 			}
 
@@ -254,7 +254,7 @@ public abstract partial class HidPlusPlusDevice
 
 				serialNumber = extendedPairingInformationResponse.SerialNumber.ToString("X8");
 			}
-			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidParameter)
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == ErrorCode.InvalidParameter)
 			{
 			}
 
@@ -271,7 +271,7 @@ public abstract partial class HidPlusPlusDevice
 
 				deviceName = deviceNameResponse.GetDeviceName();
 			}
-			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.InvalidParameter)
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == ErrorCode.InvalidParameter)
 			{
 			}
 

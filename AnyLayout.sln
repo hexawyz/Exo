@@ -28,6 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 		Docs\Corsair HX1200i.md = Docs\Corsair HX1200i.md
 		Docs\Design Philosophy.md = Docs\Design Philosophy.md
 		Docs\Gigabyte Z490 Vision D.md = Docs\Gigabyte Z490 Vision D.md
+		Docs\HID++.md = Docs\HID++.md
 		Docs\LG 27GP950.md = Docs\LG 27GP950.md
 		Docs\Logitech Bolt.txt = Docs\Logitech Bolt.txt
 		Docs\Logitech MX Keys.md = Docs\Logitech MX Keys.md
@@ -92,11 +93,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Razer", "Exo.De
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Contracts", "Exo.Contracts\Exo.Contracts.csproj", "{6710ECBD-BEB2-4524-8B32-056C83144559}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Overlay", "Exo.Overlay\Exo.Overlay.csproj", "{4A247CB2-1EAB-4799-9E16-E1841BD18601}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Overlay", "Exo.Overlay\Exo.Overlay.csproj", "{4A247CB2-1EAB-4799-9E16-E1841BD18601}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Overlay.Contracts", "Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj", "{026F4AAB-4DA4-448C-B611-F03AA032576F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Overlay.Contracts", "Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj", "{026F4AAB-4DA4-448C-B611-F03AA032576F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Ui.Core", "Exo.Ui.Core\Exo.Ui.Core.csproj", "{227ED3C8-A44C-4196-8D17-B8E884EF8C38}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Core", "Exo.Ui.Core\Exo.Ui.Core.csproj", "{227ED3C8-A44C-4196-8D17-B8E884EF8C38}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

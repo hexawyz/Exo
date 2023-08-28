@@ -879,7 +879,9 @@ public abstract class LogitechUniversalDriver : Driver,
 				_driverRegistry = driverRegistry;
 				_children = new();
 				_lock = new();
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature>(this);
+				_allFeatures = HasSerialNumber ?
+					FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature>(this);
 				DeviceNames = deviceNames;
 				device.DeviceDiscovered += OnChildDeviceDiscovered;
 				device.DeviceConnected += OnChildDeviceConnected;
