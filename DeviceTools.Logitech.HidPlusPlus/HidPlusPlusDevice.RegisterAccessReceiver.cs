@@ -214,6 +214,7 @@ public abstract partial class HidPlusPlusDevice
 		protected virtual async Task<(DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
 		(
 			byte deviceIndex,
+			ushort productId,
 			int retryCount,
 			CancellationToken cancellationToken
 		)
@@ -252,7 +253,7 @@ public abstract partial class HidPlusPlusDevice
 					cancellationToken
 				);
 
-				serialNumber = extendedPairingInformationResponse.SerialNumber.ToString("X8");
+				serialNumber = FormatRegisterAccessSerialNumber(productId, extendedPairingInformationResponse.SerialNumber);
 			}
 			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == ErrorCode.InvalidParameter)
 			{
@@ -315,7 +316,7 @@ public abstract partial class HidPlusPlusDevice
 			CancellationToken cancellationToken
 		)
 		{
-			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
+			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, productId, retryCount, cancellationToken).ConfigureAwait(false);
 			return await CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
 		}
 	}

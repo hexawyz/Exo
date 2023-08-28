@@ -371,7 +371,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				cancellationToken
 			).ConfigureAwait(false);
 
-			serialNumber = FormatReceiverSerialNumber(productId, receiverInformation.SerialNumber);
+			serialNumber = FormatRegisterAccessSerialNumber(productId, receiverInformation.SerialNumber);
 
 			// TODO: Don't hardcode Unifying Receivers product IDs if possible. (Can they be auto-detected reliably ?)
 			if (productId is 0xC52B or 0xC52B or 0xC531 or 0xC532 or 0xC534)
@@ -481,6 +481,21 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					cancellationToken
 				).ConfigureAwait(false);
 
+				// We will try to reliably get the EQuad Wireless PID so that we can compute a deterministic serial number for a given device.
+				// If the device supports the serial number feature, it will override this.
+				// Per the documentation, the up to three PIDs in the device "ModelId" will be ordered in the Transport value bit order.
+				// Because EQuad is the third bit, we are guaranteed to have a PID for it if the bit is set.
+				// NB: We could also try to fetch the USB and BT product IDs and expose them, but the PID used for the receiver (EQuad or BT) is the only one that can identify the device reliably.
+				// That is because the receiver only provides the PID it knows about. The choice to have one PID per separate transport is an interesting but weird one.
+				var transports = deviceInfoResponse.Transport;
+				byte eQuadTransportIndex = 0;
+				bool hasEQuadTransport = (transports & DeviceInformation.Transports.EQuad) != 0;
+				if (hasEQuadTransport)
+				{
+					if ((transports & DeviceInformation.Transports.Bluetooth) != 0) eQuadTransportIndex++;
+					if ((transports & DeviceInformation.Transports.BluetoothLowEnergy) != 0) eQuadTransportIndex++;
+				}
+
 				if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
 				{
 					var serialNumberResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceSerialNumber.Response>
@@ -493,6 +508,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 					).ConfigureAwait(false);
 
 					serialNumber = serialNumberResponse.SerialNumber;
+				}
+				else if (hasEQuadTransport)
+				{
+					// Build the serial number in the same way we build serial numbers for receivers.
+					serialNumber = FormatRegisterAccessSerialNumber(deviceInfoResponse.GetProductId(eQuadTransportIndex), deviceInfoResponse.UnitId);
 				}
 			}
 		}
@@ -578,7 +598,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		return (deviceType, deviceName);
 	}
 
-	private static string FormatReceiverSerialNumber(ushort productId, uint serialNumber)
+	private static string FormatRegisterAccessSerialNumber(ushort productId, uint serialNumber)
 		=> string.Create
 		(
 			13,

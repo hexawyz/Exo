@@ -1,6 +1,6 @@
 Trying to find more informations on Logitech receivers using register B5 (Pairing and Non Volatile Information)
 
-Using receiver C547 here:
+## Receiver C547 here:
 
 B5 00 => Error
 B5 01 => Error
@@ -39,3 +39,20 @@ With parameters 04 00 00 => 04 00 05
 With parameters 05 00 00 => 05 f9 20
 With parameters 06 00 00 => Invalid Value
 
+## Logitech Unifying Receiver C52B
+
+B5 02 => 02 241100368808040100000000000000
+B5 03 => 03 3638ecb40e06080000000000000000
+B5 7C => 7c 00220514a7eb027211000000000000
+
+## Logitech Bolt Receiver C548
+
+B5 02 => 02 0501001001b6100600000000000000
+B5 03 => 03 3638ecb40e06080000000000000000
+B5 7C => 7c 00220514a7eb027211000000000000
+
+## Comparing responses of different receivers
+
+C547 | Lightspeed | B5 02 | 02 040200098017110097aa22b9000000
+C52B | Unifying   | B5 02 | 02 241100368808040100000000000000
+C548 | Bolt       | B5 02 | 02 0501001001b6100600000000000000

@@ -1,4 +1,4 @@
-﻿using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
 
@@ -19,9 +19,10 @@ public abstract partial class HidPlusPlusDevice
 		private protected override HidPlusPlusProtocolFlavor InferProtocolFlavor(in DeviceConnectionParameters deviceConnectionParameters)
 			=> HidPlusPlusProtocolFlavor.FeatureAccessOverRegisterAccess;
 
-		protected override async Task<(RegisterAccessProtocol.DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
+		protected override async Task<(DeviceType DeviceType, string? DeviceName, string? SerialNumber)> GetPairedDeviceInformationAsync
 		(
 			byte deviceIndex,
+			ushort productId,
 			int retryCount,
 			CancellationToken cancellationToken
 		)

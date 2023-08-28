@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -29,10 +30,10 @@ public static class DeviceInformation
 
 			private byte _transport0;
 			private byte _transport1;
-			public ushort Transport
+			public Transports Transport
 			{
-				get => BigEndian.ReadUInt16(_transport0);
-				set => BigEndian.Write(ref _transport0, value);
+				get => (Transports)BigEndian.ReadUInt16(_transport0);
+				set => BigEndian.Write(ref _transport0, (ushort)value);
 			}
 
 			private byte _productId00;
@@ -66,6 +67,13 @@ public static class DeviceInformation
 			{
 				get => (DeviceCapabilities)_capabilities;
 				set => _capabilities = (byte)value;
+			}
+
+			public ushort GetProductId(int index)
+			{
+				if ((uint)index > 2) throw new ArgumentOutOfRangeException(nameof(index));
+
+				return BigEndian.ReadUInt16(Unsafe.Add(ref _productId00, index * 2));
 			}
 		}
 	}
@@ -208,6 +216,15 @@ public static class DeviceInformation
 					throw new ArgumentException($"Invalid character in serial number: '{c}'.");
 			}
 		}
+	}
+
+	[Flags]
+	public enum Transports : ushort
+	{
+		Bluetooth = 0x0001,
+		BluetoothLowEnergy = 0x0002,
+		EQuad = 0x0004,
+		Usb = 0x0008,
 	}
 }
 #pragma warning restore IDE0044 // Add readonly modifier
