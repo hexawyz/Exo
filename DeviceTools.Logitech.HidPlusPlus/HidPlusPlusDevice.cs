@@ -470,51 +470,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				friendlyName = retrievedName;
 			}
 
-			if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out byte featureIndex))
-			{
-				var deviceInfoResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceInfo.Response>
-				(
-					deviceIndex,
-					featureIndex,
-					DeviceInformation.GetDeviceInfo.FunctionId,
-					retryCount,
-					cancellationToken
-				).ConfigureAwait(false);
-
-				// We will try to reliably get the EQuad Wireless PID so that we can compute a deterministic serial number for a given device.
-				// If the device supports the serial number feature, it will override this.
-				// Per the documentation, the up to three PIDs in the device "ModelId" will be ordered in the Transport value bit order.
-				// Because EQuad is the third bit, we are guaranteed to have a PID for it if the bit is set.
-				// NB: We could also try to fetch the USB and BT product IDs and expose them, but the PID used for the receiver (EQuad or BT) is the only one that can identify the device reliably.
-				// That is because the receiver only provides the PID it knows about. The choice to have one PID per separate transport is an interesting but weird one.
-				var transports = deviceInfoResponse.Transport;
-				byte eQuadTransportIndex = 0;
-				bool hasEQuadTransport = (transports & DeviceInformation.Transports.EQuad) != 0;
-				if (hasEQuadTransport)
-				{
-					if ((transports & DeviceInformation.Transports.Bluetooth) != 0) eQuadTransportIndex++;
-					if ((transports & DeviceInformation.Transports.BluetoothLowEnergy) != 0) eQuadTransportIndex++;
-				}
-
-				if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
-				{
-					var serialNumberResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceSerialNumber.Response>
-					(
-						deviceIndex,
-						featureIndex,
-						DeviceInformation.GetDeviceSerialNumber.FunctionId,
-						retryCount,
-						cancellationToken
-					).ConfigureAwait(false);
-
-					serialNumber = serialNumberResponse.SerialNumber;
-				}
-				else if (hasEQuadTransport)
-				{
-					// Build the serial number in the same way we build serial numbers for receivers.
-					serialNumber = FormatRegisterAccessSerialNumber(deviceInfoResponse.GetProductId(eQuadTransportIndex), deviceInfoResponse.UnitId);
-				}
-			}
+			serialNumber = await FeatureAccessTryGetSerialNumber(transport, features, deviceIndex, retryCount, cancellationToken).ConfigureAwait(false) ?? serialNumber;
 		}
 
 		HidPlusPlusDevice device = parent is null ?
@@ -596,6 +552,64 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		}
 
 		return (deviceType, deviceName);
+	}
+
+	private static async Task<string?> FeatureAccessTryGetSerialNumber
+	(
+		HidPlusPlusTransport transport,
+		ReadOnlyDictionary<HidPlusPlusFeature, byte> features,
+		byte deviceIndex,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+	{
+		if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out byte featureIndex))
+		{
+			var deviceInfoResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceInfo.Response>
+			(
+				deviceIndex,
+				featureIndex,
+				DeviceInformation.GetDeviceInfo.FunctionId,
+				retryCount,
+				cancellationToken
+			).ConfigureAwait(false);
+
+			// We will try to reliably get the EQuad Wireless PID so that we can compute a deterministic serial number for a given device.
+			// If the device supports the serial number feature, it will override this.
+			// Per the documentation, the up to three PIDs in the device "ModelId" will be ordered in the Transport value bit order.
+			// Because EQuad is the third bit, we are guaranteed to have a PID for it if the bit is set.
+			// NB: We could also try to fetch the USB and BT product IDs and expose them, but the PID used for the receiver (EQuad or BT) is the only one that can identify the device reliably.
+			// That is because the receiver only provides the PID it knows about. The choice to have one PID per separate transport is an interesting but weird one.
+			var transports = deviceInfoResponse.Transport;
+			byte eQuadTransportIndex = 0;
+			bool hasEQuadTransport = (transports & DeviceInformation.Transports.EQuad) != 0;
+			if (hasEQuadTransport)
+			{
+				if ((transports & DeviceInformation.Transports.Bluetooth) != 0) eQuadTransportIndex++;
+				if ((transports & DeviceInformation.Transports.BluetoothLowEnergy) != 0) eQuadTransportIndex++;
+			}
+
+			if ((deviceInfoResponse.Capabilities & DeviceCapabilities.SerialNumber) != 0)
+			{
+				var serialNumberResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceSerialNumber.Response>
+				(
+					deviceIndex,
+					featureIndex,
+					DeviceInformation.GetDeviceSerialNumber.FunctionId,
+					retryCount,
+					cancellationToken
+				).ConfigureAwait(false);
+
+				return serialNumberResponse.SerialNumber;
+			}
+			else if (hasEQuadTransport)
+			{
+				// Build the serial number in the same way we build serial numbers for receivers.
+				return FormatRegisterAccessSerialNumber(deviceInfoResponse.GetProductId(eQuadTransportIndex), deviceInfoResponse.UnitId);
+			}
+		}
+
+		return null;
 	}
 
 	private static string FormatRegisterAccessSerialNumber(ushort productId, uint serialNumber)

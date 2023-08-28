@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
@@ -176,6 +176,13 @@ public abstract partial class HidPlusPlusDevice
 				{
 					DeviceType = retrievedType;
 					FriendlyName = retrievedName;
+				}
+
+				string? serialNumber = await FeatureAccessTryGetSerialNumber(transport, features, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
+
+				if (serialNumber is not null)
+				{
+					SerialNumber = serialNumber;
 				}
 
 				Volatile.Write(ref _isInfoInitialized, true);
