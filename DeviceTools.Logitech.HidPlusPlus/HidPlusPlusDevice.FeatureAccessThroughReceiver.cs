@@ -1,6 +1,6 @@
-using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 
@@ -32,7 +32,7 @@ public abstract partial class HidPlusPlusDevice
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			FeatureAccessProtocol.DeviceType deviceType,
-			ReadOnlyDictionary<HidPlusPlusFeature, byte>? cachedFeatures,
+			HidPlusPlusFeatureCollection? cachedFeatures,
 			string? friendlyName,
 			string? serialNumber
 		)

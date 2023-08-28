@@ -6,7 +6,7 @@ namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 #pragma warning disable IDE0044 // Add readonly modifier
 public static class AdjustableDpi
 {
-	public const HidPlusPlusFeature FeatureId = HidPlusPlusFeature.BatteryUnifiedLevelStatus;
+	public const HidPlusPlusFeature FeatureId = HidPlusPlusFeature.AdjustableDpi;
 
 	public static class GetSensorCount
 	{

@@ -456,7 +456,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			};
 		}
 
-		ReadOnlyDictionary<HidPlusPlusFeature, byte>? features = null;
+		HidPlusPlusFeatureCollection? features = null;
 
 		if (parent is null || deviceInfo.IsLinkEstablished)
 		{
@@ -483,7 +483,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	private static async Task<(FeatureAccessProtocol.DeviceType, string?)> FeatureAccessGetDeviceNameAndTypeAsync
 	(
 		HidPlusPlusTransport transport,
-		ReadOnlyDictionary<HidPlusPlusFeature, byte> features,
+		HidPlusPlusFeatureCollection features,
 		byte deviceIndex,
 		int retryCount,
 		CancellationToken cancellationToken
@@ -492,7 +492,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		FeatureAccessProtocol.DeviceType deviceType = FeatureAccessProtocol.DeviceType.Unknown;
 		string? deviceName = null;
 
-		if (features.TryGetValue(HidPlusPlusFeature.DeviceNameAndType, out byte featureIndex))
+		if (features.TryGetIndex(HidPlusPlusFeature.DeviceNameAndType, out byte featureIndex))
 		{
 			var deviceTypeResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceNameAndType.GetDeviceType.Response>
 			(
@@ -557,13 +557,13 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	private static async Task<string?> FeatureAccessTryGetSerialNumber
 	(
 		HidPlusPlusTransport transport,
-		ReadOnlyDictionary<HidPlusPlusFeature, byte> features,
+		HidPlusPlusFeatureCollection features,
 		byte deviceIndex,
 		int retryCount,
 		CancellationToken cancellationToken
 	)
 	{
-		if (features.TryGetValue(HidPlusPlusFeature.DeviceInformation, out byte featureIndex))
+		if (features.TryGetIndex(HidPlusPlusFeature.DeviceInformation, out byte featureIndex))
 		{
 			var deviceInfoResponse = await transport.FeatureAccessSendWithRetryAsync<DeviceInformation.GetDeviceInfo.Response>
 			(

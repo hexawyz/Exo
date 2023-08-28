@@ -82,7 +82,7 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 		return readOnlyFeatures;
 	}
 
-	public static async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesWithRetryAsync
+	public static async Task<HidPlusPlusFeatureCollection> GetFeaturesWithRetryAsync
 	(
 		this HidPlusPlusTransport transport,
 		byte deviceId,
@@ -97,10 +97,8 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 
 		int count = getCountResponse.Count + 1;
 
-		var features = new Dictionary<HidPlusPlusFeature, byte>(count)
-		{
-			{ HidPlusPlusFeature.Root, 0 }
-		};
+		var features = new HidPlusPlusFeatureInformation[count];
+		features[0] = new(0, HidPlusPlusFeature.Root, HidPlusPlusFeatureTypes.None, 0);
 
 		for (int i = 1; i < count; i++)
 		{
@@ -114,12 +112,10 @@ public static class HidPlusPlusTransportFeatureAccessProtocolExtensions
 				cancellationToken
 			);
 
-			features.Add(getFeatureIdResponse.FeatureId, (byte)i);
+			features[i] = new((byte)i, getFeatureIdResponse.FeatureId, getFeatureIdResponse.FeatureType, getFeatureIdResponse.FeatureVersion);
 		}
 
-		var readOnlyFeatures = new ReadOnlyDictionary<HidPlusPlusFeature, byte>(features);
-
-		return readOnlyFeatures;
+		return new HidPlusPlusFeatureCollection(features);
 	}
 
 	public static async Task<byte> GetFeatureIndexAsync(this HidPlusPlusTransport transport, byte deviceId, HidPlusPlusFeature feature, CancellationToken cancellationToken)

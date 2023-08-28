@@ -1,10 +1,8 @@
-using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
-using Microsoft.VisualBasic;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -543,7 +541,7 @@ public abstract partial class HidPlusPlusDevice
 
 		// Fields are not readonly because devices seen through a receiver can be discovered while disconnected.
 		// The values should be updated when the device is connected.
-		private protected ReadOnlyDictionary<HidPlusPlusFeature, byte>? CachedFeatures;
+		private protected HidPlusPlusFeatureCollection? CachedFeatures;
 		// An array of notification handlers, with one slot for each feature index.
 		private FeatureHandler[]? _featureHandlers;
 		private BatteryState? _batteryState;
@@ -571,7 +569,7 @@ public abstract partial class HidPlusPlusDevice
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			FeatureAccessProtocol.DeviceType deviceType,
-			ReadOnlyDictionary<HidPlusPlusFeature, byte>? cachedFeatures,
+			HidPlusPlusFeatureCollection? cachedFeatures,
 			string? friendlyName,
 			string? serialNumber
 		)
@@ -588,48 +586,48 @@ public abstract partial class HidPlusPlusDevice
 			device.NotificationReceived += HandleNotification;
 		}
 
-		private void RegisterDefaultFeatureHandlers(ReadOnlyDictionary<HidPlusPlusFeature, byte> features)
+		private void RegisterDefaultFeatureHandlers(HidPlusPlusFeatureCollection features)
 		{
 			byte index;
 			BatteryState batteryState;
 
 			// Register one battery notification handler or the other, but not both.
 			// We'll favor the newer feature in case both are available.
-			if (features.TryGetValue(HidPlusPlusFeature.UnifiedBattery, out index))
+			if (features.TryGetIndex(HidPlusPlusFeature.UnifiedBattery, out index))
 			{
 				batteryState = new UnifiedBatteryState(this, index);
 				Volatile.Write(ref _batteryState, batteryState);
 				Volatile.Write(ref _featureHandlers![index], batteryState);
 			}
-			else if (features.TryGetValue(HidPlusPlusFeature.BatteryUnifiedLevelStatus, out index))
+			else if (features.TryGetIndex(HidPlusPlusFeature.BatteryUnifiedLevelStatus, out index))
 			{
 				batteryState = new LegacyBatteryState(this, index);
 				Volatile.Write(ref _batteryState, batteryState);
 				Volatile.Write(ref _featureHandlers![index], batteryState);
 			}
 
-			if (features.TryGetValue(HidPlusPlusFeature.AdjustableDpi, out index))
+			if (features.TryGetIndex(HidPlusPlusFeature.AdjustableDpi, out index))
 			{
 				var dpiState = new DpiState(this, index);
 				Volatile.Write(ref _dpiState, dpiState);
 				Volatile.Write(ref _featureHandlers![index], dpiState);
 			}
 
-			if (features.TryGetValue(HidPlusPlusFeature.BacklightV2, out index))
+			if (features.TryGetIndex(HidPlusPlusFeature.BacklightV2, out index))
 			{
 				var backlightState = new BacklightV2State(this, index);
 				Volatile.Write(ref _backlightState, backlightState);
 				Volatile.Write(ref _featureHandlers![index], backlightState);
 			}
 
-			if (features.TryGetValue(HidPlusPlusFeature.LockKeyState, out index))
+			if (features.TryGetIndex(HidPlusPlusFeature.LockKeyState, out index))
 			{
 				var lockKeyFeatureHandler = new LockKeyFeatureHandler(this, index);
 				Volatile.Write(ref _lockKeyFeatureHandler, lockKeyFeatureHandler);
 				Volatile.Write(ref _featureHandlers![index], lockKeyFeatureHandler);
 			}
 
-			if (features.TryGetValue(HidPlusPlusFeature.OnboardProfiles, out index))
+			if (features.TryGetIndex(HidPlusPlusFeature.OnboardProfiles, out index))
 			{
 				var onboardProfileState = new OnboardProfileState(this, index);
 				Volatile.Write(ref _onboardProfileState, onboardProfileState);
@@ -718,15 +716,15 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
-		public ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesAsync(CancellationToken cancellationToken)
+		public ValueTask<HidPlusPlusFeatureCollection> GetFeaturesAsync(CancellationToken cancellationToken)
 			=> GetFeaturesWithRetryAsync(HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 
-		protected ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesWithRetryAsync(int retryCount, CancellationToken cancellationToken)
+		protected ValueTask<HidPlusPlusFeatureCollection> GetFeaturesWithRetryAsync(int retryCount, CancellationToken cancellationToken)
 			=> CachedFeatures is not null ?
-				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(CachedFeatures) :
-				new ValueTask<ReadOnlyDictionary<HidPlusPlusFeature, byte>>(GetFeaturesWithRetryAsyncCore(retryCount, cancellationToken));
+				new ValueTask<HidPlusPlusFeatureCollection>(CachedFeatures) :
+				new ValueTask<HidPlusPlusFeatureCollection>(GetFeaturesWithRetryAsyncCore(retryCount, cancellationToken));
 
-		private async Task<ReadOnlyDictionary<HidPlusPlusFeature, byte>> GetFeaturesWithRetryAsyncCore(int retryCount, CancellationToken cancellationToken)
+		private async Task<HidPlusPlusFeatureCollection> GetFeaturesWithRetryAsyncCore(int retryCount, CancellationToken cancellationToken)
 		{
 			var features = await Transport.GetFeaturesWithRetryAsync(DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
