@@ -1,5 +1,8 @@
-﻿namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
+using System.Diagnostics;
 
+namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
+
+[DebuggerDisplay("[{Index,h}] {Feature} V{Version,d} ({Type})")]
 public readonly struct HidPlusPlusFeatureInformation
 {
 	public HidPlusPlusFeatureInformation(byte index, HidPlusPlusFeature feature, HidPlusPlusFeatureTypes type, byte version)
