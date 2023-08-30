@@ -297,7 +297,8 @@ public abstract partial class HidPlusPlusDevice
 				{
 					var task = CreateConnectedDeviceAsync(protocolFlavor, productId, deviceIndex, deviceInfo, HidPlusPlusTransportExtensions.DefaultRetryCount, default);
 
-					Volatile.Write(ref Transport.Devices[deviceIndex].CustomState, task);
+					// If the device is created quickly enough (relatively unlikely but hey…), the state could already have been updated with the device object.
+					Interlocked.CompareExchange(ref Transport.Devices[deviceIndex].CustomState, task, null);
 
 					await task.ConfigureAwait(false);
 				}
