@@ -102,6 +102,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		}
 		catch (OperationCanceledException)
 		{
+			return;
+		}
+		catch
+		{
 		}
 	}
 
@@ -118,11 +122,15 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				}
 				else
 				{
-					_pendingBatteryChanges.Add(notification.DeviceId, status);
+					_pendingBatteryChanges[notification.DeviceId] = status;
 				}
 			}
 		}
 		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (Exception)
 		{
 		}
 	}
