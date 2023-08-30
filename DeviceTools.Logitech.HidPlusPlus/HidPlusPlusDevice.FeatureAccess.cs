@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -15,7 +16,15 @@ public abstract partial class HidPlusPlusDevice
 		// Internally, this is handled by providing the information in the constructor, but externally, that would be a weird thing to do.
 		private abstract class FeatureHandler
 		{
+			protected FeatureAccess Device { get; }
+			protected byte FeatureIndex { get; }
 			public abstract HidPlusPlusFeature Feature { get; }
+
+			protected FeatureHandler(FeatureAccess device, byte featureIndex)
+			{
+				Device = device;
+				FeatureIndex = featureIndex;
+			}
 
 			internal void HandleNotificationInternal(byte eventId, ReadOnlySpan<byte> response)
 			{
@@ -23,31 +32,18 @@ public abstract partial class HidPlusPlusDevice
 				{
 					HandleNotification(eventId, response);
 				}
-				catch (Exception)
+				catch (Exception ex)
 				{
-					// TODO: Log ?
+					Device.Logger.FeatureAccessFeatureHandlerException(Feature, eventId, ex);
 				}
 			}
 
-			public virtual async Task InitializeAsync(int retryCount, CancellationToken cancellationToken) { }
+			public virtual Task InitializeAsync(int retryCount, CancellationToken cancellationToken) => Task.CompletedTask;
 
 			protected virtual void HandleNotification(byte eventId, ReadOnlySpan<byte> response) { }
 		}
 
-		private abstract class InternalFeatureHandler : FeatureHandler
-		{
-			protected FeatureAccess Device { get; }
-			protected byte FeatureIndex { get; }
-
-			protected InternalFeatureHandler(FeatureAccess device, byte featureIndex)
-			{
-				Device = device;
-				FeatureIndex = featureIndex;
-			}
-
-		}
-
-		private abstract class BatteryState : InternalFeatureHandler
+		private abstract class BatteryState : FeatureHandler
 		{
 			public abstract BatteryPowerState PowerState { get; }
 
@@ -342,7 +338,7 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
-		private sealed class DpiState : InternalFeatureHandler
+		private sealed class DpiState : FeatureHandler
 		{
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.AdjustableDpi;
 
@@ -388,7 +384,7 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
-		private sealed class OnboardProfileState : InternalFeatureHandler
+		private sealed class OnboardProfileState : FeatureHandler
 		{
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.OnboardProfiles;
 
@@ -402,7 +398,7 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
-		private sealed class BacklightV2State : InternalFeatureHandler
+		private sealed class BacklightV2State : FeatureHandler
 		{
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.BacklightV2;
 
@@ -482,7 +478,7 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
-		private sealed class LockKeyFeatureHandler : InternalFeatureHandler
+		private sealed class LockKeyFeatureHandler : FeatureHandler
 		{
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.LockKeyState;
 
@@ -565,6 +561,7 @@ public abstract partial class HidPlusPlusDevice
 		private protected FeatureAccess
 		(
 			object parentOrTransport,
+			ILogger<FeatureAccess> logger,
 			ushort productId,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
@@ -573,7 +570,7 @@ public abstract partial class HidPlusPlusDevice
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(parentOrTransport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+			: base(parentOrTransport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			_deviceType = deviceType;
 			CachedFeatures = cachedFeatures;

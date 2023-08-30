@@ -38,6 +38,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 	private record struct DriverTypeReference(AssemblyName AssemblyName, string TypeName);
 
+	private readonly ILoggerFactory _loggerFactory;
 	private readonly ILogger<HidDeviceManager> _logger;
 	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly IAssemblyParsedDataCache<HidAssembyDetails> _parsedDataCache;
@@ -53,6 +54,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 
 	public HidDeviceManager
 	(
+		ILoggerFactory loggerFactory,
 		ILogger<HidDeviceManager> logger,
 		IAssemblyLoader assemblyLoader,
 		IAssemblyParsedDataCache<HidAssembyDetails> parsedDataCache,
@@ -61,6 +63,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		IDeviceNotificationService deviceNotificationService
 	)
 	{
+		_loggerFactory = loggerFactory;
 		_logger = logger;
 		_assemblyLoader = assemblyLoader;
 		_parsedDataCache = parsedDataCache;
@@ -312,7 +315,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		try
 		{
 			// This object is reused for every driver initialization. It is used to keep track of resources that were actually requested by the driver, so that they can be disposed when needed.
-			var driverCreationContext = new HidDriverCreationContext(_driverRegistry);
+			var driverCreationContext = new HidDriverCreationContext(_driverRegistry, _loggerFactory);
 
 			await ProcessAlreadyConnectedDevicesAsync(driverCreationContext, cancellationToken).ConfigureAwait(false);
 

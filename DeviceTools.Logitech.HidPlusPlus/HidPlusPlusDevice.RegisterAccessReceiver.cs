@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -12,6 +13,7 @@ public abstract partial class HidPlusPlusDevice
 	{
 		private LightweightSingleProducerSingleConsumerQueue<Task> _deviceOperationTaskQueue;
 		private LightweightSingleProducerSingleConsumerQueue<(DeviceEventKind kind, HidPlusPlusDevice device, int Version)> _eventQueue;
+		private readonly ILoggerFactory _loggerFactory;
 		private readonly Task _deviceWatcherTask;
 		private readonly Task _eventProcessingTask;
 		private bool _deviceWatchStarted;
@@ -20,12 +22,13 @@ public abstract partial class HidPlusPlusDevice
 		public event ReceiverDeviceEventHandler? DeviceConnected;
 		public event ReceiverDeviceEventHandler? DeviceDisconnected;
 
-		internal RegisterAccessReceiver(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		internal RegisterAccessReceiver(HidPlusPlusTransport transport, ILoggerFactory loggerFactory, ILogger<RegisterAccessReceiver> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
-			transport.NotificationReceived += HandleNotification;
 			_deviceOperationTaskQueue = new();
 			_eventQueue = new();
+			_loggerFactory = loggerFactory;
+			transport.NotificationReceived += HandleNotification;
 			_deviceWatcherTask = WatchDevicesAsync();
 			_eventProcessingTask = ProcessEventsAsync();
 		}
@@ -61,7 +64,7 @@ public abstract partial class HidPlusPlusDevice
 				}
 				catch (Exception ex)
 				{
-					// TODO: Make the necessary so that this can be observed somewhere ?
+					Logger.RegisterAccessReceiverDeviceUnhandledException(ex);
 				}
 			}
 		}
@@ -89,7 +92,7 @@ public abstract partial class HidPlusPlusDevice
 				}
 				catch (Exception ex)
 				{
-					// TODO: Make the necessary so that this can be observed somewhere ?
+					Logger.RegisterAccessReceiverDeviceEventHandlerException(kind, ex);
 				}
 			}
 		}
@@ -317,7 +320,7 @@ public abstract partial class HidPlusPlusDevice
 		)
 		{
 			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, productId, retryCount, cancellationToken).ConfigureAwait(false);
-			return await CreateAsync(this, Transport, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
+			return await CreateAsync(this, Transport, _loggerFactory, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
 		}
 	}
 }

@@ -57,6 +57,7 @@ public class Startup
 				var assemblyLoader = sp.GetRequiredService<IAssemblyLoader>();
 				return new HidDeviceManager
 				(
+					sp.GetRequiredService<ILoggerFactory>(),
 					sp.GetRequiredService<ILogger<HidDeviceManager>>(),
 					assemblyLoader,
 					new AssemblyParsedDataCache<HidAssembyDetails>(assemblyLoader),

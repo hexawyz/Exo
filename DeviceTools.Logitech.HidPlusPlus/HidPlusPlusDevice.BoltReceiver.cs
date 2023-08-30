@@ -1,6 +1,7 @@
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -8,8 +9,18 @@ public abstract partial class HidPlusPlusDevice
 {
 	public sealed class BoltReceiver : RegisterAccessReceiver
 	{
-		internal BoltReceiver(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		internal BoltReceiver
+		(
+			HidPlusPlusTransport transport,
+			ILoggerFactory loggerFactory,
+			ILogger<BoltReceiver> logger,
+			ushort productId,
+			byte deviceIndex,
+			DeviceConnectionInfo deviceConnectionInfo,
+			string? friendlyName,
+			string? serialNumber
+		)
+			: base(transport, loggerFactory, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Notifications;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -28,6 +29,7 @@ public abstract partial class HidPlusPlusDevice
 		internal FeatureAccessThroughReceiver
 		(
 			RegisterAccessReceiver parent,
+			ILogger<FeatureAccessThroughReceiver> logger,
 			ushort productId,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
@@ -36,7 +38,7 @@ public abstract partial class HidPlusPlusDevice
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(parent, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
+			: base(parent, logger, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
 			// If the device is connected and we reach this point in the code, relevant information will already have been fetched and passed through the parameters.
 			_isInfoInitialized = deviceConnectionInfo.IsLinkEstablished;

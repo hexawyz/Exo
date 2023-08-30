@@ -1,7 +1,7 @@
-using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
@@ -25,9 +25,14 @@ public sealed class PluginMetadataAssemblyResolver : MetadataAssemblyResolver
 			return context.LoadFromAssemblyPath(path);
 		}
 
+		// TODO: Check using AppDomain.CurrentDomain.GetAssemblies() instead ?
 		if (assemblyName.Name == typeof(object).Assembly.GetName().Name)
 		{
 			return context.LoadFromAssemblyPath(typeof(object).Assembly.Location);
+		}
+		else if (assemblyName.Name == typeof(ILogger).Assembly.GetName().Name)
+		{
+			return context.LoadFromAssemblyPath(typeof(ILogger).Assembly.Location);
 		}
 
 		return TryLoadFrom(context, _appDirectory, assemblyName) ?? TryLoadFrom(context, _runtimeDirectory, assemblyName);

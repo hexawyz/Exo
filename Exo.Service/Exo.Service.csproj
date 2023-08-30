@@ -12,9 +12,21 @@
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
-    <ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
+	<!--
+	Always reference all the device tools projects, because these are the base of everything.
+	This does mean that yeah, we are explicitly bringing in support for Logitech HID++ here even if the driver were not to exist.
+	We can revisit this later if needed, but for now this is way simpler.
+	-->
+	<ItemGroup>
+		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+		<ProjectReference Include="..\DeviceTools.Firmware\DeviceTools.Firmware.csproj" />
+		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
+		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
+		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />

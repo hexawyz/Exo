@@ -1,4 +1,5 @@
-﻿using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -6,8 +7,8 @@ public abstract partial class HidPlusPlusDevice
 {
 	public abstract class RegisterAccess : HidPlusPlusDevice
 	{
-		private protected RegisterAccess(object parentOrTransport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(parentOrTransport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		private protected RegisterAccess(object parentOrTransport, ILogger<RegisterAccess> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(parentOrTransport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 

@@ -1,5 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -9,8 +10,8 @@ public abstract partial class HidPlusPlusDevice
 	{
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
 
-		internal RegisterAccessDirect(HidPlusPlusTransport transport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(transport, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		internal RegisterAccessDirect(HidPlusPlusTransport transport, ILogger<RegisterAccessDirect> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 

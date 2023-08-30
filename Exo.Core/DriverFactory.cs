@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace Exo;
 
@@ -102,6 +103,13 @@ public static class DriverFactory
 
 	private static readonly MethodInfo CompleteMethodInfo = typeof(DriverFactory).GetMethod(nameof(Complete), BindingFlags.NonPublic | BindingFlags.Static)!;
 
+	private static readonly MethodInfo CreateLoggerMethodInfo =
+		typeof(LoggerFactoryExtensions)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Single(m => m.Name == nameof(LoggerFactoryExtensions.CreateLogger) && m.GetParameters().Length == 1 && m.IsGenericMethod && m.GetGenericArguments().Length == 1);
+
+	private static readonly string LoggerFactoryParameterName = Naming.MakeCamelCase(nameof(IDriverCreationContext<IDriverCreationResult>.LoggerFactory));
+
 	private static Type? GetOptionalBaseType(Type type)
 	{
 		if (type.IsValueType) return null;
@@ -109,7 +117,7 @@ public static class DriverFactory
 		Type? current = type;
 		while (current is not null && current != typeof(object))
 		{
-			if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(Optional<>))
+			if (current.IsGenericType && Equals(current.GetGenericTypeDefinition(), typeof(Optional<>)))
 			{
 				return current;
 			}
@@ -121,10 +129,28 @@ public static class DriverFactory
 		return null;
 	}
 
+	private static Type? GetLoggerCategory(Type type)
+	{
+		if (type.IsValueType) return null;
+
+		if (type.IsGenericType && Equals(type.GetGenericTypeDefinition(), typeof(ILogger<>)))
+		{
+			return type.GetGenericArguments()[0];
+		}
+
+		return null;
+	}
+
 	// Compare types by name.
 	private static bool Equals(Type a, Type b)
 		=> a.FullName == b.FullName &&
-			a.Assembly.FullName == b.Assembly.FullName;
+			(a.Assembly.FullName == b.Assembly.FullName/* || AreCompatibleAssemblies(a.Assembly, b.Assembly)*/);
+
+	//private static bool AreCompatibleAssemblies(Assembly a, Assembly b)
+	//	=> AreCompatibleAssemblies(a.GetName(), b.GetName());
+
+	//private static bool AreCompatibleAssemblies(AssemblyName a, AssemblyName b)
+	//	=> a.Name == b.Name && a.CultureName == b.CultureName && a.GetPublicKeyToken().AsSpan().SequenceEqual(b.GetPublicKeyToken());
 
 	private static Dictionary<string, PropertyInfo> ParseContext(Type type)
 	{
@@ -132,6 +158,10 @@ public static class DriverFactory
 		foreach (var property in type.GetProperties())
 		{
 			allowedProperties.Add(Naming.MakeCamelCase(property.Name), property);
+		}
+		if (!allowedProperties.TryGetValue(LoggerFactoryParameterName, out var loggerFactoryProperty) || loggerFactoryProperty.PropertyType != typeof(ILoggerFactory))
+		{
+			throw new ArgumentException("Driver creation context must expose the LoggerFactoryProperty of type ILoggerFactory.");
 		}
 		return allowedProperties;
 	}
@@ -211,12 +241,14 @@ public static class DriverFactory
 		{
 			var methodParameter = methodParameters[i];
 
-			if (methodParameter.Name is null || !availableParameters.TryGetValue(methodParameter.Name, out var propertyInfo))
+			// If a parameter does not have a matching property, we will check if it is requesting a logger before throwing.
+			if (methodParameter.Name is null ||
+				!availableParameters.TryGetValue(methodParameter.Name!, out var propertyInfo) && GetLoggerCategory(methodParameter.ParameterType) is not { } loggerCategory)
 			{
 				return new(driverType, ValidationErrorCode.OptionalParameterNotFound, methodParameter.ParameterType.Name);
 			}
 
-			if (!Equals(methodParameter.ParameterType, propertyInfo.PropertyType))
+			if (propertyInfo is not null && !Equals(methodParameter.ParameterType, propertyInfo.PropertyType))
 			{
 				if (!methodParameter.ParameterType.IsValueType && GetOptionalBaseType(propertyInfo.PropertyType) is { } optional)
 				{
@@ -278,14 +310,22 @@ public static class DriverFactory
 		for (; i < variableParameterLength; i++)
 		{
 			var methodParameter = parseResult.MethodParameters[i];
-			var propertyInfo = availableParameters[methodParameter.Name!];
 			ilGenerator.Emit(OpCodes.Ldarg, factoryParameters.Length);
-			ilGenerator.EmitCall(OpCodes.Callvirt, propertyInfo.GetMethod!, null);
-			// Parameters should already have been checked by the validation method, so if there is a type mismatch, we know we can handle it.
-			// For now, we only support unwrapping Optional<T> into T (as this was designed for this), but we may add more cases later if needed.
-			if (methodParameter.ParameterType != propertyInfo.PropertyType)
+			if (availableParameters.TryGetValue(methodParameter.Name!, out var propertyInfo))
 			{
-				ilGenerator.EmitCall(OpCodes.Callvirt, GetOptionalBaseType(propertyInfo.PropertyType)!.GetMethod(nameof(Optional<IDisposable>.GetOrCreateValue))!, null);
+				ilGenerator.Emit(OpCodes.Callvirt, propertyInfo.GetMethod!);
+				// Parameters should already have been checked by the validation method, so if there is a type mismatch, we know we can handle it.
+				// For now, we only support unwrapping Optional<T> into T (as this was designed for this), but we may add more cases later if needed.
+				if (methodParameter.ParameterType != propertyInfo.PropertyType)
+				{
+					ilGenerator.EmitCall(OpCodes.Callvirt, GetOptionalBaseType(propertyInfo.PropertyType)!.GetMethod(nameof(Optional<IDisposable>.GetOrCreateValue))!, null);
+				}
+			}
+			else
+			{
+				// Same remark as above, parameters should already have been checked, so we should be pretty safe about what is available here.
+				ilGenerator.Emit(OpCodes.Callvirt, availableParameters[LoggerFactoryParameterName].GetMethod!);
+				ilGenerator.Emit(OpCodes.Callvirt, CreateLoggerMethodInfo.MakeGenericMethod(GetLoggerCategory(methodParameter.ParameterType!)!));
 			}
 		}
 

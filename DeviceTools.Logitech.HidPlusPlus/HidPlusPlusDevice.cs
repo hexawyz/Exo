@@ -1,14 +1,12 @@
-using System;
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.Registers;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -22,7 +20,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		BoltReceiver = 3,
 	}
 
-	private enum DeviceEventKind : byte
+	internal enum DeviceEventKind : byte
 	{
 		DeviceDiscovered = 0,
 		DeviceConnected = 1,
@@ -172,6 +170,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		byte softwareId,
 		string? externalFriendlyName,
 		TimeSpan requestTimeout,
+		ILoggerFactory loggerFactory,
 		CancellationToken cancellationToken
 	)
 	{
@@ -189,6 +188,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 				(
 					null,
 					transport,
+					loggerFactory,
 					expectedProtocolFlavor,
 					productId,
 					255,
@@ -229,6 +229,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	(
 		RegisterAccessReceiver? parent,
 		HidPlusPlusTransport transport,
+		ILoggerFactory loggerFactory,
 		HidPlusPlusProtocolFlavor expectedProtocolFlavor,
 		ushort productId,
 		byte deviceIndex,
@@ -277,6 +278,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			(
 				parent,
 				transport,
+				loggerFactory,
 				productId,
 				deviceIndex,
 				deviceInfo,
@@ -296,6 +298,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 			(
 				parent,
 				transport,
+				loggerFactory,
 				productId,
 				deviceIndex,
 				deviceInfo,
@@ -330,6 +333,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	(
 		RegisterAccessReceiver? parent,
 		HidPlusPlusTransport transport,
+		ILoggerFactory loggerFactory,
 		ushort productId,
 		byte deviceIndex,
 		DeviceConnectionInfo deviceInfo,
@@ -413,11 +417,11 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		HidPlusPlusDevice device = deviceKind switch
 		{
 			RegisterAccessDeviceKind.Default => parent is null ?
-				new RegisterAccessDirect(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber) :
-				new RegisterAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
-			RegisterAccessDeviceKind.Receiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
-			RegisterAccessDeviceKind.UnifyingReceiver => new RegisterAccessReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
-			RegisterAccessDeviceKind.BoltReceiver => new BoltReceiver(transport, productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+				new RegisterAccessDirect(transport, loggerFactory.CreateLogger<RegisterAccessDirect>(), productId, deviceIndex, deviceInfo, friendlyName, serialNumber) :
+				new RegisterAccessThroughReceiver(parent, loggerFactory.CreateLogger<RegisterAccessThroughReceiver>(), productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.Receiver => new RegisterAccessReceiver(transport, loggerFactory, loggerFactory.CreateLogger<RegisterAccessReceiver>(), productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.UnifyingReceiver => new RegisterAccessReceiver(transport, loggerFactory, loggerFactory.CreateLogger<RegisterAccessReceiver>(), productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
+			RegisterAccessDeviceKind.BoltReceiver => new BoltReceiver(transport, loggerFactory, loggerFactory.CreateLogger<BoltReceiver>(), productId, deviceIndex, deviceInfo, friendlyName, serialNumber),
 			_ => throw new InvalidOperationException(),
 		};
 
@@ -428,6 +432,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	(
 		RegisterAccessReceiver? parent,
 		HidPlusPlusTransport transport,
+		ILoggerFactory loggerFactory,
 		ushort productId,
 		byte deviceIndex,
 		DeviceConnectionInfo deviceInfo,
@@ -474,8 +479,8 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		}
 
 		HidPlusPlusDevice device = parent is null ?
-			new FeatureAccessDirect(transport, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber) :
-			new FeatureAccessThroughReceiver(parent, productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
+			new FeatureAccessDirect(transport, loggerFactory.CreateLogger<FeatureAccessDirect>(), productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber) :
+			new FeatureAccessThroughReceiver(parent, loggerFactory.CreateLogger<FeatureAccessThroughReceiver>(), productId, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
 
 		return device;
 	}
@@ -627,6 +632,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 
 	// Root devices will contain the HidPlusPlusTransport instance here. Child devices will contain the parent device reference.
 	protected object ParentOrTransport { get; }
+	protected ILogger<HidPlusPlusDevice> Logger { get; }
 	protected byte DeviceIndex { get; }
 
 	private DeviceConnectionInfo _deviceConnectionInfo;
@@ -659,9 +665,19 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	public RegisterAccessProtocol.DeviceType DeviceType => _deviceConnectionInfo.DeviceType;
 	public bool IsConnected => DeviceConnectionInfo.IsLinkEstablished;
 
-	private protected HidPlusPlusDevice(object parentOrTransport, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+	private protected HidPlusPlusDevice
+	(
+		object parentOrTransport,
+		ILogger<HidPlusPlusDevice> logger,
+		ushort productId,
+		byte deviceIndex,
+		DeviceConnectionInfo deviceConnectionInfo,
+		string? friendlyName,
+		string? serialNumber
+	)
 	{
 		ParentOrTransport = parentOrTransport;
+		Logger = logger;
 		DeviceIndex = deviceIndex;
 		ProductId = productId;
 		FriendlyName = friendlyName;

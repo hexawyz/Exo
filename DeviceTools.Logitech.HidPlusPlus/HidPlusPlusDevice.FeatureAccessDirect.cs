@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -13,6 +14,7 @@ public abstract partial class HidPlusPlusDevice
 		internal FeatureAccessDirect
 		(
 			HidPlusPlusTransport transport,
+			ILogger<FeatureAccessDirect> logger,
 			ushort productId,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
@@ -21,7 +23,7 @@ public abstract partial class HidPlusPlusDevice
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(transport, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
+			: base(transport, logger, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
 		}
 
