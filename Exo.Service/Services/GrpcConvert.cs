@@ -50,6 +50,7 @@ internal static class GrpcConvert
 		=> deviceIdSource switch
 		{
 			DeviceIdSource.Unknown => GrpcDeviceIdSource.Unknown,
+			DeviceIdSource.PlugAndPlay => GrpcDeviceIdSource.PlugAndPlay,
 			DeviceIdSource.Pci => GrpcDeviceIdSource.Pci,
 			DeviceIdSource.Usb => GrpcDeviceIdSource.Usb,
 			DeviceIdSource.Bluetooth => GrpcDeviceIdSource.Bluetooth,
@@ -61,6 +62,7 @@ internal static class GrpcConvert
 		=> deviceIdSource switch
 		{
 			VendorIdSource.Unknown => GrpcVendorIdSource.Unknown,
+			VendorIdSource.PlugAndPlay => GrpcVendorIdSource.PlugAndPlay,
 			VendorIdSource.Pci => GrpcVendorIdSource.Pci,
 			VendorIdSource.Usb => GrpcVendorIdSource.Usb,
 			VendorIdSource.Bluetooth => GrpcVendorIdSource.Bluetooth,

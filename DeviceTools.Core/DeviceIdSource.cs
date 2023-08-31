@@ -9,8 +9,9 @@ namespace DeviceTools;
 public enum DeviceIdSource : byte
 {
 	Unknown = 0,
-	Pci = 1,
-	Usb = 2,
-	Bluetooth = 3,
-	BluetoothLowEnergy = 4,
+	PlugAndPlay = 1,
+	Pci = 2,
+	Usb = 3,
+	Bluetooth = 4,
+	BluetoothLowEnergy = 5,
 }

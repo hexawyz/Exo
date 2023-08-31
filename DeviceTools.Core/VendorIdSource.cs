@@ -8,7 +8,8 @@ namespace DeviceTools;
 public enum VendorIdSource : byte
 {
 	Unknown = 0,
-	Pci = 1,
-	Usb = 2,
-	Bluetooth = 3,
+	PlugAndPlay = 1,
+	Pci = 2,
+	Usb = 3,
+	Bluetooth = 4,
 }

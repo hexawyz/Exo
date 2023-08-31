@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Ui.Contracts;
 
@@ -8,9 +8,11 @@ public enum VendorIdSource : byte
 	[EnumMember]
 	Unknown = 0,
 	[EnumMember]
-	Pci = 1,
+	PlugAndPlay = 1,
 	[EnumMember]
-	Usb = 2,
+	Pci = 2,
 	[EnumMember]
-	Bluetooth = 3,
+	Usb = 3,
+	[EnumMember]
+	Bluetooth = 4,
 }
