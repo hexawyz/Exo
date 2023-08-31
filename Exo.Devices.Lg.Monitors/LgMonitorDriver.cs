@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Channels;
 using DeviceTools;
@@ -13,6 +14,7 @@ using Exo.Features.LightingFeatures;
 using Exo.Features.MonitorFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;
 
@@ -55,7 +57,7 @@ public class LgMonitorDriver :
 		Properties.System.DeviceInterface.Hid.UsageId,
 	};
 
-	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, ushort productId, ushort version, CancellationToken cancellationToken)
+	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, ushort productId, ushort version, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
 	{
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -139,7 +141,7 @@ public class LgMonitorDriver :
 			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device interface {devices[0].Id}.");
 		}
 
-		var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName));
+		var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName), loggerFactory.CreateLogger<UltraGearLightingTransport>());
 
 		byte ledCount = await lightingTransport.GetLedCountAsync(cancellationToken).ConfigureAwait(false);
 		var activeEffect = await lightingTransport.GetActiveEffectAsync(cancellationToken).ConfigureAwait(false);
@@ -147,16 +149,27 @@ public class LgMonitorDriver :
 		// In the current model, we don't really have a use for the current menu selection if lighting is disabled, so we can just override the active effect here to force the effect to disabled.
 		if (!lightingStatus.IsLightingEnabled) activeEffect = 0;
 
-		byte sessionId = (byte)Random.Shared.Next(1, 256);
-		var i2cTransport = await HidI2CTransport.CreateAsync(new HidFullDuplexStream(i2cDeviceInterfaceName), sessionId, HidI2CTransport.DefaultDdcDeviceAddress, cancellationToken).ConfigureAwait(false);
+		// The HID I2C protocol can occasionally fail, so we want to retry our requests at least once.
+		// NB: I didn't dig up the reason for failures, but I saw them happen a few times. It could just be concurrent accesses with the OS or GPU. (Because I don't think the bus can be locked?)
+		const int I2CRetryCount = 1;
 
-		(ushort scalerVersion, _, _) = await i2cTransport.GetVcpFeatureAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
+		byte sessionId = (byte)Random.Shared.Next(1, 256);
+		var i2cTransport = await HidI2CTransport.CreateAsync
+		(
+			new HidFullDuplexStream(i2cDeviceInterfaceName),
+			sessionId,
+			HidI2CTransport.DefaultDdcDeviceAddress,
+			loggerFactory.CreateLogger<HidI2CTransport>(),
+			cancellationToken
+		).ConfigureAwait(false);
+
+		(ushort scalerVersion, _, _) = await i2cTransport.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, I2CRetryCount, cancellationToken).ConfigureAwait(false);
 		var data = ArrayPool<byte>.Shared.Rent(1000);
 		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
-		await i2cTransport.SendLgCustomCommandAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+		await i2cTransport.SendLgCustomCommandWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), I2CRetryCount, cancellationToken).ConfigureAwait(false);
 		byte dscVersion = data[1];
 		// This special call will return the monitor model name. We can then use it as the friendly name.
-		await i2cTransport.SendLgCustomCommandAsync(0xCA, 0x00, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
+		await i2cTransport.SendLgCustomCommandWithRetryAsync(0xCA, 0x00, data.AsMemory(0, 10), I2CRetryCount, cancellationToken).ConfigureAwait(false);
 		friendlyName = "LG " + Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
 		var length = await i2cTransport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();

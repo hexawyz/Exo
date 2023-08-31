@@ -1,7 +1,11 @@
+using System;
 using System.Collections.Concurrent;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Service;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;
 
@@ -221,22 +225,23 @@ public sealed class HidI2CTransport : IAsyncDisposable
 	private readonly Task _readAsyncTask;
 	private readonly ConcurrentDictionary<byte, ResponseWaitState> _pendingOperations;
 	private int _writeState;
+	private readonly ILogger<HidI2CTransport> _logger;
 
 	/// <summary>Creates a new instance of the class <see cref="HidI2CTransport"/>.</summary>
 	/// <param name="stream">A stream to use for receiving and sending messages.</param>
 	/// <param name="sessionId">A byte value to be used for identifying requests done by the instance.</param>
 	/// <param name="cancellationToken"></param>
-	public static Task<HidI2CTransport> CreateAsync(HidFullDuplexStream stream, byte sessionId, CancellationToken cancellationToken)
-		=> CreateAsync(stream, sessionId, DefaultDdcDeviceAddress, cancellationToken);
+	public static Task<HidI2CTransport> CreateAsync(HidFullDuplexStream stream, byte sessionId, ILogger<HidI2CTransport> logger, CancellationToken cancellationToken)
+		=> CreateAsync(stream, sessionId, DefaultDdcDeviceAddress, logger, cancellationToken);
 
 	/// <summary>Creates a new instance of the class <see cref="HidI2CTransport"/>.</summary>
 	/// <param name="stream">A stream to use for receiving and sending messages.</param>
 	/// <param name="sessionId">A byte value to be used for identifying requests done by the instance.</param>
 	/// <param name="deviceAddress">The address of the I2C device. Defaults to <c>0x37</c>.</param>
 	/// <param name="cancellationToken"></param>
-	public static async Task<HidI2CTransport> CreateAsync(HidFullDuplexStream stream, byte sessionId, byte deviceAddress, CancellationToken cancellationToken)
+	public static async Task<HidI2CTransport> CreateAsync(HidFullDuplexStream stream, byte sessionId, byte deviceAddress, ILogger<HidI2CTransport> logger, CancellationToken cancellationToken)
 	{
-		var transport = new HidI2CTransport(stream, sessionId, deviceAddress);
+		var transport = new HidI2CTransport(stream, logger, sessionId, deviceAddress);
 		try
 		{
 			await transport.HandshakeAsync(cancellationToken).ConfigureAwait(false);
@@ -256,16 +261,17 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		await _readAsyncTask.ConfigureAwait(false);
 	}
 
-	private HidI2CTransport(HidFullDuplexStream stream, byte sessionId, byte deviceAddress)
+	private HidI2CTransport(HidFullDuplexStream stream, ILogger<HidI2CTransport> logger, byte sessionId, byte deviceAddress)
 	{
 		_stream = stream;
+		_logger = logger;
 		_sessionId = sessionId;
 		_deviceAddress = deviceAddress;
 		_buffers = GC.AllocateUninitializedArray<byte>(2 * MessageLength, true);
 		_buffers[65] = 0; // Zero-initialize the write report ID.
 		_cancellationTokenSource = new CancellationTokenSource();
-		_readAsyncTask = ReadAsync(_cancellationTokenSource.Token);
 		_pendingOperations = new();
+		_readAsyncTask = ReadAsync(_cancellationTokenSource.Token);
 	}
 
 	private byte BeginWrite()
@@ -325,6 +331,21 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		}
 	}
 
+	public async Task<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)> GetVcpFeatureWithRetryAsync(byte vcpCode, int retryCount, CancellationToken cancellationToken)
+	{
+		while (true)
+		{
+			try
+			{
+				return await GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
+			}
+			catch when (retryCount > 0)
+			{
+				retryCount--;
+			}
+		}
+	}
+
 	public async Task<(ushort CurrentValue, ushort MaximumValue, bool IsTemporary)> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
 		byte initialSequenceNumber = BeginWrite();
@@ -362,7 +383,7 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		}
 	}
 
-	public Task SendLgCustomCommandAsync(byte code, ushort value, byte responseLength, CancellationToken cancellationToken)
+	public async Task SendLgCustomCommandWithRetryAsync(byte code, ushort value, byte responseLength, int retryCount, CancellationToken cancellationToken)
 	{
 		if (responseLength > 60)
 		{
@@ -373,10 +394,21 @@ public sealed class HidI2CTransport : IAsyncDisposable
 
 		var buffer = new byte[responseLength];
 
-		return SendLgCustomCommandAsync(code, value, buffer, cancellationToken);
+		while (true)
+		{
+			try
+			{
+				await SendLgCustomCommandAsync(code, value, buffer, cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch when (retryCount > 0)
+			{
+				retryCount--;
+			}
+		}
 	}
 
-	public async Task SendLgCustomCommandAsync(byte code, ushort value, Memory<byte> destination, CancellationToken cancellationToken)
+	public async Task SendLgCustomCommandWithRetryAsync(byte code, ushort value, Memory<byte> destination, int retryCount, CancellationToken cancellationToken)
 	{
 		if (destination.Length > 60)
 		{
@@ -384,6 +416,49 @@ public sealed class HidI2CTransport : IAsyncDisposable
 			// But unless there is a need for this and more importantly, a way to try this, it is better to stay limited to the maximum possible in a single packet.
 			throw new InvalidOperationException("Cannot request more than 60 bytes at once.");
 		}
+
+		while (true)
+		{
+			try
+			{
+				await SendLgCustomCommandAsyncCore(code, value, destination, cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch when (retryCount > 0)
+			{
+				retryCount--;
+			}
+		}
+	}
+
+	public Task SendLgCustomCommandAsync(byte code, ushort value, byte responseLength, CancellationToken cancellationToken)
+	{
+		if (responseLength > 60)
+		{
+			// It might be possible to request more than 60 bytes and retrieve the results in multiple packets. (Up to 255 bytes over 5 packets ?)
+			// But unless there is a need for this and more importantly, a way to try this, it is better to stay limited to the maximum possible in a single packet.
+			return Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Cannot request more than 60 bytes at once.")));
+		}
+
+		var buffer = new byte[responseLength];
+
+		return SendLgCustomCommandAsync(code, value, buffer, cancellationToken);
+	}
+
+	public Task SendLgCustomCommandAsync(byte code, ushort value, Memory<byte> destination, CancellationToken cancellationToken)
+	{
+		if (destination.Length > 60)
+		{
+			// It might be possible to request more than 60 bytes and retrieve the results in multiple packets. (Up to 255 bytes over 5 packets ?)
+			// But unless there is a need for this and more importantly, a way to try this, it is better to stay limited to the maximum possible in a single packet.
+			return Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Cannot request more than 60 bytes at once.")));
+		}
+
+		return SendLgCustomCommandAsyncCore(code, value, destination, cancellationToken);
+	}
+
+	private async Task SendLgCustomCommandAsyncCore(byte code, ushort value, Memory<byte> destination, CancellationToken cancellationToken)
+	{
 		byte initialSequenceNumber = BeginWrite();
 		byte sequenceNumber = initialSequenceNumber;
 		try
@@ -652,39 +727,32 @@ public sealed class HidI2CTransport : IAsyncDisposable
 	private async Task ReadAsync(CancellationToken cancellationToken)
 	{
 		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, 0, 65);
-		try
+		while (true)
 		{
-			while (true)
+			// Data is received in fixed length packets, so we expect to always receive exactly the number of bytes that the buffer can hold.
+			var remaining = buffer;
+			do
 			{
-				// Data is received in fixed length packets, so we expect to always receive exactly the number of bytes that the buffer can hold.
-				var remaining = buffer;
-				do
+				int count;
+				try
 				{
-					int count;
-					try
-					{
-						count = await _stream.ReadAsync(remaining, cancellationToken).ConfigureAwait(false);
-					}
-					catch (OperationCanceledException)
-					{
-						return;
-					}
-
-					if (count == 0)
-					{
-						return;
-					}
-
-					remaining = remaining.Slice(count);
+					count = await _stream.ReadAsync(remaining, cancellationToken).ConfigureAwait(false);
 				}
-				while (remaining.Length != 0);
+				catch (OperationCanceledException)
+				{
+					return;
+				}
 
-				ProcessReadMessage(buffer.Span[1..]);
+				if (count == 0)
+				{
+					return;
+				}
+
+				remaining = remaining.Slice(count);
 			}
-		}
-		catch
-		{
-			// TODO: Log the exception
+			while (remaining.Length != 0);
+
+			ProcessReadMessage(buffer.Span[1..]);
 		}
 	}
 
@@ -700,15 +768,36 @@ public sealed class HidI2CTransport : IAsyncDisposable
 		// TODO: Emit a log when there is an error and no state to bubble up the error.
 		if (message[0] < 4)
 		{
-			state?.SetNewException(new InvalidDataException("The received response has an invalid length."));
+			if (state is not null)
+			{
+				state.SetNewException(new InvalidDataException("The received response has an invalid length."));
+			}
+			else
+			{
+				_logger.HidI2CTransportMessageInvalidMessageDataLength();
+			}
 			return;
 		}
 		else if (message[3] != 0x00)
 		{
-			state?.SetNewException(new InvalidDataException("The received response contains an unexpected byte value."));
+			if (state is not null)
+			{
+				state.SetNewException(new InvalidDataException("The received response contains an unexpected byte value."));
+			}
+			else
+			{
+				_logger.HidI2CTransportMessageInvalidMessage();
+			}
 			return;
 		}
 
-		state?.OnDataReceived(message[4..message[0]]);
+		try
+		{
+			state?.OnDataReceived(message[4..message[0]]);
+		}
+		catch (Exception ex)
+		{
+			_logger.HidI2CTransportMessageProcessingError(ex);
+		}
 	}
 }

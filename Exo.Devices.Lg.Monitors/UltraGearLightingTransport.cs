@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Service;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;
 
@@ -108,9 +110,12 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _readTask;
 
-	public UltraGearLightingTransport(HidFullDuplexStream stream)
+	private readonly ILogger<UltraGearLightingTransport> _logger;
+
+	public UltraGearLightingTransport(HidFullDuplexStream stream, ILogger<UltraGearLightingTransport> logger)
 	{
 		_stream = stream;
+		_logger = logger;
 		// Allocate 1 read buffer + 1 write buffer with extra capacity for one message.
 		_buffers = GC.AllocateUninitializedArray<byte>(HidBufferLength + WriteBufferLength, true);
 		ResetWriteBuffer(_buffers.AsSpan(HidBufferLength), WriteBufferLength);
@@ -144,51 +149,51 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 	private async Task ReadAsync(CancellationToken cancellationToken)
 	{
 		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, 0, 65);
-		try
+
+		while (true)
 		{
-			while (true)
+			// Data is received in fixed length packets, so we expect to always receive exactly the number of bytes that the buffer can hold.
+			var remaining = buffer;
+			do
 			{
-				// Data is received in fixed length packets, so we expect to always receive exactly the number of bytes that the buffer can hold.
-				var remaining = buffer;
-				do
+				int count;
+				try
 				{
-					int count;
-					try
-					{
-						count = await _stream.ReadAsync(remaining, cancellationToken).ConfigureAwait(false);
-					}
-					catch (OperationCanceledException)
-					{
-						return;
-					}
-
-					if (count == 0)
-					{
-						return;
-					}
-
-					remaining = remaining.Slice(count);
+					count = await _stream.ReadAsync(remaining, cancellationToken).ConfigureAwait(false);
 				}
-				while (remaining.Length != 0);
+				catch (OperationCanceledException)
+				{
+					return;
+				}
 
-				ProcessReadMessage(buffer.Span[1..]);
+				if (count == 0)
+				{
+					return;
+				}
+
+				remaining = remaining[count..];
 			}
-		}
-		catch
-		{
-			// TODO: Log
+			while (remaining.Length != 0);
+
+			ProcessReadMessage(buffer.Span[1..]);
 		}
 	}
 
 	private void ProcessReadMessage(ReadOnlySpan<byte> span)
 	{
-		// TODO: Log an error and/or do something more specific.
-		if (span[0] != 0x52) return;
+		if (span[0] != 0x52)
+		{
+			_logger.UltraGearLightingTransportInvalidMessageHeader(span[0]);
+			return;
+		}
 
 		byte length = span[3];
 
-		// TODO: Log an error and/or do something more specific.
-		if (Checksum.Xor(span[..(length + 5)], 0) != 0) return;
+		if (Checksum.Xor(span[..(length + 5)], 0) != 0)
+		{
+			_logger.UltraGearLightingTransportInvalidMessageChecksum(span[length + 5], Checksum.Xor(span[..(length + 4)], 0));
+			return;
+		}
 
 		var state = Volatile.Read(ref _currentWaitState);
 
@@ -198,7 +203,14 @@ internal sealed class UltraGearLightingTransport : IAsyncDisposable
 
 		if (span[1] == (byte)waitState.Command && span[2] == (byte)waitState.Direction)
 		{
-			waitState.OnDataReceived(span.Slice(4, length));
+			try
+			{
+				waitState.OnDataReceived(span.Slice(4, length));
+			}
+			catch (Exception ex)
+			{
+				_logger.UltraGearLightingTransportMessageProcessingError(ex);
+			}
 		}
 	}
 
