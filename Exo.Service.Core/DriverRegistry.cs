@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
+using Exo.Features;
 
 namespace Exo.Service;
 
@@ -51,7 +52,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	// Map of drivers by device ID that can only be updated within the lock.
 	private readonly ConcurrentDictionary<Guid, Driver> _driversByUniqueId = new();
 
-	private Action<bool, Driver, DeviceInformation>[]? _driverUpdated;
+	private ChannelWriter<(bool, DeviceInformation, Driver)>[]? _driverChangeListeners;
 
 	object IInternalDriverRegistry.Lock => _lock;
 
@@ -83,14 +84,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			_driversByUniqueId[deviceId] = driver;
 
-			try
-			{
-				_driverUpdated.Invoke(true, driver, deviceInformation);
-			}
-			catch (AggregateException)
-			{
-				// TODO: Log
-			}
+			_driverChangeListeners.TryWrite((true, deviceInformation, driver));
 			return true;
 		}
 		else
@@ -115,7 +109,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 			try
 			{
-				_driverUpdated.Invoke(false, driver, deviceInformation);
+				_driverChangeListeners.TryWrite((false, deviceInformation, driver));
 			}
 			catch (AggregateException)
 			{
@@ -136,13 +130,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	/// <returns>An asynchronous enumerable providing live access to all devices.</returns>
 	public async IAsyncEnumerable<DeviceWatchNotification> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)> reader;
-
 		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)>(WatchChannelOptions);
-		reader = channel.Reader;
-		var writer = channel.Writer;
-
-		var onDriverUpdated = (bool b, Driver d, DeviceInformation di) => { writer.TryWrite((b, di, d)); };
 
 		DeviceWatchNotification[]? initialNotifications;
 		int initialNotificationCount = 0;
@@ -155,7 +143,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, kvp.Value, kvp.Key);
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _driverUpdated, onDriverUpdated);
+			ArrayExtensions.InterlockedAdd(ref _driverChangeListeners, channel);
 		}
 
 		try
@@ -173,14 +161,14 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				initialNotifications = null;
 			}
 
-			await foreach (var (isAdded, deviceInformation, driver) in reader.ReadAllAsync(cancellationToken))
+			await foreach (var (isAdded, deviceInformation, driver) in channel.Reader.ReadAllAsync(cancellationToken))
 			{
 				yield return new(isAdded ? WatchNotificationKind.Addition : WatchNotificationKind.Removal, deviceInformation, driver);
 			}
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _driverUpdated, onDriverUpdated);
+			ArrayExtensions.InterlockedRemove(ref _driverChangeListeners, channel);
 		}
 	}
 
@@ -195,13 +183,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	public async IAsyncEnumerable<DeviceWatchNotification> WatchAsync<TFeature>([EnumeratorCancellation] CancellationToken cancellationToken)
 		where TFeature : class, IDeviceFeature
 	{
-		ChannelReader<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)> reader;
-
 		var channel = Channel.CreateUnbounded<(bool IsAdded, DeviceInformation deviceInformation, Driver Driver)>(WatchChannelOptions);
-		reader = channel.Reader;
-		var writer = channel.Writer;
-
-		var onDriverUpdated = (bool b, Driver d, DeviceInformation di) => { if (d is IDeviceDriver<TFeature>) writer.TryWrite((b, di, d)); };
 
 		DeviceWatchNotification[]? initialNotifications;
 		int initialNotificationCount = 0;
@@ -217,7 +199,7 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				}
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _driverUpdated, onDriverUpdated);
+			ArrayExtensions.InterlockedAdd(ref _driverChangeListeners, channel);
 		}
 
 		try
@@ -235,14 +217,17 @@ public sealed class DriverRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				initialNotifications = null;
 			}
 
-			await foreach (var (isAdded, deviceInformation, driver) in reader.ReadAllAsync(cancellationToken))
+			await foreach (var (isAdded, deviceInformation, driver) in channel.Reader.ReadAllAsync(cancellationToken))
 			{
-				yield return new(isAdded ? WatchNotificationKind.Addition : WatchNotificationKind.Removal, deviceInformation, driver);
+				if (driver is IDeviceDriver<IKeyboardDeviceFeature>)
+				{
+					yield return new(isAdded ? WatchNotificationKind.Addition : WatchNotificationKind.Removal, deviceInformation, driver);
+				}
 			}
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _driverUpdated, onDriverUpdated);
+			ArrayExtensions.InterlockedRemove(ref _driverChangeListeners, channel);
 		}
 	}
 

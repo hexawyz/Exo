@@ -100,4 +100,7 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 1099, EventName = "HidDeviceNotificationSinkError", Level = LogLevel.Critical, Message = "An exception occurred when processing HID arrivals and removals.")]
 	public static partial void HidDeviceNotificationSinkError(this ILogger logger, Exception ex);
+
+	[LoggerMessage(EventId = 2000, Level = LogLevel.Critical, Message = "An exception occurred when applying changes for restoring the state of the device {deviceId:B}.")]
+	public static partial void LightingServiceRestoreStateApplyChangesError(this ILogger logger, Guid deviceId, Exception ex);
 }

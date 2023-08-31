@@ -8,6 +8,7 @@ using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
@@ -117,10 +118,12 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	private ChannelWriter<LightingDeviceWatchNotification>[]? _deviceListeners;
 	private ChannelWriter<LightingEffectWatchNotification>[]? _effectChangeListeners;
 	private ChannelWriter<LightingBrightnessWatchNotification>[]? _brightnessChangeListeners;
+	private readonly ILogger<LightingService> _logger;
 
-	public LightingService(DriverRegistry driverRegistry)
+	public LightingService(DriverRegistry driverRegistry, ILogger<LightingService> logger)
 	{
 		_deviceWatcher = driverRegistry;
+		_logger = logger;
 		_lightingDeviceStates = new();
 		_lock = new();
 		_cancellationTokenSource = new();
@@ -244,16 +247,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 				if (shouldApplyChanges)
 				{
-					try
+					if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 					{
-						if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
-						{
-							applyChangesTask = dcf.ApplyChangesAsync();
-						}
-					}
-					catch
-					{
-						// TODO: Log
+						applyChangesTask = ApplyChangesAsync(dcf, notification.DeviceInformation.Id);
 					}
 				}
 
@@ -279,14 +275,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					_lightingDeviceStates.TryAdd(notification.DeviceInformation.Id, deviceState);
 				}
 
-				try
-				{
-					_deviceListeners.TryWrite(CreateNotification(notification.Kind, deviceState));
-				}
-				catch (AggregateException)
-				{
-					// TODO: Log
-				}
+				_deviceListeners.TryWrite(CreateNotification(notification.Kind, deviceState));
 			}
 
 			// Handlers can only be added from within the lock, so we can conditionally emit the new effect notifications based on the needs. (Handlers can be removed at anytime)
@@ -314,6 +303,18 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 		}
 
 		return applyChangesTask;
+	}
+
+	private async ValueTask ApplyChangesAsync(ILightingDeferredChangesFeature deferredChangesFeature, Guid deviceId)
+	{
+		try
+		{
+			await deferredChangesFeature.ApplyChangesAsync().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			_logger.LightingServiceRestoreStateApplyChangesError(deviceId, ex);
+		}
 	}
 
 	private void OnDriverRemoved(DeviceWatchNotification notification)
@@ -346,14 +347,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					}
 				}
 
-				try
-				{
-					_deviceListeners.TryWrite(n);
-				}
-				catch (AggregateException)
-				{
-					// TODO: Log
-				}
+				_deviceListeners.TryWrite(n);
 			}
 		}
 	}
@@ -531,14 +525,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
 					lock (_lock)
 					{
-						try
-						{
-							_effectChangeListeners.TryWrite(new(deviceId, zoneId, serializedEffect));
-						}
-						catch
-						{
-							// TODO: Log
-						}
+						_effectChangeListeners.TryWrite(new(deviceId, zoneId, serializedEffect));
 					}
 				}
 			}
@@ -581,14 +568,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					// We probably strictly need this lock for consistency with the WatchBrightnessAsync setup.
 					lock (_lock)
 					{
-						try
-						{
-							_brightnessChangeListeners.TryWrite(new(deviceId, brightness));
-						}
-						catch
-						{
-							// TODO: Log
-						}
+						_brightnessChangeListeners.TryWrite(new(deviceId, brightness));
 					}
 				}
 			}
