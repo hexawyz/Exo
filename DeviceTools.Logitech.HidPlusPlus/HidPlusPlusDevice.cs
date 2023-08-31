@@ -180,7 +180,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		try
 		{
 			// Creating the device should pose little to no problem, but we will do additional checks once the instance is created.
-			var transport = new HidPlusPlusTransport(shortMessageStream, longMessageStream, veryLongMessageStream, softwareId, requestTimeout);
+			var transport = new HidPlusPlusTransport(shortMessageStream, longMessageStream, veryLongMessageStream, softwareId, requestTimeout, loggerFactory.CreateLogger<HidPlusPlusTransport>());
 			HidPlusPlusDevice device;
 			try
 			{

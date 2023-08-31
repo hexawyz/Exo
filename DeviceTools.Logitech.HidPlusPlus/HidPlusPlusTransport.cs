@@ -8,6 +8,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
+using Microsoft.Extensions.Logging;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -258,6 +259,8 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 	private readonly long _requestTimeoutInStopwatchTicks;
 	private readonly List<PendingOperation> _pendingOperations;
 
+	private readonly ILogger<HidPlusPlusTransport> _logger;
+
 	/// <summary>Initializes a new instance of the class <see cref="HidPlusPlusTransport"/>.</summary>
 	/// <remarks>
 	/// <para>
@@ -290,7 +293,8 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 		HidFullDuplexStream? longMessageStream,
 		HidFullDuplexStream? veryLongMessageStream,
 		byte featureAccessSoftwareId,
-		TimeSpan requestTimeout
+		TimeSpan requestTimeout,
+		ILogger<HidPlusPlusTransport> logger
 	)
 	{
 		// Hoping this is a reasonable assumption here.
@@ -305,6 +309,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 		_shortMessageStream = shortMessageStream;
 		_longMessageStream = longMessageStream;
 		_veryLongMessageStream = veryLongMessageStream;
+		_logger = logger;
 		_requestTimeoutInStopwatchTicks = (long)(requestTimeout.Ticks * TimeSpanToStopwatchTicks);
 		_timeoutTimer = new Timer(RequestTimeout.Callback, this, Timeout.Infinite, Timeout.Infinite);
 		_supportedReports = (_shortMessageStream is not null ? SupportedReports.Short : 0) |
@@ -783,9 +788,9 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 			{
 				handler?.Invoke(message);
 			}
-			catch
+			catch (Exception ex)
 			{
-				// TODO: Log / Handle
+				_logger.HidPlusPlusTransportNotificationHandlerException(ex);
 			}
 		}
 	}
