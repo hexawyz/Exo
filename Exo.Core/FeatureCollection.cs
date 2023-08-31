@@ -47,27 +47,17 @@ public static class FeatureCollection
 		}
 	}
 
-	private static readonly ConditionalWeakTable<Type, Func<Guid>> TypeIds = new();
-	private static readonly MethodInfo GetGuidMethod =
-		typeof(FeatureCollection)
-			.GetMethods(BindingFlags.Public | BindingFlags.Static)
-			.Single(m => m.Name == nameof(GetGuid) && m.ContainsGenericParameters);
-
-	internal static Guid GetNonCachedGuid(Type featureType)
-		=> featureType.GetCustomAttribute<TypeIdAttribute>()?.Value ?? throw new InvalidOperationException($"Root feature types must have a unique identifier: {featureType}.");
-
 	/// <summary>Gets the unique identified associated with the specified feature type.</summary>
 	/// <typeparam name="TFeature">The type of the feature whose GUID should be retrieved.</typeparam>
 	/// <returns>A unique ID that can uniquely identify the root feature type.</returns>
-	public static Guid GetGuid(Type featureType)
-		=> TypeIds.GetValue(featureType, t => GetGuidMethod.MakeGenericMethod(featureType).CreateDelegate<Func<Guid>>())();
+	public static Guid GetGuid(Type featureType) => TypeId.Get(featureType);
 
 	/// <summary>Gets the unique identified associated with the specified feature type.</summary>
 	/// <typeparam name="TFeature">The type of the feature whose GUID should be retrieved.</typeparam>
 	/// <returns>A unique ID that can uniquely identify the root feature type.</returns>
 	public static Guid GetGuid<TFeature>()
 		where TFeature : class, IDeviceFeature
-		=> FeatureCollection<TFeature>.FeatureTypeGuid;
+		=> TypeId.Get<TFeature>();
 
 	/// <summary>Creates an empty feature collection.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -548,12 +538,10 @@ internal static class FeatureCollection<TFeature>
 		where TOtherFeature : class, IDeviceFeature
 		=> Compatibility<TOtherFeature>.RelaxedGetFeature?.Invoke(features);
 
-	internal static readonly Guid FeatureTypeGuid;
-
 	static FeatureCollection()
 	{
 		FeatureCollection.ValidateInterfaceType(typeof(TFeature));
-		FeatureTypeGuid = FeatureCollection.GetNonCachedGuid(typeof(TFeature));
+		_ = TypeId.Get<TFeature>();
 	}
 
 	internal static IDeviceFeatureCollection<TFeature> Empty() => EmptyFeatureCollection.Instance;
