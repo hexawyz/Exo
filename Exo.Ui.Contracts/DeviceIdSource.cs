@@ -10,11 +10,15 @@ public enum DeviceIdSource : byte
 	[EnumMember]
 	PlugAndPlay = 1,
 	[EnumMember]
-	Pci = 2,
+	Display = 2,
 	[EnumMember]
-	Usb = 3,
+	Pci = 3,
 	[EnumMember]
-	Bluetooth = 4,
+	Usb = 4,
 	[EnumMember]
-	BluetoothLowEnergy = 5,
+	Bluetooth = 5,
+	[EnumMember]
+	BluetoothLowEnergy = 6,
+	[EnumMember]
+	EQuad = 128,
 }

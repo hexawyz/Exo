@@ -51,10 +51,12 @@ internal static class GrpcConvert
 		{
 			DeviceIdSource.Unknown => GrpcDeviceIdSource.Unknown,
 			DeviceIdSource.PlugAndPlay => GrpcDeviceIdSource.PlugAndPlay,
+			DeviceIdSource.Display => GrpcDeviceIdSource.Display,
 			DeviceIdSource.Pci => GrpcDeviceIdSource.Pci,
 			DeviceIdSource.Usb => GrpcDeviceIdSource.Usb,
 			DeviceIdSource.Bluetooth => GrpcDeviceIdSource.Bluetooth,
 			DeviceIdSource.BluetoothLowEnergy => GrpcDeviceIdSource.BluetoothLowEnergy,
+			DeviceIdSource.EQuad => GrpcDeviceIdSource.EQuad,
 			_ => throw new NotImplementedException()
 		};
 
