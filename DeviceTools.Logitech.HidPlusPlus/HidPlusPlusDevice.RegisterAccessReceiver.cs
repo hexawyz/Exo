@@ -22,8 +22,8 @@ public abstract partial class HidPlusPlusDevice
 		public event ReceiverDeviceEventHandler? DeviceConnected;
 		public event ReceiverDeviceEventHandler? DeviceDisconnected;
 
-		internal RegisterAccessReceiver(HidPlusPlusTransport transport, ILoggerFactory loggerFactory, ILogger<RegisterAccessReceiver> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(transport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		internal RegisterAccessReceiver(HidPlusPlusTransport transport, ILoggerFactory loggerFactory, ILogger<RegisterAccessReceiver> logger, HidPlusPlusDeviceId[] deviceIds, byte mainDeviceIdIndex, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			_deviceOperationTaskQueue = new();
 			_eventQueue = new();
@@ -176,6 +176,8 @@ public abstract partial class HidPlusPlusDevice
 
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
 
+		protected virtual DeviceIdSource DefaultChildDeviceIdSource => DeviceIdSource.EQuad;
+
 		private protected sealed override void OnDeviceDiscovered(HidPlusPlusDevice device) => _eventQueue.Enqueue((DeviceEventKind.DeviceDiscovered, device, 0));
 		private protected sealed override void OnDeviceConnected(HidPlusPlusDevice device, int version) => _eventQueue.Enqueue((DeviceEventKind.DeviceConnected, device, version));
 		private protected sealed override void OnDeviceDisconnected(HidPlusPlusDevice device, int version) => _eventQueue.Enqueue((DeviceEventKind.DeviceDisconnected, device, version));
@@ -321,7 +323,7 @@ public abstract partial class HidPlusPlusDevice
 		)
 		{
 			var (_, deviceName, serialNumber) = await GetPairedDeviceInformationAsync(deviceIndex, productId, retryCount, cancellationToken).ConfigureAwait(false);
-			return await CreateAsync(this, Transport, _loggerFactory, protocolFlavor, productId, deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
+			return await CreateAsync(this, Transport, _loggerFactory, protocolFlavor, new(DefaultChildDeviceIdSource, productId), deviceIndex, deviceInfo, deviceName, serialNumber, retryCount, default).ConfigureAwait(false);
 		}
 	}
 }

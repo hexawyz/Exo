@@ -15,7 +15,8 @@ public abstract partial class HidPlusPlusDevice
 		(
 			HidPlusPlusTransport transport,
 			ILogger<FeatureAccessDirect> logger,
-			ushort productId,
+			HidPlusPlusDeviceId[] deviceIds,
+			byte mainDeviceIdIndex,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			FeatureAccessProtocol.DeviceType deviceType,
@@ -23,7 +24,7 @@ public abstract partial class HidPlusPlusDevice
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(transport, logger, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
+			: base(transport, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
 		}
 

@@ -12,13 +12,14 @@ public abstract partial class HidPlusPlusDevice
 			HidPlusPlusTransport transport,
 			ILoggerFactory loggerFactory,
 			ILogger<UnifyingReceiver> logger,
-			ushort productId,
+			HidPlusPlusDeviceId[] deviceIds,
+			byte mainDeviceIdIndex,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(transport, loggerFactory, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+			: base(transport, loggerFactory, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 	}

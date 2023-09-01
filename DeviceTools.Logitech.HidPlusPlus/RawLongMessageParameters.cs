@@ -1,9 +1,10 @@
 using System.Runtime.InteropServices;
+using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
-public struct RawLongMessageParameters : ILongMessageParameters
+public struct RawLongMessageParameters : ILongMessageParameters, IMessageResponseParameters
 {
 	public byte Byte0;
 	public byte Byte1;

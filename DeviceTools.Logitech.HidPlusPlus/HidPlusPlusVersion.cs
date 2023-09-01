@@ -1,3 +1,3 @@
-﻿namespace DeviceTools.Logitech.HidPlusPlus;
+namespace DeviceTools.Logitech.HidPlusPlus;
 
-public record struct HidPlusPlusVersion(byte Major, byte Minor);
+public readonly record struct HidPlusPlusVersion(byte Major, byte Minor);

@@ -23,8 +23,8 @@ public abstract partial class HidPlusPlusDevice
 		protected RegisterAccessReceiver Receiver => Unsafe.As<RegisterAccessReceiver>(ParentOrTransport);
 		protected sealed override HidPlusPlusTransport Transport => Receiver.Transport;
 
-		internal RegisterAccessThroughReceiver(RegisterAccessReceiver parent, ILogger<RegisterAccessThroughReceiver> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(parent, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		internal RegisterAccessThroughReceiver(RegisterAccessReceiver parent, ILogger<RegisterAccessThroughReceiver> logger, HidPlusPlusDeviceId[] deviceIds, byte mainDeviceIdIndex, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(parent, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			var device = Transport.Devices[deviceIndex];
 			device.NotificationReceived += HandleNotification;
@@ -99,7 +99,7 @@ public abstract partial class HidPlusPlusDevice
 				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
 
 				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
-				if (parameters.WirelessProductId != ProductId)
+				if (parameters.WirelessProductId != MainProductId)
 				{
 					DisposeInternal();
 					Receiver.HandleNotification(message);

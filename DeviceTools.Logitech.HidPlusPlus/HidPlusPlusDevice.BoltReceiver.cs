@@ -14,15 +14,19 @@ public abstract partial class HidPlusPlusDevice
 			HidPlusPlusTransport transport,
 			ILoggerFactory loggerFactory,
 			ILogger<BoltReceiver> logger,
-			ushort productId,
+			HidPlusPlusDeviceId[] deviceIds,
+			byte mainDeviceIdIndex,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(transport, loggerFactory, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+			: base(transport, loggerFactory, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
+
+		// AFAIK, Bolt is based on BLE, and all bolt devices are BLE devices. As such, their main ID should always the BLE one.
+		protected override DeviceIdSource DefaultChildDeviceIdSource => DeviceIdSource.BluetoothLowEnergy;
 
 		// NB: Do HID++ 1.0 Bolt devices exist ?
 		// If so, we'll need to change the algorithm here. Bolt devices seem to use their Bluetooth (USB) PID as WPID directly.

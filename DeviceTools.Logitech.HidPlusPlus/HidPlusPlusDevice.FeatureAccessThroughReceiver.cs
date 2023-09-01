@@ -30,7 +30,8 @@ public abstract partial class HidPlusPlusDevice
 		(
 			RegisterAccessReceiver parent,
 			ILogger<FeatureAccessThroughReceiver> logger,
-			ushort productId,
+			HidPlusPlusDeviceId[] deviceIds,
+			byte mainDeviceIdIndex,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			FeatureAccessProtocol.DeviceType deviceType,
@@ -38,7 +39,7 @@ public abstract partial class HidPlusPlusDevice
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(parent, logger, productId, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
+			: base(parent, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, deviceType, cachedFeatures, friendlyName, serialNumber)
 		{
 			// If the device is connected and we reach this point in the code, relevant information will already have been fetched and passed through the parameters.
 			_isInfoInitialized = deviceConnectionInfo.IsLinkEstablished;
@@ -114,7 +115,7 @@ public abstract partial class HidPlusPlusDevice
 				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
 
 				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
-				if (parameters.WirelessProductId != ProductId)
+				if (parameters.WirelessProductId != MainProductId)
 				{
 					DisposeInternal(true);
 					Receiver.HandleNotification(message);
@@ -180,7 +181,9 @@ public abstract partial class HidPlusPlusDevice
 					FriendlyName = retrievedName;
 				}
 
-				string? serialNumber = await FeatureAccessTryGetSerialNumber(transport, features, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
+				var (deviceIds, mainDeviceIdIndex, serialNumber) = await FeatureAccessTryGetProductIdsAndSerialNumber(transport, features, MainDeviceId, DeviceIndex, retryCount, cancellationToken).ConfigureAwait(false);
+
+				SetDeviceIds(deviceIds, mainDeviceIdIndex);
 
 				if (serialNumber is not null)
 				{

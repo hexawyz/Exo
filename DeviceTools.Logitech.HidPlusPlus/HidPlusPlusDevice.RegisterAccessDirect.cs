@@ -10,8 +10,8 @@ public abstract partial class HidPlusPlusDevice
 	{
 		protected sealed override HidPlusPlusTransport Transport => Unsafe.As<HidPlusPlusTransport>(ParentOrTransport);
 
-		internal RegisterAccessDirect(HidPlusPlusTransport transport, ILogger<RegisterAccessDirect> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(transport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		internal RegisterAccessDirect(HidPlusPlusTransport transport, ILogger<RegisterAccessDirect> logger, HidPlusPlusDeviceId[] deviceIds, byte mainDeviceIdIndex, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(transport, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 

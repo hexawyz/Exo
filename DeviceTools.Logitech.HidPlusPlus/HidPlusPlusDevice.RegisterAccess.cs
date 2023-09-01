@@ -7,8 +7,8 @@ public abstract partial class HidPlusPlusDevice
 {
 	public abstract class RegisterAccess : HidPlusPlusDevice
 	{
-		private protected RegisterAccess(object parentOrTransport, ILogger<RegisterAccess> logger, ushort productId, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
-			: base(parentOrTransport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+		private protected RegisterAccess(object parentOrTransport, ILogger<RegisterAccess> logger, HidPlusPlusDeviceId[] deviceIds, byte mainDeviceIdIndex, byte deviceIndex, DeviceConnectionInfo deviceConnectionInfo, string? friendlyName, string? serialNumber)
+			: base(parentOrTransport, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 		}
 

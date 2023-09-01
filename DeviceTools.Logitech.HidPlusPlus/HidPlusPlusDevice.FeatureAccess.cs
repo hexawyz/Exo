@@ -562,7 +562,8 @@ public abstract partial class HidPlusPlusDevice
 		(
 			object parentOrTransport,
 			ILogger<FeatureAccess> logger,
-			ushort productId,
+			HidPlusPlusDeviceId[] deviceIds,
+			byte mainDeviceIdIndex,
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			FeatureAccessProtocol.DeviceType deviceType,
@@ -570,7 +571,7 @@ public abstract partial class HidPlusPlusDevice
 			string? friendlyName,
 			string? serialNumber
 		)
-			: base(parentOrTransport, logger, productId, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
+			: base(parentOrTransport, logger, deviceIds, mainDeviceIdIndex, deviceIndex, deviceConnectionInfo, friendlyName, serialNumber)
 		{
 			_deviceType = deviceType;
 			CachedFeatures = cachedFeatures;

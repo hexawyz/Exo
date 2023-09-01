@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -30,7 +31,7 @@ public static class DeviceInformation
 
 			private byte _transport0;
 			private byte _transport1;
-			public Transports Transport
+			public Transports Transports
 			{
 				get => (Transports)BigEndian.ReadUInt16(_transport0);
 				set => BigEndian.Write(ref _transport0, (ushort)value);
@@ -74,6 +75,45 @@ public static class DeviceInformation
 				if ((uint)index > 2) throw new ArgumentOutOfRangeException(nameof(index));
 
 				return BigEndian.ReadUInt16(Unsafe.Add(ref _productId00, index * 2));
+			}
+
+			public int GetProductIdCount() => BitOperations.PopCount((uint)((byte)Transports & 0xF));
+
+			public ushort[] GetProductIds()
+			{
+				var productIds = new ushort[GetProductIdCount()];
+				for (int i = 0; i < productIds.Length; i++)
+				{
+					productIds[i] = GetProductId(i);
+				}
+				return productIds;
+			}
+
+			public HidPlusPlusDeviceId[] GetDeviceIds()
+			{
+				var productIds = new HidPlusPlusDeviceId[GetProductIdCount()];
+				var transports = Transports;
+				var currentTransport = Transports.Bluetooth;
+				for (int i = 0; i < productIds.Length; i++)
+				{
+					while ((transports & currentTransport) == 0)
+					{
+						currentTransport = (Transports)((byte)currentTransport << 1);
+					}
+					productIds[i] = new()
+					{
+						Source = currentTransport switch
+						{
+							Transports.Bluetooth => DeviceIdSource.Bluetooth,
+							Transports.BluetoothLowEnergy => DeviceIdSource.BluetoothLowEnergy,
+							Transports.EQuad => DeviceIdSource.EQuad,
+							Transports.Usb => DeviceIdSource.Usb,
+							_ => throw new InvalidOperationException($"The transport {currentTransport} is not supported."),
+						},
+						ProductId = GetProductId(i)
+					};
+				}
+				return productIds;
 			}
 		}
 	}
