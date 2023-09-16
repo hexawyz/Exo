@@ -185,7 +185,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		return featureTypes.ToArray();
 	}
 
-	public static async Task CreateAsync(ConfigurationService configurationService, CancellationToken cancellationToken)
+	public static async Task<DeviceRegistry> CreateAsync(ConfigurationService configurationService, CancellationToken cancellationToken)
 	{
 		var deviceStates = new ConcurrentDictionary<Guid, DeviceState>();
 		var reservedDeviceIds = new HashSet<Guid>();
@@ -224,6 +224,8 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 			driverState.RegisterDevice(deviceId, key);
 		}
+
+		return new(deviceStates, driverStates, reservedDeviceIds);
 	}
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates = new();
@@ -238,11 +240,24 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	// The contents of this blacklist do not strictly need to be persisted between service runs, but it could be useful to keep it around to avoid even more niche scenarios.
 	private readonly HashSet<Guid> _reservedDeviceIds = new();
 
-	private readonly object _lock = new();
+	private readonly object _lock;
 
 	private ChannelWriter<(UpdateKind, DeviceStateInformation, Driver)>[]? _deviceChangeListeners;
 
 	object IInternalDriverRegistry.Lock => _lock;
+
+	private DeviceRegistry
+	(
+		ConcurrentDictionary<Guid, DeviceState> deviceStates,
+		Dictionary<string, DriverConfigurationState> driverConfigurationStates,
+		HashSet<Guid> reservedDeviceIds
+	)
+	{
+		_deviceStates = deviceStates;
+		_driverConfigurationStates = driverConfigurationStates;
+		_reservedDeviceIds = reservedDeviceIds;
+		_lock = new();
+	}
 
 	public void Dispose() { }
 

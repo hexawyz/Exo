@@ -38,7 +38,7 @@ public class Startup
 		services.AddSingleton(sp => new ConfigurationService(Path.Combine(Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!, "cfg")));
 		services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
-		services.AddSingleton<DeviceRegistry>();
+		services.AddSingleton(sp => DeviceRegistry.CreateAsync(sp.GetRequiredService<ConfigurationService>(), default).GetAwaiter().GetResult());
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<BatteryWatcher>();

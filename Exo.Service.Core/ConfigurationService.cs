@@ -26,6 +26,7 @@ public class ConfigurationService
 		directory = Path.GetFullPath(directory);
 		var devicesDirectory = Path.Combine(directory, DevicesRootDirectory);
 		Directory.CreateDirectory(directory);
+		Directory.CreateDirectory(devicesDirectory);
 		_lock = new();
 		_directory = directory;
 		_devicesDirectory = devicesDirectory;
