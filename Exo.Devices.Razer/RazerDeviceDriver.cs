@@ -674,8 +674,20 @@ public abstract class RazerDeviceDriver :
 
 				if (Interlocked.Exchange(ref _pairedDevices[deviceIndex - 1].Driver, null) is { } oldDriver)
 				{
-					_driverRegistry.RemoveDriver(oldDriver);
-					DisposeDriver(oldDriver);
+					RemoveAndDisposeDriver(oldDriver);
+				}
+			}
+
+			private async void RemoveAndDisposeDriver(RazerDeviceDriver driver)
+			{
+				try
+				{
+					await _driverRegistry.RemoveDriverAsync(driver).ConfigureAwait(false);
+					DisposeDriver(driver);
+				}
+				catch
+				{
+					// TODO: Log
 				}
 			}
 
@@ -739,7 +751,7 @@ public abstract class RazerDeviceDriver :
 
 				try
 				{
-					_driverRegistry.AddDriver(driver);
+					_driverRegistry.AddDriverAsync(driver);
 				}
 				catch (Exception ex)
 				{
@@ -753,7 +765,7 @@ public abstract class RazerDeviceDriver :
 				{
 					// TODO: Log an error. We should never have to replace a live driver by another.
 
-					_driverRegistry.RemoveDriver(oldDriver);
+					_driverRegistry.RemoveDriverAsync(oldDriver);
 					DisposeDriver(oldDriver);
 				}
 			}

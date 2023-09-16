@@ -240,11 +240,11 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	// The contents of this blacklist do not strictly need to be persisted between service runs, but it could be useful to keep it around to avoid even more niche scenarios.
 	private readonly HashSet<Guid> _reservedDeviceIds = new();
 
-	private readonly object _lock;
+	private readonly AsyncLock _lock;
 
 	private ChannelWriter<(UpdateKind, DeviceStateInformation, Driver)>[]? _deviceChangeListeners;
 
-	object IInternalDriverRegistry.Lock => _lock;
+	AsyncLock IInternalDriverRegistry.Lock => _lock;
 
 	private DeviceRegistry
 	(
@@ -275,21 +275,21 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		}
 	}
 
-	bool IInternalDriverRegistry.AddDriver(Driver driver) => AddDriverInLock(driver);
-	bool IInternalDriverRegistry.RemoveDriver(Driver driver) => RemoveDriverInLock(driver);
+	ValueTask<bool> IInternalDriverRegistry.AddDriverAsync(Driver driver) => AddDriverInLockAsync(driver);
+	ValueTask<bool> IInternalDriverRegistry.RemoveDriverAsync(Driver driver) => RemoveDriverInLock(driver);
 
 	public NestedDriverRegistry CreateNestedRegistry() => new(this);
 	IDriverRegistry IDriverRegistry.CreateNestedRegistry() => CreateNestedRegistry();
 
-	public bool AddDriver(Driver driver)
+	public async ValueTask<bool> AddDriverAsync(Driver driver)
 	{
-		lock (_lock)
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
-			return AddDriverInLock(driver);
+			return await AddDriverInLockAsync(driver).ConfigureAwait(false);
 		}
 	}
 
-	private bool AddDriverInLock(Driver driver)
+	private async ValueTask<bool> AddDriverInLockAsync(Driver driver)
 	{
 		bool isNewDevice = false;
 
@@ -371,15 +371,15 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		return ImmutableArray<DeviceId>.Empty;
 	}
 
-	public bool RemoveDriver(Driver driver)
+	public async ValueTask<bool> RemoveDriverAsync(Driver driver)
 	{
-		lock (_lock)
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
-			return RemoveDriverInLock(driver);
+			return await RemoveDriverInLock(driver).ConfigureAwait(false);
 		}
 	}
 
-	internal bool RemoveDriverInLock(Driver driver)
+	internal ValueTask<bool> RemoveDriverInLock(Driver driver)
 	{
 		if (TryGetDeviceId(driver, out var deviceId) && _deviceStates.TryGetValue(deviceId, out var deviceState) && deviceState.TryUnsetDriver())
 		{
@@ -394,11 +394,11 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			{
 				// TODO: Log
 			}
-			return true;
+			return new(true);
 		}
 		else
 		{
-			return false;
+			return new(false);
 		}
 	}
 

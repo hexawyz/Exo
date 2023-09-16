@@ -874,7 +874,7 @@ public abstract class LogitechUniversalDriver : Driver,
 			private readonly IDriverRegistry _driverRegistry;
 			private readonly ILoggerFactory _loggerFactory;
 			private readonly Dictionary<HidPlusPlusDevice, LogitechUniversalDriver?> _children;
-			private readonly object _lock;
+			private readonly AsyncLock _lock;
 			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 			public ImmutableArray<string> DeviceNames { get; }
 
@@ -908,36 +908,57 @@ public abstract class LogitechUniversalDriver : Driver,
 			public Task StartWatchingDevicesAsync(CancellationToken cancellationToken)
 				=> Device.StartWatchingDevicesAsync(cancellationToken);
 
-			private void OnChildDeviceDiscovered(HidPlusPlusDevice receiver, HidPlusPlusDevice device)
+			private async void OnChildDeviceDiscovered(HidPlusPlusDevice receiver, HidPlusPlusDevice device)
 			{
-				lock (_lock)
+				try
 				{
-					_children.Add(device, null);
-				}
-			}
-
-			private void OnChildDeviceConnected(HidPlusPlusDevice receiver, HidPlusPlusDevice device)
-			{
-				lock (_lock)
-				{
-					var driver = CreateChildDriver(DeviceNames[^1], device, _loggerFactory);
-
-					_children[device] = driver;
-
-					_driverRegistry.AddDriver(driver);
-				}
-			}
-
-			private void OnChildDeviceDisconnected(HidPlusPlusDevice receiver, HidPlusPlusDevice device)
-			{
-				lock (_lock)
-				{
-					if (_children.TryGetValue(device, out var driver) && driver is not null)
+					using (await _lock.WaitAsync(default).ConfigureAwait(false))
 					{
-						_children[device] = null;
-
-						_driverRegistry.RemoveDriver(driver);
+						_children.Add(device, null);
 					}
+				}
+				catch
+				{
+					// TODO: Log
+				}
+			}
+
+			private async void OnChildDeviceConnected(HidPlusPlusDevice receiver, HidPlusPlusDevice device)
+			{
+				try
+				{
+					using (await _lock.WaitAsync(default).ConfigureAwait(false))
+					{
+						var driver = CreateChildDriver(DeviceNames[^1], device, _loggerFactory);
+
+						_children[device] = driver;
+
+						await _driverRegistry.AddDriverAsync(driver).ConfigureAwait(false);
+					}
+				}
+				catch
+				{
+					// TODO: Log
+				}
+			}
+
+			private async void OnChildDeviceDisconnected(HidPlusPlusDevice receiver, HidPlusPlusDevice device)
+			{
+				try
+				{
+					using (await _lock.WaitAsync(default).ConfigureAwait(false))
+					{
+						if (_children.TryGetValue(device, out var driver) && driver is not null)
+						{
+							_children[device] = null;
+
+							await _driverRegistry.RemoveDriverAsync(driver).ConfigureAwait(false);
+						}
+					}
+				}
+				catch
+				{
+					// TODO: Log
 				}
 			}
 

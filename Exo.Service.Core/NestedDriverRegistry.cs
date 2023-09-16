@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Exo.Service;
 
 public sealed class NestedDriverRegistry : IDriverRegistry, IInternalDriverRegistry
@@ -22,7 +19,7 @@ public sealed class NestedDriverRegistry : IDriverRegistry, IInternalDriverRegis
 
 			foreach (var driver in _driverSet)
 			{
-				_parentRegistry.RemoveDriver(driver);
+				_parentRegistry.RemoveDriverAsync(driver);
 			}
 			_driverSet.Clear();
 			_driverSet = null;
@@ -37,19 +34,19 @@ public sealed class NestedDriverRegistry : IDriverRegistry, IInternalDriverRegis
 		if (_driverSet is null) throw new ObjectDisposedException(nameof(NestedDriverRegistry));
 	}
 
-	public bool AddDriver(Driver driver)
+	public async ValueTask<bool> AddDriverAsync(Driver driver)
 	{
-		lock (_parentRegistry.Lock)
+		using (await _parentRegistry.Lock.WaitAsync(default).ConfigureAwait(false))
 		{
 			EnsureNotDisposed();
-			return AddDriverInLock(driver);
+			return await AddDriverInLock(driver).ConfigureAwait(false);
 		}
 	}
 
-	private bool AddDriverInLock(Driver driver)
+	private async ValueTask<bool> AddDriverInLock(Driver driver)
 	{
 		if (_driverSet is null) return false;
-		if (_parentRegistry.AddDriver(driver))
+		if (await _parentRegistry.AddDriverAsync(driver).ConfigureAwait(false))
 		{
 			_driverSet!.Add(driver);
 			return true;
@@ -57,19 +54,19 @@ public sealed class NestedDriverRegistry : IDriverRegistry, IInternalDriverRegis
 		return false;
 	}
 
-	public bool RemoveDriver(Driver driver)
+	public async ValueTask<bool> RemoveDriverAsync(Driver driver)
 	{
-		lock (_parentRegistry.Lock)
+		using (await _parentRegistry.Lock.WaitAsync(default).ConfigureAwait(false))
 		{
 			EnsureNotDisposed();
-			return RemoveDriverInLock(driver);
+			return await RemoveDriverInLock(driver).ConfigureAwait(false);
 		}
 	}
 
-	private bool RemoveDriverInLock(Driver driver)
+	private async ValueTask<bool> RemoveDriverInLock(Driver driver)
 	{
 		if (_driverSet is null) return false;
-		if (_parentRegistry.RemoveDriver(driver))
+		if (await _parentRegistry.RemoveDriverAsync(driver).ConfigureAwait(false))
 		{
 			_driverSet!.Remove(driver);
 			return true;
@@ -77,8 +74,8 @@ public sealed class NestedDriverRegistry : IDriverRegistry, IInternalDriverRegis
 		return false;
 	}
 
-	object IInternalDriverRegistry.Lock => _parentRegistry.Lock;
+	AsyncLock IInternalDriverRegistry.Lock => _parentRegistry.Lock;
 
-	bool IInternalDriverRegistry.AddDriver(Driver driver) => AddDriverInLock(driver);
-	bool IInternalDriverRegistry.RemoveDriver(Driver driver) => RemoveDriverInLock(driver);
+	ValueTask<bool> IInternalDriverRegistry.AddDriverAsync(Driver driver) => AddDriverInLock(driver);
+	ValueTask<bool> IInternalDriverRegistry.RemoveDriverAsync(Driver driver) => RemoveDriverInLock(driver);
 }

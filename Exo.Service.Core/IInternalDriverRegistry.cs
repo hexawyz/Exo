@@ -2,7 +2,7 @@ namespace Exo.Service;
 
 internal interface IInternalDriverRegistry
 {
-	object Lock { get; }
-	bool AddDriver(Driver driver);
-	bool RemoveDriver(Driver driver);
+	AsyncLock Lock { get; }
+	ValueTask<bool> AddDriverAsync(Driver driver);
+	ValueTask<bool> RemoveDriverAsync(Driver driver);
 }

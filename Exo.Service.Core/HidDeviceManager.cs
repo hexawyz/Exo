@@ -426,7 +426,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 		try
 		{
 			_systemDeviceDriverRegistry.TryRegisterDriver(driverWrapper);
-			_driverRegistry.AddDriver(driverInstance);
+			await _driverRegistry.AddDriverAsync(driverInstance).ConfigureAwait(false);
 			_logger.HidDriverRegistrationSuccess(driverWrapper.FriendlyName, driverTypeName, driverTypeReference.AssemblyName.FullName, driverWrapper.DeviceNames);
 		}
 		catch (Exception ex)
@@ -458,7 +458,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 					_logger.HidDriverUnregisterFailure(driverType, deviceName);
 				}
 
-				_driverRegistry.RemoveDriver(hidDriverWrapper.Driver);
+				await _driverRegistry.RemoveDriverAsync(hidDriverWrapper.Driver).ConfigureAwait(false);
 
 				try
 				{

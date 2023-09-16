@@ -1,10 +1,8 @@
-using System;
-
 namespace Exo;
 
 public interface IDriverRegistry : IDisposable
 {
 	IDriverRegistry CreateNestedRegistry();
-	bool AddDriver(Driver driver);
-	bool RemoveDriver(Driver driver);
+	ValueTask<bool> AddDriverAsync(Driver driver);
+	ValueTask<bool> RemoveDriverAsync(Driver driver);
 }
