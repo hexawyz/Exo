@@ -83,7 +83,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		public bool TrySetDriver(Driver driver) => Interlocked.CompareExchange(ref _driver, driver, null) is null;
 
-		public bool TryUnsetDriver() => Interlocked.Exchange(ref _driver, null) is null;
+		public bool TryUnsetDriver() => Interlocked.Exchange(ref _driver, null) is not null;
 
 		public DeviceStateInformation GetDeviceStateInformation()
 			=> new(DeviceId, DeviceInformation.FriendlyName, UserConfiguration.FriendlyName, DeviceInformation.Category, DeviceInformation.FeatureIds, DeviceInformation.DeviceIds, _driver is not null);
@@ -362,7 +362,10 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			try
 			{
-				_deviceChangeListeners.TryWrite((UpdateKind.DisconnectedDevice, deviceState.GetDeviceStateInformation(), driver));
+				if (_deviceChangeListeners is { } dcl)
+				{
+					dcl.TryWrite((UpdateKind.DisconnectedDevice, deviceState.GetDeviceStateInformation(), driver));
+				}
 			}
 			catch (AggregateException)
 			{

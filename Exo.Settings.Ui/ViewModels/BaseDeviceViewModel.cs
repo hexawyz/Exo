@@ -6,16 +6,34 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal class BaseDeviceViewModel : BindableObject
 {
-	private readonly DeviceInformation _deviceInformation;
-
 	public BaseDeviceViewModel(DeviceInformation deviceInformation)
 	{
-		_deviceInformation = deviceInformation;
+		Id = deviceInformation.Id;
+		_friendlyName = deviceInformation.FriendlyName;
+		_category = deviceInformation.Category;
+		_isAvailable = deviceInformation.IsAvailable;
 	}
 
-	public Guid Id => _deviceInformation.Id;
+	public Guid Id { get; }
 
-	public string FriendlyName => _deviceInformation.FriendlyName;
+	private string _friendlyName;
+	public string FriendlyName
+	{
+		get => _friendlyName;
+		set => SetValue(ref _friendlyName, value);
+	}
 
-	public DeviceCategory Category => _deviceInformation.Category;
+	private DeviceCategory _category;
+	public DeviceCategory Category
+	{
+		get => _category;
+		set => SetValue(ref _category, value);
+	}
+
+	private bool _isAvailable;
+	public bool IsAvailable
+	{
+		get => _isAvailable;
+		set => SetValue(ref _isAvailable, value);
+	}
 }

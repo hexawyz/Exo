@@ -20,7 +20,7 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 	public async IAsyncEnumerable<WatchNotification<Ui.Contracts.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _driverRegistry.WatchAvailableAsync(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAllAsync(cancellationToken).ConfigureAwait(false))
 		{
 			yield return new()
 			{

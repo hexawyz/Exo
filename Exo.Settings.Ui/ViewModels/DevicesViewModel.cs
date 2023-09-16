@@ -70,17 +70,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 							continue;
 						}
 						var device = new DeviceViewModel(notification.Details, extendedDeviceInformation);
-						if (_pendingBatteryChanges.Remove(notification.Details.Id, out var batteryStatus))
-						{
-							device.BatteryState = batteryStatus;
-						}
-						if (_pendingDpiChanges.Remove(notification.Details.Id, out var dpi))
-						{
-							if (device.MouseFeatures is { } mouseFeatures)
-							{
-								mouseFeatures.CurrentDpi = dpi;
-							}
-						}
+						HandleDeviceArrival(device);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
 					}
@@ -88,11 +78,35 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				case WatchNotificationKind.Removal:
 					for (int i = 0; i < _devices.Count; i++)
 					{
-						if (_devices[i].Id == notification.Details.Id)
+						var device = _devices[i];
+						if (device.Id == notification.Details.Id)
 						{
 							_devices.RemoveAt(i);
 							_devicesById.Remove(notification.Details.Id);
-							_pendingBatteryChanges.Remove(notification.Details.Id, out _);
+							HandleDeviceRemoval(device);
+							break;
+						}
+					}
+					break;
+				case WatchNotificationKind.Update:
+					for (int i = 0; i < _devices.Count; i++)
+					{
+						var device = _devices[i];
+						if (device.Id == notification.Details.Id)
+						{
+							device.FriendlyName = notification.Details.FriendlyName;
+							device.Category = notification.Details.Category;
+							if (notification.Details.IsAvailable != device.IsAvailable)
+							{
+								if (device.IsAvailable = notification.Details.IsAvailable)
+								{
+									HandleDeviceArrival(device);
+								}
+								else
+								{
+									HandleDeviceRemoval(device);
+								}
+							}
 							break;
 						}
 					}
@@ -107,6 +121,27 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		catch
 		{
 		}
+	}
+
+	private void HandleDeviceArrival(DeviceViewModel device)
+	{
+		if (_pendingBatteryChanges.Remove(device.Id, out var batteryStatus))
+		{
+			device.BatteryState = batteryStatus;
+		}
+		if (_pendingDpiChanges.Remove(device.Id, out var dpi))
+		{
+			if (device.MouseFeatures is { } mouseFeatures)
+			{
+				mouseFeatures.CurrentDpi = dpi;
+			}
+		}
+	}
+
+	private void HandleDeviceRemoval(DeviceViewModel device)
+	{
+		device.BatteryState = null;
+		_pendingBatteryChanges.Remove(device.Id, out _);
 	}
 
 	private async Task WatchBatteryChangesAsync(CancellationToken cancellationToken)

@@ -13,7 +13,7 @@
     <ItemsControl ItemsSource="{Binding Devices.Devices}" HorizontalContentAlignment="Stretch">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <Button Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12" Click="OnDeviceButtonClick">
+                <Button Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12" Click="OnDeviceButtonClick" IsEnabled="{Binding IsAvailable}">
                     <Grid HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />

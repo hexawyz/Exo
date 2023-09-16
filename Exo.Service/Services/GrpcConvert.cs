@@ -35,6 +35,7 @@ internal static class GrpcConvert
 			WatchNotificationKind.Enumeration => GrpcWatchNotificationKind.Enumeration,
 			WatchNotificationKind.Addition => GrpcWatchNotificationKind.Arrival,
 			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
+			WatchNotificationKind.Update => GrpcWatchNotificationKind.Update,
 			_ => throw new NotImplementedException()
 		};
 
