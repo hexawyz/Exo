@@ -6,12 +6,15 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Exo.Contracts;
+using Exo.Ui;
 using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
+internal sealed class LightingDeviceViewModel : BindableObject
 {
+	private readonly DeviceViewModel _deviceViewModel;
+
 	public LightingViewModel LightingViewModel { get; }
 	public LightingZoneViewModel? UnifiedLightingZone { get; }
 	public ReadOnlyCollection<LightingZoneViewModel> LightingZones { get; }
@@ -41,8 +44,15 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 		}
 	}
 
-	public LightingDeviceViewModel(LightingViewModel lightingViewModel, LightingDeviceInformation lightingDeviceInformation) : base(lightingDeviceInformation.DeviceInformation)
+	public Guid Id => _deviceViewModel.Id;
+
+	public string FriendlyName => _deviceViewModel.FriendlyName;
+	public DeviceCategory Category => _deviceViewModel.Category;
+	public bool IsAvailable => _deviceViewModel.IsAvailable;
+
+	public LightingDeviceViewModel(LightingViewModel lightingViewModel, DeviceViewModel deviceViewModel, LightingDeviceInformation lightingDeviceInformation)
 	{
+		_deviceViewModel = deviceViewModel;
 		LightingViewModel = lightingViewModel;
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? new LightingZoneViewModel(this, lightingDeviceInformation.UnifiedLightingZone) : null;
 		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
@@ -67,6 +77,18 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 			Brightness.PropertyChanged += OnBrightnessPropertyChanged;
 		}
 		OnBrightnessUpdated();
+		_deviceViewModel.PropertyChanged += OnDevicePropertyChanged;
+	}
+
+	private static bool CompareProperty(PropertyChangedEventArgs a, PropertyChangedEventArgs b)
+		=> a == b || a.PropertyName == b.PropertyName;
+
+	private void OnDevicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (CompareProperty(e, ChangedProperty.FriendlyName) || CompareProperty(e, ChangedProperty.Category) || CompareProperty(e, ChangedProperty.IsAvailable))
+		{
+			NotifyPropertyChanged(e);
+		}
 	}
 
 	private void OnBrightnessPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -133,7 +155,7 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 				(
 					new()
 					{
-						DeviceId = Id,
+						DeviceId = _deviceViewModel.Id,
 						BrightnessLevel = Brightness?.Level ?? 0,
 						ZoneEffects = zoneEffects.DrainToImmutable()
 					},
@@ -173,11 +195,11 @@ internal sealed class LightingDeviceViewModel : BaseDeviceViewModel
 
 	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
 
-	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(Id, zoneId);
+	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(_deviceViewModel.Id, zoneId);
 
 	public void OnBrightnessUpdated()
 	{
-		if (Brightness is { } vm && LightingViewModel.GetBrightness(Id) is byte brightnessLevel)
+		if (Brightness is { } vm && LightingViewModel.GetBrightness(_deviceViewModel.Id) is byte brightnessLevel)
 		{
 			vm.SetInitialBrightness(brightnessLevel);
 		}

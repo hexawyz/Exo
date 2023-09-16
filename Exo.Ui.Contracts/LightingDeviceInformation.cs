@@ -7,7 +7,7 @@ namespace Exo.Ui.Contracts;
 public sealed class LightingDeviceInformation
 {
 	[DataMember(Order = 1)]
-	public required DeviceInformation DeviceInformation { get; init; }
+	public required Guid DeviceId { get; init; }
 	[DataMember(Order = 2)]
 	public LightingBrightnessCapabilities? BrightnessCapabilities { get; init; }
 	[DataMember(Order = 3)]

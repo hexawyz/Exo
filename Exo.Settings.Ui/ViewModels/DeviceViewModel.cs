@@ -21,7 +21,6 @@ internal class DeviceViewModel : BaseDeviceViewModel
 	public string? SerialNumber => _extendedDeviceInformation.SerialNumber;
 
 	private BatteryStateViewModel? _batteryState;
-
 	public BatteryStateViewModel? BatteryState
 	{
 		get => _batteryState;

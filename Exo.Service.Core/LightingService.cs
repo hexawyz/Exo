@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Contracts;
@@ -146,10 +145,22 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 				{
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Addition:
-					await OnDriverAddedAsync(notification).ConfigureAwait(false);
+					try
+					{
+						await OnDriverAddedAsync(notification).ConfigureAwait(false);
+					}
+					catch
+					{
+					}
 					break;
 				case WatchNotificationKind.Removal:
-					OnDriverRemoved(notification);
+					try
+					{
+						OnDriverRemoved(notification);
+					}
+					catch
+					{
+					}
 					break;
 				}
 			}
@@ -355,8 +366,6 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	public async IAsyncEnumerable<LightingDeviceWatchNotification> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		var channel = Watcher.CreateSingleWriterChannel<LightingDeviceWatchNotification>();
-		var reader = channel.Reader;
-		var writer = channel.Writer;
 
 		var initialNotifications = new List<LightingDeviceWatchNotification>();
 
@@ -367,7 +376,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 				initialNotifications.Add(CreateNotification(WatchNotificationKind.Enumeration, deviceState));
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _deviceListeners, writer);
+			ArrayExtensions.InterlockedAdd(ref _deviceListeners, channel);
 		}
 
 		try
@@ -378,22 +387,20 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			}
 			initialNotifications = null;
 
-			await foreach (var notification in reader.ReadAllAsync(cancellationToken))
+			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
 			{
 				yield return notification;
 			}
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _deviceListeners, writer);
+			ArrayExtensions.InterlockedRemove(ref _deviceListeners, channel);
 		}
 	}
 
 	public async IAsyncEnumerable<LightingEffectWatchNotification> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		var channel = Watcher.CreateChannel<LightingEffectWatchNotification>();
-		var reader = channel.Reader;
-		var writer = channel.Writer;
 
 		var initialNotifications = new List<LightingEffectWatchNotification>();
 
@@ -417,7 +424,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 				}
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _effectChangeListeners, writer);
+			ArrayExtensions.InterlockedAdd(ref _effectChangeListeners, channel);
 		}
 
 		try
@@ -428,14 +435,14 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			}
 			initialNotifications = null;
 
-			await foreach (var notification in reader.ReadAllAsync(cancellationToken))
+			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
 			{
 				yield return notification;
 			}
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _effectChangeListeners, writer);
+			ArrayExtensions.InterlockedRemove(ref _effectChangeListeners, channel);
 		}
 	}
 

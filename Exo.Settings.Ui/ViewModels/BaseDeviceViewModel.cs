@@ -20,20 +20,20 @@ internal class BaseDeviceViewModel : BindableObject
 	public string FriendlyName
 	{
 		get => _friendlyName;
-		set => SetValue(ref _friendlyName, value);
+		set => SetValue(ref _friendlyName, value, ChangedProperty.FriendlyName);
 	}
 
 	private DeviceCategory _category;
 	public DeviceCategory Category
 	{
 		get => _category;
-		set => SetValue(ref _category, value);
+		set => SetValue(ref _category, value, ChangedProperty.Category);
 	}
 
 	private bool _isAvailable;
 	public bool IsAvailable
 	{
 		get => _isAvailable;
-		set => SetValue(ref _isAvailable, value);
+		set => SetValue(ref _isAvailable, value, ChangedProperty.IsAvailable);
 	}
 }

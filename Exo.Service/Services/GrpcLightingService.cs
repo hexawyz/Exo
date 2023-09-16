@@ -15,37 +15,35 @@ internal class GrpcLightingService : ILightingService
 
 	// TODO: Refactor the lighting service and remove the raw device-related stuff.
 	// The remove notifications are also kind of a duplicate with device notifications, so they could maybe be removed.
-	// Maybe simply having a GetLightingDeviceCapabilities call would be enough.
-	public async IAsyncEnumerable<WatchNotification<Ui.Contracts.LightingDeviceInformation>> WatchLightingDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	// Maybe simply having a GetLightingDeviceCapabilities call would be enough. => Let's have a simpler watcher instead. Only push device capabilities.
+	public async IAsyncEnumerable<Ui.Contracts.LightingDeviceInformation> WatchLightingDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
 		{
+			if (notification.Kind is WatchNotificationKind.Removal) continue;
+
+			// TODO: This should only send updates when stuff has changed.
+			// Rework still needs to be done on the base service to properly handle persistance.
+
 			LightingBrightnessCapabilities? brightnessCapabilities = null;
 			LightingPaletteCapabilities? paletteCapabilities = null;
 
-			if (notification.Kind is not WatchNotificationKind.Removal)
+			RegisterEffectTypes(notification);
+
+			var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)notification.Driver!;
+
+			if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
 			{
-				RegisterEffectTypes(notification);
-
-				var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)notification.Driver!;
-
-				if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
-				{
-					brightnessCapabilities = new() { MinimumBrightness = brightnessFeature.MinimumBrightness, MaximumBrightness = brightnessFeature.MaximumBrightness };
-				}
+				brightnessCapabilities = new() { MinimumBrightness = brightnessFeature.MinimumBrightness, MaximumBrightness = brightnessFeature.MaximumBrightness };
 			}
 
 			yield return new()
 			{
-				NotificationKind = notification.Kind.ToGrpc(),
-				Details = new()
-				{
-					DeviceInformation = notification.DeviceInformation.ToGrpc(),
-					BrightnessCapabilities = brightnessCapabilities,
-					PaletteCapabilities = paletteCapabilities,
-					UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
-					LightingZones = ImmutableArray.CreateRange(notification.LightingDeviceInformation.LightingZones, z => z.ToGrpc()),
-				},
+				DeviceId = notification.DeviceInformation.Id,
+				BrightnessCapabilities = brightnessCapabilities,
+				PaletteCapabilities = paletteCapabilities,
+				UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
+				LightingZones = ImmutableArray.CreateRange(notification.LightingDeviceInformation.LightingZones, z => z.ToGrpc()),
 			};
 		}
 	}

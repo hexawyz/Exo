@@ -3,15 +3,17 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Threading;
 using System.Threading.Tasks;
 using Exo.Contracts;
 using Exo.Ui;
 using Exo.Ui.Contracts;
+using Windows.UI.Notifications;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingViewModel : BindableObject
+internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 {
 	// TODO: Migrate to external files.
 	private static readonly Dictionary<Guid, string> HardcodedGuidNames = new()
@@ -29,11 +31,13 @@ internal sealed class LightingViewModel : BindableObject
 	};
 
 	internal ILightingService LightingService { get; }
+	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
 	private readonly Dictionary<(Guid, Guid), LightingEffect> _activeLightingEffects;
 	private readonly Dictionary<Guid, byte> _brightnessLevels;
+	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchDevicesTask;
@@ -42,18 +46,46 @@ internal sealed class LightingViewModel : BindableObject
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 
-	public LightingViewModel(ILightingService lightingService)
+	public LightingViewModel(ILightingService lightingService, DevicesViewModel devicesViewModel)
 	{
+		_devicesViewModel = devicesViewModel;
 		LightingService = lightingService;
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
 		_activeLightingEffects = new();
 		_brightnessLevels = new();
+		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
 		_watchBrightnessTask = WatchBrightnessAsync(_cancellationTokenSource.Token);
+		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
+	}
+
+	private void OnDevicesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+	{
+		if (e.Action == NotifyCollectionChangedAction.Add)
+		{
+			var vm = (DeviceViewModel)e.NewItems![0]!;
+			if (_pendingDeviceInformations.Remove(vm.Id, out var info))
+			{
+				OnDeviceAdded(vm, info);
+			}
+		}
+		else if (e.Action == NotifyCollectionChangedAction.Remove)
+		{
+			var vm = (DeviceViewModel)e.OldItems![0]!;
+			if (!_pendingDeviceInformations.Remove(vm.Id))
+			{
+				OnDeviceRemoved(vm.Id);
+			}
+		}
+		else
+		{
+			// As of writing this code, we don't require support for anything else, but if this change in the future, this exception will be triggered.
+			throw new InvalidOperationException("This case is not handled.");
+		}
 	}
 
 	public async ValueTask DisposeAsync()
@@ -64,36 +96,56 @@ internal sealed class LightingViewModel : BindableObject
 		await _watchBrightnessTask.ConfigureAwait(false);
 	}
 
+	private void OnDeviceAdded(DeviceViewModel device, LightingDeviceInformation lightingDeviceInformation)
+	{
+		var vm = new LightingDeviceViewModel(this, device, lightingDeviceInformation);
+		_lightingDevices.Add(vm);
+		_lightingDeviceById[vm.Id] = vm;
+	}
+
+	private void OnDeviceRemoved(Guid deviceId)
+	{
+		for (int i = 0; i < _lightingDevices.Count; i++)
+		{
+			var vm = _lightingDevices[i];
+			if (_lightingDevices[i].Id == deviceId)
+			{
+				_lightingDevices.RemoveAt(i);
+				_lightingDeviceById.Remove(vm.Id);
+				break;
+			}
+		}
+	}
+
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
 	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
 	{
 		try
 		{
-			await foreach (var notification in LightingService.WatchLightingDevicesAsync(cancellationToken))
+			await foreach (var info in LightingService.WatchLightingDevicesAsync(cancellationToken))
 			{
-				switch (notification.NotificationKind)
+				if (_lightingDeviceById.TryGetValue(info.DeviceId, out var vm))
 				{
-				case WatchNotificationKind.Enumeration:
-				case WatchNotificationKind.Arrival:
+					// TODO: Update lighting zones ?
+				}
+				else
+				{
+					try
 					{
-						await CacheEffectInformationAsync(notification, cancellationToken);
-						var vm = new LightingDeviceViewModel(this, notification.Details);
-						_lightingDevices.Add(vm);
-						_lightingDeviceById[vm.Id] = vm;
+						await CacheEffectInformationAsync(info, cancellationToken);
 					}
-					break;
-				case WatchNotificationKind.Removal:
-					for (int i = 0; i < _lightingDevices.Count; i++)
+					catch
 					{
-						var vm = _lightingDevices[i];
-						if (_lightingDevices[i].Id == notification.Details.DeviceInformation.Id)
-						{
-							_lightingDevices.RemoveAt(i);
-							_lightingDeviceById.Remove(vm.Id);
-							break;
-						}
 					}
-					break;
+
+					if (_devicesViewModel.TryGetDevice(info.DeviceId, out var device))
+					{
+						OnDeviceAdded(device, info);
+					}
+					else if (!_devicesViewModel.IsRemovedId(info.DeviceId))
+					{
+						_pendingDeviceInformations.Add(info.DeviceId, info);
+					}
 				}
 			}
 		}
@@ -149,12 +201,12 @@ internal sealed class LightingViewModel : BindableObject
 		}
 	}
 
-	private async Task CacheEffectInformationAsync(WatchNotification<LightingDeviceInformation> notification, CancellationToken cancellationToken)
+	private async Task CacheEffectInformationAsync(LightingDeviceInformation information, CancellationToken cancellationToken)
 	{
-		if (notification.Details.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectIds, cancellationToken);
-		if (!notification.Details.LightingZones.IsDefaultOrEmpty)
+		if (information.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectIds, cancellationToken);
+		if (!information.LightingZones.IsDefaultOrEmpty)
 		{
-			foreach (var zone in notification.Details.LightingZones)
+			foreach (var zone in information.LightingZones)
 			{
 				await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken).ConfigureAwait(false);
 			}

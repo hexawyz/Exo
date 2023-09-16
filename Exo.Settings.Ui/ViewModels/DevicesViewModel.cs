@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Exo.Ui;
@@ -11,6 +12,10 @@ namespace Exo.Settings.Ui.ViewModels;
 internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 {
 	private readonly ObservableCollection<DeviceViewModel> _devices;
+
+	// All removed device IDs are definitely removed. Device removal is a manual request from the user, and can only happen when the device is disconnected.
+	// If the same device is reconnected later, it will be considered a new device and get a new and device ID.
+	private readonly HashSet<Guid> _removedDeviceIds;
 
 	private readonly IDeviceService _deviceService;
 	private readonly IMouseService _mouseService;
@@ -38,6 +43,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		_mouseService = mouseService;
 
 		_devices = new();
+		_removedDeviceIds = new();
 		_devicesById = new();
 		_pendingBatteryChanges = new();
 		_pendingDpiChanges = new();
@@ -53,6 +59,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		{
 			await foreach (var notification in _deviceService.WatchDevicesAsync(cancellationToken))
 			{
+				var id = notification.Details.Id;
+
 				switch (notification.NotificationKind)
 				{
 				case WatchNotificationKind.Enumeration:
@@ -76,13 +84,14 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 					}
 					break;
 				case WatchNotificationKind.Removal:
+					_removedDeviceIds.Add(id);
 					for (int i = 0; i < _devices.Count; i++)
 					{
 						var device = _devices[i];
-						if (device.Id == notification.Details.Id)
+						if (device.Id == id)
 						{
 							_devices.RemoveAt(i);
-							_devicesById.Remove(notification.Details.Id);
+							_devicesById.Remove(id);
 							HandleDeviceRemoval(device);
 							break;
 						}
@@ -208,4 +217,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		get => _selectedDevice;
 		set => SetValue(ref _selectedDevice, value);
 	}
+
+	// If the ID is marked as removed, it means that it will "never" be used again for a device.
+	public bool IsRemovedId(Guid id) => _removedDeviceIds.Contains(id);
+
+	public bool TryGetDevice(Guid id, [NotNullWhen(true)] out DeviceViewModel? device)
+		=> _devicesById.TryGetValue(id, out device);
 }

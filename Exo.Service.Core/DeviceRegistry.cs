@@ -188,6 +188,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	public static async Task CreateAsync(ConfigurationService configurationService, CancellationToken cancellationToken)
 	{
 		var deviceStates = new ConcurrentDictionary<Guid, DeviceState>();
+		var reservedDeviceIds = new HashSet<Guid>();
 		var driverStates = new Dictionary<string, DriverConfigurationState>();
 
 		foreach (var deviceId in await configurationService.GetDevicesAsync(cancellationToken).ConfigureAwait(false))
@@ -211,6 +212,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			var key = new DeviceConfigurationKey(indexedKey.DriverKey, indexedKey.DeviceMainId, indexedKey.CompatibleHardwareId, indexedKey.SerialNumber);
 
 			deviceStates.TryAdd(deviceId, new(deviceId, indexedKey, info, config));
+			reservedDeviceIds.Add(deviceId);
 
 			// Validating the configuration by registering all the keys properly so that we have bidirectional mappings.
 			// For now, we will make the service crash if any invalid configuration is found, but we could also choose to archive the conflicting configurations somewhere before deleting them.
@@ -230,6 +232,12 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	// For each driver key, this allows mapping the configuration key to a unique device ID that will serve as the configuration ID.
 	private readonly Dictionary<string, DriverConfigurationState> _driverConfigurationStates = new();
 
+	// We need to maintain a strict list of already used device IDs just to be absolutely certain to not reuse a device ID during the run of the service.
+	// It is a very niche scenario, but newly created devices could reuse the device IDs of a recently removed device and generate a mix-up between concurrently running change listeners,
+	// as async code does not have a guaranteed order of execution. This is a problem for all dependent services such as the lighting service or the settings UI itself.
+	// The contents of this blacklist do not strictly need to be persisted between service runs, but it could be useful to keep it around to avoid even more niche scenarios.
+	private readonly HashSet<Guid> _reservedDeviceIds = new();
+
 	private readonly object _lock = new();
 
 	private ChannelWriter<(UpdateKind, DeviceStateInformation, Driver)>[]? _deviceChangeListeners;
@@ -239,13 +247,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	public void Dispose() { }
 
 	// This generates a new unique device ID, handling unlikely but possible GUID collisions.
-	// This method should be called from within the lock to strictly ensure that new IDs are really unique.
+	// This method must be called from within the lock to strictly ensure that new IDs are really unique, and because the blacklist is not concurrent-safe.
 	private Guid CreateNewDeviceId()
 	{
 		while (true)
 		{
 			var id = Guid.NewGuid();
-			if (!_deviceStates.ContainsKey(id))
+			if (!_deviceStates.ContainsKey(id) && _reservedDeviceIds.Add(id))
 			{
 				return id;
 			}
