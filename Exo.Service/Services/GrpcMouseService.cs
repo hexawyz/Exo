@@ -8,10 +8,10 @@ namespace Exo.Service.Services;
 
 public class GrpcMouseService : IMouseService
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 	private readonly DpiWatcher _dpiWatcher;
 
-	public GrpcMouseService(DriverRegistry driverRegistry)
+	public GrpcMouseService(DeviceRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 		_dpiWatcher = new DpiWatcher(driverRegistry);

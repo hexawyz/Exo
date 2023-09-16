@@ -36,7 +36,7 @@ public sealed class HidDeviceManager : IHostedService, IDeviceNotificationSink
 	private static readonly string ProductIdAttributeAssemblyName = typeof(ProductIdAttribute).Assembly.GetName().Name!;
 	private static readonly string ProductVersionAttributeAssemblyName = typeof(ProductVersionAttribute).Assembly.GetName().Name!;
 
-	private record struct DriverTypeReference(AssemblyName AssemblyName, string TypeName);
+	private readonly record struct DriverTypeReference(AssemblyName AssemblyName, string TypeName);
 
 	private readonly ILoggerFactory _loggerFactory;
 	private readonly ILogger<HidDeviceManager> _logger;

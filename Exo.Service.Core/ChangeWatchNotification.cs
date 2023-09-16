@@ -1,6 +1,6 @@
 namespace Exo.Service;
 
-public record struct ChangeWatchNotification<TKey, TValue>
+public readonly record struct ChangeWatchNotification<TKey, TValue>
 {
 	public WatchNotificationKind NotificationKind { get; }
 	public TKey Key { get; }

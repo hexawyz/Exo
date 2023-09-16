@@ -7,10 +7,10 @@ namespace Exo.Service.Services;
 
 internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 	private readonly BatteryWatcher _batteryWatcher;
 
-	public GrpcDeviceService(DriverRegistry driverRegistry)
+	public GrpcDeviceService(DeviceRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 		_batteryWatcher = new BatteryWatcher(driverRegistry);
@@ -20,7 +20,7 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 	public async IAsyncEnumerable<WatchNotification<Ui.Contracts.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _driverRegistry.WatchAsync(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAvailableAsync(cancellationToken).ConfigureAwait(false))
 		{
 			yield return new()
 			{

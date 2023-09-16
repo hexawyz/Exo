@@ -10,7 +10,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 		: base(deviceInformation)
 	{
 		_extendedDeviceInformation = extendedDeviceInformation;
-		if (!deviceInformation.FeatureTypeNames.IsDefaultOrEmpty && deviceInformation.FeatureTypeNames.Contains(WellKnownGuids.MouseDeviceFeature))
+		if (deviceInformation.FeatureIds is not null && deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
 		{
 			MouseFeatures = new(this);
 		}

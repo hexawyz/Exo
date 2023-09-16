@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using DeviceTools;
 
 namespace Exo.Features;
@@ -99,11 +100,44 @@ public interface IBatteryStateDeviceFeature : IDeviceFeature
 
 /// <summary>Devices can expose their standard device ID by providing this feature.</summary>
 /// <remarks>
+/// <para>
 /// Many devices will have a standardized device ID, such as PCI, USB and Bluetooth devices.
 /// Some devices not connected through these means may still have a way to communicate their standard ID in one of the known namespaces.
 /// If the device ID is known, it should be exposed through this feature.
+/// </para>
+/// <para>
+/// If a device has multiple device IDs, this feature should only expose the main device ID, which can be reliably retrieved and used to uniquely identify the hardware.
+/// It is possible for the version number to not always be available, though.
+/// </para>
 /// </remarks>
 public interface IDeviceIdFeature : IDeviceFeature
 {
 	DeviceId DeviceId { get; }
+}
+
+/// <summary>Devices can expose their standard device IDs by providing this feature.</summary>
+/// <remarks>
+/// <para>
+/// This feature is very similar to the <see cref="IDeviceIdFeature"/> but allows devices to return multiple device IDs.
+/// This feature is mostly useful for devices that can connect through multiple busses using different IDs, but it can always be provided in addition to or instead of <see cref="IDeviceIdFeature"/>.
+/// </para>
+/// <para>
+/// If a driver exposes both interfaces, the ID returned by <see cref="IDeviceIdFeature"/> must be constant and represent the device ID that can be used for uniquely identifying the hardware.
+/// The ID exposed by <see cref="IDeviceIdFeature"/> must always be contained in <see cref="DeviceIds"/>, and must also exactly match the <see cref="MainDeviceIdIndex"/> property.
+/// </para>
+/// <para>
+/// e.g. HID++ devices can use different product IDs depending on how they're connected, but will generally provide easier access to the ID they use for communication with an USB receiver.
+/// In that case, they should expose that product ID as the main ID instead of other ones such as Bluetooth.
+/// </para>
+/// <para>
+/// Providing multiple IDs will also be useful for devices connected through multiple protocols at the same time, such as monitor with an USB connection.
+/// In that case, though, it might be more difficult to settle on a main ID, as both the EDID and the USB could be seen as equally important in their own way.
+/// Drivers would generally need to maintain their own mapping table to provide access to both IDs and decide on which one to expose.
+/// In many cases, it might be wiser to expose the PNP ID from EDID as the main one.
+/// </para>
+/// </remarks>
+public interface IDeviceIdsFeature : IDeviceFeature
+{
+	ImmutableArray<DeviceId> DeviceIds { get; }
+	int? MainDeviceIdIndex { get; }
 }

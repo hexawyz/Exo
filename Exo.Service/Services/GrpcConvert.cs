@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using DeviceTools;
 using GrpcDeviceId = Exo.Ui.Contracts.DeviceId;
 using GrpcDeviceIdSource = Exo.Ui.Contracts.DeviceIdSource;
@@ -10,14 +11,15 @@ namespace Exo.Service.Services;
 
 internal static class GrpcConvert
 {
-	public static GrpcDeviceInformation ToGrpc(this DeviceInformation deviceInformation)
+	public static GrpcDeviceInformation ToGrpc(this DeviceStateInformation deviceInformation)
 		=> new()
 		{
 			Id = deviceInformation.Id,
 			FriendlyName = deviceInformation.FriendlyName,
 			Category = (Exo.Ui.Contracts.DeviceCategory)deviceInformation.Category,
-			DriverTypeName = deviceInformation.DriverType.ToString(),
-			FeatureTypeNames = Array.ConvertAll(deviceInformation.FeatureTypes, FeatureCollection.GetGuid).AsImmutable(),
+			FeatureIds = deviceInformation.FeatureIds,
+			DeviceIds = ImmutableArray.CreateRange(deviceInformation.DeviceIds, id => id.ToGrpc()),
+			IsAvailable = deviceInformation.IsAvailable,
 		};
 
 	public static GrpcLightingZoneInformation ToGrpc(this LightingZoneInformation zoneInformation)

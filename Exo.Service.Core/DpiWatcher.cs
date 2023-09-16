@@ -4,9 +4,9 @@ namespace Exo.Service.Services;
 
 internal sealed class DpiWatcher : Watcher<Guid, DotsPerInch>
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 
-	public DpiWatcher(DriverRegistry driverRegistry)
+	public DpiWatcher(DeviceRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 	}
@@ -23,7 +23,7 @@ internal sealed class DpiWatcher : Watcher<Guid, DotsPerInch>
 			}
 		};
 
-		await foreach (var notification in _driverRegistry.WatchAsync(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAvailableAsync(cancellationToken).ConfigureAwait(false))
 		{
 			switch (notification.Kind)
 			{

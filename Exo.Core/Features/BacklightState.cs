@@ -1,6 +1,6 @@
-﻿namespace Exo.Features.KeyboardFeatures;
+namespace Exo.Features.KeyboardFeatures;
 
-public record struct BacklightState
+public readonly record struct BacklightState
 {
 	/// <summary>The current backlight level.</summary>
 	/// <remarks>The battery percentage can be obtained by <c><see cref="CurrentLevel"/> / <see cref="MaximumLevel"/></c></remarks>

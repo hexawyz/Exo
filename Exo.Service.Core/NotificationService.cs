@@ -6,10 +6,10 @@ namespace Exo.Service;
 
 public sealed class OverlayNotificationService
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 	private ChannelWriter<OverlayRequest>[]? _listeners;
 
-	public OverlayNotificationService(DriverRegistry driverRegistry) => _driverRegistry = driverRegistry;
+	public OverlayNotificationService(DeviceRegistry driverRegistry) => _driverRegistry = driverRegistry;
 
 	public async IAsyncEnumerable<OverlayRequest> WatchOverlayRequestsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{

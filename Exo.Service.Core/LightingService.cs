@@ -57,20 +57,20 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	// TODO: Persistance of DeviceInformation should be moved to driver registry.
 	private sealed class LatestDeviceDetails : IEquatable<LatestDeviceDetails?>
 	{
-		public LatestDeviceDetails(DeviceInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation)
+		public LatestDeviceDetails(DeviceStateInformation deviceInformation, LightingDeviceInformation lightingDeviceInformation)
 		{
 			DeviceInformation = deviceInformation;
 			LightingDeviceInformation = lightingDeviceInformation;
 		}
 
-		public DeviceInformation DeviceInformation { get; }
+		public DeviceStateInformation DeviceInformation { get; }
 		public LightingDeviceInformation LightingDeviceInformation { get; }
 
 		public override bool Equals(object? obj) => Equals(obj as LatestDeviceDetails);
 
 		public bool Equals(LatestDeviceDetails? other)
 			=> other is not null &&
-				EqualityComparer<DeviceInformation>.Default.Equals(DeviceInformation, other.DeviceInformation) &&
+				EqualityComparer<DeviceStateInformation>.Default.Equals(DeviceInformation, other.DeviceInformation) &&
 				LightingDeviceInformation.Equals(other.LightingDeviceInformation);
 
 		public override int GetHashCode() => HashCode.Combine(DeviceInformation, LightingDeviceInformation);
@@ -120,7 +120,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	private ChannelWriter<LightingBrightnessWatchNotification>[]? _brightnessChangeListeners;
 	private readonly ILogger<LightingService> _logger;
 
-	public LightingService(DriverRegistry driverRegistry, ILogger<LightingService> logger)
+	public LightingService(DeviceRegistry driverRegistry, ILogger<LightingService> logger)
 	{
 		_deviceWatcher = driverRegistry;
 		_logger = logger;
@@ -140,7 +140,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 	{
 		try
 		{
-			await foreach (var notification in _deviceWatcher.WatchAsync<ILightingDeviceFeature>(cancellationToken))
+			await foreach (var notification in _deviceWatcher.WatchAvailableAsync<ILightingDeviceFeature>(cancellationToken))
 			{
 				switch (notification.Kind)
 				{

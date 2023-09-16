@@ -4,9 +4,9 @@ namespace Exo.Service;
 
 public sealed class BatteryWatcher : Watcher<Guid, BatteryState>
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 
-	public BatteryWatcher(DriverRegistry driverRegistry)
+	public BatteryWatcher(DeviceRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 	}
@@ -23,7 +23,7 @@ public sealed class BatteryWatcher : Watcher<Guid, BatteryState>
 			}
 		};
 
-		await foreach (var notification in _driverRegistry.WatchAsync(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAvailableAsync(cancellationToken).ConfigureAwait(false))
 		{
 			switch (notification.Kind)
 			{

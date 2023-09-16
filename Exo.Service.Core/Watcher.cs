@@ -8,7 +8,7 @@ namespace Exo.Service;
 
 internal static class Watcher
 {
-	private static readonly UnboundedChannelOptions SingleWriterWatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
+	private static readonly UnboundedChannelOptions SingleWriterWatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true };
 	private static readonly UnboundedChannelOptions MultiWriterWatchChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false };
 
 	public static Channel<T> CreateSingleWriterChannel<T>()

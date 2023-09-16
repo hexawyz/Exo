@@ -17,9 +17,17 @@ public sealed class DeviceInformation
 	[DataMember(Order = 3, IsRequired = true)]
 	public required DeviceCategory Category { get; init; }
 
-	[DataMember(Order = 4, IsRequired = true)]
-	public required string DriverTypeName { get; init; }
+	// TODO: Make immutable somehow. (ImmutableSet will be unnecessarily slow)
+	[DataMember(Order = 4)]
+	public required HashSet<Guid> FeatureIds { get; init; }
 
 	[DataMember(Order = 5)]
-	public required ImmutableArray<Guid> FeatureTypeNames { get; init; }
+	public required ImmutableArray<DeviceId> DeviceIds { get; init; }
+
+	/// <summary>Indicates if the device is connected.</summary>
+	/// <remarks>
+	/// <para>Changes to this status can be used to detect device availability changes.</para>
+	/// </remarks>
+	[DataMember(Order = 6)]
+	public required bool IsAvailable { get; init; }
 }

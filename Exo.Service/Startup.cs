@@ -35,11 +35,12 @@ public class Startup
 				windowsService.GetDeviceNotificationService() :
 				new NotificationWindow()
 		);
+		services.AddSingleton(sp => new ConfigurationService(Path.Combine(Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!, "cfg")));
 		services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
-		services.AddSingleton<DriverRegistry>();
-		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DriverRegistry>());
-		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DriverRegistry>());
+		services.AddSingleton<DeviceRegistry>();
+		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
+		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<DpiWatcher>();
 		services.AddSingleton<LockedKeysWatcher>();

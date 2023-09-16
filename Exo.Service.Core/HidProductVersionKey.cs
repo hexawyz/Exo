@@ -2,7 +2,7 @@ using DeviceTools;
 
 namespace Exo.Service;
 
-public record struct HidProductVersionKey
+public readonly record struct HidProductVersionKey
 {
 	public readonly VendorIdSource VendorIdSource { get; init; }
 	public readonly ushort VendorId { get; init; }

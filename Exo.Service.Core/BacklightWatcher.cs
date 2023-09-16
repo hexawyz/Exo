@@ -5,9 +5,9 @@ namespace Exo.Service;
 
 public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 
-	public BacklightWatcher(DriverRegistry driverRegistry)
+	public BacklightWatcher(DeviceRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 	}
@@ -22,7 +22,7 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 			}
 		};
 
-		await foreach (var notification in _driverRegistry.WatchAsync<IKeyboardDeviceFeature>(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAvailableAsync<IKeyboardDeviceFeature>(cancellationToken).ConfigureAwait(false))
 		{
 			switch (notification.Kind)
 			{

@@ -1,13 +1,13 @@
-﻿using Exo.Features;
+using Exo.Features;
 using Exo.Features.KeyboardFeatures;
 
 namespace Exo.Service;
 
 public sealed class LockedKeysWatcher : Watcher<Guid, LockKeys>
 {
-	private readonly DriverRegistry _driverRegistry;
+	private readonly DeviceRegistry _driverRegistry;
 
-	public LockedKeysWatcher(DriverRegistry driverRegistry)
+	public LockedKeysWatcher(DeviceRegistry driverRegistry)
 	{
 		_driverRegistry = driverRegistry;
 	}
@@ -22,7 +22,7 @@ public sealed class LockedKeysWatcher : Watcher<Guid, LockKeys>
 			}
 		};
 
-		await foreach (var notification in _driverRegistry.WatchAsync<IKeyboardDeviceFeature>(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAvailableAsync<IKeyboardDeviceFeature>(cancellationToken).ConfigureAwait(false))
 		{
 			switch (notification.Kind)
 			{
