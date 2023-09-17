@@ -8,7 +8,7 @@ public enum WatchNotificationKind
 	[EnumMember]
 	Enumeration = 0,
 	[EnumMember]
-	Arrival = 1,
+	Addition = 1,
 	[EnumMember]
 	Removal = 2,
 	[EnumMember]

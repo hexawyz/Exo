@@ -19,6 +19,8 @@ internal static class GrpcConvert
 			Category = (Exo.Ui.Contracts.DeviceCategory)deviceInformation.Category,
 			FeatureIds = deviceInformation.FeatureIds,
 			DeviceIds = ImmutableArray.CreateRange(deviceInformation.DeviceIds, id => id.ToGrpc()),
+			MainDeviceIdIndex = deviceInformation.MainDeviceIdIndex,
+			SerialNumber = deviceInformation.SerialNumber,
 			IsAvailable = deviceInformation.IsAvailable,
 		};
 
@@ -33,7 +35,7 @@ internal static class GrpcConvert
 		=> notificationKind switch
 		{
 			WatchNotificationKind.Enumeration => GrpcWatchNotificationKind.Enumeration,
-			WatchNotificationKind.Addition => GrpcWatchNotificationKind.Arrival,
+			WatchNotificationKind.Addition => GrpcWatchNotificationKind.Addition,
 			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
 			WatchNotificationKind.Update => GrpcWatchNotificationKind.Update,
 			_ => throw new NotImplementedException()

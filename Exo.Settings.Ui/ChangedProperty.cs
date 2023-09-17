@@ -18,4 +18,5 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs IsAvailable = new(nameof(IsAvailable));
 	public static readonly PropertyChangedEventArgs SerialNumber = new(nameof(SerialNumber));
 	public static readonly PropertyChangedEventArgs BatteryState = new(nameof(BatteryState));
+	public static readonly PropertyChangedEventArgs DeviceIds = new(nameof(DeviceIds));
 }

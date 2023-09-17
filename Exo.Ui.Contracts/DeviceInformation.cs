@@ -24,10 +24,16 @@ public sealed class DeviceInformation
 	[DataMember(Order = 5)]
 	public required ImmutableArray<DeviceId> DeviceIds { get; init; }
 
+	[DataMember(Order = 6)]
+	public required int? MainDeviceIdIndex { get; init; }
+
+	[DataMember(Order = 7)]
+	public required string? SerialNumber { get; init; }
+
 	/// <summary>Indicates if the device is connected.</summary>
 	/// <remarks>
 	/// <para>Changes to this status can be used to detect device availability changes.</para>
 	/// </remarks>
-	[DataMember(Order = 6)]
+	[DataMember(Order = 8)]
 	public required bool IsAvailable { get; init; }
 }

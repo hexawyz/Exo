@@ -64,20 +64,20 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				switch (notification.NotificationKind)
 				{
 				case WatchNotificationKind.Enumeration:
-				case WatchNotificationKind.Arrival:
+				case WatchNotificationKind.Addition:
 					{
-						ExtendedDeviceInformation extendedDeviceInformation;
-						try
-						{
-							extendedDeviceInformation = await _deviceService.GetExtendedDeviceInformationAsync(new() { Id = notification.Details.Id }, cancellationToken);
-						}
-						catch (Exception ex) when (ex is not OperationCanceledException)
-						{
-							// Exceptions here would likely be caused by a driver removal.
-							// Disconnection from the service is not yet handled.
-							continue;
-						}
-						var device = new DeviceViewModel(notification.Details, extendedDeviceInformation);
+						//ExtendedDeviceInformation extendedDeviceInformation;
+						//try
+						//{
+						//	extendedDeviceInformation = await _deviceService.GetExtendedDeviceInformationAsync(new() { Id = notification.Details.Id }, cancellationToken);
+						//}
+						//catch (Exception ex) when (ex is not OperationCanceledException)
+						//{
+						//	// Exceptions here would likely be caused by a driver removal.
+						//	// Disconnection from the service is not yet handled.
+						//	continue;
+						//}
+						var device = new DeviceViewModel(notification.Details);
 						HandleDeviceArrival(device);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
@@ -116,6 +116,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 									HandleDeviceRemoval(device);
 								}
 							}
+							device.UpdateDeviceIds(notification.Details.DeviceIds, notification.Details.MainDeviceIdIndex);
+							device.SerialNumber = notification.Details.SerialNumber;
 							break;
 						}
 					}

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using DeviceTools;
 using Exo.Features;
@@ -26,6 +27,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		public IndexedConfigurationKey(DeviceConfigurationKey key, int instanceIndex)
 			: this(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.SerialNumber, instanceIndex) { }
 
+		[JsonConstructor]
 		public IndexedConfigurationKey(string driverKey, string deviceMainId, string compatibleHardwareId, string? serialNumber, int instanceIndex)
 		{
 			DriverKey = driverKey;
@@ -86,7 +88,18 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		public bool TryUnsetDriver() => Interlocked.Exchange(ref _driver, null) is not null;
 
 		public DeviceStateInformation GetDeviceStateInformation()
-			=> new(DeviceId, DeviceInformation.FriendlyName, UserConfiguration.FriendlyName, DeviceInformation.Category, DeviceInformation.FeatureIds, DeviceInformation.DeviceIds, _driver is not null);
+			=> new
+			(
+				DeviceId,
+				DeviceInformation.FriendlyName,
+				UserConfiguration.FriendlyName,
+				DeviceInformation.Category,
+				DeviceInformation.FeatureIds,
+				DeviceInformation.DeviceIds,
+				DeviceInformation.MainDeviceIdIndex,
+				DeviceInformation.SerialNumber,
+				_driver is not null
+			);
 	}
 
 	private sealed class DriverConfigurationState
@@ -98,9 +111,12 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		public DriverConfigurationState(string key) => Key = key;
 
+		// This supports upgrading from no serial number to serial number for now, but it is probably not a desirable feature in the long run.
+		// Only trouble is to ensure that the main device ID does not get duplicated between two devices. Some proper and well-established resolution procedure is required.
+		// TODO: Use the device states instead of GUIDs (if possible?) so that the serial number can only be upgraded from "no serial number".
 		public bool TryGetDeviceId(in DeviceConfigurationKey key, out Guid deviceId)
 			=> key.SerialNumber is not null ?
-				DeviceIdsBySerialNumber.TryGetValue(key.SerialNumber, out deviceId) :
+				DeviceIdsBySerialNumber.TryGetValue(key.SerialNumber, out deviceId) || DeviceIdsByMainDeviceName.TryGetValue(key.DeviceMainId, out deviceId) :
 				DeviceIdsByMainDeviceName.TryGetValue(key.DeviceMainId, out deviceId);
 
 		public IndexedConfigurationKey RegisterDevice(in Guid deviceId, in DeviceConfigurationKey key)
@@ -225,7 +241,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			driverState.RegisterDevice(deviceId, key);
 		}
 
-		return new(deviceStates, driverStates, reservedDeviceIds);
+		return new(configurationService, deviceStates, driverStates, reservedDeviceIds);
 	}
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates = new();
@@ -244,15 +260,19 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private ChannelWriter<(UpdateKind, DeviceStateInformation, Driver)>[]? _deviceChangeListeners;
 
+	private readonly ConfigurationService _configurationService;
+
 	AsyncLock IInternalDriverRegistry.Lock => _lock;
 
 	private DeviceRegistry
 	(
+		ConfigurationService configurationService,
 		ConcurrentDictionary<Guid, DeviceState> deviceStates,
 		Dictionary<string, DriverConfigurationState> driverConfigurationStates,
 		HashSet<Guid> reservedDeviceIds
 	)
 	{
+		_configurationService = configurationService;
 		_deviceStates = deviceStates;
 		_driverConfigurationStates = driverConfigurationStates;
 		_reservedDeviceIds = reservedDeviceIds;
@@ -301,7 +321,8 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		}
 
 		var featureIds = new HashSet<Guid>(GetDriverFeatures(driver.GetType()).Select(TypeId.Get));
-		var deviceIds = GetDeviceIds(driver);
+		var (deviceIds, mainDeviceIdIndex) = GetDeviceIds(driver);
+		string? serialNumber = GetSerialNumber(driver);
 		DeviceState? deviceState;
 		IndexedConfigurationKey indexedConfigurationKey;
 
@@ -318,15 +339,19 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			{
 				indexedConfigurationKey = driverConfigurationState.UpdateDeviceConfigurationKey(deviceId, oldKey, key);
 				deviceState.ConfigurationKey = indexedConfigurationKey;
+				await _configurationService.WriteDeviceConfigurationAsync(deviceId, indexedConfigurationKey, default).ConfigureAwait(false);
 			}
 
 			// Avoid creating a new device information instance if the data has not changed.
 			if (deviceState.DeviceInformation.FriendlyName != driver.FriendlyName ||
 				deviceState.DeviceInformation.Category != driver.DeviceCategory ||
 				!deviceState.DeviceInformation.FeatureIds.SequenceEqual(featureIds) ||
-				!deviceState.DeviceInformation.DeviceIds.SequenceEqual(deviceIds))
+				!deviceState.DeviceInformation.DeviceIds.SequenceEqual(deviceIds) ||
+				deviceState.DeviceInformation.MainDeviceIdIndex != mainDeviceIdIndex ||
+				deviceState.DeviceInformation.SerialNumber != serialNumber)
 			{
-				deviceState.DeviceInformation = new(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds);
+				deviceState.DeviceInformation = new(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, serialNumber);
+				await _configurationService.WriteDeviceConfigurationAsync(deviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
 			}
 
 			goto StateUpdated;
@@ -337,11 +362,14 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			indexedConfigurationKey = driverConfigurationState.GetIndexedKey(deviceId, key);
 		}
 	CreateState:;
-		if (!_deviceStates.TryAdd(deviceId, deviceState = new(deviceId, indexedConfigurationKey, new DeviceInformation(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds), new() { FriendlyName = driver.FriendlyName })))
+		if (!_deviceStates.TryAdd(deviceId, deviceState = new(deviceId, indexedConfigurationKey, new DeviceInformation(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, serialNumber), new() { FriendlyName = driver.FriendlyName })))
 		{
 			throw new InvalidOperationException();
 		}
 		isNewDevice = true;
+
+		await _configurationService.WriteDeviceConfigurationAsync(deviceId, indexedConfigurationKey, default).ConfigureAwait(false);
+		await _configurationService.WriteDeviceConfigurationAsync(deviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
 
 	StateUpdated:;
 		if (deviceState.TrySetDriver(driver))
@@ -358,18 +386,21 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		}
 	}
 
-	private static ImmutableArray<DeviceId> GetDeviceIds(Driver driver)
+	private static (ImmutableArray<DeviceId>, int?) GetDeviceIds(Driver driver)
 	{
 		if (driver.Features.GetFeature<IDeviceIdsFeature>() is { } deviceIdsFeature)
 		{
-			return deviceIdsFeature.DeviceIds;
+			return (deviceIdsFeature.DeviceIds, deviceIdsFeature.MainDeviceIdIndex);
 		}
 		else if (driver.Features.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
 		{
-			return ImmutableArray.Create(deviceIdFeature.DeviceId);
+			return (ImmutableArray.Create(deviceIdFeature.DeviceId), 0);
 		}
-		return ImmutableArray<DeviceId>.Empty;
+		return (ImmutableArray<DeviceId>.Empty, null);
 	}
+
+	private string? GetSerialNumber(Driver driver)
+		=> driver.Features.GetFeature<ISerialNumberDeviceFeature>()?.SerialNumber;
 
 	public async ValueTask<bool> RemoveDriverAsync(Driver driver)
 	{

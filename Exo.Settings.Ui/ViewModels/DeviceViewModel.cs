@@ -4,21 +4,17 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal class DeviceViewModel : BaseDeviceViewModel
 {
-	private readonly ExtendedDeviceInformation _extendedDeviceInformation;
+	//private readonly ExtendedDeviceInformation _extendedDeviceInformation;
 
-	public DeviceViewModel(DeviceInformation deviceInformation, ExtendedDeviceInformation extendedDeviceInformation)
+	public DeviceViewModel(DeviceInformation deviceInformation)
 		: base(deviceInformation)
 	{
-		_extendedDeviceInformation = extendedDeviceInformation;
+		//_extendedDeviceInformation = extendedDeviceInformation;
 		if (deviceInformation.FeatureIds is not null && deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
 		{
 			MouseFeatures = new(this);
 		}
 	}
-
-	public DeviceId? DeviceId => _extendedDeviceInformation.DeviceId;
-
-	public string? SerialNumber => _extendedDeviceInformation.SerialNumber;
 
 	private BatteryStateViewModel? _batteryState;
 	public BatteryStateViewModel? BatteryState

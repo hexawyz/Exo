@@ -1,19 +1,27 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using Exo.Features;
 using Exo.Ui.Contracts;
 
 namespace Exo.Service.Services;
 
 internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 {
+	//[DataContract]
+	//[TypeId(0xC87705F2, 0x16F8, 0x4506, 0xAF, 0x14, 0x78, 0x26, 0xD7, 0xE0, 0x52, 0xE6)]
+	//private record struct CachedDeviceInformation
+	//{
+	//}
+
+	private readonly ConfigurationService _configurationService;
 	private readonly DeviceRegistry _driverRegistry;
 	private readonly BatteryWatcher _batteryWatcher;
+	//private readonly ConcurrentDictionary<Guid, CachedDeviceInformation> _cachedInformation;
 
-	public GrpcDeviceService(DeviceRegistry driverRegistry)
+	public GrpcDeviceService(ConfigurationService configurationService, DeviceRegistry driverRegistry)
 	{
+		_configurationService = configurationService;
 		_driverRegistry = driverRegistry;
 		_batteryWatcher = new BatteryWatcher(driverRegistry);
+		//_cachedInformation = new();
 	}
 
 	public ValueTask DisposeAsync() => _batteryWatcher.DisposeAsync();
@@ -30,26 +38,41 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 		}
 	}
 
-	public ValueTask<ExtendedDeviceInformation> GetExtendedDeviceInformationAsync(DeviceRequest request, CancellationToken cancellationToken)
-	{
-		if (!_driverRegistry.TryGetDriver(request.Id, out var driver))
-		{
-			return ValueTask.FromException<ExtendedDeviceInformation>(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException()));
-		}
+	//public async ValueTask<ExtendedDeviceInformation> GetExtendedDeviceInformationAsync(DeviceRequest request, CancellationToken cancellationToken)
+	//{
+	//	bool hasPreviousInfo = _cachedInformation.TryGetValue(request.Id, out var oldInfo);
 
-		string? serialNumber = null;
-		DeviceId? deviceId = null;
-		if (driver.Features.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
-		{
-			deviceId = deviceIdFeature.DeviceId.ToGrpc();
-		}
-		if (driver.Features.GetFeature<ISerialNumberDeviceFeature>() is { } serialNumberFeature)
-		{
-			serialNumber = serialNumberFeature.SerialNumber;
-		}
-		bool hasBatteryState = driver.Features.HasFeature<IBatteryStateDeviceFeature>();
-		return new(new ExtendedDeviceInformation { DeviceId = deviceId, SerialNumber = serialNumber, HasBatteryState = hasBatteryState });
-	}
+	//	if (!_driverRegistry.TryGetDriver(request.Id, out var driver))
+	//	{
+	//		if (!hasPreviousInfo)
+	//		{
+	//			throw new InvalidOperationException("The driver for the device is not available.");
+	//		}
+	//		else
+	//		{
+	//			return new() { };
+	//		}
+	//	}
+
+	//	string? serialNumber = null;
+	//	if (driver.Features.GetFeature<ISerialNumberDeviceFeature>() is { } serialNumberFeature)
+	//	{
+	//		serialNumber = serialNumberFeature.SerialNumber;
+	//	}
+
+	//	var newInfo = new CachedDeviceInformation { SerialNumber = serialNumber };
+
+	//	if (!hasPreviousInfo || oldInfo != newInfo)
+	//	{
+	//		await _configurationService.WriteDeviceConfigurationAsync(request.Id, newInfo, default).ConfigureAwait(false);
+	//	}
+	//	else
+	//	{
+	//		newInfo = oldInfo;
+	//	}
+
+	//	return new() { };
+	//}
 
 	public async IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{

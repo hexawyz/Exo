@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -37,11 +36,11 @@ public class ConfigurationService
 		string[] directoryNames;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			directoryNames = Directory.GetDirectories(_devicesDirectory, "{????????-????-????-????-????????????}", SearchOption.TopDirectoryOnly);
+			directoryNames = Directory.GetDirectories(_devicesDirectory, "????????-????-????-????-????????????", SearchOption.TopDirectoryOnly);
 		}
 		try
 		{
-			return Array.ConvertAll(directoryNames, n => Guid.Parse("B"));
+			return Array.ConvertAll(directoryNames, n => Guid.ParseExact(Path.GetFileName(n.AsSpan()), "D"));
 		}
 		catch (Exception ex)
 		{
@@ -55,7 +54,7 @@ public class ConfigurationService
 		var deviceIds = new List<Guid>(directoryNames.Length);
 		foreach (var directoryName in directoryNames)
 		{
-			if (Guid.TryParse(directoryName, out Guid deviceId))
+			if (Guid.TryParseExact(Path.GetFileName(directoryName.AsSpan()), "D", out Guid deviceId))
 			{
 				deviceIds.Add(deviceId);
 			}
@@ -69,7 +68,11 @@ public class ConfigurationService
 
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			string fileName = Path.Combine(_devicesDirectory, deviceId.ToString("B"), typeId.ToString("B")) + ".json";
+			string deviceConfigurationDirectory = Path.Combine(_devicesDirectory, deviceId.ToString("D"));
+
+			if (!Directory.Exists(deviceConfigurationDirectory)) throw new InvalidOperationException("Missing device configuration.");
+
+			string fileName = Path.Combine(deviceConfigurationDirectory, typeId.ToString("D")) + ".json";
 
 			if (File.Exists(fileName))
 			{
@@ -89,10 +92,14 @@ public class ConfigurationService
 
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			string fileName = Path.Combine(_devicesDirectory, deviceId.ToString("B"), typeId.ToString("B")) + ".json";
+			string deviceConfigurationDirectory = Path.Combine(_devicesDirectory, deviceId.ToString("D"));
+
+			Directory.CreateDirectory(deviceConfigurationDirectory);
+
+			string fileName = Path.Combine(deviceConfigurationDirectory, typeId.ToString("D")) + ".json";
 
 			using var file = File.OpenWrite(fileName);
-			await JsonSerializer.SerializeAsync<T>(file, value, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+			await JsonSerializer.SerializeAsync(file, value, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
@@ -100,7 +107,7 @@ public class ConfigurationService
 	{
 		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
-			Directory.Delete(Path.Combine(_devicesDirectory, deviceId.ToString("B")), true);
+			Directory.Delete(Path.Combine(_devicesDirectory, deviceId.ToString("D")), true);
 		}
 	}
 
@@ -110,7 +117,7 @@ public class ConfigurationService
 
 		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
-			File.Delete(Path.Combine(_devicesDirectory, deviceId.ToString("B"), typeId.ToString("B")) + ".json");
+			File.Delete(Path.Combine(_devicesDirectory, deviceId.ToString("D"), typeId.ToString("D")) + ".json");
 		}
 	}
 
