@@ -112,6 +112,7 @@ public static class DeviceInformation
 						},
 						ProductId = GetProductId(i)
 					};
+					currentTransport = (Transports)((byte)currentTransport << 1);
 				}
 				return productIds;
 			}
