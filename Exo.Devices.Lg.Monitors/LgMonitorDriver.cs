@@ -1,9 +1,7 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Channels;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
@@ -25,6 +23,7 @@ public class LgMonitorDriver :
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
+	ISerialNumberDeviceFeature,
 	IRawVcpFeature,
 	IMonitorBrightnessFeature,
 	IContrastFeature,
@@ -66,6 +65,8 @@ public class LgMonitorDriver :
 		// The display name of the container can be used as a default value for the device friendly name.
 		string friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
 			throw new InvalidOperationException();
+
+		string serialNumber;
 
 		// Make a device query to fetch all the matching HID device interfaces at once.
 		var deviceInterfaces = await DeviceQuery.FindAllAsync
@@ -165,12 +166,19 @@ public class LgMonitorDriver :
 
 		(ushort scalerVersion, _, _) = await i2cTransport.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, I2CRetryCount, cancellationToken).ConfigureAwait(false);
 		var data = ArrayPool<byte>.Shared.Rent(1000);
+
 		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
 		await i2cTransport.SendLgCustomCommandWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), I2CRetryCount, cancellationToken).ConfigureAwait(false);
 		byte dscVersion = data[1];
+
 		// This special call will return the monitor model name. We can then use it as the friendly name.
 		await i2cTransport.SendLgCustomCommandWithRetryAsync(0xCA, 0x00, data.AsMemory(0, 10), I2CRetryCount, cancellationToken).ConfigureAwait(false);
 		friendlyName = "LG " + Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
+
+		// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
+		await i2cTransport.SendLgCustomCommandWithRetryAsync(0x78, 0x00, data.AsMemory(0, 12), I2CRetryCount, cancellationToken).ConfigureAwait(false);
+		serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
+
 		var length = await i2cTransport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 		ArrayPool<byte>.Shared.Return(data);
@@ -227,8 +235,7 @@ public class LgMonitorDriver :
 			parsedCapabilities,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 			friendlyName,
-			// TODO: Try reading the serial number (I believe it is possible?)
-			new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{productId:X4}", null)
+			new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{productId:X4}", serialNumber)
 		);
 	}
 
@@ -330,7 +337,7 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceIdFeature>(this);
+		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, ISerialNumberDeviceFeature, IDeviceIdFeature>(this);
 		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures, baseFeatures);
 	}
 
@@ -556,4 +563,6 @@ public class LgMonitorDriver :
 			}
 		}
 	}
+
+	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.SerialNumber!;
 }
