@@ -564,5 +564,5 @@ public class LgMonitorDriver :
 		}
 	}
 
-	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.SerialNumber!;
+	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.UniqueId!;
 }

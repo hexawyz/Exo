@@ -8,7 +8,7 @@ namespace Exo.Service;
 [TypeId(0xF9477332, 0x3B69, 0x4CF9, 0xBA, 0x73, 0xFA, 0xA4, 0xA1, 0xD8, 0xBE, 0x21)]
 public sealed class DeviceInformation : IEquatable<DeviceInformation?>
 {
-	public DeviceInformation(string friendlyName, DeviceCategory category, HashSet<Guid> featureIds, ImmutableArray<DeviceId> deviceIds, string? serialNumber)
+	public DeviceInformation(string friendlyName, DeviceCategory category, HashSet<Guid> featureIds, ImmutableArray<DeviceId> deviceIds, int? mainDeviceIdIndex, string? serialNumber)
 	{
 		if (featureIds is null) throw new ArgumentNullException(nameof(featureIds));
 		if (deviceIds.IsDefault) throw new ArgumentNullException(nameof(deviceIds));
@@ -16,6 +16,7 @@ public sealed class DeviceInformation : IEquatable<DeviceInformation?>
 		Category = category;
 		FeatureIds = featureIds;
 		DeviceIds = deviceIds;
+		MainDeviceIdIndex = mainDeviceIdIndex;
 		SerialNumber = serialNumber;
 	}
 

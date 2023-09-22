@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -25,26 +26,29 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	private record class IndexedConfigurationKey
 	{
 		public IndexedConfigurationKey(DeviceConfigurationKey key, int instanceIndex)
-			: this(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.SerialNumber, instanceIndex) { }
+			: this(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.UniqueId, instanceIndex) { }
+
+		public IndexedConfigurationKey(IndexedConfigurationKey key, int instanceIndex)
+			: this(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.UniqueId, instanceIndex) { }
 
 		[JsonConstructor]
-		public IndexedConfigurationKey(string driverKey, string deviceMainId, string compatibleHardwareId, string? serialNumber, int instanceIndex)
+		public IndexedConfigurationKey(string driverKey, string deviceMainId, string compatibleHardwareId, string? uniqueId, int instanceIndex)
 		{
 			DriverKey = driverKey;
 			DeviceMainId = deviceMainId;
 			CompatibleHardwareId = compatibleHardwareId;
-			SerialNumber = serialNumber;
+			UniqueId = uniqueId;
 			InstanceIndex = instanceIndex;
 		}
 
 		public string DriverKey { get; }
 		public string DeviceMainId { get; }
 		public string CompatibleHardwareId { get; }
-		public string? SerialNumber { get; }
+		public string? UniqueId { get; }
 		public int InstanceIndex { get; }
 
 		public static explicit operator DeviceConfigurationKey(IndexedConfigurationKey key)
-			=> new(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.SerialNumber);
+			=> new(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.UniqueId);
 	}
 
 	private sealed class DeviceState
@@ -105,74 +109,161 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	private sealed class DriverConfigurationState
 	{
 		public string Key { get; }
-		public Dictionary<string, Guid> DeviceIdsBySerialNumber { get; } = new();
-		public Dictionary<string, Guid> DeviceIdsByMainDeviceName { get; } = new();
-		public Dictionary<string, Dictionary<Guid, int>> DeviceIdsByCompatibleHardwareId { get; } = new();
+		public Dictionary<string, DeviceState> DevicesBySerialNumber { get; } = new();
+		public Dictionary<string, DeviceState> DevicesByMainDeviceName { get; } = new();
+		public Dictionary<string, List<DeviceState>> DevicesByCompatibleHardwareId { get; } = new();
 
 		public DriverConfigurationState(string key) => Key = key;
 
 		// This supports upgrading from no serial number to serial number for now, but it is probably not a desirable feature in the long run.
 		// Only trouble is to ensure that the main device ID does not get duplicated between two devices. Some proper and well-established resolution procedure is required.
 		// TODO: Use the device states instead of GUIDs (if possible?) so that the serial number can only be upgraded from "no serial number".
-		public bool TryGetDeviceId(in DeviceConfigurationKey key, out Guid deviceId)
-			=> key.SerialNumber is not null ?
-				DeviceIdsBySerialNumber.TryGetValue(key.SerialNumber, out deviceId) || DeviceIdsByMainDeviceName.TryGetValue(key.DeviceMainId, out deviceId) :
-				DeviceIdsByMainDeviceName.TryGetValue(key.DeviceMainId, out deviceId);
+		public bool TryGetDevice(in DeviceConfigurationKey key, [NotNullWhen(true)] out DeviceState? device)
+			=> key.UniqueId is not null ?
+				DevicesBySerialNumber.TryGetValue(key.UniqueId, out device) || DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out device) :
+				DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out device);
 
-		public IndexedConfigurationKey RegisterDevice(in Guid deviceId, in DeviceConfigurationKey key)
+		// TODO: Move the device management methods back into the parent class. Because it mixes up with writing the configuration, it is not the right place to have this code. (but it is also not urgent)
+		// We only need this class as an implementation detail to hold related state information together anyway. It is fine if everything is accessed from outside.
+
+		private List<DeviceState> GetDevicesWithSameHardwareId(string compatibleHardwareId)
 		{
-			if (key.SerialNumber is not null)
+			if (!DevicesByCompatibleHardwareId.TryGetValue(compatibleHardwareId, out var devicesWithSameHardwareId))
 			{
-				if (!DeviceIdsBySerialNumber.TryAdd(key.SerialNumber, deviceId))
+				DevicesByCompatibleHardwareId.TryAdd(compatibleHardwareId, devicesWithSameHardwareId = new());
+			}
+
+			return devicesWithSameHardwareId;
+		}
+
+		// To be called only during initialization. Here we recover an existing configuration that was persisted.
+		// This can be done out of order, and instance indices will be fixed later.
+		public DeviceState RegisterDevice(in Guid deviceId, IndexedConfigurationKey key, DeviceInformation deviceInformation)
+			=> RegisterDeviceInternal(deviceId, key, deviceInformation, GetDevicesWithSameHardwareId(key.CompatibleHardwareId));
+
+		// To be called during runtime when a new device is registered. A proper device instance index will be allocated.
+		public DeviceState RegisterNewDevice(in Guid deviceId, in DeviceConfigurationKey key, DeviceInformation deviceInformation)
+		{
+			var devicesWithSameHardwareId = GetDevicesWithSameHardwareId(key.CompatibleHardwareId);
+
+			return RegisterDeviceInternal(deviceId, new(key, devicesWithSameHardwareId.Count), deviceInformation, devicesWithSameHardwareId);
+		}
+
+		private DeviceState RegisterDeviceInternal(in Guid deviceId, in IndexedConfigurationKey key, DeviceInformation deviceInformation, List<DeviceState> devicesWithSameHardwareId)
+		{
+			var deviceState = new DeviceState
+			(
+				deviceId,
+				key,
+				deviceInformation,
+				new DeviceUserConfiguration { FriendlyName = deviceInformation.FriendlyName, IsAutomaticallyRemapped = false }
+			);
+
+			devicesWithSameHardwareId.Add(deviceState);
+
+			if (key.UniqueId is not null)
+			{
+				if (!DevicesBySerialNumber.TryAdd(key.UniqueId, deviceState))
 				{
-					DeviceIdsBySerialNumber.TryGetValue(key.SerialNumber, out var otherDeviceId);
+					DevicesBySerialNumber.TryGetValue(key.UniqueId, out var otherDeviceId);
 					throw new InvalidOperationException($"A non unique serial number was provided for devices {otherDeviceId:B} and {deviceId:B}.");
 				}
 			}
 
-			if (!DeviceIdsByMainDeviceName.TryAdd(key.DeviceMainId, deviceId))
+			if (!DevicesByMainDeviceName.TryAdd(key.DeviceMainId, deviceState))
 			{
-				DeviceIdsByMainDeviceName.TryGetValue(key.DeviceMainId, out var otherDeviceId);
+				DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out var otherDeviceId);
 				throw new InvalidOperationException($"The same main device name was found for devices {otherDeviceId:B} and {deviceId:B}.");
 			}
-			else if (!DeviceIdsByCompatibleHardwareId.TryGetValue(key.CompatibleHardwareId, out var devicesWithSameHardwareId))
-			{
-				DeviceIdsByCompatibleHardwareId.TryAdd(key.CompatibleHardwareId, devicesWithSameHardwareId = new());
-				// TODO: Not actually sure yet what should be the data structure there. (We probably don't want the configurations to be migrated automatically, so this can be done later)
-			}
 
-			return new IndexedConfigurationKey(key, 0);
+			return deviceState;
 		}
 
-		public IndexedConfigurationKey UpdateDeviceConfigurationKey(in Guid deviceId, in DeviceConfigurationKey oldKey, in DeviceConfigurationKey newKey)
+		// Only to be called during initialization, but necessary to ensure consistency of device instance IDs.
+		// This will sort the runtime devices by ID and override all the saved configurations as required.
+		public async ValueTask FixupDeviceInstanceIdsAsync(ConfigurationService configurationService)
 		{
-			if (oldKey.SerialNumber != newKey.SerialNumber)
+			foreach (var devicesWithSameHardwareId in DevicesByCompatibleHardwareId.Values)
 			{
-				if (oldKey.SerialNumber is not null)
+				devicesWithSameHardwareId.Sort((x, y) => Comparer<int>.Default.Compare(x.ConfigurationKey.InstanceIndex, y.ConfigurationKey.InstanceIndex));
+				for (int i = 0; i < devicesWithSameHardwareId.Count; i++)
 				{
-					DeviceIdsBySerialNumber.Remove(oldKey.SerialNumber);
+					var device = devicesWithSameHardwareId[i];
+					if (device.ConfigurationKey.InstanceIndex != i)
+					{
+						device.ConfigurationKey = new(device.ConfigurationKey, i);
+						await configurationService.WriteDeviceConfigurationAsync(device.DeviceId, device.ConfigurationKey, default).ConfigureAwait(false);
+					}
 				}
-				if (newKey.SerialNumber is not null)
+			}
+		}
+
+		public async ValueTask UpdateDeviceConfigurationKeyAsync(DeviceState device, DeviceConfigurationKey newKey, ConfigurationService configurationService)
+		{
+			var oldKey = device.ConfigurationKey;
+			int instanceIndex = device.ConfigurationKey.InstanceIndex;
+			bool hasChanged = false;
+			bool shouldUpdateCompatibleDevices = false;
+
+			if (oldKey.UniqueId != newKey.UniqueId)
+			{
+				if (oldKey.UniqueId is not null)
 				{
-					DeviceIdsBySerialNumber.Add(newKey.SerialNumber, deviceId);
+					DevicesBySerialNumber.Remove(oldKey.UniqueId);
 				}
+				if (newKey.UniqueId is not null)
+				{
+					DevicesBySerialNumber.Add(newKey.UniqueId, device);
+				}
+				hasChanged = true;
 			}
 			if (oldKey.DeviceMainId != newKey.DeviceMainId)
 			{
-				DeviceIdsByMainDeviceName.Remove(oldKey.DeviceMainId);
-				DeviceIdsByMainDeviceName.Add(newKey.DeviceMainId, deviceId);
+				DevicesByMainDeviceName.Remove(oldKey.DeviceMainId);
+				DevicesByMainDeviceName.Add(newKey.DeviceMainId, device);
+				hasChanged = true;
 			}
+			// The old index will be unallocated afterwards, as allocating the newer index is the most important operation.
+			// In case the service is interrupted after this new configuration is saved, it will always allow recovering the proper state on next startup.
+			// The update of old indices is still required for correct runtime state, but it can be recomputed easily from the saved configuration.
 			if (oldKey.CompatibleHardwareId != newKey.CompatibleHardwareId)
 			{
-				// TODO
+				if (!DevicesByCompatibleHardwareId.TryGetValue(newKey.CompatibleHardwareId, out var devicesWithSameHardwareId))
+				{
+					DevicesByCompatibleHardwareId.Add(newKey.CompatibleHardwareId, devicesWithSameHardwareId = new());
+				}
+				instanceIndex = devicesWithSameHardwareId.Count;
+				devicesWithSameHardwareId.Add(device);
+				shouldUpdateCompatibleDevices = true;
+				hasChanged = true;
 			}
-			return new(newKey, 0);
-		}
+			if (hasChanged)
+			{
+				device.ConfigurationKey = new(newKey, instanceIndex);
+				await configurationService.WriteDeviceConfigurationAsync(device.DeviceId, device.ConfigurationKey, default).ConfigureAwait(false);
 
-		public IndexedConfigurationKey GetIndexedKey(in Guid deviceId, in DeviceConfigurationKey key)
-		{
-			// TODO
-			return new(key, 0);
+				if (shouldUpdateCompatibleDevices)
+				{
+					if (DevicesByCompatibleHardwareId.TryGetValue(oldKey.CompatibleHardwareId, out var devicesWithSameHardwareId) && devicesWithSameHardwareId.IndexOf(device) is int index and >= 0)
+					{
+						devicesWithSameHardwareId.RemoveAt(index);
+						if (devicesWithSameHardwareId.Count == 0)
+						{
+							DevicesByCompatibleHardwareId.Remove(oldKey.CompatibleHardwareId);
+						}
+						else
+						{
+							for (int i = index; i < devicesWithSameHardwareId.Count; i++)
+							{
+								var otherDevice = devicesWithSameHardwareId[i];
+								otherDevice.ConfigurationKey = new(otherDevice.ConfigurationKey, i);
+
+								await configurationService.WriteDeviceConfigurationAsync(otherDevice.DeviceId, otherDevice.ConfigurationKey, default).ConfigureAwait(false);
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -225,11 +316,6 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				config = new() { FriendlyName = info.FriendlyName };
 			}
 
-			var key = new DeviceConfigurationKey(indexedKey.DriverKey, indexedKey.DeviceMainId, indexedKey.CompatibleHardwareId, indexedKey.SerialNumber);
-
-			deviceStates.TryAdd(deviceId, new(deviceId, indexedKey, info, config));
-			reservedDeviceIds.Add(deviceId);
-
 			// Validating the configuration by registering all the keys properly so that we have bidirectional mappings.
 			// For now, we will make the service crash if any invalid configuration is found, but we could also choose to archive the conflicting configurations somewhere before deleting them.
 
@@ -238,7 +324,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				driverStates.Add(indexedKey.DriverKey, driverState = new(indexedKey.DriverKey));
 			}
 
-			driverState.RegisterDevice(deviceId, key);
+			deviceStates.TryAdd(deviceId, driverState.RegisterDevice(deviceId, indexedKey, info));
+			reservedDeviceIds.Add(deviceId);
+		}
+
+		foreach (var driverState in driverStates.Values)
+		{
+			await driverState.FixupDeviceInstanceIdsAsync(configurationService).ConfigureAwait(false);
 		}
 
 		return new(configurationService, deviceStates, driverStates, reservedDeviceIds);
@@ -324,23 +416,10 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		var (deviceIds, mainDeviceIdIndex) = GetDeviceIds(driver);
 		string? serialNumber = GetSerialNumber(driver);
 		DeviceState? deviceState;
-		IndexedConfigurationKey indexedConfigurationKey;
 
-		if (!driverConfigurationState.TryGetDeviceId(key, out var deviceId))
+		if (driverConfigurationState.TryGetDevice(key, out deviceState))
 		{
-			deviceId = CreateNewDeviceId();
-			indexedConfigurationKey = driverConfigurationState.RegisterDevice(deviceId, key);
-			goto CreateState;
-		}
-		else if (_deviceStates.TryGetValue(deviceId, out deviceState))
-		{
-			var oldKey = (DeviceConfigurationKey)deviceState.ConfigurationKey;
-			if (oldKey != key)
-			{
-				indexedConfigurationKey = driverConfigurationState.UpdateDeviceConfigurationKey(deviceId, oldKey, key);
-				deviceState.ConfigurationKey = indexedConfigurationKey;
-				await _configurationService.WriteDeviceConfigurationAsync(deviceId, indexedConfigurationKey, default).ConfigureAwait(false);
-			}
+			await driverConfigurationState.UpdateDeviceConfigurationKeyAsync(deviceState, key, _configurationService).ConfigureAwait(false);
 
 			// Avoid creating a new device information instance if the data has not changed.
 			if (deviceState.DeviceInformation.FriendlyName != driver.FriendlyName ||
@@ -350,28 +429,23 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				deviceState.DeviceInformation.MainDeviceIdIndex != mainDeviceIdIndex ||
 				deviceState.DeviceInformation.SerialNumber != serialNumber)
 			{
-				deviceState.DeviceInformation = new(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, serialNumber);
-				await _configurationService.WriteDeviceConfigurationAsync(deviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
+				deviceState.DeviceInformation = new(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, mainDeviceIdIndex, serialNumber);
+				await _configurationService.WriteDeviceConfigurationAsync(deviceState.DeviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
 			}
-
-			goto StateUpdated;
 		}
 		else
 		{
-			// TODO: Log warning about missing device state. (If we know the ID, the state must exist)
-			indexedConfigurationKey = driverConfigurationState.GetIndexedKey(deviceId, key);
+			var deviceId = CreateNewDeviceId();
+			deviceState = driverConfigurationState.RegisterNewDevice(deviceId, key, new DeviceInformation(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, mainDeviceIdIndex, serialNumber));
+			if (!_deviceStates.TryAdd(deviceState.DeviceId, deviceState))
+			{
+				throw new InvalidOperationException();
+			}
+			await _configurationService.WriteDeviceConfigurationAsync(deviceState.DeviceId, deviceState.ConfigurationKey, default).ConfigureAwait(false);
+			await _configurationService.WriteDeviceConfigurationAsync(deviceState.DeviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
+			isNewDevice = true;
 		}
-	CreateState:;
-		if (!_deviceStates.TryAdd(deviceId, deviceState = new(deviceId, indexedConfigurationKey, new DeviceInformation(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, serialNumber), new() { FriendlyName = driver.FriendlyName })))
-		{
-			throw new InvalidOperationException();
-		}
-		isNewDevice = true;
 
-		await _configurationService.WriteDeviceConfigurationAsync(deviceId, indexedConfigurationKey, default).ConfigureAwait(false);
-		await _configurationService.WriteDeviceConfigurationAsync(deviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
-
-	StateUpdated:;
 		if (deviceState.TrySetDriver(driver))
 		{
 			if (_deviceChangeListeners is { } dcl)
@@ -412,13 +486,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	internal ValueTask<bool> RemoveDriverInLock(Driver driver)
 	{
-		if (TryGetDeviceId(driver, out var deviceId) && _deviceStates.TryGetValue(deviceId, out var deviceState) && deviceState.TryUnsetDriver())
+		if (TryGetDevice(driver, out var device) && device.TryUnsetDriver())
 		{
 			try
 			{
 				if (_deviceChangeListeners is { } dcl)
 				{
-					dcl.TryWrite((UpdateKind.DisconnectedDevice, deviceState.GetDeviceStateInformation(), driver));
+					dcl.TryWrite((UpdateKind.DisconnectedDevice, device.GetDeviceStateInformation(), driver));
 				}
 			}
 			catch (AggregateException)
@@ -737,13 +811,30 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private bool TryGetDeviceId(DeviceConfigurationKey key, [NotNullWhen(true)] out Guid deviceId)
 	{
-		if (_driverConfigurationStates.TryGetValue(key.DriverKey, out var driverConfigurationState))
+		if (_driverConfigurationStates.TryGetValue(key.DriverKey, out var driverConfigurationState) && driverConfigurationState.TryGetDevice(key, out var device))
 		{
-			return driverConfigurationState.TryGetDeviceId(key, out deviceId);
+			deviceId = device.DeviceId;
+			return true;
 		}
 		else
 		{
 			deviceId = default;
+			return false;
+		}
+	}
+
+	private bool TryGetDevice(Driver driver, [NotNullWhen(true)] out DeviceState? device)
+		=> TryGetDevice(driver.ConfigurationKey, out device);
+
+	private bool TryGetDevice(DeviceConfigurationKey key, [NotNullWhen(true)] out DeviceState? device)
+	{
+		if (_driverConfigurationStates.TryGetValue(key.DriverKey, out var driverConfigurationState))
+		{
+			return driverConfigurationState.TryGetDevice(key, out device);
+		}
+		else
+		{
+			device = default;
 			return false;
 		}
 	}

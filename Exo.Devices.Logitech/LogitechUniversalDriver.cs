@@ -1089,11 +1089,11 @@ public abstract class LogitechUniversalDriver : Driver,
 		}
 	}
 
-	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
+	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
 
 	public string SerialNumber
 		=> HasSerialNumber ?
-			ConfigurationKey.SerialNumber! :
+			ConfigurationKey.UniqueId! :
 			throw new NotSupportedException("This device does not support the Serial Number feature.");
 
 	public DeviceId DeviceId => new(_device.MainDeviceId.Source, VendorIdSource.Usb, LogitechUsbVendorId, _device.MainDeviceId.ProductId, _versionNumber);

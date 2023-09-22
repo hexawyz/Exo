@@ -1,3 +1,5 @@
+using System.Runtime.Serialization;
+
 namespace DeviceTools;
 
 /// <summary>Represents detailed information on a device ID.</summary>
@@ -5,7 +7,8 @@ namespace DeviceTools;
 /// This structure contains information that can be used to uniquely identify hardware.
 /// It does, however, not identify any specific instance of the hardware.
 /// </remarks>
-public readonly struct DeviceId
+[DataContract]
+public readonly struct DeviceId : IEquatable<DeviceId>
 {
 	/// <summary>A value to use to represent an invalid device ID.</summary>
 	public static readonly DeviceId Invalid = new DeviceId(DeviceIdSource.Unknown, VendorIdSource.Unknown, 0xFFFF, 0xFFFF, 0xFFFF);
@@ -63,6 +66,7 @@ public readonly struct DeviceId
 	/// </para>
 	/// <para>At the time of writing, only USB, Bluetooth, and Bluetooth Low Energy are supported.</para>
 	/// </remarks>
+	[DataMember]
 	public DeviceIdSource Source { get; }
 
 	/// <summary>Indicates which ID source references the Vendor ID.</summary>
@@ -73,12 +77,15 @@ public readonly struct DeviceId
 	/// </para>
 	/// <para>The most notable sources for Vendor IDs would be PCI, USB and Bluetooth.</para>
 	/// </remarks>
+	[DataMember]
 	public VendorIdSource VendorIdSource { get; }
 
 	/// <summary>A number representing the Vendor ID in a technology-specific ID namespace.</summary>
+	[DataMember]
 	public ushort VendorId { get; }
 
 	/// <summary>A number representing the Product ID in a Vendor-specific and technology-specific namespace.</summary>
+	[DataMember]
 	public ushort ProductId { get; }
 
 	/// <summary>The version of the product, if specified.</summary>
@@ -86,8 +93,12 @@ public readonly struct DeviceId
 	/// <para>This information should usually be present in the case of USB, BT or BLE.</para>
 	/// <para>An invalid version will be represented by the value <c>0xFFFF</c>.</para>
 	/// </remarks>
+	[DataMember]
 	public ushort Version { get; }
 
+#if NET5_0_OR_GREATER
+	[System.Text.Json.Serialization.JsonConstructor]
+#endif
 	public DeviceId(DeviceIdSource source, VendorIdSource vendorIdSource, ushort vendorId, ushort productId, ushort version)
 	{
 		Source = source;
@@ -96,4 +107,31 @@ public readonly struct DeviceId
 		ProductId = productId;
 		Version = version;
 	}
+
+	public override bool Equals(object? obj) => obj is DeviceId id && Equals(id);
+
+	public bool Equals(DeviceId other)
+		=> Source == other.Source &&
+			VendorIdSource == other.VendorIdSource &&
+			VendorId == other.VendorId &&
+			ProductId == other.ProductId &&
+			Version == other.Version;
+
+#if NETSTANDARD2_0
+	public override int GetHashCode()
+	{
+		int hashCode = 1678542449;
+		hashCode = hashCode * -1521134295 + Source.GetHashCode();
+		hashCode = hashCode * -1521134295 + VendorIdSource.GetHashCode();
+		hashCode = hashCode * -1521134295 + VendorId.GetHashCode();
+		hashCode = hashCode * -1521134295 + ProductId.GetHashCode();
+		hashCode = hashCode * -1521134295 + Version.GetHashCode();
+		return hashCode;
+	}
+#else
+	public override int GetHashCode() => HashCode.Combine(Source, VendorIdSource, VendorId, ProductId, Version);
+#endif
+
+	public static bool operator ==(DeviceId left, DeviceId right) => left.Equals(right);
+	public static bool operator !=(DeviceId left, DeviceId right) => !(left == right);
 }

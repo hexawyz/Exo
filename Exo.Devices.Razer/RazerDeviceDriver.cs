@@ -461,11 +461,11 @@ public abstract class RazerDeviceDriver :
 	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
 	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) { }
 
-	private bool HasSerialNumber => ConfigurationKey.SerialNumber is { Length: not 0 };
+	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
 
 	public string SerialNumber
 		=> HasSerialNumber ?
-			ConfigurationKey.SerialNumber! :
+			ConfigurationKey.UniqueId! :
 			throw new NotSupportedException("This device does not support the Serial Number feature.");
 
 	public DeviceId DeviceId => new(_deviceIdSource, VendorIdSource.Usb, RazerVendorId, _productId, _versionNumber);

@@ -39,7 +39,6 @@ public abstract class Driver : IDeviceDriver<IDeviceFeature>, IAsyncDisposable
 	protected Driver(string friendlyName, DeviceConfigurationKey configurationKey)
 	{
 		FriendlyName = friendlyName ?? throw new ArgumentNullException(nameof(friendlyName));
-		configurationKey.Validate();
 		ConfigurationKey = configurationKey;
 	}
 

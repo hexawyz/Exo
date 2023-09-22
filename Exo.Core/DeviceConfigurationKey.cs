@@ -1,11 +1,5 @@
 namespace Exo;
 
-// TODO: Make the key into a builder pattern providing priority rules for compatibility keys ?
-// Whatever, the idea is to always have the main key be <Driver>:<DeviceName>, and other keys being indirections towards that key.
-// So, when a non-main key is used, it will move the configuration to another main key.
-// What if a device is very changing ports then ? Do we agree the configuration is updated more often than expected ?
-// That's maybe where the priority mechanism can take action
-
 /// <summary>A device configuration key contains various parameters helping resolve the configuration for a specified device.</summary>
 /// <remarks>
 /// <para>
@@ -27,24 +21,34 @@ namespace Exo;
 /// <para>
 /// Some device instances can be identified with a unique ID such as a MAC address or a serial number.
 /// When available, this allows tracking the device more precisely when it is moved across ports.
-/// It is of highest importance that when available, the reported serial number is unique.
+/// It is of highest importance that when available, the reported ID is unique across the driver namespace.
 /// </para>
 /// <para>
-/// In the future, we could decide to scope the <see cref="SerialNumber"/> within <see cref="CompatibleHardwareId"/>, as it somewhat makes sense from a configuration compatibility point of view.
-/// If such a change is made, it would not break any existing implementations, but it would allow drivers to return "less unique" serial numbers.
-/// In any case, for now, making sure that serial numbers are unique is left to the driver implementation and its specific knowledge of the devices.
+/// In the future, we could decide to scope the <see cref="UniqueId"/> within <see cref="CompatibleHardwareId"/>, as it somewhat makes sense from a configuration compatibility point of view.
+/// If such a change is made, it would not break any existing implementations, but it would allow drivers to return "less unique" identifiers.
+/// In any case, for now, making sure that identifiers are unique is left to the driver implementation and its specific knowledge of the devices.
 /// </para>
 /// </remarks>
 /// <param name="DriverKey">A string uniquely identifying the driver.</param>
 /// <param name="DeviceMainId">The main device ID (or device instance ID) for the driver.</param>
 /// <param name="CompatibleHardwareId">A more generic ID for the device, that can match all sufficiently similar devices.</param>
-/// <param name="SerialNumber">When available, a string that can serve as a serial number to uniquely identify the physical device.</param>
-public readonly record struct DeviceConfigurationKey(string DriverKey, string DeviceMainId, string CompatibleHardwareId, string? SerialNumber)
+/// <param name="UniqueId">When possible, a string that can serve as an identifier to uniquely identify the physical device. Generally the serial number.</param>
+public readonly record struct DeviceConfigurationKey
 {
-	public void Validate()
+	public string DriverKey { get; }
+	public string DeviceMainId { get; }
+	public string CompatibleHardwareId { get; }
+	public string? UniqueId { get; }
+
+	public DeviceConfigurationKey(string driverKey, string deviceMainId, string compatibleHardwareId, string? uniqueId)
 	{
-		if (string.IsNullOrEmpty(DriverKey)) throw new InvalidOperationException("The driver key cannot be null.");
-		if (string.IsNullOrEmpty(DeviceMainId)) throw new InvalidOperationException("The device main ID cannot be null.");
-		if (string.IsNullOrEmpty(CompatibleHardwareId)) throw new InvalidOperationException("The compatible hardware ID cannot be null.");
+		if (string.IsNullOrEmpty(driverKey)) throw new InvalidOperationException("The driver key cannot be null.");
+		if (string.IsNullOrEmpty(deviceMainId)) throw new InvalidOperationException("The device main ID cannot be null.");
+		if (string.IsNullOrEmpty(compatibleHardwareId)) throw new InvalidOperationException("The compatible hardware ID cannot be null.");
+
+		DriverKey = driverKey;
+		DeviceMainId = deviceMainId;
+		CompatibleHardwareId = compatibleHardwareId;
+		UniqueId = uniqueId;
 	}
 }

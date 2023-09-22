@@ -98,7 +98,7 @@ public class ConfigurationService
 
 			string fileName = Path.Combine(deviceConfigurationDirectory, typeId.ToString("D")) + ".json";
 
-			using var file = File.OpenWrite(fileName);
+			using var file = File.Create(fileName);
 			await JsonSerializer.SerializeAsync(file, value, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 		}
 	}
