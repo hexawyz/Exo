@@ -69,7 +69,7 @@ public abstract class RazerDeviceDriver :
 		HasReactiveLighting = 0x80,
 	}
 
-	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new Guid(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
+	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new (0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
 
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
 	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
@@ -281,7 +281,7 @@ public abstract class RazerDeviceDriver :
 		string? serialNumber
 	)
 	{
-		var configurationKey = new DeviceConfigurationKey("RazerDevice", topLevelDeviceName, $"Razer_Device_{productId:X4}", serialNumber);
+		var configurationKey = new DeviceConfigurationKey("RazerDevice", topLevelDeviceName, $"{RazerVendorId:X4}:{productId:X4}", serialNumber);
 		return deviceInfo.DeviceCategory switch
 		{
 			RazerDeviceCategory.Keyboard => new SystemDevice.Keyboard
@@ -358,7 +358,13 @@ public abstract class RazerDeviceDriver :
 		string serialNumber
 	)
 	{
-		var configurationKey = new DeviceConfigurationKey("RazerDevice", $"{topLevelDeviceName}#IX_{deviceIndex:X2}&PID_{productId:X4}", $"Razer_Device_{productId:X4}", serialNumber);
+		var configurationKey = new DeviceConfigurationKey
+		(
+			"RazerDevice",
+			$"{topLevelDeviceName}#IX_{deviceIndex:X2}&PID_{deviceInfo.ActualDeviceProductId:X4}",
+			$"{RazerVendorId:X4}:{deviceInfo.ActualDeviceProductId:X4}",
+			serialNumber
+		);
 
 		return deviceInfo.DeviceCategory switch
 		{
