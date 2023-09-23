@@ -222,6 +222,20 @@
                 <Setter Property="Background" Value="{StaticResource BrightnessLinearGradientBrush}" />
                 <Setter Property="Foreground" Value="{StaticResource BrightnessSliderForeground}" />
             </Style>
+
+            <!-- This is used so that we can use an acrylic backdrop on the flyout. Sadly, the same cannot be done on all components. -->
+            <Style TargetType="controls:ColorPickerButton">
+                <Setter Property="FlyoutPresenterStyle">
+                    <Setter.Value>
+                        <Style TargetType="FlyoutPresenter">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
+                            <Setter Property="Background" Value="{x:Null}" />
+                        </Style>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
         </ResourceDictionary>
     </Application.Resources>
 </Application>

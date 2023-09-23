@@ -1,8 +1,10 @@
 using CommunityToolkit.WinUI.UI;
 using CommunityToolkit.WinUI.UI.Controls;
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Exo.Settings.Ui;
 
@@ -32,7 +34,15 @@ internal sealed partial class LightingZoneControl : UserControl
 	private void OnPropertyResetButtonClick(object sender, RoutedEventArgs e) => ((PropertyViewModel)((FrameworkElement)sender).DataContext).Reset();
 
 	// Works around the bug that prevents ColorPicker.CustomPalette from being styled 😐
-	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e) => ((ColorPickerButton)sender).ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
+	// Also works around the limitation that forces the color picker to be constrained to bounds. 😩
+	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e)
+	{
+		var button = (ColorPickerButton)sender;
+
+		button.ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
+		button.Flyout.ShouldConstrainToRootBounds = false;
+		button.Flyout.SystemBackdrop = new DesktopAcrylicBackdrop();
+	}
 
 	private void OnEffectResetButtonClick(object sender, RoutedEventArgs e) => ((LightingZoneViewModel)((FrameworkElement)sender).DataContext).Reset();
 }
