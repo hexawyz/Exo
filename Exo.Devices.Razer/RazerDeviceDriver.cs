@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
@@ -15,26 +15,41 @@ namespace Exo.Devices.Razer;
 // Like the Logitech driver, this will likely benefit from a refactoring of the device discovery, allowing to create drivers with different features on-demand.
 // For now, it will only exactly support the features for Razer DeathAdder V2 & Dock, but it will need more flexibility to support other devices using the same protocol.
 // NB: This driver relies on system drivers provided by Razer to access device features. The protocol part is still implemented here, but we need the driver to get access to the device.
-[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // Mouse
-[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // Mouse via Dongle
-[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // Dock
+[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // DeathAdder V2 Pro Mouse Wired
+[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
+[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock
+//[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
 public abstract class RazerDeviceDriver :
 	Driver,
 	IRazerDeviceNotificationSink,
 	IRazerPeriodicEventHandler,
 	ISerialNumberDeviceFeature,
-	IDeviceIdFeature
+	IDeviceIdFeature,
+	IDeviceIdsFeature
 {
 	private const ushort RazerVendorId = 0x1532;
 
 	// It does not seem we can retrieve enough metadata from the devices themselves, so we need to have some manually entered data here.
 	private readonly struct DeviceInformation
 	{
-		public DeviceInformation(RazerDeviceCategory deviceCategory, RazerDeviceFlags flags, ushort actualDeviceProductId, Guid? lightingZoneGuid, string friendlyName)
+		public DeviceInformation
+		(
+			RazerDeviceCategory deviceCategory,
+			RazerDeviceFlags flags,
+			ushort wiredDeviceProductId,
+			ushort dongleDeviceProductId,
+			ushort bluetoothDeviceProductId,
+			ushort bluetoothLowEnergyDeviceProductId,
+			Guid? lightingZoneGuid,
+			string friendlyName
+		)
 		{
 			DeviceCategory = deviceCategory;
 			Flags = flags;
-			ActualDeviceProductId = actualDeviceProductId;
+			WiredDeviceProductId = wiredDeviceProductId;
+			DongleDeviceProductId = dongleDeviceProductId;
+			BluetoothDeviceProductId = bluetoothDeviceProductId;
+			BluetoothLowEnergyDeviceProductId = bluetoothLowEnergyDeviceProductId;
 			LightingZoneGuid = lightingZoneGuid;
 			FriendlyName = friendlyName;
 		}
@@ -43,12 +58,53 @@ public abstract class RazerDeviceDriver :
 
 		public RazerDeviceFlags Flags { get; }
 
-		// Razer devices seem to share the same PID between the device and the dongle it was delivered with.
-		// This property indicates the product ID containing the information of the device associated with a dongle PID.
-		public ushort ActualDeviceProductId { get; }
+		// These properties indicate the various IDs related to a device. Availability of these IDs is indicated by the flags.
+		// The meaning slightly changes if the device is a dongle.
+		// In the case of a dongle, only the DongleDeviceProductId corresponds to the actual dongle device ID. And it must be available.
+		// The other available product IDs always correspond to the product IDs of a device.
+		// When connected through a dongle, the device will report its ID as the one of the dongle it came with.
+		// e.g. DeathAdder V2 Pro is 007C (wired) and 008E (BT). Connected to a dongle, it is referenced as 007D, which is the ID of the dongle it is delivered with.
+
+		public ushort WiredDeviceProductId { get; }
+		public ushort DongleDeviceProductId { get; }
+		public ushort BluetoothDeviceProductId { get; }
+		public ushort BluetoothLowEnergyDeviceProductId { get; }
 
 		public Guid? LightingZoneGuid { get; }
 		public string FriendlyName { get; }
+
+		public bool HasWiredDeviceProductId => (Flags & RazerDeviceFlags.HasWiredProductId) != 0;
+		public bool HasDongleProductId => (Flags & RazerDeviceFlags.HasDongleProductId) != 0;
+		public bool HasBluetoothProductId => (Flags & RazerDeviceFlags.HasBluetoothProductId) != 0;
+		public bool HasBluetoothLowEnergyProductId => (Flags & RazerDeviceFlags.HasBluetoothLowEnergyProductId) != 0;
+
+		public bool IsDongle => (Flags & RazerDeviceFlags.IsDongle) != 0;
+
+		public ushort GetMainProductId()
+			=> (Flags & RazerDeviceFlags.HasWiredProductId) == 0 ?
+				(Flags & RazerDeviceFlags.HasBluetoothProductId) == 0 ?
+					DongleDeviceProductId :
+					BluetoothDeviceProductId :
+				WiredDeviceProductId;
+
+		public ImmutableArray<DeviceId> GetDeviceIds(ushort versionNumber)
+		{
+			const RazerDeviceFlags ProductIdFlags = RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId |
+				RazerDeviceFlags.HasBluetoothProductId |
+				RazerDeviceFlags.HasBluetoothLowEnergyProductId;
+			int count = BitOperations.PopCount((byte)(Flags & ProductIdFlags));
+			if (count == 0) return ImmutableArray<DeviceId>.Empty;
+
+			var productIds = new DeviceId[count];
+			int index = 0;
+			if (HasWiredDeviceProductId) productIds[index++] = new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
+			if (HasDongleProductId) productIds[index++] = new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
+			if (HasBluetoothProductId) productIds[index++] = new DeviceId(DeviceIdSource.Bluetooth, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
+			if (HasBluetoothLowEnergyProductId) productIds[index++] = new DeviceId(DeviceIdSource.BluetoothLowEnergy, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
+
+			return Unsafe.As<DeviceId[], ImmutableArray<DeviceId>>(ref productIds);
+		}
 	}
 
 	// This is a purely internal enum to provide metadata about the devices.
@@ -66,7 +122,15 @@ public abstract class RazerDeviceDriver :
 	{
 		None = 0x00,
 		HasBattery = 0x01,
-		HasReactiveLighting = 0x80,
+
+		HasReactiveLighting = 0x02,
+
+		HasWiredProductId = 0x08,
+		HasDongleProductId = 0x10,
+		HasBluetoothProductId = 0x20,
+		HasBluetoothLowEnergyProductId = 0x40,
+
+		IsDongle = 0x80,
 	}
 
 	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new (0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
@@ -74,12 +138,77 @@ public abstract class RazerDeviceDriver :
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
 	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
 
-	private static readonly Dictionary<ushort, DeviceInformation> DeviceInformations = new()
+	// Stores the device informations in a linear table that allow deduplicating information and accessing it by reference.
+	// The indices into this table will be built into the dictionary.
+	// NB: Accessing by reference could also be done with the unsafe dictionary APIs, but not deduplicating the data.
+	// TODO: Make a source generator for this and store everything in a data block using ReadOnlySpan<byte>.
+	private static readonly DeviceInformation[] DeviceInformationTable =
+	[
+		new
+		(
+			RazerDeviceCategory.Mouse,
+			RazerDeviceFlags.HasBattery | RazerDeviceFlags.HasReactiveLighting | RazerDeviceFlags.HasWiredProductId | RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.HasBluetoothLowEnergyProductId,
+			0x007C,
+			0x007D,
+			0xFFFF,
+			0x008E,
+			DeathAdderV2ProLightingZoneGuid,
+			"Razer DeathAdder V2 Pro"
+		),
+		new
+		(
+			RazerDeviceCategory.UsbReceiver,
+			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasReactiveLighting |
+				RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId |
+				RazerDeviceFlags.HasBluetoothLowEnergyProductId |
+				RazerDeviceFlags.IsDongle,
+			0x007C,
+			0x007D,
+			0xFFFF,
+			0x008E,
+			DeathAdderV2ProLightingZoneGuid,
+			"Razer DeathAdder V2 Pro HyperSpeed Dongle"
+		),
+		new
+		(
+			RazerDeviceCategory.Dock,
+			RazerDeviceFlags.HasWiredProductId,
+			0x007C,
+			0xFFFF,
+			0xFFFF,
+			0xFFFF,
+			DeathAdderV2ProLightingZoneGuid,
+			"Razer Mouse Dock"
+		)
+	];
+
+	private static readonly Dictionary<ushort, ushort> DeviceInformationIndices = new()
 	{
-		{ 0x007C, new(RazerDeviceCategory.Mouse, RazerDeviceFlags.HasBattery | RazerDeviceFlags.HasReactiveLighting, 0x007C, DeathAdderV2ProLightingZoneGuid, "Razer DeathAdder V2 Pro") },
-		{ 0x007D, new(RazerDeviceCategory.UsbReceiver, RazerDeviceFlags.None, 0x007C, null, "Razer DeathAdder V2 Pro HyperSpeed Dongle") },
-		{ 0x007E, new(RazerDeviceCategory.Dock, RazerDeviceFlags.None, 0x007E, DockLightingZoneGuid, "Razer Mouse Dock") },
+		{ 0x007C, 0 },
+		{ 0x007D, 1 },
+		{ 0x007E, 2 },
+		{ 0x008E, 0 },
 	};
+
+	private static ref readonly DeviceInformation GetDeviceInformation(ushort productId)
+	{
+		if (DeviceInformationIndices.TryGetValue(productId, out ushort index))
+		{
+			return ref DeviceInformationTable[index];
+		}
+		return ref Unsafe.NullRef<DeviceInformation>();
+	}
+
+	private static byte GetDeviceIdIndex(ImmutableArray<DeviceId> deviceIds, ushort productId)
+	{
+		for (int i = 0; i < deviceIds.Length; i++)
+		{
+			if (deviceIds[i].ProductId == productId) return (byte)i;
+		}
+		throw new InvalidOperationException("Could not find a matching device ID entry.");
+	}
 
 	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
 	{
@@ -102,7 +231,7 @@ public abstract class RazerDeviceDriver :
 		// We need this for two reasons:
 		// 1 - This is less than ideal, but it seems we can't retrieve enough information from the device themselves (type of device, etc.)
 		// 2 - We need predefined lighting zone GUIDs. (Maybe we could generate these from VID/PID pairs to avoid this manual mapping ?)
-		var deviceInfo = DeviceInformations[productId];
+		var deviceInfo = GetDeviceInformation(productId);
 
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -160,6 +289,7 @@ public abstract class RazerDeviceDriver :
 		// Set the razer control device as the first device name for now.
 		deviceNames[0] = razerControlDeviceName;
 
+		// TODO: This is not needed anymore, but it should be made into a standard connection type feature. (Indicating by which means the device is connected)
 		{
 			Guid guid;
 			if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out guid))
@@ -247,7 +377,6 @@ public abstract class RazerDeviceDriver :
 			new(notificationDeviceName),
 			driverRegistry,
 			deviceIdSource,
-			productId,
 			version,
 			deviceInfo,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
@@ -272,7 +401,6 @@ public abstract class RazerDeviceDriver :
 		HidFullDuplexStream notificationStream,
 		Optional<IDriverRegistry> driverRegistry,
 		DeviceIdSource deviceIdSource,
-		ushort productId,
 		ushort versionNumber,
 		DeviceInformation deviceInfo,
 		ImmutableArray<string> deviceNames,
@@ -281,7 +409,13 @@ public abstract class RazerDeviceDriver :
 		string? serialNumber
 	)
 	{
-		var configurationKey = new DeviceConfigurationKey("RazerDevice", topLevelDeviceName, $"{RazerVendorId:X4}:{productId:X4}", serialNumber);
+		// Determine the main device ID using priority rules.
+		ushort mainProductId = deviceInfo.GetMainProductId();
+		var deviceIds = deviceInfo.GetDeviceIds(versionNumber);
+		byte mainDeviceIdIndex = GetDeviceIdIndex(deviceIds, mainProductId);
+
+		var configurationKey = new DeviceConfigurationKey("RazerDevice", topLevelDeviceName, $"{RazerVendorId:X4}:{mainProductId:X4}", serialNumber);
+
 		return deviceInfo.DeviceCategory switch
 		{
 			RazerDeviceCategory.Keyboard => new SystemDevice.Keyboard
@@ -294,9 +428,8 @@ public abstract class RazerDeviceDriver :
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			RazerDeviceCategory.Mouse => new SystemDevice.Mouse
 			(
@@ -308,9 +441,8 @@ public abstract class RazerDeviceDriver :
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			RazerDeviceCategory.Dock => new SystemDevice.Generic
 			(
@@ -323,9 +455,8 @@ public abstract class RazerDeviceDriver :
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			RazerDeviceCategory.UsbReceiver => new SystemDevice.UsbReceiver
 			(
@@ -336,9 +467,8 @@ public abstract class RazerDeviceDriver :
 				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
@@ -349,20 +479,24 @@ public abstract class RazerDeviceDriver :
 		RazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		DeviceIdSource deviceIdSource,
-		ushort productId,
 		ushort versionNumber,
 		byte deviceIndex,
-		DeviceInformation deviceInfo,
+		in DeviceInformation deviceInfo,
 		string friendlyName,
 		string topLevelDeviceName,
 		string serialNumber
 	)
 	{
+		// Determine the main device ID using priority rules.
+		ushort mainProductId = deviceInfo.GetMainProductId();
+		var deviceIds = deviceInfo.GetDeviceIds(versionNumber);
+		byte mainDeviceIdIndex = GetDeviceIdIndex(deviceIds, mainProductId);
+
 		var configurationKey = new DeviceConfigurationKey
 		(
 			"RazerDevice",
-			$"{topLevelDeviceName}#IX_{deviceIndex:X2}&PID_{deviceInfo.ActualDeviceProductId:X4}",
-			$"{RazerVendorId:X4}:{deviceInfo.ActualDeviceProductId:X4}",
+			$"{topLevelDeviceName}#IX_{deviceIndex:X2}&PID_{mainProductId:X4}",
+			$"{RazerVendorId:X4}:{mainProductId:X4}",
 			serialNumber
 		);
 
@@ -376,9 +510,8 @@ public abstract class RazerDeviceDriver :
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			RazerDeviceCategory.Mouse => new Mouse
 			(
@@ -388,9 +521,8 @@ public abstract class RazerDeviceDriver :
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			RazerDeviceCategory.Dock => new Generic
 			(
@@ -401,9 +533,8 @@ public abstract class RazerDeviceDriver :
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
-				deviceIdSource,
-				productId,
-				versionNumber
+				deviceIds,
+				mainDeviceIdIndex
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
@@ -417,8 +548,8 @@ public abstract class RazerDeviceDriver :
 	private readonly RazerProtocolPeriodicEventGenerator _periodicEventGenerator;
 
 	private readonly DeviceIdSource _deviceIdSource;
-	private readonly ushort _productId;
-	private readonly ushort _versionNumber;
+	private readonly ImmutableArray<DeviceId> _deviceIds;
+	private readonly byte _mainDeviceIdIndex;
 
 	private RazerDeviceDriver
 	(
@@ -426,16 +557,14 @@ public abstract class RazerDeviceDriver :
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
-		DeviceIdSource deviceIdSource,
-		ushort productId,
-		ushort versionNumber
+		ImmutableArray<DeviceId> deviceIds,
+		byte mainDeviceIdIndex
 	) : base(friendlyName, configurationKey)
 	{
 		_transport = transport;
 		_periodicEventGenerator = periodicEventGenerator;
-		_deviceIdSource = deviceIdSource;
-		_productId = productId;
-		_versionNumber = versionNumber;
+		_deviceIds = deviceIds;
+		_mainDeviceIdIndex = mainDeviceIdIndex;
 	}
 
 	// The transport must only be disposed for root devices.
@@ -474,7 +603,10 @@ public abstract class RazerDeviceDriver :
 			ConfigurationKey.UniqueId! :
 			throw new NotSupportedException("This device does not support the Serial Number feature.");
 
-	public DeviceId DeviceId => new(_deviceIdSource, VendorIdSource.Usb, RazerVendorId, _productId, _versionNumber);
+	public DeviceId DeviceId => _deviceIds[_mainDeviceIdIndex];
+
+	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
+	int? IDeviceIdsFeature.MainDeviceIdIndex => _mainDeviceIdIndex;
 
 	private class Generic : BaseDevice
 	{
@@ -490,10 +622,9 @@ public abstract class RazerDeviceDriver :
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
-			DeviceIdSource deviceIdSource,
-			ushort productId,
-			ushort versionNumber
-		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
+			ImmutableArray<DeviceId> deviceIds,
+			byte mainDeviceIdIndex
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
 			DeviceCategory = deviceCategory;
 			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, CreateBaseFeatures());
@@ -522,10 +653,9 @@ public abstract class RazerDeviceDriver :
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
-			DeviceIdSource deviceIdSource,
-			ushort productId,
-			ushort versionNumber
-		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
+			ImmutableArray<DeviceId> deviceIds,
+			byte mainDeviceIdIndex
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
 			var dpi = transport.GetDpi();
 			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
@@ -590,10 +720,9 @@ public abstract class RazerDeviceDriver :
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
-			DeviceIdSource deviceIdSource,
-			ushort productId,
-			ushort versionNumber
-		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
+			ImmutableArray<DeviceId> deviceIds,
+			byte mainDeviceIdIndex
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
 			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, CreateBaseFeatures());
 		}
@@ -636,10 +765,9 @@ public abstract class RazerDeviceDriver :
 				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
-				DeviceIdSource deviceIdSource,
-				ushort productId,
-				ushort versionNumber
-			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+				ImmutableArray<DeviceId> deviceIds,
+				byte mainDeviceIdIndex
+			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex)
 			{
 				_driverRegistry = driverRegistry;
 				DeviceNames = deviceNames;
@@ -719,13 +847,17 @@ public abstract class RazerDeviceDriver :
 				// If the device is already disconnected, skip everything else.
 				if (!basicDeviceInformation.IsConnected) return;
 
+				ref readonly var deviceInformation = ref GetDeviceInformation(basicDeviceInformation.ProductId);
+
 				// TODO: Log unsupported device.
-				if (!DeviceInformations.TryGetValue(basicDeviceInformation.ProductId, out var deviceInformation)) return;
+				if (Unsafe.IsNullRef(in deviceInformation)) return;
 
 				// Child devices would generally share a PID with their USB receiver, we need to get the information for the device and not the receiver.
-				if (deviceInformation.ActualDeviceProductId != state.ProductId)
+				if (deviceInformation.IsDongle)
 				{
-					if (!DeviceInformations.TryGetValue(deviceInformation.ActualDeviceProductId, out deviceInformation)) return;
+					deviceInformation = ref GetDeviceInformation(deviceInformation.WiredDeviceProductId);
+
+					if (Unsafe.IsNullRef(in deviceInformation)) return;
 				}
 
 				RazerDeviceDriver driver;
@@ -739,7 +871,6 @@ public abstract class RazerDeviceDriver :
 						_transport,
 						_periodicEventGenerator,
 						DeviceIdSource.Unknown,
-						state.ProductId,
 						0xFFFF,
 						(byte)deviceIndex,
 						deviceInformation,
@@ -827,10 +958,9 @@ public abstract class RazerDeviceDriver :
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
-				DeviceIdSource deviceIdSource,
-				ushort productId,
-				ushort versionNumber
-			) : base(transport, periodicEventGenerator, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
+				ImmutableArray<DeviceId> deviceIds,
+				byte mainDeviceIdIndex
+			) : base(transport, periodicEventGenerator, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -861,10 +991,9 @@ public abstract class RazerDeviceDriver :
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
-				DeviceIdSource deviceIdSource,
-				ushort productId,
-				ushort versionNumber
-			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
+				ImmutableArray<DeviceId> deviceIds,
+				byte mainDeviceIdIndex
+			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -894,10 +1023,9 @@ public abstract class RazerDeviceDriver :
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
-				DeviceIdSource deviceIdSource,
-				ushort productId,
-				ushort versionNumber
-			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIdSource, productId, versionNumber)
+				ImmutableArray<DeviceId> deviceIds,
+				byte mainDeviceIdIndex
+			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this);
 				DeviceNames = deviceNames;
@@ -1026,10 +1154,9 @@ public abstract class RazerDeviceDriver :
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
-			DeviceIdSource deviceIdSource,
-			ushort productId,
-			ushort versionNumber
-		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIdSource, productId, versionNumber)
+			ImmutableArray<DeviceId> deviceIds,
+			byte mainDeviceIdIndex
+		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex)
 		{
 			_appliedEffect = DisabledEffect.SharedInstance;
 			_currentEffect = DisabledEffect.SharedInstance;

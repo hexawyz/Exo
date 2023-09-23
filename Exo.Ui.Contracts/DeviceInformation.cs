@@ -22,7 +22,7 @@ public sealed class DeviceInformation
 	public required HashSet<Guid> FeatureIds { get; init; }
 
 	[DataMember(Order = 5)]
-	public required ImmutableArray<DeviceId> DeviceIds { get; init; }
+	public required ImmutableArray<DeviceId> DeviceIds { get; init; } = ImmutableArray<DeviceId>.Empty;
 
 	[DataMember(Order = 6)]
 	public required int? MainDeviceIdIndex { get; init; }
