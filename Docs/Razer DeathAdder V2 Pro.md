@@ -2186,3 +2186,39 @@ I can't really make sense of that byte, but I only observed values `08` and `1f`
 It seems like it could be similar to the device index of the HID++ protocol where you have to use `FF` for the dongle, `01` for the first device, and so on…
 It would be wise to assume that `1f` speaks to the first device, and `08` speaks to the connected dongle, but it still wouldn't explain everything.
 These values could be more like bit masks, but if so, more sample data is needed.
+
+# Accessing the device via bluetooth 
+
+Understanding the working of the device under bluetooth is a bit more complicated, as it is not possible to directly capture HID exchanges done through bluetooth.
+It is however possible to observe the bluetooth frames wrapped in USB by USB bluetooth adapters, but that may only tell part of the story, as HID is likely to work slightly differently with bluetooth.
+
+It is possible that the command are split in multiple packets or that the protocol takes a different format over BLE.
+
+This is likely the command or a bit of the command to define the lighting effect, captured from a packet
+02 00 28 02 ff00ff 00ffff
+
+This is kinda weird as some of the packets seem to include part of the S/N of the device. There could be an internal buffer of some kind.
+Anyway, Wireshark is not especially helpful in that case, as even regular notifications (the one for device status ans such) show up in these packets without much added details.
+For all bluetooth notifications, it shows "Handle unknown" in the BT Attribute protocol, even for those that are not Razer-specific.
+
+Found the S/N packet, but in only contains the whole serial number:
+504dxxxxxxxxxxxxxxxxxxxxxxxxxx0000000000
+"PM…"
+
+This was received with the handle 003f, as most of these notifications. Most writes seem to use the handle 003d. I can't make any sense of this for now.
+
+It seems that transactions can be observed in real time using Microsoft Bluetooth LE Explorer.
+
+Service Name: 52401523-f97c-7f90-0e7f-6c6f4e36db1c
+52401524-f97c-7f90-0e7f-6c6f4e36db1c Handle 60 (3C) => 8 bytes, maybe this contains the command stuff
+52401525-f97c-7f90-0e7f-6c6f4e36db1c Handle 62 (3E) => It seems this is the buffer receiving protocol responses ? It could have a constant length of 20 bytes
+52401526-f97c-7f90-0e7f-6c6f4e36db1c Handle 65 (41) => ??
+
+Is it possible that in this case we don't need the Razer driver to access the device ?
+Possibly everything is exposed through GATT services somehow. It is however weird how there is still a specific driver installed for the device.
+Need to read how all this BT stuff works 😩
+
+
+
+
+
