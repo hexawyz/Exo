@@ -141,3 +141,38 @@ public interface IDeviceIdsFeature : IDeviceFeature
 	ImmutableArray<DeviceId> DeviceIds { get; }
 	int? MainDeviceIdIndex { get; }
 }
+
+/// <summary>Devices can expose their connection means using this feature.</summary>
+/// <remarks>
+/// <para>This feature should generally be provided by all drivers, as the connection mean is generally easily identifiable, and often fixed.</para>
+/// <para>
+/// Because some devices can support different connection means to the same computer, the information should only be used for informational purposes, such as displaying it to the user.
+/// It cannot be used to identify the device in itself, but it is appropriate to cache the last value between device connections.
+/// </para>
+/// <para>
+/// The values exposed by the feature should be read with the understanding that some devices can be connected to the computer through multiple channels at the same time.
+/// This would be the case of a monitor connected both through DisplayPort and USB.
+/// </para>
+/// </remarks>
+public interface IDeviceConnectionType : IDeviceFeature
+{
+	DeviceConnectionTypes CurrentConnectionTypes { get; }
+	DeviceConnectionTypes SupportedConnectionTypes { get; }
+
+	/// <summary>Notifies that the current connection types changed.</summary>
+	/// <remarks>
+	/// The default implementation does never raise this event.
+	/// Checking the value of <see cref="CurrentConnectionTypesCanChange"/> can be useful in order to avoid allocating a delegate.
+	/// </remarks>
+	event Action<Driver, DeviceConnectionTypes> CurrentConnectionTypesChanged
+	{
+		add { }
+		remove { }
+	}
+
+	/// <summary>Indicates if <see cref="CurrentConnectionTypes"/> can change.</summary>
+	/// <remarks>
+	/// When this property is <see langword="false" />, <see cref="CurrentConnectionTypes"/> has a constant value, and <see cref="CurrentConnectionTypesChanged"/> is never raised.
+	/// </remarks>
+	bool CurrentConnectionTypesCanChange => false;
+}
