@@ -122,7 +122,7 @@ namespace DeviceTools.HumanInterfaceDevices
 			value = HumanInterfaceDevices.NativeMethods.GetSerialNumberString(FileHandle);
 
 			// Give priority to the previously assigned value, if any.
-			return Interlocked.CompareExchange(ref _manufacturerName, value, null) ?? value;
+			return Interlocked.CompareExchange(ref _serialNumber, value, null) ?? value;
 		}
 
 		public string InstanceId => _instanceId ?? SlowGetInstanceId();
