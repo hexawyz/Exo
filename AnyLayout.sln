@@ -99,6 +99,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Overlay.Contracts", "Ex
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Core", "Exo.Ui.Core\Exo.Ui.Core.csproj", "{227ED3C8-A44C-4196-8D17-B8E884EF8C38}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Elgato.StreamDeck", "Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj", "{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -679,6 +681,22 @@ Global
 		{227ED3C8-A44C-4196-8D17-B8E884EF8C38}.Release|x64.Build.0 = Release|Any CPU
 		{227ED3C8-A44C-4196-8D17-B8E884EF8C38}.Release|x86.ActiveCfg = Release|Any CPU
 		{227ED3C8-A44C-4196-8D17-B8E884EF8C38}.Release|x86.Build.0 = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|arm64.Build.0 = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|x64.Build.0 = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Debug|x86.Build.0 = Debug|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|arm64.ActiveCfg = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|arm64.Build.0 = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x64.ActiveCfg = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x64.Build.0 = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x86.ActiveCfg = Release|Any CPU
+		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

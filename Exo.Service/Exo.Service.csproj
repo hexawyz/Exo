@@ -50,6 +50,7 @@
 		<ProjectReference Include="..\Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

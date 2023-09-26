@@ -35,6 +35,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Devices.Apple.Keyboard",
 			"Exo.Devices.Lg.Monitors",
 			"Exo.Devices.Razer",
+			"Exo.Devices.Elgato.StreamDeck",
 		};
 
 		AssemblyPaths = plugins.Select(p => template.Replace(Placeholder, p)).ToImmutableArray();
