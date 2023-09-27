@@ -47,6 +47,11 @@ internal class BaseDeviceViewModel : BindableObject
 		set => SetValue(ref _deviceIds, value, ChangedProperty.DeviceIds);
 	}
 
+	public DeviceIdViewModel? MainDeviceId
+		=> DeviceIds.Count > 0 ?
+			DeviceIds[_mainDeviceIdIndex.GetValueOrDefault()] :
+			null;
+
 	public void UpdateDeviceIds(ImmutableArray<DeviceId> deviceIds, int? mainDeviceIdIndex)
 	{
 		if (!_rawDeviceIds.SequenceEqual(deviceIds) || _mainDeviceIdIndex != mainDeviceIdIndex)

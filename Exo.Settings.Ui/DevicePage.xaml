@@ -10,14 +10,14 @@
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
     <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice, Mode=TwoWay}">
-        <Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceId, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceIds, Converter={StaticResource CollectionToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon Glyph="&#xE8EC;" />
                     <TextBlock Text="Device ID" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
-            <Grid HorizontalAlignment="Stretch" DataContext="{Binding DeviceId, Mode=OneTime}">
+            <Grid HorizontalAlignment="Stretch" DataContext="{Binding MainDeviceId, Mode=OneTime}">
                 <Grid.Resources>
                     <Style TargetType="TextBlock">
                         <Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
