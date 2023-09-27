@@ -1,5 +1,7 @@
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
@@ -29,7 +31,7 @@ namespace Exo.Devices.Elgato.StreamDeck;
 //[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x0060)] // Stream Deck (Untested)
 //[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x0063)] // Stream Deck Mini (Untested)
 [ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x006C)]
-public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDeviceIdFeature
+public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDeviceIdFeature, ISerialNumberDeviceFeature
 {
 	private const ushort ElgatoVendorId = 0x0FD9;
 
@@ -139,14 +141,29 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 			}
 		}
 
+		string serialNumber;
+
+		var stream = new HidFullDuplexStream(deviceName);
+		var buffer = ArrayPool<byte>.Shared.Rent(32);
+		try
+		{
+			buffer[0] = 6;
+			stream.ReceiveFeatureReport(buffer.AsSpan(0, 32));
+			serialNumber = Encoding.ASCII.GetString(buffer.AsSpan(2, buffer[1]));
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(buffer);
+		}
+
 		return new StreamDeckDeviceDriver
 		(
-			new(deviceName),
+			stream,
 			friendlyName,
 			productId,
 			version,
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-			new("StreamDeck", deviceNames[^1], $"{ElgatoVendorId:X4}:{productId:X4}", null)
+			new("StreamDeck", deviceNames[^1], $"{ElgatoVendorId:X4}:{productId:X4}", serialNumber)
 		);
 	}
 
@@ -171,7 +188,7 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		_versionNumber = versionNumber;
 		_deviceNames = deviceNames;
 
-		_allFeatures = FeatureCollection.Create<IDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature>(this);
+		_allFeatures = FeatureCollection.Create<IDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, ISerialNumberDeviceFeature>(this);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -184,5 +201,7 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 	}
 
 
-	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(ElgatoVendorId, _productId, _versionNumber); 
+	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(ElgatoVendorId, _productId, _versionNumber);
+
+	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.UniqueId!;
 }
