@@ -106,6 +106,9 @@ public readonly struct DeviceId : IEquatable<DeviceId>
 	[DataMember]
 	public VendorIdSource VendorIdSource { get; }
 
+	// TODO: Find space to support ACPI IDs which are represented as 4 letters or digits. Less than one extra byte is needed, but the current struct has a nice size of 8 bytes which would be nice to keep.
+	// It is probably possible to compress the Source and VendorIdSource enums together.
+
 	/// <summary>A number representing the Vendor ID in a technology-specific ID namespace.</summary>
 	[DataMember]
 	public ushort VendorId { get; }
@@ -160,4 +163,11 @@ public readonly struct DeviceId : IEquatable<DeviceId>
 
 	public static bool operator ==(DeviceId left, DeviceId right) => left.Equals(right);
 	public static bool operator !=(DeviceId left, DeviceId right) => !(left == right);
+
+	public override string ToString()
+		=> VendorIdSource switch
+		{
+			VendorIdSource.PlugAndPlay => $"{PnpVendorId.FromRaw(VendorId)}{ProductId:X4}",
+			_ => $"{VendorId:X4}:{ProductId:X4}",
+		};
 }
