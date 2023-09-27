@@ -1,4 +1,9 @@
+using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Net;
 using System.Runtime.Serialization;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace DeviceTools;
 
@@ -12,6 +17,27 @@ public readonly struct DeviceId : IEquatable<DeviceId>
 {
 	/// <summary>A value to use to represent an invalid device ID.</summary>
 	public static readonly DeviceId Invalid = new DeviceId(DeviceIdSource.Unknown, VendorIdSource.Unknown, 0xFFFF, 0xFFFF, 0xFFFF);
+
+	/// <summary>Creates a device ID for a monitor device.</summary>
+	/// <param name="vendorId">The PNP vendor ID.</param>
+	/// <param name="productId">The product ID.</param>
+	/// <returns>A device ID.</returns>
+	public static DeviceId ForDisplay(string vendorId, ushort productId)
+		=> new(DeviceIdSource.Display, VendorIdSource.PlugAndPlay, PnpVendorId.Parse(vendorId).Value, productId, 0xFFFF);
+
+	/// <summary>Creates a device ID for a monitor device.</summary>
+	/// <param name="vendorId">The PNP vendor ID.</param>
+	/// <param name="productId">The product ID.</param>
+	/// <returns>A device ID.</returns>
+	public static DeviceId ForDisplay(ReadOnlySpan<char> vendorId, ushort productId)
+		=> new(DeviceIdSource.Display, VendorIdSource.PlugAndPlay, PnpVendorId.Parse(vendorId).Value, productId, 0xFFFF);
+
+	/// <summary>Creates a device ID for a monitor device.</summary>
+	/// <param name="vendorId">The PNP vendor ID.</param>
+	/// <param name="productId">The product ID.</param>
+	/// <returns>A device ID.</returns>
+	public static DeviceId ForDisplay(ReadOnlySpan<byte> vendorId, ushort productId)
+		=> new(DeviceIdSource.Display, VendorIdSource.PlugAndPlay, PnpVendorId.Parse(vendorId).Value, productId, 0xFFFF);
 
 	/// <summary>Creates a device ID for a PCI device.</summary>
 	/// <param name="vendorId">The PCI vendor ID.</param>

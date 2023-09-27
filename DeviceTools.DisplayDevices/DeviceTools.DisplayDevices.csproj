@@ -5,4 +5,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+  </ItemGroup>
+
 </Project>

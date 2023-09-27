@@ -376,8 +376,8 @@ public readonly struct TargetDeviceNameInfo
 
 	internal TargetDeviceNameInfo(NativeMethods.DisplayConfigTargetDeviceName deviceName) => _deviceName = deviceName;
 
-	public EdidManufacturerNameId EdidManufacturerNameId => new EdidManufacturerNameId(_deviceName.EdidManufactureId);
-	public ushort EdidProductCodeId => _deviceName.EdidProductCodeId;
+	public PnpVendorId EdidVendorId => PnpVendorId.FromRaw(_deviceName.EdidManufactureId);
+	public ushort EdidProductId => _deviceName.EdidProductCodeId;
 
 	public int ConnectorInstance => (int)_deviceName.ConnectorInstance;
 
@@ -394,139 +394,46 @@ public readonly struct MonitorName : IEquatable<MonitorName>
 	public static MonitorName Parse(string text)
 	{
 		if (text is not { Length: 7 } ||
-			!EdidManufacturerNameId.TryParse(text.AsSpan(0, 3), out var manufacturerNameId) ||
-			!ushort.TryParse(text.AsSpan(3), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ushort productCodeId))
+			!PnpVendorId.TryParse(text.AsSpan(0, 3), out var vendorId) ||
+			!ushort.TryParse(text.AsSpan(3), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ushort productId))
 		{
 			throw new ArgumentException("Monitor name should be composed of three ASCII letters and four hexadecimal digits.");
 		}
 
-		return new MonitorName(manufacturerNameId, productCodeId);
+		return new MonitorName(vendorId, productId);
 	}
 
-	public MonitorName(EdidManufacturerNameId manufacturerNameId, ushort productCodeId)
+	public MonitorName(PnpVendorId vendorId, ushort productId)
 	{
-		ManufacturerNameId = manufacturerNameId;
-		ProductCodeId = productCodeId;
+		VendorId = vendorId;
+		ProductId = productId;
 	}
 
-	public EdidManufacturerNameId ManufacturerNameId { get; }
-	public ushort ProductCodeId { get; }
+	public PnpVendorId VendorId { get; }
+	public ushort ProductId { get; }
 
-	public bool IsValid => ManufacturerNameId.IsValid;
+	public bool IsValid => VendorId.IsValid;
 
 	public override string? ToString()
-		=> ManufacturerNameId.IsValid ?
+		=> VendorId.IsValid ?
 			string.Create
 			(
 				7,
 				this,
 				(s, n) =>
 				{
-					n.ManufacturerNameId.TryFormat(s, out _);
-					n.ProductCodeId.TryFormat(s[3..], out _, "X4", CultureInfo.InvariantCulture);
+					n.VendorId.TryFormat(s, out _);
+					n.ProductId.TryFormat(s[3..], out _, "X4", CultureInfo.InvariantCulture);
 				}
 			) :
 			null;
 
 	public override bool Equals(object? obj) => obj is MonitorName name && Equals(name);
-	public bool Equals(MonitorName other) => ManufacturerNameId.Equals(other.ManufacturerNameId) && ProductCodeId == other.ProductCodeId;
-	public override int GetHashCode() => HashCode.Combine(ManufacturerNameId, ProductCodeId);
+	public bool Equals(MonitorName other) => VendorId.Equals(other.VendorId) && ProductId == other.ProductId;
+	public override int GetHashCode() => HashCode.Combine(VendorId, ProductId);
 
 	public static bool operator ==(MonitorName left, MonitorName right) => left.Equals(right);
 	public static bool operator !=(MonitorName left, MonitorName right) => !(left == right);
-}
-
-public readonly struct EdidManufacturerNameId : IEquatable<EdidManufacturerNameId>
-{
-	/// <summary>This is the raw value of the manufacturer ID.</summary>
-	/// <remarks>
-	/// <para>
-	/// On little-endian hosts, the endianness of this value has been reversed to compensate for windows returning the bytes in their (original) big endian order.
-	/// It is unknown how this value would appear on a big endian host. Windows could either compensate by reversing it in the wrong order too, or simply always return the raw bytes.
-	/// </para>
-	/// </remarks>
-	public readonly ushort Value { get; }
-
-	public static EdidManufacturerNameId Parse(string text)
-	{
-		if (text is null) throw new ArgumentNullException(text);
-
-		return Parse(text.AsSpan());
-	}
-
-	public static bool TryParse(string text, out EdidManufacturerNameId manufacturerNameId)
-	{
-		if (text is null) throw new ArgumentNullException(text);
-
-		return TryParse(text.AsSpan(), out manufacturerNameId);
-	}
-
-	public static EdidManufacturerNameId Parse(ReadOnlySpan<char> text)
-	{
-		if (!TryParse(text, out var manufacturerNameId))
-		{
-			throw new ArgumentException("Valid PNP IDs must be composed of three letters.");
-		}
-
-		return manufacturerNameId;
-	}
-
-	public static bool TryParse(ReadOnlySpan<char> text, out EdidManufacturerNameId manufacturerNameId)
-	{
-		if (text.Length != 3 || !IsLetter(text[0]) || !IsLetter(text[1]) || !IsLetter(text[2]))
-		{
-			manufacturerNameId = default;
-			return false;
-		}
-
-		manufacturerNameId = new EdidManufacturerNameId((ushort)IPAddress.NetworkToHostOrder((short)((text[0] & ~0x20 - 'A' + 1) << 10 | (text[1] & ~0x20 - 'A' + 1) << 5 | (text[2] & ~0x20 - 'A' + 1))));
-		return true;
-	}
-
-	private static bool IsLetter(char c)
-		=> c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z';
-
-	private static bool IsValueValid(ushort value)
-		=> value <= 0b11010_11010_11010 && (value & 0b11111_11111) <= 0b11010_11010 & (value & 0b11111) <= 11010;
-
-	// FIXME: Endianness on Big Endian hosts ? It mainly depends on whether Windows would try to "fix" this on big endian systems, but the value should be expressed as big endian.
-	internal EdidManufacturerNameId(ushort value) => Value = BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
-
-	public bool IsValid => IsValueValid(Value);
-
-	public override bool Equals(object? obj) => obj is EdidManufacturerNameId id && Equals(id);
-	public bool Equals(EdidManufacturerNameId other) => Value == other.Value;
-	public override int GetHashCode() => HashCode.Combine(Value);
-
-	public override string ToString()
-		=> IsValid ?
-			string.Create(3, Value, (s, v) => (s[0], s[1], s[2]) = ((char)('A' - 1 + (v >> 10)), (char)('A' - 1 + ((v >> 5) & 0x1f)), (char)('A' - 1 + (v & 0x1f)))) :
-			Value.ToString("X4");
-
-	public bool TryFormat(Span<char> destination, out int charsWritten)
-	{
-		if (IsValid)
-		{
-			if (destination.Length >= 3)
-			{
-				(destination[0], destination[1], destination[2]) = ((char)('A' - 1 + (Value >> 10)), (char)('A' - 1 + ((Value >> 5) & 0x1f)), (char)('A' - 1 + (Value & 0x1f)));
-				charsWritten = 3;
-				return true;
-			}
-			else
-			{
-				charsWritten = 0;
-				return false;
-			}
-		}
-		else
-		{
-			return Value.TryFormat(destination, out charsWritten, "X4", CultureInfo.InvariantCulture);
-		}
-	}
-
-	public static bool operator ==(EdidManufacturerNameId left, EdidManufacturerNameId right) => left.Equals(right);
-	public static bool operator !=(EdidManufacturerNameId left, EdidManufacturerNameId right) => !(left == right);
 }
 
 public readonly struct DisplayConfigurationModeInfo

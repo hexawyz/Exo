@@ -57,7 +57,7 @@ namespace Exo.Cli
 
 					var targetNameInformation = path.TargetInfo.GetDeviceNameInformation();
 
-					if (targetNameInformation.IsEdidValid && targetNameInformation.EdidManufacturerNameId == parsedMonitorName.ManufacturerNameId && targetNameInformation.EdidProductCodeId == parsedMonitorName.ProductCodeId)
+					if (targetNameInformation.IsEdidValid && targetNameInformation.EdidVendorId == parsedMonitorName.VendorId && targetNameInformation.EdidProductId == parsedMonitorName.ProductId)
 					{
 						physicalMonitor.SetVcpFeature((byte)VcpCode.InputSelect, (uint)changeSource);
 						break;
