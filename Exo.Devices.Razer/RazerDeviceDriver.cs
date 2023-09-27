@@ -81,14 +81,20 @@ public abstract class RazerDeviceDriver :
 		public bool IsDongle => (Flags & RazerDeviceFlags.IsDongle) != 0;
 
 		public ushort GetMainProductId()
-			=> (Flags & RazerDeviceFlags.HasWiredProductId) == 0 ?
-				(Flags & RazerDeviceFlags.HasBluetoothProductId) == 0 ?
-					DongleDeviceProductId :
-					BluetoothDeviceProductId :
-				WiredDeviceProductId;
+			=> (Flags & (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsDongle)) == (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsDongle) ?
+				DongleDeviceProductId :
+				(Flags & RazerDeviceFlags.HasWiredProductId) == 0 ?
+					(Flags & RazerDeviceFlags.HasBluetoothLowEnergyProductId) == 0 ?
+						(Flags & RazerDeviceFlags.HasBluetoothProductId) == 0 ?
+							(ushort)0 :
+							BluetoothDeviceProductId :
+						BluetoothLowEnergyDeviceProductId :
+					WiredDeviceProductId;
 
 		public ImmutableArray<DeviceId> GetDeviceIds(ushort versionNumber)
 		{
+			if (IsDongle) return ImmutableArray.Create(new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, DongleDeviceProductId, versionNumber));
+
 			const RazerDeviceFlags ProductIdFlags = RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasBluetoothProductId |
@@ -99,9 +105,9 @@ public abstract class RazerDeviceDriver :
 			var productIds = new DeviceId[count];
 			int index = 0;
 			if (HasWiredDeviceProductId) productIds[index++] = new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
-			if (HasDongleProductId) productIds[index++] = new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
-			if (HasBluetoothProductId) productIds[index++] = new DeviceId(DeviceIdSource.Bluetooth, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
-			if (HasBluetoothLowEnergyProductId) productIds[index++] = new DeviceId(DeviceIdSource.BluetoothLowEnergy, VendorIdSource.Usb, RazerVendorId, WiredDeviceProductId, versionNumber);
+			if (HasDongleProductId) productIds[index++] = new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, DongleDeviceProductId, versionNumber);
+			if (HasBluetoothProductId) productIds[index++] = new DeviceId(DeviceIdSource.Bluetooth, VendorIdSource.Usb, RazerVendorId, BluetoothDeviceProductId, versionNumber);
+			if (HasBluetoothLowEnergyProductId) productIds[index++] = new DeviceId(DeviceIdSource.BluetoothLowEnergy, VendorIdSource.Usb, RazerVendorId, BluetoothLowEnergyDeviceProductId, versionNumber);
 
 			return Unsafe.As<DeviceId[], ImmutableArray<DeviceId>>(ref productIds);
 		}
@@ -168,18 +174,18 @@ public abstract class RazerDeviceDriver :
 			0x007D,
 			0xFFFF,
 			0x008E,
-			DeathAdderV2ProLightingZoneGuid,
+			null,
 			"Razer DeathAdder V2 Pro HyperSpeed Dongle"
 		),
 		new
 		(
 			RazerDeviceCategory.Dock,
 			RazerDeviceFlags.HasWiredProductId,
-			0x007C,
+			0x007E,
 			0xFFFF,
 			0xFFFF,
 			0xFFFF,
-			DeathAdderV2ProLightingZoneGuid,
+			DockLightingZoneGuid,
 			"Razer Mouse Dock"
 		)
 	];
