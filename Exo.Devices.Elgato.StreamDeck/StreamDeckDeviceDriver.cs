@@ -60,10 +60,6 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		// See here for some references:
 		//  - V1+: https://gist.github.com/cliffrowley/d18a9c4569537b195f2b1eb6c68469e0
 		//  - V2: https://den.dev/blog/reverse-engineering-stream-deck/
-		if (version != 0x0200)
-		{
-			throw new InvalidOperationException("Only version 2 of the Stream Deck protocol is supported.");
-		}
 
 		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
 		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
@@ -129,45 +125,43 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 
 		for (int i = 0; i < devices.Length; i++)
 		{
-			var device = devices[i];
+			var d = devices[i];
 
-			if (device.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out Guid guid) && guid == DeviceBusTypesGuids.Hid)
+			if (d.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out Guid guid) && guid == DeviceBusTypesGuids.Hid)
 			{
-				deviceNames[2] = device.Id;
+				deviceNames[2] = d.Id;
 			}
 			else
 			{
-				deviceNames[3] = device.Id;
+				deviceNames[3] = d.Id;
 			}
 		}
 
-		string serialNumber;
 
 		var stream = new HidFullDuplexStream(deviceName);
-		var buffer = ArrayPool<byte>.Shared.Rent(32);
+		var device = new StreamDeckDevice(stream, productId);
 		try
 		{
-			buffer[0] = 6;
-			stream.ReceiveFeatureReport(buffer.AsSpan(0, 32));
-			serialNumber = Encoding.ASCII.GetString(buffer.AsSpan(2, buffer[1]));
-		}
-		finally
-		{
-			ArrayPool<byte>.Shared.Return(buffer);
-		}
+			string serialNumber = device.GetSerialNumber();
 
-		return new StreamDeckDeviceDriver
-		(
-			stream,
-			friendlyName,
-			productId,
-			version,
-			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-			new("StreamDeck", deviceNames[^1], $"{ElgatoVendorId:X4}:{productId:X4}", serialNumber)
-		);
+			return new StreamDeckDeviceDriver
+			(
+				device,
+				friendlyName,
+				productId,
+				version,
+				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
+				new("StreamDeck", deviceNames[^1], $"{ElgatoVendorId:X4}:{productId:X4}", serialNumber)
+			);
+		}
+		catch
+		{
+			await device.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
 	}
 
-	private readonly HidFullDuplexStream _stream;
+	private readonly StreamDeckDevice _device;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 	private readonly ImmutableArray<string> _deviceNames;
@@ -175,7 +169,7 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 
 	private StreamDeckDeviceDriver
 	(
-		HidFullDuplexStream stream,
+		StreamDeckDevice device,
 		string friendlyName,
 		ushort productId,
 		ushort versionNumber,
@@ -183,7 +177,7 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
-		_stream = stream;
+		_device = device;
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_deviceNames = deviceNames;
@@ -197,7 +191,7 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 
 	public override async ValueTask DisposeAsync()
 	{
-		await _stream.DisposeAsync().ConfigureAwait(false);
+		await _device.DisposeAsync().ConfigureAwait(false);
 	}
 
 
