@@ -16,6 +16,7 @@ namespace DeviceTools
 		private const int ErrorGenFailure = 0x0000001F;
 		private const int ErrorInsufficientBuffer = 0x0000007A;
 		private const int ErrorInvalidUserBuffer = 0x000006F8;
+		public const int ErrorIoPending = 0x000003E5;
 		private const int ErrorNoAccess = 0x000003E6;
 		public const int ErrorNoMoreItems = 0x00000103;
 
@@ -504,7 +505,7 @@ namespace DeviceTools
 		public static extern ConfigurationManagerResult ConfigurationManagerGetDeviceNodeProperty(uint deviceInstanceHandle, in PropertyKey propertyKey, out DevicePropertyType propertyType, ref byte buffer, ref uint bufferSize, uint flags);
 
 		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
-		public static extern uint DeviceIoControl
+		public static unsafe extern uint DeviceIoControl
 		(
 			SafeFileHandle deviceHandle,
 			uint ioControlCode,
@@ -513,11 +514,26 @@ namespace DeviceTools
 			ref byte outputBufferFirstByte,
 			uint outputBufferSize,
 			out uint bytesReturned,
-			IntPtr overlapped
+			NativeOverlapped *overlapped
 		);
 
+		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+		public static unsafe extern uint DeviceIoControl
+		(
+			SafeFileHandle deviceHandle,
+			uint ioControlCode,
+			byte* inputBufferFirstByte,
+			uint inputBufferSize,
+			byte* outputBufferFirstByte,
+			uint outputBufferSize,
+			uint* bytesReturned,
+			NativeOverlapped* overlapped
+		);
+
+#if !NET8_0_OR_GREATER
 		[DllImport("kernel32", EntryPoint = "CreateFileW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 		public static extern SafeFileHandle CreateFile(string fileName, FileAccessMask desiredAccess, FileShare shareMode, IntPtr securityAttributes, FileMode creationDisposition, FileOptions dwFlagsAndAttributes, IntPtr hTemplateFile);
+#endif
 
 		[DllImport("shell32", EntryPoint = "SHGetPropertyStoreFromParsingName", PreserveSig = false, ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Interface)]
