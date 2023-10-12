@@ -367,16 +367,16 @@ public abstract class RazerDeviceDriver :
 			throw new InvalidOperationException("The device interface for device notifications was not found.");
 		}
 
-		var transport = new RazerProtocolTransport(Device.OpenHandle(razerControlDeviceName, DeviceAccess.None));
+		var transport = new RazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceName, DeviceAccess.None), FileAccess.ReadWrite));
 
 		string? serialNumber = null;
 
 		if (deviceInfo.DeviceCategory != RazerDeviceCategory.UsbReceiver)
 		{
-			serialNumber = transport.GetSerialNumber();
+			serialNumber = await transport.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 		}
 
-		var device = CreateDevice
+		var device = await CreateDeviceAsync
 		(
 			transport,
 			new(60_000),
@@ -388,8 +388,9 @@ public abstract class RazerDeviceDriver :
 			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 			friendlyName,
 			topLevelDevice.Id,
-			serialNumber
-		);
+			serialNumber,
+			cancellationToken
+		).ConfigureAwait(false);
 
 		// Get rid of the nested driver registry if we don't need it.
 		if (device is not SystemDevice.UsbReceiver)
@@ -400,7 +401,7 @@ public abstract class RazerDeviceDriver :
 		return device;
 	}
 
-	private static RazerDeviceDriver CreateDevice
+	private static async ValueTask<RazerDeviceDriver> CreateDeviceAsync
 	(
 		RazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
@@ -412,7 +413,8 @@ public abstract class RazerDeviceDriver :
 		ImmutableArray<string> deviceNames,
 		string friendlyName,
 		string topLevelDeviceName,
-		string? serialNumber
+		string? serialNumber,
+		CancellationToken cancellationToken
 	)
 	{
 		// Determine the main device ID using priority rules.
@@ -422,7 +424,7 @@ public abstract class RazerDeviceDriver :
 
 		var configurationKey = new DeviceConfigurationKey("RazerDevice", topLevelDeviceName, $"{RazerVendorId:X4}:{mainProductId:X4}", serialNumber);
 
-		return deviceInfo.DeviceCategory switch
+		RazerDeviceDriver driver = deviceInfo.DeviceCategory switch
 		{
 			RazerDeviceCategory.Keyboard => new SystemDevice.Keyboard
 			(
@@ -478,19 +480,30 @@ public abstract class RazerDeviceDriver :
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
+		try
+		{
+			await driver.InitializeAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+			await driver.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
+		return driver;
 	}
 
-	private static RazerDeviceDriver CreateChildDevice
+	private static async ValueTask<RazerDeviceDriver> CreateChildDeviceAsync
 	(
 		RazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		DeviceIdSource deviceIdSource,
 		ushort versionNumber,
 		byte deviceIndex,
-		in DeviceInformation deviceInfo,
+		DeviceInformation deviceInfo,
 		string friendlyName,
 		string topLevelDeviceName,
-		string serialNumber
+		string serialNumber,
+		CancellationToken cancellationToken
 	)
 	{
 		// Determine the main device ID using priority rules.
@@ -506,7 +519,7 @@ public abstract class RazerDeviceDriver :
 			serialNumber
 		);
 
-		return deviceInfo.DeviceCategory switch
+		RazerDeviceDriver driver = deviceInfo.DeviceCategory switch
 		{
 			RazerDeviceCategory.Keyboard => new Keyboard
 			(
@@ -544,6 +557,16 @@ public abstract class RazerDeviceDriver :
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
+		try
+		{
+			await driver.InitializeAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+			await driver.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
+		return driver;
 	}
 
 	// The transport is used to communicate with the device.
@@ -572,6 +595,8 @@ public abstract class RazerDeviceDriver :
 		_deviceIds = deviceIds;
 		_mainDeviceIdIndex = mainDeviceIdIndex;
 	}
+
+	protected virtual ValueTask InitializeAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
 	// The transport must only be disposed for root devices.
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -663,10 +688,16 @@ public abstract class RazerDeviceDriver :
 			byte mainDeviceIdIndex
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
-			var dpi = transport.GetDpi();
-			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature>(this);
 			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, _mouseFeatures, CreateBaseFeatures());
+		}
+
+		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
+		{
+			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
+
+			var dpi = await _transport.GetDpiAsync(cancellationToken).ConfigureAwait(false);
+			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 		}
 
 		IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
@@ -753,7 +784,7 @@ public abstract class RazerDeviceDriver :
 			private readonly RazerDeviceNotificationWatcher _watcher;
 			private readonly IDriverRegistry _driverRegistry;
 			// As of now, there can be only two devices, but we can use an array here to be more future-proof. (Still need to understand how to address these other devices)
-			private readonly PairedDeviceState[] _pairedDevices;
+			private PairedDeviceState[]? _pairedDevices;
 
 			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
@@ -778,18 +809,25 @@ public abstract class RazerDeviceDriver :
 				_driverRegistry = driverRegistry;
 				DeviceNames = deviceNames;
 				_allFeatures = FeatureCollection.Create<IDeviceFeature, UsbReceiver, IDeviceIdFeature>(this);
-				var childDevices = transport.GetDevicePairingInformation();
-				_pairedDevices = new PairedDeviceState[childDevices.Length];
+				_watcher = new(notificationStream, this);
+			}
+
+			protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
+			{
+				await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
+
+				var childDevices = await _transport.GetDevicePairingInformationAsync(cancellationToken).ConfigureAwait(false);
+				var pairedDevices = new PairedDeviceState[childDevices.Length];
 				for (int i = 0; i < childDevices.Length; i++)
 				{
 					var device = childDevices[i];
-					_pairedDevices[i] = new(device.ProductId);
+					pairedDevices[i] = new(device.ProductId);
 					if (device.IsConnected)
 					{
-						HandleNewDevice(i + 1);
+						await HandleNewDeviceAsync(pairedDevices, i + 1, cancellationToken).ConfigureAwait(false);
 					}
 				}
-				_watcher = new(notificationStream, this);
+				Volatile.Write(ref _pairedDevices, pairedDevices);
 			}
 
 			public override async ValueTask DisposeAsync()
@@ -801,18 +839,22 @@ public abstract class RazerDeviceDriver :
 
 			protected override void OnDeviceArrival(byte deviceIndex)
 			{
+				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
+
 				// TODO: Log invalid device index.
-				if (deviceIndex > _pairedDevices.Length) return;
+				if (deviceIndex > pairedDevices.Length) return;
 
 				HandleNewDevice(deviceIndex);
 			}
 
 			protected override void OnDeviceRemoval(byte deviceIndex)
 			{
-				// TODO: Log invalid device index.
-				if (deviceIndex > _pairedDevices.Length) return;
+				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
 
-				if (Interlocked.Exchange(ref _pairedDevices[deviceIndex - 1].Driver, null) is { } oldDriver)
+				// TODO: Log invalid device index.
+				if (deviceIndex > pairedDevices.Length) return;
+
+				if (Interlocked.Exchange(ref pairedDevices[deviceIndex - 1].Driver, null) is { } oldDriver)
 				{
 					RemoveAndDisposeDriver(oldDriver);
 				}
@@ -833,27 +875,37 @@ public abstract class RazerDeviceDriver :
 
 			// This method is only asynchronous in case of error
 			private void HandleNewDevice(int deviceIndex)
-			{
-				// Need to see how to handle devices other than the main one.
-				if (deviceIndex != 1) return;
+				=> HandleNewDeviceAsync(deviceIndex, default).ConfigureAwait(false).GetAwaiter().GetResult();
 
-				ref var state = ref _pairedDevices[deviceIndex - 1];
+			private ValueTask HandleNewDeviceAsync(int deviceIndex, CancellationToken cancellationToken)
+			{
+				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return ValueTask.CompletedTask;
+
+				// Need to see how to handle devices other than the main one.
+				if (deviceIndex != 1) return ValueTask.CompletedTask;
+
+				return HandleNewDeviceAsync(pairedDevices, deviceIndex, cancellationToken);
+			}
+
+			private async ValueTask HandleNewDeviceAsync(PairedDeviceState[] pairedDevices, int deviceIndex, CancellationToken cancellationToken)
+			{
+				int stateIndex = deviceIndex - 1;
 
 				// Don't recreate a driver if one is already present.
-				if (Volatile.Read(ref state.Driver) is not null) return;
+				if (Volatile.Read(ref pairedDevices[stateIndex].Driver) is not null) return;
 
-				var basicDeviceInformation = _transport.GetDeviceInformation();
+				var basicDeviceInformation = await _transport.GetDeviceInformationAsync(cancellationToken).ConfigureAwait(false);
 
 				// Update the state in case the paired device has changed.
-				if (state.ProductId != basicDeviceInformation.ProductId)
+				if (pairedDevices[stateIndex].ProductId != basicDeviceInformation.ProductId)
 				{
-					state.ProductId = basicDeviceInformation.ProductId;
+					pairedDevices[stateIndex].ProductId = basicDeviceInformation.ProductId;
 				}
 
 				// If the device is already disconnected, skip everything else.
 				if (!basicDeviceInformation.IsConnected) return;
 
-				ref readonly var deviceInformation = ref GetDeviceInformation(basicDeviceInformation.ProductId);
+				var deviceInformation = GetDeviceInformation(basicDeviceInformation.ProductId);
 
 				// TODO: Log unsupported device.
 				if (Unsafe.IsNullRef(in deviceInformation)) return;
@@ -861,7 +913,7 @@ public abstract class RazerDeviceDriver :
 				// Child devices would generally share a PID with their USB receiver, we need to get the information for the device and not the receiver.
 				if (deviceInformation.IsDongle)
 				{
-					deviceInformation = ref GetDeviceInformation(deviceInformation.WiredDeviceProductId);
+					deviceInformation = GetDeviceInformation(deviceInformation.WiredDeviceProductId);
 
 					if (Unsafe.IsNullRef(in deviceInformation)) return;
 				}
@@ -870,9 +922,9 @@ public abstract class RazerDeviceDriver :
 
 				try
 				{
-					var serialNumber = _transport.GetSerialNumber();
+					var serialNumber = await _transport.GetSerialNumberAsync(default).ConfigureAwait(false);
 
-					driver = CreateChildDevice
+					driver = await CreateChildDeviceAsync
 					(
 						_transport,
 						_periodicEventGenerator,
@@ -882,8 +934,9 @@ public abstract class RazerDeviceDriver :
 						deviceInformation,
 						deviceInformation.FriendlyName,
 						ConfigurationKey.DeviceMainId,
-						serialNumber
-					);
+						serialNumber,
+						cancellationToken
+					).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
@@ -894,7 +947,7 @@ public abstract class RazerDeviceDriver :
 
 				try
 				{
-					_driverRegistry.AddDriverAsync(driver);
+					await _driverRegistry.AddDriverAsync(driver).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
@@ -904,20 +957,20 @@ public abstract class RazerDeviceDriver :
 					return;
 				}
 
-				if (Interlocked.Exchange(ref state.Driver, driver) is { } oldDriver)
+				if (Interlocked.Exchange(ref pairedDevices[stateIndex].Driver, driver) is { } oldDriver)
 				{
 					// TODO: Log an error. We should never have to replace a live driver by another.
 
-					_driverRegistry.RemoveDriverAsync(oldDriver);
+					await _driverRegistry.RemoveDriverAsync(oldDriver).ConfigureAwait(false);
 					DisposeDriver(oldDriver);
 				}
 			}
 
 			protected override void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY)
 			{
-				if (deviceIndex > _pairedDevices.Length) return;
+				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
 
-				if (Volatile.Read(ref _pairedDevices[deviceIndex - 1].Driver) is { } driver)
+				if (Volatile.Read(ref pairedDevices[deviceIndex - 1].Driver) is { } driver)
 				{
 					driver.OnDeviceDpiChange(dpiX, dpiY);
 				}
@@ -925,9 +978,9 @@ public abstract class RazerDeviceDriver :
 
 			protected override void OnDeviceExternalPowerChange(byte deviceIndex, bool isCharging)
 			{
-				if (deviceIndex > _pairedDevices.Length) return;
+				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
 
-				if (Volatile.Read(ref _pairedDevices[deviceIndex - 1].Driver) is { } driver)
+				if (Volatile.Read(ref pairedDevices[deviceIndex - 1].Driver) is { } driver)
 				{
 					driver.OnDeviceExternalPowerChange(isCharging);
 				}
@@ -1072,7 +1125,7 @@ public abstract class RazerDeviceDriver :
 			void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => Device.SetCurrentEffect(DisabledEffect.SharedInstance);
 			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 
-			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => Device.ApplyChangesAsync();
+			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => Device.ApplyChangesAsync(default);
 
 			byte ILightingBrightnessFeature.MaximumBrightness => 255;
 			byte ILightingBrightnessFeature.CurrentBrightness
@@ -1142,8 +1195,8 @@ public abstract class RazerDeviceDriver :
 		private byte _appliedBrightness;
 		private byte _currentBrightness;
 		private readonly RazerDeviceFlags _deviceFlags;
-		private readonly object _lightingLock;
-		private readonly object _batteryStateLock;
+		private readonly AsyncLock _lightingLock;
+		private readonly AsyncLock _batteryStateLock;
 		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 		// How do we use this ?
 		private readonly byte _deviceIndex;
@@ -1171,12 +1224,6 @@ public abstract class RazerDeviceDriver :
 			_currentBrightness = 0x54; // 33%
 			_deviceFlags = deviceFlags;
 
-			if (HasBattery)
-			{
-				ApplyBatteryLevelAndChargeStatusUpdate(3, _transport.GetBatteryLevel(), _transport.IsConnectedToExternalPower());
-				_periodicEventGenerator.Register(this);
-			}
-
 			_lightingFeatures = HasReactiveLighting ?
 				FeatureCollection.Create<
 					ILightingDeviceFeature,
@@ -1189,13 +1236,28 @@ public abstract class RazerDeviceDriver :
 					ILightingDeferredChangesFeature,
 					IUnifiedLightingFeature,
 					ILightingBrightnessFeature>(new(this, lightingZoneId));
+		}
+
+		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
+		{
+			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
+			if (HasBattery)
+			{
+				ApplyBatteryLevelAndChargeStatusUpdate
+				(
+					3,
+					await _transport.GetBatteryLevelAsync(cancellationToken).ConfigureAwait(false),
+					await _transport.IsConnectedToExternalPowerAsync(cancellationToken).ConfigureAwait(false)
+				);
+				_periodicEventGenerator.Register(this);
+			}
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
-			byte flag = transport.GetDeviceInformationXXXXX();
-			_appliedEffect = transport.GetSavedEffect(flag) ?? DisabledEffect.SharedInstance;
+			byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
+			_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
 
 			// Reapply the persisted effect. (In case it was overridden by a temporary effect)
-			ApplyEffect(_appliedEffect, _currentBrightness, false, true);
+			await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
 
 			_currentEffect = _appliedEffect;
 		}
@@ -1218,11 +1280,16 @@ public abstract class RazerDeviceDriver :
 					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
-		protected override void HandlePeriodicEvent()
+		protected override async void HandlePeriodicEvent()
 		{
 			if (HasBattery)
 			{
-				ApplyBatteryLevelAndChargeStatusUpdate(3, _transport.GetBatteryLevel(), _transport.IsConnectedToExternalPower());
+				ApplyBatteryLevelAndChargeStatusUpdate
+				(
+					3,
+					await _transport.GetBatteryLevelAsync(default).ConfigureAwait(false),
+					await _transport.IsConnectedToExternalPowerAsync(default).ConfigureAwait(false)
+				);
 			}
 		}
 
@@ -1296,30 +1363,29 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
-		private ValueTask ApplyChangesAsync()
+		private async ValueTask ApplyChangesAsync(CancellationToken cancellationToken)
 		{
-			lock (_lightingLock)
+			using (await _lightingLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				if (!ReferenceEquals(_appliedEffect, _currentEffect))
 				{
-					ApplyEffect(_currentEffect, _currentBrightness, false, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness);
+					await ApplyEffectAsync(_currentEffect, _currentBrightness, false, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
 					_appliedEffect = _currentEffect;
 				}
 				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
 				{
-					_transport.SetBrightness(false, _currentBrightness);
+					await _transport.SetBrightnessAsync(false, _currentBrightness, cancellationToken).ConfigureAwait(false);
 				}
 				_appliedBrightness = _currentBrightness;
 			}
-			return ValueTask.CompletedTask;
 		}
 
-		private void ApplyEffect(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate)
+		private async ValueTask ApplyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
-				_transport.SetEffect(shouldPersist, 0, 0, default, default);
-				_transport.SetBrightness(shouldPersist, 0);
+				await _transport.SetEffectAsync(shouldPersist, 0, 0, default, default, cancellationToken).ConfigureAwait(false);
+				await _transport.SetBrightnessAsync(shouldPersist, 0, cancellationToken);
 				return;
 			}
 
@@ -1327,31 +1393,31 @@ public abstract class RazerDeviceDriver :
 			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
 			if (forceBrightnessUpdate)
 			{
-				_transport.SetBrightness(shouldPersist, brightness);
+				await _transport.SetBrightnessAsync(shouldPersist, brightness, cancellationToken);
 			}
 
 			switch (effect)
 			{
 			case StaticColorEffect staticColorEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
 				break;
 			case RandomColorPulseEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.Breathing, 0, default, default);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 0, default, default, cancellationToken);
 				break;
 			case ColorPulseEffect colorPulseEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
 				break;
 			case TwoColorPulseEffect twoColorPulseEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
 				break;
 			case ColorCycleEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
 				break;
 			case ColorWaveEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.Wave, 0, default, default);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Wave, 0, default, default, cancellationToken);
 				break;
 			case ReactiveEffect reactiveEffect:
-				_transport.SetEffect(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default);
+				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
 				break;
 			}
 		}

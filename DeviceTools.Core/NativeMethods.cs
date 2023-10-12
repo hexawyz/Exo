@@ -7,6 +7,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
+using static System.Net.WebRequestMethods;
+using System.Threading;
 
 namespace DeviceTools
 {
@@ -14,11 +16,17 @@ namespace DeviceTools
 	internal static partial class NativeMethods
 	{
 		private const int ErrorGenFailure = 0x0000001F;
+		public const int ErrorHandleEndOfFile = 0x00000026;
+		public const int ErrorBrokenPipe = 0x0000006D;
+		public const int ErrorNoData = 0x000000E8;
 		private const int ErrorInsufficientBuffer = 0x0000007A;
 		private const int ErrorInvalidUserBuffer = 0x000006F8;
+		public const int ErrorOperationAborted = 0x000003E3;
 		public const int ErrorIoPending = 0x000003E5;
 		private const int ErrorNoAccess = 0x000003E6;
 		public const int ErrorNoMoreItems = 0x00000103;
+
+		public static int ErrorToHResult(int errorCode) => unchecked((int)0x80070000) | errorCode;
 
 		public const uint HResultErrorElementNotFound = 0x8002802B;
 
@@ -529,6 +537,9 @@ namespace DeviceTools
 			uint* bytesReturned,
 			NativeOverlapped* overlapped
 		);
+
+		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+		public static unsafe extern uint CancelIoEx(SafeFileHandle fileHandle, NativeOverlapped* overlapped);
 
 #if !NET8_0_OR_GREATER
 		[DllImport("kernel32", EntryPoint = "CreateFileW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]

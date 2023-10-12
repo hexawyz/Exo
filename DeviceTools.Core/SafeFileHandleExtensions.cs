@@ -58,7 +58,7 @@ public static class SafeFileHandleExtensions
 
 #if NET8_0_OR_GREATER
 	[UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_ThreadPoolBinding")]
-	private static extern ThreadPoolBoundHandle GetThreadPoolBinding(SafeFileHandle handle);
+	internal static extern ThreadPoolBoundHandle GetThreadPoolBinding(SafeFileHandle handle);
 
 	[UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "Open")]
 	private static extern SafeFileHandle Open(SafeFileHandle? @this, string fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, long preallocationSize, UnixFileMode? unixCreateMode = null);

@@ -2,6 +2,6 @@ namespace DeviceTools;
 
 public static class FileStreamExtensions
 {
-	public static uint IoControl(this FileStream deviceFile, uint ioControlCode, ReadOnlySpan<byte> input, Span<byte> outputBuffer)
-		=> deviceFile.SafeFileHandle.IoControl(ioControlCode, input, outputBuffer);
+	public static int IoControl(this FileStream deviceFile, int ioControlCode, ReadOnlySpan<byte> input, Span<byte> outputBuffer)
+		=> unchecked((int)deviceFile.SafeFileHandle.IoControl(unchecked((uint)ioControlCode), input, outputBuffer));
 }
