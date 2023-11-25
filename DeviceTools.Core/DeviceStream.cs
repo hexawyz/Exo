@@ -49,7 +49,7 @@ public class DeviceStream : FileStream
 	{
 	}
 
-	public int IoControl(SafeFileHandle deviceFileHandle, int ioControlCode, ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer)
+	public int IoControl(int ioControlCode, ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer)
 		=> unchecked((int)SafeFileHandle.IoControl(unchecked((uint)ioControlCode), inputBuffer, outputBuffer));
 
 #if NET8_0_OR_GREATER
