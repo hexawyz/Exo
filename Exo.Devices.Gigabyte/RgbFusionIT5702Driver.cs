@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Gigabyte.LightingEffects;
@@ -55,7 +52,7 @@ public sealed class RgbFusionIT5702Driver :
 		Random = 8,
 	}
 
-	[StructLayout(LayoutKind.Explicit, Size = 64)]
+	[StructLayout(LayoutKind.Explicit, Size = ReportLength)]
 	internal struct EffectFeatureReport
 	{
 		[FieldOffset(0)]
@@ -184,7 +181,7 @@ public sealed class RgbFusionIT5702Driver :
 		public byte ColorCount; // Number of colors to include in the cycle: 0 to 7
 	}
 
-	[StructLayout(LayoutKind.Sequential, Size = 64)]
+	[StructLayout(LayoutKind.Sequential, Size = ReportLength)]
 	internal struct DeviceInformationResponse
 	{
 #pragma warning disable IDE0044 // Add readonly modifier
@@ -285,7 +282,7 @@ public sealed class RgbFusionIT5702Driver :
 #pragma warning restore IDE0044 // Add readonly modifier
 	}
 
-	[StructLayout(LayoutKind.Explicit, Size = 64)]
+	[StructLayout(LayoutKind.Explicit, Size = ReportLength)]
 	internal struct CalibrationFeatureReport
 	{
 		[FieldOffset(0)]
@@ -431,7 +428,7 @@ public sealed class RgbFusionIT5702Driver :
 		var hidStream = new HidFullDuplexStream(ledDeviceInterfaceName);
 		try
 		{
-			var (ledCount, productName) = GetDeviceInformation(hidStream);
+			var (ledCount, productName) = await GetDeviceInformationAsync(hidStream, cancellationToken).ConfigureAwait(false);
 			return new RgbFusionIT5702Driver
 			(
 				new HidFullDuplexStream(ledDeviceInterfaceName),
@@ -450,31 +447,45 @@ public sealed class RgbFusionIT5702Driver :
 		}
 	}
 
-	private static (byte LedCount, string ProductName) GetDeviceInformation(HidFullDuplexStream hidStream)
+	private static async Task<(byte LedCount, string ProductName)> GetDeviceInformationAsync(HidFullDuplexStream hidStream, CancellationToken cancellationToken)
 	{
-		Span<byte> message = stackalloc byte[64];
+		var buffer = ArrayPool<byte>.Shared.Rent(ReportLength);
+		var bufferMemory = MemoryMarshal.CreateFromPinnedArray(buffer, 0, ReportLength);
 
-		message[0] = ReportId;
-		message[1] = InitializeCommandId;
-
-		hidStream.SendFeatureReport(message);
-
-		message[1..].Clear();
-
-		while (true)
+		try
 		{
-			hidStream.ReceiveFeatureReport(message);
+			buffer[0] = ReportId;
+			buffer[1] = InitializeCommandId;
 
-			ref var deviceInformation = ref Unsafe.As<byte, DeviceInformationResponse>(ref message[0]);
+			buffer.AsSpan(2).Clear();
 
-			if (deviceInformation.Product == 0x01)
+			await hidStream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
+
+			buffer.AsSpan(1).Clear();
+
+			while (true)
 			{
-				return (deviceInformation.LedCount, deviceInformation.GetDeviceName());
+				await hidStream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				// We can't introduce ref locals in the body of async methods, but that should be a reasonable workaround. (Hopefully this gets inlined for free)
+				static ref DeviceInformationResponse AsDeviceInformation(byte[] buffer)
+					=> ref Unsafe.As<byte, DeviceInformationResponse>(ref buffer[0]);
+
+				if (AsDeviceInformation(buffer).Product == 0x01)
+				{
+					return (AsDeviceInformation(buffer).LedCount, AsDeviceInformation(buffer).GetDeviceName());
+				}
 			}
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(buffer);
 		}
 	}
 
 	private const byte ReportId = 0xCC;
+
+	private const int ReportLength = 64;
 
 	// All known command IDs to the MCU. Some were reverse-engineered from RGB Fusion.
 	private const byte FirstCommandId = 0x20;
@@ -500,11 +511,12 @@ public sealed class RgbFusionIT5702Driver :
 	private const uint StatePendingChangeUnifiedLighting = 0x1000;
 
 	private readonly HidFullDuplexStream _stream;
-	private readonly object _lock = new object();
+	private readonly AsyncLock _lock = new();
 	private uint _state;
 	private byte _defaultBrightness;
 	private readonly EffectColor[] _palette = new EffectColor[7 * 4];
 	private readonly byte[] _rgb = new byte[2 * 3 * 32];
+	private readonly byte[] _buffer;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 	private readonly LightingZone[] _lightingZones;
@@ -561,6 +573,7 @@ public sealed class RgbFusionIT5702Driver :
 		}
 		_lightingZoneCollection = new(_lightingZones);
 		_palette = (EffectColor[])DefaultPalette.Clone();
+		_buffer = GC.AllocateUninitializedArray<byte>(ReportLength, pinned: true);
 		_defaultBrightness = 100;
 
 		// Initialize the state to mark everything as pending updates, so that everything works properly.
@@ -576,26 +589,24 @@ public sealed class RgbFusionIT5702Driver :
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorDoubleFlashEffect>).ApplyEffect(new ColorDoubleFlashEffect(new(255, 0, 255)));
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorCycleEffect>).ApplyEffect(new ColorCycleEffect());
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorWaveEffect>).ApplyEffect(new ColorWaveEffect());
-		ApplyChanges();
+		ApplyChangesAsync(default).GetAwaiter().GetResult();
 		//ApplyPaletteColors();
 	}
 
 	public override ValueTask DisposeAsync() => _stream.DisposeAsync();
 
-	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => ApplyChangesAsync();
+	private Memory<byte> Buffer => MemoryMarshal.CreateFromPinnedArray(_buffer, 0, ReportLength);
 
-	private ValueTask ApplyChangesAsync()
-	{
-		ApplyChanges();
-		return ValueTask.CompletedTask;
-	}
+	public ValueTask ApplyChangesAsync() => ApplyChangesAsync(default);
 
-	private void ApplyChanges()
+	private async ValueTask ApplyChangesAsync(CancellationToken cancellationToken)
 	{
-		Span<byte> buffer = stackalloc byte[64];
-		buffer[0] = 0xCC;
-		lock (_lock)
+		var buffer = _buffer;
+		var bufferMemory = MemoryMarshal.CreateFromPinnedArray(buffer, 0, buffer.Length);
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
+			buffer[0] = ReportId;
+
 			// Only overwrite command slots if some zones have changed.
 			if ((_state & StatePendingChangeLedMask) != 0)
 			{
@@ -604,17 +615,17 @@ public sealed class RgbFusionIT5702Driver :
 				{
 					buffer[1] = FirstCommandId;
 					_unifiedLightingZone.GetEffectData(out Unsafe.As<byte, EffectData>(ref buffer[2]));
-					_stream.SendFeatureReport(buffer);
+					await _stream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
 
 					// If needed, clear all the other command slots.
 					// We only need to do this the first time we switch to unified lighting mode.
 					if ((_state & StatePendingChangeUnifiedLighting) != 0)
 					{
-						buffer[2..].Clear();
+						buffer.AsSpan(2).Clear();
 						for (int i = 1; i < _lightingZones.Length; i++)
 						{
 							buffer[1] = (byte)(FirstCommandId | i & 0x7);
-							_stream.SendFeatureReport(buffer);
+							await _stream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
 						}
 						// Set the command update bits to the maximum, in order for everything to be taken into account.
 						buffer[2] = _unifiedLightingZone.LedMask;
@@ -635,7 +646,7 @@ public sealed class RgbFusionIT5702Driver :
 						{
 							buffer[1] = (byte)(FirstCommandId | i & 0x7);
 							lightingZone.GetEffectData(out Unsafe.As<byte, EffectData>(ref buffer[2]));
-							_stream.SendFeatureReport(buffer);
+							await _stream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
 						}
 					}
 					// Set the command update bits to the updated commands. (So they don't even need to be reread)
@@ -643,16 +654,16 @@ public sealed class RgbFusionIT5702Driver :
 				}
 				// Flush the commands. (The mask has been set previously)
 				buffer[1] = ExecuteCommandsCommandId;
-				buffer[3..].Clear();
-				_stream.SendFeatureReport(buffer);
+				buffer.AsSpan(3).Clear();
+				await _stream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
 			}
 
 			if ((_state & StatePendingChangeAddressable) != 0)
 			{
 				buffer[1] = EnableAddressableColorsCommandId;
 				buffer[2] = (byte)((_state & StatePendingAddressableMask) >> 8);
-				buffer[3..].Clear();
-				_stream.SendFeatureReport(buffer);
+				buffer.AsSpan(3).Clear();
+				await _stream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
 			}
 
 			// Clear all the status bits that we consumed during this update.
@@ -660,39 +671,35 @@ public sealed class RgbFusionIT5702Driver :
 		}
 	}
 
-	public void ApplyPaletteColors()
+	public async ValueTask ApplyPaletteColorsAsync(CancellationToken cancellationToken)
 	{
-		Span<byte> buffer = stackalloc byte[64];
-		buffer[0] = 0xCC;
-		buffer[1] = SetPaletteCommandId;
-		MemoryMarshal.AsBytes(_palette.AsSpan()).CopyTo(buffer[2..]);
+		var buffer = _buffer;
 
-		lock (_lock)
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			_stream.SendFeatureReport(buffer);
+			buffer[0] = ReportId;
+			buffer[1] = SetPaletteCommandId;
+			MemoryMarshal.AsBytes(_palette.AsSpan()).CopyTo(buffer.AsSpan(2));
+
+			await _stream.SendFeatureReportAsync(Buffer, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
 
 	// TODO: Determine if it should apply settings first.
-	public ValueTask PersistCurrentConfigurationAsync()
+	public ValueTask PersistCurrentConfigurationAsync() => PersistCurrentConfigurationAsync(default);
+
+	private async ValueTask PersistCurrentConfigurationAsync(CancellationToken cancellationToken)
 	{
-		lock (_lock)
+		var buffer = _buffer;
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			PersistCurrentConfigurationInternal(_stream);
+			buffer[0] = ReportId;
+			buffer[1] = PersistSettingsCommandId;
+
+			await _stream.SendFeatureReportAsync(Buffer, cancellationToken).ConfigureAwait(false);
 		}
-		return ValueTask.CompletedTask;
-	}
-
-	private static void PersistCurrentConfigurationInternal(HidFullDuplexStream stream)
-	{
-		Span<byte> buffer = stackalloc byte[64];
-
-		buffer[0] = ReportId;
-		buffer[1] = PersistSettingsCommandId;
-
-		stream.SendFeatureReport(buffer);
 	}
 
 	bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => _unifiedLightingZone.GetCurrentEffect() is not NotApplicableEffect;

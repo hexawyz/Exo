@@ -194,7 +194,6 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		await _device.DisposeAsync().ConfigureAwait(false);
 	}
 
-
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(ElgatoVendorId, _productId, _versionNumber);
 
 	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.UniqueId!;

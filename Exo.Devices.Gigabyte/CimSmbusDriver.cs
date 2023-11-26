@@ -1,10 +1,7 @@
-using System;
-using System.ComponentModel;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using DeviceTools.Firmware.Uefi;
 using Microsoft.Management.Infrastructure;
 
