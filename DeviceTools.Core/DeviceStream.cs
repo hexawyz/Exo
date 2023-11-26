@@ -52,7 +52,31 @@ public class DeviceStream : FileStream
 	public int IoControl(int ioControlCode, ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer)
 		=> unchecked((int)SafeFileHandle.IoControl(unchecked((uint)ioControlCode), inputBuffer, outputBuffer));
 
-#if NET8_0_OR_GREATER
+#if !NET8_0_OR_GREATER
+	// NB: We could implement support for async I/O for more platforms if needed, but it relies on framework internals to access ThreadPoolBoundHandle, which .NET 8.0 makes easier to access.
+	// Since it is not critical, this feature will not be async on versions before 8.0 for now. It will at least provide binary compatibility, but it will be blocking.
+	public ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, CancellationToken cancellationToken)
+	{
+		try
+		{
+			return new(IoControl(ioControlCode, inputBuffer.Span, outputBuffer.Span));
+		}
+		catch (Exception ex)
+		{
+#if NET5_0_OR_GREATER
+			return ValueTask.FromException<int>(ex);
+#else
+			return new(Task.FromException<int>(ex));
+#endif
+		}
+	}
+
+	public ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, CancellationToken cancellationToken)
+		=> IoControlAsync(ioControlCode, inputBuffer, default, cancellationToken);
+
+	public ValueTask<int> IoControlAsync(int ioControlCode, Memory<byte> outputBuffer, CancellationToken cancellationToken)
+		=> IoControlAsync(ioControlCode, default, outputBuffer, cancellationToken);
+#else
 	public unsafe ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, CancellationToken cancellationToken)
 	{
 		var vts = GetIoControlValueTaskSource();

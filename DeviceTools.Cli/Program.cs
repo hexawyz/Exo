@@ -47,7 +47,7 @@ internal static class Program
 			{
 				var device = HidDevice.FromPath(deviceInfo.Id);
 
-				PrintHidDevice(device, index++);
+				await PrintHidDeviceAsync(device, index++);
 
 				foreach (var p in deviceInfo.Properties)
 				{
@@ -123,11 +123,11 @@ internal static class Program
 			null => "null"
 		};
 
-	private static void PrintHidDevices(HidDevice[] collection)
+	private static async Task PrintHidDevicesAsync(HidDevice[] collection)
 	{
 		foreach (var (device, index) in collection.Select((d, i) => (device: d, index: i)))
 		{
-			PrintHidDevice(device, index);
+			await PrintHidDeviceAsync(device, index);
 		}
 
 		if (collection.Length > 0)
@@ -136,7 +136,7 @@ internal static class Program
 		}
 	}
 
-	private static void PrintHidDevice(HidDevice device, int index)
+	private static async Task PrintHidDeviceAsync(HidDevice device, int index)
 	{
 		//if (index > 0) Console.ReadKey(true);
 		Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
@@ -149,11 +149,11 @@ internal static class Program
 		catch { Console.WriteLine($"║ Device Container Display Name: <Unknown>"); }
 		try { Console.WriteLine($"║ Device Container Primary Category: {Device.GetDeviceContainerPrimaryCategory(device.ContainerId)}"); }
 		catch { Console.WriteLine($"║ Device Container Primary Category: <Unknown>"); }
-		try { Console.WriteLine($"║ Device Manufacturer: {device.ManufacturerName}"); }
+		try { Console.WriteLine($"║ Device Manufacturer: {await device.GetManufacturerNameAsync(default)}"); }
 		catch { Console.WriteLine($"║ Device Manufacturer: <Unknown>"); }
-		try { Console.WriteLine($"║ Device Product Name: {device.ProductName}"); }
+		try { Console.WriteLine($"║ Device Product Name: {await device.GetProductNameAsync(default)}"); }
 		catch { Console.WriteLine($"║ Device Product Name: <Unknown>"); }
-		try { Console.WriteLine($"║ Device Serial Number: {device.SerialNumber}"); }
+		try { Console.WriteLine($"║ Device Serial Number: {await device.GetSerialNumberAsync(default)}"); }
 		catch { Console.WriteLine($"║ Device Serial Number: <Unknown>"); }
 
 		var deviceId = device.DeviceId;

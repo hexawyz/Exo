@@ -1,11 +1,7 @@
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeviceTools;
 
@@ -65,52 +61,5 @@ public static class SafeFileHandleExtensions
 
 	internal static SafeFileHandle Open(string fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, long preallocationSize, UnixFileMode? unixCreateMode = null)
 		=> Open(null, fullPath, mode, access, share, options, preallocationSize, unixCreateMode);
-
-	//public static unsafe void BeginIoControl(this SafeFileHandle deviceFileHandle, uint ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, PreAllocatedOverlapped preAllocatedOverlapped)
-	//{
-	//}
-
-	//public static unsafe ValueTask<int> IoControlAsync(this SafeFileHandle deviceFileHandle, uint ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer)
-	//{
-	//	static void OnIoCompleted(uint errorCode, uint numBytes, NativeOverlapped* pOVERLAP)
-	//	{
-	//		GetThreadPoolBinding(deviceFileHandle).
-	//	}
-
-	//	var overlapped = GetThreadPoolBinding(deviceFileHandle).AllocateNativeOverlapped(OnIoCompleted, 0, null);
-	//	try
-	//	{
-	//		using (var imh = inputBuffer.Pin())
-	//		using (var omh = outputBuffer.Pin())
-	//		{
-	//			uint result = NativeMethods.DeviceIoControl
-	//			(
-	//				deviceFileHandle,
-	//				ioControlCode,
-	//				(byte*)imh.Pointer,
-	//				(uint)inputBuffer.Length,
-	//				(byte*)omh.Pointer,
-	//				(uint)outputBuffer.Length,
-	//				null,
-	//				overlapped
-	//			);
-
-	//			if (result == 0)
-	//			{
-	//				int errorCode = Marshal.GetLastWin32Error();
-	//				if (errorCode != NativeMethods.ErrorIoPending)
-	//				{
-	//					throw new Win32Exception(errorCode);
-	//				}
-	//				return false;
-	//			}
-	//			return true;
-	//		}
-	//	}
-	//	finally
-	//	{
-	//		GetThreadPoolBinding(deviceFileHandle).FreeNativeOverlapped(overlapped);
-	//	}
-	//}
 #endif
 }
