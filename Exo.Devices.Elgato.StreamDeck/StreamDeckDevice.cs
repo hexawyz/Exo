@@ -52,55 +52,80 @@ internal class StreamDeckDevice : IAsyncDisposable
 		await _stream.DisposeAsync().ConfigureAwait(false);
 	}
 
-	[SkipLocalsInit]
-	public string GetSerialNumber()
+	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_ioBuffers, 0, WriteBufferLength);
+	private Memory<byte> ReadBuffer => MemoryMarshal.CreateFromPinnedArray(_ioBuffers, WriteBufferLength, ReadBufferLength);
+	private Memory<byte> FeatureBuffer => MemoryMarshal.CreateFromPinnedArray(_ioBuffers, WriteBufferLength + ReadBufferLength, FeatureBufferLength);
+
+	public async Task<string> GetSerialNumberAsync(CancellationToken cancellationToken)
 	{
-		Span<byte> buffer = stackalloc byte[32];
-		buffer[0] = 0x06;
-		_stream.ReceiveFeatureReport(buffer);
-		return Encoding.ASCII.GetString(buffer.Slice(2, buffer[1]));
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x06;
+		static string ReadResponse(ReadOnlySpan<byte> buffer) => Encoding.ASCII.GetString(buffer.Slice(2, buffer[1]));
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
 	}
 
-	[SkipLocalsInit]
-	public string? GetVersion()
+	public async Task<string> GetVersionAsync(CancellationToken cancellationToken)
 	{
 		// TODO: There are unknown bytes here.
 		// Values of all unknown bytes changed after a fw update
 		// 05 ? ? ? ? ? 1 . 0 1 . 0 0 0
 		// 05 ? ? ? ? ? 1 . 0 0 . 0 1 2
-		Span<byte> buffer = stackalloc byte[32];
-		buffer[0] = 0x05;
-		_stream.ReceiveFeatureReport(buffer);
-		return Encoding.ASCII.GetString(buffer.Slice(6, 8));
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x05;
+		static string ReadResponse(ReadOnlySpan<byte> buffer) => Encoding.ASCII.GetString(buffer.Slice(6, 8));
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
 	}
 
-	[SkipLocalsInit]
-	public void SetBrightness(byte value)
+	public async Task SetBrightnessAsync(byte value, CancellationToken cancellationToken)
 	{
-		Span<byte> buffer = stackalloc byte[32];
-		buffer[0] = 0x03;
-		buffer[1] = 0x08;
-		buffer[2] = value;
-		_stream.SendFeatureReport(buffer);
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer, byte value)
+		{
+			buffer[0] = 0x03;
+			buffer[1] = 0x08;
+			buffer[2] = value;
+		}
+
+		PrepareRequest(buffer.Span, value);
+		await _stream.SendFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 	}
 
-	[SkipLocalsInit]
-	public void SetSleepTimer(uint timeoutInSeconds)
+	public async Task SetSleepTimerAsync(uint timeoutInSeconds, CancellationToken cancellationToken)
 	{
-		Span<byte> buffer = stackalloc byte[32];
-		buffer[0] = 0x03;
-		buffer[1] = 0x0d;
-		Unsafe.WriteUnaligned(ref buffer[2], BitConverter.IsLittleEndian ? timeoutInSeconds : BinaryPrimitives.ReverseEndianness(timeoutInSeconds));
-		_stream.SendFeatureReport(buffer);
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer, uint timeoutInSeconds)
+		{
+			buffer[0] = 0x03;
+			buffer[1] = 0x0d;
+			Unsafe.WriteUnaligned(ref buffer[2], BitConverter.IsLittleEndian ? timeoutInSeconds : BinaryPrimitives.ReverseEndianness(timeoutInSeconds));
+		}
+
+		PrepareRequest(buffer.Span, timeoutInSeconds);
+		await _stream.SendFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 	}
 
-	[SkipLocalsInit]
-	public void Reset()
+	public async Task ResetAsync(CancellationToken cancellationToken)
 	{
-		Span<byte> buffer = stackalloc byte[32];
-		buffer[0] = 0x03;
-		buffer[1] = 0x02;
-		_stream.SendFeatureReport(buffer);
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer)
+		{
+			buffer[0] = 0x03;
+			buffer[1] = 0x02;
+		}
+
+		PrepareRequest(buffer.Span);
+		await _stream.SendFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 	}
 
 	//public async Task SetKeyRawImage(byte x, byte y, ReadOnlySpan<byte> data)

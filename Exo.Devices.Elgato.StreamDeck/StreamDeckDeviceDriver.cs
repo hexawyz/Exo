@@ -142,7 +142,7 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		var device = new StreamDeckDevice(stream, productId);
 		try
 		{
-			string serialNumber = device.GetSerialNumber();
+			string serialNumber = await device.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 
 			return new StreamDeckDeviceDriver
 			(
