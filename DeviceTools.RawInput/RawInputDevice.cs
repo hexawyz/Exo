@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
 
@@ -103,10 +104,6 @@ namespace DeviceTools.RawInput
 		private readonly RawInputDeviceCollection _owner;
 		internal IntPtr Handle { get; }
 		private string? _deviceName;
-		// It seems that RawInput won't return the preparsed data for top level collection opened by Windows for exclusive access…
-		// Thankfully, we still have the lower-level HID (discovery) library at hand, which will not deny us this information.
-		// That's kind of dumb, though, as we can't allocate the byte array ourselves in that case… (Or can we?)
-		private byte[]? _preparsedData;
 
 		private protected override object Lock => _owner._lock;
 
@@ -139,32 +136,17 @@ namespace DeviceTools.RawInput
 			return Interlocked.CompareExchange(ref _deviceName, value, null) ?? value;
 		}
 
-		// TODO: How should this be exposed?
-		private byte[] PreparsedData => _preparsedData ?? SlowGetPreparsedData();
-
-		private byte[] SlowGetPreparsedData()
+		private protected override ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
 		{
-			if (Volatile.Read(ref _preparsedData) is byte[] value) return value;
-
-			// We may end up allocating more than once in case this method is called concurrently, but it shouldn't matter that much.
-			value = NativeMethods.GetPreparsedData(Handle);
-
-			// Give priority to the previously assigned value, if any.
-			return Interlocked.CompareExchange(ref _preparsedData, value, null) ?? value;
-		}
-
-		private protected override ref byte PreparsedDataFirstByte
-		{
-			get
+			// Rely on RawInput to get the preparsed data for now.
+			// It might be better to just rely on the base implementation in all cases, but let's revisit this later.
+			try
 			{
-				var preparsedData = PreparsedData;
-
-				if (preparsedData.Length == 0)
-				{
-					return ref base.PreparsedDataFirstByte;
-				}
-
-				return ref preparsedData[0];
+				return new(NativeMethods.GetPreparsedData(Handle));
+			}
+			catch (Exception)
+			{
+				return base.GetPreparsedDataAsync(cancellationToken);
 			}
 		}
 	}

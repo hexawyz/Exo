@@ -10,21 +10,21 @@ namespace DeviceTools.HumanInterfaceDevices;
 
 public sealed class HidFullDuplexStream : Stream
 {
-	private readonly DeviceStream _readStream;
-	private readonly DeviceStream _writeStream;
+	private readonly HidDeviceStream _readStream;
+	private readonly HidDeviceStream _writeStream;
 
 	public HidFullDuplexStream(string deviceName)
 	{
 		SafeFileHandle? readHandle = null;
 		SafeFileHandle? writeHandle = null;
-		DeviceStream? readStream = null;
-		DeviceStream? writeStream = null;
+		HidDeviceStream? readStream = null;
+		HidDeviceStream? writeStream = null;
 		try
 		{
 			readHandle = Device.OpenHandle(deviceName, DeviceAccess.Read);
 			writeHandle = Device.OpenHandle(deviceName, DeviceAccess.Write);
-			readStream = new DeviceStream(readHandle, FileAccess.Read, 4096, true);
-			writeStream = new DeviceStream(writeHandle, FileAccess.Write, 0, true);
+			readStream = new HidDeviceStream(readHandle, FileAccess.Read, 4096, true);
+			writeStream = new HidDeviceStream(writeHandle, FileAccess.Write, 0, true);
 		}
 		catch
 		{
@@ -79,20 +79,18 @@ public sealed class HidFullDuplexStream : Stream
 		}
 	}
 
-#if NET8_0_OR_GREATER
 	/// <summary>Sends a feature report to the HID device.</summary>
 	/// <param name="buffer">The buffer containing the feature report, including the report ID byte.</param>
 	/// <param name="cancellationToken"></param>
 	public ValueTask SendFeatureReportAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
-		=> _writeStream.IoControlAsync(0xb0191, buffer, cancellationToken);
+		=> _writeStream.IoControlAsync(NativeMethods.IoCtlHidSetFeature, buffer, cancellationToken);
 
 	/// <summary>Receives a feature report from the HID device</summary>
 	/// <remarks>Before calling this method, the first byte of the buffer must be initialized with the report ID.</remarks>
 	/// <param name="buffer">The buffer containing the feature report, including the report ID byte.</param>
 	/// <param name="cancellationToken"></param>
 	public async ValueTask ReceiveFeatureReportAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-		=> await _readStream.IoControlAsync(0xb0192, buffer, cancellationToken).ConfigureAwait(false);
-#endif
+		=> await _readStream.IoControlAsync(NativeMethods.IoCtlHidGetFeature, buffer, cancellationToken).ConfigureAwait(false);
 
 	public override bool CanRead => true;
 	public override bool CanWrite => true;

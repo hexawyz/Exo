@@ -347,7 +347,7 @@ public abstract class RazerDeviceDriver :
 				{
 					// TODO: Might finally be time to work on that HID descriptor part 😫
 					// Also, I don't know why Windows insist on declaring the values we are looking for as button. The HID descriptor clearly indicates values between 0 and 255…
-					var nodes = deviceHandle.GetButtonCapabilities(NativeMethods.HidParsingReportType.Input);
+					var nodes = await deviceHandle.GetButtonCapabilitiesAsync(NativeMethods.HidParsingReportType.Input, cancellationToken).ConfigureAwait(false);
 
 					// Thanks to the button caps we can check the Report ID.
 					// We are looking for the HID device interface tied to the collection with Report ID 5.

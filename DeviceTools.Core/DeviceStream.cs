@@ -71,13 +71,31 @@ public class DeviceStream : FileStream
 		}
 	}
 
-	public ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, CancellationToken cancellationToken)
-		=> IoControlAsync(ioControlCode, inputBuffer, default, cancellationToken);
+	public ValueTask IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, CancellationToken cancellationToken)
+	{
+		try
+		{
+			IoControl(ioControlCode, inputBuffer.Span, default);
+#if NET5_0_OR_GREATER
+			return ValueTask.CompletedTask;
+#else
+			return new ValueTask(Task.CompletedTask);
+#endif
+		}
+		catch (Exception ex)
+		{
+#if NET5_0_OR_GREATER
+			return ValueTask.FromException(ex);
+#else
+			return new(Task.FromException(ex));
+#endif
+		}
+	}
 
 	public ValueTask<int> IoControlAsync(int ioControlCode, Memory<byte> outputBuffer, CancellationToken cancellationToken)
 		=> IoControlAsync(ioControlCode, default, outputBuffer, cancellationToken);
 #else
-	public unsafe ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, CancellationToken cancellationToken)
+			public unsafe ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, CancellationToken cancellationToken)
 	{
 		var vts = GetIoControlValueTaskSource();
 		int errorCode = 0;

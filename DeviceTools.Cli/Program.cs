@@ -208,7 +208,7 @@ internal static class Program
 			PrintUsageAndPage("║ Device", rawInptuDevice.UsagePage, rawInptuDevice.Usage);
 		}
 
-		PrintDeviceInfo(device);
+		await PrintDeviceInfoAsync(device);
 	}
 
 	private static void PrintAdapters()
@@ -299,11 +299,11 @@ internal static class Program
 		}
 	}
 
-	private static void PrintDeviceInfo(HidDevice device)
+	private static async Task PrintDeviceInfoAsync(HidDevice device)
 	{
 		try
 		{
-			var nodes = device.GetLinkCollectionNodes();
+			var nodes = await device.GetLinkCollectionNodesAsync(default);
 
 			Console.WriteLine($"║ Link Collection Nodes: {nodes.Length}");
 
@@ -336,7 +336,7 @@ internal static class Program
 
 			foreach (var reportType in new[] { HumanInterfaceDevices.NativeMethods.HidParsingReportType.Input, HumanInterfaceDevices.NativeMethods.HidParsingReportType.Output, HumanInterfaceDevices.NativeMethods.HidParsingReportType.Feature })
 			{
-				var buttons = device.GetButtonCapabilities(reportType);
+				var buttons = await device.GetButtonCapabilitiesAsync(reportType, default);
 
 				for (int i = 0; i < buttons.Length; i++)
 				{
@@ -384,7 +384,7 @@ internal static class Program
 					Console.WriteLine("║ ╘═══════");
 				}
 
-				var values = device.GetValueCapabilities(reportType);
+				var values = await device.GetValueCapabilitiesAsync(reportType, default);
 
 				for (int i = 0; i < values.Length; i++)
 				{
