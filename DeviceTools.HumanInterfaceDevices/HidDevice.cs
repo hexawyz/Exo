@@ -131,10 +131,14 @@ public abstract class HidDevice : IDisposable
 		return containerId;
 	}
 
-	private ValueTask<byte[]> GetCachedPreparsedDataAsync(CancellationToken cancellationToken)
+	public async ValueTask<HidCollectionDescriptor> GetCollectionDescriptorAsync(CancellationToken cancellationToken)
 	{
-		return Volatile.Read(ref _preparsedData) is { } data ? new(data) : GetAndCachePreparsedDataAsync(cancellationToken);
+		var data = await GetCachedPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
+		return Unsafe.As<byte[], HidCollectionDescriptor>(ref data);
 	}
+
+	private ValueTask<byte[]> GetCachedPreparsedDataAsync(CancellationToken cancellationToken)
+		=> Volatile.Read(ref _preparsedData) is { } data ? new(data) : GetAndCachePreparsedDataAsync(cancellationToken);
 
 	private async ValueTask<byte[]> GetAndCachePreparsedDataAsync(CancellationToken cancellationToken)
 	{
@@ -143,21 +147,8 @@ public abstract class HidDevice : IDisposable
 		return data;
 	}
 
-	private protected virtual ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
-		=> DeviceStream.GetPreparsedDataAsync(cancellationToken);
-
-	// TODO: Better API
-	public async ValueTask<(int InputReportLength, int OutputReportLength, int FeatureReportLength)> GetReportLengthsAsync(CancellationToken cancellationToken)
-	{
-		var result = NativeMethods.HidParsingGetCaps(ref (await GetCachedPreparsedDataAsync(cancellationToken).ConfigureAwait(false))[0], out var caps);
-
-		if (result != NativeMethods.HidParsingResult.Success)
-		{
-			throw new InvalidOperationException();
-		}
-
-		return (caps.InputReportByteLength, caps.OutputReportByteLength, caps.FeatureReportByteLength);
-	}
+	private protected virtual async ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
+		=> (await DeviceStream.GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false)).Data;
 
 	// TODO: Wrap this in a high level structure.
 	public async ValueTask<NativeMethods.HidParsingLinkCollectionNode[]> GetLinkCollectionNodesAsync(CancellationToken cancellationToken)

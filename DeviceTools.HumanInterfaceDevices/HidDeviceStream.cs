@@ -137,12 +137,12 @@ public class HidDeviceStream : DeviceStream
 		}
 	}
 
-	public async ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
+	public async ValueTask<HidCollectionDescriptor> GetPreparsedDataAsync(CancellationToken cancellationToken)
 	{
 		await EnsureCollectionInformationAvailabilityAsync(cancellationToken).ConfigureAwait(false);
 		var buffer = new byte[_hidCollectionInformation!.Value.DescriptorSize];
 		int count = await IoControlAsync(NativeMethods.IoCtlGetCollectionDescriptor, buffer, cancellationToken).ConfigureAwait(false);
 		if (count != buffer.Length) throw new InvalidOperationException("Unexpected data length.");
-		return buffer;
+		return new(buffer);
 	}
 }
