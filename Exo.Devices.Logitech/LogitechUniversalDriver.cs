@@ -205,7 +205,7 @@ public abstract class LogitechUniversalDriver : Driver,
 					// DJ reports are 15 and 32 bytes long, so the API would return 32 as the maximum report length.
 					using var hid = HidDevice.FromPath(deviceInterface.Id);
 					var collectionDescriptor = await hid.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
-					if (!(collectionDescriptor.InputReportLength == 64 && collectionDescriptor.OutputReportLength == 64 && collectionDescriptor.FeatureReportLength == 0)) continue;
+					if (!(collectionDescriptor.InputReports.MaximumReportLength == 64 && collectionDescriptor.OutputReports.MaximumReportLength == 64 && collectionDescriptor.FeatureReports.MaximumReportLength == 0)) continue;
 				}
 				if (veryLongInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces that could map to HID++ very long reports.");
 				veryLongInterfaceName = deviceInterface.Id;

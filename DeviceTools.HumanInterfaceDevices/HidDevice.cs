@@ -27,7 +27,7 @@ public abstract class HidDevice : IDisposable
 		=> new GenericHidDevice(deviceName, new object());
 
 	private HidDeviceStream? _deviceStream;
-	private byte[]? _preparsedData;
+	private HidCollectionDescriptor? _collectionDescriptor;
 	private string? _productName;
 	private string? _manufacturerName;
 	private string? _serialNumber;
@@ -131,104 +131,18 @@ public abstract class HidDevice : IDisposable
 		return containerId;
 	}
 
-	public async ValueTask<HidCollectionDescriptor> GetCollectionDescriptorAsync(CancellationToken cancellationToken)
-	{
-		var data = await GetCachedPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
-		return Unsafe.As<byte[], HidCollectionDescriptor>(ref data);
-	}
+	public ValueTask<HidCollectionDescriptor> GetCollectionDescriptorAsync(CancellationToken cancellationToken)
+		=> Volatile.Read(ref _collectionDescriptor) is { } descriptor ? new(descriptor) : GetAndCacheCollectionDescriptorAsync(cancellationToken);
 
-	private ValueTask<byte[]> GetCachedPreparsedDataAsync(CancellationToken cancellationToken)
-		=> Volatile.Read(ref _preparsedData) is { } data ? new(data) : GetAndCachePreparsedDataAsync(cancellationToken);
-
-	private async ValueTask<byte[]> GetAndCachePreparsedDataAsync(CancellationToken cancellationToken)
+	private async ValueTask<HidCollectionDescriptor> GetAndCacheCollectionDescriptorAsync(CancellationToken cancellationToken)
 	{
-		var data = await GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
-		Volatile.Write(ref _preparsedData, data);
-		return data;
+		var descriptor = HidCollectionDescriptor.Parse(await GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false));
+		Volatile.Write(ref _collectionDescriptor, descriptor);
+		return descriptor;
 	}
 
 	private protected virtual async ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
-		=> (await DeviceStream.GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false)).Data;
-
-	// TODO: Wrap this in a high level structure.
-	public async ValueTask<NativeMethods.HidParsingLinkCollectionNode[]> GetLinkCollectionNodesAsync(CancellationToken cancellationToken)
-	{
-		byte[] preparsedData = await GetCachedPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
-
-		NativeMethods.HidParsingGetCaps(ref preparsedData[0], out var caps);
-
-		uint count = caps.LinkCollectionNodesCount;
-
-		if (caps.LinkCollectionNodesCount == 0)
-		{
-			return Array.Empty<NativeMethods.HidParsingLinkCollectionNode>();
-		}
-
-		var nodes = new NativeMethods.HidParsingLinkCollectionNode[count];
-		if (NativeMethods.HidParsingGetLinkCollectionNodes(ref nodes[0], ref count, ref preparsedData[0]) != NativeMethods.HidParsingResult.Success)
-		{
-			throw new InvalidOperationException();
-		}
-		return nodes;
-	}
-
-	// TODO: Wrap this in a high level structure.
-	public async ValueTask<NativeMethods.HidParsingButtonCaps[]> GetButtonCapabilitiesAsync(NativeMethods.HidParsingReportType reportType, CancellationToken cancellationToken)
-	{
-		byte[] preparsedData = await GetCachedPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
-
-		NativeMethods.HidParsingGetCaps(ref preparsedData[0], out var caps);
-
-		ushort count = reportType switch
-		{
-			NativeMethods.HidParsingReportType.Input => caps.InputButtonCapsCount,
-			NativeMethods.HidParsingReportType.Output => caps.OutputButtonCapsCount,
-			NativeMethods.HidParsingReportType.Feature => caps.FeatureButtonCapsCount,
-			_ => throw new ArgumentOutOfRangeException(nameof(reportType))
-		};
-
-		if (count == 0)
-		{
-			return Array.Empty<NativeMethods.HidParsingButtonCaps>();
-		}
-
-		var buttonCaps = new NativeMethods.HidParsingButtonCaps[count];
-
-		if (NativeMethods.HidParsingGetButtonCaps(reportType, ref buttonCaps[0], ref count, ref preparsedData[0]) != NativeMethods.HidParsingResult.Success)
-		{
-			throw new InvalidOperationException();
-		}
-		return buttonCaps;
-	}
-
-	// TODO: Wrap this in a high level structure.
-	public async ValueTask<NativeMethods.HidParsingValueCaps[]> GetValueCapabilitiesAsync(NativeMethods.HidParsingReportType reportType, CancellationToken cancellationToken)
-	{
-		byte[] preparsedData = await GetCachedPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
-
-		NativeMethods.HidParsingGetCaps(ref preparsedData[0], out var caps);
-
-		ushort count = reportType switch
-		{
-			NativeMethods.HidParsingReportType.Input => caps.InputValueCapsCount,
-			NativeMethods.HidParsingReportType.Output => caps.OutputValueCapsCount,
-			NativeMethods.HidParsingReportType.Feature => caps.FeatureValueCapsCount,
-			_ => throw new ArgumentOutOfRangeException(nameof(reportType))
-		};
-
-		if (count == 0)
-		{
-			return Array.Empty<NativeMethods.HidParsingValueCaps>();
-		}
-
-		var valueCaps = new NativeMethods.HidParsingValueCaps[count];
-
-		if (NativeMethods.HidParsingGetValueCaps(reportType, ref valueCaps[0], ref count, ref preparsedData[0]) != NativeMethods.HidParsingResult.Success)
-		{
-			throw new InvalidOperationException();
-		}
-		return valueCaps;
-	}
+		=> await DeviceStream.GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
 
 	// TODO: Wrap this in a high level structure.
 	public string GetString(int index)

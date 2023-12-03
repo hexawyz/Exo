@@ -137,12 +137,14 @@ public class HidDeviceStream : DeviceStream
 		}
 	}
 
-	public async ValueTask<HidCollectionDescriptor> GetPreparsedDataAsync(CancellationToken cancellationToken)
+	// TODO: Decide whether to expose the preparsed data as-is, or only the parsed descriptor.
+	// For now, the HidDevice class depends on this method. It could be refactored to not go through the byte array stuff later on.
+	internal async ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
 	{
 		await EnsureCollectionInformationAvailabilityAsync(cancellationToken).ConfigureAwait(false);
 		var buffer = new byte[_hidCollectionInformation!.Value.DescriptorSize];
 		int count = await IoControlAsync(NativeMethods.IoCtlGetCollectionDescriptor, buffer, cancellationToken).ConfigureAwait(false);
 		if (count != buffer.Length) throw new InvalidOperationException("Unexpected data length.");
-		return new(buffer);
+		return buffer;
 	}
 }

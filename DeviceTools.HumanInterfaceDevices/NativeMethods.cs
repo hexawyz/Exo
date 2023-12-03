@@ -290,13 +290,6 @@ public static class NativeMethods
 		public IntPtr UserContext;
 	}
 
-	public enum HidParsingReportType
-	{
-		Input = 0,
-		Output = 1,
-		Feature = 2,
-	}
-
 	public enum HidParsingResult : uint
 	{
 		Success = 0x00110000,
@@ -378,20 +371,20 @@ public static class NativeMethods
 	public static extern HidParsingResult HidParsingGetCaps(ref byte preparsedData, out HidParsingCaps capabilities);
 
 	[DllImport("hid", EntryPoint = "HidP_GetButtonCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
-	private static extern HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref /* HidParsingButtonCaps */ byte firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData);
+	private static extern HidParsingResult HidParsingGetButtonCaps(HidReportType reportType, ref /* HidParsingButtonCaps */ byte firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData);
 
 	// Work around P/Invoke refusing to consider bool as blittable…
-	public static HidParsingResult HidParsingGetButtonCaps(HidParsingReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData)
+	public static HidParsingResult HidParsingGetButtonCaps(HidReportType reportType, ref HidParsingButtonCaps firstButtonCap, ref ushort buttonCapsLength, ref byte preparsedData)
 		=> HidParsingGetButtonCaps(reportType, ref Unsafe.As<HidParsingButtonCaps, byte>(ref firstButtonCap), ref buttonCapsLength, ref preparsedData);
 
 	[DllImport("hid", EntryPoint = "HidP_GetValueCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
-	private static extern HidParsingResult HidParsingGetValueCaps(HidParsingReportType reportType, ref /* HidParsingValueCaps */ byte firstValueCap, ref ushort valueCapsLength, ref byte preparsedData);
+	private static extern HidParsingResult HidParsingGetValueCaps(HidReportType reportType, ref /* HidParsingValueCaps */ byte firstValueCap, ref ushort valueCapsLength, ref byte preparsedData);
 
 	[DllImport("hid", EntryPoint = "HidP_GetValueCaps", ExactSpelling = true, CharSet = CharSet.Unicode)]
-	private static extern HidParsingResult HidP_GetExtendedAttributes(HidParsingReportType reportType, ushort dataIndex, ref byte preparsedData, ref byte attributes, ref uint attributeByteCount);
+	private static extern HidParsingResult HidP_GetExtendedAttributes(HidReportType reportType, ushort dataIndex, ref byte preparsedData, ref byte attributes, ref uint attributeByteCount);
 
 	// Work around P/Invoke refusing to consider bool as blittable…
-	public static HidParsingResult HidParsingGetValueCaps(HidParsingReportType reportType, ref HidParsingValueCaps firstValueCap, ref ushort buttonCapsLength, ref byte preparsedData)
+	public static HidParsingResult HidParsingGetValueCaps(HidReportType reportType, ref HidParsingValueCaps firstValueCap, ref ushort buttonCapsLength, ref byte preparsedData)
 		=> HidParsingGetValueCaps(reportType, ref Unsafe.As<HidParsingValueCaps, byte>(ref firstValueCap), ref buttonCapsLength, ref preparsedData);
 
 	[DllImport("hid", EntryPoint = "HidP_GetLinkCollectionNodes", ExactSpelling = true, CharSet = CharSet.Unicode)]
