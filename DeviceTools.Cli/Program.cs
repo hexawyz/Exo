@@ -403,11 +403,11 @@ internal static class Program
 						}
 						if (channel.IsStringRange)
 						{
-							Console.WriteLine($@"║ ║ ║ │ String #{channel.StringRange.Minimum} .. #{channel.StringRange.Maximum}: ""{device.GetString(channel.StringRange.Minimum)}"" .. ""{device.GetString(channel.StringRange.Maximum)}""");
+							Console.WriteLine($@"║ ║ ║ │ String #{channel.StringRange.Minimum} .. #{channel.StringRange.Maximum}: ""{await device.GetStringAsync(channel.StringRange.Minimum, default)}"" .. ""{device.GetStringAsync(channel.StringRange.Maximum, default)}""");
 						}
 						else if (channel.StringRange.Minimum > 0)
 						{
-							Console.WriteLine($@"║ ║ ║ │ String #{channel.StringRange.Minimum}: ""{device.GetString(channel.StringRange.Minimum)}""");
+							Console.WriteLine($@"║ ║ ║ │ String #{channel.StringRange.Minimum}: ""{await device.GetStringAsync(channel.StringRange.Minimum, default)}""");
 						}
 						if (channel.IsDesignatorRange)
 						{
@@ -654,7 +654,7 @@ internal static class Program
 		}
 	}
 
-	private static readonly string[] Units = new[] {"B", "KB", "MB", "GB", "TB", "PB", "EB", };
+	private static readonly string[] Units = new[] { "B", "KB", "MB", "GB", "TB", "PB", "EB", };
 
 	private static void PrintSize(string name, ulong? value)
 	{

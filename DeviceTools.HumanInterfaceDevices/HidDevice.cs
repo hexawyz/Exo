@@ -144,9 +144,8 @@ public abstract class HidDevice : IDisposable
 	private protected virtual async ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
 		=> await DeviceStream.GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
 
-	// TODO: Wrap this in a high level structure.
-	public string GetString(int index)
-		=> NativeMethods.GetIndexedString(FileHandle, (uint)index);
+	public ValueTask<string> GetStringAsync(int index, CancellationToken cancellationToken)
+		=> DeviceStream.GetStringAsync(index, cancellationToken);
 
 	public PhysicalDescriptorSetCollection GetPhysicalDescriptorSets()
 		=> NativeMethods.GetPhysicalDescriptor(FileHandle);

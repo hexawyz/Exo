@@ -57,15 +57,22 @@ public class HidDeviceStream : DeviceStream
 	}
 
 	public ValueTask<string> GetManufacturerNameAsync(CancellationToken cancellationToken)
-		=> SlowGetWellKnownStringAsync(NativeMethods.IoCtlGetManufacturerString, cancellationToken);
+		=> GetStringAsync(NativeMethods.IoCtlGetManufacturerString, default, cancellationToken);
 
 	public ValueTask<string> GetProductNameAsync(CancellationToken cancellationToken)
-		=> SlowGetWellKnownStringAsync(NativeMethods.IoCtlGetProductString, cancellationToken);
+		=> GetStringAsync(NativeMethods.IoCtlGetProductString, default, cancellationToken);
 
 	public ValueTask<string> GetSerialNumberAsync(CancellationToken cancellationToken)
-		=> SlowGetWellKnownStringAsync(NativeMethods.IoCtlGetSerialNumberString, cancellationToken);
+		=> GetStringAsync(NativeMethods.IoCtlGetSerialNumberString, default, cancellationToken);
 
-	private async ValueTask<string> SlowGetWellKnownStringAsync(int ioctl, CancellationToken cancellationToken)
+	public ValueTask<string> GetStringAsync(int index, CancellationToken cancellationToken)
+	{
+		var input = new byte[4];
+		Unsafe.As<byte, int>(ref input[0]) = index;
+		return GetStringAsync(NativeMethods.IoCtlGetIndexedString, input, cancellationToken);
+	}
+
+	private async ValueTask<string?> GetStringAsync(int ioctl, ReadOnlyMemory<byte> input, CancellationToken cancellationToken)
 	{
 		int bufferLength = 512;
 		while (true)
@@ -78,17 +85,14 @@ public class HidDeviceStream : DeviceStream
 				// Buffer length should not exceed 4093 bytes (so 4092 bytes because of wide chars)
 				int length = Math.Min(buffer.Length, 4093) & -2;
 
-				if (await IoControlAsync(ioctl, buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false) == 0)
-				{
-					throw new Win32Exception(Marshal.GetLastWin32Error());
-				}
+				int resultLength = await IoControlAsync(ioctl, input, buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false);
 
 				static string GetString(ReadOnlySpan<char> buffer)
 					=> buffer.IndexOf('\0') is int endIndex && endIndex >= 0 ?
 						buffer.Slice(0, endIndex).ToString() :
 						throw new Exception($"The string received was not null-terminated.");
 
-				return GetString(MemoryMarshal.Cast<byte, char>(buffer.AsSpan(0, length)));
+				return resultLength > 2 ? GetString(MemoryMarshal.Cast<byte, char>(buffer.AsSpan(0, resultLength))) : null;
 			}
 			finally
 			{

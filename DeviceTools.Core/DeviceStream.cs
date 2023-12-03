@@ -95,7 +95,7 @@ public class DeviceStream : FileStream
 	public ValueTask<int> IoControlAsync(int ioControlCode, Memory<byte> outputBuffer, CancellationToken cancellationToken)
 		=> IoControlAsync(ioControlCode, default, outputBuffer, cancellationToken);
 #else
-			public unsafe ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, CancellationToken cancellationToken)
+	public unsafe ValueTask<int> IoControlAsync(int ioControlCode, ReadOnlyMemory<byte> inputBuffer, Memory<byte> outputBuffer, CancellationToken cancellationToken)
 	{
 		var vts = GetIoControlValueTaskSource();
 		int errorCode = 0;

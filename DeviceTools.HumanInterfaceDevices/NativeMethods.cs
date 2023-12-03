@@ -352,8 +352,8 @@ internal static class NativeMethods
 	//[DllImport("hid", EntryPoint = "HidD_GetSerialNumberString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 	//public static extern int HidDiscoveryGetSerialNumberString(SafeFileHandle deviceFileHandle, ref char buffer, uint bufferLength);
 
-	[DllImport("hid", EntryPoint = "HidD_GetIndexedString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-	public static extern int HidDiscoveryGetIndexedString(SafeFileHandle deviceFileHandle, uint stringIndex, ref char firstChar, uint bufferLength);
+	//[DllImport("hid", EntryPoint = "HidD_GetIndexedString", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+	//public static extern int HidDiscoveryGetIndexedString(SafeFileHandle deviceFileHandle, uint stringIndex, ref char firstChar, uint bufferLength);
 
 	[DllImport("hid", EntryPoint = "HidD_GetPhysicalDescriptor", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 	public static extern int HidDiscoveryGetPhysicalDescriptor(SafeFileHandle deviceFileHandle, ref byte firstByte, uint bufferLength);
@@ -433,60 +433,60 @@ internal static class NativeMethods
 	//	}
 	//}
 
-	public static string GetIndexedString(SafeFileHandle deviceHandle, uint stringIndex)
-		=> GetIndexedStringOnStack(deviceHandle, stringIndex) ?? GetIndexedStringInPooledArray(deviceHandle, stringIndex);
+	//public static string GetIndexedString(SafeFileHandle deviceHandle, uint stringIndex)
+	//	=> GetIndexedStringOnStack(deviceHandle, stringIndex) ?? GetIndexedStringInPooledArray(deviceHandle, stringIndex);
 
-	private static string? GetIndexedStringOnStack(SafeFileHandle deviceHandle, uint stringIndex)
-	{
-		// From the docs: USB devices shouldn't return more than 126+1 characters. Other devices could return more.
-		Span<char> text = stackalloc char[127];
-		if (HidDiscoveryGetIndexedString(deviceHandle, stringIndex, ref text.GetPinnableReference(), (uint)text.Length) == 0)
-		{
-			switch (Marshal.GetLastWin32Error())
-			{
-				case ErrorInvalidUserBuffer:
-					return null;
-				case int code:
-					throw new Win32Exception(code);
-			}
-		}
+	//private static string? GetIndexedStringOnStack(SafeFileHandle deviceHandle, uint stringIndex)
+	//{
+	//	// From the docs: USB devices shouldn't return more than 126+1 characters. Other devices could return more.
+	//	Span<char> text = stackalloc char[127];
+	//	if (HidDiscoveryGetIndexedString(deviceHandle, stringIndex, ref text.GetPinnableReference(), (uint)text.Length) == 0)
+	//	{
+	//		switch (Marshal.GetLastWin32Error())
+	//		{
+	//			case ErrorInvalidUserBuffer:
+	//				return null;
+	//			case int code:
+	//				throw new Win32Exception(code);
+	//		}
+	//	}
 
-		return (text.IndexOf('\0') is int endIndex && endIndex >= 0 ? text.Slice(0, endIndex) : text).ToString();
-	}
+	//	return (text.IndexOf('\0') is int endIndex && endIndex >= 0 ? text.Slice(0, endIndex) : text).ToString();
+	//}
 
-	private static string GetIndexedStringInPooledArray(SafeFileHandle deviceHandle, uint stringIndex)
-	{
-		const int MaxLength = 65536; // Arbitrary limit on the size we allow ourselves to request.
-		int length = 256;
+	//private static string GetIndexedStringInPooledArray(SafeFileHandle deviceHandle, uint stringIndex)
+	//{
+	//	const int MaxLength = 65536; // Arbitrary limit on the size we allow ourselves to request.
+	//	int length = 256;
 
-		// The loop will either exit by returning a valid string, or by throwing an exception.
-		while (true)
-		{
-			var text = ArrayPool<char>.Shared.Rent(length);
-			try
-			{
-				length = text.Length;
+	//	// The loop will either exit by returning a valid string, or by throwing an exception.
+	//	while (true)
+	//	{
+	//		var text = ArrayPool<char>.Shared.Rent(length);
+	//		try
+	//		{
+	//			length = text.Length;
 
-				if (HidDiscoveryGetIndexedString(deviceHandle, stringIndex, ref text[0], (uint)text.Length) != 0)
-				{
-					return (Array.IndexOf(text, '\0', 0) is int endIndex && endIndex >= 0 ? text.AsSpan(0, endIndex) : text.AsSpan()).ToString();
-				}
+	//			if (HidDiscoveryGetIndexedString(deviceHandle, stringIndex, ref text[0], (uint)text.Length) != 0)
+	//			{
+	//				return (Array.IndexOf(text, '\0', 0) is int endIndex && endIndex >= 0 ? text.AsSpan(0, endIndex) : text.AsSpan()).ToString();
+	//			}
 
-				switch (Marshal.GetLastWin32Error())
-				{
-					case ErrorInvalidUserBuffer when length < MaxLength:
-						length = Math.Min(2 * length, MaxLength);
-						continue;
-					case int code:
-						throw new Win32Exception(code);
-				}
-			}
-			finally
-			{
-				ArrayPool<char>.Shared.Return(text);
-			}
-		}
-	}
+	//			switch (Marshal.GetLastWin32Error())
+	//			{
+	//				case ErrorInvalidUserBuffer when length < MaxLength:
+	//					length = Math.Min(2 * length, MaxLength);
+	//					continue;
+	//				case int code:
+	//					throw new Win32Exception(code);
+	//			}
+	//		}
+	//		finally
+	//		{
+	//			ArrayPool<char>.Shared.Return(text);
+	//		}
+	//	}
+	//}
 
 	public static PhysicalDescriptorSetCollection GetPhysicalDescriptor(SafeFileHandle deviceHandle)
 		=> GetPhysicalDescriptorOnStack(deviceHandle) ?? GetPhysicalDescriptorInPooledArray(deviceHandle);
