@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using DeviceTools.DisplayDevices;
 using DeviceTools.FilterExpressions;
 using DeviceTools.Firmware;
@@ -205,7 +206,7 @@ internal static class Program
 
 		if (device is RawInputDevice rawInptuDevice)
 		{
-			PrintUsageAndPage("║ Device", rawInptuDevice.UsagePage, rawInptuDevice.Usage);
+			PrintUsageAndPage("║ Device ", rawInptuDevice.UsagePage, rawInptuDevice.Usage);
 		}
 
 		await PrintDeviceInfoAsync(device);
@@ -303,143 +304,139 @@ internal static class Program
 	{
 		try
 		{
-			var nodes = await device.GetLinkCollectionNodesAsync(default);
+			//var nodes = await device.GetLinkCollectionNodesAsync(default);
 
-			Console.WriteLine($"║ Link Collection Nodes: {nodes.Length}");
+			//Console.WriteLine($"║ Link Collection Nodes: {nodes.Length}");
 
-			for (int i = 0; i < nodes.Length; i++)
-			{
-				var node = nodes[i];
+			//for (int i = 0; i < nodes.Length; i++)
+			//{
+			//	var node = nodes[i];
 
-				Console.WriteLine($"║ {(i == 0 ? "╒" : "╞")}═══════ Node #{i}");
-				Console.WriteLine($"║ │ Collection Type: {node.CollectionType}");
-				PrintUsageAndPage("║ │ Node", node.LinkUsagePage, node.LinkUsage);
-				Console.WriteLine($"║ │ Is Alias: {node.IsAlias}");
-				Console.WriteLine($"║ │ Parent: {node.Parent}");
-				if (node.ChildCount != 0)
-				{
-					Console.WriteLine($"║ │ Child Count: {node.ChildCount}");
-					Console.WriteLine($"║ │ First Child: #{node.FirstChild}");
-				}
-				Console.WriteLine($"║ │ Next Sibling: {node.NextSibling}");
-			}
+			//	Console.WriteLine($"║ {(i == 0 ? "╒" : "╞")}═══════ Node #{i}");
+			//	Console.WriteLine($"║ │ Collection Type: {node.CollectionType}");
+			//	PrintUsageAndPage("║ │ Node", node.LinkUsagePage, node.LinkUsage);
+			//	Console.WriteLine($"║ │ Is Alias: {node.IsAlias}");
+			//	Console.WriteLine($"║ │ Parent: {node.Parent}");
+			//	if (node.ChildCount != 0)
+			//	{
+			//		Console.WriteLine($"║ │ Child Count: {node.ChildCount}");
+			//		Console.WriteLine($"║ │ First Child: #{node.FirstChild}");
+			//	}
+			//	Console.WriteLine($"║ │ Next Sibling: {node.NextSibling}");
+			//}
 
-			if (nodes.Length > 0)
-			{
-				Console.WriteLine("║ ╘═══════");
-			}
+			//if (nodes.Length > 0)
+			//{
+			//	Console.WriteLine("║ ╘═══════");
+			//}
+
+			var collectionDescriptor = await device.GetCollectionDescriptorAsync(default);
 
 			PhysicalDescriptorSetCollection physicalDescriptorSets;
 
 			try { physicalDescriptorSets = device.GetPhysicalDescriptorSets(); }
 			catch { }
 
-			foreach (var reportType in new[] { HumanInterfaceDevices.NativeMethods.HidParsingReportType.Input, HumanInterfaceDevices.NativeMethods.HidParsingReportType.Output, HumanInterfaceDevices.NativeMethods.HidParsingReportType.Feature })
+			bool firstCollection = true;
+			foreach (var reportCollection in new HidReportDescriptorCollection[] { collectionDescriptor.InputReports, collectionDescriptor.OutputReports, collectionDescriptor.FeatureReports })
 			{
-				var buttons = await device.GetButtonCapabilitiesAsync(reportType, default);
+				if (reportCollection.Count == 0) return;
+				Console.WriteLine($"║ {(firstCollection ? "╔" : "╠")}═══════ {reportCollection.ReportType} Reports");
+				firstCollection = false;
+				Console.WriteLine($"║ ║ Maximum Report Length: {reportCollection.MaximumReportLength}");
 
-				for (int i = 0; i < buttons.Length; i++)
+				for (int i = 0; i < reportCollection.Count; i++)
 				{
-					var button = buttons[i];
-					Console.WriteLine($"║ {(i == 0 ? "╒" : "╞")}═══════ {reportType} Button #{i}");
-					Console.WriteLine($"║ │ Report ID: {button.ReportID}");
-					Console.WriteLine($"║ │ Collection Index: {button.LinkCollection}");
-					PrintUsageAndPage("║ │ Collection", button.LinkUsagePage, button.LinkUsage);
-					Console.WriteLine("║ ├───────");
-					if (button.IsRange)
+					var report = reportCollection[i];
+					Console.WriteLine($"║ ║ {(i == 0 ? "╔" : "╠")}═══════ Report #{report.ReportId:X2}");
+					Console.WriteLine($"║ ║ ║ Report Length: {report.ReportSize}");
+
+					for (int j = 0; j < report.Channels.Count; j++)
 					{
-						PrintUsagePage("║ │ Button", button.UsagePage);
-						Console.WriteLine($"║ │ Button Usage: {MapToKnownUsage(button.UsagePage, button.Range.UsageMin)} .. {MapToKnownUsage(button.UsagePage, button.Range.UsageMax)}");
-						Console.WriteLine($"║ │ Data Index: {button.Range.DataIndexMin} .. {button.Range.DataIndexMax}");
+						var channel = report.Channels[j];
+						var value = channel as HidValueDescriptor;
+						Console.WriteLine($"║ ║ ║ {(j == 0 ? "╒" : "╞")}═══════ Channel #{j}");
+						//Console.WriteLine($"║ ║ ║ │ Collection Index: {button.LinkCollection}");
+						//PrintUsageAndPage("║ ║ ║ │ Collection", button.LinkUsagePage, button.LinkUsage);
+						//Console.WriteLine("║ ║ ║ ├───────");
+						if (channel.IsRange)
+						{
+							PrintUsagePage("║ ║ ║ │ ", channel.UsagePage);
+							Console.WriteLine($"║ ║ ║ │ Usage: {MapToKnownUsage(channel.UsagePage, channel.UsageRange.Minimum)} .. {MapToKnownUsage(channel.UsagePage, channel.UsageRange.Maximum)}");
+							Console.WriteLine($"║ ║ ║ │ Data Index: {channel.DataIndexRange.Minimum} .. {channel.DataIndexRange.Maximum}");
+						}
+						else
+						{
+							PrintUsageAndPage("║ ║ ║ │ ", channel.UsagePage, channel.UsageRange.Minimum);
+							Console.WriteLine($"║ ║ ║ │ Data Index: {channel.DataIndexRange.Minimum}");
+						}
+						if (value is not null)
+						{
+							Console.WriteLine($"║ ║ ║ │ Is Nullable: {value.HasNullValue}");
+						}
+						Console.WriteLine($"║ ║ ║ │ Item Size: {channel.ItemBitLength}");
+						Console.WriteLine($"║ ║ ║ │ Item Count: {channel.ItemCount}");
+						Console.WriteLine($"║ ║ ║ │ Report Start Byte Index: {channel.SequenceByteIndex}");
+						Console.WriteLine($"║ ║ ║ │ Report Byte Length: {channel.SequenceByteLength}");
+						Console.WriteLine($"║ ║ ║ │ Sequence Bit Offset: {channel.SequenceBitOffset}");
+						Console.WriteLine($"║ ║ ║ │ Sequence Bit Length: {channel.SequenceBitLength}");
+						//Console.WriteLine($"║ ║ ║ │ Units Exponent: {channel.UnitsExp}");
+						//Console.WriteLine($"║ ║ ║ │ Units: {channel.Units}");
+						if (channel.LogicalRange.Minimum < channel.LogicalRange.Maximum)
+						{
+							Console.WriteLine($"║ ║ ║ │ Logical Value: {channel.LogicalRange.Minimum} .. {channel.LogicalRange.Maximum}");
+						}
+						else if (channel.LogicalRange.Minimum != 0)
+						{
+							Console.WriteLine($"║ ║ ║ │ Logical Value: {channel.LogicalRange.Minimum}");
+						}
+						if (value is not null)
+						{
+							if (value.PhysicalRange.Minimum < value.PhysicalRange.Maximum)
+							{
+								Console.WriteLine($"║ ║ ║ │ Physical Value: {value.PhysicalRange.Minimum} .. {value.PhysicalRange.Maximum}");
+							}
+							else if (value.PhysicalRange.Minimum != 0)
+							{
+								Console.WriteLine($"║ ║ ║ │ Physical Value: {value.PhysicalRange.Minimum}");
+							}
+						}
+						if (channel.IsStringRange)
+						{
+							Console.WriteLine($@"║ ║ ║ │ String #{channel.StringRange.Minimum} .. #{channel.StringRange.Maximum}: ""{device.GetString(channel.StringRange.Minimum)}"" .. ""{device.GetString(channel.StringRange.Maximum)}""");
+						}
+						else if (channel.StringRange.Minimum > 0)
+						{
+							Console.WriteLine($@"║ ║ ║ │ String #{channel.StringRange.Minimum}: ""{device.GetString(channel.StringRange.Minimum)}""");
+						}
+						if (channel.IsDesignatorRange)
+						{
+							Console.WriteLine($"║ ║ ║ │ Designator Index: {channel.DesignatorRange.Minimum} .. {channel.DesignatorRange.Maximum}");
+						}
+						else if (channel.DesignatorRange.Minimum != 0)
+						{
+							Console.WriteLine($"║ ║ ║ │ Designator Index: {channel.DesignatorRange.Minimum}");
+						}
+						Console.WriteLine($"║ ║ ║ │ Is Absolute: {channel.IsAbsolute}");
+						Console.WriteLine($"║ ║ ║ │ Is Alias: {channel.IsAlias}");
+						//Console.WriteLine($"║ ║ ║ │ Bit Field: {channel.BitField}");
 					}
-					else
+
+					if (report.Channels.Count > 0)
 					{
-						PrintUsageAndPage("║ │ Button", button.UsagePage, button.NotRange.Usage);
-						Console.WriteLine($"║ │ Data Index: {button.NotRange.DataIndex}");
+						Console.WriteLine("║ ║ ║ ╘═══════");
 					}
-					Console.WriteLine($"║ │ Report Count: {button.ReportCount}");
-					if (button.IsStringRange)
-					{
-						Console.WriteLine($@"║ │ String #{button.Range.StringMin} .. #{button.Range.StringMax}: ""{device.GetString(button.Range.StringMin)}"" .. ""{device.GetString(button.Range.StringMax)}""");
-					}
-					else if (button.NotRange.StringIndex > 0)
-					{
-						Console.WriteLine($@"║ │ String #{button.NotRange.StringIndex}: ""{device.GetString(button.NotRange.StringIndex)}""");
-					}
-					if (button.IsDesignatorRange)
-					{
-						Console.WriteLine($"║ │ Designator Index: {button.Range.DesignatorMin} .. {button.Range.DesignatorMax}");
-					}
-					else
-					{
-						Console.WriteLine($"║ │ Designator Index: {button.NotRange.DesignatorIndex}");
-					}
-					Console.WriteLine($"║ │ Is Absolute: {button.IsAbsolute}");
-					Console.WriteLine($"║ │ Is Alias: {button.IsAlias}");
-					Console.WriteLine($"║ │ Bit Field: {button.BitField}");
 				}
 
-				if (buttons.Length > 0)
+				if (reportCollection.Count > 0)
 				{
-					Console.WriteLine("║ ╘═══════");
+					Console.WriteLine("║ ║ ╚═══════");
 				}
+			}
 
-				var values = await device.GetValueCapabilitiesAsync(reportType, default);
-
-				for (int i = 0; i < values.Length; i++)
-				{
-					var value = values[i];
-					Console.WriteLine($"║ {(i == 0 ? "╒" : "╞")}═══════ {reportType} Value #{i}");
-					Console.WriteLine($"║ │ Report ID: {value.ReportID}");
-					Console.WriteLine($"║ │ Collection Index: {value.LinkCollection}");
-					PrintUsageAndPage("║ │ Collection", value.LinkUsagePage, value.LinkUsage);
-					Console.WriteLine("║ ├───────");
-					Console.WriteLine($"║ │ Is Nullable: {value.HasNull}");
-					Console.WriteLine($"║ │ Value Length: {value.BitSize} bits");
-					Console.WriteLine($"║ │ Report Count: {value.ReportCount}");
-					Console.WriteLine($"║ │ Units Exponent: {value.UnitsExp}");
-					Console.WriteLine($"║ │ Units: {value.Units}");
-					Console.WriteLine($"║ │ Logical Min: {value.LogicalMin}");
-					Console.WriteLine($"║ │ Logical Max: {value.LogicalMax}");
-					Console.WriteLine($"║ │ Physical Min: {value.PhysicalMin}");
-					Console.WriteLine($"║ │ Physical Max: {value.PhysicalMax}");
-					Console.WriteLine("║ ├───────");
-					if (value.IsRange)
-					{
-						PrintUsagePage("║ │ Value", value.UsagePage);
-						Console.WriteLine($"║ │ Button Usage: {MapToKnownUsage(value.UsagePage, value.Range.UsageMin)} .. {MapToKnownUsage(value.UsagePage, value.Range.UsageMax)}");
-						Console.WriteLine($"║ │ Data Index: {value.Range.DataIndexMin} .. {value.Range.DataIndexMax}");
-					}
-					else
-					{
-						PrintUsageAndPage("║ │ Value", value.UsagePage, value.NotRange.Usage);
-						Console.WriteLine($"║ │ Data Index: {value.NotRange.DataIndex}");
-					}
-					if (value.IsStringRange)
-					{
-						Console.WriteLine($@"║ │ String #{value.Range.StringMin} .. #{value.Range.StringMax}: ""{device.GetString(value.Range.StringMin)}"" .. ""{device.GetString(value.Range.StringMax)}""");
-					}
-					else if (value.NotRange.StringIndex > 0)
-					{
-						Console.WriteLine($@"║ │ String #{value.NotRange.StringIndex}: ""{device.GetString(value.NotRange.StringIndex)}""");
-					}
-					if (value.IsDesignatorRange)
-					{
-						Console.WriteLine($"║ │ Designator Index: {value.Range.DesignatorMin} .. {value.Range.DesignatorMax}");
-					}
-					else
-					{
-						Console.WriteLine($"║ │ Designator Index: {value.NotRange.DesignatorIndex}");
-					}
-					Console.WriteLine($"║ │ Is Absolute: {value.IsAbsolute}");
-					Console.WriteLine($"║ │ Is Alias: {value.IsAlias}");
-					Console.WriteLine($"║ │ Bit Field: {value.BitField}");
-				}
-
-				if (values.Length > 0)
-				{
-					Console.WriteLine("║ ╘═══════");
-				}
+			if (!firstCollection)
+			{
+				Console.WriteLine("║ ╚═══════");
 			}
 		}
 		catch (Exception ex)
@@ -454,9 +451,9 @@ internal static class Program
 		PrintUsage(prefix, usagePage, usage);
 	}
 
-	private static void PrintUsagePage(string prefix, HidUsagePage usagePage) => Console.WriteLine($"{prefix} Usage Page: {usagePage}");
+	private static void PrintUsagePage(string prefix, HidUsagePage usagePage) => Console.WriteLine($"{prefix}Usage Page: {usagePage}");
 
-	private static void PrintUsage(string prefix, HidUsagePage usagePage, ushort usage) => Console.WriteLine($@"{prefix} Usage: {MapToKnownUsage(usagePage, usage)}");
+	private static void PrintUsage(string prefix, HidUsagePage usagePage, ushort usage) => Console.WriteLine($@"{prefix}Usage: {MapToKnownUsage(usagePage, usage)}");
 
 	private static object MapToKnownUsage(HidUsagePage usagePage, ushort usage)
 		=> usagePage switch
