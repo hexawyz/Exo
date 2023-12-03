@@ -126,9 +126,9 @@ public class HidDeviceStream : DeviceStream
 		var buffer = ArrayPool<byte>.Shared.Rent(length);
 		try
 		{
-			if (await IoControlAsync(NativeMethods.IoCtlGetCollectionInformation, buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false) == 0)
+			if (await IoControlAsync(NativeMethods.IoCtlGetCollectionInformation, buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false) != length)
 			{
-				throw new Win32Exception(Marshal.GetLastWin32Error());
+				throw new InvalidOperationException("Could not retrieve the HID collection information.");
 			}
 
 			Volatile.Write(ref _hidCollectionInformation, new StrongBox<NativeMethods.HidCollectionInformation>(Unsafe.As<byte, NativeMethods.HidCollectionInformation>(ref buffer[0])));
