@@ -90,30 +90,30 @@ public abstract class HidDevice : IDisposable
 		}
 	}
 
-	public ValueTask<string> GetManufacturerNameAsync(CancellationToken cancellationToken)
+	public ValueTask<string?> GetManufacturerNameAsync(CancellationToken cancellationToken)
 		=> _manufacturerName is string name ? new(name) : SlowGetManufacturerNameAsync(cancellationToken);
 
-	private async ValueTask<string> SlowGetManufacturerNameAsync(CancellationToken cancellationToken)
+	private async ValueTask<string?> SlowGetManufacturerNameAsync(CancellationToken cancellationToken)
 	{
-		string manufacturerName = await DeviceStream.GetManufacturerNameAsync(cancellationToken).ConfigureAwait(false);
+		string? manufacturerName = await DeviceStream.GetManufacturerNameAsync(cancellationToken).ConfigureAwait(false);
 		return _manufacturerName = manufacturerName;
 	}
 
-	public ValueTask<string> GetProductNameAsync(CancellationToken cancellationToken)
+	public ValueTask<string?> GetProductNameAsync(CancellationToken cancellationToken)
 		=> _productName is string name ? new(name) : SlowGetProductNameAsync(cancellationToken);
 
-	private async ValueTask<string> SlowGetProductNameAsync(CancellationToken cancellationToken)
+	private async ValueTask<string?> SlowGetProductNameAsync(CancellationToken cancellationToken)
 	{
-		string productName = await DeviceStream.GetProductNameAsync(cancellationToken).ConfigureAwait(false);
+		string? productName = await DeviceStream.GetProductNameAsync(cancellationToken).ConfigureAwait(false);
 		return _productName = productName;
 	}
 
-	public ValueTask<string> GetSerialNumberAsync(CancellationToken cancellationToken)
+	public ValueTask<string?> GetSerialNumberAsync(CancellationToken cancellationToken)
 		=> _serialNumber is string name ? new(name) : SlowGetSerialNumberAsync(cancellationToken);
 
-	private async ValueTask<string> SlowGetSerialNumberAsync(CancellationToken cancellationToken)
+	private async ValueTask<string?> SlowGetSerialNumberAsync(CancellationToken cancellationToken)
 	{
-		string serialNumber = await DeviceStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
+		string? serialNumber = await DeviceStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 		return _serialNumber = serialNumber;
 	}
 
@@ -144,7 +144,7 @@ public abstract class HidDevice : IDisposable
 	private protected virtual async ValueTask<byte[]> GetPreparsedDataAsync(CancellationToken cancellationToken)
 		=> await DeviceStream.GetPreparsedDataAsync(cancellationToken).ConfigureAwait(false);
 
-	public ValueTask<string> GetStringAsync(int index, CancellationToken cancellationToken)
+	public ValueTask<string?> GetStringAsync(int index, CancellationToken cancellationToken)
 		=> DeviceStream.GetStringAsync(index, cancellationToken);
 
 	public PhysicalDescriptorSetCollection GetPhysicalDescriptorSets()

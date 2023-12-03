@@ -1,12 +1,8 @@
 using System.Buffers;
 using System.ComponentModel;
-using System;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Win32.SafeHandles;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeviceTools.HumanInterfaceDevices;
 
@@ -56,16 +52,16 @@ public class HidDeviceStream : DeviceStream
 	{
 	}
 
-	public ValueTask<string> GetManufacturerNameAsync(CancellationToken cancellationToken)
+	public ValueTask<string?> GetManufacturerNameAsync(CancellationToken cancellationToken)
 		=> GetStringAsync(NativeMethods.IoCtlGetManufacturerString, default, cancellationToken);
 
-	public ValueTask<string> GetProductNameAsync(CancellationToken cancellationToken)
+	public ValueTask<string?> GetProductNameAsync(CancellationToken cancellationToken)
 		=> GetStringAsync(NativeMethods.IoCtlGetProductString, default, cancellationToken);
 
-	public ValueTask<string> GetSerialNumberAsync(CancellationToken cancellationToken)
+	public ValueTask<string?> GetSerialNumberAsync(CancellationToken cancellationToken)
 		=> GetStringAsync(NativeMethods.IoCtlGetSerialNumberString, default, cancellationToken);
 
-	public ValueTask<string> GetStringAsync(int index, CancellationToken cancellationToken)
+	public ValueTask<string?> GetStringAsync(int index, CancellationToken cancellationToken)
 	{
 		var input = new byte[4];
 		Unsafe.As<byte, int>(ref input[0]) = index;
