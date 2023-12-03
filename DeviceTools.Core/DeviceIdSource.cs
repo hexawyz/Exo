@@ -31,6 +31,9 @@ public enum DeviceIdSource : byte
 	/// <summary>Device ID coming from a Bluetooth LE enumerator.</summary>
 	/// <remarks>These devices can currently use USB or Bluetooth IDs.</remarks>
 	BluetoothLowEnergy = 6,
+	/// <summary>Device ID coming from the HID subsystem.</summary>
+	/// <remarks>In itself, the HID subsystem does not specify the origin of the vendor ID, but it can be assumed to be from the USB Vendor ID space.</remarks>
+	Hid = 64,
 	/// <summary>Device ID from Logi HID++ eQuad.</summary>
 	/// <remarks>These devices use USB IDs. The USB product ID namespace provides different </remarks>
 	EQuad = 128,

@@ -106,8 +106,10 @@ public class HidDeviceStream : DeviceStream
 		return GetDeviceId(ref _hidCollectionInformation!.Value);
 	}
 
+	// NB: Forcing the USB vendor ID origin here seem like a sensible choice, but it could be wrong.
+	// Unless factual evidence that this is wrong, it can be left as-is.
 	private static DeviceId GetDeviceId(ref NativeMethods.HidCollectionInformation hidCollectionInformation)
-		=> new DeviceId(DeviceIdSource.Unknown, VendorIdSource.Unknown, hidCollectionInformation.VendorId, hidCollectionInformation.ProductId, hidCollectionInformation.VersionNumber);
+		=> new DeviceId(DeviceIdSource.Hid, VendorIdSource.Usb, hidCollectionInformation.VendorId, hidCollectionInformation.ProductId, hidCollectionInformation.VersionNumber);
 
 	private ValueTask EnsureCollectionInformationAvailabilityAsync(CancellationToken cancellationToken)
 		=> _hidCollectionInformation is not null ?

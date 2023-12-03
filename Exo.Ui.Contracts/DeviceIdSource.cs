@@ -20,5 +20,7 @@ public enum DeviceIdSource : byte
 	[EnumMember]
 	BluetoothLowEnergy = 6,
 	[EnumMember]
+	Hid = 64,
+	[EnumMember]
 	EQuad = 128,
 }
