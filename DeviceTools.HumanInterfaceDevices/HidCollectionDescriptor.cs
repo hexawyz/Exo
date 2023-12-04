@@ -326,7 +326,7 @@ public sealed class HidCollectionDescriptor
 		throw new ArgumentException("Invalid descriptor.");
 	}
 
-	public HidCollectionDescriptor
+	private HidCollectionDescriptor
 	(
 		HidLinkCollection linkCollection,
 		ushort usage,

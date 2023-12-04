@@ -15,6 +15,7 @@ using DeviceTools.Firmware.Uefi;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
 using DeviceTools.RawInput;
+using WinRT;
 
 namespace DeviceTools.Cli;
 
@@ -361,7 +362,7 @@ internal static class Program
 						if (channel.IsRange)
 						{
 							PrintUsagePage("║ ║ ║ │ ", channel.UsagePage);
-							Console.WriteLine($"║ ║ ║ │ Usage: {MapToKnownUsage(channel.UsagePage, channel.UsageRange.Minimum)} .. {MapToKnownUsage(channel.UsagePage, channel.UsageRange.Maximum)}");
+							Console.WriteLine($"║ ║ ║ │ Usage: {UsageToString(channel.UsagePage, channel.UsageRange.Minimum)} .. {UsageToString(channel.UsagePage, channel.UsageRange.Maximum)}");
 							Console.WriteLine($"║ ║ ║ │ Data Index: {channel.DataIndexRange.Minimum} .. {channel.DataIndexRange.Maximum}");
 						}
 						else
@@ -450,37 +451,45 @@ internal static class Program
 		PrintUsage(prefix, usagePage, usage);
 	}
 
-	private static void PrintUsagePage(string prefix, HidUsagePage usagePage) => Console.WriteLine($"{prefix}Usage Page: {usagePage}");
+	private static void PrintUsagePage(string prefix, HidUsagePage usagePage) => Console.WriteLine($"{prefix}Usage Page: {(Enum.IsDefined(usagePage) ? usagePage.ToString() : ((ushort)usagePage).ToString("X4"))}");
 
-	private static void PrintUsage(string prefix, HidUsagePage usagePage, ushort usage) => Console.WriteLine($@"{prefix}Usage: {MapToKnownUsage(usagePage, usage)}");
+	private static void PrintUsage(string prefix, HidUsagePage usagePage, ushort usage) => Console.WriteLine($@"{prefix}Usage: {UsageToString(usagePage, usage)}");
 
-	private static object MapToKnownUsage(HidUsagePage usagePage, ushort usage)
+	private static string UsageToString(HidUsagePage usagePage, ushort usage)
 		=> usagePage switch
 		{
-			HidUsagePage.GenericDesktop => (HidGenericDesktopUsage)usage,
-			HidUsagePage.Simulation => (HidSimulationUsage)usage,
-			HidUsagePage.Vr => (HidVrUsage)usage,
-			HidUsagePage.Sport => (HidSportUsage)usage,
-			HidUsagePage.Game => (HidGameUsage)usage,
-			HidUsagePage.GenericDevice => (HidGenericDeviceUsage)usage,
-			HidUsagePage.Keyboard => (HidKeyboardUsage)usage,
-			HidUsagePage.Led => (HidLedUsage)usage,
-			HidUsagePage.Telephony => (HidTelephonyUsage)usage,
-			HidUsagePage.Consumer => (HidConsumerUsage)usage,
-			HidUsagePage.Digitizer => (HidDigitizerUsage)usage,
-			HidUsagePage.Haptics => (HidHapticUsage)usage,
-			HidUsagePage.EyeAndHeadTrackers => (HidEyeAndHeadTrackerUsage)usage,
-			HidUsagePage.AuxiliaryDisplay => (HidAuxiliaryDisplayUsage)usage,
-			HidUsagePage.Sensor => (HidSensorUsage)usage,
-			HidUsagePage.MedicalInstrument => (HidMedicalInstrumentUsage)usage,
-			HidUsagePage.BrailleDisplay => (HidBrailleDisplayUsage)usage,
-			HidUsagePage.LightingAndIllumination => (HidLightingAndIlluminationUsage)usage,
-			HidUsagePage.CameraControl => (HidCameraControlUsage)usage,
-			HidUsagePage.PowerDevice => (HidPowerDeviceUsage)usage,
-			HidUsagePage.BatterySystem => (HidBatterySystemUsage)usage,
-			HidUsagePage.FidoAlliance => (HidFidoAllianceUsage)usage,
-			_ => usage.ToString("X2")
+			HidUsagePage.GenericDesktop => UsageToString<HidGenericDesktopUsage>(usage),
+			HidUsagePage.Simulation => UsageToString<HidSimulationUsage>(usage),
+			HidUsagePage.Vr => UsageToString<HidVrUsage>(usage),
+			HidUsagePage.Sport => UsageToString<HidSportUsage>(usage),
+			HidUsagePage.Game => UsageToString<HidGameUsage>(usage),
+			HidUsagePage.GenericDevice => UsageToString<HidGenericDeviceUsage>(usage),
+			HidUsagePage.Keyboard => UsageToString<HidKeyboardUsage>(usage),
+			HidUsagePage.Led => UsageToString<HidLedUsage>(usage),
+			HidUsagePage.Telephony => UsageToString<HidTelephonyUsage>(usage),
+			HidUsagePage.Consumer => UsageToString<HidConsumerUsage>(usage),
+			HidUsagePage.Digitizer => UsageToString<HidDigitizerUsage>(usage),
+			HidUsagePage.Haptics => UsageToString<HidHapticUsage>(usage),
+			HidUsagePage.EyeAndHeadTrackers => UsageToString<HidEyeAndHeadTrackerUsage>(usage),
+			HidUsagePage.AuxiliaryDisplay => UsageToString<HidAuxiliaryDisplayUsage>(usage),
+			HidUsagePage.Sensor => UsageToString<HidSensorUsage>(usage),
+			HidUsagePage.MedicalInstrument => UsageToString<HidMedicalInstrumentUsage>(usage),
+			HidUsagePage.BrailleDisplay => UsageToString<HidBrailleDisplayUsage>(usage),
+			HidUsagePage.LightingAndIllumination => UsageToString<HidLightingAndIlluminationUsage>(usage),
+			HidUsagePage.CameraControl => UsageToString<HidCameraControlUsage>(usage),
+			HidUsagePage.PowerDevice => UsageToString<HidPowerDeviceUsage>(usage),
+			HidUsagePage.BatterySystem => UsageToString<HidBatterySystemUsage>(usage),
+			HidUsagePage.FidoAlliance => UsageToString<HidFidoAllianceUsage>(usage),
+			_ => usage.ToString("X4")
 		};
+
+	private static string UsageToString<T>(ushort usage)
+		where T : struct, Enum
+	{
+		var value = Unsafe.As<ushort, T>(ref usage);
+
+		return Enum.IsDefined(value) ? value.ToString() : usage.ToString("X4");
+	}
 
 	private static async Task ListMonitors()
 	{
