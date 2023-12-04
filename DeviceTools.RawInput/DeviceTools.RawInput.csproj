@@ -7,7 +7,6 @@
   <ItemGroup>
     <PackageReference Include="System.Memory" />
     <PackageReference Include="System.Buffers" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
 
   <ItemGroup>

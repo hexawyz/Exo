@@ -263,33 +263,6 @@ internal static class NativeMethods
 #pragma warning restore CS0169, IDE0051, RCS1213
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct HidParsingLinkCollectionNode
-	{
-		private static readonly byte IsAliasMask = BitConverter.IsLittleEndian ? (byte)0x01 : (byte)0x80;
-
-		public ushort LinkUsage;
-		public HidUsagePage LinkUsagePage;
-		public ushort Parent;
-		public ushort ChildCount;
-		public ushort NextSibling;
-		public ushort FirstChild;
-
-		// The following fields are declared as C++ bitfields, which means that the layout slightly differs between little & big endian… great ! 😣
-		// NB: The bitfield should be aligned as an uint. (The sequential layout is already sufficently packed in that regard)
-		public HidCollectionType CollectionType; // The first byte-sized field should be mostly unaffected.
-		private byte _isAlias; // However, this following one bit-sized field would be 0x80 on big endian, and 0x01 on little endian.
-		private readonly ushort _reserved; // Thankfully, nothing else is used for now…
-
-		public bool IsAlias
-		{
-			get => (_isAlias & IsAliasMask) != 0;
-			set => _isAlias = value ? (byte)(_isAlias | IsAliasMask) : (byte)(_isAlias & ~IsAliasMask);
-		}
-
-		public IntPtr UserContext;
-	}
-
 	//public enum HidParsingResult : uint
 	//{
 	//	Success = 0x00110000,

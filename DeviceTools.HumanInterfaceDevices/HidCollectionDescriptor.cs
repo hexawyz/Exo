@@ -1,9 +1,9 @@
 using System.Collections;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
 
 namespace DeviceTools.HumanInterfaceDevices;
 
@@ -70,6 +70,7 @@ public sealed class HidCollectionDescriptor
 		public readonly ushort LinkUsagePage;
 		[FieldOffset(22)]
 		public readonly ushort LinkUsage;
+		// This is declared as a C++ bit field. We cannot split it into bytes if we want the code to be compatible with big endian.
 		[FieldOffset(24)]
 		private readonly int _flags;
 		public HidChannelDescriptorFlags Flags => (HidChannelDescriptorFlags)(byte)_flags;
@@ -117,6 +118,24 @@ public sealed class HidCollectionDescriptor
 		public readonly int PhysicalMax;
 	}
 
+	[StructLayout(LayoutKind.Sequential)]
+	public readonly struct LinkCollectionNode
+	{
+		public readonly ushort LinkUsage;
+		public readonly HidUsagePage LinkUsagePage;
+		public readonly ushort Parent;
+		public readonly ushort ChildCount;
+		public readonly ushort NextSibling;
+		public readonly ushort FirstChild;
+
+		// This is declared as a C++ bit field. We cannot split it into bytes if we want the code to be compatible with big endian.
+		private readonly uint _packedBitFieldData;
+
+		public HidCollectionType CollectionType => (HidCollectionType)(byte)_packedBitFieldData;
+
+		public bool IsAlias => (_packedBitFieldData & 0x100) != 0;
+	}
+
 	private class ReportDescriptorBuilder
 	{
 		public ReportDescriptorBuilder(byte reportId) => ReportId = reportId;
@@ -128,12 +147,98 @@ public sealed class HidCollectionDescriptor
 		public HidReportDescriptor ToReportDescriptor() => new(ReportId, ReportLength, Channels.ToArray());
 	}
 
+	internal static ImmutableArray<T> AsImmutable<T>(T[] array) => Unsafe.As<T[], ImmutableArray<T>>(ref array);
+
+	internal static T[] AsMutable<T>(ImmutableArray<T> array) => Unsafe.As<ImmutableArray<T>, T[]>(ref array);
+
 	internal static HidCollectionDescriptor Parse(ReadOnlySpan<byte> preparsedData)
 	{
 		static ReadOnlySpan<ChannelDescriptor> GetChannels(ReadOnlySpan<byte> data, ref readonly ChannelReportHeader header)
 			 => MemoryMarshal.Cast<byte, ChannelDescriptor>(data.Slice(Unsafe.SizeOf<PreparsedDataHeader>() + header.Offset * Unsafe.SizeOf<ChannelDescriptor>(), header.Size * Unsafe.SizeOf<ChannelDescriptor>()));
 
-		static HidReportDescriptor[] ParseReports(ReadOnlySpan<byte> data, ref readonly ChannelReportHeader header)
+		static ReadOnlySpan<LinkCollectionNode> GetLinkNodes(ReadOnlySpan<byte> data)
+		{
+			ref var header = ref Unsafe.As<byte, PreparsedDataHeader>(ref Unsafe.AsRef(in data[0]));
+			return MemoryMarshal.Cast<byte, LinkCollectionNode>(data.Slice(Unsafe.SizeOf<PreparsedDataHeader>() + header.LinkCollectionArrayOffset, header.LinkCollectionArrayLength * Unsafe.SizeOf<LinkCollectionNode>()));
+		}
+
+		// Collection node processing is done in multiple passes for simplicity.
+		static HidLinkCollection[] ParseLinkCollections(ReadOnlySpan<byte> data)
+		{
+			var nodes = GetLinkNodes(data);
+			// During the first pass, we'll create collection nodes with children not filled in.
+			// This is possible because the arrays will be stored as-is and will still be writable after object creation. (Because we control the model)
+			// Hopefully, the nodes are laid out in logical order with parents before children, but just in case it is not the case, we'll support multiple sub-passes to create all the nodes.
+			var collections = new HidLinkCollection?[nodes.Length];
+			int initializedNodes = 0;
+			do
+			{
+				int firstAliasIndex = -1;
+				for (int i = 0; i < nodes.Length; i++)
+				{
+					if (collections[i] is not null) continue;
+
+					var node = nodes[i];
+					var parent = collections[node.Parent];
+					if (parent is null && i > 0) continue;
+
+					// All aliased nodes are supposed to appear sequentially in the array, with the main node appearing last without the IsAlias flag.
+					// NB: All aliased nodes should have the same parent, so there shouldn't be any weird interaction with the null parent skipping logic below.
+					if (node.IsAlias)
+					{
+						if (parent is null) throw new InvalidOperationException("Parent node cannot be aliased.");
+						if (firstAliasIndex < 0) firstAliasIndex = i;
+						continue;
+					}
+
+					var children = AsImmutable(node.ChildCount > 0 ? new HidLinkCollection[node.ChildCount] : Array.Empty<HidLinkCollection>());
+
+					var collection = firstAliasIndex >= 0 ?
+						HidLinkCollection.CreateAliased(node.LinkUsagePage, node.LinkUsage, parent!, children) :
+						HidLinkCollection.Create(node.LinkUsagePage, node.LinkUsage, parent, children);
+					collections[i] = collection;
+					initializedNodes++;
+
+					if (firstAliasIndex >= 0)
+					{
+						// Create all the (previous) aliased nodes now.
+						// We're relying on the fact that the parent of aliased nodes should be the same. (Hopefully, otherwise it wouldn't even make sense)
+						for (int j = firstAliasIndex; j < i; j++)
+						{
+							node = nodes[j];
+							children = AsImmutable(node.ChildCount > 0 ? new HidLinkCollection[node.ChildCount] : Array.Empty<HidLinkCollection>());
+							collections[j] = HidLinkCollection.CreateAliased(node.LinkUsagePage, node.LinkUsage, parent!, collection, children);
+							initializedNodes++;
+						}
+
+						firstAliasIndex = -1;
+					}
+				}
+			}
+			while (initializedNodes < nodes.Length);
+
+			// During the second pass, we'll define the children for all nodes.
+			for (int i = 0; i < collections.Length; i++)
+			{
+				var children = AsMutable(collections[i]!.Children);
+
+				if (children.Length == 0) continue;
+
+				int childIndex = nodes[i].FirstChild;
+				int childCount = 0;
+				while (childIndex > 0)
+				{
+					var child = collections[childIndex]!;
+					children[childCount++] = child;
+					childIndex = nodes[childIndex].NextSibling;
+				}
+				if (childCount != children.Length) throw new InvalidOperationException("The number of child nodes does not match.");
+			}
+
+			return collections!;
+		}
+
+		static HidReportDescriptor[] ParseReports(HidLinkCollection[] linkCollections, ReadOnlySpan<byte> data, ref readonly ChannelReportHeader header)
 		{
 			var channels = GetChannels(data, in header);
 			var reports = new List<ReportDescriptorBuilder>();
@@ -159,6 +264,7 @@ public sealed class HidCollectionDescriptor
 					(channel.Flags & HidChannelDescriptorFlags.IsButton) != 0 ?
 					new HidButtonDescriptor
 					(
+						linkCollections[channel.LinkCollection],
 						(HidUsagePage)channel.UsagePage,
 						channel.ReportSize,
 						channel.ReportCount,
@@ -175,6 +281,7 @@ public sealed class HidCollectionDescriptor
 					) :
 					new HidValueDescriptor
 					(
+						linkCollections[channel.LinkCollection],
 						(HidUsagePage)channel.UsagePage,
 						channel.ReportSize,
 						channel.ReportCount,
@@ -208,17 +315,20 @@ public sealed class HidCollectionDescriptor
 		if (preparsedData.Length < Unsafe.SizeOf<PreparsedDataHeader>() || !preparsedData.Slice(0, 8).SequenceEqual("HidP KDR"u8)) goto InvalidDescriptor;
 		ref var header = ref Unsafe.As<byte, PreparsedDataHeader>(ref Unsafe.AsRef(in preparsedData[0]));
 
-		var inputReports = header.Input.Size > 0 ? new(ParseReports(preparsedData, in header.Input), header.Input.ByteLen) : HidInputReportDescriptorCollection.Empty;
-		var outputReports = header.Input.Size > 0 ? new(ParseReports(preparsedData, in header.Input), header.Input.ByteLen) : HidOutputReportDescriptorCollection.Empty;
-		var featureReports = header.Input.Size > 0 ? new(ParseReports(preparsedData, in header.Input), header.Input.ByteLen) : HidFeatureReportDescriptorCollection.Empty;
+		var linkCollections = ParseLinkCollections(preparsedData);
 
-		return new(header.Usage, (HidUsagePage)header.UsagePage, (SystemButtons)header.PowerButtonMask, inputReports, outputReports, featureReports);
+		var inputReports = header.Input.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Input), header.Input.ByteLen) : HidInputReportDescriptorCollection.Empty;
+		var outputReports = header.Input.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Input), header.Input.ByteLen) : HidOutputReportDescriptorCollection.Empty;
+		var featureReports = header.Input.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Input), header.Input.ByteLen) : HidFeatureReportDescriptorCollection.Empty;
+
+		return new(linkCollections[0], header.Usage, (HidUsagePage)header.UsagePage, (SystemButtons)header.PowerButtonMask, inputReports, outputReports, featureReports);
 	InvalidDescriptor:;
 		throw new ArgumentException("Invalid descriptor.");
 	}
 
 	public HidCollectionDescriptor
 	(
+		HidLinkCollection linkCollection,
 		ushort usage,
 		HidUsagePage usagePage,
 		SystemButtons powerButtons,
@@ -227,6 +337,7 @@ public sealed class HidCollectionDescriptor
 		HidFeatureReportDescriptorCollection featureReports
 	)
 	{
+		LinkCollection = linkCollection;
 		Usage = usage;
 		UsagePage = usagePage;
 		PowerButtons = powerButtons;
@@ -234,6 +345,9 @@ public sealed class HidCollectionDescriptor
 		OutputReports = outputReports;
 		FeatureReports = featureReports;
 	}
+
+	/// <summary>Gets the root node of the link collection graph.</summary>
+	public HidLinkCollection LinkCollection { get; }
 
 	public ushort Usage { get; }
 	public HidUsagePage UsagePage { get; }
@@ -395,6 +509,7 @@ public abstract class HidChannelDescriptor
 {
 	private protected HidChannelDescriptor
 	(
+		HidLinkCollection linkCollection,
 		HidUsagePage usagePage,
 		ushort itemBitLength,
 		ushort itemCount,
@@ -410,6 +525,7 @@ public abstract class HidChannelDescriptor
 		HidValueRange<int> logicalRange
 	)
 	{
+		LinkCollection = linkCollection;
 		UsagePage = usagePage;
 		ItemBitLength = itemBitLength;
 		ItemCount = itemCount;
@@ -424,6 +540,8 @@ public abstract class HidChannelDescriptor
 		DataIndexRange = dataIndexRange;
 		LogicalRange = logicalRange;
 	}
+
+	public HidLinkCollection LinkCollection { get; }
 
 	public HidUsagePage UsagePage { get; }
 
@@ -456,6 +574,7 @@ public sealed class HidButtonDescriptor : HidChannelDescriptor
 {
 	internal HidButtonDescriptor
 	(
+		HidLinkCollection linkCollection,
 		HidUsagePage usagePage,
 		ushort itemBitLength,
 		ushort itemCount,
@@ -471,6 +590,7 @@ public sealed class HidButtonDescriptor : HidChannelDescriptor
 		HidValueRange<int> logicalRange
 	) : base
 		(
+			linkCollection,
 			usagePage,
 			itemBitLength,
 			itemCount,
@@ -493,6 +613,7 @@ public sealed class HidValueDescriptor : HidChannelDescriptor
 {
 	internal HidValueDescriptor
 	(
+		HidLinkCollection linkCollection,
 		HidUsagePage usagePage,
 		ushort itemBitLength,
 		ushort itemCount,
@@ -510,6 +631,7 @@ public sealed class HidValueDescriptor : HidChannelDescriptor
 		bool hasNullValue
 	) : base
 		(
+			linkCollection,
 			usagePage,
 			itemBitLength,
 			itemCount,
@@ -546,3 +668,44 @@ public enum SystemButtons
 	LidChanged = 0x00080000,
 	Wake = int.MinValue,
 }
+
+public class HidLinkCollection
+{
+	internal static HidLinkCollection Create(HidUsagePage usagePage, ushort usage, HidLinkCollection? parent, ImmutableArray<HidLinkCollection> children)
+		=> new(usagePage, usage, parent, null, children);
+
+	internal static HidLinkCollection CreateAliased(HidUsagePage usagePage, ushort usage, HidLinkCollection parent, ImmutableArray<HidLinkCollection> children)
+		=> new(usagePage, usage, parent, children);
+
+	internal static HidLinkCollection CreateAliased(HidUsagePage usagePage, ushort usage, HidLinkCollection parent, HidLinkCollection aliasedCollection, ImmutableArray<HidLinkCollection> children)
+		=> new(usagePage, usage, parent, aliasedCollection, children);
+
+	private HidLinkCollection(HidUsagePage usagePage, ushort usage, HidLinkCollection? parent, ImmutableArray<HidLinkCollection> children)
+	{
+		UsagePage = usagePage;
+		Usage = usage;
+		Parent = parent;
+		AliasedCollection = this;
+		Children = children;
+	}
+
+	private HidLinkCollection(HidUsagePage usagePage, ushort usage, HidLinkCollection? parent, HidLinkCollection? aliasedCollection, ImmutableArray<HidLinkCollection> children)
+	{
+		UsagePage = usagePage;
+		Usage = usage;
+		Parent = parent;
+		AliasedCollection = aliasedCollection;
+		Children = children;
+	}
+
+	public HidLinkCollection? Parent { get; }
+
+	/// <summary>If the collection is aliased, gets the main collection against which it is aliased, or itself if it is the main one.</summary>
+	public HidLinkCollection? AliasedCollection { get; }
+
+	public ImmutableArray<HidLinkCollection> Children { get; }
+
+	public HidUsagePage UsagePage { get; }
+	public ushort Usage { get; }
+}
+

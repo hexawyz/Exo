@@ -16,7 +16,7 @@
 	<ItemGroup>
 		<PackageReference Include="System.Memory" />
 		<PackageReference Include="System.Buffers" />
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+		<PackageReference Include="System.Collections.Immutable" />
 	</ItemGroup>
 
 	<ItemGroup>

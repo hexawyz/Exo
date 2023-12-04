@@ -356,9 +356,8 @@ internal static class Program
 						var channel = report.Channels[j];
 						var value = channel as HidValueDescriptor;
 						Console.WriteLine($"║ ║ ║ {(j == 0 ? "╒" : "╞")}═══════ Channel #{j}");
-						//Console.WriteLine($"║ ║ ║ │ Collection Index: {button.LinkCollection}");
-						//PrintUsageAndPage("║ ║ ║ │ Collection", button.LinkUsagePage, button.LinkUsage);
-						//Console.WriteLine("║ ║ ║ ├───────");
+						PrintUsageAndPage("║ ║ ║ │ Collection ", channel.LinkCollection.UsagePage, channel.LinkCollection.Usage);
+						Console.WriteLine("║ ║ ║ ├───────");
 						if (channel.IsRange)
 						{
 							PrintUsagePage("║ ║ ║ │ ", channel.UsagePage);
