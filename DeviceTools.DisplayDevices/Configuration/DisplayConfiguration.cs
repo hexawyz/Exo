@@ -116,6 +116,23 @@ public readonly struct DisplayConfiguration
 
 		return new TargetDeviceNameInfo(packet);
 	}
+
+	internal static unsafe string GetAdapterName(NativeMethods.Luid adapterId)
+	{
+		var packet = new NativeMethods.DisplayConfigAdapterName
+		{
+			Header = new NativeMethods.DisplayConfigDeviceInfoHeader
+			{
+				Type = NativeMethods.DisplayConfigDeviceInfoType.GetAdapterName,
+				Size = sizeof(NativeMethods.DisplayConfigAdapterName),
+				AdapterId = adapterId,
+			}
+		};
+
+		ThrowOnError(NativeMethods.DisplayConfigGetDeviceInfo(ref packet));
+
+		return packet.AdapterDevicePath.ToString();
+	}
 }
 
 public readonly struct DisplayConfigurationPathCollection : IReadOnlyList<DisplayConfigurationPath>, IList<DisplayConfigurationPath>
@@ -271,6 +288,25 @@ public readonly struct DisplayConfigurationPath
 	public bool SupportsVirtualMode => (_pathInfo.Flags | NativeMethods.DisplayConfigPathInfoFlags.SupportVirtualMode) != 0;
 }
 
+public readonly struct DisplayConfigurationAdapterInfo : IEquatable<DisplayConfigurationAdapterInfo>
+{
+	private readonly NativeMethods.Luid _adapterId;
+
+	internal DisplayConfigurationAdapterInfo(NativeMethods.Luid adapterId) => _adapterId = adapterId;
+
+	public long Id => _adapterId.ToInt64();
+
+	public string GetDeviceName()
+		=> DisplayConfiguration.GetAdapterName(_adapterId);
+
+	public override bool Equals(object? obj) => obj is DisplayConfigurationAdapterInfo info && Equals(info);
+	public bool Equals(DisplayConfigurationAdapterInfo other) => _adapterId.Equals(other._adapterId) && Id == other.Id;
+	public override int GetHashCode() => HashCode.Combine(_adapterId, Id);
+
+	public static bool operator ==(DisplayConfigurationAdapterInfo left, DisplayConfigurationAdapterInfo right) => left.Equals(right);
+	public static bool operator !=(DisplayConfigurationAdapterInfo left, DisplayConfigurationAdapterInfo right) => !(left == right);
+}
+
 public readonly struct DisplayConfigurationPathSourceInfo : IEquatable<DisplayConfigurationPathSourceInfo>
 {
 	private readonly NativeMethods.DisplayConfigPathSourceInfo _sourceInfo;
@@ -284,7 +320,7 @@ public readonly struct DisplayConfigurationPathSourceInfo : IEquatable<DisplayCo
 		_modes = modes;
 	}
 
-	public long AdapterId => _sourceInfo.AdapterId.ToInt64();
+	public DisplayConfigurationAdapterInfo Adapter => new(_sourceInfo.AdapterId);
 	public int Id => (int)_sourceInfo.Id;
 
 	public int? ModeIndex => _supportsVirtualMode ?
@@ -295,7 +331,7 @@ public readonly struct DisplayConfigurationPathSourceInfo : IEquatable<DisplayCo
 			(int)_sourceInfo.ModeInfo.ModeInfoIdx :
 			null;
 
-	public DisplayConfigurationModeInfo? Mode => ModeIndex is int index ? new DisplayConfigurationModeInfo(_modes[index]) : null;
+	public DisplayConfigurationSourceMode? Mode => ModeIndex is int index ? new DisplayConfigurationSourceMode(_modes[index]) : null;
 
 	public int? CloneGroupId => _supportsVirtualMode && _sourceInfo.ModeInfo.CloneGroupId != NativeMethods.DisplayConfigPathCloneGroupInvalid ?
 		_sourceInfo.ModeInfo.CloneGroupId :
@@ -334,7 +370,7 @@ public readonly struct DisplayConfigurationPathTargetInfo
 		_modes = modes;
 	}
 
-	public long AdapterId => _targetInfo.AdapterId.ToInt64();
+	public DisplayConfigurationAdapterInfo Adapter => new(_targetInfo.AdapterId);
 	public int Id => (int)_targetInfo.Id;
 
 	public int? ModeIndex => _supportsVirtualMode ?
@@ -345,7 +381,7 @@ public readonly struct DisplayConfigurationPathTargetInfo
 			(int)_targetInfo.ModeInfo.ModeInfoIdx :
 			null;
 
-	public DisplayConfigurationModeInfo? Mode => ModeIndex is int index ? new DisplayConfigurationModeInfo(_modes[index]) : null;
+	public DisplayConfigurationTargetMode? Mode => ModeIndex is int index ? new DisplayConfigurationTargetMode(_modes[index]) : null;
 
 	public int? DesktopModeIndex => _supportsVirtualMode && _targetInfo.ModeInfo.DesktopModeInfoIdx != NativeMethods.DisplayConfigPathDesktopImageIndexInvalid ?
 		_targetInfo.ModeInfo.DesktopModeInfoIdx :
@@ -376,9 +412,10 @@ public readonly struct TargetDeviceNameInfo
 
 	internal TargetDeviceNameInfo(NativeMethods.DisplayConfigTargetDeviceName deviceName) => _deviceName = deviceName;
 
-	public PnpVendorId EdidVendorId => PnpVendorId.FromRaw(_deviceName.EdidManufactureId);
+	public PnpVendorId EdidVendorId => PnpVendorId.FromRaw(BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(_deviceName.EdidManufactureId) : _deviceName.EdidManufactureId);
 	public ushort EdidProductId => _deviceName.EdidProductCodeId;
 
+	public VideoOutputTechnology OutputTechnology => _deviceName.OutputTechnology;
 	public int ConnectorInstance => (int)_deviceName.ConnectorInstance;
 
 	public bool IsEdidValid => (_deviceName.Flags & NativeMethods.DisplayConfigTargetDeviceNameFlags.EdidIdsValid) != 0;
@@ -455,13 +492,13 @@ public readonly struct DisplayConfigurationModeInfo
 			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationSourceMode>(ref Unsafe.AsRef(this)) :
 			throw new InvalidOperationException();
 
-	public DisplayConfigurationSourceMode AsTargetMode()
-		=> _displayConfigMode.InfoType == ModeInfoType.Source ?
-			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationSourceMode>(ref Unsafe.AsRef(this)) :
+	public DisplayConfigurationTargetMode AsTargetMode()
+		=> _displayConfigMode.InfoType == ModeInfoType.Target ?
+			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationTargetMode>(ref Unsafe.AsRef(this)) :
 			throw new InvalidOperationException();
 
 	public DisplayConfigurationDesktopImageInfo AsDesktopImageInfo()
-		=> _displayConfigMode.InfoType == ModeInfoType.Source ?
+		=> _displayConfigMode.InfoType == ModeInfoType.DesktopImage ?
 			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationDesktopImageInfo>(ref Unsafe.AsRef(this)) :
 			throw new InvalidOperationException();
 

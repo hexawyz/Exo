@@ -210,13 +210,13 @@ namespace DeviceTools.DisplayDevices
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
-		public struct Luid : IEquatable<Luid>
+		public readonly struct Luid : IEquatable<Luid>
 		{
 			public Luid(long value)
 				=> (LowPart, HighPart) = ((uint)value, (int)(value >> 32));
 
-			public uint LowPart;
-			public int HighPart;
+			public readonly uint LowPart;
+			public readonly int HighPart;
 
 			public long ToInt64() => (long)HighPart << 32 | LowPart;
 
@@ -235,6 +235,13 @@ namespace DeviceTools.DisplayDevices
 			public int Size;
 			public Luid AdapterId;
 			public uint Id;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct DisplayConfigAdapterName
+		{
+			public DisplayConfigDeviceInfoHeader Header;
+			public FixedString128 AdapterDevicePath;
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
@@ -445,5 +452,8 @@ namespace DeviceTools.DisplayDevices
 
 		[DllImport("User32", ExactSpelling = true, SetLastError = false)]
 		public static extern int DisplayConfigGetDeviceInfo(ref DisplayConfigTargetDeviceName requestPacket);
+
+		[DllImport("User32", ExactSpelling = true, SetLastError = false)]
+		public static extern int DisplayConfigGetDeviceInfo(ref DisplayConfigAdapterName requestPacket);
 	}
 }

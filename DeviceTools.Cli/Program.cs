@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using DeviceTools.DisplayDevices;
+using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.FilterExpressions;
 using DeviceTools.Firmware;
 using DeviceTools.Firmware.Uefi;
@@ -24,11 +25,13 @@ internal static class Program
 	private static async Task Main(string[] args)
 	{
 		Console.OutputEncoding = Encoding.UTF8;
-		bool enumerateMonitors = false;
+		bool enumerateMonitors = true;
+		bool enuemrateVcpCodes = false;
 
 		if (enumerateMonitors)
 		{
-			await ListMonitors();
+			PrintDisplayConfiguration();
+			await ListMonitors(enuemrateVcpCodes);
 		}
 
 		PrintSmBiosInfo();
@@ -213,6 +216,108 @@ internal static class Program
 		await PrintDeviceInfoAsync(device);
 	}
 
+	private static void PrintDisplayConfiguration()
+	{
+		var configuration = DisplayConfiguration.GetForActivePaths();
+
+		for (int i = 0; i < configuration.Paths.Count; i++)
+		{
+			Console.WriteLine((i == 0 ? "╔" : "╠") + new string('═', 39));
+			var path = configuration.Paths[i];
+			var source = path.SourceInfo;
+			var target = path.TargetInfo;
+			bool sameAdapter = source.Adapter == target.Adapter;
+
+			Console.WriteLine($"║ Path Is Active: {path.IsActive}");
+			Console.WriteLine($"║ Path Supports Virtual Mode: {path.SupportsVirtualMode}");
+			if (sameAdapter)
+			{
+				Console.WriteLine($"║ Adapter ID: {source.Adapter.Id:X16}");
+				Console.WriteLine($"║ Adapter Name: {source.Adapter.GetDeviceName()}");
+			}
+			Console.WriteLine("║ ╒ Source ═════════════════════════════");
+			if (!sameAdapter)
+			{
+				Console.WriteLine($"║ │ Adapter ID: {source.Adapter.Id:X16}");
+				Console.WriteLine($"║ │ Adapter Name: {source.Adapter.GetDeviceName()}");
+			}
+			Console.WriteLine($"║ │ ID: {source.Id}");
+			Console.WriteLine($"║ │ Is In Use: {source.IsInUse}");
+			Console.WriteLine($"║ │ Device Name: {source.GetDeviceName()}");
+			if (source.CloneGroupId is int cloneGroupId)
+			{
+				Console.WriteLine($"║ │ Clone Group ID: {cloneGroupId}");
+			}
+			if (source.Mode is { } sourceMode)
+			{
+				Console.WriteLine("║ │ ┌ Mode ─────────────────────────────");
+				Console.WriteLine($"║ │ │ Size: {sourceMode.Width}x{sourceMode.Height}");
+				Console.WriteLine($"║ │ │ Pixel Format: {sourceMode.PixelFormat}");
+				Console.WriteLine("║ │ └───────────────────────────────────");
+			}
+			Console.WriteLine("║ ╞ Target ═════════════════════════════");
+			if (!sameAdapter)
+			{
+				Console.WriteLine($"║ │ Adapter ID: {target.Adapter.Id:X16}");
+				Console.WriteLine($"║ │ Adapter Name: {target.Adapter.GetDeviceName()}");
+			}
+			Console.WriteLine($"║ │ ID: {target.Id}");
+			Console.WriteLine($"║ │ Is Head-Mounted Display: {target.IsHeadMountedDisplay}");
+			Console.WriteLine($"║ │ Is In Use: {target.IsInUse}");
+			Console.WriteLine($"║ │ Is Available: {target.IsAvailable}");
+			Console.WriteLine($"║ │ Is Forcible: {target.IsForcible}");
+			Console.WriteLine($"║ │ Is Boot Persistent Forced: {target.IsBootPersistentForced}");
+			Console.WriteLine($"║ │ Is Path Persistent Forced: {target.IsPathPersistentForced}");
+			Console.WriteLine($"║ │ Is Non Persistent Forced: {target.IsNonPersistentForced}");
+			var targetDeviceName = target.GetDeviceNameInformation();
+			Console.WriteLine($"║ │ ┌ Device Name ──────────────────────");
+			Console.WriteLine($"║ │ │ Name: {targetDeviceName.GetMonitorDeviceName()}");
+			Console.WriteLine($"║ │ │ Friendly Name: {targetDeviceName.GetMonitorFriendlyDeviceName()}");
+			if (targetDeviceName.ConnectorInstance == 0)
+			{
+				Console.WriteLine($"║ │ │ Connection: {targetDeviceName.OutputTechnology}");
+			}
+			else
+			{
+				Console.WriteLine($"║ │ │ Connection: {targetDeviceName.OutputTechnology} #{targetDeviceName.ConnectorInstance}");
+			}
+			if (targetDeviceName.IsEdidValid)
+			{
+				Console.WriteLine($"║ │ │ EDID: {targetDeviceName.EdidVendorId}{targetDeviceName.EdidProductId:X4}");
+			}
+			Console.WriteLine($"║ │ └───────────────────────────────────");
+			Console.WriteLine($"║ │ Output Technology: {target.OutputTechnology}");
+			Console.WriteLine($"║ │ Refresh Rate: {target.RefreshRate}");
+			Console.WriteLine($"║ │ Scaling: {target.Scaling}");
+			Console.WriteLine($"║ │ Rotation: {target.Rotation}");
+			if (target.Mode is { } targetMode)
+			{
+				Console.WriteLine("║ │ ┌ Mode ─────────────────────────────");
+				Console.WriteLine($"║ │ │ Actual Size: {targetMode.VideoSignalInfo.ActualSize.Width}x{targetMode.VideoSignalInfo.ActualSize.Height}");
+				Console.WriteLine($"║ │ │ TotalSize Size: {targetMode.VideoSignalInfo.TotalSize.Width}x{targetMode.VideoSignalInfo.TotalSize.Height}");
+				Console.WriteLine($"║ │ │ Video Standard: {targetMode.VideoSignalInfo.VideoStandard}");
+				Console.WriteLine($"║ │ │ Pixel Clock Rate: {targetMode.VideoSignalInfo.PixelClockRate}");
+				Console.WriteLine($"║ │ │ Horizontal Frequency: {targetMode.VideoSignalInfo.HorizontalSyncFrequency}");
+				Console.WriteLine($"║ │ │ Vertical Frequency: {targetMode.VideoSignalInfo.VerticalSyncFrequency}");
+				Console.WriteLine($"║ │ │ Vertical Frequency Divider: {targetMode.VideoSignalInfo.VerticalSyncFrequencyDivider}");
+				Console.WriteLine($"║ │ │ Scanline Ordering: {targetMode.VideoSignalInfo.ScanlineOrdering}");
+				Console.WriteLine("║ │ └───────────────────────────────────");
+			}
+			if (target.DesktopMode is { } desktopMode)
+			{
+				Console.WriteLine("║ │ ┌ Desktop Mode ─────────────────────");
+				Console.WriteLine($"║ │ │ Clip: {desktopMode.DesktopImageClip}");
+				Console.WriteLine($"║ │ │ Region: {desktopMode.DesktopImageRegion}");
+				Console.WriteLine("║ │ └───────────────────────────────────");
+			}
+			Console.WriteLine("║ ╘");
+		}
+		if (configuration.Paths.Count > 0)
+		{
+			Console.WriteLine("╚" + new string('═', 39));
+		}
+	}
+
 	private static void PrintAdapters()
 	{
 		foreach (var adapter in DisplayAdapterDevice.GetAll(false))
@@ -235,7 +340,7 @@ internal static class Program
 		}
 	}
 
-	private static void PrintMonitors()
+	private static void PrintMonitors(bool listVcp)
 	{
 		foreach (var monitor in LogicalMonitor.GetAll())
 		{
@@ -261,35 +366,38 @@ internal static class Program
 					}
 
 					Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
-					foreach (var vcpCommand in capabilities.SupportedVcpCommands)
+					if (listVcp)
 					{
-						Console.Write($"Command {vcpCommand.VcpCode:X2}");
-						if (vcpCommand.Name is { Length: not 0 })
+						foreach (var vcpCommand in capabilities.SupportedVcpCommands)
 						{
-							Console.Write($" - {vcpCommand.Name}");
-						}
-						Console.WriteLine();
-
-						try
-						{
-							var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
-
-							Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
-							Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
-						}
-						catch
-						{
-							Console.WriteLine("Failed to query the VCP code.");
-						}
-
-						foreach (var value in vcpCommand.NonContinuousValues)
-						{
-							Console.Write($"Value {value.Value:X2}");
-							if (value.Name is { Length: not 0 })
+							Console.Write($"Command {vcpCommand.VcpCode:X2}");
+							if (vcpCommand.Name is { Length: not 0 })
 							{
-								Console.Write($" - {value.Name}");
+								Console.Write($" - {vcpCommand.Name}");
 							}
 							Console.WriteLine();
+
+							try
+							{
+								var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
+
+								Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
+								Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
+							}
+							catch
+							{
+								Console.WriteLine("Failed to query the VCP code.");
+							}
+
+							foreach (var value in vcpCommand.NonContinuousValues)
+							{
+								Console.Write($"Value {value.Value:X2}");
+								if (value.Name is { Length: not 0 })
+								{
+									Console.Write($" - {value.Name}");
+								}
+								Console.WriteLine();
+							}
 						}
 					}
 				}
@@ -491,11 +599,11 @@ internal static class Program
 		return Enum.IsDefined(value) ? value.ToString() : usage.ToString("X4");
 	}
 
-	private static async Task ListMonitors()
+	private static async Task ListMonitors(bool listVcp)
 	{
 		PrintAdapters();
 
-		PrintMonitors();
+		PrintMonitors(listVcp);
 
 		int index = 0;
 		foreach (var deviceInfo in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default))

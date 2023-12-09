@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.DisplayDevices.Configuration
+namespace DeviceTools.DisplayDevices.Configuration
 {
 	public readonly struct Rational
 	{
@@ -10,5 +10,7 @@
 
 		public uint Numerator { get; }
 		public uint Denominator { get; }
+
+		public override string ToString() => $"{Numerator}/{Denominator}";
 	}
 }
