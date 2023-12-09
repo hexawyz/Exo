@@ -488,8 +488,7 @@ internal static class Program
 						Console.WriteLine($"║ ║ ║ │ Report Byte Length: {channel.SequenceByteLength}");
 						Console.WriteLine($"║ ║ ║ │ Sequence Bit Offset: {channel.SequenceBitOffset}");
 						Console.WriteLine($"║ ║ ║ │ Sequence Bit Length: {channel.SequenceBitLength}");
-						//Console.WriteLine($"║ ║ ║ │ Units Exponent: {channel.UnitsExp}");
-						//Console.WriteLine($"║ ║ ║ │ Units: {channel.Units}");
+						Console.WriteLine($"║ ║ ║ │ Units: {channel.Unit}");
 						if (channel.LogicalRange.Minimum < channel.LogicalRange.Maximum)
 						{
 							Console.WriteLine($"║ ║ ║ │ Logical Value: {channel.LogicalRange.Minimum} .. {channel.LogicalRange.Maximum}");

@@ -1,6 +1,8 @@
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -94,7 +96,7 @@ public sealed class HidCollectionDescriptor
 		[FieldOffset(96)]
 		public readonly uint Units;
 		[FieldOffset(100)]
-		public readonly uint UnitExp;
+		public readonly int UnitExp;
 	};
 
 	[StructLayout(LayoutKind.Sequential)]
@@ -277,6 +279,7 @@ public sealed class HidCollectionDescriptor
 						(channel.Flags & HidChannelDescriptorFlags.IsStringRange) != 0 ? new(channel.Range.StringMin, channel.Range.StringMax) : new(channel.NotRange.StringIndex),
 						(channel.Flags & HidChannelDescriptorFlags.IsDesignatorRange) != 0 ? new(channel.Range.DesignatorMin, channel.Range.DesignatorMax) : new(channel.NotRange.DesignatorIndex),
 						(channel.Flags & HidChannelDescriptorFlags.IsRange) != 0 ? new(channel.Range.DataIndexMin, channel.Range.DataIndexMax) : new(channel.NotRange.DataIndex),
+						HidUnit.FromRawValue(channel.Units, channel.UnitExp),
 						new(channel.Button.LogicalMin, channel.Button.LogicalMax)
 					) :
 					new HidValueDescriptor
@@ -294,6 +297,7 @@ public sealed class HidCollectionDescriptor
 						(channel.Flags & HidChannelDescriptorFlags.IsStringRange) != 0 ? new(channel.Range.StringMin, channel.Range.StringMax) : new(channel.NotRange.StringIndex),
 						(channel.Flags & HidChannelDescriptorFlags.IsDesignatorRange) != 0 ? new(channel.Range.DesignatorMin, channel.Range.DesignatorMax) : new(channel.NotRange.DesignatorIndex),
 						(channel.Flags & HidChannelDescriptorFlags.IsRange) != 0 ? new(channel.Range.DataIndexMin, channel.Range.DataIndexMax) : new(channel.NotRange.DataIndex),
+						HidUnit.FromRawValue(channel.Units, channel.UnitExp),
 						new(channel.Data.LogicalMin, channel.Data.LogicalMax),
 						new(channel.Data.PhysicalMin, channel.Data.PhysicalMax),
 						channel.Data.HasNull != 0
@@ -522,6 +526,7 @@ public abstract class HidChannelDescriptor
 		HidValueRange<ushort> stringRange,
 		HidValueRange<ushort> designatorRange,
 		HidValueRange<ushort> dataIndexRange,
+		HidUnit unit,
 		HidValueRange<int> logicalRange
 	)
 	{
@@ -538,6 +543,7 @@ public abstract class HidChannelDescriptor
 		StringRange = stringRange;
 		DesignatorRange = designatorRange;
 		DataIndexRange = dataIndexRange;
+		Unit = unit;
 		LogicalRange = logicalRange;
 	}
 
@@ -559,6 +565,7 @@ public abstract class HidChannelDescriptor
 	public HidValueRange<ushort> StringRange { get; }
 	public HidValueRange<ushort> DesignatorRange { get; }
 	public HidValueRange<ushort> DataIndexRange { get; }
+	public HidUnit Unit { get; }
 	public HidValueRange<int> LogicalRange { get; }
 
 	public bool HasMoreChannels => (Flags & HidChannelDescriptorFlags.MoreChannels) != 0;
@@ -587,6 +594,7 @@ public sealed class HidButtonDescriptor : HidChannelDescriptor
 		HidValueRange<ushort> stringRange,
 		HidValueRange<ushort> designatorRange,
 		HidValueRange<ushort> dataIndexRange,
+		HidUnit unit,
 		HidValueRange<int> logicalRange
 	) : base
 		(
@@ -603,6 +611,7 @@ public sealed class HidButtonDescriptor : HidChannelDescriptor
 			stringRange,
 			designatorRange,
 			dataIndexRange,
+			unit,
 			logicalRange
 		)
 	{
@@ -626,6 +635,7 @@ public sealed class HidValueDescriptor : HidChannelDescriptor
 		HidValueRange<ushort> stringRange,
 		HidValueRange<ushort> designatorRange,
 		HidValueRange<ushort> dataIndexRange,
+		HidUnit unit,
 		HidValueRange<int> logicalRange,
 		HidValueRange<int> physicalRange,
 		bool hasNullValue
@@ -644,6 +654,7 @@ public sealed class HidValueDescriptor : HidChannelDescriptor
 			stringRange,
 			designatorRange,
 			dataIndexRange,
+			unit,
 			logicalRange
 		)
 	{
@@ -709,3 +720,143 @@ public class HidLinkCollection
 	public ushort Usage { get; }
 }
 
+public enum HidUnitSystem : byte
+{
+	None = 0,
+	SiLinear = 1,
+	SiRotation = 2,
+	EnglishLinear = 3,
+	EnglishRotation = 4,
+}
+
+// We don't strictly need to declare this as having fixed layout, but having the raw value as a field should ensure proper alignment.
+[StructLayout(LayoutKind.Explicit, Size = 8)]
+public readonly struct HidUnit : IEquatable<HidUnit>
+{
+	private const string Exponents = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+	private static readonly string[][] SystemUnits =
+	[
+		[ "cm", "g", "s", "K", "A", "cd"],
+		[ "rad", "g", "s", "K", "A", "cd"],
+		[ "in", "slug", "s", "°F", "A", "cd"],
+		[ "°", "slug", "s", "°F", "A", "cd"],
+	];
+
+	public static HidUnit Centimeters => FromRawValue(0x0_0_0_0_0_0_1_1, 0);
+	public static HidUnit Inches => FromRawValue(0x0_0_0_0_0_0_1_3, 0);
+	public static HidUnit Radians => FromRawValue(0x0_0_0_0_0_0_1_2, 0);
+	public static HidUnit Degrees => FromRawValue(0x0_0_0_0_0_0_1_4, 0);
+	public static HidUnit Meters => FromRawValue(0x0_0_0_0_0_0_1_1, 2);
+	public static HidUnit Kilometers => FromRawValue(0x0_0_0_0_0_0_1_1, 5);
+	public static HidUnit Grams => FromRawValue(0x0_0_0_0_0_1_0_1, 0);
+	public static HidUnit Kilograms => FromRawValue(0x0_0_0_0_0_1_0_1, 3);
+	public static HidUnit Seconds => FromRawValue(0x0_0_0_0_1_0_0_1, 0);
+	public static HidUnit Kelvins => FromRawValue(0x0_0_0_1_0_0_0_1, 0);
+	public static HidUnit Fahrenheits => FromRawValue(0x0_0_0_1_0_0_0_3, 0);
+	public static HidUnit CentimetersPerSecond => FromRawValue(0x0_0_0_0_F_0_1_1, 0);
+	public static HidUnit MetersPerSecond => FromRawValue(0x0_0_0_0_F_0_1_1, 2);
+	public static HidUnit KilometersPerSecond => FromRawValue(0x0_0_0_0_F_0_1_1, 5);
+	public static HidUnit Joules => FromRawValue(0x0_0_0_0_E_1_2_1, 7);
+
+	// We split the 32 bit value into multiple parts here, because it is accessed by 4bit blocks anyway.
+	[FieldOffset(0)]
+	private readonly sbyte _value0;
+	[FieldOffset(1)]
+	private readonly sbyte _value1;
+	[FieldOffset(2)]
+	private readonly sbyte _value2;
+	[FieldOffset(3)]
+	private readonly sbyte _value3;
+	[FieldOffset(4)]
+	private readonly int _exponent;
+
+	[FieldOffset(0)]
+	private readonly uint _unit;
+	[FieldOffset(0)]
+	private readonly ulong _rawValue;
+
+	public HidUnitSystem System => (HidUnitSystem)(_value0 & 0xF);
+	public sbyte LengthExponent => (sbyte)(_value0 >> 4);
+	public sbyte MassExponent => (sbyte)((sbyte)(_value1 << 4) >> 4);
+	public sbyte TimeExponent => (sbyte)(_value1 >> 4);
+	public sbyte TemperatureExponent => (sbyte)((sbyte)(_value2 << 4) >> 4);
+	public sbyte CurrentExponent => (sbyte)(_value2 >> 4);
+	public sbyte LuminousIntensityExponent => (sbyte)((sbyte)(_value3 << 4) >> 4);
+	public int Exponent => _exponent;
+
+	public bool IsDefault => _rawValue == 0;
+
+	public static HidUnit FromRawValue(uint unit, int exponent)
+		=> FromRawValue(BitConverter.IsLittleEndian ? unit | (ulong)(uint)exponent << 32 : (ulong)BinaryPrimitives.ReverseEndianness(unit) << 32 | (uint)exponent);
+
+	private static HidUnit FromRawValue(ulong rawValue)
+		=> Unsafe.As<ulong, HidUnit>(ref rawValue);
+
+	public override string ToString()
+	{
+		if (_rawValue == 0) return "counts";
+		var system = (int)System - 1;
+		if ((uint)system >= SystemUnits.Length) return "unknown";
+		if ((_rawValue & ~0xFU) == 0) return "counts";
+		var units = SystemUnits[system];
+		// The maximum possible length of the string should be 43 characters.
+		// => 12 characters for unit names, 6 multiplicative dots, 12 character for unit exponents, 2 characters for ten, up to 11 characters for power of ten.
+		Span<char> buffer = stackalloc char[43];
+		int offset = 0;
+		int unitIndex = 0;
+		if (_exponent != 0)
+		{
+			"10".AsSpan().CopyTo(buffer.Slice(offset));
+			offset += 2;
+			if (_exponent != 1)
+			{
+				// Use the standard .NET APIs to format the number
+#if NETSTANDARD2_0
+				string exponentString = _exponent.ToString(CultureInfo.InvariantCulture);
+				exponentString.AsSpan().CopyTo(buffer.Slice(offset));
+				int count = exponentString.Length;
+#else
+				_exponent.TryFormat(buffer[offset..], out int count, default, CultureInfo.InvariantCulture);
+#endif
+				// Post-process the formatted number to have it as an exponent.
+				if (_exponent < 0)
+				{
+					buffer[offset++] = '⁻';
+					count--;
+				}
+				for (int i = 0; i < count; i++)
+				{
+					ref char ch = ref buffer[offset + i];
+					ch = Exponents[ch - '0'];
+				}
+				offset += count;
+			}
+		}
+		uint remainingUnits = BitConverter.IsLittleEndian ? _unit : BinaryPrimitives.ReverseEndianness(_unit);
+		while (remainingUnits > 0xF && unitIndex < SystemUnits.Length)
+		{
+			sbyte exponent = (sbyte)((sbyte)remainingUnits >> 4);
+			string unit = units[unitIndex++];
+			if (exponent != 0)
+			{
+				if (offset > 0) buffer[offset++] = '⋅';
+				unit.AsSpan().CopyTo(buffer.Slice(offset));
+				offset += unit.Length;
+				if (exponent != 1)
+				{
+					if (exponent < 0) buffer[offset++] = '⁻';
+					buffer[offset++] = Exponents[Math.Abs(exponent)];
+				}
+			}
+			remainingUnits >>= 4;
+		}
+		return buffer.Slice(0, offset).ToString();
+	}
+
+	public override bool Equals(object? obj) => obj is HidUnit unit && Equals(unit);
+	public bool Equals(HidUnit other) => _rawValue == other._rawValue;
+	public override int GetHashCode() => _rawValue.GetHashCode();
+
+	public static bool operator ==(HidUnit left, HidUnit right) => left.Equals(right);
+	public static bool operator !=(HidUnit left, HidUnit right) => !(left == right);
+}
