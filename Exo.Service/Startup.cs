@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Exo.Service.Services;
 using Exo.Services;
 using Microsoft.AspNetCore.Builder;
@@ -48,7 +49,11 @@ public class Startup
 		services.AddSingleton<LightingService>();
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
+		services.AddSingleton<ProgrammingService>();
 		services.AddSingleton<OverlayNotificationService>();
+		services.AddSingleton<EventQueue>();
+		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Reader);
+		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Writer);
 		services.AddSingleton<ISystemDeviceDriverRegistry, SystemDeviceDriverRegistry>();
 		// NB: This will be refactored at some point, but this should probably not be a Hosted Service ?
 		services.AddHostedService<HidDeviceManager>

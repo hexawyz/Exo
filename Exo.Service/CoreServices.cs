@@ -10,7 +10,8 @@ public sealed class CoreServices : IHostedService
 		LightingService lightingService,
 		BatteryService batteryService,
 		KeyboardService keyboardService,
-		OverlayNotificationService overlayNotificationService
+		OverlayNotificationService overlayNotificationService,
+		ProgrammingService programmingService
 	) { }
 
 	public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
