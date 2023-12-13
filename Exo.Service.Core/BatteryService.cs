@@ -64,7 +64,7 @@ public sealed class BatteryService : IAsyncDisposable
 						BatteryDeviceConnectedEventGuid,
 						new BatteryEventParameters
 						(
-							notification.Key,
+							(DeviceId)notification.Key,
 							notification.NewValue.Level,
 							notification.OldValue.Level,
 							notification.NewValue.BatteryStatus,
@@ -87,7 +87,7 @@ public sealed class BatteryService : IAsyncDisposable
 							eventGuid,
 							new BatteryEventParameters
 							(
-								notification.Key,
+								(DeviceId)notification.Key,
 								notification.NewValue.Level,
 								notification.OldValue.Level,
 								notification.NewValue.BatteryStatus,
@@ -108,7 +108,7 @@ public sealed class BatteryService : IAsyncDisposable
 								BatteryChargingCompleteEventGuid,
 								new BatteryEventParameters
 								(
-									notification.Key,
+									(DeviceId)notification.Key,
 									1f,
 									notification.OldValue.Level,
 									notification.NewValue.BatteryStatus,
@@ -128,7 +128,7 @@ public sealed class BatteryService : IAsyncDisposable
 								BatteryErrorEventGuid,
 								new BatteryEventParameters
 								(
-									notification.Key,
+									(DeviceId)notification.Key,
 									notification.NewValue.Level,
 									notification.OldValue.Level,
 									notification.NewValue.BatteryStatus,
@@ -148,7 +148,7 @@ public sealed class BatteryService : IAsyncDisposable
 							BatteryChargingEventGuid,
 							new BatteryEventParameters
 							(
-								notification.Key,
+								(DeviceId)notification.Key,
 								notification.NewValue.Level,
 								notification.OldValue.Level,
 								notification.NewValue.BatteryStatus,
@@ -166,7 +166,7 @@ public sealed class BatteryService : IAsyncDisposable
 							BatteryDischargingEventGuid,
 							new BatteryEventParameters
 							(
-								notification.Key,
+								(DeviceId)notification.Key,
 								notification.NewValue.Level,
 								notification.OldValue.Level,
 								notification.NewValue.BatteryStatus,

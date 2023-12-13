@@ -92,7 +92,7 @@ public sealed class KeyboardService : IAsyncDisposable
 						LockKeys.ScrollLock => isOn ? ScrollLockOnEventGuid : ScrollLockOffEventGuid,
 						_ => throw new InvalidOperationException()
 					},
-					new DeviceEventParameters(deviceId)
+					new DeviceEventParameters((DeviceId)deviceId)
 				)
 			);
 		}
@@ -114,7 +114,7 @@ public sealed class KeyboardService : IAsyncDisposable
 						Event.Create
 						(
 							newLevel < oldLevel ? KeyboardBacklightDownEventGuid : KeyboardBacklightUpEventGuid,
-							new BacklightLevelEventParameters(notification.Key, newLevel, notification.NewValue.MaximumLevel)
+							new BacklightLevelEventParameters((DeviceId)notification.Key, newLevel, notification.NewValue.MaximumLevel)
 						)
 					);
 				}

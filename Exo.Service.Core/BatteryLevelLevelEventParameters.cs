@@ -1,13 +1,14 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using Exo.Features;
+using Exo.Programming;
 
 namespace Exo.Service;
 
 [DataContract]
 public class BatteryEventParameters : DeviceEventParameters
 {
-	public BatteryEventParameters(Guid deviceId, float? currentLevel, float? previousLevel, BatteryStatus status, ExternalPowerStatus externalPowerStatus) : base(deviceId)
+	public BatteryEventParameters(DeviceId deviceId, float? currentLevel, float? previousLevel, BatteryStatus status, ExternalPowerStatus externalPowerStatus) : base(deviceId)
 	{
 		CurrentLevel = currentLevel;
 		PreviousLevel = previousLevel;

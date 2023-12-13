@@ -1,12 +1,13 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using Exo.Programming;
 
 namespace Exo.Service;
 
 [DataContract]
 public class BacklightLevelEventParameters : DeviceEventParameters
 {
-	public BacklightLevelEventParameters(Guid deviceId, byte level, byte maximumLevel) : base(deviceId)
+	public BacklightLevelEventParameters(DeviceId deviceId, byte level, byte maximumLevel) : base(deviceId)
 	{
 		Level = level;
 		MaximumLevel = maximumLevel;
