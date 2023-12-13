@@ -94,7 +94,97 @@ public sealed class ProgrammingService : IAsyncDisposable
 					_overlayNotificationService.PostRequest(OverlayNotificationKind.KeyboardBacklightUp, e.DeviceId, e.Level, e.MaximumLevel);
 				}
 			},
+
+			// Battery
+			{
+				BatteryService.BatteryDeviceConnectedEventGuid,
+				p =>
+				{
+					var e = (BatteryEventParameters)p!;
+					if ((e.ExternalPowerStatus & ExternalPowerStatus.IsConnected) != 0 && e.CurrentLevel.GetValueOrDefault() is <= 0.1f)
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryLow, e.DeviceId, GetBatteryLevel(e.CurrentLevel.GetValueOrDefault()), 10);
+					}
+				}
+			},
+			{
+				BatteryService.BatteryExternalPowerConnectedEventGuid,
+				p =>
+				{
+					var e = (BatteryEventParameters)p!;
+					if (e.CurrentLevel is not null)
+					{
+						_overlayNotificationService.PostRequest
+						(
+							OverlayNotificationKind.BatteryExternalPowerConnected,
+							e.DeviceId,
+							GetBatteryLevel(e.CurrentLevel.GetValueOrDefault()),
+							10
+						);
+					}
+					else
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryExternalPowerConnected, e.DeviceId, 0, 0);
+					}
+				}
+			},
+			{
+				BatteryService.BatteryExternalPowerDisconnectedEventGuid,
+				p =>
+				{
+					var e = (BatteryEventParameters)p!;
+					if (e.CurrentLevel is not null)
+					{
+						_overlayNotificationService.PostRequest
+						(
+							OverlayNotificationKind.BatteryExternalPowerDisconnected,
+							e.DeviceId,
+							GetBatteryLevel(e.CurrentLevel.GetValueOrDefault()),
+							10
+						);
+					}
+					else
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryExternalPowerDisconnected, e.DeviceId, 0, 0);
+					}
+				}
+			},
+			{
+				BatteryService.BatteryChargingCompleteEventGuid,
+				p =>
+				{
+					var e = (BatteryEventParameters)p!;
+					_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryExternalPowerConnected, e.DeviceId, 10, 10);
+				}
+			},
+			{
+				BatteryService.BatteryErrorEventGuid,
+				p =>
+				{
+					var e = (BatteryEventParameters)p!;
+					_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryError, e.DeviceId, 0, 0);
+				}
+			},
+			{
+				BatteryService.BatteryDischargingEventGuid,
+				p =>
+				{
+					var e = (BatteryEventParameters)p!;
+					if (e.CurrentLevel <= 0.1f && e.PreviousLevel is null or > 0.1f)
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryLow, e.DeviceId, GetBatteryLevel(e.CurrentLevel.GetValueOrDefault()), 0);
+					}
+				}
+			},
 		};
+	}
+
+	private static uint GetBatteryLevel(float level)
+	{
+		if (level < 0) return 0;
+		if (level > 1) return 1;
+
+		return (uint)((level + 0.05f) * 10);
 	}
 
 	public ProgrammingService(ChannelReader<Event> eventReader, OverlayNotificationService overlayNotificationService)
