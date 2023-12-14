@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Reflection;
 using System.Threading.Channels;
 using Exo.Features;
 using Exo.Overlay.Contracts;
@@ -7,6 +9,39 @@ namespace Exo.Service;
 
 public sealed class ProgrammingService : IAsyncDisposable
 {
+	private static class ModuleDefinition<T>
+	{
+		public static readonly ModuleDefinition Value = GetModuleDefinition();
+
+		private static ModuleDefinition GetModuleDefinition()
+		{
+			var moduleId = TypeId.Get<T>();
+			var type = typeof(T);
+
+			var events = ImmutableArray.CreateBuilder<EventDefinition>();
+
+			foreach (var @event in type.GetCustomAttributes<EventAttribute>())
+			{
+				var eventType = @event.GetType();
+				events.Add
+				(
+					new
+					(
+						@event.Id,
+						@event.Name,
+						@event.Comment ?? "",
+						EventOptions.IsModuleEvent,
+						eventType.IsGenericType && eventType.GetGenericTypeDefinition() == typeof(Event<>) ?
+						TypeId.Get(eventType.GetGenericArguments()[0]) :
+						default
+					)
+				);
+			}
+
+			return new ModuleDefinition(moduleId, typeof(T).Name, "", events.DrainToImmutable());
+		}
+	}
+
 	private readonly ChannelReader<Event> _eventReader;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _runTask;
@@ -217,8 +252,9 @@ public sealed class ProgrammingService : IAsyncDisposable
 		}
 	}
 
-	public void RegisterModule<T>()
+	public void RegisterModule<T>(T instance)
 	{
+		var definition = ModuleDefinition<T>.Value;
 	}
 
 	public async IAsyncEnumerable<ModuleDefinition> GetModules()

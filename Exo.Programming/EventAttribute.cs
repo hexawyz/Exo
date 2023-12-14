@@ -11,6 +11,7 @@ public class EventAttribute : Attribute
 
 	public Guid Id { get; }
 	public string Name { get; }
+	public string? Comment { get; }
 }
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]

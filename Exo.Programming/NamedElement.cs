@@ -1,8 +1,10 @@
-﻿using System.Runtime.Serialization;
+using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace Exo.Programming;
 
 [DataContract]
+[DebuggerDisplay("{Name,nq} ({Id})")]
 public abstract class NamedElement
 {
 	protected NamedElement(Guid id, string name, string comment)

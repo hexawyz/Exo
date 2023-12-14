@@ -6,6 +6,7 @@ using Exo.Programming;
 namespace Exo.Service;
 
 [DataContract]
+[TypeId(0x80B7ACBE, 0x8D96, 0x418B, 0x9F, 0x23, 0x77, 0x8B, 0x81, 0xA9, 0x30, 0xEC)]
 public class BatteryEventParameters : DeviceEventParameters
 {
 	public BatteryEventParameters(DeviceId deviceId, float? currentLevel, float? previousLevel, BatteryStatus status, ExternalPowerStatus externalPowerStatus) : base(deviceId)

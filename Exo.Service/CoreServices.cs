@@ -12,7 +12,13 @@ public sealed class CoreServices : IHostedService
 		KeyboardService keyboardService,
 		OverlayNotificationService overlayNotificationService,
 		ProgrammingService programmingService
-	) { }
+	)
+	{
+		programmingService.RegisterModule(lightingService);
+		programmingService.RegisterModule(batteryService);
+		programmingService.RegisterModule(keyboardService);
+		programmingService.RegisterModule(overlayNotificationService);
+	}
 
 	public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

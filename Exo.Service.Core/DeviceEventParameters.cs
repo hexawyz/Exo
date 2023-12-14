@@ -5,6 +5,7 @@ using Exo.Programming;
 namespace Exo.Service;
 
 [DataContract]
+[TypeId(0x1C7E9E60, 0xC9E0, 0x444D, 0xA9, 0x77, 0xD1, 0x2A, 0x0E, 0x0E, 0x82, 0x57)]
 public class DeviceEventParameters : EventParameters
 {
 	public DeviceEventParameters(DeviceId deviceId) => DeviceId = deviceId;

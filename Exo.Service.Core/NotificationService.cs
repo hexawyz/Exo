@@ -4,6 +4,7 @@ using Exo.Overlay.Contracts;
 
 namespace Exo.Service;
 
+[TypeId(0x0FCB42F7, 0xAF51, 0x4C20, 0xA7, 0x1B, 0xDE, 0x0E, 0x8C, 0x3D, 0xCB, 0x23)]
 public sealed class OverlayNotificationService
 {
 	private readonly DeviceRegistry _driverRegistry;
