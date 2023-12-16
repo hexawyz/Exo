@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Threading.Channels;
@@ -7,6 +8,7 @@ using Exo.Programming;
 
 namespace Exo.Service;
 
+[TypeId(0x303F219C, 0x7A88, 0x44B8, 0x90, 0x98, 0x59, 0x1A, 0xA9, 0x4A, 0xD2, 0xD6)]
 public sealed class ProgrammingService : IAsyncDisposable
 {
 	private static class ModuleDefinition<T>
@@ -38,7 +40,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				);
 			}
 
-			return new ModuleDefinition(moduleId, typeof(T).Name, "", events.DrainToImmutable());
+			return new ModuleDefinition(moduleId, typeof(T).Name, "", ImmutableArray<TypeDefinition>.Empty, events.DrainToImmutable());
 		}
 	}
 
@@ -52,6 +54,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 	// - A default program containing overlay programming should then be provided as a startup point for users to customize the logic.
 	private readonly OverlayNotificationService _overlayNotificationService;
 	private readonly Dictionary<Guid, Action<object?>> _hardcodedEventHandlers;
+	private readonly ConcurrentDictionary<Guid, ModuleDefinition> _modules;
 
 	// These hardcoded event handlers should be translated and included in the default program once the user-programing code logic is ready.
 	private Dictionary<Guid, Action<object?>> CreateHardcodedEventHandlers()
@@ -226,6 +229,8 @@ public sealed class ProgrammingService : IAsyncDisposable
 	{
 		_eventReader = eventReader;
 		_overlayNotificationService = overlayNotificationService;
+		_modules = new();
+		RegisterModule(this);
 		_hardcodedEventHandlers = CreateHardcodedEventHandlers();
 		_cancellationTokenSource = new();
 		_runTask = RunAsync(_cancellationTokenSource.Token);

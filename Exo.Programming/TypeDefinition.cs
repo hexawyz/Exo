@@ -8,7 +8,16 @@ namespace Exo.Programming;
 public sealed class TypeDefinition : NamedElement
 {
 	private static TypeDefinition DeclareIntrinsic(Guid guid, string name, string comment)
-		=> new(new(0x70B200C2, 0x8D43, 0x45A0, 0xB2, 0xE7, 0x19, 0x75, 0xC9, 0xED, 0xAB, 0x0C), "int8", "A signed 8-bit integer.", ImmutableArray<FieldDefinition>.Empty);
+		=> new
+		(
+			guid,
+			name,
+			comment,
+			TypeKind.Intrinsic,
+			default,
+			ImmutableArray<FieldDefinition>.Empty,
+			ImmutableArray<EnumValueDefinition>.Empty
+		);
 
 	public static readonly TypeDefinition Int8 = DeclareIntrinsic(new(0x70B200C2, 0x8D43, 0x45A0, 0xB2, 0xE7, 0x19, 0x75, 0xC9, 0xED, 0xAB, 0x0C), "int8", "A signed 8-bit integer.");
 	public static readonly TypeDefinition UInt8 = DeclareIntrinsic(new(0x1DEBFB00, 0x4DA8, 0x4607, 0xBA, 0xF8, 0xA8, 0x29, 0xE0, 0xFA, 0x3B, 0x7B), "uint8", "An unsigned 8-bit integer.");
@@ -29,11 +38,35 @@ public sealed class TypeDefinition : NamedElement
 	public static readonly TypeDefinition Utf8 = DeclareIntrinsic(new(0x5A7EF34F, 0xE300, 0x4890, 0xA6, 0xA4, 0x20, 0x43, 0xD2, 0xF5, 0xCF, 0xAF), "utf8", "A UTF-8 string.");
 	public static readonly TypeDefinition Utf16 = DeclareIntrinsic(new(0xF7527537, 0x5170, 0x454E, 0x8B, 0x25, 0x1C, 0x71, 0x27, 0x96, 0x9E, 0xD3), "utf16", "A UTF-16 string.");
 
-	public TypeDefinition(Guid id, string name, string comment, ImmutableArray<FieldDefinition> fields) : base(id, name, comment)
+	public static readonly TypeDefinition Guid = DeclareIntrinsic(new(0xB0A7EB53, 0x993C, 0x4B34, 0xB9, 0x97, 0xAF, 0x21, 0x59, 0x40, 0x64, 0xEE), "guid", "A GUID.");
+
+	public static readonly TypeDefinition Date = DeclareIntrinsic(new(0x5A1871A5, 0x747D, 0x45D5, 0xAB, 0x68, 0x43, 0x94, 0xCE, 0xC1, 0x36, 0x9E), "date", "A date.");
+	public static readonly TypeDefinition Time = DeclareIntrinsic(new(0x5A393150, 0xDE41, 0x46F2, 0xA3, 0xA9, 0x0F, 0x84, 0x52, 0x8C, 0xE9, 0x4C), "time", "A time.");
+	public static readonly TypeDefinition DateTime = DeclareIntrinsic(new(0x9AEF8C76, 0x002E, 0x458F, 0x98, 0x8D, 0x2A, 0xEA, 0x70, 0xBB, 0x38, 0x0C), "datetime", "A date and time.");
+
+	public TypeDefinition
+	(
+		Guid id,
+		string name,
+		string comment,
+		TypeKind kind,
+		Guid elementTypeId,
+		ImmutableArray<FieldDefinition> fields,
+		ImmutableArray<EnumValueDefinition> enumValues
+	) : base(id, name, comment)
 	{
+		Kind = kind;
+		ElementTypeId = elementTypeId;
 		Fields = fields;
+		EnumValues = enumValues;
 	}
 
 	[DataMember(Order = 4)]
+	public TypeKind Kind { get; }
+	[DataMember(Order = 5)]
+	public Guid ElementTypeId { get; }
+	[DataMember(Order = 6)]
 	public ImmutableArray<FieldDefinition> Fields { get; }
+	[DataMember(Order = 7)]
+	public ImmutableArray<EnumValueDefinition> EnumValues { get; }
 }
