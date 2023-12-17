@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Features;
 using Exo.Overlay.Contracts;
@@ -48,16 +49,16 @@ public sealed class ProgrammingService : IAsyncDisposable
 				var eventType = @event.GetType();
 				events.Add
 				(
-					new
-					(
-						@event.Id,
-						@event.Name,
-						@event.Comment ?? "",
-						EventOptions.IsModuleEvent,
-						eventType.IsGenericType && eventType.GetGenericTypeDefinition() == typeof(Event<>) ?
-						TypeId.Get(eventType.GetGenericArguments()[0]) :
-						default
-					)
+					new()
+					{
+						Id = @event.Id,
+						Name = @event.Name,
+						Comment = @event.Comment,
+						Options = EventOptions.IsModuleEvent,
+						ParametersTypeId = eventType.IsGenericType && eventType.GetGenericTypeDefinition() == typeof(Event<>) ?
+							TypeId.Get(eventType.GetGenericArguments()[0]) :
+							default,
+					}
 				);
 			}
 
@@ -91,7 +92,14 @@ public sealed class ProgrammingService : IAsyncDisposable
 
 			var typeDetails = types.DrainToImmutable();
 
-			var moduleDefinition = new ModuleDefinition(moduleId, moduleName, "", ImmutableArray.CreateRange(typeDetails, t => t.Definition), events.DrainToImmutable());
+			var moduleDefinition = new ModuleDefinition
+			{
+				Id = moduleId,
+				Name = moduleName,
+				Comment = "",
+				Types = ImmutableArray.CreateRange(typeDetails, t => t.Definition),
+				Events = events.DrainToImmutable(),
+			};
 
 			return new(moduleDefinition, typeDetails);
 		}
@@ -109,6 +117,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 	private readonly Dictionary<Guid, Action<object?>> _hardcodedEventHandlers;
 	private readonly ConcurrentDictionary<Guid, TypeDetails> _types;
 	private readonly ConcurrentDictionary<Guid, ModuleDetails> _modules;
+	private ModuleDefinition[] _moduleDefinitions;
 
 	// These hardcoded event handlers should be translated and included in the default program once the user-programing code logic is ready.
 	private Dictionary<Guid, Action<object?>> CreateHardcodedEventHandlers()
@@ -285,6 +294,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 		_overlayNotificationService = overlayNotificationService;
 		_types = new();
 		_modules = new();
+		_moduleDefinitions = [];
 		RegisterModule(this);
 		_hardcodedEventHandlers = CreateHardcodedEventHandlers();
 		_cancellationTokenSource = new();
@@ -333,10 +343,20 @@ public sealed class ProgrammingService : IAsyncDisposable
 				throw new InvalidOperationException("A type with the same ID was already added.");
 			}
 		}
+
+		var oldDefinitions = Volatile.Read(ref _moduleDefinitions);
+		while (true)
+		{
+			var newDefinitions = oldDefinitions;
+			Array.Resize(ref newDefinitions, oldDefinitions.Length + 1);
+			newDefinitions[^1] = definition;
+			if (oldDefinitions == (oldDefinitions = Interlocked.CompareExchange(ref _moduleDefinitions, newDefinitions, oldDefinitions))) break;
+		}
 	}
 
-	public async IAsyncEnumerable<ModuleDefinition> GetModules()
-	{
-		yield break;
-	}
+	public ImmutableArray<ModuleDefinition> GetModules() => ImmutableCollectionsMarshal.AsImmutableArray( _moduleDefinitions);
+
+	//public async IAsyncEnumerable<TypeDefinition> GetCustomTypesAsync()
+	//{
+	//}
 }

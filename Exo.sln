@@ -101,6 +101,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Core", "Exo.Ui.Core\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Elgato.StreamDeck", "Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj", "{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Programming.Contracts", "Exo.Programming.Contracts\Exo.Programming.Contracts.csproj", "{51928B1C-00E4-4693-A6C6-A39ACB0580EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -697,6 +699,22 @@ Global
 		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x64.Build.0 = Release|Any CPU
 		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x86.ActiveCfg = Release|Any CPU
 		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x86.Build.0 = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|arm64.Build.0 = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|x64.Build.0 = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Debug|x86.Build.0 = Debug|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|arm64.ActiveCfg = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|arm64.Build.0 = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|x64.ActiveCfg = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|x64.Build.0 = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|x86.ActiveCfg = Release|Any CPU
+		{51928B1C-00E4-4693-A6C6-A39ACB0580EE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

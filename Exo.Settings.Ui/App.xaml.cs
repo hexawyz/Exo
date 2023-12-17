@@ -15,6 +15,8 @@ using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Exo.Ui.Contracts;
+using Exo.Programming;
+using ProtoBuf.Meta;
 
 namespace Exo.Settings.Ui;
 
@@ -29,6 +31,16 @@ public partial class App : Application
 	/// </summary>
 	public App()
 	{
+		// Adjust protobuf serialization for types that require it.
+		foreach (var type in typeof(NamedElement).Assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(NamedElement))))
+		{
+			var metaType = RuntimeTypeModel.Default[type];
+
+			metaType.Add(1, nameof(NamedElement.Id));
+			metaType.Add(2, nameof(NamedElement.Name));
+			metaType.Add(3, nameof(NamedElement.Comment));
+		}
+
 		GrpcClientFactory.AllowUnencryptedHttp2 = true;
 
 		InitializeComponent();

@@ -10,16 +10,13 @@ namespace Exo.Programming;
 public sealed class TypeDefinition : NamedElement
 {
 	private static TypeDefinition DeclareIntrinsic(Guid guid, string name, string comment)
-		=> new
-		(
-			guid,
-			name,
-			comment,
-			TypeKind.Intrinsic,
-			default,
-			ImmutableArray<FieldDefinition>.Empty,
-			ImmutableArray<EnumValueDefinition>.Empty
-		);
+		=> new()
+		{
+			Id = guid,
+			Name = name,
+			Comment = comment,
+			Kind = TypeKind.Intrinsic,
+		};
 
 	public static readonly TypeDefinition Int8 = DeclareIntrinsic(new(0x70B200C2, 0x8D43, 0x45A0, 0xB2, 0xE7, 0x19, 0x75, 0xC9, 0xED, 0xAB, 0x0C), "int8", "A signed 8-bit integer.");
 	public static readonly TypeDefinition UInt8 = DeclareIntrinsic(new(0x1DEBFB00, 0x4DA8, 0x4607, 0xBA, 0xF8, 0xA8, 0x29, 0xE0, 0xFA, 0x3B, 0x7B), "uint8", "An unsigned 8-bit integer.");
@@ -46,29 +43,12 @@ public sealed class TypeDefinition : NamedElement
 	public static readonly TypeDefinition Time = DeclareIntrinsic(new(0x5A393150, 0xDE41, 0x46F2, 0xA3, 0xA9, 0x0F, 0x84, 0x52, 0x8C, 0xE9, 0x4C), "time", "A time.");
 	public static readonly TypeDefinition DateTime = DeclareIntrinsic(new(0x9AEF8C76, 0x002E, 0x458F, 0x98, 0x8D, 0x2A, 0xEA, 0x70, 0xBB, 0x38, 0x0C), "datetime", "A date and time.");
 
-	public TypeDefinition
-	(
-		Guid id,
-		string name,
-		string comment,
-		TypeKind kind,
-		Guid elementTypeId,
-		ImmutableArray<FieldDefinition> fields,
-		ImmutableArray<EnumValueDefinition> enumValues
-	) : base(id, name, comment)
-	{
-		Kind = kind;
-		ElementTypeId = elementTypeId;
-		Fields = fields;
-		EnumValues = enumValues;
-	}
-
 	[DataMember(Order = 4)]
-	public TypeKind Kind { get; }
+	public required TypeKind Kind { get; init; }
 	[DataMember(Order = 5)]
-	public Guid ElementTypeId { get; }
+	public Guid ElementTypeId { get; init; }
 	[DataMember(Order = 6)]
-	public ImmutableArray<FieldDefinition> Fields { get; }
+	public ImmutableArray<FieldDefinition> Fields { get; init; } = [];
 	[DataMember(Order = 7)]
-	public ImmutableArray<EnumValueDefinition> EnumValues { get; }
+	public ImmutableArray<EnumValueDefinition> EnumValues { get; init; } = [];
 }

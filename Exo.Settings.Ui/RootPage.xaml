@@ -86,6 +86,11 @@
                         <FontIcon Glyph="&#xE781;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Programming" Tag="Programming">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE943;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <Grid Padding="{StaticResource NavigationContentPadding}">

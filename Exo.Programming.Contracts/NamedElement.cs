@@ -3,21 +3,14 @@ using System.Runtime.Serialization;
 
 namespace Exo.Programming;
 
-[DataContract]
+// NB: Protobuf inheritance must be manually configured in the serializer for fields present here to be inherited.
 [DebuggerDisplay("{Name,nq} ({Id})")]
 public abstract class NamedElement
 {
-	protected NamedElement(Guid id, string name, string comment)
-	{
-		Id = id;
-		Name = name;
-		Comment = comment;
-	}
-
 	[DataMember(Order = 1)]
-	public Guid Id { get; }
+	public required Guid Id { get; init; }
 	[DataMember(Order = 2)]
-	public string Name { get; }
+	public required string Name { get; init; }
 	[DataMember(Order = 3)]
-	public string Comment { get; }
+	public string? Comment { get; init; }
 }

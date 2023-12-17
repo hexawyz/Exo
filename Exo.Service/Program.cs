@@ -1,7 +1,10 @@
 using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Exo.Programming;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using ProtoBuf;
+using ProtoBuf.Meta;
 using Serilog;
 
 namespace Exo.Service;
@@ -10,6 +13,15 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
+		foreach (var type in typeof(NamedElement).Assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(NamedElement))))
+		{
+			var metaType = RuntimeTypeModel.Default[type];
+
+			metaType.Add(1, nameof(NamedElement.Id));
+			metaType.Add(2, nameof(NamedElement.Name));
+			metaType.Add(3, nameof(NamedElement.Comment));
+		}
+
 		CreateHostBuilder(args).Build().Run();
 	}
 

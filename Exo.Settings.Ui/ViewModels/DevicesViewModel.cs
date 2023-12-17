@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
-using System.Threading.Tasks;
 using Exo.Ui;
 using Exo.Ui.Contracts;
 
@@ -212,6 +208,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		_cancellationTokenSource.Cancel();
 		await _deviceWatchTask.ConfigureAwait(false);
 		await _batteryWatchTask.ConfigureAwait(false);
+		await _dpiWatchTask.ConfigureAwait(false);
 	}
 
 	public DeviceViewModel? SelectedDevice

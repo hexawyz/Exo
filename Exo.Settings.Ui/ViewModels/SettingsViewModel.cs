@@ -9,6 +9,7 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly ServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
+	private readonly ProgrammingViewModel _programmingViewModel;
 	private string _title;
 
 	public SettingsViewModel()
@@ -16,11 +17,13 @@ internal sealed class SettingsViewModel : BindableObject
 		_connectionManager = new("Local\\Exo.Service.Configuration");
 		_devicesViewModel = new(_connectionManager.Channel.CreateGrpcService<IDeviceService>(), _connectionManager.Channel.CreateGrpcService<IMouseService>());
 		_lightingViewModel = new(_connectionManager.Channel.CreateGrpcService<ILightingService>(), _devicesViewModel);
+		_programmingViewModel = new(_connectionManager.Channel.CreateGrpcService<IProgrammingService>());
 		_title = string.Empty;
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
+	public ProgrammingViewModel Programming => _programmingViewModel;
 
 	public string Title
 	{

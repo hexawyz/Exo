@@ -82,6 +82,9 @@ internal sealed partial class RootPage : Page
 		case "Lighting":
 			type = typeof(LightingPage);
 			break;
+		case "Programming":
+			type = typeof(ProgrammingPage);
+			break;
 		}
 
 		if (type is null) return;
