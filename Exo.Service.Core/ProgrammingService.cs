@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Channels;
 using Exo.Features;
@@ -13,11 +14,26 @@ namespace Exo.Service;
 [TypeId(0x303F219C, 0x7A88, 0x44B8, 0x90, 0x98, 0x59, 0x1A, 0xA9, 0x4A, 0xD2, 0xD6)]
 public sealed class ProgrammingService : IAsyncDisposable
 {
-	private static class ModuleDefinition<T>
+	[DebuggerDisplay("{Definition.Name,nq} ({Definition.Id})")]
+	private sealed class ModuleDetails
 	{
-		public static readonly ModuleDefinition Value = GetModuleDefinition();
+		public required object Instance { get; init; }
+		public required ModuleDefinition Definition { get; init; }
+		public required ImmutableArray<TypeDetails> Types { get; init; }
+	}
 
-		private static ModuleDefinition GetModuleDefinition()
+	[DebuggerDisplay("{Definition.Name,nq} ({Definition.Id})")]
+	private sealed class TypeDetails
+	{
+		public required Type Type { get; init; }
+		public required TypeDefinition Definition { get; init; }
+	}
+
+	private static class ModuleDetails<T>
+	{
+		public static readonly (ModuleDefinition Definition, ImmutableArray<TypeDetails> Types) StaticDetails = Get();
+
+		private static (ModuleDefinition, ImmutableArray<TypeDetails>) Get()
 		{
 			var type = typeof(T);
 
@@ -45,34 +61,39 @@ public sealed class ProgrammingService : IAsyncDisposable
 				);
 			}
 
-			var types = ImmutableArray.CreateBuilder<TypeDefinition>();
+			var types = ImmutableArray.CreateBuilder<TypeDetails>();
 
+			// (Always) register the intrinsic types.
 			if (typeof(T) == typeof(ProgrammingService))
 			{
-				types.Add(TypeDefinition.Int8);
-				types.Add(TypeDefinition.UInt8);
-				types.Add(TypeDefinition.Int16);
-				types.Add(TypeDefinition.UInt16);
-				types.Add(TypeDefinition.Int32);
-				types.Add(TypeDefinition.UInt32);
-				types.Add(TypeDefinition.Int64);
-				types.Add(TypeDefinition.UInt64);
+				types.Add(new() { Type = typeof(sbyte), Definition = TypeDefinition.Int8 });
+				types.Add(new() { Type = typeof(byte), Definition = TypeDefinition.UInt8 });
+				types.Add(new() { Type = typeof(short), Definition = TypeDefinition.Int16 });
+				types.Add(new() { Type = typeof(ushort), Definition = TypeDefinition.UInt16 });
+				types.Add(new() { Type = typeof(int), Definition = TypeDefinition.Int32 });
+				types.Add(new() { Type = typeof(uint), Definition = TypeDefinition.UInt32 });
+				types.Add(new() { Type = typeof(long), Definition = TypeDefinition.Int64 });
+				types.Add(new() { Type = typeof(ulong), Definition = TypeDefinition.UInt64 });
 
-				types.Add(TypeDefinition.Float16);
-				types.Add(TypeDefinition.Float32);
-				types.Add(TypeDefinition.Float64);
+				types.Add(new() { Type = typeof(Half), Definition = TypeDefinition.Float16 });
+				types.Add(new() { Type = typeof(float), Definition = TypeDefinition.Float32 });
+				types.Add(new() { Type = typeof(double), Definition = TypeDefinition.Float64 });
 
-				types.Add(TypeDefinition.Utf8);
-				types.Add(TypeDefinition.Utf16);
+				types.Add(new() { Type = typeof(ReadOnlyMemory<byte>), Definition = TypeDefinition.Utf8 });
+				types.Add(new() { Type = typeof(string), Definition = TypeDefinition.Utf16 });
 
-				types.Add(TypeDefinition.Guid);
+				types.Add(new() { Type = typeof(Guid), Definition = TypeDefinition.Guid });
 
-				types.Add(TypeDefinition.Date);
-				types.Add(TypeDefinition.Time);
-				types.Add(TypeDefinition.DateTime);
+				types.Add(new() { Type = typeof(DateOnly), Definition = TypeDefinition.Date });
+				types.Add(new() { Type = typeof(TimeOnly), Definition = TypeDefinition.Time });
+				types.Add(new() { Type = typeof(DateTime), Definition = TypeDefinition.DateTime });
 			}
 
-			return new ModuleDefinition(moduleId, moduleName, "", types.DrainToImmutable(), events.DrainToImmutable());
+			var typeDetails = types.DrainToImmutable();
+
+			var moduleDefinition = new ModuleDefinition(moduleId, moduleName, "", ImmutableArray.CreateRange(typeDetails, t => t.Definition), events.DrainToImmutable());
+
+			return new(moduleDefinition, typeDetails);
 		}
 	}
 
@@ -86,8 +107,8 @@ public sealed class ProgrammingService : IAsyncDisposable
 	// - A default program containing overlay programming should then be provided as a startup point for users to customize the logic.
 	private readonly OverlayNotificationService _overlayNotificationService;
 	private readonly Dictionary<Guid, Action<object?>> _hardcodedEventHandlers;
-	private readonly ConcurrentDictionary<Guid, TypeDefinition> _types;
-	private readonly ConcurrentDictionary<Guid, ModuleDefinition> _modules;
+	private readonly ConcurrentDictionary<Guid, TypeDetails> _types;
+	private readonly ConcurrentDictionary<Guid, ModuleDetails> _modules;
 
 	// These hardcoded event handlers should be translated and included in the default program once the user-programing code logic is ready.
 	private Dictionary<Guid, Action<object?>> CreateHardcodedEventHandlers()
@@ -291,19 +312,23 @@ public sealed class ProgrammingService : IAsyncDisposable
 	}
 
 	public void RegisterModule<T>(T instance)
+		where T : notnull
 	{
-		var definition = ModuleDefinition<T>.Value;
+		var (definition, types) = ModuleDetails<T>.StaticDetails;
 
-		if (!_modules.TryAdd(definition.Id, definition)) throw new InvalidOperationException("A module with the same ID was already added.");
-
-		for (int i = 0; i < definition.Types.Length; i++)
+		if (!_modules.TryAdd(definition.Id, new() { Instance = instance, Definition = definition, Types = types }))
 		{
-			var type = definition.Types[i];
-			if (!_types.TryAdd(type.Id, type))
+			throw new InvalidOperationException("A module with the same ID was already added.");
+		}
+
+		for (int i = 0; i < types.Length; i++)
+		{
+			var type = types[i];
+			if (!_types.TryAdd(type.Definition.Id, type))
 			{
 				for (int j = 0; j < i; j++)
 				{
-					_types.TryRemove(definition.Types[i].Id, out _);
+					_types.TryRemove(types[i].Definition.Id, out _);
 				}
 				throw new InvalidOperationException("A type with the same ID was already added.");
 			}
