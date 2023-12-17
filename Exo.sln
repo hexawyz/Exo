@@ -101,8 +101,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Core", "Exo.Ui.Core\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Elgato.StreamDeck", "Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj", "{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Programming", "Exo.Programming\Exo.Programming.csproj", "{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -699,22 +697,6 @@ Global
 		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x64.Build.0 = Release|Any CPU
 		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x86.ActiveCfg = Release|Any CPU
 		{BBFC3956-7B83-456E-AF6D-E1D6B60DF478}.Release|x86.Build.0 = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|arm64.ActiveCfg = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|arm64.Build.0 = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|x64.Build.0 = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Debug|x86.Build.0 = Debug|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|arm64.ActiveCfg = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|arm64.Build.0 = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|x64.ActiveCfg = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|x64.Build.0 = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|x86.ActiveCfg = Release|Any CPU
-		{1B5D468F-C174-4BD4-B3BF-C1B63D7E1DF0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
