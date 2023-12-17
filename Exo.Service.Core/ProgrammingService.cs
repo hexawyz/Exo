@@ -5,9 +5,11 @@ using System.Threading.Channels;
 using Exo.Features;
 using Exo.Overlay.Contracts;
 using Exo.Programming;
+using Exo.Programming.Annotations;
 
 namespace Exo.Service;
 
+[Module("Global")]
 [TypeId(0x303F219C, 0x7A88, 0x44B8, 0x90, 0x98, 0x59, 0x1A, 0xA9, 0x4A, 0xD2, 0xD6)]
 public sealed class ProgrammingService : IAsyncDisposable
 {
@@ -17,8 +19,11 @@ public sealed class ProgrammingService : IAsyncDisposable
 
 		private static ModuleDefinition GetModuleDefinition()
 		{
-			var moduleId = TypeId.Get<T>();
 			var type = typeof(T);
+
+			if (type.GetCustomAttribute<ModuleAttribute>()?.Name is not string moduleName) throw new InvalidOperationException("Missing module name.");
+
+			var moduleId = TypeId.Get<T>();
 
 			var events = ImmutableArray.CreateBuilder<EventDefinition>();
 
@@ -40,7 +45,34 @@ public sealed class ProgrammingService : IAsyncDisposable
 				);
 			}
 
-			return new ModuleDefinition(moduleId, typeof(T).Name, "", ImmutableArray<TypeDefinition>.Empty, events.DrainToImmutable());
+			var types = ImmutableArray.CreateBuilder<TypeDefinition>();
+
+			if (typeof(T) == typeof(ProgrammingService))
+			{
+				types.Add(TypeDefinition.Int8);
+				types.Add(TypeDefinition.UInt8);
+				types.Add(TypeDefinition.Int16);
+				types.Add(TypeDefinition.UInt16);
+				types.Add(TypeDefinition.Int32);
+				types.Add(TypeDefinition.UInt32);
+				types.Add(TypeDefinition.Int64);
+				types.Add(TypeDefinition.UInt64);
+
+				types.Add(TypeDefinition.Float16);
+				types.Add(TypeDefinition.Float32);
+				types.Add(TypeDefinition.Float64);
+
+				types.Add(TypeDefinition.Utf8);
+				types.Add(TypeDefinition.Utf16);
+
+				types.Add(TypeDefinition.Guid);
+
+				types.Add(TypeDefinition.Date);
+				types.Add(TypeDefinition.Time);
+				types.Add(TypeDefinition.DateTime);
+			}
+
+			return new ModuleDefinition(moduleId, moduleName, "", types.DrainToImmutable(), events.DrainToImmutable());
 		}
 	}
 
@@ -54,6 +86,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 	// - A default program containing overlay programming should then be provided as a startup point for users to customize the logic.
 	private readonly OverlayNotificationService _overlayNotificationService;
 	private readonly Dictionary<Guid, Action<object?>> _hardcodedEventHandlers;
+	private readonly ConcurrentDictionary<Guid, TypeDefinition> _types;
 	private readonly ConcurrentDictionary<Guid, ModuleDefinition> _modules;
 
 	// These hardcoded event handlers should be translated and included in the default program once the user-programing code logic is ready.
@@ -117,7 +150,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 
 			// Backlight
 			{
-				KeyboardService.KeyboardBacklightDownEventGuid,
+				KeyboardService.BacklightDownEventGuid,
 				p =>
 				{
 					var e = (BacklightLevelEventParameters)p!;
@@ -125,7 +158,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 			{
-				KeyboardService.KeyboardBacklightUpEventGuid,
+				KeyboardService.BacklightUpEventGuid,
 				p =>
 				{
 					var e = (BacklightLevelEventParameters)p!;
@@ -229,13 +262,13 @@ public sealed class ProgrammingService : IAsyncDisposable
 	{
 		_eventReader = eventReader;
 		_overlayNotificationService = overlayNotificationService;
+		_types = new();
 		_modules = new();
 		RegisterModule(this);
 		_hardcodedEventHandlers = CreateHardcodedEventHandlers();
 		_cancellationTokenSource = new();
 		_runTask = RunAsync(_cancellationTokenSource.Token);
 	}
-
 
 	public async ValueTask DisposeAsync()
 	{
@@ -260,6 +293,21 @@ public sealed class ProgrammingService : IAsyncDisposable
 	public void RegisterModule<T>(T instance)
 	{
 		var definition = ModuleDefinition<T>.Value;
+
+		if (!_modules.TryAdd(definition.Id, definition)) throw new InvalidOperationException("A module with the same ID was already added.");
+
+		for (int i = 0; i < definition.Types.Length; i++)
+		{
+			var type = definition.Types[i];
+			if (!_types.TryAdd(type.Id, type))
+			{
+				for (int j = 0; j < i; j++)
+				{
+					_types.TryRemove(definition.Types[i].Id, out _);
+				}
+				throw new InvalidOperationException("A type with the same ID was already added.");
+			}
+		}
 	}
 
 	public async IAsyncEnumerable<ModuleDefinition> GetModules()

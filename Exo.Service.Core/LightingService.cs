@@ -7,10 +7,12 @@ using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Exo.Programming.Annotations;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
+[Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
 public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 {

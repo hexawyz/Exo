@@ -1,4 +1,4 @@
-namespace Exo.Programming;
+namespace Exo.Programming.Annotations;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
 public class EventAttribute : Attribute

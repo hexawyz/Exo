@@ -1,10 +1,12 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace Exo.Programming;
 
 // Type definitions could be user-defined or map to other well-known types of the current model.
 [DataContract]
+[DebuggerDisplay("{Name,nq} ({Id})")]
 public sealed class TypeDefinition : NamedElement
 {
 	private static TypeDefinition DeclareIntrinsic(Guid guid, string name, string comment)
