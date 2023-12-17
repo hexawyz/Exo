@@ -51,17 +51,39 @@
             RadiusX="{StaticResource Radius}"
             RadiusY="{StaticResource Radius}"
             Fill="{StaticResource OverlayBackground}" />
-        <Viewbox Grid.Column="2" Grid.Row="1" IsHitTestVisible="False" Focusable="False">
-            <TextBlock Foreground="{StaticResource OverlayForeground}" FontFamily="Segoe Fluent Icons" Text="{Binding Glyph}" />
+        <Viewbox Grid.Column="2" Grid.Row="1" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Foreground="{StaticResource OverlayForeground}" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe Fluent Icons" Text="{Binding Glyph}" />
         </Viewbox>
         <local:LevelBar
             Grid.Column="2"
             Grid.Row="2"
             Margin="0, 5, 0, 5"
+            IsHitTestVisible="False"
+            Focusable="False"
+            Visibility="{Binding LevelCount, Converter={StaticResource ZeroToVisibilityHiddenConverter}}"
             ActiveFill="{StaticResource OverlayForeground}"
             InactiveFill="{StaticResource OverlayInactiveForeground}"
             Value="{Binding CurrentLevel, Mode=OneWay}"
             Maximum="{Binding LevelCount, Mode=OneWay}"></local:LevelBar>
-        <TextBlock Grid.Column="2" Grid.Row="3" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource OverlayForeground}" Text="{Binding Description}" />
+        <TextBlock
+            Grid.Column="2"
+            Grid.Row="2"
+            IsHitTestVisible="False"
+            Focusable="False"
+            Visibility="{Binding LevelCount, Converter={StaticResource NonZeroToVisibilityHiddenConverter}}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Foreground="{StaticResource OverlayForeground}"
+            Text="{Binding CurrentLevel}" />
+        <TextBlock
+            Grid.Column="1"
+            Grid.Row="3"
+            Grid.ColumnSpan="3"
+            IsHitTestVisible="False"
+            Focusable="False"
+            HorizontalAlignment="Center"
+            FontWeight="Bold"
+            Foreground="{StaticResource OverlayForeground}"
+            Text="{Binding Description}" />
     </Grid>
 </Window>

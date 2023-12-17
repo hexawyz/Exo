@@ -8,6 +8,7 @@ using Exo.Features;
 using Exo.Overlay.Contracts;
 using Exo.Programming;
 using Exo.Programming.Annotations;
+using Exo.Service.Events;
 
 namespace Exo.Service;
 
@@ -274,6 +275,38 @@ public sealed class ProgrammingService : IAsyncDisposable
 					if (e.CurrentLevel <= 0.1f && e.PreviousLevel is null or > 0.1f)
 					{
 						_overlayNotificationService.PostRequest(OverlayNotificationKind.BatteryLow, e.DeviceId, GetBatteryLevel(e.CurrentLevel.GetValueOrDefault()), 0);
+					}
+				}
+			},
+
+			// Mouse
+			{
+				MouseService.DpiDownEventGuid,
+				p =>
+				{
+					var e = (MouseDpiEventParameters)p!;
+					if (e.LevelCount > 0 && e.CurrentLevel is not null and > 0)
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount);
+					}
+					else
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, e.Horizontal, e.LevelCount);
+					}
+				}
+			},
+			{
+				MouseService.DpiUpEventGuid,
+				p =>
+				{
+					var e = (MouseDpiEventParameters)p!;
+					if (e.LevelCount > 0 && e.CurrentLevel is not null and > 0)
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount);
+					}
+					else
+					{
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, e.Horizontal, e.LevelCount);
 					}
 				}
 			},

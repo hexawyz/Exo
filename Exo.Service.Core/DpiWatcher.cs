@@ -2,7 +2,7 @@ using Exo.Features.MouseFeatures;
 
 namespace Exo.Service.Services;
 
-internal sealed class DpiWatcher : Watcher<Guid, DotsPerInch>
+public sealed class DpiWatcher : Watcher<Guid, DotsPerInch>
 {
 	private readonly DeviceRegistry _driverRegistry;
 

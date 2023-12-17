@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using Exo.Programming;
 
-namespace Exo.Service;
+namespace Exo.Service.Events;
 
 [DataContract]
 [TypeId(0xE8607AF5, 0x9DC6, 0x4A21, 0xA5, 0xFF, 0x0B, 0xAE, 0x45, 0x4A, 0xAA, 0x0F)]

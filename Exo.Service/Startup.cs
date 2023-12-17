@@ -49,6 +49,7 @@ public class Startup
 		services.AddSingleton<LightingService>();
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
+		services.AddSingleton<MouseService>();
 		services.AddSingleton<ProgrammingService>();
 		services.AddSingleton<OverlayNotificationService>();
 		services.AddSingleton<EventQueue>();

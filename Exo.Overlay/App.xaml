@@ -5,5 +5,7 @@
              StartupUri="OverlayWindow.xaml">
     <Application.Resources>
         <local:BooleanToVisibilityHiddenConverter x:Key="BooleanToVisibilityHiddenConverter" />
+        <local:ZeroToVisibilityHiddenConverter x:Key="ZeroToVisibilityHiddenConverter" />
+        <local:NonZeroToVisibilityHiddenConverter x:Key="NonZeroToVisibilityHiddenConverter" />
     </Application.Resources>
 </Application>

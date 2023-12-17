@@ -10,6 +10,7 @@ public sealed class CoreServices : IHostedService
 		LightingService lightingService,
 		BatteryService batteryService,
 		KeyboardService keyboardService,
+		MouseService mouseService,
 		OverlayNotificationService overlayNotificationService,
 		ProgrammingService programmingService
 	)
@@ -17,6 +18,7 @@ public sealed class CoreServices : IHostedService
 		programmingService.RegisterModule(lightingService);
 		programmingService.RegisterModule(batteryService);
 		programmingService.RegisterModule(keyboardService);
+		programmingService.RegisterModule(mouseService);
 		programmingService.RegisterModule(overlayNotificationService);
 	}
 
