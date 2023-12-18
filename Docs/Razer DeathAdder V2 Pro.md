@@ -322,7 +322,7 @@ Write:
 <Divider:U8>
 ```
 
-The parameter to this command is a frequency divider from the maximum frequency. (How to we know the maximum frequency then ?)
+The parameter to this command is a frequency divider from the maximum frequency. (How do we know the maximum frequency then ?)
 
 e.g. 1000Hz is 1, 500Hz is 2, 125Hz is 8
 
@@ -356,7 +356,7 @@ It seems that for the input, the device count, is the requested maximum count ?
 Some requests have the value `02` and some have the value `10`, but all the responses have `02`.
 The value `10` makes sense, as the message length `31` could fit exactly 16 device information structures. (Each is 3 bytes long)
 
-For each device, the connection statis is either `01` if the device is online, or `00` if the device is offline.
+For each device, the connection status is either `01` if the device is online, or `00` if the device is offline.
 The product ID is the USB product ID. However there is a quirk there, as receivers share the same product ID as their associated product.
 
 ###### 45 - Device ID ?
@@ -372,6 +372,46 @@ Read Response:
 This returns similar information to the pairing information stuff.
 
 Maybe this is used to confirm the ID of the connected device ? It would be useful for multiple device stuff, I guess.
+
+##### 04 - Mouse
+
+###### 05 - DPI Level
+
+Read Request:
+
+```
+<Persisted:U8>
+```
+
+Read Response:
+
+```
+<???:U8> <DpiX:U16> <DpiY:U16>
+```
+
+The first byte has been observed to be both `00` and `01` depending on the situation.
+Logically, it would either indicate that the setting must be or is persisted, or that the horizontal and vertical DPIs are linked.
+The first possibility might be the most likely.
+
+###### 06 - Predefined DPI levels
+
+Read Request:
+
+```
+<Persisted:U8>
+```
+
+Read Response/Write Request:
+
+```
+<Persisted:U8> <ActiveProfile:U8> <ProfileCount:U8> <DpiPresetList:<DpiPreset:<Index:U8> <DpiX:U16> <DpiY:U16> <DpiZ:U16>>[]>
+```
+
+This is still guesswork, but assuming the format of the packets we received it makes sense that each profile would define three DPI values for X, Y and Z, with Z being zero if unsupported.
+The meaning of the first byte is assumed to be the persistance state, and should be `00` for volatile memory and `01` for non-volatile memory. This could be wrong, though.
+The Razer Synapse software only seems to write values where the first byte is set to `01`.
+The second byte has been confirmed by simple testing to be the active profile index (e.g. `04` is the 4th profile on a mouse with `05` profiles).
+It follows logically that the following byte should be the number of profiles.
 
 ##### 07 - Power
 
@@ -1287,8 +1327,8 @@ Should the `01` responses always be ignored ?
 00 1f 000000 0e068e 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008600
 02 1f 000000 0e068e 00640005e0000005e 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e200
 
-00 1f 000000 260406 01 05 05 00 0190 0190 00 00 01 0320 0320 0000 02 0640 0640 0000 03 0c80 0c80 0000 04 1900 1900 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000002100
-02 1f 000000 260406 01 05 05 00 0190 0190 00 00 01 0320 0320 0000 02 0640 0640 0000 03 0c80 0c80 0000 04 1900 1900 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000002100
+00 1f 000000 260406 01 05 05 00 0190 0190 0000 01 0320 0320 0000 02 0640 0640 0000 03 0c80 0c80 0000 04 1900 1900 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000002100
+02 1f 000000 260406 01 05 05 00 0190 0190 0000 01 0320 0320 0000 02 0640 0640 0000 03 0c80 0c80 0000 04 1900 1900 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000002100
 
 This one command seems quite different from the others, so it should have a very specific meaning. Maybe the software transferring "profile" data to the mouse ?
 

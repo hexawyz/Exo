@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -130,7 +132,62 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
-	public async ValueTask<byte> GetBrightnessAsync(CancellationToken cancellationToken)
+	//public async ValueTask<byte> GetBrightnessAsync(CancellationToken cancellationToken)
+	//{
+	//	var @lock = Volatile.Read(ref _lock);
+	//	ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+	//	using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+	//	{
+	//		var buffer = Buffer;
+
+	//		static void FillBuffer(Span<byte> buffer)
+	//		{
+	//			buffer[2] = 0x1f;
+
+	//			buffer[6] = 0x01;
+	//			buffer[7] = (byte)RazerDeviceFeature.Lighting;
+	//			buffer[8] = 0x84;
+
+	//			//buffer[9] = 0x01;
+
+	//			UpdateChecksum(buffer);
+	//		}
+
+	//		try
+	//		{
+	//			FillBuffer(buffer.Span);
+
+	//			await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+	//			await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x84, 0, cancellationToken).ConfigureAwait(false);
+
+	//			return buffer.Span[11];
+	//		}
+	//		finally
+	//		{
+	//			// TODO: Improve computations to take into account the written length.
+	//			buffer.Span.Clear();
+	//		}
+	//	}
+	//}
+
+	[StructLayout(LayoutKind.Sequential, Size = 7)]
+	private readonly struct RawDpiProfile
+	{
+		public readonly byte Index;
+		private readonly byte _dpiX0;
+		private readonly byte _dpiX1;
+		private readonly byte _dpiY0;
+		private readonly byte _dpiY1;
+		private readonly byte _dpiZ0;
+		private readonly byte _dpiZ1;
+
+		public ushort DpiX => BigEndian.ReadUInt16(_dpiX0);
+		public ushort DpiY => BigEndian.ReadUInt16(_dpiY0);
+		public ushort DpiZ => BigEndian.ReadUInt16(_dpiZ0);
+	}
+
+	public async ValueTask<RazerMouseDpiProfileStatus> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -138,28 +195,49 @@ internal sealed class RazerProtocolTransport : IDisposable
 		{
 			var buffer = Buffer;
 
-			static void FillBuffer(Span<byte> buffer)
+			static void FillBuffer(bool persisted, Span<byte> buffer)
 			{
 				buffer[2] = 0x1f;
 
-				buffer[6] = 0x01;
-				buffer[7] = (byte)RazerDeviceFeature.Lighting;
-				buffer[8] = 0x84;
+				buffer[6] = 0x26;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
+				buffer[8] = 0x86;
 
-				//buffer[9] = 0x01;
+				buffer[9] = persisted ? (byte)0x01 : (byte)0x00;
 
 				UpdateChecksum(buffer);
 			}
 
+			static RazerMouseDpiProfileStatus ReadResponse(Span<byte> buffer)
+			{
+				var message = buffer.Slice(9);
+
+				byte profileCount = message[2];
+
+				// In the 80 available bytes, we could only retrieve up to 11 profiles exactly.
+				if (profileCount > 11) throw new InvalidDataException("Returned profile count is too big.");
+
+				var profiles = new RazerMouseDpiProfile[profileCount];
+				var rawProfiles = MemoryMarshal.Cast<byte, RawDpiProfile>(message.Slice(3, Unsafe.SizeOf<RawDpiProfile>() * profileCount));
+
+				for (int i = 0; i < profiles.Length; i++)
+				{
+					ref readonly var rawProfile = ref rawProfiles[i];
+					if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
+					profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, rawProfile.DpiZ);
+				}
+
+				return new(message[1], ImmutableCollectionsMarshal.AsImmutableArray(profiles));
+			}
+
 			try
 			{
-				FillBuffer(buffer.Span);
+				FillBuffer(persisted, buffer.Span);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x86, 0, cancellationToken).ConfigureAwait(false);
 
-				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x84, 0, cancellationToken).ConfigureAwait(false);
-
-				return buffer.Span[11];
+				return ReadResponse(buffer.Span);
 			}
 			finally
 			{

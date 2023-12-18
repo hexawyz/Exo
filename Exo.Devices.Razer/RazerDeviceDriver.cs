@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Razer.LightingEffects;
@@ -18,7 +19,7 @@ namespace Exo.Devices.Razer;
 [ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // DeathAdder V2 Pro Mouse Wired
 [ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
 [ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock
-//[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
+													   //[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
 public abstract class RazerDeviceDriver :
 	Driver,
 	IRazerDeviceNotificationSink,
@@ -139,7 +140,7 @@ public abstract class RazerDeviceDriver :
 		IsDongle = 0x80,
 	}
 
-	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new (0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
+	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
 
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
 	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
@@ -672,6 +673,7 @@ public abstract class RazerDeviceDriver :
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
+		private RazerMouseDpiProfile[] _currentDpiProfiles;
 		private uint _currentDpi;
 
 		private readonly IDeviceFeatureCollection<IMouseDeviceFeature> _mouseFeatures;
@@ -688,6 +690,7 @@ public abstract class RazerDeviceDriver :
 			byte mainDeviceIdIndex
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
+			_currentDpiProfiles = [];
 			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature>(this);
 			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, _mouseFeatures, CreateBaseFeatures());
 		}
@@ -696,6 +699,8 @@ public abstract class RazerDeviceDriver :
 		{
 			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
+			var dpiLevels = await _transport.GetDpiProfilesAsync(false, cancellationToken).ConfigureAwait(false);
+			_currentDpiProfiles = ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!;
 			var dpi = await _transport.GetDpiAsync(cancellationToken).ConfigureAwait(false);
 			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 		}
