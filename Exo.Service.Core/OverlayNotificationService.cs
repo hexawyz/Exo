@@ -32,13 +32,13 @@ public sealed class OverlayNotificationService
 		}
 	}
 
-	public void PostRequest(OverlayNotificationKind notificationKind, Guid deviceId = default, uint level = 0, uint maxLevel = 0)
+	public void PostRequest(OverlayNotificationKind notificationKind, Guid deviceId = default, uint level = 0, uint maxLevel = 0, long value = 0)
 	{
 		if (Volatile.Read(ref _listeners) is { } listeners)
 		{
 			_driverRegistry.TryGetDeviceName(deviceId, out string? deviceName);
 
-			listeners.TryWrite(new() { NotificationKind = notificationKind, DeviceName = deviceName, Level = level, MaxLevel = maxLevel });
+			listeners.TryWrite(new() { NotificationKind = notificationKind, DeviceName = deviceName, Level = level, MaxLevel = maxLevel, Value = value });
 		}
 	}
 }

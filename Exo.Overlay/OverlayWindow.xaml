@@ -40,7 +40,7 @@
             <RowDefinition Height="{StaticResource RadiusGridLength}" />
             <RowDefinition Height="{StaticResource IconSize}" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="{StaticResource RadiusGridLength}" />
         </Grid.RowDefinitions>
         <Rectangle
@@ -54,27 +54,37 @@
         <Viewbox Grid.Column="2" Grid.Row="1" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Foreground="{StaticResource OverlayForeground}" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe Fluent Icons" Text="{Binding Glyph}" />
         </Viewbox>
-        <local:LevelBar
+        <Grid
             Grid.Column="2"
-            Grid.Row="2"
-            Margin="0, 5, 0, 5"
-            IsHitTestVisible="False"
-            Focusable="False"
-            Visibility="{Binding LevelCount, Converter={StaticResource ZeroToVisibilityHiddenConverter}}"
-            ActiveFill="{StaticResource OverlayForeground}"
-            InactiveFill="{StaticResource OverlayInactiveForeground}"
-            Value="{Binding CurrentLevel, Mode=OneWay}"
-            Maximum="{Binding LevelCount, Mode=OneWay}"></local:LevelBar>
-        <TextBlock
-            Grid.Column="2"
-            Grid.Row="2"
-            IsHitTestVisible="False"
-            Focusable="False"
-            Visibility="{Binding LevelCount, Converter={StaticResource NonZeroToVisibilityHiddenConverter}}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Foreground="{StaticResource OverlayForeground}"
-            Text="{Binding CurrentLevel}" />
+            Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" MaxHeight="5" />
+                <RowDefinition Height="*" MaxHeight="10" />
+                <RowDefinition Height="*" MaxHeight="5" />
+            </Grid.RowDefinitions>
+            <TextBlock
+                Grid.Row="0"
+                IsHitTestVisible="False"
+                Focusable="False"
+                Margin="0"
+                Padding="0"
+                Visibility="{Binding ShouldShowValue, Converter={StaticResource BooleanToVisibilityCollapsedConverter}}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource OverlayForeground}"
+                FontSize="8"
+                Text="{Binding Value}"/>
+            <local:LevelBar
+                Grid.Row="2"
+                IsHitTestVisible="False"
+                Focusable="False"
+                Visibility="{Binding ShouldShowLevel, Converter={StaticResource BooleanToVisibilityHiddenConverter}}"
+                ActiveFill="{StaticResource OverlayForeground}"
+                InactiveFill="{StaticResource OverlayInactiveForeground}"
+                Value="{Binding CurrentLevel, Mode=OneWay}"
+                Maximum="{Binding LevelCount, Mode=OneWay}" />
+        </Grid>
         <TextBlock
             Grid.Column="1"
             Grid.Row="3"

@@ -287,11 +287,11 @@ public sealed class ProgrammingService : IAsyncDisposable
 					var e = (MouseDpiEventParameters)p!;
 					if (e.LevelCount > 0 && e.CurrentLevel is not null and > 0)
 					{
-						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount);
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount, e.Horizontal);
 					}
 					else
 					{
-						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, e.Horizontal, e.LevelCount);
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, 0, 0, e.Horizontal);
 					}
 				}
 			},
@@ -302,11 +302,11 @@ public sealed class ProgrammingService : IAsyncDisposable
 					var e = (MouseDpiEventParameters)p!;
 					if (e.LevelCount > 0 && e.CurrentLevel is not null and > 0)
 					{
-						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount);
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount, e.Horizontal);
 					}
 					else
 					{
-						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, e.Horizontal, e.LevelCount);
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, 0, 0, e.Horizontal);
 					}
 				}
 			},

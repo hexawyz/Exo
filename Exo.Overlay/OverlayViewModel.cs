@@ -131,10 +131,10 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 					content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", request.DeviceName);
 					break;
 				case OverlayNotificationKind.MouseDpiDown:
-					content = new("\uF08E", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new("\uF08E", request.DeviceName, (int)request.Level, (int)request.MaxLevel, request.Value > 0 ? request.Value : null);
 					break;
 				case OverlayNotificationKind.MouseDpiUp:
-					content = new("\uF090", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new("\uF090", request.DeviceName, (int)request.Level, (int)request.MaxLevel, request.Value > 0 ? request.Value : null);
 					break;
 				default:
 					continue;

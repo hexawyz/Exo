@@ -669,12 +669,13 @@ public abstract class RazerDeviceDriver :
 		BaseDevice,
 		IDeviceDriver<IMouseDeviceFeature>,
 		IMouseDpiFeature,
-		IMouseDynamicDpiFeature
+		IMouseDynamicDpiFeature,
+		IMouseDpiPresetFeature
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-		private RazerMouseDpiProfile[] _currentDpiProfiles;
-		private uint _currentDpi;
+		private DotsPerInch[] _dpiProfiles;
+		private ulong _currentDpi;
 
 		private readonly IDeviceFeatureCollection<IMouseDeviceFeature> _mouseFeatures;
 		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
@@ -690,8 +691,8 @@ public abstract class RazerDeviceDriver :
 			byte mainDeviceIdIndex
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
-			_currentDpiProfiles = [];
-			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature>(this);
+			_dpiProfiles = [];
+			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetFeature>(this);
 			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, _mouseFeatures, CreateBaseFeatures());
 		}
 
@@ -700,7 +701,7 @@ public abstract class RazerDeviceDriver :
 			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
 			var dpiLevels = await _transport.GetDpiProfilesAsync(false, cancellationToken).ConfigureAwait(false);
-			_currentDpiProfiles = ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!;
+			_dpiProfiles = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!, p => new DotsPerInch(p.X, p.Y));
 			var dpi = await _transport.GetDpiAsync(cancellationToken).ConfigureAwait(false);
 			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 		}
@@ -710,8 +711,20 @@ public abstract class RazerDeviceDriver :
 
 		protected override void OnDeviceDpiChange(ushort dpiX, ushort dpiY)
 		{
-			uint newDpi = (uint)dpiY << 16 | dpiX;
-			uint oldDpi = Interlocked.Exchange(ref _currentDpi, newDpi);
+			var profiles = Volatile.Read(ref _dpiProfiles);
+
+			uint profileIndex = 0;
+			for (int i = 0; i < profiles.Length; i++)
+			{
+				if (profiles[i].Horizontal == dpiX && profiles[i].Vertical == dpiY)
+				{
+					profileIndex = (uint)i + 1;
+					break;
+				}
+			}
+
+			ulong newDpi = (ulong)profileIndex << 32 | (uint)dpiY << 16 | dpiX;
+			ulong oldDpi = Interlocked.Exchange(ref _currentDpi, newDpi);
 
 			if (newDpi != oldDpi)
 			{
@@ -735,18 +748,24 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
-		private static DotsPerInch GetDpi(uint rawValue)
-			=> new((ushort)rawValue, (ushort)(rawValue >> 16));
+		private static MouseDpiStatus GetDpi(ulong rawValue)
+			=> new()
+			{
+				PresetIndex = (byte)(rawValue >> 32) is > 0 and byte i ? i : null,
+				Dpi = new((ushort)rawValue, (ushort)(rawValue >> 16))
+			};
 
-		private event Action<Driver, DotsPerInch>? DpiChanged;
+		private event Action<Driver, MouseDpiStatus>? DpiChanged;
 
-		DotsPerInch IMouseDpiFeature.CurrentDpi => GetDpi(Volatile.Read(ref _currentDpi));
+		MouseDpiStatus IMouseDpiFeature.CurrentDpi => GetDpi(Volatile.Read(ref _currentDpi));
 
-		event Action<Driver, DotsPerInch> IMouseDynamicDpiFeature.DpiChanged
+		event Action<Driver, MouseDpiStatus> IMouseDynamicDpiFeature.DpiChanged
 		{
 			add => DpiChanged += value;
 			remove => DpiChanged -= value;
 		}
+
+		ImmutableArray<DotsPerInch> IMouseDpiPresetFeature.DpiPresets => ImmutableCollectionsMarshal.AsImmutableArray(Volatile.Read(ref _dpiProfiles));
 	}
 
 	private class Keyboard : BaseDevice

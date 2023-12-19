@@ -20,7 +20,6 @@ internal static class Watcher
 		=> Channel.CreateUnbounded<T>(MultiWriterWatchChannelOptions);
 }
 
-// Maybe we don't need the variability on the TResult parameter and could merge this back with the base implementation.
 public abstract class Watcher<TKey, TValue> : Watcher<TKey, TValue, ChangeWatchNotification<TKey, TValue>>
 	where TKey : notnull
 {

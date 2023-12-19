@@ -39,29 +39,47 @@ public sealed class MouseService
 		_cancellationTokenSource.Dispose();
 	}
 
+	private async Task WatchPresetsAsync(CancellationToken cancellationToken)
+	{
+	}
+
 	private async Task WatchDpiChangesAsync(CancellationToken cancellationToken)
 	{
 		await foreach (var notification in _dpiWatcher.WatchAsync(cancellationToken))
 		{
 			if (notification.NotificationKind == WatchNotificationKind.Update)
 			{
-				int h = Comparer<int>.Default.Compare(notification.NewValue.Horizontal, notification.OldValue.Horizontal);
-				int v = Comparer<int>.Default.Compare(notification.NewValue.Vertical, notification.OldValue.Vertical);
+				int? status = null;
 
-				if (Math.Sign(h) == Math.Sign(v))
+				if (notification.OldValue.PresetIndex is not null && notification.NewValue.PresetIndex is not null)
+				{
+					status = Comparer<byte>.Default.Compare(notification.NewValue.PresetIndex.GetValueOrDefault(), notification.OldValue.PresetIndex.GetValueOrDefault());
+				}
+				else
+				{
+					int h = Comparer<int>.Default.Compare(notification.NewValue.Dpi.Horizontal, notification.OldValue.Dpi.Horizontal);
+					int v = Comparer<int>.Default.Compare(notification.NewValue.Dpi.Vertical, notification.OldValue.Dpi.Vertical);
+
+					if (Math.Sign(h) == Math.Sign(v))
+					{
+						status = h;
+					}
+				}
+
+				if (status is not null and not 0)
 				{
 					_eventWriter.TryWrite
 					(
 						Event.Create
 						(
-							h > 0 ? DpiUpEventGuid : DpiDownEventGuid,
+							status >= 0 ? DpiUpEventGuid : DpiDownEventGuid,
 							new MouseDpiEventParameters
 							(
-								(DeviceId)notification.Key,
-								notification.NewValue.Horizontal,
-								notification.NewValue.Vertical,
-								0,
-								null
+								(DeviceId)notification.DeviceId,
+								notification.NewValue.Dpi.Horizontal,
+								notification.NewValue.Dpi.Vertical,
+								checked((byte)notification.Presets.Length),
+								notification.NewValue.PresetIndex
 							)
 						)
 					);

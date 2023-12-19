@@ -51,8 +51,8 @@ public class GrpcMouseService : IMouseService
 
 			yield return new()
 			{
-				DeviceId = notification.Key,
-				Dpi = new() { Horizontal = notification.NewValue.Horizontal, Vertical = notification.NewValue.Vertical }
+				DeviceId = notification.DeviceId,
+				Dpi = new() { Horizontal = notification.NewValue.Dpi.Horizontal, Vertical = notification.NewValue.Dpi.Vertical }
 			};
 		}
 	}
