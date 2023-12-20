@@ -449,7 +449,7 @@ internal static class Program
 			bool firstCollection = true;
 			foreach (var reportCollection in new HidReportDescriptorCollection[] { collectionDescriptor.InputReports, collectionDescriptor.OutputReports, collectionDescriptor.FeatureReports })
 			{
-				if (reportCollection.Count == 0) return;
+				if (reportCollection.Count == 0) continue;
 				Console.WriteLine($"║ {(firstCollection ? "╔" : "╠")}═══════ {reportCollection.ReportType} Reports");
 				firstCollection = false;
 				Console.WriteLine($"║ ║ Maximum Report Length: {reportCollection.MaximumReportLength}");
@@ -548,7 +548,7 @@ internal static class Program
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine($"║ Link Collection Nodes: <{ex.GetType()}>");
+			Console.WriteLine($"║ Report Descriptors: <{ex.GetType()}>");
 		}
 	}
 

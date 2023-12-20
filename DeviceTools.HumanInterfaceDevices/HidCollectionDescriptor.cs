@@ -322,8 +322,8 @@ public sealed class HidCollectionDescriptor
 		var linkCollections = ParseLinkCollections(preparsedData);
 
 		var inputReports = header.Input.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Input), header.Input.ByteLen) : HidInputReportDescriptorCollection.Empty;
-		var outputReports = header.Input.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Input), header.Input.ByteLen) : HidOutputReportDescriptorCollection.Empty;
-		var featureReports = header.Input.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Input), header.Input.ByteLen) : HidFeatureReportDescriptorCollection.Empty;
+		var outputReports = header.Output.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Output), header.Output.ByteLen) : HidOutputReportDescriptorCollection.Empty;
+		var featureReports = header.Feature.Size > 0 ? new(ParseReports(linkCollections, preparsedData, in header.Feature), header.Feature.ByteLen) : HidFeatureReportDescriptorCollection.Empty;
 
 		return new(linkCollections[0], header.Usage, (HidUsagePage)header.UsagePage, (SystemButtons)header.PowerButtonMask, inputReports, outputReports, featureReports);
 	InvalidDescriptor:;
