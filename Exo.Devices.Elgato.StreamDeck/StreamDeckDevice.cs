@@ -1,4 +1,6 @@
+using System;
 using System.Buffers.Binary;
+using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,10 +18,12 @@ internal class StreamDeckDevice : IAsyncDisposable
 		{
 			GridWidth = gridWidth;
 			GridHeight = gridHeight;
+			KeyCount = checked((byte)(GridWidth * GridHeight));
 		}
 
 		public byte GridWidth { get; }
 		public byte GridHeight { get; }
+		public byte KeyCount { get; }
 	}
 
 	private static readonly Dictionary<ushort, DeviceInfo> DeviceInformations = new()
@@ -37,22 +41,78 @@ internal class StreamDeckDevice : IAsyncDisposable
 	private readonly HidFullDuplexStream _stream;
 	private readonly DeviceInfo _deviceInfo;
 	private readonly byte[] _ioBuffers;
+	private uint _downKeys;
+
+	private readonly CancellationTokenSource _cancellationTokenSource;
+	private readonly Task _readTask;
 
 	public StreamDeckDevice(HidFullDuplexStream stream, ushort productId)
 	{
 		_stream = stream;
 		_deviceInfo = DeviceInformations[productId];
 		_ioBuffers = GC.AllocateUninitializedArray<byte>(WriteBufferLength + ReadBufferLength + FeatureBufferLength, pinned: true);
+		_cancellationTokenSource = new();
+		_readTask = ReadAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
 	{
+		_cancellationTokenSource.Cancel();
 		await _stream.DisposeAsync().ConfigureAwait(false);
+		await _readTask.ConfigureAwait(false);
 	}
 
 	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_ioBuffers, 0, WriteBufferLength);
 	private Memory<byte> ReadBuffer => MemoryMarshal.CreateFromPinnedArray(_ioBuffers, WriteBufferLength, ReadBufferLength);
+	private ReadOnlySpan<byte> ReadBufferSpan => _ioBuffers.AsSpan(WriteBufferLength, ReadBufferLength);
 	private Memory<byte> FeatureBuffer => MemoryMarshal.CreateFromPinnedArray(_ioBuffers, WriteBufferLength + ReadBufferLength, FeatureBufferLength);
+
+	private async Task ReadAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			while (true)
+			{
+				int count = await _stream.ReadAsync(ReadBuffer, cancellationToken).ConfigureAwait(false);
+				if (count == 0) return;
+
+				uint oldKeys = _downKeys;
+				uint newKeys = ReadKeysFromBuffer();
+				Volatile.Write(ref _downKeys, newKeys);
+				uint changedKeys = oldKeys ^ newKeys;
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+		catch (Exception ex)
+		{
+		}
+	}
+
+	private uint ReadKeysFromBuffer()
+	{
+		var buffer = ReadBufferSpan;
+
+		// The bytes read from the device are:
+		// [0]: Report ID
+		// [1]: ?
+		// [2]: Key Count
+		// [3]: ?
+		// [4..]: bool
+		if (buffer[0] != 1) throw new InvalidOperationException("Invalid report ID.");
+
+		var keyBuffer = buffer[4..buffer[2]];
+		if (keyBuffer.Length > _deviceInfo.KeyCount) throw new InvalidOperationException("Key count mismatch.");
+
+		uint keys = 0;
+		for (int i = 0; i < keyBuffer.Length; i++)
+		{
+			if (keyBuffer[i] != 0) keys |= 1u << i;
+		}
+
+		return keys;
+	}
 
 	public async Task<string> GetSerialNumberAsync(CancellationToken cancellationToken)
 	{
@@ -127,10 +187,17 @@ internal class StreamDeckDevice : IAsyncDisposable
 	}
 
 	public Task SetKeyRawImageAsync(byte keyX, byte keyY, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
-		=> SetKeyRawImageAsync((byte)(_deviceInfo.GridWidth * keyY + keyX), data, cancellationToken);
+	{
+		if (keyX >= _deviceInfo.GridWidth) throw new ArgumentOutOfRangeException(nameof(keyX));
+		if (keyY >= _deviceInfo.GridHeight) throw new ArgumentOutOfRangeException(nameof(keyY));
+
+		return SetKeyRawImageAsync((byte)(_deviceInfo.GridWidth * keyY + keyX), data, cancellationToken);
+	}
 
 	public async Task SetKeyRawImageAsync(byte keyIndex, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 	{
+		if (keyIndex > _deviceInfo.KeyCount) throw new ArgumentOutOfRangeException(nameof(keyIndex));
+
 		var buffer = WriteBuffer;
 
 		ushort maxSliceLength = checked((ushort)(buffer.Length - 8));
