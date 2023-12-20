@@ -782,7 +782,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 					// TODO: Try to analyze the meaning further.
 					throw new InvalidOperationException("Unsupported parameter.");
 				default:
-					throw new InvalidDataException("The response could not be decoded properly.");
+					throw new InvalidDataException($"The response could not be decoded properly. Unsupported status code: {buffer[1]}.");
 				}
 			}
 			else
