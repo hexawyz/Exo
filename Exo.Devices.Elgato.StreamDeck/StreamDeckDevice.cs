@@ -1,6 +1,4 @@
 using System.Buffers.Binary;
-using System.IO;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -128,9 +126,46 @@ internal class StreamDeckDevice : IAsyncDisposable
 		await _stream.SendFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 	}
 
-	//public async Task SetKeyRawImage(byte x, byte y, ReadOnlySpan<byte> data)
-	//{
-	//	var buffer = MemoryMarshal.CreateFromPinnedArray(_ioBuffers, 0, 1024);
-	//	//
-	//}
+	public Task SetKeyRawImageAsync(byte keyX, byte keyY, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+		=> SetKeyRawImageAsync((byte)(_deviceInfo.GridWidth * keyY + keyX), data, cancellationToken);
+
+	public async Task SetKeyRawImageAsync(byte keyIndex, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+	{
+		var buffer = WriteBuffer;
+
+		ushort maxSliceLength = checked((ushort)(buffer.Length - 8));
+
+		static ReadOnlyMemory<byte> PrepareRequest(Span<byte> buffer, ushort maxSliceLength, byte keyIndex, ReadOnlyMemory<byte> remaining)
+		{
+			buffer[0] = 0x02;
+			buffer[1] = 0x07;
+			buffer[2] = keyIndex;
+
+			return UpdateRequest(buffer, maxSliceLength, remaining, 0);
+		}
+
+		static ReadOnlyMemory<byte> UpdateRequest(Span<byte> buffer, ushort maxSliceLength, ReadOnlyMemory<byte> remaining, ushort index)
+		{
+			bool isLastSlice = remaining.Length <= maxSliceLength;
+			ushort sliceLength = isLastSlice ? (ushort)remaining.Length : maxSliceLength;
+
+			buffer[3] = isLastSlice ? (byte)0x01 : (byte)0x00;
+			Unsafe.WriteUnaligned(ref buffer[4], BitConverter.IsLittleEndian ? sliceLength : BinaryPrimitives.ReverseEndianness(sliceLength));
+			Unsafe.WriteUnaligned(ref buffer[6], BitConverter.IsLittleEndian ? index : BinaryPrimitives.ReverseEndianness(index));
+			remaining.Span[..sliceLength].CopyTo(buffer[8..]);
+
+			return remaining[sliceLength..];
+		}
+
+		var remaining = data;
+
+		remaining = PrepareRequest(buffer.Span, maxSliceLength, keyIndex, remaining);
+		ushort index = 0;
+		while (true)
+		{
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			if (remaining.Length == 0) break;
+			remaining = UpdateRequest(buffer.Span, maxSliceLength, remaining, ++index);
+		}
+	}
 }
