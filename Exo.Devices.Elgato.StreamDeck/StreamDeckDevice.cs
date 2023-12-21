@@ -12,26 +12,18 @@ namespace Exo.Devices.Elgato.StreamDeck;
 // TODO: Create(ushort productId) returning the correct underlying implementation with correctly initialized parameters.
 internal class StreamDeckDevice : IAsyncDisposable
 {
-	private readonly struct DeviceInfo
-	{
-		public DeviceInfo(byte gridWidth, byte gridHeight)
-		{
-			GridWidth = gridWidth;
-			GridHeight = gridHeight;
-			KeyCount = checked((byte)(GridWidth * GridHeight));
-		}
+	// https://www.reddit.com/r/elgato/comments/jagj6p/stream_deck_update_49_screensaver_sleep_action/
+	// > The recommended screensaver dimensions are:
+	// > • Stream Deck Mini: 320x240
+	// > • Stream Deck: 480x272
+	// > • Stream Deck XL: 1024x600
 
-		public byte GridWidth { get; }
-		public byte GridHeight { get; }
-		public byte KeyCount { get; }
-	}
-
-	private static readonly Dictionary<ushort, DeviceInfo> DeviceInformations = new()
+	private static readonly Dictionary<ushort, StreamDeckDeviceInfo> DeviceInformations = new()
 	{
-		{ 0x0060, new(5, 3) },
-		{ 0x0063, new(3, 2) },
-		{ 0x006C, new(8, 4) },
-		{ 0x006D, new(3, 2) },
+		{ 0x0060, new(3, 5, 72, 72, 480, 272) },
+		{ 0x0063, new(2, 3, 80, 80, 320, 240) },
+		{ 0x006C, new(4, 8, 96, 96, 1024, 600) },
+		{ 0x006D, new(2, 3, 72, 72, 320, 240) },
 	};
 
 	private const int WriteBufferLength = 1024;
@@ -39,7 +31,7 @@ internal class StreamDeckDevice : IAsyncDisposable
 	private const int FeatureBufferLength = 32;
 
 	private readonly HidFullDuplexStream _stream;
-	private readonly DeviceInfo _deviceInfo;
+	private readonly StreamDeckDeviceInfo _deviceInfo;
 	private readonly byte[] _ioBuffers;
 	private uint _downKeys;
 
@@ -103,7 +95,7 @@ internal class StreamDeckDevice : IAsyncDisposable
 		if (buffer[0] != 1) throw new InvalidOperationException("Invalid report ID.");
 
 		var keyBuffer = buffer[4..buffer[2]];
-		if (keyBuffer.Length > _deviceInfo.KeyCount) throw new InvalidOperationException("Key count mismatch.");
+		if (keyBuffer.Length > _deviceInfo.ButtonCount) throw new InvalidOperationException("Key count mismatch.");
 
 		uint keys = 0;
 		for (int i = 0; i < keyBuffer.Length; i++)
@@ -112,6 +104,33 @@ internal class StreamDeckDevice : IAsyncDisposable
 		}
 
 		return keys;
+	}
+
+	// This returns device information similar to the one we hardcode here, so this method might not be ultra useful for now.
+	// Only the fields whose meaning was obvious are mapped. The device also returns some other values whose meaning is yet unknown.
+	public async Task<StreamDeckDeviceInfo> GetDeviceInfoAsync(CancellationToken cancellationToken)
+	{
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x08;
+
+		static StreamDeckDeviceInfo ReadResponse(ReadOnlySpan<byte> buffer)
+		{
+			byte rowCount = buffer[1];
+			byte columnCount = buffer[2];
+
+			ushort imageWidth = LittleEndian.ReadUInt16(in buffer[3]);
+			ushort imageHeight = LittleEndian.ReadUInt16(in buffer[5]);
+
+			ushort screensaverWidth = LittleEndian.ReadUInt16(in buffer[7]);
+			ushort screensaverHeight = LittleEndian.ReadUInt16(in buffer[9]);
+
+			return new StreamDeckDeviceInfo(rowCount, columnCount, imageWidth, imageHeight, screensaverWidth, screensaverHeight);
+		}
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
 	}
 
 	public async Task<string> GetSerialNumberAsync(CancellationToken cancellationToken)
@@ -165,7 +184,7 @@ internal class StreamDeckDevice : IAsyncDisposable
 		{
 			buffer[0] = 0x03;
 			buffer[1] = 0x0d;
-			Unsafe.WriteUnaligned(ref buffer[2], BitConverter.IsLittleEndian ? timeoutInSeconds : BinaryPrimitives.ReverseEndianness(timeoutInSeconds));
+			LittleEndian.Write(ref buffer[2], timeoutInSeconds);
 		}
 
 		PrepareRequest(buffer.Span, timeoutInSeconds);
@@ -188,15 +207,15 @@ internal class StreamDeckDevice : IAsyncDisposable
 
 	public Task SetKeyRawImageAsync(byte keyX, byte keyY, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 	{
-		if (keyX >= _deviceInfo.GridWidth) throw new ArgumentOutOfRangeException(nameof(keyX));
-		if (keyY >= _deviceInfo.GridHeight) throw new ArgumentOutOfRangeException(nameof(keyY));
+		if (keyX >= _deviceInfo.ButtonRowCount) throw new ArgumentOutOfRangeException(nameof(keyX));
+		if (keyY >= _deviceInfo.ButtonColumnCount) throw new ArgumentOutOfRangeException(nameof(keyY));
 
-		return SetKeyRawImageAsync((byte)(_deviceInfo.GridWidth * keyY + keyX), data, cancellationToken);
+		return SetKeyRawImageAsync((byte)(_deviceInfo.ButtonRowCount * keyY + keyX), data, cancellationToken);
 	}
 
 	public async Task SetKeyRawImageAsync(byte keyIndex, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 	{
-		if (keyIndex > _deviceInfo.KeyCount) throw new ArgumentOutOfRangeException(nameof(keyIndex));
+		if (keyIndex > _deviceInfo.ButtonCount) throw new ArgumentOutOfRangeException(nameof(keyIndex));
 
 		var buffer = WriteBuffer;
 
