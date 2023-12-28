@@ -205,15 +205,15 @@ internal class StreamDeckDevice : IAsyncDisposable
 		await _stream.SendFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 	}
 
-	public Task SetKeyRawImageAsync(byte keyX, byte keyY, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+	public Task SetKeyImageDataAsync(byte keyX, byte keyY, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 	{
 		if (keyX >= _deviceInfo.ButtonRowCount) throw new ArgumentOutOfRangeException(nameof(keyX));
 		if (keyY >= _deviceInfo.ButtonColumnCount) throw new ArgumentOutOfRangeException(nameof(keyY));
 
-		return SetKeyRawImageAsync((byte)(_deviceInfo.ButtonRowCount * keyY + keyX), data, cancellationToken);
+		return SetKeyImageDataAsync((byte)(_deviceInfo.ButtonRowCount * keyY + keyX), data, cancellationToken);
 	}
 
-	public async Task SetKeyRawImageAsync(byte keyIndex, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+	public async Task SetKeyImageDataAsync(byte keyIndex, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 	{
 		if (keyIndex > _deviceInfo.ButtonCount) throw new ArgumentOutOfRangeException(nameof(keyIndex));
 
@@ -246,6 +246,47 @@ internal class StreamDeckDevice : IAsyncDisposable
 		var remaining = data;
 
 		remaining = PrepareRequest(buffer.Span, maxSliceLength, keyIndex, remaining);
+		ushort index = 0;
+		while (true)
+		{
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			if (remaining.Length == 0) break;
+			remaining = UpdateRequest(buffer.Span, maxSliceLength, remaining, ++index);
+		}
+	}
+
+	public async Task SetScreenSaverImageDataAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+	{
+		var buffer = WriteBuffer;
+
+		ushort maxSliceLength = checked((ushort)(buffer.Length - 8));
+
+		static ReadOnlyMemory<byte> PrepareRequest(Span<byte> buffer, ushort maxSliceLength, ReadOnlyMemory<byte> remaining)
+		{
+			buffer[0] = 0x02;
+			buffer[1] = 0x09;
+			buffer[2] = 0x08;
+
+			return UpdateRequest(buffer, maxSliceLength, remaining, 0);
+		}
+
+		static ReadOnlyMemory<byte> UpdateRequest(Span<byte> buffer, ushort maxSliceLength, ReadOnlyMemory<byte> remaining, ushort index)
+		{
+			bool isLastSlice = remaining.Length <= maxSliceLength;
+			ushort sliceLength = isLastSlice ? (ushort)remaining.Length : maxSliceLength;
+
+			// NB: For some reason, the slice index & length are inversed compared to the call to set the key image 🤷
+			buffer[3] = isLastSlice ? (byte)0x01 : (byte)0x00;
+			Unsafe.WriteUnaligned(ref buffer[4], BitConverter.IsLittleEndian ? index : BinaryPrimitives.ReverseEndianness(index));
+			Unsafe.WriteUnaligned(ref buffer[6], BitConverter.IsLittleEndian ? sliceLength : BinaryPrimitives.ReverseEndianness(sliceLength));
+			remaining.Span[..sliceLength].CopyTo(buffer[8..]);
+
+			return remaining[sliceLength..];
+		}
+
+		var remaining = data;
+
+		remaining = PrepareRequest(buffer.Span, maxSliceLength, remaining);
 		ushort index = 0;
 		while (true)
 		{
