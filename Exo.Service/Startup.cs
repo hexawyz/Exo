@@ -50,8 +50,9 @@ public class Startup
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
 		services.AddSingleton<MouseService>();
-		services.AddSingleton<ProgrammingService>();
+		services.AddSingleton<ImageService>();
 		services.AddSingleton<OverlayNotificationService>();
+		services.AddSingleton<ProgrammingService>();
 		services.AddSingleton<EventQueue>();
 		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Reader);
 		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Writer);

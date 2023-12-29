@@ -29,6 +29,7 @@
 		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
+    <ProjectReference Include="..\Exo.Service.ImageService\Exo.Service.ImageService.csproj" />
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
   </ItemGroup>
 

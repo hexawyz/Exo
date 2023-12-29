@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Exo.Features;
 
 namespace Exo.Service;
 
@@ -162,7 +161,7 @@ public abstract class Watcher<TKey, TValue, TResult> : IAsyncDisposable
 		var @lock = Lock;
 		lock (@lock)
 		{
-			initialValues = _currentStates.ToArray();
+			initialValues = [.. _currentStates];
 
 			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
 
