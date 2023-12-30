@@ -981,7 +981,7 @@ namespace System.ServiceProcess
             if (deviceNotificationEngine is null)
             {
                 var newDeviceNotificationEngine = DeviceNotificationEngine.CreateForService(ServiceHandle);
-                deviceNotificationEngine = Interlocked.CompareExchange(ref _deviceNotificationEngine, deviceNotificationEngine, null);
+                deviceNotificationEngine = Interlocked.CompareExchange(ref _deviceNotificationEngine, newDeviceNotificationEngine, null);
                 if (deviceNotificationEngine is not null)
                 {
                     newDeviceNotificationEngine.Dispose();
