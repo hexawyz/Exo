@@ -168,7 +168,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 				}
 			}
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 		}
 	}

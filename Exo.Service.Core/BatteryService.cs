@@ -54,40 +54,19 @@ public sealed class BatteryService : IAsyncDisposable
 	// Generally, we want to avoid flooding the user with too many notifications, so for those, the handlers will have to compare battery levels and act upon this.
 	private async Task WatchAsync(CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _batteryWatcher.WatchAsync(cancellationToken))
+		try
 		{
-			switch (notification.NotificationKind)
+			await foreach (var notification in _batteryWatcher.WatchAsync(cancellationToken))
 			{
-			case WatchNotificationKind.Enumeration:
-			case WatchNotificationKind.Addition:
-				_eventWriter.TryWrite
-				(
-					Event.Create
-					(
-						BatteryDeviceConnectedEventGuid,
-						new BatteryEventParameters
-						(
-							(DeviceId)notification.Key,
-							notification.NewValue.Level,
-							notification.OldValue.Level,
-							notification.NewValue.BatteryStatus,
-							notification.NewValue.ExternalPowerStatus
-						)
-					)
-				);
-				break;
-			case WatchNotificationKind.Update:
-				// Detects if the external power status connection state has changed.
-				if (((notification.NewValue.ExternalPowerStatus ^ notification.OldValue.ExternalPowerStatus) & ExternalPowerStatus.IsConnected) != 0)
+				switch (notification.NotificationKind)
 				{
-					var eventGuid = (notification.NewValue.ExternalPowerStatus & ExternalPowerStatus.IsConnected) != 0 ?
-						BatteryExternalPowerConnectedEventGuid :
-						BatteryExternalPowerDisconnectedEventGuid;
+				case WatchNotificationKind.Enumeration:
+				case WatchNotificationKind.Addition:
 					_eventWriter.TryWrite
 					(
 						Event.Create
 						(
-							eventGuid,
+							BatteryDeviceConnectedEventGuid,
 							new BatteryEventParameters
 							(
 								(DeviceId)notification.Key,
@@ -98,37 +77,19 @@ public sealed class BatteryService : IAsyncDisposable
 							)
 						)
 					);
-				}
-				else if (notification.NewValue.BatteryStatus != notification.OldValue.BatteryStatus)
-				{
-					switch (notification.NewValue.BatteryStatus)
+					break;
+				case WatchNotificationKind.Update:
+					// Detects if the external power status connection state has changed.
+					if (((notification.NewValue.ExternalPowerStatus ^ notification.OldValue.ExternalPowerStatus) & ExternalPowerStatus.IsConnected) != 0)
 					{
-					case BatteryStatus.ChargingComplete:
+						var eventGuid = (notification.NewValue.ExternalPowerStatus & ExternalPowerStatus.IsConnected) != 0 ?
+							BatteryExternalPowerConnectedEventGuid :
+							BatteryExternalPowerDisconnectedEventGuid;
 						_eventWriter.TryWrite
 						(
 							Event.Create
 							(
-								BatteryChargingCompleteEventGuid,
-								new BatteryEventParameters
-								(
-									(DeviceId)notification.Key,
-									1f,
-									notification.OldValue.Level,
-									notification.NewValue.BatteryStatus,
-									notification.NewValue.ExternalPowerStatus
-								)
-							)
-						);
-						break;
-					case BatteryStatus.Error:
-					case BatteryStatus.TooHot:
-					case BatteryStatus.Missing:
-					case BatteryStatus.Invalid:
-						_eventWriter.TryWrite
-						(
-							Event.Create
-							(
-								BatteryErrorEventGuid,
+								eventGuid,
 								new BatteryEventParameters
 								(
 									(DeviceId)notification.Key,
@@ -139,48 +100,92 @@ public sealed class BatteryService : IAsyncDisposable
 								)
 							)
 						);
-						break;
 					}
-				}
-				else if (notification.NewValue.BatteryStatus == BatteryStatus.Charging)
-				{
-					_eventWriter.TryWrite
-					(
-						Event.Create
-						(
-							BatteryChargingEventGuid,
-							new BatteryEventParameters
+					else if (notification.NewValue.BatteryStatus != notification.OldValue.BatteryStatus)
+					{
+						switch (notification.NewValue.BatteryStatus)
+						{
+						case BatteryStatus.ChargingComplete:
+							_eventWriter.TryWrite
 							(
-								(DeviceId)notification.Key,
-								notification.NewValue.Level,
-								notification.OldValue.Level,
-								notification.NewValue.BatteryStatus,
-								notification.NewValue.ExternalPowerStatus
-							)
-						)
-					);
-				}
-				else if (notification.NewValue.BatteryStatus == BatteryStatus.Discharging)
-				{
-					_eventWriter.TryWrite
-					(
-						Event.Create
-						(
-							BatteryDischargingEventGuid,
-							new BatteryEventParameters
+								Event.Create
+								(
+									BatteryChargingCompleteEventGuid,
+									new BatteryEventParameters
+									(
+										(DeviceId)notification.Key,
+										1f,
+										notification.OldValue.Level,
+										notification.NewValue.BatteryStatus,
+										notification.NewValue.ExternalPowerStatus
+									)
+								)
+							);
+							break;
+						case BatteryStatus.Error:
+						case BatteryStatus.TooHot:
+						case BatteryStatus.Missing:
+						case BatteryStatus.Invalid:
+							_eventWriter.TryWrite
 							(
-								(DeviceId)notification.Key,
-								notification.NewValue.Level,
-								notification.OldValue.Level,
-								notification.NewValue.BatteryStatus,
-								notification.NewValue.ExternalPowerStatus
+								Event.Create
+								(
+									BatteryErrorEventGuid,
+									new BatteryEventParameters
+									(
+										(DeviceId)notification.Key,
+										notification.NewValue.Level,
+										notification.OldValue.Level,
+										notification.NewValue.BatteryStatus,
+										notification.NewValue.ExternalPowerStatus
+									)
+								)
+							);
+							break;
+						}
+					}
+					else if (notification.NewValue.BatteryStatus == BatteryStatus.Charging)
+					{
+						_eventWriter.TryWrite
+						(
+							Event.Create
+							(
+								BatteryChargingEventGuid,
+								new BatteryEventParameters
+								(
+									(DeviceId)notification.Key,
+									notification.NewValue.Level,
+									notification.OldValue.Level,
+									notification.NewValue.BatteryStatus,
+									notification.NewValue.ExternalPowerStatus
+								)
 							)
-						)
-					);
+						);
+					}
+					else if (notification.NewValue.BatteryStatus == BatteryStatus.Discharging)
+					{
+						_eventWriter.TryWrite
+						(
+							Event.Create
+							(
+								BatteryDischargingEventGuid,
+								new BatteryEventParameters
+								(
+									(DeviceId)notification.Key,
+									notification.NewValue.Level,
+									notification.OldValue.Level,
+									notification.NewValue.BatteryStatus,
+									notification.NewValue.ExternalPowerStatus
+								)
+							)
+						);
+					}
+					break;
 				}
-				break;
 			}
-
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
 		}
 	}
 
