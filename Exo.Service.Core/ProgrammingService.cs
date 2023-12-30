@@ -345,12 +345,18 @@ public sealed class ProgrammingService : IAsyncDisposable
 
 	private async Task RunAsync(CancellationToken cancellationToken)
 	{
-		await foreach (var @event in _eventReader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+		try
 		{
-			if (_hardcodedEventHandlers.TryGetValue(@event.EventId, out var handler))
+			await foreach (var @event in _eventReader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 			{
-				handler(@event.Parameters);
+				if (_hardcodedEventHandlers.TryGetValue(@event.EventId, out var handler))
+				{
+					handler(@event.Parameters);
+				}
 			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
 		}
 	}
 
