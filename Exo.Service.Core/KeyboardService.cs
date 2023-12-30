@@ -62,19 +62,25 @@ public sealed class KeyboardService : IAsyncDisposable
 
 	private async Task WatchLockedKeysAsync(CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _lockedKeysWatcher.WatchAsync(cancellationToken))
+		try
 		{
-			if (notification.NotificationKind == WatchNotificationKind.Update)
+			await foreach (var notification in _lockedKeysWatcher.WatchAsync(cancellationToken))
 			{
-				var deviceId = notification.Key;
-				var changedKeys = notification.NewValue ^ notification.OldValue;
+				if (notification.NotificationKind == WatchNotificationKind.Update)
+				{
+					var deviceId = notification.Key;
+					var changedKeys = notification.NewValue ^ notification.OldValue;
 
-				if (changedKeys == 0) continue;
+					if (changedKeys == 0) continue;
 
-				NotifyChangedLockKey(deviceId, changedKeys, notification.NewValue, LockKeys.NumLock, OverlayNotificationKind.NumLockOn, OverlayNotificationKind.NumLockOff);
-				NotifyChangedLockKey(deviceId, changedKeys, notification.NewValue, LockKeys.CapsLock, OverlayNotificationKind.CapsLockOn, OverlayNotificationKind.CapsLockOff);
-				NotifyChangedLockKey(deviceId, changedKeys, notification.NewValue, LockKeys.ScrollLock, OverlayNotificationKind.ScrollLockOn, OverlayNotificationKind.ScrollLockOff);
+					NotifyChangedLockKey(deviceId, changedKeys, notification.NewValue, LockKeys.NumLock, OverlayNotificationKind.NumLockOn, OverlayNotificationKind.NumLockOff);
+					NotifyChangedLockKey(deviceId, changedKeys, notification.NewValue, LockKeys.CapsLock, OverlayNotificationKind.CapsLockOn, OverlayNotificationKind.CapsLockOff);
+					NotifyChangedLockKey(deviceId, changedKeys, notification.NewValue, LockKeys.ScrollLock, OverlayNotificationKind.ScrollLockOn, OverlayNotificationKind.ScrollLockOff);
+				}
 			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
 		}
 	}
 
@@ -103,26 +109,32 @@ public sealed class KeyboardService : IAsyncDisposable
 
 	private async Task WatchBacklightAsync(CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _backlightWatcher.WatchAsync(cancellationToken))
+		try
 		{
-			switch (notification.NotificationKind)
+			await foreach (var notification in _backlightWatcher.WatchAsync(cancellationToken))
 			{
-			case WatchNotificationKind.Update:
-				byte newLevel = notification.NewValue.CurrentLevel;
-				byte oldLevel = notification.OldValue.CurrentLevel;
-				if (newLevel != oldLevel)
+				switch (notification.NotificationKind)
 				{
-					_eventWriter.TryWrite
-					(
-						Event.Create
+				case WatchNotificationKind.Update:
+					byte newLevel = notification.NewValue.CurrentLevel;
+					byte oldLevel = notification.OldValue.CurrentLevel;
+					if (newLevel != oldLevel)
+					{
+						_eventWriter.TryWrite
 						(
-							newLevel < oldLevel ? BacklightDownEventGuid : BacklightUpEventGuid,
-							new BacklightLevelEventParameters((DeviceId)notification.Key, newLevel, notification.NewValue.MaximumLevel)
-						)
-					);
+							Event.Create
+							(
+								newLevel < oldLevel ? BacklightDownEventGuid : BacklightUpEventGuid,
+								new BacklightLevelEventParameters((DeviceId)notification.Key, newLevel, notification.NewValue.MaximumLevel)
+							)
+						);
+					}
+					break;
 				}
-				break;
 			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
 		}
 	}
 }
