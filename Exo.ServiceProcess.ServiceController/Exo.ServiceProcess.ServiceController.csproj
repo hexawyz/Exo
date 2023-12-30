@@ -13,4 +13,26 @@
     <ProjectReference Include="..\Exo.DeviceNotifications\Exo.DeviceNotifications.csproj" />
   </ItemGroup>
 
+  <!-- NB: The below does not seem to work out of the box. It seems to come from arcade build, but I'll keep this included (albeit simplified) in case it can be made to work here later. -->
+  <!-- While we could make resource work with the more traditional generation pipeline, the SR.cs file is currently hardcoded. -->
+  
+  <PropertyGroup>
+    <StringResourcesPath Condition="'$(StringResourcesPath)' == '' and Exists('$(MSBuildProjectDirectory)\Resources\Strings.resx')">$(MSBuildProjectDirectory)\Resources\Strings.resx</StringResourcesPath>
+    <StringResourcesNamespace Condition="'$(StringResourcesNamespace)' == ''">System</StringResourcesNamespace>
+    <StringResourcesClassName Condition="'$(StringResourcesClassName)' == ''">SR</StringResourcesClassName>
+    <StringResourcesName Condition="'$(StringResourcesName)' == ''">FxResources.$(AssemblyName).$(StringResourcesClassName)</StringResourcesName>
+
+    <GenerateResxSourceOmitGetResourceString>true</GenerateResxSourceOmitGetResourceString>
+    <GenerateResxSourceIncludeDefaultValues Condition="'$(Configuration)' == 'Debug'">true</GenerateResxSourceIncludeDefaultValues>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Remove="$(StringResourcesPath)" Condition="'$(EnableDefaultEmbeddedResourceItems)' == 'true'" />
+    <EmbeddedResource Include="$(StringResourcesPath)"
+                      Visible="true"
+                      ManifestResourceName="$(StringResourcesName)"
+                      GenerateSource="true"
+                      ClassName="$(StringResourcesNamespace).$(StringResourcesClassName)" />
+  </ItemGroup>
+
 </Project>

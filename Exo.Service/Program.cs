@@ -31,7 +31,7 @@ public class Program
 
 	public static IHostBuilder CreateHostBuilder(string[] args) =>
 		Host.CreateDefaultBuilder(args)
-			.UseWindowsService(o => o.ServiceName = "Exo")
+			.UseWindowsService()
 			.ConfigureWebHostDefaults
 			(
 				webBuilder => webBuilder.UseStartup<Startup>()
