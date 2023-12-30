@@ -35,15 +35,15 @@
 
 	<!-- Detect plugin project names. -->
 	<ItemGroup>
-		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('..', 'Exo.Devices.*'))" />
-		<PluginProject Include="@(PluginProjectDirectory->'%(Filename)%(Extension)')" />
-		<PluginProjectReference Include="@(PluginProject->'..\%(Identity)\%(Identity).csproj')" />
+		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Devices.*'))" />
+		<PluginProject Include="@(PluginProjectDirectory->'%(Filename)%(Extension)'->ClearMetadata())" />
+		<PluginProjectReference Include="@(PluginProject->'..\%(Identity)\%(Identity).csproj'->ClearMetadata())" />
 	</ItemGroup>
 
 	<!-- Automatically reference plugin projects. -->
 	<!-- TODO: Copy build files in a plugin directory later on. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' != 'true'">
-		<ProjectReference Include="@(PluginProjectReference)" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="@(PluginProjectReference->ClearMetadata())" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<!-- When running in visual studio, manually reference some plugin projects, because Visual Studio would ignore the automatic stuff above. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
