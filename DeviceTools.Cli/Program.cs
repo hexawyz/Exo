@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Transactions;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.FilterExpressions;
@@ -16,12 +15,25 @@ using DeviceTools.Firmware.Uefi;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
 using DeviceTools.RawInput;
-using WinRT;
 
 namespace DeviceTools.Cli;
 
 internal static class Program
 {
+	private static readonly Dictionary<Guid, string> DeviceInterfaceClassGuidNames =
+		typeof(DeviceInterfaceClassGuids).GetFields()
+			.Concat(typeof(DeviceInterfaceClassGuids.KernelStreaming).GetFields())
+			.Concat(typeof(DeviceInterfaceClassGuids.NetworkDriverInterfaceSpecification).GetFields())
+			.Concat(typeof(DeviceInterfaceClassGuids.BluetoothGattServices).GetFields())
+			.Concat(typeof(DeviceInterfaceClassGuids.BluetoothGattServiceClasses).GetFields())
+			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
+			.ToDictionary(t => t.Value, t => t.Name);
+	
+	private static readonly Dictionary<Guid, string> DeviceClassGuidNames =
+		typeof(DeviceClassGuids).GetFields()
+			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
+			.ToDictionary(t => t.Value, t => t.Name);
+
 	private static async Task Main(string[] args)
 	{
 		Console.OutputEncoding = Encoding.UTF8;
@@ -32,6 +44,10 @@ internal static class Program
 		{
 			PrintDisplayConfiguration();
 			await ListMonitors(enuemrateVcpCodes);
+
+			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default));
+			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.DisplayAdapter & Properties.System.Devices.InterfaceEnabled == true, default));
+			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.DisplayDeviceArrival & Properties.System.Devices.InterfaceEnabled == true, default));
 		}
 
 		PrintSmBiosInfo();
@@ -54,40 +70,61 @@ internal static class Program
 
 				await PrintHidDeviceAsync(device, index++);
 
-				foreach (var p in deviceInfo.Properties)
-				{
-					PrintProperty("║ ", p);
-				}
-
-				if (deviceInfo.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
-				{
-					Console.WriteLine("║ ╒═ Device " + new string('═', 28));
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
-					{
-						PrintProperty("║ │ ", p);
-					}
-					Console.WriteLine("║ ╘");
-				}
-
-				if (deviceInfo.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
-				{
-					Console.WriteLine("║ ╒═ Container " + new string('═', 25));
-					foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
-					{
-						PrintProperty("║ │ ", p);
-					}
-					Console.WriteLine("║ ╘");
-				}
+				await PrintDeviceInterfaceProperties("║ ", deviceInfo);
 			}
 
 			if (index > 0)
 			{
-				Console.WriteLine("╚" + new string('═', 39));
+				Console.WriteLine("╚=================================================");
 			}
 		}
 	}
 
-	private static void PrintProperty(string indent, KeyValuePair<PropertyKey, object> p)
+	private static async Task PrintDeviceInterfaces(DeviceObjectInformation[] deviceInterfaces)
+	{
+		int index = 0;
+		foreach (var deviceInterfaceInfo in deviceInterfaces)
+		{
+			Console.WriteLine($"{(index == 0 ? "╔" : "╠")}= Interface {deviceInterfaceInfo.Id}");
+			await PrintDeviceInterfaceProperties("║ ", deviceInterfaceInfo);
+			index++;
+		}
+
+		if (index > 0)
+		{
+			Console.WriteLine("╚=================================================");
+		}
+	}
+
+	private static async Task PrintDeviceInterfaceProperties(string indent, DeviceObjectInformation deviceInterfaceInfo)
+	{
+		foreach (var p in deviceInterfaceInfo.Properties)
+		{
+			PrintProperty(indent, p);
+		}
+
+		if (deviceInterfaceInfo.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
+		{
+			Console.WriteLine($"{indent}╒═ Device ============================");
+			foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
+			{
+				PrintProperty($"{indent}│ ", p);
+			}
+			Console.WriteLine($"{indent}╘=====================================");
+		}
+
+		if (deviceInterfaceInfo.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
+		{
+			Console.WriteLine($"{indent}╒═ Container =========================");
+			foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
+			{
+				PrintProperty($"{indent}│ ", p);
+			}
+			Console.WriteLine($"{indent}╘=====================================");
+		}
+	}
+
+	private static void PrintProperty(string indent, KeyValuePair<PropertyKey, object?> p)
 	{
 		if (p.Value is string[] list)
 		{
@@ -99,13 +136,21 @@ internal static class Program
 			}
 			Console.WriteLine($"{indent}╘");
 		}
+		else if (p.Key == Properties.System.Devices.ClassGuid.Key && p.Value is Guid classGuid && DeviceClassGuidNames.TryGetValue(classGuid, out string? className))
+		{
+			Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}={classGuid:B} ({className})"));
+		}
+		else if (p.Key == Properties.System.Devices.InterfaceClassGuid.Key && p.Value is Guid interfaceClassGuid && DeviceInterfaceClassGuidNames.TryGetValue(interfaceClassGuid, out string? interfaceClassName))
+		{
+			Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}={interfaceClassGuid:B} ({interfaceClassName})"));
+		}
 		else
 		{
 			Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}={FormatPropertyValue(p.Value)}"));
 		}
 	}
 
-	private static string? FormatPropertyValue(object value) =>
+	private static string? FormatPropertyValue(object? value) =>
 		value switch
 		{
 			byte u8 => u8.ToString("X2", CultureInfo.InvariantCulture),
@@ -137,14 +182,14 @@ internal static class Program
 
 		if (collection.Length > 0)
 		{
-			Console.WriteLine("╚" + new string('═', 39));
+			Console.WriteLine("╚=================================================");
 		}
 	}
 
 	private static async Task PrintHidDeviceAsync(HidDevice device, int index)
 	{
 		//if (index > 0) Console.ReadKey(true);
-		Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
+		Console.WriteLine((index == 0 ? "╔" : "╠") + "=================================================");
 		//Console.WriteLine($"Device Handle: {device.Handle:X16}");
 		//Console.WriteLine($"║ Device Type: {device.DeviceType}");
 		Console.WriteLine($"║ Device Name: {device.DeviceName}");
@@ -351,9 +396,9 @@ internal static class Program
 				Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
 
 				var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
-				Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString)}");
+				Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString.Span)}");
 
-				if (MonitorCapabilities.TryParse(capabilitiesString, out var capabilities))
+				if (MonitorCapabilities.TryParse(capabilitiesString.Span, out var capabilities))
 				{
 					Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
 					Console.WriteLine($"Physical monitor model: {capabilities.Model}");
@@ -603,59 +648,13 @@ internal static class Program
 		PrintAdapters();
 
 		PrintMonitors(listVcp);
-
-		int index = 0;
-		foreach (var deviceInfo in await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default))
-		{
-			Console.WriteLine((index == 0 ? "╔" : "╠") + new string('═', 39));
-
-			Console.WriteLine($"║ Device ID: {deviceInfo.Id}");
-
-			foreach (var p in deviceInfo.Properties)
-			{
-				PrintProperty("║ ", p);
-			}
-
-			if (deviceInfo.Properties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out var value) && value is string deviceId)
-			{
-				Console.WriteLine("║ ╒═ Device" + new string('═', 29));
-				foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, deviceId, default))
-				{
-					PrintProperty("║ │ ", p);
-				}
-				Console.WriteLine("║ ╘");
-			}
-
-			if (deviceInfo.Properties.TryGetValue(Properties.System.Devices.ContainerId.Key, out value) && value is Guid containerId)
-			{
-				Console.WriteLine("║ ╒═ Container" + new string('═', 26));
-				foreach (var p in await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.DeviceContainer, containerId, default))
-				{
-					PrintProperty("║ │ ", p);
-				}
-				Console.WriteLine("║ ╘");
-			}
-
-			++index;
-		}
-
-		if (index > 0)
-		{
-			Console.WriteLine("╚" + new string('═', 39));
-		}
 	}
 
 	private static void ListAllDeviceInterfaces(bool? knownGuids = null)
 	{
 		var devices = DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, default).GetAwaiter().GetResult();
 
-		var guids = typeof(DeviceInterfaceClassGuids).GetFields()
-			.Concat(typeof(DeviceInterfaceClassGuids.KernelStreaming).GetFields())
-			.Concat(typeof(DeviceInterfaceClassGuids.NetworkDriverInterfaceSpecification).GetFields())
-			.Concat(typeof(DeviceInterfaceClassGuids.BluetoothGattServices).GetFields())
-			.Concat(typeof(DeviceInterfaceClassGuids.BluetoothGattServiceClasses).GetFields())
-			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
-			.ToDictionary(t => t.Value, t => t.Name);
+		var guids = DeviceInterfaceClassGuidNames;
 
 		foreach (var g in devices.GroupBy(d => (Guid)d.Properties[Properties.System.Devices.InterfaceClassGuid.Key]!))
 		{

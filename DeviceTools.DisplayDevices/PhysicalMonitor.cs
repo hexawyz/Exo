@@ -22,27 +22,54 @@ public sealed class PhysicalMonitor : IDisposable
 		Handle.Dispose();
 	}
 
-	public ReadOnlySpan<byte> GetCapabilitiesUtf8String()
+	public unsafe Memory<byte> GetCapabilitiesUtf8String()
 	{
-		if (NativeMethods.GetCapabilitiesStringLength(Handle, out uint capabilitesStringLength) == 0)
+		// NB: We need to have a retry logic in there because monitors can occasionally fail to correctly answer the DDC/CI commands.
+		// This is likely due to conflicts with other devices on the bus such as shitty HDCP stuff.
+		int retryCount = 1;
+		uint capabilitiesStringLength;
+		while (true)
 		{
-			throw new Win32Exception(Marshal.GetLastWin32Error());
+			if (NativeMethods.GetCapabilitiesStringLength(Handle, out capabilitiesStringLength) != 0) break;
+
+			var errorCode = Marshal.GetLastWin32Error();
+			if (errorCode is NativeMethods.ErrorGraphicsDdcCiInvalidMessageCommand or NativeMethods.ErrorGraphicsDdcCiInvalidMessageChecksum && retryCount > 0)
+			{
+				retryCount--;
+			}
+			else
+			{
+				throw new Win32Exception(errorCode);
+			}
 		}
 
-		if (capabilitesStringLength == 0)
+		if (capabilitiesStringLength == 0)
 		{
 			return default;
 		}
 
-		var buffer = new byte[capabilitesStringLength];
-
-		if (NativeMethods.CapabilitiesRequestAndCapabilitiesReply(Handle, ref buffer[0], capabilitesStringLength) == 0)
+		var buffer = new byte[capabilitiesStringLength];
+		fixed (byte* bufferStart = buffer)
 		{
-			throw new Win32Exception(Marshal.GetLastWin32Error());
+			retryCount = 1;
+			while (true)
+			{
+				if (NativeMethods.CapabilitiesRequestAndCapabilitiesReply(Handle, bufferStart, capabilitiesStringLength) != 0) break;
+
+				var errorCode = Marshal.GetLastWin32Error();
+				if (errorCode is NativeMethods.ErrorGraphicsDdcCiInvalidMessageCommand or NativeMethods.ErrorGraphicsDdcCiInvalidMessageChecksum && retryCount > 0)
+				{
+					retryCount--;
+				}
+				else
+				{
+					throw new Win32Exception(errorCode);
+				}
+			}
 		}
 
 		// Some capabilities string seem to be returned with trailing null characters, so we trim them to be sure 😑
-		return buffer.AsSpan(0, buffer.Length - 1).TrimEnd((byte)0);
+		return buffer.AsMemory(0, buffer.Length - 1).TrimEnd((byte)0);
 	}
 
 	public void SetVcpFeature(byte vcpCode, uint value)
