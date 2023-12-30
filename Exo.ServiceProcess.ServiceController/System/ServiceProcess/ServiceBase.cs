@@ -719,7 +719,7 @@ namespace System.ServiceProcess
             {
                 case ControlOptions.CONTROL_DEVICEEVENT:
                     {
-                        if (_deviceNotificationEngine is DeviceNotificationEngine deviceNotificationEngine)
+                        if (_deviceNotificationEngine is { } deviceNotificationEngine)
                         {
                             return deviceNotificationEngine.HandleNotification(eventType, eventData);
                         }

@@ -226,7 +226,7 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 			NotificationWindows.TryRemove(_handle, out _);
 			// WM_CLOSE will trigger DestroyWindow which will send WM_DESTROY which will send WM_QUIT which will end the message loop.
 			PostMessage(_handle, WmClose, IntPtr.Zero, IntPtr.Zero);
-			// We could wait for the thread to end here, but not in all cases, so that's not woth it.
+			// We could wait for the thread to end here, but not in all cases, so that's not worth it.
 		}
 	}
 

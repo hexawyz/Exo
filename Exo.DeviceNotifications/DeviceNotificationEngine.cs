@@ -14,9 +14,9 @@ namespace Exo.DeviceNotifications
 	/// <summary>Manage device notifications for a window or service.</summary>
 	/// <remarks>
 	/// <para>This class exposes features the device notification API in a more object oriented way.</para>
-	/// <para>Methods of this class are designed to be safe when called concurrently, given the unpredctible timing of device notifications.</para>
+	/// <para>Methods of this class are designed to be safe when called concurrently, given the unpredictable timing of device notifications.</para>
 	/// <para>
-	/// It is a tool for registering notifications and processing device notificaitons received from the same service or window.
+	/// It is a tool for registering notifications and processing device notifications received from the same service or window.
 	/// A separate piece of code must be used to forward the device notifications from the window procedure or the service control handler.
 	/// </para>
 	/// </remarks>

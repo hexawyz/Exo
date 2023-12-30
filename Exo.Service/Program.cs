@@ -13,6 +13,10 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
+		// Ensure that logs are written in the right place.
+		// To be revisited later when the deployed file structure is better defined.
+		Environment.SetEnvironmentVariable("LOGDIR", Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "logs")));
+
 		foreach (var type in typeof(NamedElement).Assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(NamedElement))))
 		{
 			var metaType = RuntimeTypeModel.Default[type];
@@ -27,7 +31,7 @@ public class Program
 
 	public static IHostBuilder CreateHostBuilder(string[] args) =>
 		Host.CreateDefaultBuilder(args)
-			.UseWindowsService()
+			.UseWindowsService(o => o.ServiceName = "Exo")
 			.ConfigureWebHostDefaults
 			(
 				webBuilder => webBuilder.UseStartup<Startup>()
