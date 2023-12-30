@@ -37,14 +37,15 @@
 	<ItemGroup>
 		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('..', 'Exo.Devices.*'))" />
 		<PluginProject Include="@(PluginProjectDirectory->'%(Filename)%(Extension)')" />
+		<PluginProjectReference Include="@(PluginProject->'..\%(Identity)\%(Identity).csproj')" />
 	</ItemGroup>
 
 	<!-- Automatically reference plugin projects. -->
 	<!-- TODO: Copy build files in a plugin directory later on. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' != 'true'">
-		<ProjectReference Include="@(PluginProject -> '..\%(Identity)\%(Identity).csproj')" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="@(PluginProjectReference)" ReferenceOutputAssembly="false" />
 	</ItemGroup>
-	<!-- When running in visual studio, manually reference some plugin projects, bacause Visual Studio would ignore the automatic stuff above. -->
+	<!-- When running in visual studio, manually reference some plugin projects, because Visual Studio would ignore the automatic stuff above. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
 		<ProjectReference Include="..\Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" ReferenceOutputAssembly="false" />
@@ -53,5 +54,18 @@
 		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" ReferenceOutputAssembly="false" />
 	</ItemGroup>
+
+	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">
+		<MSBuild Projects="%(PluginProjectReference.Identity)" Targets="GetTargetPath" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained)">
+			<Output TaskParameter="TargetOutputs" ItemName="PluginPrimaryAssembly" />
+		</MSBuild>
+
+		<ItemGroup>
+			<ResolvedFileToPublish Include="@(PluginPrimaryAssembly->ClearMetadata())">
+				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</ResolvedFileToPublish>
+		</ItemGroup>
+	</Target>
 
 </Project>

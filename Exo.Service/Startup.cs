@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Channels;
 using Exo.Service.Services;
 using Exo.Services;
@@ -18,11 +19,13 @@ namespace Exo.Service;
 
 public class Startup
 {
-	public Startup(IConfiguration configuration)
+	public Startup(IHostEnvironment environment, IConfiguration configuration)
 	{
+		Environment = environment;
 		Configuration = configuration;
 	}
 
+	public IHostEnvironment Environment { get; }
 	public IConfiguration Configuration { get; }
 
 	// This method gets called by the runtime. Use this method to add services to the container.
@@ -37,7 +40,14 @@ public class Startup
 				new NotificationWindow()
 		);
 		services.AddSingleton(sp => new ConfigurationService(Path.Combine(Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!, "cfg")));
-		services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
+		if (Environment.IsDevelopment())
+		{
+			services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
+		}
+		else
+		{
+			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
+		}
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
 		services.AddSingleton(sp => DeviceRegistry.CreateAsync(sp.GetRequiredService<ConfigurationService>(), default).GetAwaiter().GetResult());
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
