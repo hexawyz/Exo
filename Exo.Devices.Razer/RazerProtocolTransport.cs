@@ -776,6 +776,9 @@ internal sealed class RazerProtocolTransport : IDisposable
 				case 0x02:
 					ValidateChecksum(buffer);
 					return ResponseState.Success;
+				case 0x03:
+					// This likely indicates that the device has been disconnected. Not 100% sure, but returning the Failure status will work for now.
+					return ResponseState.Failure;
 				case 0x04:
 					return ResponseState.Failure;
 				case 0x05:
