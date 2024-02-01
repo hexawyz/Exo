@@ -611,9 +611,19 @@ public abstract class RazerDeviceDriver :
 		_transport.Dispose();
 	}
 
-	void IRazerPeriodicEventHandler.HandlePeriodicEvent() => HandlePeriodicEvent();
+	async void IRazerPeriodicEventHandler.HandlePeriodicEvent()
+	{
+		try
+		{
+			await HandlePeriodicEventAsync().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
+	}
 
-	protected virtual void HandlePeriodicEvent() { }
+	protected virtual ValueTask HandlePeriodicEventAsync() => ValueTask.CompletedTask;
 
 	void IRazerDeviceNotificationSink.OnDeviceArrival(byte deviceIndex) => OnDeviceArrival(deviceIndex);
 	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte deviceIndex) => OnDeviceRemoval(deviceIndex);
@@ -1304,7 +1314,7 @@ public abstract class RazerDeviceDriver :
 					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
-		protected override async void HandlePeriodicEvent()
+		protected override async ValueTask HandlePeriodicEventAsync()
 		{
 			if (HasBattery)
 			{

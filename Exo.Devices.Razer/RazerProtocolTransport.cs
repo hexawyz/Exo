@@ -761,6 +761,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 		Success = 0,
 		MustRetry = 1,
 		Failure = 2,
+		DeviceNotConnected = 3,
 	}
 
 	private async ValueTask<bool> TryReadResponseAsync(Memory<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount, CancellationToken cancellationToken)
@@ -777,8 +778,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 					ValidateChecksum(buffer);
 					return ResponseState.Success;
 				case 0x03:
-					// This likely indicates that the device has been disconnected. Not 100% sure, but returning the Failure status will work for now.
-					return ResponseState.Failure;
+					return ResponseState.DeviceNotConnected;
 				case 0x04:
 					return ResponseState.Failure;
 				case 0x05:
@@ -806,6 +806,8 @@ internal sealed class RazerProtocolTransport : IDisposable
 				return true;
 			case ResponseState.MustRetry:
 				break;
+			case ResponseState.DeviceNotConnected:
+				return false;
 			case ResponseState.Failure:
 				if (errorResponseRetryCount == 0) return false;
 				errorResponseRetryCount--;
