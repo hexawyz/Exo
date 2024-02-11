@@ -360,20 +360,26 @@ public sealed class RgbFusionIT5702Driver :
 		CancellationToken cancellationToken
 	)
 	{
-		if (deviceInterfaces.Length != 2)
+		if (deviceInterfaces.Length != 3)
 		{
-			throw new InvalidOperationException("Expected only two device interfaces.");
+			throw new InvalidOperationException("Expected exactly three device interfaces.");
 		}
 
-		if (devices.Length != 1)
+		if (devices.Length != 3)
 		{
-			throw new InvalidOperationException("Expected only one parent device.");
+			throw new InvalidOperationException("Expected exactly three devices.");
 		}
 
 		string? ledDeviceInterfaceName = null;
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
 			var deviceInterface = deviceInterfaces[i];
+
+			// Skip non-HID device interfaces.
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.Devices.InterfaceClassGuid.Key, out Guid interfaceClassGuid) || interfaceClassGuid != DeviceInterfaceClassGuids.Hid)
+			{
+				continue;
+			}
 
 			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage))
 			{

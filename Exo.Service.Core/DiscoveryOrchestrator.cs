@@ -24,7 +24,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			KnownFactoryMethods = knownFactoryMethods;
 		}
 
-		public abstract bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes);
+		public abstract bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName);
 		public abstract ValueTask StartAsync(CancellationToken cancellationToken);
 	}
 
@@ -38,12 +38,14 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		where TResult : ComponentCreationResult<TKey, TComponent>
 	{
 		private readonly ConcurrentDictionary<TKey, ComponentState<TKey>> _states;
+		private readonly AsyncLock _arrivalPreparationLock;
 
 		public DiscoverySource(DiscoveryOrchestrator orchestrator, ConcurrentDictionary<Guid, FactoryMethodDetails> knownFactoryMethods, TDiscoveryService service)
 			: base(orchestrator, knownFactoryMethods)
 		{
 			Service = service;
 			_states = Unsafe.As<ConcurrentDictionary<TKey, ComponentState<TKey>>>(Orchestrator._componentStates.GetValue(typeof(TKey), _ => new ConcurrentDictionary<TKey, ComponentState<TKey>>()));
+			_arrivalPreparationLock = new();
 		}
 
 		public TDiscoveryService Service { get; }
@@ -53,11 +55,29 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 		public override ValueTask StartAsync(CancellationToken cancellationToken) => Service.StartAsync(cancellationToken);
 
-		public override bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes)
+		public override bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName)
 		{
-			if (!Service.RegisterFactory(factoryId, attributes)) return false;
+			bool success;
+			try
+			{
+				success = Service.RegisterFactory(factoryId, attributes);
+			}
+			catch (Exception ex)
+			{
+				Orchestrator.Logger.DiscoveryFactoryRegistrationError(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName, ex);
+				return false;
+			}
 
-			return true;
+			if (success)
+			{
+				Orchestrator.Logger.DiscoveryFactoryRegistrationSuccess(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName);
+			}
+			else
+			{
+				Orchestrator.Logger.DiscoveryFactoryRegistrationFailure(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName);
+			}
+
+			return success;
 		}
 
 		public async void HandleArrival(TDiscoveryContext context)
@@ -91,64 +111,68 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 			using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				// Register the state for all keys, 
 				var keys = new HashSet<TKey>();
-				foreach (var key in context.DiscoveredKeys)
-				{
-					if (!keys.Add(key))
-					{
-						// TODO: Log duplicate keys.
-						_states.Remove(context.DiscoveredKeys, state);
-						return;
-					}
-					if (!_states.TryAdd(key, state))
-					{
-						// TODO: Log ?
-						_states.Remove(context.DiscoveredKeys, state);
-						return;
-					}
-				}
 				ComponentCreationParameters<TKey, TCreationContext> creationParameters;
-				try
+				// Until we got a complete set of keys to work with, we work in exclusivity, in order to avoid conflicts between two operations.
+				using (await _arrivalPreparationLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
-					creationParameters = await context.PrepareForCreationAsync(cancellationToken).ConfigureAwait(false);
-				}
-				catch (Exception ex)
-				{
-					// TODO: Log exception.
-					_states.Remove(context.DiscoveredKeys, state);
-					return;
-				}
-
-				// Validate that all initial keys are still present in the returned keys.
-				foreach (var key in creationParameters.AssociatedKeys)
-				{
-					keys.Remove(key);
-				}
-
-				if (keys.Count > 0)
-				{
-					_states.Remove(context.DiscoveredKeys, state);
-					// TODO: Log error with mismatched keys.
-					return;
-				}
-
-				state.AssociatedKeys = creationParameters.AssociatedKeys;
-
-				// Register the state for the newer keys in the creation parameters.
-				foreach (var key in creationParameters.AssociatedKeys)
-				{
-					if (!keys.Add(key))
+					// Register the state for all keys initially known.
+					foreach (var key in context.DiscoveredKeys)
 					{
-						// TODO: Log duplicate keys.
-						_states.Remove(creationParameters.AssociatedKeys, state);
+						if (!keys.Add(key))
+						{
+							// TODO: Log duplicate keys.
+							_states.Remove(context.DiscoveredKeys, state);
+							return;
+						}
+						if (!_states.TryAdd(key, state))
+						{
+							// TODO: Log ?
+							_states.Remove(context.DiscoveredKeys, state);
+							return;
+						}
+					}
+					try
+					{
+						creationParameters = await context.PrepareForCreationAsync(cancellationToken).ConfigureAwait(false);
+					}
+					catch (Exception ex)
+					{
+						// TODO: Log exception.
+						_states.Remove(context.DiscoveredKeys, state);
 						return;
 					}
-					if (!ReferenceEquals(_states.GetOrAdd(key, state), state))
+
+					// Validate that all initial keys are still present in the returned keys.
+					foreach (var key in creationParameters.AssociatedKeys)
 					{
-						// TODO: Log ?
-						_states.Remove(creationParameters.AssociatedKeys, state);
+						keys.Remove(key);
+					}
+
+					if (keys.Count > 0)
+					{
+						_states.Remove(context.DiscoveredKeys, state);
+						// TODO: Log error with mismatched keys.
 						return;
+					}
+
+					state.AssociatedKeys = creationParameters.AssociatedKeys;
+
+					// Register the state for the newer keys in the creation parameters.
+					foreach (var key in creationParameters.AssociatedKeys)
+					{
+						if (!keys.Add(key))
+						{
+							// TODO: Log duplicate keys.
+							_states.Remove(creationParameters.AssociatedKeys, state);
+							return;
+						}
+						if (!ReferenceEquals(_states.GetOrAdd(key, state), state))
+						{
+							// TODO: Log ?
+							_states.Remove(creationParameters.AssociatedKeys, state);
+							return;
+						}
 					}
 				}
 
@@ -164,9 +188,16 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 							result = await Service.InvokeFactoryAsync(factory, creationParameters, cancellationToken).ConfigureAwait(false);
 							if (result is null) continue;
 						}
-						catch
+						catch (Exception ex)
 						{
-							// TODO: Log error.
+							if (typeof(TComponent) == typeof(Driver))
+							{
+								Orchestrator.Logger.DiscoveryDriverCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+							}
+							else
+							{
+								Orchestrator.Logger.DiscoveryComponentCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+							}
 							_states.Remove(creationParameters.AssociatedKeys, state);
 							return;
 						}
@@ -179,6 +210,20 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					// TODO: Log some information. NB: It could be important to know if some factories were called.
 					_states.Remove(creationParameters.AssociatedKeys, state);
 					return;
+				}
+
+				if (typeof(TComponent) == typeof(Driver))
+				{
+					var driver = Unsafe.As<Driver>(result.Component);
+					Orchestrator.Logger.DiscoveryDriverCreationSuccess(driver.FriendlyName, driver.ConfigurationKey.DeviceMainId);
+				}
+				else
+				{
+					var component = result.Component as Component;
+					if (component is not null)
+					{
+						Orchestrator.Logger.DiscoveryComponentCreationSuccess(component.FriendlyName);
+					}
 				}
 
 				// Determine which keys need to be removed.
@@ -312,7 +357,13 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		}
 	}
 
-	private readonly ILogger<DiscoveryOrchestrator> _logger;
+	// TODO
+	private sealed class ReferenceCountedLifetime
+	{
+		//private nint _referenceCount;
+	}
+
+	private ILogger<DiscoveryOrchestrator> Logger { get; }
 	private readonly ConcurrentDictionary<TypeReference, DiscoveryServiceState> _states;
 	private IDriverRegistry DriverRegistry { get; }
 	private IAssemblyLoader AssemblyLoader { get; }
@@ -323,7 +374,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 	public DiscoveryOrchestrator(ILogger<DiscoveryOrchestrator> logger, IDriverRegistry driverRegistry, IAssemblyParsedDataCache<DiscoveredAssemblyDetails> parsedDataCache, IAssemblyLoader assemblyLoader)
 	{
-		_logger = logger;
+		Logger = logger;
 		_states = new();
 		DriverRegistry = driverRegistry;
 		AssemblyLoader = assemblyLoader;
@@ -433,7 +484,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					// TODO: Log
 					continue;
 				}
-				source.RegisterFactory(kvp.Key, method.GetCustomAttributesData().ToImmutableArray());
+				source.RegisterFactory(kvp.Key, [.. method.GetCustomAttributesData()], kvp.Value.MethodReference, kvp.Value.AssemblyName);
 			}
 		}
 		catch (Exception ex)
@@ -465,7 +516,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		}
 		catch (Exception ex)
 		{
-			_logger.HidAssemblyParsingFailure(assemblyName.FullName, ex);
+			Logger.DiscoveryAssemblyParsingFailure(assemblyName.FullName, ex);
 			return;
 		}
 
@@ -477,7 +528,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 				var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
 				foreach (var (id, methodSignature, discoverySubsystemTypes) in factoryMethods)
 				{
-					var method = methods.Single(m => m.ToString() == methodSignature);
+					var method = methods.Single(methodSignature.Matches);
 					foreach (var discoverySubsystemType in discoverySubsystemTypes)
 					{
 						var state = _states.GetOrAdd(discoverySubsystemType, _ => new());
@@ -487,7 +538,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 							state.KnownFactoryMethods.TryAdd(id, new(id, assemblyName, new MethodReference(typeName, method)));
 							if (state.Source is { } source)
 							{
-								source.RegisterFactory(id, [.. method.GetCustomAttributesData()]);
+								source.RegisterFactory(id, [.. method.GetCustomAttributesData()], new MethodReference(typeName, methodSignature), assembly.GetName());
 							}
 						}
 					}
@@ -505,8 +556,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 	private static DiscoveredAssemblyDetails ParseAssembly(Assembly assembly)
 	{
-		var factoryMethods = ImmutableArray.CreateBuilder<(string, ImmutableArray<(Guid, string, ImmutableArray<TypeReference>)>)>();
-		var typeFactoryMethods = ImmutableArray.CreateBuilder<(Guid, string, ImmutableArray<TypeReference>)>();
+		var factoryMethods = ImmutableArray.CreateBuilder<(string, ImmutableArray<(Guid, MethodSignature, ImmutableArray<TypeReference>)>)>();
+		var typeFactoryMethods = ImmutableArray.CreateBuilder<(Guid, MethodSignature, ImmutableArray<TypeReference>)>();
 		var discoverySubsystems = ImmutableArray.CreateBuilder<TypeReference>();
 		foreach (var type in assembly.DefinedTypes)
 		{
@@ -556,7 +607,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 				// Ignore methods that don't have a discovery subsystem.
 				if (discoverySubsystems.Count == 0) continue;
 
-				typeFactoryMethods.Add((Guid.NewGuid(), method.ToString()!, discoverySubsystems.DrainToImmutable()));
+				typeFactoryMethods.Add((Guid.NewGuid(), method, discoverySubsystems.DrainToImmutable()));
 			}
 
 			// Ignore types that don't have any factory method.

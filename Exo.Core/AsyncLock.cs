@@ -75,11 +75,8 @@ public sealed class AsyncLock
 			}
 			else
 			{
+				tcs.Next = Unsafe.As<QueueTaskCompletionSource?>(!ReferenceEquals(oldState, LockSentinel) ? oldState : null);
 				newState = tcs;
-				if (!ReferenceEquals(newState, LockSentinel))
-				{
-					tcs.Next = Unsafe.As<QueueTaskCompletionSource>(newState);
-				}
 			}
 			if (oldState == (oldState = Interlocked.CompareExchange(ref _state, newState, oldState)))
 			{
@@ -106,7 +103,7 @@ public sealed class AsyncLock
 		if (ReferenceEquals(oldState, LockSentinel)) return;
 
 		// Contended code path can be a bit slower. We delegate it to another method in order to keep this one relatively small.
-		Release(oldState, version);
+		Release(oldState, version + 1);
 	}
 
 	private void Release(object? state, nuint version)

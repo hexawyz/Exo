@@ -11,6 +11,8 @@ public interface IDiscoveryService<TFactory, TKey, TDiscoveryContext, TCreationC
 	where TComponent : class, IAsyncDisposable
 	where TResult : ComponentCreationResult<TKey, TComponent>
 {
+	string FriendlyName { get; }
+
 	bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes);
 
 	ValueTask StartAsync(CancellationToken cancellationToken);

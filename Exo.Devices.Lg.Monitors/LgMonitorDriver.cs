@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
@@ -49,6 +48,7 @@ public class LgMonitorDriver :
 
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
 
+	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[ProductId(VendorIdSource.Usb, LgVendorId, 0x9A8A)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
@@ -63,22 +63,18 @@ public class LgMonitorDriver :
 		CancellationToken cancellationToken
 	)
 	{
-		if (deviceInterfaces.Length != 2)
-		{
-			throw new InvalidOperationException("Expected two HID device interfaces.");
-		}
-
-		if (devices.Length != 3)
-		{
-			throw new InvalidOperationException("Expected three parent devices.");
-		}
-
 		string? i2cDeviceInterfaceName = null;
 		string? lightingDeviceInterfaceName = null;
 
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
 			var deviceInterface = deviceInterfaces[i];
+
+			// Skip non-HID device interfaces.
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.Devices.InterfaceClassGuid.Key, out Guid interfaceClassGuid) || interfaceClassGuid != DeviceInterfaceClassGuids.Hid)
+			{
+				continue;
+			}
 
 			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage))
 			{
@@ -107,7 +103,7 @@ public class LgMonitorDriver :
 
 		if (i2cDeviceInterfaceName is null || lightingDeviceInterfaceName is null)
 		{
-			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device interface {devices[0].Id}.");
+			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device {topLevelDeviceName}.");
 		}
 
 		var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName), loggerFactory.CreateLogger<UltraGearLightingTransport>());

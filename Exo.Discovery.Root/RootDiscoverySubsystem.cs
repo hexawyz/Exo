@@ -20,6 +20,8 @@ public class RootDiscoverySubsystem :
 	private readonly IDiscoverySink<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext> _discoverySink;
 	private List<RootComponentKey>? _pendingKeys;
 
+	public string FriendlyName => "Root component discovery";
+
 	public RootDiscoverySubsystem
 	(
 		ILoggerFactory loggerFactory,

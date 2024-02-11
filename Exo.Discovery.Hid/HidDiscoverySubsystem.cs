@@ -81,12 +81,17 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_deviceNotificationRegistration is not null) throw new InvalidOperationException("The service has already been started.");
 
+				_logger.HidDiscoveryStarting();
+
 				_deviceNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.Hid, this);
 
 				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
 				{
+					_logger.HidDeviceArrival(deviceName);
 					_sink?.HandleArrival(new(this, deviceName));
 				}
+
+				_logger.HidDiscoveryStarted();
 			}
 		}
 		catch (Exception ex)
@@ -125,7 +130,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 							if (!productVersionKeys.Add(key))
 							{
-								// TODO: Log duplicate key
+								_logger.HidVersionedProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
 								return false;
 							}
 						}
@@ -134,7 +139,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 							var key = new HidProductKey(vendorIdSource, vendorId, productId.GetValueOrDefault());
 							if (!productKeys.Add(key))
 							{
-								// TODO: Log duplicate key
+								_logger.HidProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId);
 								return false;
 							}
 						}
@@ -144,7 +149,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 						var key = new HidVendorKey(vendorIdSource, vendorId);
 						if (!vendorKeys.Add(key))
 						{
-							// TODO: Log duplicate key
+							_logger.HidVendorDuplicateKey(key.VendorIdSource, key.VendorId);
 							return false;
 						}
 					}
@@ -154,7 +159,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		if (productVersionKeys.Count == 0 && productKeys.Count == 0 && vendorKeys.Count == 0)
 		{
-			// TODO: Log missing HID keys.
+			_logger.HidFactoryMissingKeys(factoryId);
 			return false;
 		}
 
@@ -170,7 +175,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_productVersionFactories.ContainsKey(key))
 				{
-					// TODO: Log key conflict.
+					_logger.HidVersionedProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
 					return false;
 				}
 			}
@@ -178,7 +183,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_productFactories.ContainsKey(key))
 				{
-					// TODO: Log key conflict.
+					_logger.HidProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId);
 					return false;
 				}
 			}
@@ -186,7 +191,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_vendorFactories.ContainsKey(key))
 				{
-					// TODO: Log key conflict.
+					_logger.HidVendorRegisteredTwice(key.VendorIdSource, key.VendorId);
 					return false;
 				}
 			}
@@ -213,6 +218,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		lock (_lock)
 		{
+			_logger.HidDeviceArrival(deviceName);
 			_sink?.HandleArrival(new(this, deviceName));
 		}
 	}
@@ -229,6 +235,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		lock (_lock)
 		{
+			_logger.HidDeviceRemoval(deviceName);
 			_sink?.HandleRemoval(deviceName);
 		}
 	}
