@@ -2,39 +2,39 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Exo.Discovery;
 using Microsoft.Extensions.Logging;
 
 namespace Exo;
 
-/// <summary>Helpers to create factory methods for drivers.</summary>
+/// <summary>Helpers to create factory methods for components.</summary>
 /// <remarks>
-/// Usage of this class is recommended to provide efficient access to driver factory methods.
-/// It will do all the necessary parsing and validation, and allow injecting optional parameters into the Driver.CreateAsync method.
+/// Usage of this class is recommended to provide efficient access to component factory methods.
+/// It will do all the necessary parsing and validation, and allow injecting optional parameters into the Component.CreateAsync method.
 /// </remarks>
-public static class DriverFactory
+public static class ComponentFactory
 {
 	public enum ValidationErrorCode
 	{
 		None = 0,
-		CreateAsyncMethodNotFound = 1,
-		InvalidReturnType = 2,
-		NoCancellationToken = 3,
-		RequiredParameterMismatch = 4,
-		UnallowedByRefParameter = 5,
-		OptionalParameterNotFound = 6,
-		OptionalParameterTypeMismatch = 7,
+		InvalidReturnType = 1,
+		InvalidCancellationToken = 2,
+		RequiredParameterMismatch = 3,
+		UnallowedByRefParameter = 4,
+		OptionalParameterNotFound = 5,
+		OptionalParameterTypeMismatch = 6,
 	}
 
 	public readonly struct ValidationResult
 	{
-		public ValidationResult(Type driverType, ValidationErrorCode errorCode, string? argument)
+		public ValidationResult(MethodInfo method, ValidationErrorCode errorCode, string? argument)
 		{
-			DriverType = driverType;
+			Method = method;
 			ErrorCode = errorCode;
 			Argument = argument;
 		}
 
-		public Type DriverType { get; }
+		public MethodInfo Method { get; }
 		public ValidationErrorCode ErrorCode { get; }
 		public string? Argument { get; }
 
@@ -42,7 +42,7 @@ public static class DriverFactory
 		{
 			if (ErrorCode != ValidationErrorCode.None)
 			{
-				throw new InvalidOperationException(ErrorCode.FormatError(DriverType, Argument));
+				throw new InvalidOperationException(ErrorCode.FormatError(Method, Argument));
 			}
 		}
 	}
@@ -61,54 +61,50 @@ public static class DriverFactory
 
 	private readonly struct FactoryMethodParseResult
 	{
-		public FactoryMethodParseResult(Type driverType, MethodInfo createAsyncMethod, ParameterInfo[] parameters)
-			: this(driverType, createAsyncMethod, parameters, ValidationErrorCode.None, null)
+		public FactoryMethodParseResult(MethodInfo method, ParameterInfo[] parameters)
+			: this(method, parameters, ValidationErrorCode.None, null)
 		{
 		}
 
-		public FactoryMethodParseResult(Type driverType, ValidationErrorCode validationErrorCode, string? validationErrorArgument)
-			: this(driverType, null, null, validationErrorCode, validationErrorArgument)
+		public FactoryMethodParseResult(MethodInfo method, ValidationErrorCode validationErrorCode, string? validationErrorArgument)
+			: this(method, null, validationErrorCode, validationErrorArgument)
 		{
 		}
 
-		private FactoryMethodParseResult(Type driverType, MethodInfo? createAsyncMethod, ParameterInfo[]? parameters, ValidationErrorCode validationErrorCode, string? validationErrorArgument)
+		private FactoryMethodParseResult(MethodInfo? method, ParameterInfo[]? parameters, ValidationErrorCode validationErrorCode, string? validationErrorArgument)
 		{
-			DriverType = driverType;
-			CreateAsyncMethod = createAsyncMethod;
+			Method = method;
 			MethodParameters = parameters;
 			ValidationErrorCode = validationErrorCode;
 			ValidationErrorArgument = validationErrorArgument;
 		}
 
-		public Type DriverType { get; }
-		public MethodInfo? CreateAsyncMethod { get; }
+		public MethodInfo? Method { get; }
 		public ParameterInfo[]? MethodParameters { get; }
 		public ValidationErrorCode ValidationErrorCode { get; }
 		public string? ValidationErrorArgument { get; }
 
-		[MemberNotNull(nameof(CreateAsyncMethod))]
+		[MemberNotNull(nameof(Method))]
 		[MemberNotNull(nameof(MethodParameters))]
 		public void ThrowIfFailed()
 		{
 			if (ValidationErrorCode != ValidationErrorCode.None)
 			{
-				throw new InvalidOperationException(ValidationErrorCode.FormatError(DriverType, ValidationErrorArgument));
+				throw new InvalidOperationException(ValidationErrorCode.FormatError(Method, ValidationErrorArgument));
 			}
-			else if (CreateAsyncMethod is null || MethodParameters is null)
+			else if (Method is null || MethodParameters is null)
 			{
 				throw new InvalidOperationException();
 			}
 		}
 	}
 
-	private static readonly MethodInfo CompleteMethodInfo = typeof(DriverFactory).GetMethod(nameof(Complete), BindingFlags.NonPublic | BindingFlags.Static)!;
-
 	private static readonly MethodInfo CreateLoggerMethodInfo =
 		typeof(LoggerFactoryExtensions)
 			.GetMethods(BindingFlags.Public | BindingFlags.Static)
 			.Single(m => m.Name == nameof(LoggerFactoryExtensions.CreateLogger) && m.GetParameters().Length == 1 && m.IsGenericMethod && m.GetGenericArguments().Length == 1);
 
-	private static readonly string LoggerFactoryParameterName = Naming.MakeCamelCase(nameof(IDriverCreationContext<IDriverCreationResult>.LoggerFactory));
+	private static readonly string LoggerFactoryParameterName = Naming.MakeCamelCase(nameof(IComponentCreationContext.LoggerFactory));
 
 	private static Type? GetOptionalBaseType(Type type)
 	{
@@ -117,7 +113,7 @@ public static class DriverFactory
 		Type? current = type;
 		while (current is not null && current != typeof(object))
 		{
-			if (current.IsGenericType && Equals(current.GetGenericTypeDefinition(), typeof(Optional<>)))
+			if (current.IsGenericType && current.GetGenericTypeDefinition().Matches(typeof(Optional<>)))
 			{
 				return current;
 			}
@@ -133,24 +129,13 @@ public static class DriverFactory
 	{
 		if (type.IsValueType) return null;
 
-		if (type.IsGenericType && Equals(type.GetGenericTypeDefinition(), typeof(ILogger<>)))
+		if (type.IsGenericType && type.GetGenericTypeDefinition().Matches(typeof(ILogger<>)))
 		{
 			return type.GetGenericArguments()[0];
 		}
 
 		return null;
 	}
-
-	// Compare types by name.
-	private static bool Equals(Type a, Type b)
-		=> a.FullName == b.FullName &&
-			(a.Assembly.FullName == b.Assembly.FullName/* || AreCompatibleAssemblies(a.Assembly, b.Assembly)*/);
-
-	//private static bool AreCompatibleAssemblies(Assembly a, Assembly b)
-	//	=> AreCompatibleAssemblies(a.GetName(), b.GetName());
-
-	//private static bool AreCompatibleAssemblies(AssemblyName a, AssemblyName b)
-	//	=> a.Name == b.Name && a.CultureName == b.CultureName && a.GetPublicKeyToken().AsSpan().SequenceEqual(b.GetPublicKeyToken());
 
 	private static Dictionary<string, PropertyInfo> ParseContext(Type type)
 	{
@@ -159,9 +144,9 @@ public static class DriverFactory
 		{
 			allowedProperties.Add(Naming.MakeCamelCase(property.Name), property);
 		}
-		if (!allowedProperties.TryGetValue(LoggerFactoryParameterName, out var loggerFactoryProperty) || loggerFactoryProperty.PropertyType != typeof(ILoggerFactory))
+		if (!(allowedProperties.TryGetValue(LoggerFactoryParameterName, out var loggerFactoryProperty) && loggerFactoryProperty.PropertyType.Matches<ILoggerFactory>()))
 		{
-			throw new ArgumentException("Driver creation context must expose the LoggerFactoryProperty of type ILoggerFactory.");
+			throw new ArgumentException("Component creation context must expose the LoggerFactoryProperty of type ILoggerFactory.");
 		}
 		return allowedProperties;
 	}
@@ -170,12 +155,12 @@ public static class DriverFactory
 	{
 		var invokeMethod = delegateType.GetMethod("Invoke") ?? throw new InvalidOperationException($"The type {delegateType} is nto a valid delegate type.");
 		var parameters = invokeMethod.GetParameters();
-		if (invokeMethod.ReturnType != typeof(Task<>).MakeGenericType(resultType) ||
+		if (!invokeMethod.ReturnType.Matches(typeof(ValueTask<>).MakeGenericType(resultType)) ||
 			parameters.Length < 2 ||
 			parameters[^1] is not { Name: "cancellationToken", ParameterType.IsByRef: false } ctParameter ||
-			ctParameter.ParameterType != typeof(CancellationToken) ||
+			!ctParameter.ParameterType.Matches<CancellationToken>() ||
 			parameters[^2] is not { Name: "context", ParameterType.IsByRef: false } pParameter ||
-			pParameter.ParameterType != contextType)
+			!pParameter.ParameterType.Matches(contextType))
 		{
 			throw new ArgumentException($"The delegate type {delegateType} does not have a valid signature.");
 		}
@@ -195,29 +180,30 @@ public static class DriverFactory
 
 	// NB: This method cannot compare most Type references because it must work with types loaded from MetadataLoadContext.
 	// For all types that can be referenced with typeof(), the Equals(Type, Type) method must be used.
-	private static FactoryMethodParseResult ParseFactoryMethod(Type driverType, FactoryParameter[] factoryParameters, Dictionary<string, PropertyInfo> availableParameters)
+	private static FactoryMethodParseResult ParseFactoryMethod(MethodInfo method, Type resultType, FactoryParameter[] factoryParameters, Dictionary<string, PropertyInfo> availableParameters)
 	{
-		var createAsyncMethod = driverType.GetMethod("CreateAsync", BindingFlags.Static | BindingFlags.Public);
+		ArgumentNullException.ThrowIfNull(method);
 
-		if (createAsyncMethod is null) return new(driverType, ValidationErrorCode.CreateAsyncMethodNotFound, null);
-
-		if (createAsyncMethod.ReturnType.IsByRef ||
-			!createAsyncMethod.ReturnType.IsGenericType ||
-			!Equals(createAsyncMethod.ReturnType.GetGenericTypeDefinition(), typeof(Task<>)) ||
-			createAsyncMethod.ReturnType.GetGenericArguments() is not { } taskParameters ||
-			taskParameters[0] != driverType)
+		if (method.ReturnType.IsByRef ||
+			!method.ReturnType.IsGenericType ||
+			method.ReturnType.GetGenericTypeDefinition() is var genericReturnType && !(genericReturnType.Matches(typeof(ValueTask<>)) || genericReturnType.Matches(typeof(Task<>))) ||
+			method.ReturnType.GetGenericArguments() is not { } taskParameters ||
+			!taskParameters[0].Matches(resultType))
 		{
-			return new(driverType, ValidationErrorCode.InvalidReturnType, null);
+			return new(method, ValidationErrorCode.InvalidReturnType, null);
 		}
 
-		var methodParameters = createAsyncMethod.GetParameters();
+		var methodParameters = method.GetParameters();
 
 		// At the minimum, the CreateAsync method must include all the required factory parameters, plus a cancellation token parameter.
-		if (methodParameters.Length < factoryParameters.Length + 1) throw new InvalidOperationException($"The method {driverType}.CreateAsync method does not have enough parameters.");
+		if (methodParameters.Length < factoryParameters.Length + 1) throw new InvalidOperationException($"The method {method} does not have enough parameters.");
 
-		if (methodParameters[^1] is not { Name: "cancellationToken", ParameterType.IsByRef: false } lastParameter || !Equals(lastParameter.ParameterType, typeof(CancellationToken)))
+		// The CancellationToken parameter will be optional, but if present, it must be last and named "cancellationToken".
+		var lastParameter = methodParameters[^1];
+		bool hasCancellationToken = lastParameter is { Name: "cancellationToken", ParameterType.IsByRef: false };
+		if (hasCancellationToken && !lastParameter.ParameterType.Matches<CancellationToken>())
 		{
-			return new(driverType, ValidationErrorCode.NoCancellationToken, null);
+			return new(method, ValidationErrorCode.InvalidCancellationToken, null);
 		}
 
 		int i = 0;
@@ -228,15 +214,15 @@ public static class DriverFactory
 
 			if (methodParameter.Name != factoryParameter.Name || !Equals(methodParameter.ParameterType, factoryParameter.Type))
 			{
-				return new(driverType, ValidationErrorCode.RequiredParameterMismatch, methodParameter.ParameterType.Name);
+				return new(method, ValidationErrorCode.RequiredParameterMismatch, methodParameter.Name);
 			}
 			if (methodParameter.ParameterType.IsByRef)
 			{
-				return new(driverType, ValidationErrorCode.UnallowedByRefParameter, methodParameter.ParameterType.Name);
+				return new(method, ValidationErrorCode.UnallowedByRefParameter, methodParameter.Name);
 			}
 		}
 
-		int variableParameterLength = methodParameters.Length - 1;
+		int variableParameterLength = methodParameters.Length - (hasCancellationToken ? 1 : 0);
 		for (; i < variableParameterLength; i++)
 		{
 			var methodParameter = methodParameters[i];
@@ -245,30 +231,30 @@ public static class DriverFactory
 			if (methodParameter.Name is null ||
 				!availableParameters.TryGetValue(methodParameter.Name!, out var propertyInfo) && GetLoggerCategory(methodParameter.ParameterType) is not { } loggerCategory)
 			{
-				return new(driverType, ValidationErrorCode.OptionalParameterNotFound, methodParameter.ParameterType.Name);
+				return new(method, ValidationErrorCode.OptionalParameterNotFound, methodParameter.Name);
 			}
 
-			if (propertyInfo is not null && !Equals(methodParameter.ParameterType, propertyInfo.PropertyType))
+			if (propertyInfo is not null && !methodParameter.ParameterType.Matches(propertyInfo.PropertyType))
 			{
 				if (!methodParameter.ParameterType.IsValueType && GetOptionalBaseType(propertyInfo.PropertyType) is { } optional)
 				{
 					var optionalArguments = optional.GetGenericArguments();
 
-					if (Equals(methodParameter.ParameterType, optionalArguments[0]))
+					if (methodParameter.ParameterType.Matches(optionalArguments[0]))
 					{
 						continue;
 					}
 				}
-				return new(driverType, ValidationErrorCode.OptionalParameterTypeMismatch, methodParameter.ParameterType.Name);
+				return new(method, ValidationErrorCode.OptionalParameterTypeMismatch, methodParameter.Name);
 			}
 		}
 
-		return new(driverType, createAsyncMethod, methodParameters);
+		return new(method, methodParameters);
 	}
 
 	private static Delegate CreateFactory
 	(
-		Type driverType,
+		MethodInfo method,
 		Type delegateType,
 		FactoryParameter[] factoryParameters,
 		Type contextType,
@@ -276,7 +262,7 @@ public static class DriverFactory
 		Type resultType
 	)
 	{
-		var parseResult = ParseFactoryMethod(driverType, factoryParameters, availableParameters);
+		var parseResult = ParseFactoryMethod(method, resultType, factoryParameters, availableParameters);
 
 		parseResult.ThrowIfFailed();
 
@@ -290,11 +276,8 @@ public static class DriverFactory
 		parameterTypes[i++] = contextType;
 		parameterTypes[i] = typeof(CancellationToken);
 
-		var dynamicMethod = new DynamicMethod("CreateAsync", typeof(Task<>).MakeGenericType(resultType), parameterTypes, typeof(DriverFactory));
+		var dynamicMethod = new DynamicMethod("CreateAsync", typeof(ValueTask<>).MakeGenericType(resultType), parameterTypes, typeof(ComponentFactory));
 		var ilGenerator = dynamicMethod.GetILGenerator();
-
-		// Load the context on the stack to prepare for the last call to Complete()
-		ilGenerator.Emit(OpCodes.Ldarg, factoryParameters.Length);
 
 		// Handle fixed parameters.
 		for (i = 0; i < factoryParameters.Length; i++)
@@ -307,6 +290,9 @@ public static class DriverFactory
 		// Handle optional parameters.
 		dynamicMethod.DefineParameter(factoryParameters.Length, ParameterAttributes.None, "context");
 		int variableParameterLength = parseResult.MethodParameters.Length - 1;
+		var lastParameter = parseResult.MethodParameters[variableParameterLength];
+		bool hasCancellationToken = lastParameter.Name == "cancellationToken" && lastParameter.ParameterType == typeof(CancellationToken);
+		if (!hasCancellationToken) variableParameterLength++;
 		for (; i < variableParameterLength; i++)
 		{
 			var methodParameter = parseResult.MethodParameters[i];
@@ -329,16 +315,19 @@ public static class DriverFactory
 			}
 		}
 
-		// Handle the last (cancellationToken) parameter.
-		ilGenerator.Emit(OpCodes.Ldarg, factoryParameters.Length + 1);
+		// Handle the final cancellationToken parameter.
+		if (hasCancellationToken) ilGenerator.Emit(OpCodes.Ldarg, factoryParameters.Length + 1);
 		dynamicMethod.DefineParameter(factoryParameters.Length + 1, ParameterAttributes.None, "cancellationToken");
 
 		// Call the CreateAsync method.
-		ilGenerator.EmitCall(OpCodes.Call, parseResult.CreateAsyncMethod, null);
+		ilGenerator.EmitCall(OpCodes.Call, parseResult.Method, null);
 
-		// Await the method, and downcast it to Task<Driver>. That's a bit stupid, but we have to do this because Task<> cannot be covariant.
-		// NB: Keep in mind that having the static CreateAsync method return the exact DriverType is still useful for contract validation.
-		ilGenerator.EmitCall(OpCodes.Call, CompleteMethodInfo.MakeGenericMethod(driverType, contextType, resultType), null);
+		// If necessary, wrap the result in ValueTask.
+		if (parseResult.Method.ReturnType.GetGenericTypeDefinition().Matches(typeof(Task<>)))
+		{
+			var genericArgumentTypes = parseResult.Method.ReturnType.GetGenericArguments();
+			ilGenerator.Emit(OpCodes.Newobj, typeof(ValueTask<>).MakeGenericType(genericArgumentTypes).GetConstructor([typeof(Task<>).MakeGenericType(genericArgumentTypes)])!);
+		}
 
 		// And of course, finally return from the method.
 		ilGenerator.Emit(OpCodes.Ret);
@@ -346,64 +335,71 @@ public static class DriverFactory
 		return dynamicMethod.CreateDelegate(delegateType);
 	}
 
-	/// <summary>Validates the specified driver type for a factory method.</summary>
+	/// <summary>Validates the specified method as a factory for the associated context and result.</summary>
+	/// <remarks>This methods supports working in a MetadataLoadContext.</remarks>
+	/// <typeparam name="TFactory">The type of factory expected for the method.</typeparam>
+	/// <typeparam name="TContext">The type of context that can provide parameters to the method.</typeparam>
+	/// <typeparam name="TResult">The expected result type of the factory.</typeparam>
+	/// <param name="method">The method to validate as a factory.</param>
+	/// <returns></returns>
+	public static ValidationResult Validate<TFactory, TContext, TResult>(MethodInfo method)
+		where TFactory : Delegate
+		where TContext : class, IComponentCreationContext
+	{
+		var result = ParseFactoryMethod(method, typeof(TResult), ForContext<TFactory, TContext, TResult>.FactoryParameters, ParameterInformation<TContext>.Properties);
+
+		return new(method, result.ValidationErrorCode, result.ValidationErrorArgument);
+	}
+
+	/// <summary>Validates the specified factory method for the proper context and result.</summary>
 	/// <remarks>This methods supports working in a MetadataLoadContext.</remarks>
 	/// <typeparam name="TFactory"></typeparam>
 	/// <typeparam name="TContext"></typeparam>
 	/// <typeparam name="TResult"></typeparam>
-	/// <param name="driverType">The type of driver to validate.</param>
+	/// <param name="method">The method to validate as a factory.</param>
+	/// <param name="factoryType">The type of factory expected for the method.</param>
+	/// <param name="contextType">The type of context that can provide parameters to the method.</param>
+	/// <param name="resultType">The expected result type of the factory.</param>
 	/// <returns></returns>
-	public static ValidationResult ValidateDriver<TFactory, TContext, TResult>(Type driverType)
-		where TFactory : Delegate
-		where TContext : class, IDriverCreationContext<TResult>
-		where TResult : IDriverCreationResult
+	public static ValidationResult Validate(MethodInfo method, Type factoryType, Type contextType, Type resultType)
 	{
-		var result = ParseFactoryMethod(driverType, ForContext<TFactory, TContext, TResult>.FactoryParameters, ParameterInformation<TContext, TResult>.Properties);
+		var result = ParseFactoryMethod(method, resultType, ParseFactoryDelegate(factoryType, contextType, resultType), ParseContext(contextType));
 
-		return new(result.DriverType, result.ValidationErrorCode, result.ValidationErrorArgument);
+		return new(method, result.ValidationErrorCode, result.ValidationErrorArgument);
 	}
 
-	private static async Task<TResult> Complete<TDriver, TContext, TResult>(TContext context, Task<TDriver> task)
-		where TDriver : Driver
-		where TContext : class, IDriverCreationContext<TResult>
-		where TResult : IDriverCreationResult
-		=> context.CompleteAndReset(await task.ConfigureAwait(false));
-
-	public static TFactory Get<TFactory, TContext, TResult>(Type type)
+	public static TFactory Get<TFactory, TContext, TResult>(MethodInfo method)
 		where TFactory : Delegate
-		where TContext : class, IDriverCreationContext<TResult>
-		where TResult : IDriverCreationResult
-		=> ForContext<TFactory, TContext, TResult>.Get(type);
+		where TContext : class, IComponentCreationContext
+		=> ForContext<TFactory, TContext, TResult>.Get(method);
 
-	private static class ParameterInformation<TContext, TResult>
-		where TContext : class, IDriverCreationContext<TResult>
-		where TResult : IDriverCreationResult
+	private static class ParameterInformation<TContext>
+		where TContext : class, IComponentCreationContext
 	{
 		public static readonly Dictionary<string, PropertyInfo> Properties = ParseContext(typeof(TContext));
 	}
 
 	private static class ForContext<TFactory, TContext, TResult>
 		where TFactory : Delegate
-		where TContext : class, IDriverCreationContext<TResult>
-		where TResult : IDriverCreationResult
+		where TContext : class, IComponentCreationContext
 	{
 		public static readonly FactoryParameter[] FactoryParameters = ParseFactoryDelegate(typeof(TFactory), typeof(TContext), typeof(TResult));
 
-		private static readonly ConditionalWeakTable<Type, TFactory> Factories = new();
+		private static readonly ConditionalWeakTable<MethodInfo, TFactory> Factories = new();
 
-		public static TFactory Get(Type driverType)
-			=> Factories.GetValue(driverType, CreateFactory);
+		public static TFactory Get(MethodInfo method)
+			=> Factories.GetValue(method, CreateFactory);
 
-		private static TFactory CreateFactory(Type contextType)
+		private static TFactory CreateFactory(MethodInfo method)
 			=> Unsafe.As<TFactory>
 			(
-				DriverFactory.CreateFactory
+				ComponentFactory.CreateFactory
 				(
-					contextType,
+					method,
 					typeof(TFactory),
 					FactoryParameters,
 					typeof(TContext),
-					ParameterInformation<TContext, TResult>.Properties,
+					ParameterInformation<TContext>.Properties,
 					typeof(TResult)
 				)
 			);

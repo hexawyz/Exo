@@ -27,7 +27,7 @@ public sealed class NestedDriverRegistry : IDriverRegistry, IInternalDriverRegis
 	}
 
 	public NestedDriverRegistry CreateNestedRegistry() => new NestedDriverRegistry(this);
-	IDriverRegistry IDriverRegistry.CreateNestedRegistry() => CreateNestedRegistry();
+	IDriverRegistry INestedDriverRegistryProvider.CreateNestedRegistry() => CreateNestedRegistry();
 
 	private void EnsureNotDisposed()
 	{

@@ -23,9 +23,7 @@
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
 		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
-	</ItemGroup>
-	
-	<ItemGroup>
+		<ProjectReference Include="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
 		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
@@ -36,23 +34,26 @@
 	<!-- Detect plugin project names. -->
 	<ItemGroup>
 		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Devices.*'))" />
-		<PluginProject Include="@(PluginProjectDirectory->'%(Filename)%(Extension)'->ClearMetadata())" />
-		<PluginProjectReference Include="@(PluginProject->'..\%(Identity)\%(Identity).csproj'->ClearMetadata())" />
+		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Discovery.*'))" Exclude="Exo.Discovery.Root" />
+		<PluginProject Include="@(PluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
+		<PluginProjectReference Include="@(PluginProject-&gt;'..\%(Identity)\%(Identity).csproj'-&gt;ClearMetadata())" />
 	</ItemGroup>
 
 	<!-- Automatically reference plugin projects. -->
 	<!-- TODO: Copy build files in a plugin directory later on. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' != 'true'">
-		<ProjectReference Include="@(PluginProjectReference->ClearMetadata())" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="@(PluginProjectReference-&gt;ClearMetadata())" Private="false" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<!-- When running in visual studio, manually reference some plugin projects, because Visual Studio would ignore the automatic stuff above. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
-		<ProjectReference Include="..\Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">
@@ -61,7 +62,7 @@
 		</MSBuild>
 
 		<ItemGroup>
-			<ResolvedFileToPublish Include="@(PluginPrimaryAssembly->ClearMetadata())">
+			<ResolvedFileToPublish Include="@(PluginPrimaryAssembly-&gt;ClearMetadata())">
 				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
 				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 			</ResolvedFileToPublish>

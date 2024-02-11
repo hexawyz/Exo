@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Channels;
+using Exo.Discovery;
 using Exo.Service.Services;
 using Exo.Services;
 using Microsoft.AspNetCore.Builder;
@@ -51,6 +52,7 @@ public class Startup
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
 		services.AddSingleton(sp => DeviceRegistry.CreateAsync(sp.GetRequiredService<ConfigurationService>(), default).GetAwaiter().GetResult());
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
+		services.AddSingleton<INestedDriverRegistryProvider>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<DpiWatcher>();
@@ -66,25 +68,25 @@ public class Startup
 		services.AddSingleton<EventQueue>();
 		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Reader);
 		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Writer);
-		services.AddSingleton<ISystemDeviceDriverRegistry, SystemDeviceDriverRegistry>();
-		// NB: This will be refactored at some point, but this should probably not be a Hosted Service ?
-		services.AddHostedService<HidDeviceManager>
+		// TODO: See if we want to keep this as a hosted service or not.
+		services.AddSingleton
 		(
 			sp =>
 			{
 				var assemblyLoader = sp.GetRequiredService<IAssemblyLoader>();
-				return new HidDeviceManager
+				return new DiscoveryOrchestrator
 				(
-					sp.GetRequiredService<ILoggerFactory>(),
-					sp.GetRequiredService<ILogger<HidDeviceManager>>(),
-					assemblyLoader,
-					new AssemblyParsedDataCache<HidAssembyDetails>(assemblyLoader),
-					sp.GetRequiredService<ISystemDeviceDriverRegistry>(),
+					sp.GetRequiredService<ILogger<DiscoveryOrchestrator>>(),
 					sp.GetRequiredService<IDriverRegistry>(),
-					sp.GetRequiredService<IDeviceNotificationService>()
+					new AssemblyParsedDataCache<DiscoveredAssemblyDetails>(assemblyLoader),
+					assemblyLoader
 				);
 			}
 		);
+		// The root discovery service must be pulled in as a hard dependency, as it will serve to bootstrap all other discovery services.
+		services.AddSingleton<RootDiscoverySubsystem>();
+		services.AddSingleton<IDiscoveryOrchestrator>(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
+		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();

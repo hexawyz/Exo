@@ -1,8 +1,8 @@
 using DeviceTools;
 
-namespace Exo.Service;
+namespace Exo.Discovery;
 
-public readonly record struct HidProductKey
+internal readonly record struct HidProductKey
 {
 	public readonly VendorIdSource VendorIdSource { get; init; }
 	public readonly ushort VendorId { get; init; }

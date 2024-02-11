@@ -35,6 +35,17 @@ public interface IAssemblyLoader
 	/// <returns></returns>
 	Assembly LoadAssembly(AssemblyName assemblyName);
 
+	/// <summary>Tries to load an assembly within its own context.</summary>
+	/// <remarks>
+	/// <para>
+	/// This method may return the same reference when called multiple times with the same assembly name.
+	/// Until the assembly load context is unloaded, it can and should be reused without problem.
+	/// </para>
+	/// </remarks>
+	/// <param name="assemblyName"></param>
+	/// <returns></returns>
+	Assembly? TryLoadAssembly(AssemblyName assemblyName);
+
 	/// <summary>Creates a context to be used for reflection on the specified assembly.</summary>
 	/// <remarks>
 	/// <para>

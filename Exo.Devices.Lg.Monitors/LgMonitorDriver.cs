@@ -7,6 +7,7 @@ using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Lg.Monitors.LightingEffects;
+using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Features.MonitorFeatures;
@@ -16,9 +17,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;
 
-[ProductId(VendorIdSource.Usb, LgVendorId, 0x9A8A)]
 public class LgMonitorDriver :
-	HidDriver,
+	Driver,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
@@ -49,68 +49,36 @@ public class LgMonitorDriver :
 
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
 
-	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
+	[ProductId(VendorIdSource.Usb, LgVendorId, 0x9A8A)]
+	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	(
+		ImmutableArray<SystemDevicePath> keys,
+		string friendlyName,
+		ushort productId,
+		ushort version,
+		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
+		ImmutableArray<DeviceObjectInformation> devices,
+		string topLevelDeviceName,
+		ILoggerFactory loggerFactory,
+		CancellationToken cancellationToken
+	)
 	{
-		Properties.System.Devices.DeviceInstanceId,
-		Properties.System.DeviceInterface.Hid.UsagePage,
-		Properties.System.DeviceInterface.Hid.UsageId,
-	};
-
-	public static async Task<LgMonitorDriver> CreateAsync(string deviceName, ushort productId, ushort version, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
-	{
-		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
-		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// The display name of the container can be used as a default value for the device friendly name.
-		string friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		string serialNumber;
-
-		// Make a device query to fetch all the matching HID device interfaces at once.
-		var deviceInterfaces = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.DeviceInterface,
-			RequestedDeviceInterfaceProperties,
-			Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid &
-				Properties.System.Devices.ContainerId == containerId &
-				Properties.System.DeviceInterface.Hid.VendorId == 0x043E,
-			cancellationToken
-		).ConfigureAwait(false);
-
 		if (deviceInterfaces.Length != 2)
 		{
 			throw new InvalidOperationException("Expected two HID device interfaces.");
 		}
-
-		// Find the top-level device by requesting devices with children.
-		// The device tree should be very simple in this case, so we expect this to directly return the top level device. It would not work on more complex scenarios.
-		var devices = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.Device,
-			Array.Empty<Property>(),
-			Properties.System.Devices.ContainerId == containerId & Properties.System.Devices.Children.Exists(),
-			cancellationToken
-		).ConfigureAwait(false);
 
 		if (devices.Length != 3)
 		{
 			throw new InvalidOperationException("Expected three parent devices.");
 		}
 
-		string[] deviceNames = new string[deviceInterfaces.Length + 1];
 		string? i2cDeviceInterfaceName = null;
 		string? lightingDeviceInterfaceName = null;
-		string topLevelDeviceName = devices[0].Id;
-
-		// Set the top level device name as the last device name now.
-		deviceNames[^1] = topLevelDeviceName;
 
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
 			var deviceInterface = deviceInterfaces[i];
-			deviceNames[i] = deviceInterface.Id;
 
 			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage))
 			{
@@ -177,7 +145,7 @@ public class LgMonitorDriver :
 
 		// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
 		await i2cTransport.SendLgCustomCommandWithRetryAsync(0x78, 0x00, data.AsMemory(0, 12), I2CRetryCount, cancellationToken).ConfigureAwait(false);
-		serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
+		string serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
 
 		var length = await i2cTransport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
@@ -218,24 +186,28 @@ public class LgMonitorDriver :
 		//		}
 		//	}
 		//}
-		return new LgMonitorDriver
+		return new DriverCreationResult<SystemDevicePath>
 		(
-			i2cTransport,
-			lightingTransport,
-			productId,
-			version,
-			scalerVersion,
-			dscVersion,
-			ledCount,
-			activeEffect,
-			lightingStatus.CurrentBrightnessLevel,
-			lightingStatus.MinimumBrightnessLevel,
-			lightingStatus.MaximumBrightnessLevel,
-			rawCapabilities,
-			parsedCapabilities,
-			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-			friendlyName,
-			new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{productId:X4}", serialNumber)
+			keys,
+			new LgMonitorDriver
+			(
+				i2cTransport,
+				lightingTransport,
+				productId,
+				version,
+				scalerVersion,
+				dscVersion,
+				ledCount,
+				activeEffect,
+				lightingStatus.CurrentBrightnessLevel,
+				lightingStatus.MinimumBrightnessLevel,
+				lightingStatus.MaximumBrightnessLevel,
+				rawCapabilities,
+				parsedCapabilities,
+				friendlyName,
+				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{productId:X4}", serialNumber)
+			),
+			null
 		);
 	}
 
@@ -286,10 +258,9 @@ public class LgMonitorDriver :
 		byte maximumBrightness,
 		byte[] rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
-		ImmutableArray<string> deviceNames,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
-	) : base(deviceNames, friendlyName, configurationKey)
+	) : base(friendlyName, configurationKey)
 	{
 		_i2cTransport = transport;
 		_lightingTransport = lightingTransport;

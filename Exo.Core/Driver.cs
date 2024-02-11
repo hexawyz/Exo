@@ -15,7 +15,7 @@ namespace Exo;
 /// Use of this interface is not mandatory, but it is expected that most device managers will use this interface to detect and instanciate device drivers for devices they can manage.
 /// </para>
 /// </remarks>
-public abstract class Driver : IDeviceDriver<IDeviceFeature>, IAsyncDisposable
+public abstract class Driver : Component, IDeviceDriver<IDeviceFeature>
 {
 	/// <summary>Gets a friendly name for this driver instance.</summary>
 	/// <remarks>
@@ -24,7 +24,7 @@ public abstract class Driver : IDeviceDriver<IDeviceFeature>, IAsyncDisposable
 	/// Generally, drivers supporting more than one device (e.g. monitor drivers) would expose the friendly name of the device here.
 	/// </para>
 	/// </remarks>
-	public string FriendlyName { get; }
+	public override string FriendlyName { get; }
 
 	/// <summary>Gets the configuration key used to load the configuration.</summary>
 	/// <returns>A string that can be used to look for the device configuration.</returns>
@@ -41,6 +41,4 @@ public abstract class Driver : IDeviceDriver<IDeviceFeature>, IAsyncDisposable
 		FriendlyName = friendlyName ?? throw new ArgumentNullException(nameof(friendlyName));
 		ConfigurationKey = configurationKey;
 	}
-
-	public abstract ValueTask DisposeAsync();
 }

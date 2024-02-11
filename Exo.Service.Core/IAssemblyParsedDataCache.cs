@@ -27,7 +27,7 @@ public interface IAssemblyParsedDataCache<T>
 
 	/// <summary>Sets the cached value for a specific assembly name.</summary>
 	/// <remarks>The assembly name must be part of the <see cref="IAssemblyLoader.AvailableAssemblies"/> list.</remarks>
-	/// <param name="assemblyName">sembly name for which the cache value is to be defined.</param>
+	/// <param name="assemblyName">Assembly name for which the cache value is to be defined.</param>
 	/// <param name="value">The value to store in the cache.</param>
 	/// <exception cref="ArgumentOutOfRangeException">The assembly name is not part of the available assemblies.</exception>
 	void SetValue(AssemblyName assemblyName, T value);

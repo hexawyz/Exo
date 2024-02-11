@@ -1,11 +1,10 @@
-using System.Buffers;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
-using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
+using Exo.Discovery;
 using Exo.Features;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Elgato.StreamDeck;
 
@@ -27,31 +26,24 @@ namespace Exo.Devices.Elgato.StreamDeck;
 // Or all buttons could be exposed as a generic feature… Depends on what we want to do.
 // Generally the idea would be to expose stuff as close to what the hardware support, but that would require very elgato-specific stuff and restrict a bit the fun that can be implemented.
 // The first part may be fine, but the second would be a bit more annoying.
-
-//[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x0060)] // Stream Deck (Untested)
-//[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x0063)] // Stream Deck Mini (Untested)
-[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x006C)]
-public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDeviceIdFeature, ISerialNumberDeviceFeature
+public sealed class StreamDeckDeviceDriver : Driver, IDeviceIdFeature, ISerialNumberDeviceFeature
 {
 	private const ushort ElgatoVendorId = 0x0FD9;
 
-	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
-	{
-		Properties.System.Devices.InterfaceClassGuid,
-		Properties.System.DeviceInterface.Hid.UsagePage,
-		Properties.System.DeviceInterface.Hid.UsageId,
-	};
-
-	private static readonly Property[] RequestedDeviceProperties = new Property[]
-	{
-		Properties.System.Devices.BusTypeGuid,
-	};
-
-	public static async Task<StreamDeckDeviceDriver> CreateAsync
+	[DiscoverySubsystem<HidDiscoverySubsystem>]
+	[DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
+	//[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x0060)] // Stream Deck (Untested)
+	//[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x0063)] // Stream Deck Mini (Untested)
+	[ProductId(VendorIdSource.Usb, ElgatoVendorId, 0x006C)]
+	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
-		string deviceName,
+		ImmutableArray<SystemDevicePath> keys,
+		string friendlyName,
 		ushort productId,
 		ushort version,
+		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
+		ImmutableArray<DeviceObjectInformation> devices,
+		string topLevelDeviceName,
 		CancellationToken cancellationToken
 	)
 	{
@@ -61,45 +53,17 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		//  - V1+: https://gist.github.com/cliffrowley/d18a9c4569537b195f2b1eb6c68469e0
 		//  - V2: https://den.dev/blog/reverse-engineering-stream-deck/
 
-		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
-		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// The display name of the container can be used as a default value for the device friendly name.
-		string friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// Make a device query to fetch all the device interfaces. We already know the device interface name, so this is just for registering the driver.
-		var deviceInterfaces = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.DeviceInterface,
-			RequestedDeviceInterfaceProperties,
-			Properties.System.Devices.ContainerId == containerId,
-			cancellationToken
-		).ConfigureAwait(false);
-
 		if (deviceInterfaces.Length != 2)
 		{
 			throw new InvalidOperationException("Unexpected number of device interfaces associated with the device.");
 		}
-
-		// Make a device query to fetch all the devices. This is also for the sake of registering the device itself.
-		var devices = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.Device,
-			RequestedDeviceProperties,
-			Properties.System.Devices.ContainerId == containerId,
-			cancellationToken
-		).ConfigureAwait(false);
 
 		if (devices.Length != 2)
 		{
 			throw new InvalidOperationException("Unexpected number of device nodes associated with the device.");
 		}
 
-		// We'll hardcode the order as such: HID DI, USB DI, HID D, USB D
-		string[] deviceNames = new string[deviceInterfaces.Length + devices.Length];
-
+		string? deviceName = null;
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
 			var deviceInterface = deviceInterfaces[i];
@@ -110,33 +74,19 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 					deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId) &&
 					usagePage == (ushort)HidUsagePage.Consumer && usageId == (ushort)HidConsumerUsage.ConsumerControl)
 				{
-					deviceNames[0] = deviceInterface.Id;
+					deviceName = deviceInterface.Id;
 				}
 				else
 				{
 					throw new InvalidOperationException("Unexpected number of device nodes associated with the device.");
 				}
 			}
-			else
-			{
-				deviceNames[1] = deviceInterface.Id;
-			}
 		}
 
-		for (int i = 0; i < devices.Length; i++)
+		if (deviceName is null)
 		{
-			var d = devices[i];
-
-			if (d.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out Guid guid) && guid == DeviceBusTypesGuids.Hid)
-			{
-				deviceNames[2] = d.Id;
-			}
-			else
-			{
-				deviceNames[3] = d.Id;
-			}
+			throw new InvalidOperationException("Failed to identify the device interface to use.");
 		}
-
 
 		var stream = new HidFullDuplexStream(deviceName);
 		var device = new StreamDeckDevice(stream, productId);
@@ -144,14 +94,18 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		{
 			string serialNumber = await device.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 
-			return new StreamDeckDeviceDriver
+			return new DriverCreationResult<SystemDevicePath>
 			(
-				device,
-				friendlyName,
-				productId,
-				version,
-				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-				new("StreamDeck", deviceNames[^1], $"{ElgatoVendorId:X4}:{productId:X4}", serialNumber)
+				keys,
+				new StreamDeckDeviceDriver
+				(
+					device,
+					friendlyName,
+					productId,
+					version,
+					new("StreamDeck", topLevelDeviceName, $"{ElgatoVendorId:X4}:{productId:X4}", serialNumber)
+				),
+				null
 			);
 		}
 		catch
@@ -164,7 +118,6 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 	private readonly StreamDeckDevice _device;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
-	private readonly ImmutableArray<string> _deviceNames;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 	private StreamDeckDeviceDriver
@@ -173,21 +126,18 @@ public sealed class StreamDeckDeviceDriver : Driver, ISystemDeviceDriver, IDevic
 		string friendlyName,
 		ushort productId,
 		ushort versionNumber,
-		ImmutableArray<string> deviceNames,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
 		_device = device;
 		_productId = productId;
 		_versionNumber = versionNumber;
-		_deviceNames = deviceNames;
 
 		_allFeatures = FeatureCollection.Create<IDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, ISerialNumberDeviceFeature>(this);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
-	public ImmutableArray<string> DeviceNames => _deviceNames;
 
 	public override async ValueTask DisposeAsync()
 	{

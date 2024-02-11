@@ -8,6 +8,7 @@ using System.Text;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Gigabyte.LightingEffects;
+using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
@@ -15,9 +16,8 @@ using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Gigabyte;
 
-[ProductId(VendorIdSource.Usb, IteVendorId, 0x5702)]
 public sealed class RgbFusionIT5702Driver :
-	HidDriver,
+	Driver,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	ILightingControllerFeature,
@@ -346,58 +346,34 @@ public sealed class RgbFusionIT5702Driver :
 		Properties.System.DeviceInterface.Hid.UsageId,
 	};
 
-	public static async Task<RgbFusionIT5702Driver> CreateAsync(string deviceName, ushort productId, ushort version, CancellationToken cancellationToken)
+	[DiscoverySubsystem<HidDiscoverySubsystem>]
+	[DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
+	[ProductId(VendorIdSource.Usb, IteVendorId, 0x5702)]
+	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	(
+		ImmutableArray<SystemDevicePath> keys,
+		ushort productId,
+		ushort version,
+		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
+		ImmutableArray<DeviceObjectInformation> devices,
+		string topLevelDeviceName,
+		CancellationToken cancellationToken
+	)
 	{
-		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
-		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// The display name of the container can be used as a default value for the device friendly name.
-		string friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// Make a device query to fetch all the matching HID device interfaces at once.
-		var deviceInterfaces = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.DeviceInterface,
-			RequestedDeviceInterfaceProperties,
-			Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid &
-				Properties.System.Devices.ContainerId == containerId &
-				Properties.System.DeviceInterface.Hid.VendorId == 0x048D,
-			cancellationToken
-		).ConfigureAwait(false);
-
 		if (deviceInterfaces.Length != 2)
 		{
 			throw new InvalidOperationException("Expected only two device interfaces.");
 		}
-
-		// Find the top-level device by requesting devices with children.
-		// The device tree should be very simple in this case, so we expect this to directly return the top level device. It would not work on more complex scenarios.
-		var devices = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.Device,
-			Array.Empty<Property>(),
-			Properties.System.Devices.ContainerId == containerId & Properties.System.Devices.Children.Exists(),
-			cancellationToken
-		).ConfigureAwait(false);
 
 		if (devices.Length != 1)
 		{
 			throw new InvalidOperationException("Expected only one parent device.");
 		}
 
-		string[] deviceNames = new string[deviceInterfaces.Length + 1];
 		string? ledDeviceInterfaceName = null;
-		string topLevelDeviceName = devices[0].Id;
-
-		// Set the top level device name as the last device name now.
-		deviceNames[^1] = topLevelDeviceName;
-
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
 			var deviceInterface = deviceInterfaces[i];
-			deviceNames[i] = deviceInterface.Id;
 
 			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage))
 			{
@@ -429,15 +405,19 @@ public sealed class RgbFusionIT5702Driver :
 		try
 		{
 			var (ledCount, productName) = await GetDeviceInformationAsync(hidStream, cancellationToken).ConfigureAwait(false);
-			return new RgbFusionIT5702Driver
+			return new DriverCreationResult<SystemDevicePath>
 			(
-				new HidFullDuplexStream(ledDeviceInterfaceName),
-				productId,
-				version,
-				Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
-				productName,
-				ledCount,
-				new("IT5702", topLevelDeviceName, "IT5702", null)
+				keys,
+				new RgbFusionIT5702Driver
+				(
+					new HidFullDuplexStream(ledDeviceInterfaceName),
+					productId,
+					version,
+					productName,
+					ledCount,
+					new("IT5702", topLevelDeviceName, "IT5702", null)
+				),
+				null
 			);
 		}
 		catch
@@ -536,12 +516,11 @@ public sealed class RgbFusionIT5702Driver :
 		HidFullDuplexStream stream,
 		ushort productId,
 		ushort versionNumber,
-		ImmutableArray<string> deviceNames,
 		string productName,
 		int ledCount,
 		DeviceConfigurationKey configurationKey
 	)
-		: base(deviceNames, productName ?? "RGB Fusion 2.0 Controller", configurationKey)
+		: base(productName ?? "RGB Fusion 2.0 Controller", configurationKey)
 	{
 		_stream = stream;
 

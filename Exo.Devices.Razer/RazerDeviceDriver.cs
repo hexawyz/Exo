@@ -5,21 +5,19 @@ using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Razer.LightingEffects;
+using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Features.MouseFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Razer;
 
 // Like the Logitech driver, this will likely benefit from a refactoring of the device discovery, allowing to create drivers with different features on-demand.
 // For now, it will only exactly support the features for Razer DeathAdder V2 & Dock, but it will need more flexibility to support other devices using the same protocol.
 // NB: This driver relies on system drivers provided by Razer to access device features. The protocol part is still implemented here, but we need the driver to get access to the device.
-[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // DeathAdder V2 Pro Mouse Wired
-[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
-[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock
-													   //[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
 public abstract class RazerDeviceDriver :
 	Driver,
 	IRazerDeviceNotificationSink,
@@ -217,22 +215,23 @@ public abstract class RazerDeviceDriver :
 		throw new InvalidOperationException("Could not find a matching device ID entry.");
 	}
 
-	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
-	{
-		Properties.System.Devices.DeviceInstanceId,
-		Properties.System.DeviceInterface.Hid.UsagePage,
-		Properties.System.DeviceInterface.Hid.UsageId,
-		Properties.System.DeviceInterface.Hid.VersionNumber,
-	};
-
-	private static readonly Property[] RequestedDeviceProperties = new Property[]
-	{
-		Properties.System.Devices.BusTypeGuid,
-		Properties.System.Devices.ClassGuid,
-		Properties.System.Devices.EnumeratorName,
-	};
-
-	public static async Task<RazerDeviceDriver> CreateAsync(string deviceName, ushort productId, ushort version, Optional<IDriverRegistry> driverRegistry, CancellationToken cancellationToken)
+	[DiscoverySubsystem<HidDiscoverySubsystem>]
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // DeathAdder V2 Pro Mouse Wired
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock
+	//[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
+	public static async Task<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	(
+		ImmutableArray<SystemDevicePath> keys,
+		string friendlyName,
+		ushort productId,
+		ushort version,
+		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
+		string topLevelDeviceName,
+		Optional<IDriverRegistry> driverRegistry,
+		ILoggerFactory loggerFactory,
+		CancellationToken cancellationToken
+	)
 	{
 		// Start by retrieving the local device metadata. It will throw if missing, which is what we want.
 		// We need this for two reasons:
@@ -240,127 +239,56 @@ public abstract class RazerDeviceDriver :
 		// 2 - We need predefined lighting zone GUIDs. (Maybe we could generate these from VID/PID pairs to avoid this manual mapping ?)
 		var deviceInfo = GetDeviceInformation(productId);
 
-		// By retrieving the containerId, we'll be able to get all HID devices interfaces of the physical device at once.
-		var containerId = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceInterface, deviceName, Properties.System.Devices.ContainerId, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// The display name of the container can be used as a default value for the device friendly name.
-		string friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
-			throw new InvalidOperationException();
-
-		// Make a device query to fetch all the matching HID device interfaces at once.
-		var hidDeviceInterfaces = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.DeviceInterface,
-			RequestedDeviceInterfaceProperties,
-			Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid &
-				Properties.System.Devices.ContainerId == containerId,
-			cancellationToken
-		).ConfigureAwait(false);
-
-		// Make a device query to fetch the razer control device interface.
-		var razerControlDeviceInterfaces = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.DeviceInterface,
-			RequestedDeviceInterfaceProperties,
-			Properties.System.Devices.InterfaceClassGuid == RazerControlDeviceInterfaceClassGuid &
-				Properties.System.Devices.ContainerId == containerId,
-			cancellationToken
-		).ConfigureAwait(false);
-
-		if (razerControlDeviceInterfaces.Length != 1)
-		{
-			throw new InvalidOperationException("Expected a single device interface for Razer device control.");
-		}
-
-		string razerControlDeviceName = razerControlDeviceInterfaces[0].Id;
-
-		// Find the top-level device by requesting devices with children.
-		// The device tree should be very simple in this case, so we expect this to directly return the top level device. It would not work on more complex scenarios.
-		var devices = await DeviceQuery.FindAllAsync
-		(
-			DeviceObjectKind.Device,
-			RequestedDeviceProperties,
-			Properties.System.Devices.ContainerId == containerId &
-			Properties.System.Devices.Children.Exists() &
-			Properties.System.Devices.ClassGuid != DeviceClassGuids.Hid &
-			Properties.System.Devices.BusTypeGuid != DeviceBusTypesGuids.Hid,
-			cancellationToken
-		).ConfigureAwait(false);
-
-		string[] deviceNames = new string[hidDeviceInterfaces.Length + 2];
-		var topLevelDevice = devices[0];
+		string? razerControlDeviceName = null;
 		string? notificationDeviceName = null;
-		DeviceIdSource deviceIdSource = DeviceIdSource.Unknown;
 
-		// Set the razer control device as the first device name for now.
-		deviceNames[0] = razerControlDeviceName;
-
-		// TODO: This is not needed anymore, but it should be made into a standard connection type feature. (Indicating by which means the device is connected)
+		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
-			Guid guid;
-			if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out guid))
+			var deviceInterface = deviceInterfaces[i];
+
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.Devices.InterfaceClassGuid.Key, out Guid interfaceClassGuid))
 			{
-				if (guid == DeviceBusTypesGuids.Usb)
-				{
-					deviceIdSource = DeviceIdSource.Usb;
-					goto DeviceIdSourceResolved;
-				}
+				continue;
 			}
 
-			if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.ClassGuid.Key, out guid))
+			if (interfaceClassGuid == RazerControlDeviceInterfaceClassGuid)
 			{
-				if (guid == DeviceClassGuids.Usb)
+				if (razerControlDeviceName is not null)
 				{
-					deviceIdSource = DeviceIdSource.Usb;
-					goto DeviceIdSourceResolved;
+					throw new InvalidOperationException("Expected a single device interface for Razer device control.");
 				}
-				if (guid == DeviceClassGuids.Bluetooth)
+
+				razerControlDeviceName = deviceInterface.Id;
+			}
+			else if (interfaceClassGuid == DeviceInterfaceClassGuids.Hid)
+			{
+				if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage) &&
+					deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId) &&
+					usagePage == (ushort)HidUsagePage.GenericDesktop && usageId == 0)
 				{
-					if (topLevelDevice.Properties.TryGetValue(Properties.System.Devices.EnumeratorName.Key, out string? enumeratorName))
+					using (var deviceHandle = HidDevice.FromPath(deviceInterface.Id))
 					{
-						if (enumeratorName == "BTHLE")
+						// TODO: Might finally be time to work on that HID descriptor part 😫
+						// Also, I don't know why Windows insist on declaring the values we are looking for as button. The HID descriptor clearly indicates values between 0 and 255…
+						var descriptor = await deviceHandle.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
+
+						// Thanks to the button caps we can check the Report ID.
+						// We are looking for the HID device interface tied to the collection with Report ID 5.
+						// (Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
+						if (descriptor.InputReports[0].ReportId == 5)
 						{
-							deviceIdSource = DeviceIdSource.BluetoothLowEnergy;
-							goto DeviceIdSourceResolved;
+							if (notificationDeviceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
+
+							notificationDeviceName = deviceInterface.Id;
 						}
-						deviceIdSource = DeviceIdSource.Bluetooth;
-						goto DeviceIdSourceResolved;
 					}
 				}
 			}
-		DeviceIdSourceResolved:;
 		}
 
-		// Set the top level device name as the last device name now.
-		deviceNames[^1] = topLevelDevice.Id;
-
-		for (int i = 0; i < hidDeviceInterfaces.Length; i++)
+		if (razerControlDeviceName is null)
 		{
-			var deviceInterface = hidDeviceInterfaces[i];
-			deviceNames[i + 1] = deviceInterface.Id;
-
-			if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage) &&
-				deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId) &&
-				usagePage == (ushort)HidUsagePage.GenericDesktop && usageId == 0)
-			{
-				using (var deviceHandle = HidDevice.FromPath(deviceInterface.Id))
-				{
-					// TODO: Might finally be time to work on that HID descriptor part 😫
-					// Also, I don't know why Windows insist on declaring the values we are looking for as button. The HID descriptor clearly indicates values between 0 and 255…
-					var descriptor = await deviceHandle.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
-
-					// Thanks to the button caps we can check the Report ID.
-					// We are looking for the HID device interface tied to the collection with Report ID 5.
-					// (Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
-					if (descriptor.InputReports[0].ReportId == 5)
-					{
-						if (notificationDeviceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
-
-						notificationDeviceName = deviceInterface.Id;
-					}
-				}
-			}
+			throw new InvalidOperationException("The device interface for Razer device control was not found.");
 		}
 
 		if (notificationDeviceName is null)
@@ -383,12 +311,10 @@ public abstract class RazerDeviceDriver :
 			new(60_000),
 			new(notificationDeviceName),
 			driverRegistry,
-			deviceIdSource,
 			version,
 			deviceInfo,
-			Unsafe.As<string[], ImmutableArray<string>>(ref deviceNames),
 			friendlyName,
-			topLevelDevice.Id,
+			topLevelDeviceName,
 			serialNumber,
 			cancellationToken
 		).ConfigureAwait(false);
@@ -399,7 +325,7 @@ public abstract class RazerDeviceDriver :
 			driverRegistry.Dispose();
 		}
 
-		return device;
+		return new DriverCreationResult<SystemDevicePath>(keys, device, null);
 	}
 
 	private static async ValueTask<RazerDeviceDriver> CreateDeviceAsync
@@ -408,10 +334,8 @@ public abstract class RazerDeviceDriver :
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		HidFullDuplexStream notificationStream,
 		Optional<IDriverRegistry> driverRegistry,
-		DeviceIdSource deviceIdSource,
 		ushort versionNumber,
 		DeviceInformation deviceInfo,
-		ImmutableArray<string> deviceNames,
 		string friendlyName,
 		string topLevelDeviceName,
 		string? serialNumber,
@@ -433,7 +357,6 @@ public abstract class RazerDeviceDriver :
 				periodicEventGenerator,
 				notificationStream,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
-				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -446,7 +369,6 @@ public abstract class RazerDeviceDriver :
 				periodicEventGenerator,
 				notificationStream,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
-				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -460,7 +382,6 @@ public abstract class RazerDeviceDriver :
 				notificationStream,
 				DeviceCategory.MouseDock,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
-				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -473,7 +394,6 @@ public abstract class RazerDeviceDriver :
 				periodicEventGenerator,
 				notificationStream,
 				driverRegistry.GetOrCreateValue(),
-				deviceNames,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceIds,
@@ -805,7 +725,7 @@ public abstract class RazerDeviceDriver :
 	private static class SystemDevice
 	{
 		// USB receivers are always root, so they are always system devices, unlike those which can be connected through a receiver.
-		public sealed class UsbReceiver : RazerDeviceDriver, ISystemDeviceDriver
+		public sealed class UsbReceiver : RazerDeviceDriver
 		{
 			private struct PairedDeviceState
 			{
@@ -822,8 +742,6 @@ public abstract class RazerDeviceDriver :
 
 			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public override DeviceCategory DeviceCategory => DeviceCategory.UsbWirelessReceiver;
 
 			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
@@ -833,7 +751,6 @@ public abstract class RazerDeviceDriver :
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				IDriverRegistry driverRegistry,
-				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				ImmutableArray<DeviceId> deviceIds,
@@ -841,7 +758,6 @@ public abstract class RazerDeviceDriver :
 			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex)
 			{
 				_driverRegistry = driverRegistry;
-				DeviceNames = deviceNames;
 				_allFeatures = FeatureCollection.Create<IDeviceFeature, UsbReceiver, IDeviceIdFeature>(this);
 				_watcher = new(notificationStream, this);
 			}
@@ -1034,11 +950,9 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
-		public class Generic : RazerDeviceDriver.Generic, ISystemDeviceDriver
+		public class Generic : RazerDeviceDriver.Generic
 		{
 			private readonly RazerDeviceNotificationWatcher _watcher;
-
-			public ImmutableArray<string> DeviceNames { get; }
 
 			public Generic
 			(
@@ -1047,7 +961,6 @@ public abstract class RazerDeviceDriver :
 				HidFullDuplexStream notificationStream,
 				DeviceCategory deviceCategory,
 				Guid lightingZoneId,
-				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
@@ -1056,7 +969,6 @@ public abstract class RazerDeviceDriver :
 			) : base(transport, periodicEventGenerator, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this);
-				DeviceNames = deviceNames;
 			}
 
 			public override async ValueTask DisposeAsync()
@@ -1067,11 +979,10 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
-		public class Mouse : RazerDeviceDriver.Mouse, ISystemDeviceDriver
+		public class Mouse : RazerDeviceDriver.Mouse
 		{
 			private readonly RazerDeviceNotificationWatcher _watcher;
 
-			public ImmutableArray<string> DeviceNames { get; }
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			public Mouse
@@ -1080,7 +991,6 @@ public abstract class RazerDeviceDriver :
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				Guid lightingZoneId,
-				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
@@ -1089,7 +999,6 @@ public abstract class RazerDeviceDriver :
 			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this);
-				DeviceNames = deviceNames;
 			}
 
 			public override async ValueTask DisposeAsync()
@@ -1100,11 +1009,10 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
-		public class Keyboard : RazerDeviceDriver.Keyboard, ISystemDeviceDriver
+		public class Keyboard : RazerDeviceDriver.Keyboard
 		{
 			private readonly RazerDeviceNotificationWatcher _watcher;
 
-			public ImmutableArray<string> DeviceNames { get; }
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			public Keyboard(
@@ -1112,7 +1020,6 @@ public abstract class RazerDeviceDriver :
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				Guid lightingZoneId,
-				ImmutableArray<string> deviceNames,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
@@ -1121,7 +1028,6 @@ public abstract class RazerDeviceDriver :
 			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this);
-				DeviceNames = deviceNames;
 			}
 
 			public override async ValueTask DisposeAsync()

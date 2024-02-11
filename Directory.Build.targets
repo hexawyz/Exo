@@ -32,11 +32,23 @@
 	</ItemGroup>
 	<ItemGroup Condition="'$(IsExoPluginAssembly)' == 'true'">
 		<ProjectReference Update="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.DeviceIds.Databases\DeviceTools.DeviceIds.Databases.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.Firmware\DeviceTools.Firmware.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.RawInput\DeviceTools.RawInput.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
+	<Target Name="_MakeTransitiveProjectRefsNonPrivate" AfterTargets="IncludeTransitiveProjectReferences" Condition="'$(IsExoPluginAssembly)' == 'true'">
+		<ItemGroup>
+			<!-- https://github.com/dotnet/sdk/issues/1366#issuecomment-455034455 -->
+			<ProjectReference Remove="@(_TransitiveProjectReferences)" />
+			<ProjectReference Include="@(_TransitiveProjectReferences)" Private="False" />
+		</ItemGroup>
+	</Target>
 </Project>

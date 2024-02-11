@@ -7,12 +7,15 @@ namespace Exo.Service;
 
 public sealed class PluginMetadataAssemblyResolver : MetadataAssemblyResolver
 {
+	private readonly Func<AssemblyName, string?> _assemblyLocator;
 	private readonly AssemblyDependencyResolver _resolver;
 	private readonly string _appDirectory;
 	private readonly string _runtimeDirectory;
 
-	public PluginMetadataAssemblyResolver(string pluginPath)
+	public PluginMetadataAssemblyResolver(AssemblyName mainAssemblyName, Func<AssemblyName, string?> assemblyLocator)
 	{
+		_assemblyLocator = assemblyLocator;
+		string pluginPath = assemblyLocator(mainAssemblyName) ?? throw new FileNotFoundException($"Could not locate assembly {mainAssemblyName}.");
 		_resolver = new AssemblyDependencyResolver(pluginPath);
 		_appDirectory = Path.GetDirectoryName(typeof(PluginMetadataAssemblyResolver).Assembly.Location)!;
 		_runtimeDirectory = RuntimeEnvironment.GetRuntimeDirectory();
@@ -35,8 +38,13 @@ public sealed class PluginMetadataAssemblyResolver : MetadataAssemblyResolver
 			return context.LoadFromAssemblyPath(typeof(ILogger).Assembly.Location);
 		}
 
-		return TryLoadFrom(context, _appDirectory, assemblyName) ?? TryLoadFrom(context, _runtimeDirectory, assemblyName);
+		return TryLoadFrom(context, _appDirectory, assemblyName) ?? TryLoadFrom(context, _runtimeDirectory, assemblyName) ?? TryLoadFromLocator(context, _assemblyLocator, assemblyName);
 	}
+
+	private static Assembly? TryLoadFromLocator(MetadataLoadContext context, Func<AssemblyName, string?> assemblyLocator, AssemblyName assemblyName)
+		=> assemblyLocator(assemblyName) is string path && File.Exists(path) ?
+			context.LoadFromAssemblyPath(path) :
+			null;
 
 	private static Assembly? TryLoadFrom(MetadataLoadContext context, string directory, AssemblyName assemblyName)
 	{

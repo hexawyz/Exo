@@ -98,6 +98,9 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1015, EventName = "HidDriverDisposeFailure", Level = LogLevel.Error, Message = "Failed to dispose an instance of \"{TypeName}\" from \"{AssemblyName}\" for the devices \"{DeviceNames}\".")]
 	public static partial void HidDriverDisposeFailure(this ILogger logger, string typeName, string assemblyName, IEnumerable<string> deviceNames, Exception exception);
 
+	[LoggerMessage(EventId = 3000, EventName = "DevicePropertiesRetrievalError", Level = LogLevel.Error, Message = "Failed to retrieve properties of device: \"{DeviceName}\".")]
+	public static partial void DevicePropertiesRetrievalError(this ILogger logger, string deviceName, Exception exception);
+
 	[LoggerMessage(EventId = 1099, EventName = "HidDeviceNotificationSinkError", Level = LogLevel.Critical, Message = "An exception occurred when processing HID arrivals and removals.")]
 	public static partial void HidDeviceNotificationSinkError(this ILogger logger, Exception ex);
 

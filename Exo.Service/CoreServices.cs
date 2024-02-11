@@ -1,3 +1,5 @@
+using Exo.Discovery;
+
 namespace Exo.Service;
 
 // This is only used to pull a dependency on core services.
@@ -7,6 +9,7 @@ public sealed class CoreServices : IHostedService
 {
 	public CoreServices
 	(
+		RootDiscoverySubsystem rootDiscoverySubsystem,
 		LightingService lightingService,
 		BatteryService batteryService,
 		KeyboardService keyboardService,

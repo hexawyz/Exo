@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -412,7 +411,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	ValueTask<bool> IInternalDriverRegistry.RemoveDriverAsync(Driver driver) => RemoveDriverInLock(driver);
 
 	public NestedDriverRegistry CreateNestedRegistry() => new(this);
-	IDriverRegistry IDriverRegistry.CreateNestedRegistry() => CreateNestedRegistry();
+	IDriverRegistry INestedDriverRegistryProvider.CreateNestedRegistry() => CreateNestedRegistry();
 
 	public async ValueTask<bool> AddDriverAsync(Driver driver)
 	{

@@ -1,14 +1,8 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
 using System.Reflection;
-using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
-using System.Threading;
-using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
@@ -32,8 +26,8 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 
 	private readonly ILogger<AssemblyLoader> _logger;
 	private readonly IAssemblyDiscovery _assemblyDiscovery;
-	private readonly ConcurrentDictionary<AssemblyName, AssemblyCacheEntry> _availableAssemblyDetails = new(1, 20);
-	private AssemblyName[] _availableAssemblies = Array.Empty<AssemblyName>();
+	private readonly ConcurrentDictionary<string, AssemblyCacheEntry> _availableAssemblyDetails = new(1, 20);
+	private AssemblyName[] _availableAssemblies = [];
 	private readonly object _updateLock = new();
 
 	public event EventHandler<AssemblyLoadEventArgs>? AfterAssemblyLoad;
@@ -72,13 +66,13 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 			{
 				if (!assemblyNameDictionary.Remove(assemblyName))
 				{
-					_availableAssemblyDetails.TryRemove(assemblyName, out _);
+					_availableAssemblyDetails.TryRemove(assemblyName.FullName, out _);
 				}
 			}
 
 			foreach (var kvp in assemblyNameDictionary)
 			{
-				_availableAssemblyDetails.TryAdd(kvp.Key, new AssemblyCacheEntry(kvp.Key, kvp.Value));
+				_availableAssemblyDetails.TryAdd(kvp.Key.FullName, new AssemblyCacheEntry(kvp.Key, kvp.Value));
 			}
 
 			Volatile.Write(ref _availableAssemblies, assemblyNames);
@@ -96,6 +90,15 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 			: LoadAssemblySlow(entry);
 	}
 
+	public Assembly? TryLoadAssembly(AssemblyName assemblyName)
+	{
+		if (!_availableAssemblyDetails.TryGetValue(assemblyName.FullName, out var entry)) return null;
+
+		return entry.WeakReference.TryGetTarget(out var assembly)
+			? assembly
+			: LoadAssemblySlow(entry);
+	}
+
 	private Assembly LoadAssemblySlow(AssemblyCacheEntry entry)
 	{
 		Assembly? assembly;
@@ -104,7 +107,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		{
 			if (!entry.WeakReference.TryGetTarget(out assembly))
 			{
-				var context = new PluginLoadContext(entry.Path);
+				var context = new PluginLoadContext(this, entry.Path);
 				assembly = context.LoadFromAssemblyName(entry.AssemblyName);
 				entry.WeakReference.SetTarget(assembly);
 			}
@@ -123,15 +126,19 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 	}
 
 	public MetadataLoadContext CreateMetadataLoadContext(AssemblyName assemblyName)
-	{
-		var entry = GetAssemblyCacheEntry(assemblyName);
-
-		return new MetadataLoadContext(new PluginMetadataAssemblyResolver(entry.Path), typeof(object).Assembly.GetName().Name);
-	}
+		=> new MetadataLoadContext
+		(
+			new PluginMetadataAssemblyResolver
+			(
+				GetAssemblyCacheEntry(assemblyName).AssemblyName,
+				assemblyName => _availableAssemblyDetails.TryGetValue(assemblyName.FullName, out var entry) ? entry.Path : null
+			),
+			typeof(object).Assembly.GetName().Name
+		);
 
 	private AssemblyCacheEntry GetAssemblyCacheEntry(AssemblyName assemblyName)
 	{
-		if (!_availableAssemblyDetails.TryGetValue(assemblyName, out var entry))
+		if (!_availableAssemblyDetails.TryGetValue(assemblyName.FullName, out var entry))
 		{
 			throw new InvalidOperationException($"Only assemblies part of the {nameof(AvailableAssemblies)} list can be loaded.");
 		}

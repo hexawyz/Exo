@@ -1,0 +1,19 @@
+[
+  {
+    "Name": "Service and UI",
+    "Projects": [
+      {
+        "Name": "Exo.Service\\Exo.Service.csproj",
+        "Action": "Start"
+      },
+      {
+        "Name": "Exo.Settings.Ui\\Exo.Settings.Ui.csproj",
+        "Action": "Start"
+      },
+      {
+        "Name": "Exo.Overlay\\Exo.Overlay.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

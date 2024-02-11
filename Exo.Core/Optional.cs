@@ -22,7 +22,7 @@ internal static class Optional
 /// </para>
 /// </remarks>
 /// <typeparam name="T">The type of disposable object created by this instance.</typeparam>
-public abstract class Optional<T> : IDisposable
+public abstract class Optional<T> : IDisposable, IAsyncDisposable
 	where T : class, IDisposable
 {
 	// null if unallocated, DisposedSentinel if the object is disposed, or a valid instance of T otherwise.
@@ -62,6 +62,12 @@ public abstract class Optional<T> : IDisposable
 
 		// Once the instance has been marked as disposed, dispose the value.
 		Unsafe.As<T>(value).Dispose();
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		Dispose();
+		return ValueTask.CompletedTask;
 	}
 
 	public virtual T GetOrCreateValue()

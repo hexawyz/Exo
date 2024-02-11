@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using DeviceTools;
 
 namespace Exo;
 
 /// <summary>Declare the vendor ID of devices supported by a driver.</summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 public class VendorIdAttribute : Attribute
 {
 	public VendorIdAttribute(VendorIdSource vendorIdSource, ushort vendorId)
