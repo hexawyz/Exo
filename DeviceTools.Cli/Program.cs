@@ -34,6 +34,11 @@ internal static class Program
 			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
 			.ToDictionary(t => t.Value, t => t.Name);
 
+	private static readonly Dictionary<Guid, string> BusTypeGuidNames =
+		typeof(DeviceBusTypeGuids).GetFields()
+			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
+			.ToDictionary(t => t.Value, t => t.Name);
+
 	private static async Task Main(string[] args)
 	{
 		Console.OutputEncoding = Encoding.UTF8;
@@ -143,6 +148,10 @@ internal static class Program
 		else if (p.Key == Properties.System.Devices.InterfaceClassGuid.Key && p.Value is Guid interfaceClassGuid && DeviceInterfaceClassGuidNames.TryGetValue(interfaceClassGuid, out string? interfaceClassName))
 		{
 			Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}={interfaceClassGuid:B} ({interfaceClassName})"));
+		}
+		else if (p.Key == Properties.System.Devices.BusTypeGuid.Key && p.Value is Guid busTypeGuid && BusTypeGuidNames.TryGetValue(busTypeGuid, out string? busTypeName))
+		{
+			Console.WriteLine(FormattableString.Invariant($"{indent}{p.Key}={busTypeGuid:B} ({busTypeName})"));
 		}
 		else
 		{

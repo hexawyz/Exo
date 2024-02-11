@@ -125,9 +125,9 @@ public sealed class HidDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 				// Sometimes, the class GUID of the top-level device can be HID, but sometimes not.
 				// The bus, however, should never be HID.
 				if (device.Properties.TryGetValue(Properties.System.Devices.ClassGuid.Key, out Guid classGuid)/* && classGuid != DeviceClassGuids.Hid*/ &&
-					device.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out Guid busTypeGuid) && busTypeGuid != DeviceBusTypesGuids.Hid)
+					device.Properties.TryGetValue(Properties.System.Devices.BusTypeGuid.Key, out Guid busTypeGuid) && busTypeGuid != DeviceBusTypeGuids.Hid)
 				{
-					if (busTypeGuid == DeviceBusTypesGuids.Usb || classGuid == DeviceClassGuids.Usb)
+					if (busTypeGuid == DeviceBusTypeGuids.Usb || classGuid == DeviceClassGuids.Usb)
 					{
 						deviceIdSource = DeviceIdSource.Usb;
 					}
