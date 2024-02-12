@@ -2,16 +2,14 @@ using DeviceTools;
 
 namespace Exo.Discovery;
 
-internal readonly record struct HidProductKey
+public readonly record struct VendorKey
 {
 	public readonly VendorIdSource VendorIdSource { get; init; }
 	public readonly ushort VendorId { get; init; }
-	public readonly ushort ProductId { get; init; }
 
-	public HidProductKey(VendorIdSource vendorIdSource, ushort vendorId, ushort productId)
+	public VendorKey(VendorIdSource vendorIdSource, ushort vendorId)
 	{
 		VendorIdSource = vendorIdSource;
 		VendorId = vendorId;
-		ProductId = productId;
 	}
 }

@@ -9,10 +9,10 @@ namespace Exo.Discovery;
 
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
-public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>, IDeviceNotificationSink
+public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>, IDeviceNotificationSink
 {
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
-	[RootComponent(typeof(HidDiscoverySubsystem))]
+	[RootComponent(typeof(PciDiscoverySubsystem))]
 	public static ValueTask<RootComponentCreationResult> CreateAsync
 	(
 		ILoggerFactory loggerFactory,
@@ -21,24 +21,25 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		IDeviceNotificationService deviceNotificationService
 	)
 	{
-		return new(new RootComponentCreationResult(typeof(HidDiscoverySubsystem), new HidDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService), null));
+		return new(new RootComponentCreationResult(typeof(PciDiscoverySubsystem), new PciDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService), null));
 	}
 
 	private readonly Dictionary<ProductVersionKey, Guid> _productVersionFactories;
 	private readonly Dictionary<ProductKey, Guid> _productFactories;
 	private readonly Dictionary<VendorKey, Guid> _vendorFactories;
 
-	private readonly ILogger<HidDiscoverySubsystem> _logger;
+	private readonly ILogger<PciDiscoverySubsystem> _logger;
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	private readonly IDiscoveryOrchestrator _discoveryOrchestrator;
 	private readonly IDeviceNotificationService _deviceNotificationService;
 
-	private IDisposable? _deviceNotificationRegistration;
-	private IDiscoverySink<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext>? _sink;
+	private IDisposable? _displayAdapterNotificationRegistration;
+	private IDisposable? _displayDeviceArrivalDeviceNotificationRegistration;
+	private IDiscoverySink<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext>? _sink;
 	private readonly object _lock;
 
-	public HidDiscoverySubsystem
+	public PciDiscoverySubsystem
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
@@ -48,7 +49,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
-		_logger = loggerFactory.CreateLogger<HidDiscoverySubsystem>();
+		_logger = loggerFactory.CreateLogger<PciDiscoverySubsystem>();
 		_discoveryOrchestrator = discoveryOrchestrator;
 		_deviceNotificationService = deviceNotificationService;
 
@@ -58,16 +59,17 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		_lock = new();
 
-		_sink = _discoveryOrchestrator.RegisterDiscoveryService<HidDiscoverySubsystem, SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>(this);
+		_sink = _discoveryOrchestrator.RegisterDiscoveryService<PciDiscoverySubsystem, SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>(this);
 	}
 
-	public override string FriendlyName => "HID Discovery";
+	public override string FriendlyName => "PCI Discovery";
 
 	public override ValueTask DisposeAsync()
 	{
 		lock (_lock)
 		{
-			Interlocked.Exchange(ref _deviceNotificationRegistration, null)?.Dispose();
+			Interlocked.Exchange(ref _displayAdapterNotificationRegistration, null)?.Dispose();
+			Interlocked.Exchange(ref _displayDeviceArrivalDeviceNotificationRegistration, null)?.Dispose();
 			Interlocked.Exchange(ref _sink, null)?.Dispose();
 		}
 		return ValueTask.CompletedTask;
@@ -79,19 +81,23 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		{
 			lock (_lock)
 			{
-				if (_deviceNotificationRegistration is not null) throw new InvalidOperationException("The service has already been started.");
-
-				_logger.HidDiscoveryStarting();
-
-				_deviceNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.Hid, this);
-
-				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
+				if (_displayAdapterNotificationRegistration is not null || _displayDeviceArrivalDeviceNotificationRegistration is not null)
 				{
-					_logger.HidDeviceArrival(deviceName);
+					throw new InvalidOperationException("The service has already been started.");
+				}
+
+				_logger.PciDiscoveryStarting();
+
+				_displayAdapterNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.DisplayAdapter, this);
+				_displayDeviceArrivalDeviceNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.DisplayDeviceArrival, this);
+
+				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
+				{
+					_logger.DisplayAdapterDeviceArrival(deviceName);
 					_sink?.HandleArrival(new(this, deviceName));
 				}
 
-				_logger.HidDiscoveryStarted();
+				_logger.PciDiscoveryStarted();
 			}
 		}
 		catch (Exception ex)
@@ -106,10 +112,15 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		var productVersionKeys = new HashSet<ProductVersionKey>();
 		var productKeys = new HashSet<ProductKey>();
 		var vendorKeys = new HashSet<VendorKey>();
+		var deviceInterfaceClassKeys = new HashSet<DeviceInterfaceClass>();
 
 		foreach (var attribute in attributes)
 		{
-			if (attribute.Matches<VendorIdAttribute>() ||
+			if (attribute.Matches<DeviceInterfaceClassAttribute>())
+			{
+				deviceInterfaceClassKeys.Add((DeviceInterfaceClass)(int)attribute.ConstructorArguments[0].Value!);
+			}
+			else if (attribute.Matches<VendorIdAttribute>() ||
 				attribute.Matches<ProductIdAttribute>() ||
 				attribute.Matches<ProductVersionAttribute>())
 			{
@@ -130,7 +141,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 							if (!productVersionKeys.Add(key))
 							{
-								_logger.HidVersionedProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
+								_logger.PciVersionedProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
 								return false;
 							}
 						}
@@ -139,7 +150,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 							var key = new ProductKey(vendorIdSource, vendorId, productId.GetValueOrDefault());
 							if (!productKeys.Add(key))
 							{
-								_logger.HidProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId);
+								_logger.PciProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId);
 								return false;
 							}
 						}
@@ -149,7 +160,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 						var key = new VendorKey(vendorIdSource, vendorId);
 						if (!vendorKeys.Add(key))
 						{
-							_logger.HidVendorDuplicateKey(key.VendorIdSource, key.VendorId);
+							_logger.PciVendorDuplicateKey(key.VendorIdSource, key.VendorId);
 							return false;
 						}
 					}
@@ -159,7 +170,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		if (productVersionKeys.Count == 0 && productKeys.Count == 0 && vendorKeys.Count == 0)
 		{
-			_logger.HidFactoryMissingKeys(factoryId);
+			_logger.PciFactoryMissingKeys(factoryId);
 			return false;
 		}
 
@@ -175,7 +186,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_productVersionFactories.ContainsKey(key))
 				{
-					_logger.HidVersionedProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
+					_logger.PciVersionedProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
 					return false;
 				}
 			}
@@ -183,7 +194,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_productFactories.ContainsKey(key))
 				{
-					_logger.HidProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId);
+					_logger.PciProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId);
 					return false;
 				}
 			}
@@ -191,7 +202,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			{
 				if (_vendorFactories.ContainsKey(key))
 				{
-					_logger.HidVendorRegisteredTwice(key.VendorIdSource, key.VendorId);
+					_logger.PciVendorRegisteredTwice(key.VendorIdSource, key.VendorId);
 					return false;
 				}
 			}
@@ -218,7 +229,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		lock (_lock)
 		{
-			_logger.HidDeviceArrival(deviceName);
+			_logger.DisplayAdapterDeviceArrival(deviceName);
 			_sink?.HandleArrival(new(this, deviceName));
 		}
 	}
@@ -235,7 +246,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		lock (_lock)
 		{
-			_logger.HidDeviceRemoval(deviceName);
+			_logger.DisplayAdapterDeviceRemoval(deviceName);
 			_sink?.HandleRemoval(deviceName);
 		}
 	}

@@ -24,6 +24,8 @@ public enum DeviceCategory
 	[EnumMember]
 	Monitor,
 	[EnumMember]
+	GraphicsAdapter,
+	[EnumMember]
 	Lighting,
 	[EnumMember]
 	UsbWirelessNetwork,

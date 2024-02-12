@@ -52,8 +52,10 @@
 		<ProjectReference Include="..\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.NVidia\Exo.Devices.NVidia.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">

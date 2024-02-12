@@ -17,6 +17,7 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 		{ DeviceCategory.Touchpad, "\uEFA5" },
 		{ DeviceCategory.Gamepad, "\uE7FC" },
 		{ DeviceCategory.Monitor, "\uE7F8" },
+		{ DeviceCategory.GraphicsAdapter, "\uE950" },
 		{ DeviceCategory.Lighting, "\uE781" },
 		{ DeviceCategory.UsbWirelessNetwork, "\uECF1"},
 		{ DeviceCategory.UsbWirelessReceiver, "\uECF1"},

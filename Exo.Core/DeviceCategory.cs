@@ -15,6 +15,7 @@ public enum DeviceCategory
 	Touchpad,
 	Gamepad,
 	Monitor,
+	GraphicsAdapter,
 	Lighting,
 	UsbWirelessNetwork,
 	UsbWirelessReceiver,

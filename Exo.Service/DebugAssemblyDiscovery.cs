@@ -28,6 +28,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 		var plugins = new[]
 		{
 			"Exo.Discovery.Hid",
+			"Exo.Discovery.Pci",
 			"Exo.Discovery.System",
 			"Exo.Devices.Logitech",
 			"Exo.Devices.Gigabyte",
@@ -35,6 +36,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Devices.Lg.Monitors",
 			"Exo.Devices.Razer",
 			"Exo.Devices.Elgato.StreamDeck",
+			"Exo.Devices.NVidia",
 		};
 
 		AssemblyPaths = plugins.Select(p => template.Replace(Placeholder, p)).ToImmutableArray();
