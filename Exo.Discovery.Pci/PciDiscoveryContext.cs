@@ -21,6 +21,8 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		Properties.System.Devices.Children,
 		Properties.System.Devices.HardwareIds,
 		Properties.System.Devices.CompatibleIds,
+		Properties.System.Devices.BusNumber,
+		Properties.System.Devices.Address,
 	];
 
 	private readonly PciDiscoverySubsystem _discoverySubsystem;
@@ -66,7 +68,7 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		// If we forget about HD audio stuff, which is considered a separate device with different product ID, there is a single device node to which the device interface classes are attached.
 		if (interfaceClassGuid == DeviceInterfaceClassGuids.DisplayAdapter || interfaceClassGuid == DeviceInterfaceClassGuids.DisplayDeviceArrival)
 		{
-			var deviceProperties = await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, sourceDeviceName, cancellationToken).ConfigureAwait(false);
+			var deviceProperties = await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, sourceDeviceName, RequestedDeviceProperties, cancellationToken).ConfigureAwait(false);
 			devices = [new DeviceObjectInformation(DeviceObjectKind.Device, sourceDeviceName, deviceProperties)];
 
 			deviceInterfaces = await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.DeviceInstanceId == sourceDeviceName, cancellationToken).ConfigureAwait(false);

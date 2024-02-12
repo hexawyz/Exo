@@ -17,21 +17,43 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature
 	public static ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
-		ImmutableArray<DeviceObjectInformation> devices,
-		string topLevelDeviceName,
+		DeviceObjectInformation topLevelDevice,
 		DeviceId deviceId,
 		ILogger<NVidiaGpuDriver> logger
 	)
 	{
-		string friendlyName = deviceId.ProductId switch
+		// First, we need identify the expected bus number and address.
+		// This will be used to match the device through the NVIDIA API.
+		if (!topLevelDevice.Properties.TryGetValue(Properties.System.Devices.BusNumber.Key, out uint busNumber))
 		{
-			0x2204 => "NVIDIA GeForce RTX 3090",
-			_ => "NVIDIA GPU",
-		};
+			throw new InvalidOperationException($"Could not retrieve the bus number for the device {topLevelDevice.Id}.");
+		}
+		if (!topLevelDevice.Properties.TryGetValue(Properties.System.Devices.Address.Key, out uint pciAddress))
+		{
+			throw new InvalidOperationException($"Could not retrieve the bus address for the device {topLevelDevice.Id}.");
+		}
 
+		// Initialize the API and log the version.
 		logger.NvApiVersion(NvApi.GetInterfaceVersionString());
 
-		return new(new DriverCreationResult<SystemDevicePath>(keys, new NVidiaGpuDriver(deviceId, friendlyName, new("nv", topLevelDeviceName, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", null))));
+		NvApi.PhysicalGpu foundGpu = default;
+
+		// Enumerate all the GPUs and find the right one.
+		foreach (var gpu in NvApi.GetPhysicalGpus())
+		{
+			if (gpu.GetBusId() != busNumber || gpu.GetBusSlotId() != pciAddress >> 16) continue;
+
+			foundGpu = gpu;
+		}
+
+		if (!foundGpu.IsValid)
+		{
+			throw new InvalidOperationException($"Could not find the corresponding GPU through NVAPI for {topLevelDevice.Id}.");
+		}
+
+		string friendlyName = foundGpu.GetFullName();
+
+		return new(new DriverCreationResult<SystemDevicePath>(keys, new NVidiaGpuDriver(deviceId, friendlyName, new("nv", topLevelDevice.Id, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", null))));
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
