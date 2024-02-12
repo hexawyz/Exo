@@ -43,6 +43,8 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature
 		{
 			if (gpu.GetBusId() != busNumber || gpu.GetBusSlotId() != pciAddress >> 16) continue;
 
+			var devices = gpu.GetIlluminationDevices();
+
 			foundGpu = gpu;
 		}
 
