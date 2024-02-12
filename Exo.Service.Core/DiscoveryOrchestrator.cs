@@ -138,7 +138,14 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					}
 					catch (Exception ex)
 					{
-						// TODO: Log exception.
+						if (typeof(TComponent) == typeof(Driver))
+						{
+							Orchestrator.Logger.DiscoveryDriverCreationParametersPreparationFailure(ex);
+						}
+						else
+						{
+							Orchestrator.Logger.DiscoveryComponentCreationParametersPreparationFailure(ex);
+						}
 						_states.Remove(context.DiscoveredKeys, state);
 						return;
 					}
