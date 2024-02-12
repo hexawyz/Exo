@@ -1,10 +1,12 @@
 using System.Collections.Immutable;
 using DeviceTools;
 using Exo.Discovery;
+using Exo.Features;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.NVidia;
 
-public class NVidiaGpuDriver : Driver
+public class NVidiaGpuDriver : Driver, IDeviceIdFeature
 {
 	private const ushort NVidiaVendorId = 0x10DE;
 
@@ -17,25 +19,31 @@ public class NVidiaGpuDriver : Driver
 		ImmutableArray<SystemDevicePath> keys,
 		ImmutableArray<DeviceObjectInformation> devices,
 		string topLevelDeviceName,
-		ushort productId
+		DeviceId deviceId,
+		ILogger<NVidiaGpuDriver> logger
 	)
 	{
-		string friendlyName = productId switch
+		string friendlyName = deviceId.ProductId switch
 		{
 			0x2204 => "NVIDIA GeForce RTX 3090",
 			_ => "NVIDIA GPU",
 		};
 
-		return new(new DriverCreationResult<SystemDevicePath>(keys, new NVidiaGpuDriver(friendlyName, new("nv", topLevelDeviceName, $"{NVidiaVendorId:X4}:{productId:X4}", null))));
+		logger.NvApiVersion(NvApi.GetInterfaceVersionString());
+
+		return new(new DriverCreationResult<SystemDevicePath>(keys, new NVidiaGpuDriver(deviceId, friendlyName, new("nv", topLevelDeviceName, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", null))));
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
+	public DeviceId DeviceId { get; }
 	public override IDeviceFeatureCollection<IDeviceFeature> Features { get; }
 
-	public NVidiaGpuDriver(string friendlyName, DeviceConfigurationKey configurationKey) : base(friendlyName, configurationKey)
+	public NVidiaGpuDriver(DeviceId deviceId, string friendlyName, DeviceConfigurationKey configurationKey) : base(friendlyName, configurationKey)
 	{
-		Features = FeatureCollection.Empty<IDeviceFeature>();
+		DeviceId = deviceId;
+		Features = FeatureCollection.Create<IDeviceFeature, IDeviceIdFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
 }

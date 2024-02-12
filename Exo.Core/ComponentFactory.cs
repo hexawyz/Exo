@@ -311,7 +311,7 @@ public static class ComponentFactory
 			{
 				// Same remark as above, parameters should already have been checked, so we should be pretty safe about what is available here.
 				ilGenerator.Emit(OpCodes.Callvirt, availableParameters[LoggerFactoryParameterName].GetMethod!);
-				ilGenerator.Emit(OpCodes.Callvirt, CreateLoggerMethodInfo.MakeGenericMethod(GetLoggerCategory(methodParameter.ParameterType!)!));
+				ilGenerator.Emit(OpCodes.Call, CreateLoggerMethodInfo.MakeGenericMethod(GetLoggerCategory(methodParameter.ParameterType!)!));
 			}
 		}
 
