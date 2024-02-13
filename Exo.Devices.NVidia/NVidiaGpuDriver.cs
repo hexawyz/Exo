@@ -177,7 +177,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 						i,
 						zoneId,
 						zoneControl.ControlMode == NvApi.Gpu.Client.IlluminationControlMode.Manual ?
-							new RgbColor(zoneControl.Data.Rgbw.Manual.R, zoneControl.Data.Rgbw.Manual.G, zoneControl.Data.Rgbw.Manual.B) :
+							new RgbwColor(zoneControl.Data.Rgbw.Manual.R, zoneControl.Data.Rgbw.Manual.G, zoneControl.Data.Rgbw.Manual.B, zoneControl.Data.Rgbw.Manual.W) :
 							default
 					)
 				);
@@ -221,10 +221,18 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		);
 	}
 
+	// GPUs that support "piecewise" effects could support more effects, but I don't have this on hand, so for now it is only disabled or static.
+	private enum LightingEffect : byte
+	{
+		Disabled = 0,
+		Static = 1,
+	}
+
 	private abstract class LightingZone : ILightingZone
 	{
 		protected object Lock { get; }
 		private readonly int _index;
+		protected LightingEffect Effect;
 
 		public Guid ZoneId { get; }
 
@@ -248,28 +256,30 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 	private class RgbLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticColorEffect>
 	{
 		private RgbColor _color;
-		private bool _isDisabled;
 
 		public RgbLightingZone(object @lock, int index, Guid zoneId, RgbColor initialColor) : base(@lock, index, zoneId)
 		{
-			if (initialColor == default)
-			{
-				_isDisabled = true;
-			}
-			else
+			if (initialColor != default)
 			{
 				_color = initialColor;
+				Effect = LightingEffect.Static;
 			}
 		}
 
-		protected override ILightingEffect GetCurrentEffect() => _isDisabled ? DisabledEffect.SharedInstance : new StaticColorEffect(_color);
+		protected override ILightingEffect GetCurrentEffect()
+			=> Effect switch
+			{
+				LightingEffect.Disabled => DisabledEffect.SharedInstance,
+				LightingEffect.Static => new StaticColorEffect(_color),
+				_ => DisabledEffect.SharedInstance,
+			};
 
 		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
 		{
 			lock (Lock)
 			{
 				_color = effect.Color;
-				_isDisabled = false;
+				Effect = LightingEffect.Static;
 			}
 		}
 
@@ -277,7 +287,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		{
 			lock (Lock)
 			{
-				if (_isDisabled)
+				if (Effect == LightingEffect.Disabled)
 				{
 					effect = default;
 					return false;
@@ -293,7 +303,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 			lock (Lock)
 			{
 				_color = default;
-				_isDisabled = true;
+				Effect = LightingEffect.Disabled;
 			}
 		}
 
@@ -301,13 +311,13 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		{
 			lock (Lock)
 			{
-				if (_isDisabled)
+				effect = default;
+
+				if (Effect == LightingEffect.Disabled)
 				{
-					effect = default;
 					return true;
 				}
 
-				effect = default;
 				return false;
 			}
 		}
@@ -315,60 +325,38 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
 		{
 			control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-			control.Data.Rgb.Manual = new() { R = _color.R, G = _color.G, B = _color.B };
+			control.Data.Rgb.Manual = new() { R = _color.R, G = _color.G, B = _color.B, BrightnessPercentage = _color == default ? (byte)0 : (byte)100 };
 		}
 	}
 
 	// TODO: Implement a proper conversion from RGB to RGBW.
 	private class RgbwLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticColorEffect>
 	{
-		private RgbColor _color;
-		private bool _isDisabled;
+		private RgbwColor _color;
 
-		public RgbwLightingZone(object @lock, int index, Guid zoneId, RgbColor initialColor) : base(@lock, index, zoneId)
+		public RgbwLightingZone(object @lock, int index, Guid zoneId, RgbwColor color) : base(@lock, index, zoneId)
 		{
-			if (initialColor == default)
+			if (color != default)
 			{
-				_isDisabled = true;
-			}
-			else
-			{
-				_color = initialColor;
+				_color = color;
+				Effect = LightingEffect.Static;
 			}
 		}
 
-		protected override ILightingEffect GetCurrentEffect() => _isDisabled ? DisabledEffect.SharedInstance : new StaticColorEffect(_color);
-
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
-		{
-			lock (Lock)
+		protected override ILightingEffect GetCurrentEffect()
+			=> Effect switch
 			{
-				_color = effect.Color;
-				_isDisabled = false;
-			}
-		}
-
-		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect)
-		{
-			lock (Lock)
-			{
-				if (_isDisabled)
-				{
-					effect = default;
-					return false;
-				}
-
-				effect = new(_color);
-				return true;
-			}
-		}
+				LightingEffect.Disabled => DisabledEffect.SharedInstance,
+				LightingEffect.Static => new StaticColorEffect(_color.ToRgb()),
+				_ => DisabledEffect.SharedInstance,
+			};
 
 		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
 		{
 			lock (Lock)
 			{
 				_color = default;
-				_isDisabled = true;
+				Effect = LightingEffect.Disabled;
 			}
 		}
 
@@ -376,52 +364,109 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		{
 			lock (Lock)
 			{
-				if (_isDisabled)
+				effect = default;
+
+				if (Effect == LightingEffect.Disabled)
 				{
-					effect = default;
 					return true;
 				}
 
-				effect = default;
 				return false;
+			}
+		}
+
+		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
+		{
+			lock (Lock)
+			{
+				_color = RgbwColor.FromRgb(effect.Color);
+				Effect = LightingEffect.Static;
+			}
+		}
+
+		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect)
+		{
+			lock (Lock)
+			{
+				if (Effect == LightingEffect.Disabled)
+				{
+					effect = default;
+					return false;
+				}
+
+				effect = new(_color.ToRgb());
+				return true;
 			}
 		}
 
 		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
 		{
-			control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-			byte brightness = _color == default ? (byte)0 : (byte)100;
-			// This implements a very approximative RGB to RGBW conversion, but it's better than nothing.
-			byte w = Math.Min(Math.Min(_color.R, _color.G), _color.B);
-			control.Data.Rgbw.Manual = new() { R = (byte)(_color.R - w), G = (byte)(_color.G - w), B = (byte)(_color.B - w), W = w, BrightnessPercentage = brightness };
+			switch (Effect)
+			{
+			case LightingEffect.Disabled:
+				control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
+				control.Data.Rgbw.Manual = default;
+				break;
+			case LightingEffect.Static:
+				byte brightness = _color == default ? (byte)0 : (byte)100;
+				control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
+				control.Data.Rgbw.Manual = new() { R = _color.R, G = _color.G, B = _color.B, W = _color.W, BrightnessPercentage = brightness };
+				break;
+			}
 		}
 	}
 
 	private class FixedColorLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticBrightnessEffect>
 	{
 		private byte _brightness;
-		private bool _isDisabled;
 
 		public FixedColorLightingZone(object @lock, int index, Guid zoneId, byte initialBrightness) : base(@lock, index, zoneId)
 		{
-			if (initialBrightness == 0)
-			{
-				_isDisabled = true;
-			}
-			else
+			if (initialBrightness != 0)
 			{
 				_brightness = Math.Max(initialBrightness, (byte)100);
+				Effect = LightingEffect.Static;
 			}
 		}
 
-		protected override ILightingEffect GetCurrentEffect() => _isDisabled ? DisabledEffect.SharedInstance : new StaticBrightnessEffect(_brightness);
+		protected override ILightingEffect GetCurrentEffect()
+			=> Effect switch
+			{
+				LightingEffect.Disabled => DisabledEffect.SharedInstance,
+				LightingEffect.Static => new StaticBrightnessEffect(_brightness),
+				_ => DisabledEffect.SharedInstance,
+			};
+
+		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
+		{
+			lock (Lock)
+			{
+				_brightness = default;
+				Effect = LightingEffect.Disabled;
+			}
+		}
+
+		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
+		{
+			lock (Lock)
+			{
+				effect = default;
+
+				if (Effect == LightingEffect.Disabled)
+				{
+					return true;
+				}
+
+				return false;
+			}
+		}
 
 		void ILightingZoneEffect<StaticBrightnessEffect>.ApplyEffect(in StaticBrightnessEffect effect)
 		{
 			lock (Lock)
 			{
 				_brightness = effect.BrightnessLevel;
-				_isDisabled = false;
+				Effect = LightingEffect.Static;
 			}
 		}
 
@@ -429,7 +474,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		{
 			lock (Lock)
 			{
-				if (_isDisabled)
+				if (Effect == LightingEffect.Disabled)
 				{
 					effect = default;
 					return false;
@@ -437,30 +482,6 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 
 				effect = new(_brightness);
 				return true;
-			}
-		}
-
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				_brightness = default;
-				_isDisabled = true;
-			}
-		}
-
-		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				if (_isDisabled)
-				{
-					effect = default;
-					return true;
-				}
-
-				effect = default;
-				return false;
 			}
 		}
 
@@ -474,52 +495,30 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 	private class SingleColorLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticBrightnessEffect>
 	{
 		private byte _brightness;
-		private bool _isDisabled;
 
 		public SingleColorLightingZone(object @lock, int index, Guid zoneId, byte initialBrightness) : base(@lock, index, zoneId)
 		{
-			if (initialBrightness == 0)
-			{
-				_isDisabled = true;
-			}
-			else
+			if (initialBrightness != 0)
 			{
 				_brightness = Math.Max(initialBrightness, (byte)100);
+				Effect = LightingEffect.Static;
 			}
 		}
 
-		protected override ILightingEffect GetCurrentEffect() => _isDisabled ? DisabledEffect.SharedInstance : new StaticBrightnessEffect(_brightness);
-
-		void ILightingZoneEffect<StaticBrightnessEffect>.ApplyEffect(in StaticBrightnessEffect effect)
-		{
-			lock (Lock)
+		protected override ILightingEffect GetCurrentEffect()
+			=> Effect switch
 			{
-				_brightness = effect.BrightnessLevel;
-				_isDisabled = false;
-			}
-		}
-
-		bool ILightingZoneEffect<StaticBrightnessEffect>.TryGetCurrentEffect(out StaticBrightnessEffect effect)
-		{
-			lock (Lock)
-			{
-				if (_isDisabled)
-				{
-					effect = default;
-					return false;
-				}
-
-				effect = new(_brightness);
-				return true;
-			}
-		}
+				LightingEffect.Disabled => DisabledEffect.SharedInstance,
+				LightingEffect.Static => new StaticBrightnessEffect(_brightness),
+				_ => DisabledEffect.SharedInstance,
+			};
 
 		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
 		{
 			lock (Lock)
 			{
 				_brightness = default;
-				_isDisabled = true;
+				Effect = LightingEffect.Disabled;
 			}
 		}
 
@@ -527,14 +526,38 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		{
 			lock (Lock)
 			{
-				if (_isDisabled)
+				effect = default;
+
+				if (Effect == LightingEffect.Disabled)
 				{
-					effect = default;
 					return true;
 				}
 
-				effect = default;
 				return false;
+			}
+		}
+
+		void ILightingZoneEffect<StaticBrightnessEffect>.ApplyEffect(in StaticBrightnessEffect effect)
+		{
+			lock (Lock)
+			{
+				_brightness = effect.BrightnessLevel;
+				Effect = LightingEffect.Static;
+			}
+		}
+
+		bool ILightingZoneEffect<StaticBrightnessEffect>.TryGetCurrentEffect(out StaticBrightnessEffect effect)
+		{
+			lock (Lock)
+			{
+				if (Effect == LightingEffect.Disabled)
+				{
+					effect = default;
+					return false;
+				}
+
+				effect = new(_brightness);
+				return true;
 			}
 		}
 

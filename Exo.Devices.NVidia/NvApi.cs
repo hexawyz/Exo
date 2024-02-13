@@ -394,7 +394,7 @@ internal unsafe sealed class NvApi
 			{
 				public T ColorA;
 				public T ColorB;
-				public IlluminationZoneControlDataPiecewiseLinear PiecewiseLinearData;
+				public IlluminationZoneControlDataPiecewiseLinear Linear;
 			}
 
 			[StructLayout(LayoutKind.Explicit, Size = 128)]
