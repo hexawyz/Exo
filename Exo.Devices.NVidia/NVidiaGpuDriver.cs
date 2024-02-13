@@ -390,7 +390,10 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
 		{
 			control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-			control.Data.Rgbw.Manual = new() { R = _color.R, G = _color.G, B = _color.B, W = 0, BrightnessPercentage = 100 };
+			byte brightness = _color == default ? (byte)0 : (byte)100;
+			// This implements a very approximative RGB to RGBW conversion, but it's better than nothing.
+			byte w = Math.Min(Math.Min(_color.R, _color.G), _color.B);
+			control.Data.Rgbw.Manual = new() { R = (byte)(_color.R - w), G = (byte)(_color.G - w), B = (byte)(_color.B - w), W = w, BrightnessPercentage = brightness };
 		}
 	}
 
