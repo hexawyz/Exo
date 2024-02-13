@@ -43,8 +43,6 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature
 		{
 			if (gpu.GetBusId() != busNumber || gpu.GetBusSlotId() != pciAddress >> 16) continue;
 
-			var devices = gpu.GetIlluminationDevices();
-
 			foundGpu = gpu;
 		}
 
@@ -54,6 +52,11 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature
 		}
 
 		string friendlyName = foundGpu.GetFullName();
+
+		var devices = foundGpu.GetIlluminationDevices();
+		var deviceControls = foundGpu.GetIlluminationDeviceControls();
+		var zones = foundGpu.GetIlluminationZones();
+		var zoneControls = foundGpu.GetIlluminationZoneControls();
 
 		return new(new DriverCreationResult<SystemDevicePath>(keys, new NVidiaGpuDriver(deviceId, friendlyName, new("nv", topLevelDevice.Id, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", null))));
 	}

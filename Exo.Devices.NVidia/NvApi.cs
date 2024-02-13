@@ -38,15 +38,15 @@ internal unsafe sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, ShortString*, uint> GetFullName = (delegate* unmanaged[Cdecl]<nint, ShortString*, uint>)QueryInterface(0xceee8e9f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x1be0b8e5);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusSlotId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x2a0a350f);
-			public static readonly delegate* unmanaged[Cdecl]<IlluminationQuery*, uint> QueryIlluminationSupport = (delegate* unmanaged[Cdecl]<IlluminationQuery*, uint>)QueryInterface(0xa629da31);
-			public static readonly delegate* unmanaged[Cdecl]<IlluminationQuery*, uint> GetIllumination = (delegate* unmanaged[Cdecl]<IlluminationQuery*, uint>)QueryInterface(0x9a1b9365);
-			public static readonly delegate* unmanaged[Cdecl]<IlluminationQuery*, uint> SetIllumination = (delegate* unmanaged[Cdecl]<IlluminationQuery*, uint>)QueryInterface(0x0254a187);
-			public static readonly delegate* unmanaged[Cdecl]<nint, GpuClientIlluminationDeviceInfoQuery*, uint> ClientIllumDevicesGetInfo = (delegate* unmanaged[Cdecl]<nint, GpuClientIlluminationDeviceInfoQuery*, uint>)QueryInterface(0xd4100e58);
-			public static readonly delegate* unmanaged[Cdecl]<nint, uint> ClientIllumDevicesGetControl = (delegate* unmanaged[Cdecl]<nint, uint>)QueryInterface(0x73c01d58);
-			public static readonly delegate* unmanaged[Cdecl]<nint, uint> ClientIllumDevicesSetControl = (delegate* unmanaged[Cdecl]<nint, uint>)QueryInterface(0x57024c62);
-			public static readonly delegate* unmanaged[Cdecl]<nint, uint> ClientIllumZonesGetInfo = (delegate* unmanaged[Cdecl]<nint, uint>)QueryInterface(0x4b81241b);
-			public static readonly delegate* unmanaged[Cdecl]<nint, uint> ClientIllumZonesGetControl = (delegate* unmanaged[Cdecl]<nint, uint>)QueryInterface(0x3dbf5764);
-			public static readonly delegate* unmanaged[Cdecl]<nint, uint> ClientIllumZonesSetControl = (delegate* unmanaged[Cdecl]<nint, uint>)QueryInterface(0x197d065e);
+			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> QueryIlluminationSupport = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0xa629da31);
+			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> GetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x9a1b9365);
+			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> SetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x0254a187);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationDeviceInfoQuery*, uint> ClientIllumDevicesGetInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationDeviceInfoQuery*, uint>)QueryInterface(0xd4100e58);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationDeviceControlQuery*, uint> ClientIllumDevicesGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationDeviceControlQuery*, uint>)QueryInterface(0x73c01d58);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationDeviceControlQuery*, uint> ClientIllumDevicesSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationDeviceControlQuery*, uint>)QueryInterface(0x57024c62);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneInfoQuery*, uint> ClientIllumZonesGetInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneInfoQuery*, uint>)QueryInterface(0x4b81241b);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x3dbf5764);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x197d065e);
 		}
 	}
 
@@ -80,93 +80,386 @@ internal unsafe sealed class NvApi
 		where T : unmanaged
 		=> (uint)(sizeof(T) | version << 16);
 
-	public enum GpuIlluminationZone : int
-	{
-		Logo,
-		Sli,
-	}
-
-	private enum GpuIlluminationAttribute : int
-	{
-		LogoBrightness,
-		SliBrightness,
-	}
-
 	[InlineArray(64)]
 	private struct ByteArray64
 	{
 		private byte _element0;
 	}
 
-	// This fuses the Query, Get and Set structures, as they currently use the same API.
-	// Query returns a boolean, and Get/Set expose the brightness.
-	private struct IlluminationQuery
+	public static class Gpu
 	{
-		public uint Version;
-		public nint PhysicalGpuHandle;
-		public GpuIlluminationAttribute Attribute;
-		public uint Value;
-	}
+		public enum IlluminationZone : int
+		{
+			Logo,
+			Sli,
+		}
 
-	public enum GpuClientIlluminationDeviceType : int
-	{
-		Invalid = 0,
-		McuV10 = 1,
-		GpioPwmRgbw = 2,
-		GpioPwmSingleColor = 3,
-	}
+		internal enum IlluminationAttribute : int
+		{
+			LogoBrightness,
+			SliBrightness,
+		}
 
-	public struct GpuClientIlluminationDeviceInfoDataMcuV10
-	{
-		public byte I2CDeviceIndex;
-	}
+		// This fuses the Query, Get and Set structures, as they currently use the same API.
+		// Query returns a boolean, and Get/Set expose the brightness.
+		internal struct IlluminationQuery
+		{
+			public uint Version;
+			public nint PhysicalGpuHandle;
+			public IlluminationAttribute Attribute;
+			public uint Value;
+		}
 
-	public struct GpuClientIlluminationDeviceInfoDataGpioPwmRgbw
-	{
-		public byte GpioPinRed;
-		public byte GpioPinGreen;
-		public byte GpioPinBlue;
-		public byte GpioPinWhite;
-	}
+		public static class Client
+		{
+			public enum IlluminationDeviceType : int
+			{
+				Invalid = 0,
+				McuV10 = 1,
+				GpioPwmRgbw = 2,
+				GpioPwmSingleColor = 3,
+			}
 
-	public struct GpuClientIlluminationDeviceInfoDataGpioPwmSingleColor
-	{
-		public byte GpioPinSingleColor;
-	}
+			public struct IlluminationDeviceInfoDataMcuV10
+			{
+				public byte I2CDeviceIndex;
+			}
 
-	[StructLayout(LayoutKind.Explicit)]
-	public struct GpuClientIlluminationDeviceInfoData
-	{
-		[FieldOffset(0)]
-		public GpuClientIlluminationDeviceInfoDataMcuV10 McuV10;
-		[FieldOffset(0)]
-		public GpuClientIlluminationDeviceInfoDataGpioPwmRgbw GpioPwmRgbwv10;
-		[FieldOffset(0)]
-		public GpuClientIlluminationDeviceInfoDataGpioPwmSingleColor GpioPwmSingleColorv10;
-		[FieldOffset(0)]
-		private ByteArray64 _reserved;
-	}
+			public struct IlluminationDeviceInfoDataGpioPwmRgbw
+			{
+				public byte GpioPinRed;
+				public byte GpioPinGreen;
+				public byte GpioPinBlue;
+				public byte GpioPinWhite;
+			}
 
-	public struct GpuClientIlluminationDeviceInfo
-	{
-		public GpuClientIlluminationDeviceType DeviceType;
-		public uint SupportedControlModes;
-		public GpuClientIlluminationDeviceInfoData Data;
-		private ByteArray64 _reserved;
-	}
+			public struct IlluminationDeviceInfoDataGpioPwmSingleColor
+			{
+				public byte GpioPinSingleColor;
+			}
 
-	[InlineArray(32)]
-	private struct GpuClientIlluminationDeviceInfoArray
-	{
-		private GpuClientIlluminationDeviceInfo _element0;
-	}
+			[StructLayout(LayoutKind.Explicit)]
+			public struct IlluminationDeviceInfoData
+			{
+				[FieldOffset(0)]
+				public IlluminationDeviceInfoDataMcuV10 McuV10;
+				[FieldOffset(0)]
+				public IlluminationDeviceInfoDataGpioPwmRgbw GpioPwmRgbwv10;
+				[FieldOffset(0)]
+				public IlluminationDeviceInfoDataGpioPwmSingleColor GpioPwmSingleColorv10;
+				[FieldOffset(0)]
+				private ByteArray64 _reserved;
+			}
 
-	private struct GpuClientIlluminationDeviceInfoQuery
-	{
-		public uint Version;
-		public int DeviceCount;
-		private readonly ByteArray64 _reserved;
-		public GpuClientIlluminationDeviceInfoArray Devices;
+			public struct IlluminationDeviceInfo
+			{
+				public IlluminationDeviceType DeviceType;
+				public uint SupportedControlModes;
+				public IlluminationDeviceInfoData Data;
+				private ByteArray64 _reserved;
+			}
+
+			[InlineArray(32)]
+			internal struct IlluminationDeviceInfoArray
+			{
+				private IlluminationDeviceInfo _element0;
+			}
+
+			internal struct IlluminationDeviceInfoQuery
+			{
+				public uint Version;
+				public int DeviceCount;
+				private readonly ByteArray64 _reserved;
+				public IlluminationDeviceInfoArray Devices;
+			}
+
+			public struct IlluminationDeviceSync
+			{
+				public byte NeedsSynchronization;
+				public ulong TimeStampInMilliseconds;
+				private readonly ByteArray64 _reserved;
+			}
+
+			public struct IlluminationDeviceControl
+			{
+				public IlluminationDeviceType Type;
+				public IlluminationDeviceSync SynchronizationData;
+				private readonly ByteArray64 _reserved;
+			}
+
+			[InlineArray(32)]
+			public struct IlluminationDeviceControlArray
+			{
+				private IlluminationDeviceControl _element0;
+			}
+
+			internal struct IlluminationDeviceControlQuery
+			{
+				public uint Version;
+				public int DeviceCount;
+				private readonly ByteArray64 _reserved;
+				public IlluminationDeviceControlArray Devices;
+			}
+
+			public enum IlluminationZoneLocationFace : sbyte
+			{
+				Invalid = -1,
+				Top = 0,
+				Front = 2,
+				Back = 3,
+			}
+
+			public enum IlluminationZoneLocationComponent : byte
+			{
+				Gpu = 0,
+				Sli = 1,
+			}
+
+			public enum IlluminationZoneType : int
+			{
+				Invalid = 0,
+				Rgb = 1,
+				ColorFixed = 2,
+				Rgbw = 3,
+				SingleColor = 4,
+			}
+
+			public enum IlluminationControlMode : int
+			{
+				Manual = 0,
+				PieceWiseLinear = 1,
+
+				Invalid = 255,
+			}
+
+			public enum IlluminationPiecewiseLinearCycleType : int
+			{
+				HalfHalt = 0,
+				FullHalt = 1,
+				FullRepeat = 2,
+
+				Invalid = 255,
+			}
+
+			public readonly struct IlluminationZoneLocation
+			{
+				private readonly uint _value;
+
+				public int Index => (int)(_value & 0x03);
+				public IlluminationZoneLocationFace Face => (IlluminationZoneLocationFace)((_value >>> 2) & 0x7);
+				public IlluminationZoneLocationComponent Component => (IlluminationZoneLocationComponent)((_value >>> 6) & 0x3);
+
+
+				private readonly ByteArray64 _reserved;
+			}
+
+			public struct IlluminationZoneInfoDataRgb
+			{
+				private byte _reserved;
+			}
+
+			public struct IlluminationZoneInfoDataRgbw
+			{
+				private byte _reserved;
+			}
+
+			public struct IlluminationZoneInfoDataSingleColor
+			{
+				private byte _reserved;
+			}
+
+			[StructLayout(LayoutKind.Explicit)]
+			public struct IlluminationZoneInfoData
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneInfoDataRgb Rgb;
+				[FieldOffset(0)]
+				public IlluminationZoneInfoDataRgbw Rgbw;
+				[FieldOffset(0)]
+				public IlluminationZoneInfoDataSingleColor SingleColor;
+				[FieldOffset(0)]
+				private readonly ByteArray64 _reserved;
+			}
+
+			// The fixed alignment seems to be correct, but it differs from the auto alignment that would be generated by .NET
+			[StructLayout(LayoutKind.Explicit)]
+			public struct IlluminationZoneInfo
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneType Type;
+				[FieldOffset(4)]
+				public byte DeviceIndex;
+				[FieldOffset(5)]
+				public byte ProviderIndex;
+				[FieldOffset(8)]
+				public IlluminationZoneLocation Location;
+				[FieldOffset(12)]
+				public IlluminationZoneInfoData Data;
+				[FieldOffset(76)]
+				private readonly ByteArray64 _reserved;
+			}
+
+			[InlineArray(32)]
+			public struct IlluminationZoneInfoArray
+			{
+				private IlluminationZoneInfo _element0;
+			}
+
+			internal struct IlluminationZoneInfoQuery
+			{
+				public uint Version;
+				public int ZoneCount;
+				private readonly ByteArray64 _reserved;
+				public IlluminationZoneInfoArray Zones;
+			}
+
+			public struct IlluminationZoneControlDataPiecewiseLinear
+			{
+				public IlluminationPiecewiseLinearCycleType CycleType;
+				public byte GroupCount;
+				public ushort RiseTimeInMilliseconds;
+				public ushort FallTimeInMilliseconds;
+				public ushort ColorATimeInMilliseconds;
+				public ushort ColorBTimeInMilliseconds;
+				public ushort GroupIdleTimeInMilliseconds;
+				public ushort PhaseOffsetInMilliseconds;
+			}
+
+			[StructLayout(LayoutKind.Sequential, Pack = 1)]
+			public struct IlluminationZoneControlDataManualRgb
+			{
+				public byte R;
+				public byte G;
+				public byte B;
+				public byte BrightnessPercentage;
+			}
+
+			[StructLayout(LayoutKind.Sequential, Pack = 1)]
+			public struct IlluminationZoneControlDataManualRgbw
+			{
+				public byte R;
+				public byte G;
+				public byte B;
+				public byte W;
+				public byte BrightnessPercentage;
+			}
+
+			[StructLayout(LayoutKind.Sequential, Pack = 1)]
+			public struct IlluminationZoneControlDataManualColorFixed
+			{
+				public byte BrightnessPercentage;
+			}
+
+			[StructLayout(LayoutKind.Sequential, Pack = 1)]
+			public struct IlluminationZoneControlDataManualSingleColor
+			{
+				public byte BrightnessPercentage;
+			}
+
+			public struct IlluminationZoneControlDataPiecewise<T>
+				where T : unmanaged
+			{
+				public T ColorA;
+				public T ColorB;
+				public IlluminationZoneControlDataPiecewiseLinear PiecewiseLinearData;
+			}
+
+			[StructLayout(LayoutKind.Explicit, Size = 128)]
+			public struct IlluminationZoneControlDataRgb
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataManualRgb Manual;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataPiecewise<IlluminationZoneControlDataManualRgb> Piecewise;
+				[FieldOffset(0)]
+				private readonly ByteArray64 _reserved0;
+				[FieldOffset(64)]
+				private readonly ByteArray64 _reserved1;
+			}
+
+			[StructLayout(LayoutKind.Explicit, Size = 128)]
+			public struct IlluminationZoneControlDataColorFixed
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataManualColorFixed Manual;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataPiecewise<IlluminationZoneControlDataManualColorFixed> Piecewise;
+				[FieldOffset(0)]
+				private readonly ByteArray64 _reserved0;
+				[FieldOffset(64)]
+				private readonly ByteArray64 _reserved1;
+			}
+
+			[StructLayout(LayoutKind.Explicit, Size = 128)]
+			public struct IlluminationZoneControlDataRgbw
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataManualRgbw Manual;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataPiecewise<IlluminationZoneControlDataManualRgbw> Piecewise;
+				[FieldOffset(0)]
+				private readonly ByteArray64 _reserved0;
+				[FieldOffset(64)]
+				private readonly ByteArray64 _reserved1;
+			}
+
+			[StructLayout(LayoutKind.Explicit, Size = 128)]
+			public struct IlluminationZoneControlDataSingleColor
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataManualSingleColor Manual;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataPiecewise<IlluminationZoneControlDataManualSingleColor> Piecewise;
+				[FieldOffset(0)]
+				private readonly ByteArray64 _reserved0;
+				[FieldOffset(64)]
+				private readonly ByteArray64 _reserved1;
+			}
+
+			[StructLayout(LayoutKind.Explicit, Size = 128)]
+			public struct IlluminationZoneControlData
+			{
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataRgb Rgb;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataColorFixed ColorFixed;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataRgbw Rgbw;
+				[FieldOffset(0)]
+				public IlluminationZoneControlDataSingleColor SingleColor;
+				[FieldOffset(0)]
+				private readonly ByteArray64 _reserved;
+			}
+
+			public struct IlluminationZoneControl
+			{
+				public IlluminationZoneType Type;
+				public IlluminationControlMode ControlMode;
+				public IlluminationZoneControlData Data;
+				private readonly ByteArray64 _reserved;
+			}
+
+			[InlineArray(32)]
+			public struct IlluminationZoneControlArray
+			{
+				private IlluminationZoneControl _element0;
+			}
+
+			internal struct IlluminationZoneControlQuery
+			{
+				public uint Version;
+				private uint _flags;
+				public int ZoneCount;
+				private readonly ByteArray64 _reserved;
+				public IlluminationZoneControlArray Zones;
+
+				public bool DefaultValues
+				{
+					get => (_flags & 0x1) != 0;
+					set => _flags = value ? _flags | 1 : _flags & ~1U;
+				}
+			}
+		}
 	}
 
 	[DllImport("nvapi64", EntryPoint = "nvapi_QueryInterface", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
@@ -228,18 +521,48 @@ internal unsafe sealed class NvApi
 			return busSlotId;
 		}
 
-		public bool SupportsIllumination(GpuIlluminationZone zone)
+		public bool SupportsIllumination(Gpu.IlluminationZone zone)
 		{
-			var query = new IlluminationQuery { Version = StructVersion<IlluminationQuery>(1), PhysicalGpuHandle = _handle, Attribute = (GpuIlluminationAttribute)zone };
+			var query = new Gpu.IlluminationQuery { Version = StructVersion<Gpu.IlluminationQuery>(1), PhysicalGpuHandle = _handle, Attribute = (Gpu.IlluminationAttribute)zone };
 			ValidateResult(Functions.Gpu.QueryIlluminationSupport(&query));
 			return query.Value != 0;
 		}
 
-		public GpuClientIlluminationDeviceInfo[] GetIlluminationDevices()
+		public Gpu.Client.IlluminationDeviceInfo[] GetIlluminationDevices()
 		{
-			var query = new GpuClientIlluminationDeviceInfoQuery { Version = StructVersion<GpuClientIlluminationDeviceInfoQuery>(1) };
+			var query = new Gpu.Client.IlluminationDeviceInfoQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceInfoQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumDevicesGetInfo(_handle , & query));
-			return ((Span<GpuClientIlluminationDeviceInfo>)query.Devices)[..query.DeviceCount].ToArray();
+			return ((Span<Gpu.Client.IlluminationDeviceInfo>)query.Devices)[..query.DeviceCount].ToArray();
+		}
+
+		public Gpu.Client.IlluminationDeviceControl[] GetIlluminationDeviceControls()
+		{
+			var query = new Gpu.Client.IlluminationDeviceControlQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceControlQuery>(1) };
+			ValidateResult(Functions.Gpu.ClientIllumDevicesGetControl(_handle, &query));
+			return ((Span<Gpu.Client.IlluminationDeviceControl>)query.Devices)[..query.DeviceCount].ToArray();
+		}
+
+		public void SetIlluminationDeviceControls(Gpu.Client.IlluminationDeviceControl[] controls)
+		{
+			ArgumentNullException.ThrowIfNull(controls);
+			if (controls.Length > 32) throw new ArgumentException();
+			var query = new Gpu.Client.IlluminationDeviceControlQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceControlQuery>(1), DeviceCount = controls.Length };
+			controls.AsSpan().CopyTo(query.Devices);
+			ValidateResult(Functions.Gpu.ClientIllumDevicesSetControl(_handle, &query));
+		}
+
+		public Gpu.Client.IlluminationZoneInfo[] GetIlluminationZones()
+		{
+			var query = new Gpu.Client.IlluminationZoneInfoQuery { Version = StructVersion<Gpu.Client.IlluminationZoneInfoQuery>(1) };
+			ValidateResult(Functions.Gpu.ClientIllumZonesGetInfo(_handle, &query));
+			return ((Span<Gpu.Client.IlluminationZoneInfo>)query.Zones)[..query.ZoneCount].ToArray();
+		}
+
+		public Gpu.Client.IlluminationZoneControl[] GetIlluminationZoneControls()
+		{
+			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1) };
+			ValidateResult(Functions.Gpu.ClientIllumZonesGetControl(_handle, &query));
+			return ((Span<Gpu.Client.IlluminationZoneControl>)query.Zones)[..query.ZoneCount].ToArray();
 		}
 	}
 }
