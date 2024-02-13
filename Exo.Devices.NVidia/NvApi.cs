@@ -35,6 +35,7 @@ internal unsafe sealed class NvApi
 
 		public static class Gpu
 		{
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.BoardInfo*, uint> GetBoardInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.BoardInfo*, uint>)QueryInterface(0x22d54523);
 			public static readonly delegate* unmanaged[Cdecl]<nint, ShortString*, uint> GetFullName = (delegate* unmanaged[Cdecl]<nint, ShortString*, uint>)QueryInterface(0xceee8e9f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x1be0b8e5);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusSlotId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x2a0a350f);
@@ -88,6 +89,39 @@ internal unsafe sealed class NvApi
 
 	public static class Gpu
 	{
+		internal struct BoardNumber
+		{
+			private byte _0;
+			private byte _1;
+			private byte _2;
+			private byte _3;
+			private byte _4;
+			private byte _5;
+			private byte _6;
+			private byte _7;
+			private byte _8;
+			private byte _9;
+			private byte _a;
+			private byte _b;
+			private byte _c;
+			private byte _d;
+			private byte _e;
+			private byte _f;
+
+			public static Span<byte> GetSpan(ref BoardNumber boardNumber)
+				=> MemoryMarshal.CreateSpan(ref boardNumber._0, 16);
+
+			public byte[] ToByteArray() => GetSpan(ref Unsafe.AsRef(in this)).ToArray();
+
+			public override string ToString() => Convert.ToHexString(GetSpan(ref Unsafe.AsRef(in this)));
+		}
+
+		internal struct BoardInfo
+		{
+			public uint Version;
+			public BoardNumber BoardNumber;
+		}
+
 		public enum IlluminationZone : int
 		{
 			Logo,
@@ -245,10 +279,9 @@ internal unsafe sealed class NvApi
 			{
 				private readonly uint _value;
 
-				public int Index => (int)(_value & 0x03);
+				public byte Index => (byte)(_value & 0x03);
 				public IlluminationZoneLocationFace Face => (IlluminationZoneLocationFace)((_value >>> 2) & 0x7);
 				public IlluminationZoneLocationComponent Component => (IlluminationZoneLocationComponent)((_value >>> 6) & 0x3);
-
 
 				private readonly ByteArray64 _reserved;
 			}
@@ -521,6 +554,13 @@ internal unsafe sealed class NvApi
 			return busSlotId;
 		}
 
+		public byte[] GetBoardNumber()
+		{
+			var boardInfo = new Gpu.BoardInfo { Version = StructVersion<Gpu.BoardInfo>(1) };
+			ValidateResult(Functions.Gpu.GetBoardInfo(_handle, &boardInfo));
+			return boardInfo.BoardNumber.ToByteArray();
+		}
+
 		public bool SupportsIllumination(Gpu.IlluminationZone zone)
 		{
 			var query = new Gpu.IlluminationQuery { Version = StructVersion<Gpu.IlluminationQuery>(1), PhysicalGpuHandle = _handle, Attribute = (Gpu.IlluminationAttribute)zone };
@@ -558,11 +598,20 @@ internal unsafe sealed class NvApi
 			return ((Span<Gpu.Client.IlluminationZoneInfo>)query.Zones)[..query.ZoneCount].ToArray();
 		}
 
-		public Gpu.Client.IlluminationZoneControl[] GetIlluminationZoneControls()
+		public Gpu.Client.IlluminationZoneControl[] GetIlluminationZoneControls(bool shouldReturnPersisted)
 		{
-			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1) };
+			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1), DefaultValues = shouldReturnPersisted };
 			ValidateResult(Functions.Gpu.ClientIllumZonesGetControl(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationZoneControl>)query.Zones)[..query.ZoneCount].ToArray();
+		}
+
+		public void SetIlluminationZoneControls(Gpu.Client.IlluminationZoneControl[] controls, bool shouldPersist)
+		{
+			ArgumentNullException.ThrowIfNull(controls);
+			if (controls.Length > 32) throw new ArgumentException();
+			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1), DefaultValues = shouldPersist };
+			controls.AsSpan().CopyTo(query.Zones);
+			ValidateResult(Functions.Gpu.ClientIllumZonesSetControl(_handle, &query));
 		}
 	}
 }
