@@ -56,6 +56,7 @@
 		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">

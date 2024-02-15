@@ -7,11 +7,14 @@ namespace DeviceTools.DisplayDevices;
 
 public sealed class PhysicalMonitor : IDisposable
 {
+	/// <summary>Gets the native handle associated with this monitor.</summary>
 	[EditorBrowsable(EditorBrowsableState.Advanced)]
 	public SafePhysicalMonitorHandle Handle { get; }
+
+	/// <summary>Gets the description associated with this monitor.</summary>
 	public string Description { get; }
 
-	public PhysicalMonitor(SafePhysicalMonitorHandle handle, string description)
+	internal PhysicalMonitor(SafePhysicalMonitorHandle handle, string description)
 	{
 		Handle = handle;
 		Description = description;
@@ -22,7 +25,10 @@ public sealed class PhysicalMonitor : IDisposable
 		Handle.Dispose();
 	}
 
-	public unsafe Memory<byte> GetCapabilitiesUtf8String()
+	/// <summary>Gets the raw Capabilities string for the monitor.</summary>
+	/// <returns>A UTF-8 string describing the monitor capabilities according to MCCI specifications.</returns>
+	/// <exception cref="Win32Exception"></exception>
+	public unsafe ReadOnlyMemory<byte> GetCapabilitiesUtf8String()
 	{
 		// NB: We need to have a retry logic in there because monitors can occasionally fail to correctly answer the DDC/CI commands.
 		// This is likely due to conflicts with other devices on the bus such as shitty HDCP stuff.

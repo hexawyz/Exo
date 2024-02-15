@@ -119,9 +119,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DeviceTools", "DeviceTools"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Exo.Ui", "Exo.Ui", "{D4EDD1F3-3147-40A8-A40D-7CF39E190808}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Discovery.Pci", "Exo.Discovery.Pci\Exo.Discovery.Pci.csproj", "{70CBD07A-0895-47E2-9CB8-6B867A49131F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Discovery.Pci", "Exo.Discovery.Pci\Exo.Discovery.Pci.csproj", "{70CBD07A-0895-47E2-9CB8-6B867A49131F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.NVidia", "Exo.Devices.NVidia\Exo.Devices.NVidia.csproj", "{CFA0E592-F09A-49DE-A576-2A32F477FCE8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.NVidia", "Exo.Devices.NVidia\Exo.Devices.NVidia.csproj", "{CFA0E592-F09A-49DE-A576-2A32F477FCE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Discovery.Monitor", "Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj", "{68E61446-5F65-497F-B24D-9D89188BB21C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -831,6 +833,22 @@ Global
 		{CFA0E592-F09A-49DE-A576-2A32F477FCE8}.Release|x64.Build.0 = Release|Any CPU
 		{CFA0E592-F09A-49DE-A576-2A32F477FCE8}.Release|x86.ActiveCfg = Release|Any CPU
 		{CFA0E592-F09A-49DE-A576-2A32F477FCE8}.Release|x86.Build.0 = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|arm64.Build.0 = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|x64.Build.0 = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Debug|x86.Build.0 = Debug|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|arm64.ActiveCfg = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|arm64.Build.0 = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|x64.ActiveCfg = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|x64.Build.0 = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|x86.ActiveCfg = Release|Any CPU
+		{68E61446-5F65-497F-B24D-9D89188BB21C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -866,6 +884,7 @@ Global
 		{A100971C-FAB2-45CD-B3A9-8350415C052B} = {DC0016F5-89F2-4164-A4DE-E772B6F75357}
 		{70CBD07A-0895-47E2-9CB8-6B867A49131F} = {DC0016F5-89F2-4164-A4DE-E772B6F75357}
 		{CFA0E592-F09A-49DE-A576-2A32F477FCE8} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
+		{68E61446-5F65-497F-B24D-9D89188BB21C} = {DC0016F5-89F2-4164-A4DE-E772B6F75357}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9FEED7F-27EC-4720-9CAB-C2E6FDD8556D}

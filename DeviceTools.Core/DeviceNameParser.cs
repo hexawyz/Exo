@@ -167,8 +167,33 @@ public static class DeviceNameParser
 		return true;
 	}
 
+	public static bool TryParseDisplayDeviceName(string deviceName, out DeviceId value)
+	{
+		if
+		(
+			deviceName.Length < 20 ||
+			!deviceName.StartsWith(@"\\?\DISPLAY#", StringComparison.OrdinalIgnoreCase) ||
+			deviceName[19] != '#' ||
+#if NETSTANDARD2_0
+			!TryParseUInt16(deviceName.AsSpan(15, 4), out ushort productId)
+#else
+			!ushort.TryParse(deviceName.AsSpan(15, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ushort productId)
+#endif
+		)
+		{
+			value = default;
+			return false;
+		}
+
+		value = DeviceId.ForDisplay(deviceName.AsSpan(12, 3), productId);
+		return true;
+	}
+
 	public static bool TryParseDeviceName(string deviceName, out DeviceId value)
-		=> TryParseUsbDeviceName(deviceName, out value) || TryParseBluetoothDeviceName(deviceName, out value) || TryParsePciDeviceName(deviceName, out value);
+		=> TryParseUsbDeviceName(deviceName, out value) ||
+			TryParseBluetoothDeviceName(deviceName, out value) ||
+			TryParsePciDeviceName(deviceName, out value) ||
+			TryParseDisplayDeviceName(deviceName, out value);
 
 	public static DeviceId ParseDeviceName(string deviceName)
 	{

@@ -428,7 +428,7 @@ public readonly struct TargetDeviceNameInfo
 
 public readonly struct MonitorName : IEquatable<MonitorName>
 {
-	public static MonitorName Parse(string text)
+	public static MonitorName Parse(string? text)
 	{
 		if (text is not { Length: 7 } ||
 			!PnpVendorId.TryParse(text.AsSpan(0, 3), out var vendorId) ||
@@ -438,6 +438,20 @@ public readonly struct MonitorName : IEquatable<MonitorName>
 		}
 
 		return new MonitorName(vendorId, productId);
+	}
+
+	public static bool TryParse(string? text, out MonitorName monitorName)
+	{
+		if (text is not { Length: 7 } ||
+			!PnpVendorId.TryParse(text.AsSpan(0, 3), out var vendorId) ||
+			!ushort.TryParse(text.AsSpan(3), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ushort productId))
+		{
+			monitorName = default;
+			return false;
+		}
+
+		monitorName = new MonitorName(vendorId, productId);
+		return true;
 	}
 
 	public MonitorName(PnpVendorId vendorId, ushort productId)

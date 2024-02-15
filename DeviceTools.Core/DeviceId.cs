@@ -29,6 +29,13 @@ public readonly struct DeviceId : IEquatable<DeviceId>
 	/// <param name="vendorId">The PNP vendor ID.</param>
 	/// <param name="productId">The product ID.</param>
 	/// <returns>A device ID.</returns>
+	public static DeviceId ForDisplay(PnpVendorId vendorId, ushort productId)
+		=> new(DeviceIdSource.Display, VendorIdSource.PlugAndPlay, vendorId.Value, productId, 0xFFFF);
+
+	/// <summary>Creates a device ID for a monitor device.</summary>
+	/// <param name="vendorId">The PNP vendor ID.</param>
+	/// <param name="productId">The product ID.</param>
+	/// <returns>A device ID.</returns>
 	public static DeviceId ForDisplay(ReadOnlySpan<char> vendorId, ushort productId)
 		=> new(DeviceIdSource.Display, VendorIdSource.PlugAndPlay, PnpVendorId.Parse(vendorId).Value, productId, 0xFFFF);
 

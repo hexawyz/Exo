@@ -45,7 +45,7 @@ namespace Exo.Cli
 				// It is a reasonable assumption to make since EnumDisplayMonitors is supposed to report monitors in logical, i.e. configuration, order.
 				// See https://stackoverflow.com/questions/27042576/enumdisplaydevices-vs-enumdisplaymonitors answer by Hans Passant.
 
-				// Note that this is not enough, because the two APIs are queried separately, and configuration can change inbetween.
+				// Note that this is not enough, because the two APIs are queried separately, and configuration can change in-between.
 				// As such, we should handle the (hopefully rare) case where both APIs return mismatching results.
 
 				var physicalMonitors = logicalMonitor.GetPhysicalMonitors();

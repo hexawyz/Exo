@@ -29,6 +29,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 		{
 			"Exo.Discovery.Hid",
 			"Exo.Discovery.Pci",
+			"Exo.Discovery.Monitor",
 			"Exo.Discovery.System",
 			"Exo.Devices.Logitech",
 			"Exo.Devices.Gigabyte",

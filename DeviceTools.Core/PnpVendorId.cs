@@ -25,7 +25,7 @@ public readonly struct PnpVendorId :
 
 	public static PnpVendorId FromRaw(ushort value)
 	{
-		if (!IsValueValid(value)) throw new ArgumentOutOfRangeException(nameof(value));
+		if (!IsRawValueValid(value)) throw new ArgumentOutOfRangeException(nameof(value));
 		return new PnpVendorId(value);
 	}
 
@@ -123,12 +123,12 @@ public readonly struct PnpVendorId :
 	private static bool IsLetter(byte b)
 		=> b >= 'A' && b <= 'Z' || b >= 'a' && b <= 'z';
 
-	private static bool IsValueValid(ushort value)
+	public static bool IsRawValueValid(ushort value)
 		=> value <= 0b11010_11010_11010 && (value & 0b11111_11111) <= 0b11010_11010 && (value & 0b11111) <= 11010;
 
 	private PnpVendorId(ushort value) => Value = value;
 
-	public bool IsValid => IsValueValid(Value);
+	public bool IsValid => IsRawValueValid(Value);
 
 	public override bool Equals(object? obj) => obj is PnpVendorId id && Equals(id);
 	public bool Equals(PnpVendorId other) => Value == other.Value;
