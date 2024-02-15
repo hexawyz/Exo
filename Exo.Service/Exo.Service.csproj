@@ -49,6 +49,7 @@
 		<ProjectReference Include="..\Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Monitors\Exo.Devices.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" Private="false" ReferenceOutputAssembly="false" />

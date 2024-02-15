@@ -25,7 +25,7 @@ public class LgMonitorDriver :
 	ISerialNumberDeviceFeature,
 	IRawVcpFeature,
 	IMonitorBrightnessFeature,
-	IContrastFeature,
+	IMonitorContrastFeature,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
 	ILgMonitorScalerVersionFeature,
@@ -47,6 +47,17 @@ public class LgMonitorDriver :
 	private const int LgVendorId = 0x043E;
 
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
+
+
+	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
+	[MonitorName("GSM5BBF")]
+	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	(
+		ImmutableArray<SystemDevicePath> keys
+	)
+	{
+		throw new NotImplementedException("TODO");
+	}
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[ProductId(VendorIdSource.Usb, LgVendorId, 0x9A8A)]
@@ -291,7 +302,7 @@ public class LgMonitorDriver :
 			IMonitorCapabilitiesFeature,
 			IRawVcpFeature,
 			IMonitorBrightnessFeature,
-			IContrastFeature>(this);
+			IMonitorContrastFeature>(this);
 		_lightingFeatures = FeatureCollection.Create<
 			ILightingDeviceFeature,
 			LgMonitorDriver,

@@ -50,7 +50,7 @@ public interface IMonitorBrightnessFeature : IMonitorDeviceFeature
 	ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken);
 }
 
-public interface IContrastFeature : IMonitorDeviceFeature
+public interface IMonitorContrastFeature : IMonitorDeviceFeature
 {
 	ValueTask<ContinuousValue> GetContrastAsync(CancellationToken cancellationToken);
 	ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken);
@@ -62,7 +62,7 @@ public readonly struct InputSourceDescription
 	public string Name { get; }
 }
 
-public interface IInputSelectFeature : IMonitorDeviceFeature
+public interface IMonitorInputSelectFeature : IMonitorDeviceFeature
 {
 	ImmutableArray<InputSourceDescription> InputSources { get; }
 	byte GetCurrentSourceId();

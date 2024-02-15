@@ -35,7 +35,7 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1009,
 		EventName = "MonitorFactoryMissingKeys",
 		Level = LogLevel.Error,
-		Message = "The factory \"{FactoryId}\" did not define any valid keys for HID discovery")]
+		Message = "The factory \"{FactoryId}\" did not define any valid keys for Monitor discovery")]
 	public static partial void MonitorFactoryMissingKeys(this ILogger logger, Guid factoryId);
 
 	[LoggerMessage(EventId = 1010,

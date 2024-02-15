@@ -35,6 +35,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Devices.Gigabyte",
 			"Exo.Devices.Apple.Keyboard",
 			"Exo.Devices.Lg.Monitors",
+			"Exo.Devices.Monitors",
 			"Exo.Devices.Razer",
 			"Exo.Devices.Elgato.StreamDeck",
 			"Exo.Devices.NVidia",

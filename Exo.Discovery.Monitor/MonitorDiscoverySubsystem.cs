@@ -173,7 +173,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 			}
 		}
 
-		bool hasKeys = productKeys.Count == 0 && vendorKeys.Count == 0;
+		bool hasKeys = productKeys.Count != 0 || vendorKeys.Count != 0;
 		if (!(registeredForMonitorDeviceInterfaceClass || hasKeys))
 		{
 			_logger.MonitorFactoryMissingKeys(factoryId);
@@ -274,7 +274,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 			}
 			if (_defaultFactory != default)
 			{
-				factories[count++] = guid;
+				factories[count++] = _defaultFactory;
 			}
 		}
 

@@ -40,7 +40,7 @@ public abstract class LogitechUniversalDriver : Driver,
 		CancellationToken cancellationToken
 	)
 	{
-		// Need to find a way to exclude those better, but it will probably be more gracefully solved with the future device discovery and registration model.
+		// Those virtual devices are excluded. The discovery will gracefully ignore them unless they are handled by another factory method.
 		if (productId == 0xC231) return null;
 		if (productId == 0xC232) return null;
 
