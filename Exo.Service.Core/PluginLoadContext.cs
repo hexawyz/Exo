@@ -12,23 +12,28 @@ namespace Exo.Service;
 public sealed class PluginLoadContext : AssemblyLoadContext
 {
 	private readonly AssemblyDependencyResolver _resolver;
+	private readonly AssemblyName _mainAssemblyName;
 	private readonly IAssemblyLoader _assemblyLoader;
 
-	public PluginLoadContext(IAssemblyLoader assemblyLoader, string pluginPath)
+	public PluginLoadContext(IAssemblyLoader assemblyLoader, AssemblyName mainAssemblyName, string pluginPath)
 		: base(true)
 	{
 		_assemblyLoader = assemblyLoader;
+		_mainAssemblyName = mainAssemblyName;
 		_resolver = new AssemblyDependencyResolver(pluginPath);
 	}
 
 	protected override Assembly? Load(AssemblyName assemblyName)
 	{
+		if (assemblyName.FullName != _mainAssemblyName.FullName && _assemblyLoader.TryLoadAssembly(assemblyName) is { } assembly)
+		{
+			return assembly;
+		}
 		if (_resolver.ResolveAssemblyToPath(assemblyName) is string assemblyPath)
 		{
 			return LoadFromAssemblyPath(assemblyPath);
 		}
-
-		return _assemblyLoader.TryLoadAssembly(assemblyName);
+		return null;
 	}
 
 	protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)

@@ -39,6 +39,9 @@ public readonly struct DisplayConfiguration
 	public static DisplayConfiguration GetForActivePaths()
 		=> GetDisplayConfiguration(NativeMethods.QueryDeviceConfigFlags.OnlyActivePaths | NativeMethods.QueryDeviceConfigFlags.VirtualModeAware);
 
+	public static DisplayConfiguration GetForAllPaths()
+		=> GetDisplayConfiguration(NativeMethods.QueryDeviceConfigFlags.VirtualModeAware);
+
 	private static DisplayConfiguration GetDisplayConfiguration(NativeMethods.QueryDeviceConfigFlags flags)
 	{
 		NativeMethods.DisplayConfigPathInfo[]? paths = null;

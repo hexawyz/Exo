@@ -107,7 +107,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		{
 			if (!entry.WeakReference.TryGetTarget(out assembly))
 			{
-				var context = new PluginLoadContext(this, entry.Path);
+				var context = new PluginLoadContext(this, entry.AssemblyName, entry.Path);
 				assembly = context.LoadFromAssemblyName(entry.AssemblyName);
 				entry.WeakReference.SetTarget(assembly);
 			}

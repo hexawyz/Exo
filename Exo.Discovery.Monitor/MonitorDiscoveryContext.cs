@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
 
@@ -26,11 +27,13 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 		Properties.System.Devices.Driver,
 	];
 
+	private readonly ILogger<MonitorDiscoveryContext> _logger;
 	private readonly MonitorDiscoverySubsystem _discoverySubsystem;
 	public ImmutableArray<SystemDevicePath> DiscoveredKeys { get; }
 
-	internal MonitorDiscoveryContext(MonitorDiscoverySubsystem discoverySubsystem, string deviceName)
+	internal MonitorDiscoveryContext(ILogger<MonitorDiscoveryContext> logger, MonitorDiscoverySubsystem discoverySubsystem, string deviceName)
 	{
+		_logger = logger;
 		_discoverySubsystem = discoverySubsystem;
 		DiscoveredKeys = [deviceName];
 	}
@@ -89,6 +92,11 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 				}
 			}
 		}
+
+		// NB: The code below will not work in a non-interactive process. Which is a huge problem.
+		// It seems quite likely that a user mode application will be needed to control the monitors.
+		// Which is not a huge deal, as we already have the overlay service (not the best name for this, though) that can be used and was mostly designed for this purpose.
+		// It will, however, require some smart plumbing to get things to work smoothly. (We'd rely on the user mode client to send VCP codes *unless* we have access to the GPU in the service)
 
 		string displayAdapterName;
 		string displayMonitorName;

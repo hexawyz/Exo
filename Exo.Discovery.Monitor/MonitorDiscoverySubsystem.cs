@@ -30,6 +30,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 	private readonly Dictionary<VendorKey, Guid> _vendorFactories;
 
 	private readonly ILogger<MonitorDiscoverySubsystem> _logger;
+	private readonly ILogger<MonitorDiscoveryContext> _contextLogger;
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	private readonly IDiscoveryOrchestrator _discoveryOrchestrator;
@@ -50,6 +51,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		_logger = loggerFactory.CreateLogger<MonitorDiscoverySubsystem>();
+		_contextLogger = loggerFactory.CreateLogger<MonitorDiscoveryContext>();
 		_discoveryOrchestrator = discoveryOrchestrator;
 		_deviceNotificationService = deviceNotificationService;
 
@@ -91,7 +93,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Monitor))
 				{
 					_logger.MonitorDeviceArrival(deviceName);
-					_sink?.HandleArrival(new(this, deviceName));
+					_sink?.HandleArrival(new(_contextLogger, this, deviceName));
 				}
 
 				_logger.MonitorDiscoveryStarted();
@@ -235,7 +237,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 		lock (_lock)
 		{
 			_logger.MonitorDeviceArrival(deviceName);
-			_sink?.HandleArrival(new(this, deviceName));
+			_sink?.HandleArrival(new(_contextLogger, this, deviceName));
 		}
 	}
 

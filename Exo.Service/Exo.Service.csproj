@@ -34,7 +34,7 @@
 	<!-- Detect plugin project names. -->
 	<ItemGroup>
 		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Devices.*'))" />
-		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Discovery.*'))" Exclude="Exo.Discovery.Root" />
+		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Discovery.*'))" Exclude="..\Exo.Discovery.Root" />
 		<PluginProject Include="@(PluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
 		<PluginProjectReference Include="@(PluginProject-&gt;'..\%(Identity)\%(Identity).csproj'-&gt;ClearMetadata())" />
 	</ItemGroup>

@@ -48,7 +48,6 @@ public class LgMonitorDriver :
 
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
 
-
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
 	[MonitorName("GSM5BBF")]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
