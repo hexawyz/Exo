@@ -3,19 +3,29 @@ using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MonitorDeviceFeaturesViewModel : BindableObject
+internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 {
 	private readonly DeviceViewModel _device;
+	private readonly IMonitorService _monitorService;
 	private MonitorDeviceSettingViewModel? _brightnessSetting;
 	private MonitorDeviceSettingViewModel? _contrastSetting;
 
-	public MonitorDeviceFeaturesViewModel(DeviceViewModel device)
-	{
-		_device = device;
-	}
+	private bool _isReady;
 
 	public MonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public MonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
+
+	public bool IsReady
+	{
+		get => !_isReady;
+		private set => SetValue(ref _isReady, !value, ChangedProperty.IsNotBusy);
+	}
+
+	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, IMonitorService monitorService)
+	{
+		_device = device;
+		_monitorService = monitorService;
+	}
 
 	public void UpdateSetting(MonitorSettingValue settingValue)
 	{
@@ -42,6 +52,56 @@ internal sealed class MonitorDeviceFeaturesViewModel : BindableObject
 			setting.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
 		}
 	}
+
+	public async Task ApplyChangesAsync(CancellationToken cancellationToken)
+	{
+		IsReady = false;
+		List<Exception>? exceptions = null;
+		try
+		{
+			if (_brightnessSetting is not null)
+			{
+				try
+				{
+					await _monitorService.SetBrightnessAsync(new() { DeviceId = _device.Id, Value = _brightnessSetting.Value }, cancellationToken);
+				}
+				catch (Exception ex)
+				{
+					(exceptions ??= []).Add(ex);
+				}
+			}
+			if (_contrastSetting is not null)
+			{
+				try
+				{
+					await _monitorService.SetContrastAsync(new() { DeviceId = _device.Id, Value = _contrastSetting.Value }, cancellationToken);
+				}
+				catch (Exception ex)
+				{
+					(exceptions ??= []).Add(ex);
+				}
+			}
+
+			if (exceptions is not null)
+			{
+				throw new AggregateException(exceptions);
+			}
+		}
+		finally
+		{
+			IsReady = true;
+		}
+	}
+
+	public void Reset()
+	{
+		if (!IsReady) throw new InvalidOperationException();
+		_brightnessSetting?.Reset();
+		_contrastSetting?.Reset();
+	}
+
+	// TODO
+	public override bool IsChanged => true;
 }
 
 internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
@@ -54,6 +114,13 @@ internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
 	public override bool IsChanged => _value != _initialValue;
 
 	public MonitorSetting Setting { get; }
+
+	public string Label => Setting switch
+	{
+		MonitorSetting.Brightness => "\U0001F506",
+		MonitorSetting.Contrast => "\u25D0",
+		_ => DisplayName
+	};
 
 	public string DisplayName => Setting switch
 	{
@@ -98,13 +165,13 @@ internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
 	public ushort MinimumValue
 	{
 		get => _minimumValue;
-		set => SetValue(ref _minimumValue, value);
+		set => SetValue(ref _minimumValue, value, ChangedProperty.MinimumValue);
 	}
 
 	public ushort MaximumValue
 	{
 		get => _maximumValue;
-		set => SetValue(ref _maximumValue, value);
+		set => SetValue(ref _maximumValue, value, ChangedProperty.MaximumValue);
 	}
 
 	public MonitorDeviceSettingViewModel(MonitorSetting setting, ushort currentValue, ushort minimumValue, ushort maximumValue)

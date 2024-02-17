@@ -8,10 +8,15 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}">
+    d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
+    IsEnabled="{Binding IsReady}">
 
-    <StackPanel Orientation="Vertical">
+    <StackPanel Orientation="Vertical" Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}">
         <local:MonitorSettingControl Setting="{Binding BrightnessSetting}" Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
         <local:MonitorSettingControl Setting="{Binding ContrastSetting}" Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+            <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Click="OnResetButtonClick" />
+            <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />
+        </StackPanel>
     </StackPanel>
 </UserControl>

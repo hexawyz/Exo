@@ -6,7 +6,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 {
 	//private readonly ExtendedDeviceInformation _extendedDeviceInformation;
 
-	public DeviceViewModel(DeviceInformation deviceInformation)
+	public DeviceViewModel(DevicesViewModel devicesViewModel, DeviceInformation deviceInformation)
 		: base(deviceInformation)
 	{
 		//_extendedDeviceInformation = extendedDeviceInformation;
@@ -18,7 +18,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 			}
 			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MonitorDeviceFeature))
 			{
-				MonitorFeatures = new(this);
+				MonitorFeatures = new(this, devicesViewModel.MonitorService);
 			}
 		}
 	}

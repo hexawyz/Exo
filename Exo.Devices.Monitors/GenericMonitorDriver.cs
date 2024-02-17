@@ -119,7 +119,7 @@ public class GenericMonitorDriver
 			_ => FeatureCollection.Empty<IMonitorDeviceFeature>(),
 		};
 
-		Features = FeatureCollection.CreateMerged<IMonitorDeviceFeature>(_monitorFeatures, FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this));
+		Features = FeatureCollection.CreateMerged(_monitorFeatures, FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this));
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

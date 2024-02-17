@@ -16,7 +16,7 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{Binding DisplayName}" />
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{Binding Label}" ToolTipService.ToolTip="{Binding DisplayName}" />
         <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource RowContentMargin}" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <ContentControl.ContentTemplate>
                 <DataTemplate>

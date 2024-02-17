@@ -15,7 +15,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	private readonly IDeviceService _deviceService;
 	private readonly IMouseService _mouseService;
-	private readonly IMonitorService _monitorService;
+	internal IMonitorService MonitorService { get; }
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
@@ -42,7 +42,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		_deviceService = deviceService;
 		_mouseService = mouseService;
-		_monitorService = monitorService;
+		MonitorService = monitorService;
 		_devices = new();
 		_removedDeviceIds = new();
 		_devicesById = new();
@@ -80,7 +80,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 						//	// Disconnection from the service is not yet handled.
 						//	continue;
 						//}
-						var device = new DeviceViewModel(notification.Details);
+						var device = new DeviceViewModel(this, notification.Details);
 						HandleDeviceArrival(device);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
@@ -222,7 +222,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in _monitorService.WatchSettingsAsync(cancellationToken))
+			await foreach (var notification in MonitorService.WatchSettingsAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
 				{
