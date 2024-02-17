@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    x:Class="Exo.Settings.Ui.DataTemplates"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels">
+
+    <!-- Monitor setting UI templates -->
+    <DataTemplate x:Key="MonitorBrightnessSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
+        <Slider
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
+            Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+            HorizontalAlignment="Stretch"
+            Style="{StaticResource BrightnessSliderStyle}">
+            <Slider.ThumbToolTipValueConverter>
+                <local:BrightnessValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+            </Slider.ThumbToolTipValueConverter>
+        </Slider>
+    </DataTemplate>
+    <DataTemplate x:Key="MonitorContrastSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
+        <Slider
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
+            Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Value="{Binding Value, Mode=TwoWay}"
+            HorizontalContentAlignment="Stretch"
+            HorizontalAlignment="Stretch" />
+    </DataTemplate>
+    <DataTemplate x:Key="MonitorDefaultContinuousSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
+        <Slider
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
+            Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Value="{Binding Value, Mode=TwoWay}"
+            HorizontalContentAlignment="Stretch"
+            HorizontalAlignment="Stretch" />
+    </DataTemplate>
+    <DataTemplate x:Key="MonitorBrightnessLabelTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
+        <FontIcon Glyph="&#xE706;" HorizontalAlignment="Right" ToolTipService.ToolTip="Brightness" />
+    </DataTemplate>
+    <DataTemplate x:Key="MonitorContrastLabelTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
+        <FontIcon Glyph="&#xE793;" HorizontalAlignment="Right" ToolTipService.ToolTip="Contrast" />
+    </DataTemplate>
+    <DataTemplate x:Key="MonitorDefaultLabelSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
+        <TextBlock Text="{Binding DisplayName}" />
+    </DataTemplate>
+    <local:MonitorSettingTemplateSelector x:Key="MonitorSettingContentTemplate"
+        BrightnessTemplate="{StaticResource MonitorBrightnessSettingTemplate}"
+        ContrastTemplate="{StaticResource MonitorContrastSettingTemplate}"
+        DefaultContinuousTemplate="{StaticResource MonitorDefaultContinuousSettingTemplate}" />
+    <local:MonitorSettingTemplateSelector x:Key="MonitorSettingLabelTemplate"
+        BrightnessTemplate="{StaticResource MonitorBrightnessLabelTemplate}"
+        ContrastTemplate="{StaticResource MonitorContrastLabelTemplate}"
+        DefaultContinuousTemplate="{StaticResource MonitorDefaultLabelSettingTemplate}" />
+</ResourceDictionary>

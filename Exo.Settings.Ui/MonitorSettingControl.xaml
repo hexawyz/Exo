@@ -16,14 +16,22 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{Binding Label}" ToolTipService.ToolTip="{Binding DisplayName}" />
-        <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource RowContentMargin}" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-            <ContentControl.ContentTemplate>
-                <DataTemplate>
-                    <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
-                </DataTemplate>
-            </ContentControl.ContentTemplate>
-        </ContentControl>
+        <ContentControl
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            Margin="{StaticResource RowLabelMargin}"
+            Content="{Binding Mode=OneWay}"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            ContentTemplateSelector="{StaticResource MonitorSettingLabelTemplate}" />
+        <ContentControl
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Margin="{StaticResource RowContentMargin}"
+            Content="{Binding Mode=OneWay}"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            ContentTemplateSelector="{StaticResource MonitorSettingContentTemplate}" />
         <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnResetButtonClick">
             <FontIcon Glyph="&#xE777;" />
         </Button>

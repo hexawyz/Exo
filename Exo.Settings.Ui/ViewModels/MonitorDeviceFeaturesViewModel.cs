@@ -115,13 +115,6 @@ internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
 
 	public MonitorSetting Setting { get; }
 
-	public string Label => Setting switch
-	{
-		MonitorSetting.Brightness => "\U0001F506",
-		MonitorSetting.Contrast => "\u25D0",
-		_ => DisplayName
-	};
-
 	public string DisplayName => Setting switch
 	{
 		MonitorSetting.Brightness => "Brightness",
