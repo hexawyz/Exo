@@ -4,6 +4,7 @@ using GrpcDeviceId = Exo.Ui.Contracts.DeviceId;
 using GrpcDeviceIdSource = Exo.Ui.Contracts.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Ui.Contracts.DeviceInformation;
 using GrpcLightingZoneInformation = Exo.Ui.Contracts.LightingZoneInformation;
+using GrpcMonitorSetting = Exo.Ui.Contracts.MonitorSetting;
 using GrpcVendorIdSource = Exo.Ui.Contracts.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Ui.Contracts.WatchNotificationKind;
 
@@ -73,6 +74,24 @@ internal static class GrpcConvert
 			VendorIdSource.Pci => GrpcVendorIdSource.Pci,
 			VendorIdSource.Usb => GrpcVendorIdSource.Usb,
 			VendorIdSource.Bluetooth => GrpcVendorIdSource.Bluetooth,
+			_ => throw new NotImplementedException()
+		};
+
+	public static GrpcMonitorSetting ToGrpc(this MonitorSetting setting)
+		=> setting switch
+		{
+			MonitorSetting.Unknown => GrpcMonitorSetting.Unknown,
+			MonitorSetting.Brightness => GrpcMonitorSetting.Brightness,
+			MonitorSetting.Contrast => GrpcMonitorSetting.Contrast,
+			_ => throw new NotImplementedException()
+		};
+
+	public static MonitorSetting FromGrpc(this GrpcMonitorSetting setting)
+		=> setting switch
+		{
+			GrpcMonitorSetting.Unknown => MonitorSetting.Unknown,
+			GrpcMonitorSetting.Brightness => MonitorSetting.Brightness,
+			GrpcMonitorSetting.Contrast => MonitorSetting.Contrast,
 			_ => throw new NotImplementedException()
 		};
 }

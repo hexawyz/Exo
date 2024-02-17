@@ -348,7 +348,7 @@ public class LgMonitorDriver :
 	public async ValueTask<ContinuousValue> GetBrightnessAsync(CancellationToken cancellationToken)
 	{
 		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
-		return new(0, result.CurrentValue, result.MaximumValue);
+		return new(result.CurrentValue, 0, result.MaximumValue);
 	}
 
 	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken));
@@ -356,7 +356,7 @@ public class LgMonitorDriver :
 	public async ValueTask<ContinuousValue> GetContrastAsync(CancellationToken cancellationToken)
 	{
 		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
-		return new(0, result.CurrentValue, result.MaximumValue);
+		return new(result.CurrentValue, 0, result.MaximumValue);
 	}
 
 	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));

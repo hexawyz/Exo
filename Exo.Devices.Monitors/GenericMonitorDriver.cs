@@ -11,6 +11,7 @@ namespace Exo.Devices.Monitors;
 public class GenericMonitorDriver
 	: Driver,
 	IDeviceDriver<IMonitorDeviceFeature>,
+	IDeviceIdFeature,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
 	IMonitorBrightnessFeature,
@@ -57,6 +58,7 @@ public class GenericMonitorDriver
 					features,
 					rawCapabilities,
 					capabilities,
+					deviceId,
 					friendlyName,
 					new("monitor", topLevelDeviceName, deviceId.ToString(), null)
 				)
@@ -79,19 +81,31 @@ public class GenericMonitorDriver
 	private readonly SupportedFeatures _supportedFeatures;
 	private readonly ReadOnlyMemory<byte> _rawCapabilities;
 	private readonly MonitorCapabilities? _capabilities;
+	private readonly DeviceId _deviceId;
 
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	public override IDeviceFeatureCollection<IDeviceFeature> Features { get; }
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 
-	private GenericMonitorDriver(PhysicalMonitor physicalMonitor, SupportedFeatures supportedFeatures, ReadOnlyMemory<byte> rawCapabilities, MonitorCapabilities? capabilities, string friendlyName, DeviceConfigurationKey configurationKey)
+	DeviceId IDeviceIdFeature.DeviceId => _deviceId;
+
+	private GenericMonitorDriver
+	(
+		PhysicalMonitor physicalMonitor,
+		SupportedFeatures supportedFeatures,
+		ReadOnlyMemory<byte> rawCapabilities,
+		MonitorCapabilities? capabilities,
+		DeviceId deviceId,
+		string friendlyName,
+		DeviceConfigurationKey configurationKey
+	)
 		: base(friendlyName, configurationKey)
 	{
 		_physicalMonitor = physicalMonitor;
 		_supportedFeatures = supportedFeatures;
 		_rawCapabilities = rawCapabilities;
 		_capabilities = capabilities;
-		Features = FeatureCollection.Empty<IDeviceFeature>();
+		_deviceId = deviceId;
 		_monitorFeatures = supportedFeatures switch
 		{
 			SupportedFeatures.Capabilities
@@ -104,6 +118,8 @@ public class GenericMonitorDriver
 				=> FeatureCollection.Create<IMonitorDeviceFeature, GenericMonitorDriver, IMonitorRawCapabilitiesFeature, IMonitorCapabilitiesFeature, IMonitorBrightnessFeature, IMonitorBrightnessFeature, IMonitorContrastFeature>(this),
 			_ => FeatureCollection.Empty<IMonitorDeviceFeature>(),
 		};
+
+		Features = FeatureCollection.CreateMerged<IMonitorDeviceFeature>(_monitorFeatures, FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this));
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -119,7 +135,7 @@ public class GenericMonitorDriver
 		{
 			EnsureSupportedFeatures(features);
 			var reply = _physicalMonitor.GetVcpFeature((byte)code);
-			return ValueTask.FromResult(new ContinuousValue(0, reply.CurrentValue, reply.MaximumValue));
+			return ValueTask.FromResult(new ContinuousValue(reply.CurrentValue, 0, reply.MaximumValue));
 		}
 		catch (Exception ex)
 		{

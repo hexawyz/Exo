@@ -90,22 +90,3 @@ internal class BaseDeviceViewModel : BindableObject
 		set => SetValue(ref _serialNumber, value, ChangedProperty.SerialNumber);
 	}
 }
-
-public sealed class DeviceIdViewModel
-{
-	private readonly DeviceId _deviceId;
-	private readonly bool _isMainDeviceId;
-
-	public DeviceIdViewModel(DeviceId deviceId, bool isMainDeviceId)
-	{
-		_deviceId = deviceId;
-		_isMainDeviceId = isMainDeviceId;
-	}
-
-	public DeviceIdSource Source => _deviceId.Source;
-	public VendorIdSource VendorIdSource => _deviceId.VendorIdSource;
-	public ushort VendorId => _deviceId.VendorId;
-	public ushort ProductId => _deviceId.ProductId;
-	public ushort Version => _deviceId.Version;
-	public bool IsMainDeviceId => _isMainDeviceId;
-}

@@ -61,6 +61,7 @@ public class Startup
 		services.AddSingleton<LightingService>();
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
+		services.AddSingleton<MonitorService>();
 		services.AddSingleton<MouseService>();
 		services.AddSingleton<ImageService>();
 		services.AddSingleton<OverlayNotificationService>();
@@ -91,6 +92,7 @@ public class Startup
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcMouseService>();
+		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
 		services.AddCodeFirstGrpc();
 	}
@@ -121,6 +123,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapRazorPages();

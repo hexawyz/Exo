@@ -10,9 +10,16 @@ internal class DeviceViewModel : BaseDeviceViewModel
 		: base(deviceInformation)
 	{
 		//_extendedDeviceInformation = extendedDeviceInformation;
-		if (deviceInformation.FeatureIds is not null && deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
+		if (deviceInformation.FeatureIds is not null)
 		{
-			MouseFeatures = new(this);
+			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
+			{
+				MouseFeatures = new(this);
+			}
+			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MonitorDeviceFeature))
+			{
+				MonitorFeatures = new(this);
+			}
 		}
 	}
 
@@ -25,4 +32,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 
 	// If the device is a mouse, this hosts the mouse-related features.
 	public MouseDeviceFeaturesViewModel? MouseFeatures { get; }
+
+	// If the device is a monitor, this hosts the mouse-related features.
+	public MonitorDeviceFeaturesViewModel? MonitorFeatures { get; }
 }

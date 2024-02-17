@@ -23,25 +23,18 @@ public interface IRawVcpFeature : IMonitorDeviceFeature
 	ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken);
 }
 
-public readonly struct ContinuousValue : IEquatable<ContinuousValue>
+public readonly record struct ContinuousValue : IEquatable<ContinuousValue>
 {
-	public ContinuousValue(ushort minimum, ushort current, ushort maximum)
+	public ContinuousValue(ushort current, ushort minimum, ushort maximum)
 	{
-		Minimum = minimum;
 		Current = current;
+		Minimum = minimum;
 		Maximum = maximum;
 	}
 
-	public ushort Minimum { get; }
-	public ushort Current { get; }
-	public ushort Maximum { get; }
-
-	public override bool Equals(object? obj) => obj is ContinuousValue value && Equals(value);
-	public bool Equals(ContinuousValue other) => Minimum == other.Minimum && Current == other.Current && Maximum == other.Maximum;
-	public override int GetHashCode() => HashCode.Combine(Minimum, Current, Maximum);
-
-	public static bool operator ==(ContinuousValue left, ContinuousValue right) => left.Equals(right);
-	public static bool operator !=(ContinuousValue left, ContinuousValue right) => !(left == right);
+	public ushort Current { get; init; }
+	public ushort Minimum { get; init; }
+	public ushort Maximum { get; init; }
 }
 
 public interface IMonitorBrightnessFeature : IMonitorDeviceFeature
@@ -67,4 +60,15 @@ public interface IMonitorInputSelectFeature : IMonitorDeviceFeature
 	ImmutableArray<InputSourceDescription> InputSources { get; }
 	byte GetCurrentSourceId();
 	void SurCurrentSourceId(byte sourceId);
+}
+
+// TODO: See how to implement this feature, as it is non-linear.
+// MCCS VCP values should generally be bytes, with special values 00 for default (unknown ?) volume and FF for mute.
+// Leaving it as-is is an option, but it is a bit weird to leave the interpretation of values up to the client.
+public interface IMonitorSpeakerAudioVolumeFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetVolumeAsync(CancellationToken cancellationToken);
+	ValueTask SetVolumeAsync(ushort value, CancellationToken cancellationToken);
+	ValueTask SetDefaultVolumeAsync(CancellationToken cancellationToken);
+	ValueTask MuteAsync(CancellationToken cancellationToken);
 }

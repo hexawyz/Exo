@@ -54,7 +54,7 @@ public abstract class Watcher<TKey, TValue, TResult> : IAsyncDisposable
 		_lock = new();
 		_startRunTaskCompletionSource = new();
 		_disposeCancellationTokenSource = new();
-		_watchTask = WatchDevicesAsync(_disposeCancellationTokenSource.Token);
+		_watchTask = InternalWatchAsync(_disposeCancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -81,7 +81,7 @@ public abstract class Watcher<TKey, TValue, TResult> : IAsyncDisposable
 		}
 	}
 
-	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
+	private async Task InternalWatchAsync(CancellationToken cancellationToken)
 	{
 		try
 		{

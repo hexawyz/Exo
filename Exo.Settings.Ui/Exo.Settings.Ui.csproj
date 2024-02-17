@@ -18,6 +18,8 @@
     <None Remove="DevicesPage.xaml" />
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
+    <None Remove="MonitorSettingControl.xaml" />
+    <None Remove="MonitorSettingsControl.xaml" />
     <None Remove="ProgrammingPage.xaml" />
     <None Remove="RootPage.xaml" />
   </ItemGroup>
@@ -53,6 +55,16 @@
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="MonitorSettingControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="MonitorSettingsControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="ProgrammingPage.xaml">

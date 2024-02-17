@@ -15,6 +15,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	private readonly IDeviceService _deviceService;
 	private readonly IMouseService _mouseService;
+	private readonly IMonitorService _monitorService;
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
@@ -25,6 +26,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	// Used to store DPI changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, DpiViewModel> _pendingDpiChanges;
 
+	// Used to store monitor setting changes when the device view model is not accessible.
+	private readonly Dictionary<Guid, List<MonitorSettingValue>> _pendingMonitorSettingChanges;
+
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice; 
 
@@ -32,21 +36,24 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	private readonly Task _deviceWatchTask;
 	private readonly Task _batteryWatchTask;
 	private readonly Task _dpiWatchTask;
+	private readonly Task _monitorSettingWatchTask;
 
-	public DevicesViewModel(IDeviceService deviceService, IMouseService mouseService)
+	public DevicesViewModel(IDeviceService deviceService, IMouseService mouseService, IMonitorService monitorService)
 	{
 		_deviceService = deviceService;
 		_mouseService = mouseService;
-
+		_monitorService = monitorService;
 		_devices = new();
 		_removedDeviceIds = new();
 		_devicesById = new();
 		_pendingBatteryChanges = new();
 		_pendingDpiChanges = new();
+		_pendingMonitorSettingChanges = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_deviceWatchTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_batteryWatchTask = WatchBatteryChangesAsync(_cancellationTokenSource.Token);
 		_dpiWatchTask = WatchDpiChangesAsync(_cancellationTokenSource.Token);
+		_monitorSettingWatchTask = WatchMonitorSettingChangesAsync(_cancellationTokenSource.Token);
 	}
 
 	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
@@ -143,6 +150,16 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				mouseFeatures.CurrentDpi = dpi;
 			}
 		}
+		if (_pendingMonitorSettingChanges.Remove(device.Id, out var monitorSettings))
+		{
+			if (device.MonitorFeatures is { } monitorFeatures)
+			{
+				foreach (var setting in monitorSettings)
+				{
+					monitorFeatures.UpdateSetting(setting);
+				}
+			}
+		}
 	}
 
 	private void HandleDeviceRemoval(DeviceViewModel device)
@@ -201,6 +218,34 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		}
 	}
 
+	private async Task WatchMonitorSettingChangesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in _monitorService.WatchSettingsAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
+				{
+					if (device.MonitorFeatures is { } monitorFeatures)
+					{
+						monitorFeatures.UpdateSetting(notification);
+					}
+				}
+				else
+				{
+					if (!_pendingMonitorSettingChanges.TryGetValue(notification.DeviceId, out var changes))
+					{
+						_pendingMonitorSettingChanges.Add(notification.DeviceId, changes = new());
+					}
+					changes.Add(notification);
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
 	public ObservableCollection<DeviceViewModel> Devices => _devices;
 
 	public async ValueTask DisposeAsync()
@@ -209,6 +254,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		await _deviceWatchTask.ConfigureAwait(false);
 		await _batteryWatchTask.ConfigureAwait(false);
 		await _dpiWatchTask.ConfigureAwait(false);
+		await _monitorSettingWatchTask.ConfigureAwait(false);
 	}
 
 	public DeviceViewModel? SelectedDevice
