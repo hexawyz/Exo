@@ -22,7 +22,7 @@ public class LgMonitorDriver :
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
-	ISerialNumberDeviceFeature,
+	IDeviceSerialNumberFeature,
 	IRawVcpFeature,
 	IMonitorBrightnessFeature,
 	IMonitorContrastFeature,
@@ -316,7 +316,7 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, ISerialNumberDeviceFeature, IDeviceIdFeature>(this);
+		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature>(this);
 		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures, baseFeatures);
 	}
 
@@ -552,5 +552,5 @@ public class LgMonitorDriver :
 		}
 	}
 
-	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.UniqueId!;
+	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 }

@@ -4,6 +4,7 @@ using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 
 namespace Exo.Discovery;
 
@@ -92,6 +93,19 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 				}
 			}
 		}
+
+		byte[]? cachedRawEdid;
+		using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{sourceDeviceName}\Device Parameters"))
+		{
+			cachedRawEdid = deviceKey.GetValue("EDID") as byte[];
+		}
+
+		if (cachedRawEdid is null)
+		{
+			throw new InvalidOperationException("Could not get the EDID information for the monitor from the Registry.");
+		}
+
+		var edid = Edid.Parse(cachedRawEdid);
 
 		// NB: The code below will not work in a non-interactive process. Which is a huge problem.
 		// It seems quite likely that a user mode application will be needed to control the monitors.
@@ -203,6 +217,7 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			deviceId,
 			containerId,
 			friendlyName,
+			edid,
 			displayAdapterName,
 			displayMonitorName,
 			adapterDeviceInterfaceName,

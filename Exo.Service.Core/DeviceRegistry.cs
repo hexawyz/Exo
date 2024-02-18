@@ -494,7 +494,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	}
 
 	private string? GetSerialNumber(Driver driver)
-		=> driver.Features.GetFeature<ISerialNumberDeviceFeature>()?.SerialNumber;
+		=> driver.Features.GetFeature<IDeviceSerialNumberFeature>()?.SerialNumber;
 
 	public async ValueTask<bool> RemoveDriverAsync(Driver driver)
 	{

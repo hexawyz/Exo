@@ -29,6 +29,8 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 	/// <summary>Gets the default friendly name for the physical device.</summary>
 	/// <remarks>This is the name of the container, as returned by Windows.</remarks>
 	public string? FriendlyName { get; }
+	/// <summary>Gets the EDID information associated with the monitor.</summary>
+	public Edid Edid { get; }
 	/// <summary>Gets the name of the adapter device as returned by <see cref="DisplayDevice.DeviceName"/>.</summary>
 	/// <remarks>
 	/// <para>This name would typically be of the form \\.\DISPLAY1.</para>
@@ -81,6 +83,7 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		DeviceId deviceId,
 		Guid containerId,
 		string? friendlyName,
+		Edid edid,
 		string adapterDeviceName,
 		string monitorDeviceName,
 		string adapterDeviceInterfaceName,
@@ -95,6 +98,7 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		DeviceId = deviceId;
 		ContainerId = containerId;
 		FriendlyName = friendlyName;
+		Edid = edid;
 		AdapterDeviceName = adapterDeviceName;
 		MonitorDeviceName = monitorDeviceName;
 		AdapterDeviceInterfaceName = adapterDeviceInterfaceName;

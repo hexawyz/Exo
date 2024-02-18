@@ -14,6 +14,7 @@ public class GenericMonitorDriver
 	: Driver,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceIdFeature,
+	IDeviceSerialNumberFeature,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
 	IMonitorBrightnessFeature,
@@ -27,6 +28,7 @@ public class GenericMonitorDriver
 		ImmutableArray<SystemDevicePath> keys,
 		string friendlyName,
 		DeviceId deviceId,
+		Edid edid,
 		PhysicalMonitor physicalMonitor,
 		string topLevelDeviceName,
 		CancellationToken cancellationToken
@@ -67,7 +69,7 @@ public class GenericMonitorDriver
 					capabilities,
 					deviceId,
 					friendlyName,
-					new("monitor", topLevelDeviceName, deviceId.ToString(), null)
+					new("monitor", topLevelDeviceName, deviceId.ToString(), edid.SerialNumber)
 				)
 			)
 		);
@@ -137,6 +139,8 @@ public class GenericMonitorDriver
 
 	DeviceId IDeviceIdFeature.DeviceId => _deviceId;
 
+	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
+
 	private GenericMonitorDriver
 	(
 		PhysicalMonitor physicalMonitor,
@@ -156,7 +160,11 @@ public class GenericMonitorDriver
 		_deviceId = deviceId;
 		_monitorFeatures = new MonitorFeatureCollection(this);
 
-		Features = FeatureCollection.CreateMerged(_monitorFeatures, FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this));
+		var baseFeatures = configurationKey.UniqueId is not null ?
+			FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
+
+		Features = FeatureCollection.CreateMerged(_monitorFeatures, baseFeatures);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

@@ -15,7 +15,7 @@ namespace Exo.Devices.Logitech;
 
 // This driver is a catch-all for Logitech devices. On first approximation, they should all implement the proprietary HID++ protocol.
 public abstract class LogitechUniversalDriver : Driver,
-	ISerialNumberDeviceFeature,
+	IDeviceSerialNumberFeature,
 	IDeviceIdFeature
 {
 	private const int LogitechUsbVendorId = 0x046D;
@@ -601,8 +601,8 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectGeneric, IDeviceIdFeature>(this);
@@ -631,8 +631,8 @@ public abstract class LogitechUniversalDriver : Driver,
 
 				var baseFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectKeyboard, IDeviceIdFeature>(this);
@@ -655,8 +655,8 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessDirectMouse, IDeviceIdFeature>(this);
@@ -678,8 +678,8 @@ public abstract class LogitechUniversalDriver : Driver,
 				DeviceCategory = category;
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverGeneric, IDeviceIdFeature>(this);
@@ -707,8 +707,8 @@ public abstract class LogitechUniversalDriver : Driver,
 
 				var baseFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverKeyboard, IDeviceIdFeature>(this);
@@ -731,8 +731,8 @@ public abstract class LogitechUniversalDriver : Driver,
 			{
 				_allFeatures = HasSerialNumber ?
 					HasBattery ?
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					HasBattery ?
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 						FeatureCollection.Create<IDeviceFeature, FeatureAccessThroughReceiverMouse, IDeviceIdFeature>(this);
@@ -771,7 +771,7 @@ public abstract class LogitechUniversalDriver : Driver,
 				_children = new();
 				_lock = new();
 				_allFeatures = HasSerialNumber ?
-					FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 					FeatureCollection.Create<IDeviceFeature, Receiver, IDeviceIdFeature>(this);
 				_loggerFactory = loggerFactory;
 				device.DeviceDiscovered += OnChildDeviceDiscovered;

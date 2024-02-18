@@ -82,7 +82,7 @@ public interface ILightingDeviceFeature : IDeviceFeature
 }
 
 /// <summary>Devices can allow access to their serial number by providing this feature.</summary>
-public interface ISerialNumberDeviceFeature : IDeviceFeature
+public interface IDeviceSerialNumberFeature : IDeviceFeature
 {
 	/// <summary>Gets the serial number of this device.</summary>
 	string SerialNumber { get; }

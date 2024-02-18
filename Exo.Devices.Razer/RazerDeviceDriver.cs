@@ -22,7 +22,7 @@ public abstract class RazerDeviceDriver :
 	Driver,
 	IRazerDeviceNotificationSink,
 	IRazerPeriodicEventHandler,
-	ISerialNumberDeviceFeature,
+	IDeviceSerialNumberFeature,
 	IDeviceIdFeature,
 	IDeviceIdsFeature
 {
@@ -1214,8 +1214,8 @@ public abstract class RazerDeviceDriver :
 		protected IDeviceFeatureCollection<IDeviceFeature> CreateBaseFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
-					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, ISerialNumberDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 				HasBattery ?
 					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature>(this);

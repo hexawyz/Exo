@@ -26,7 +26,7 @@ namespace Exo.Devices.Elgato.StreamDeck;
 // Or all buttons could be exposed as a generic feature… Depends on what we want to do.
 // Generally the idea would be to expose stuff as close to what the hardware support, but that would require very elgato-specific stuff and restrict a bit the fun that can be implemented.
 // The first part may be fine, but the second would be a bit more annoying.
-public sealed class StreamDeckDeviceDriver : Driver, IDeviceIdFeature, ISerialNumberDeviceFeature
+public sealed class StreamDeckDeviceDriver : Driver, IDeviceIdFeature, IDeviceSerialNumberFeature
 {
 	private const ushort ElgatoVendorId = 0x0FD9;
 
@@ -133,7 +133,7 @@ public sealed class StreamDeckDeviceDriver : Driver, IDeviceIdFeature, ISerialNu
 		_productId = productId;
 		_versionNumber = versionNumber;
 
-		_allFeatures = FeatureCollection.Create<IDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, ISerialNumberDeviceFeature>(this);
+		_allFeatures = FeatureCollection.Create<IDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -146,5 +146,5 @@ public sealed class StreamDeckDeviceDriver : Driver, IDeviceIdFeature, ISerialNu
 
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(ElgatoVendorId, _productId, _versionNumber);
 
-	string ISerialNumberDeviceFeature.SerialNumber => ConfigurationKey.UniqueId!;
+	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 }
