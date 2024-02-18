@@ -83,6 +83,7 @@ internal static class GrpcConvert
 			MonitorSetting.Unknown => GrpcMonitorSetting.Unknown,
 			MonitorSetting.Brightness => GrpcMonitorSetting.Brightness,
 			MonitorSetting.Contrast => GrpcMonitorSetting.Contrast,
+			MonitorSetting.AudioVolume => GrpcMonitorSetting.AudioVolume,
 			_ => throw new NotImplementedException()
 		};
 
@@ -92,6 +93,7 @@ internal static class GrpcConvert
 			GrpcMonitorSetting.Unknown => MonitorSetting.Unknown,
 			GrpcMonitorSetting.Brightness => MonitorSetting.Brightness,
 			GrpcMonitorSetting.Contrast => MonitorSetting.Contrast,
+			GrpcMonitorSetting.AudioVolume => MonitorSetting.AudioVolume,
 			_ => throw new NotImplementedException()
 		};
 }

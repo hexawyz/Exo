@@ -96,6 +96,10 @@ internal class MonitorService : IAsyncDisposable
 					{
 						settings.Add(MonitorSetting.Contrast);
 					}
+					if (monitorDriver.Features.HasFeature<IMonitorSpeakerAudioVolumeFeature>())
+					{
+						settings.Add(MonitorSetting.AudioVolume);
+					}
 
 					// Create and lock the details to prevent changes to be made before we read all the features.
 					details = new MonitorDeviceDetails(monitorDriver, [.. settings]);
@@ -142,6 +146,9 @@ internal class MonitorService : IAsyncDisposable
 						break;
 					case MonitorSetting.Contrast:
 						value = await monitorDriver.Features.GetFeature<IMonitorContrastFeature>()!.GetContrastAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.AudioVolume:
+						value = await monitorDriver.Features.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetVolumeAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					default:
 						continue;
@@ -221,6 +228,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			MonitorSetting.Brightness => SetBrightnessAsync(deviceId, value, cancellationToken),
 			MonitorSetting.Contrast => SetContrastAsync(deviceId, value, cancellationToken),
+			MonitorSetting.AudioVolume => SetAudioVolumeAsync(deviceId, value, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
 
@@ -276,6 +284,30 @@ internal class MonitorService : IAsyncDisposable
 
 			await feature.SetContrastAsync(value, cancellationToken).ConfigureAwait(false);
 			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.Contrast, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetAudioVolumeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (Unsafe.As<IDeviceDriver<IMonitorDeviceFeature>>(details.Driver).Features.GetFeature<IMonitorSpeakerAudioVolumeFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetVolumeAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.AudioVolume, value);
 		}
 		return;
 	DeviceNotFound:;

@@ -1,4 +1,3 @@
-using Exo.Ui;
 using Exo.Ui.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -9,11 +8,13 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 	private readonly IMonitorService _monitorService;
 	private MonitorDeviceSettingViewModel? _brightnessSetting;
 	private MonitorDeviceSettingViewModel? _contrastSetting;
+	private MonitorDeviceSettingViewModel? _audioVolumeSetting;
 
 	private bool _isReady;
 
 	public MonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public MonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
+	public MonitorDeviceSettingViewModel? AudioVolumeSetting => _audioVolumeSetting;
 
 	public bool IsReady
 	{
@@ -37,6 +38,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		case MonitorSetting.Contrast:
 			UpdateSetting(settingValue, ref _contrastSetting, nameof(ContrastSetting));
 			break;
+		case MonitorSetting.AudioVolume:
+			UpdateSetting(settingValue, ref _audioVolumeSetting, nameof(AudioVolumeSetting));
+			break;
 		}
 	}
 
@@ -44,7 +48,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 	{
 		if (setting is null)
 		{
-			setting = new(settingValue.Setting, settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+			setting = new ContinuousMonitorDeviceSettingViewModel(settingValue.Setting, settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
 			NotifyPropertyChanged(propertyName);
 		}
 		else
@@ -59,28 +63,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		List<Exception>? exceptions = null;
 		try
 		{
-			if (_brightnessSetting is not null)
-			{
-				try
-				{
-					await _monitorService.SetBrightnessAsync(new() { DeviceId = _device.Id, Value = _brightnessSetting.Value }, cancellationToken);
-				}
-				catch (Exception ex)
-				{
-					(exceptions ??= []).Add(ex);
-				}
-			}
-			if (_contrastSetting is not null)
-			{
-				try
-				{
-					await _monitorService.SetContrastAsync(new() { DeviceId = _device.Id, Value = _contrastSetting.Value }, cancellationToken);
-				}
-				catch (Exception ex)
-				{
-					(exceptions ??= []).Add(ex);
-				}
-			}
+			try { await ApplyChangeIfNeededAsync(_brightnessSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_contrastSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_audioVolumeSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 
 			if (exceptions is not null)
 			{
@@ -93,6 +78,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		}
 	}
 
+	private ValueTask ApplyChangeIfNeededAsync(MonitorDeviceSettingViewModel? setting, CancellationToken cancellationToken)
+		=> setting?.IsChanged == true ? setting.ApplyChange(_monitorService, _device.Id, cancellationToken) : ValueTask.CompletedTask;
+
 	public void Reset()
 	{
 		if (!IsReady) throw new InvalidOperationException();
@@ -104,7 +92,15 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 	public override bool IsChanged => true;
 }
 
-internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
+internal abstract class MonitorDeviceSettingViewModel : ChangeableBindableObject
+{
+	public abstract MonitorSetting Setting { get; }
+	internal abstract void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue);
+	internal abstract ValueTask ApplyChange(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken);
+	public abstract void Reset();
+}
+
+internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 { 
 	private ushort _value;
 	private ushort _initialValue;
@@ -113,12 +109,13 @@ internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
 
 	public override bool IsChanged => _value != _initialValue;
 
-	public MonitorSetting Setting { get; }
+	public override MonitorSetting Setting { get; }
 
 	public string DisplayName => Setting switch
 	{
 		MonitorSetting.Brightness => "Brightness",
 		MonitorSetting.Contrast => "Contrast",
+		MonitorSetting.AudioVolume => "Audio Volume",
 		_ => Setting.ToString()
 	};
 
@@ -167,7 +164,7 @@ internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
 		set => SetValue(ref _maximumValue, value, ChangedProperty.MaximumValue);
 	}
 
-	public MonitorDeviceSettingViewModel(MonitorSetting setting, ushort currentValue, ushort minimumValue, ushort maximumValue)
+	public ContinuousMonitorDeviceSettingViewModel(MonitorSetting setting, ushort currentValue, ushort minimumValue, ushort maximumValue)
 	{
 		_value = currentValue;
 		_initialValue = currentValue;
@@ -176,12 +173,15 @@ internal sealed class MonitorDeviceSettingViewModel : ChangeableBindableObject
 		Setting = setting;
 	}
 
-	internal void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue)
+	internal override void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue)
 	{
 		InitialValue = currentValue;
 		MinimumValue = minimumValue;
 		MaximumValue = maximumValue;
 	}
 
-	public void Reset() => Value = InitialValue;
+	internal override ValueTask ApplyChange(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
+		=> monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value }, cancellationToken);
+
+	public override void Reset() => Value = InitialValue;
 }

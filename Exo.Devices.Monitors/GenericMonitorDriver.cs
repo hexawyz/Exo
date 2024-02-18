@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
@@ -15,7 +17,8 @@ public class GenericMonitorDriver
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
 	IMonitorBrightnessFeature,
-	IMonitorContrastFeature
+	IMonitorContrastFeature,
+	IMonitorSpeakerAudioVolumeFeature
 {
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.Monitor)]
@@ -45,6 +48,10 @@ public class GenericMonitorDriver
 				{
 					features |= SupportedFeatures.Contrast;
 				}
+				else if (capability.VcpCode == (byte)VcpCode.AudioSpeakerVolume)
+				{
+					features |= SupportedFeatures.AudioVolume;
+				}
 			}
 		}
 		return new
@@ -73,6 +80,47 @@ public class GenericMonitorDriver
 		Capabilities = 0x00000001,
 		Brightness = 0x00000002,
 		Contrast = 0x00000004,
+		AudioVolume = 0x00000008,
+	}
+
+	private sealed class MonitorFeatureCollection : IDeviceFeatureCollection<IMonitorDeviceFeature>
+	{
+		private readonly GenericMonitorDriver _driver;
+		private Dictionary<Type, IMonitorDeviceFeature>? _cachedFeatureDictionary;
+
+		public MonitorFeatureCollection(GenericMonitorDriver driver) => _driver = driver;
+
+		IMonitorDeviceFeature? IDeviceFeatureCollection<IMonitorDeviceFeature>.this[Type type]
+			=> (_cachedFeatureDictionary ??= new(this))[type];
+
+		T? IDeviceFeatureCollection<IMonitorDeviceFeature>.GetFeature<T>() where T : class
+		{
+			var supportedFeatures = _driver._supportedFeatures;
+			if (typeof(T) == typeof(IMonitorCapabilitiesFeature) && (supportedFeatures & SupportedFeatures.Capabilities) != 0 ||
+				typeof(T) == typeof(IMonitorRawCapabilitiesFeature) && (supportedFeatures & SupportedFeatures.Capabilities) != 0 ||
+				typeof(T) == typeof(IMonitorBrightnessFeature) && (supportedFeatures & SupportedFeatures.Brightness) != 0 ||
+				typeof(T) == typeof(IMonitorContrastFeature) && (supportedFeatures & SupportedFeatures.Contrast) != 0 ||
+				typeof(T) == typeof(IMonitorSpeakerAudioVolumeFeature) && (supportedFeatures & SupportedFeatures.AudioVolume) != 0)
+			{
+				return Unsafe.As<T>(_driver);
+			}
+			return null;
+		}
+
+		IEnumerator<KeyValuePair<Type, IMonitorDeviceFeature>> IEnumerable<KeyValuePair<Type, IMonitorDeviceFeature>>.GetEnumerator()
+		{
+			var supportedFeatures = _driver._supportedFeatures;
+			if ((supportedFeatures & SupportedFeatures.Capabilities) != 0)
+			{
+				yield return new(typeof(IMonitorCapabilitiesFeature), _driver);
+				yield return new(typeof(IMonitorRawCapabilitiesFeature), _driver);
+			}
+			if ((supportedFeatures & SupportedFeatures.Brightness) != 0) yield return new(typeof(IMonitorBrightnessFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.Contrast) != 0) yield return new(typeof(IMonitorContrastFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.AudioVolume) != 0) yield return new(typeof(IMonitorSpeakerAudioVolumeFeature), _driver);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => Unsafe.As<IEnumerable<KeyValuePair<Type, IMonitorDeviceFeature>>>(this).GetEnumerator();
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
@@ -106,18 +154,7 @@ public class GenericMonitorDriver
 		_rawCapabilities = rawCapabilities;
 		_capabilities = capabilities;
 		_deviceId = deviceId;
-		_monitorFeatures = supportedFeatures switch
-		{
-			SupportedFeatures.Capabilities
-				=> FeatureCollection.Create<IMonitorDeviceFeature, GenericMonitorDriver, IMonitorRawCapabilitiesFeature, IMonitorCapabilitiesFeature>(this),
-			SupportedFeatures.Capabilities | SupportedFeatures.Brightness
-				=> FeatureCollection.Create<IMonitorDeviceFeature, GenericMonitorDriver, IMonitorRawCapabilitiesFeature, IMonitorCapabilitiesFeature, IMonitorBrightnessFeature>(this),
-			SupportedFeatures.Capabilities | SupportedFeatures.Contrast
-				=> FeatureCollection.Create<IMonitorDeviceFeature, GenericMonitorDriver, IMonitorRawCapabilitiesFeature, IMonitorCapabilitiesFeature, IMonitorBrightnessFeature, IMonitorContrastFeature>(this),
-			SupportedFeatures.Capabilities | SupportedFeatures.Brightness | SupportedFeatures.Contrast
-				=> FeatureCollection.Create<IMonitorDeviceFeature, GenericMonitorDriver, IMonitorRawCapabilitiesFeature, IMonitorCapabilitiesFeature, IMonitorBrightnessFeature, IMonitorBrightnessFeature, IMonitorContrastFeature>(this),
-			_ => FeatureCollection.Empty<IMonitorDeviceFeature>(),
-		};
+		_monitorFeatures = new MonitorFeatureCollection(this);
 
 		Features = FeatureCollection.CreateMerged(_monitorFeatures, FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this));
 	}
@@ -180,4 +217,7 @@ public class GenericMonitorDriver
 
 	ValueTask<ContinuousValue> IMonitorContrastFeature.GetContrastAsync(CancellationToken cancellationToken) => GetVcpAsync(SupportedFeatures.Contrast, VcpCode.Contrast, cancellationToken);
 	ValueTask IMonitorContrastFeature.SetContrastAsync(ushort value, CancellationToken cancellationToken) => SetVcpAsync(SupportedFeatures.Contrast, VcpCode.Contrast, value, cancellationToken);
+
+	ValueTask<ContinuousValue> IMonitorSpeakerAudioVolumeFeature.GetVolumeAsync(CancellationToken cancellationToken) => GetVcpAsync(SupportedFeatures.Contrast, VcpCode.AudioSpeakerVolume, cancellationToken);
+	ValueTask IMonitorSpeakerAudioVolumeFeature.SetVolumeAsync(ushort value, CancellationToken cancellationToken) => SetVcpAsync(SupportedFeatures.Contrast, VcpCode.AudioSpeakerVolume, value, cancellationToken);
 }

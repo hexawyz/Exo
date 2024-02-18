@@ -46,7 +46,7 @@
                 HorizontalAlignment="Stretch"
                 Style="{StaticResource BrightnessSliderStyle}">
                 <Slider.ThumbToolTipValueConverter>
-                    <local:BrightnessValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
         </DataTemplate>

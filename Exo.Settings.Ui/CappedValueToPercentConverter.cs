@@ -1,10 +1,9 @@
-using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui;
 
-internal sealed class BrightnessValueToPercentConverter : DependencyObject, IValueConverter
+internal sealed class CappedValueToPercentConverter : DependencyObject, IValueConverter
 {
 	public int MaximumValue
 	{
@@ -13,7 +12,7 @@ internal sealed class BrightnessValueToPercentConverter : DependencyObject, IVal
 	}
 
 	public static readonly DependencyProperty MaximumValueProperty =
-		DependencyProperty.Register("MaximumValue", typeof(int), typeof(BrightnessValueToPercentConverter), new PropertyMetadata(100));
+		DependencyProperty.Register("MaximumValue", typeof(int), typeof(CappedValueToPercentConverter), new PropertyMetadata(100));
 
 	public object? Convert(object value, Type targetType, object parameter, string language)
 	{

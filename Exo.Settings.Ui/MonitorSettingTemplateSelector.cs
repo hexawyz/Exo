@@ -9,6 +9,7 @@ internal sealed class MonitorSettingTemplateSelector : DataTemplateSelector
 {
 	public DataTemplate BrightnessTemplate { get; set; }
 	public DataTemplate ContrastTemplate { get; set; }
+	public DataTemplate AudioVolumeTemplate { get; set; }
 	public DataTemplate DefaultContinuousTemplate { get; set; }
 
 	protected override DataTemplate SelectTemplateCore(object item, DependencyObject container)
@@ -22,6 +23,7 @@ internal sealed class MonitorSettingTemplateSelector : DataTemplateSelector
 			{
 			case MonitorSetting.Brightness: return BrightnessTemplate;
 			case MonitorSetting.Contrast: return ContrastTemplate;
+			case MonitorSetting.AudioVolume: return AudioVolumeTemplate;
 			}
 		}
 		return DefaultContinuousTemplate;

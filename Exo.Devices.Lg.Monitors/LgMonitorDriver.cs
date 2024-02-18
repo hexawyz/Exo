@@ -26,6 +26,7 @@ public class LgMonitorDriver :
 	IRawVcpFeature,
 	IMonitorBrightnessFeature,
 	IMonitorContrastFeature,
+	IMonitorSpeakerAudioVolumeFeature,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
 	ILgMonitorScalerVersionFeature,
@@ -301,7 +302,8 @@ public class LgMonitorDriver :
 			IMonitorCapabilitiesFeature,
 			IRawVcpFeature,
 			IMonitorBrightnessFeature,
-			IMonitorContrastFeature>(this);
+			IMonitorContrastFeature,
+			IMonitorSpeakerAudioVolumeFeature>(this);
 		_lightingFeatures = FeatureCollection.Create<
 			ILightingDeviceFeature,
 			LgMonitorDriver,
@@ -360,6 +362,15 @@ public class LgMonitorDriver :
 	}
 
 	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));
+
+	async ValueTask<ContinuousValue> IMonitorSpeakerAudioVolumeFeature.GetVolumeAsync(CancellationToken cancellationToken)
+	{
+		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, cancellationToken).ConfigureAwait(false);
+		return new(result.CurrentValue, 0, result.MaximumValue);
+	}
+
+	ValueTask IMonitorSpeakerAudioVolumeFeature.SetVolumeAsync(ushort value, CancellationToken cancellationToken)
+		=> new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, value, cancellationToken));
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync()
 	{

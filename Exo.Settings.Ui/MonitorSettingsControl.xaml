@@ -12,8 +12,119 @@
     IsEnabled="{Binding IsReady}">
 
     <StackPanel Orientation="Vertical" Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}">
-        <local:MonitorSettingControl Setting="{Binding BrightnessSetting}" Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <local:MonitorSettingControl Setting="{Binding ContrastSetting}" Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <FontIcon
+                Grid.Row="0"
+                Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE706;"
+                ToolTipService.ToolTip="Brightness"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="0"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BrightnessSetting}"
+                Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource BrightnessSliderStyle}">
+                <Slider.ThumbToolTipValueConverter>
+                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="0"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding BrightnessSetting.IsChanged, Mode=OneWay}"
+                Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Click="OnBrightnessResetButtonClick">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+            
+            <FontIcon
+                Grid.Row="1"
+                Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE793;"
+                ToolTipService.ToolTip="Contrast"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="1"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding ContrastSetting}"
+                Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <Slider.ThumbToolTipValueConverter>
+                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="1"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding ContrastSetting.IsChanged, Mode=OneWay}"
+                Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Click="OnContrastResetButtonClick">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+            
+            <FontIcon
+                Grid.Row="2"
+                Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE767;"
+                ToolTipService.ToolTip="Audio Volume"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="2"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding AudioVolumeSetting}"
+                Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <Slider.ThumbToolTipValueConverter>
+                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="2"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding AudioVolumeSetting.IsChanged, Mode=OneWay}"
+                Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Click="OnAudioVolumeResetButtonClick">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+        </Grid>
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
             <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Click="OnResetButtonClick" />
             <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />

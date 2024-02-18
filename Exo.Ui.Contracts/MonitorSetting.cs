@@ -11,4 +11,6 @@ public enum MonitorSetting : uint
 	Brightness = 1,
 	[EnumMember]
 	Contrast = 2,
+	[EnumMember]
+	AudioVolume = 3,
 }

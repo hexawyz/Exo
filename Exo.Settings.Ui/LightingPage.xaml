@@ -37,7 +37,7 @@
                                 Minimum="{Binding MinimumLevel, Mode=OneTime}"
                                 Maximum="{Binding MaximumLevel, Mode=OneTime}">
                                 <Slider.ThumbToolTipValueConverter>
-                                    <local:BrightnessValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
+                                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
                                 </Slider.ThumbToolTipValueConverter>
                             </Slider>
                         </Grid>

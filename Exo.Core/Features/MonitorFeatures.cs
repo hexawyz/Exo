@@ -69,6 +69,6 @@ public interface IMonitorSpeakerAudioVolumeFeature : IMonitorDeviceFeature
 {
 	ValueTask<ContinuousValue> GetVolumeAsync(CancellationToken cancellationToken);
 	ValueTask SetVolumeAsync(ushort value, CancellationToken cancellationToken);
-	ValueTask SetDefaultVolumeAsync(CancellationToken cancellationToken);
-	ValueTask MuteAsync(CancellationToken cancellationToken);
+	//ValueTask SetDefaultVolumeAsync(CancellationToken cancellationToken);
+	//ValueTask MuteAsync(CancellationToken cancellationToken);
 }

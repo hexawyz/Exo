@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -41,6 +42,12 @@ internal sealed partial class MonitorSettingsControl : UserControl
 	}
 
 	private void OnMonitorFeaturesPropertyChanged(MonitorDeviceFeaturesViewModel value) => ((FrameworkElement)Content).DataContext = value;
+
+	private void OnBrightnessResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.BrightnessSetting!.Reset();
+
+	private void OnContrastResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.ContrastSetting!.Reset();
+
+	private void OnAudioVolumeResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.AudioVolumeSetting!.Reset();
 
 	private void OnResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.Reset();
 
