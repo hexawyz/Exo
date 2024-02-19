@@ -30,15 +30,17 @@ internal unsafe sealed class NvApi
 		public static readonly delegate* unmanaged[Cdecl]<uint, ShortString*, uint> GetErrorMessage = (delegate* unmanaged[Cdecl]<uint, ShortString*, uint>)QueryInterface(0x6c2d048c);
 		public static readonly delegate* unmanaged[Cdecl]<ShortString*, uint> GetInterfaceVersionString = (delegate* unmanaged[Cdecl]<ShortString*, uint>)QueryInterface(0x01053fa5);
 		public static readonly delegate* unmanaged[Cdecl]<nint*, int*, uint> EnumPhysicalGPUs = (delegate* unmanaged[Cdecl]<nint*, int*, uint>)QueryInterface(0xe5ac921f);
-		public static readonly delegate* unmanaged[Cdecl]<nint*, void*, uint> I2CRead = (delegate* unmanaged[Cdecl]<nint*, void*, uint>)QueryInterface(0x2fde12c5);
-		public static readonly delegate* unmanaged[Cdecl]<nint*, void*, uint> I2CWrite = (delegate* unmanaged[Cdecl]<nint*, void*, uint>)QueryInterface(0xe812eb07);
+		public static readonly delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint> I2CRead = (delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint>)QueryInterface(0x2fde12c5);
+		public static readonly delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint> I2CWrite = (delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint>)QueryInterface(0xe812eb07);
 
 		public static class Gpu
 		{
+			public static readonly delegate* unmanaged[Cdecl]<nint, uint, Edid*, uint> GetEdid = (delegate* unmanaged[Cdecl]<nint, uint, Edid*, uint>)QueryInterface(0x37d32e69);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.BoardInfo*, uint> GetBoardInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.BoardInfo*, uint>)QueryInterface(0x22d54523);
 			public static readonly delegate* unmanaged[Cdecl]<nint, ShortString*, uint> GetFullName = (delegate* unmanaged[Cdecl]<nint, ShortString*, uint>)QueryInterface(0xceee8e9f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x1be0b8e5);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusSlotId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x2a0a350f);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DisplayIdInfo*, uint*, NvApi.Gpu.ConnectedIdFlags, uint> GetConnectedDisplayIds = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DisplayIdInfo*, uint*, NvApi.Gpu.ConnectedIdFlags, uint>)QueryInterface(0x0078dba2);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> QueryIlluminationSupport = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0xa629da31);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> GetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x9a1b9365);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> SetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x0254a187);
@@ -48,6 +50,11 @@ internal unsafe sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneInfoQuery*, uint> ClientIllumZonesGetInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneInfoQuery*, uint>)QueryInterface(0x4b81241b);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x3dbf5764);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x197d065e);
+		}
+
+		public static class System
+		{
+			public static readonly delegate* unmanaged[Cdecl]<uint, nint*, uint*, uint> GetGpuAndOutputIdFromDisplayId = (delegate* unmanaged[Cdecl]<uint, nint*, uint*, uint>)QueryInterface(0x112ba1a5);
 		}
 	}
 
@@ -87,6 +94,84 @@ internal unsafe sealed class NvApi
 		private byte _element0;
 	}
 
+	[InlineArray(256)]
+	private struct ByteArray256
+	{
+		private byte _element0;
+	}
+
+	public enum MonitorConnectorType
+	{
+		Unknown = -1,
+		Uninitialized = 0,
+		Vga,
+		Component,
+		SVideo,
+		Hdmi,
+		Dvi,
+		Lvds,
+		DisplayPort,
+		Composite,
+	}
+
+	private struct Edid
+	{
+		public uint Version;
+		public ByteArray256 Data;
+		public uint EdidSize;
+		public uint EdidId;
+		public uint Offset;
+	}
+
+	public enum I2CSpeed
+	{
+		Default,
+		Frequency3Khz,
+		Frequency10Khz,
+		Frequency33Khz,
+		Frequency100Khz,
+		Frequency200Khz,
+		Frequency400Khz,
+	}
+
+	private unsafe struct I2CInfo
+	{
+		public uint Version;
+		public uint DisplayMask;
+		private byte _isDdcPort;
+		public byte DeviceAddress;
+		public byte* RegisterAddress;
+		public uint RegisterAddressSize;
+		public byte* Data;
+		public uint Size;
+		private readonly uint _deprecatedSpeed;
+		public I2CSpeed Speed;
+		public byte PortId;
+		private uint _isPortIdSet;
+
+		public bool IsDdcPort
+		{
+			get => _isDdcPort != 0;
+			set => _isDdcPort = value ? (byte)1 : (byte)0;
+		}
+
+		public bool IsPortIdSet
+		{
+			get => _isPortIdSet != 0;
+			set => _isPortIdSet = value ? 1U : 0;
+		}
+	}
+
+	//public enum EdidFlag
+	//{
+	//	Default = 0,
+	//	Raw = 1,
+	//	Cooked = 2,
+	//	Forced = 3,
+	//	Inf = 4,
+	//	Hardware = 5,
+	//}
+
 	public static class Gpu
 	{
 		internal struct BoardNumber
@@ -120,6 +205,37 @@ internal unsafe sealed class NvApi
 		{
 			public uint Version;
 			public BoardNumber BoardNumber;
+		}
+
+		public enum ConnectedIdFlags : uint
+		{
+			None = 0x0000,
+			Uncached = 0x0001,
+			Sli = 0x0002,
+			LidState = 0x0004,
+			Fake = 0x0008,
+			ExcludeMultiStream = 0x0010,
+		}
+
+		public enum DisplayFlags : uint
+		{
+			None = 0x0000,
+			Dynamic = 0x0001,
+			MultiStreamRootNode = 0x0002,
+			Active = 0x0004,
+			Cluster = 0x0008,
+			OsVisible = 0x0010,
+			//Wfd = 0x0020,
+			Connected = 0x0040,
+			PhysicallyConnected = 0x00020000,
+		}
+
+		public struct DisplayIdInfo
+		{
+			public uint Version;
+			public MonitorConnectorType ConnectorType;
+			public uint DisplayId;
+			public DisplayFlags Flags;
 		}
 
 		public enum IlluminationZone : int
@@ -527,6 +643,18 @@ internal unsafe sealed class NvApi
 		return new Span<PhysicalGpu>((PhysicalGpu*)array, count).ToArray();
 	}
 
+	public static class System
+	{
+		public static void GetGpuAndOutputIdFromDisplayId(uint displayId, out PhysicalGpu physicalGpu, out uint outputId)
+		{
+			nint gpu = 0;
+			uint oid = 0;
+			ValidateResult(Functions.System.GetGpuAndOutputIdFromDisplayId(displayId, &gpu, &oid));
+			physicalGpu = Unsafe.As<nint, PhysicalGpu>(ref gpu);
+			outputId = oid;
+		}
+	}
+
 	public readonly struct PhysicalGpu
 	{
 		private readonly nint _handle;
@@ -561,6 +689,57 @@ internal unsafe sealed class NvApi
 			return boardInfo.BoardNumber.ToByteArray();
 		}
 
+		public Gpu.DisplayIdInfo[] GetConnectedDisplays(Gpu.ConnectedIdFlags flags)
+		{
+			uint version = StructVersion<Gpu.DisplayIdInfo>(3);
+			uint count = 0;
+			ValidateResult(Functions.Gpu.GetConnectedDisplayIds(_handle, null, &count, flags));
+			while (true)
+			{
+				var displays = new Gpu.DisplayIdInfo[count];
+				for (int i = 0; i < displays.Length; i++)
+				{
+					displays[i].Version = version;
+				}
+				fixed (Gpu.DisplayIdInfo* displayPointer = displays)
+				{
+					ValidateResult(Functions.Gpu.GetConnectedDisplayIds(_handle, displayPointer, &count, flags));
+				}
+				if (count <= displays.Length)
+				{
+					if (count < displays.Length)
+					{
+						displays = displays[..(int)count];
+					}
+					return displays;
+				}
+			}
+		}
+
+		public byte[] GetEdid(uint outputId)
+		{
+			var edid = new Edid() { Version = StructVersion<Edid>(3) };
+			ValidateResult(Functions.Gpu.GetEdid(_handle, outputId, &edid));
+			var data = new byte[edid.EdidSize];
+			((ReadOnlySpan<byte>)edid.Data)[..data.Length].CopyTo(data);
+			if (edid.EdidSize <= 256)
+			{
+				uint blockCount = (edid.EdidSize + 255) / 256;
+				for (uint i = 1; i < blockCount; i++)
+				{
+					do
+					{
+						edid.EdidId = i;
+						edid.Offset = blockCount * 256;
+						ValidateResult(Functions.Gpu.GetEdid(_handle, outputId, &edid));
+					}
+					while (edid.EdidId == i);
+					((ReadOnlySpan<byte>)edid.Data).Slice((int)edid.Offset, Math.Min(256, data.Length - (int)edid.Offset)).CopyTo(data);
+				}
+			}
+			return data;
+		}
+
 		public bool SupportsIllumination(Gpu.IlluminationZone zone)
 		{
 			var query = new Gpu.IlluminationQuery { Version = StructVersion<Gpu.IlluminationQuery>(1), PhysicalGpuHandle = _handle, Attribute = (Gpu.IlluminationAttribute)zone };
@@ -571,7 +750,7 @@ internal unsafe sealed class NvApi
 		public Gpu.Client.IlluminationDeviceInfo[] GetIlluminationDevices()
 		{
 			var query = new Gpu.Client.IlluminationDeviceInfoQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceInfoQuery>(1) };
-			ValidateResult(Functions.Gpu.ClientIllumDevicesGetInfo(_handle , & query));
+			ValidateResult(Functions.Gpu.ClientIllumDevicesGetInfo(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationDeviceInfo>)query.Devices)[..query.DeviceCount].ToArray();
 		}
 

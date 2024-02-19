@@ -103,6 +103,13 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 			throw new InvalidOperationException("The returned number of zone controls is different from the number of zone informations.");
 		}
 
+		//var displays = foundGpu.GetConnectedDisplays(default);
+		//foreach (var display in displays)
+		//{
+		//	NvApi.System.GetGpuAndOutputIdFromDisplayId(display.DisplayId, out _, out uint outputId);
+		//	var edid = foundGpu.GetEdid(outputId);
+		//}
+
 		var @lock = new object();
 
 		var lightingZones = ImmutableArray.CreateBuilder<LightingZone>(zones.Length);
