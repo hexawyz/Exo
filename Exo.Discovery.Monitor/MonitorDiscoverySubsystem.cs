@@ -118,7 +118,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 			{
 				registeredForMonitorDeviceInterfaceClass |= (DeviceInterfaceClass)(int)attribute.ConstructorArguments[0].Value! == DeviceInterfaceClass.Monitor;
 			}
-			else if (attribute.Matches<MonitorNameAttribute>())
+			else if (attribute.Matches<MonitorIdAttribute>())
 			{
 				var arguments = attribute.ConstructorArguments;
 
@@ -126,7 +126,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 				{
 					string? rawMonitorName = (string?)arguments[0].Value;
 
-					if (!MonitorName.TryParse(rawMonitorName, out var monitorName))
+					if (!MonitorId.TryParse(rawMonitorName, out var monitorName))
 					{
 						_logger.MonitorNameParsingFailure(factoryId, rawMonitorName);
 						continue;

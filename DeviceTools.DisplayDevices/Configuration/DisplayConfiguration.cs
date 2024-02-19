@@ -429,9 +429,9 @@ public readonly struct TargetDeviceNameInfo
 	public string GetMonitorDeviceName() => _deviceName.MonitorDevicePath.ToString();
 }
 
-public readonly struct MonitorName : IEquatable<MonitorName>
+public readonly struct MonitorId : IEquatable<MonitorId>
 {
-	public static MonitorName Parse(string? text)
+	public static MonitorId Parse(string? text)
 	{
 		if (text is not { Length: 7 } ||
 			!PnpVendorId.TryParse(text.AsSpan(0, 3), out var vendorId) ||
@@ -440,10 +440,10 @@ public readonly struct MonitorName : IEquatable<MonitorName>
 			throw new ArgumentException("Monitor name should be composed of three ASCII letters and four hexadecimal digits.");
 		}
 
-		return new MonitorName(vendorId, productId);
+		return new MonitorId(vendorId, productId);
 	}
 
-	public static bool TryParse(string? text, out MonitorName monitorName)
+	public static bool TryParse(string? text, out MonitorId monitorName)
 	{
 		if (text is not { Length: 7 } ||
 			!PnpVendorId.TryParse(text.AsSpan(0, 3), out var vendorId) ||
@@ -453,11 +453,11 @@ public readonly struct MonitorName : IEquatable<MonitorName>
 			return false;
 		}
 
-		monitorName = new MonitorName(vendorId, productId);
+		monitorName = new MonitorId(vendorId, productId);
 		return true;
 	}
 
-	public MonitorName(PnpVendorId vendorId, ushort productId)
+	public MonitorId(PnpVendorId vendorId, ushort productId)
 	{
 		VendorId = vendorId;
 		ProductId = productId;
@@ -482,12 +482,12 @@ public readonly struct MonitorName : IEquatable<MonitorName>
 			) :
 			null;
 
-	public override bool Equals(object? obj) => obj is MonitorName name && Equals(name);
-	public bool Equals(MonitorName other) => VendorId.Equals(other.VendorId) && ProductId == other.ProductId;
+	public override bool Equals(object? obj) => obj is MonitorId name && Equals(name);
+	public bool Equals(MonitorId other) => VendorId.Equals(other.VendorId) && ProductId == other.ProductId;
 	public override int GetHashCode() => HashCode.Combine(VendorId, ProductId);
 
-	public static bool operator ==(MonitorName left, MonitorName right) => left.Equals(right);
-	public static bool operator !=(MonitorName left, MonitorName right) => !(left == right);
+	public static bool operator ==(MonitorId left, MonitorId right) => left.Equals(right);
+	public static bool operator !=(MonitorId left, MonitorId right) => !(left == right);
 }
 
 public readonly struct DisplayConfigurationModeInfo
