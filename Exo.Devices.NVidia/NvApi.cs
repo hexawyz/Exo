@@ -722,7 +722,7 @@ internal unsafe sealed class NvApi
 			ValidateResult(Functions.Gpu.GetEdid(_handle, outputId, &edid));
 			var data = new byte[edid.EdidSize];
 			((ReadOnlySpan<byte>)edid.Data)[..data.Length].CopyTo(data);
-			if (edid.EdidSize <= 256)
+			if (edid.EdidSize > 256)
 			{
 				uint blockCount = (edid.EdidSize + 255) / 256;
 				for (uint i = 1; i < blockCount; i++)
