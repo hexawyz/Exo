@@ -1,16 +1,27 @@
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
+using DeviceTools.DisplayDevices;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
+using Exo.I2C;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.NVidia;
 
-public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILightingDeviceFeature>, ILightingControllerFeature, ILightingDeferredChangesFeature
+public class NVidiaGpuDriver :
+	Driver,
+	IDeviceIdFeature,
+	IDeviceDriver<IDisplayAdapterDeviceFeature>,
+	IDeviceDriver<ILightingDeviceFeature>,
+	IDisplayAdapterI2CBusProviderFeature,
+	ILightingControllerFeature,
+	ILightingDeferredChangesFeature
 {
 	private const ushort NVidiaVendorId = 0x10DE;
 
@@ -49,7 +60,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 	[DiscoverySubsystem<PciDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayAdapter)]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayDeviceArrival)]
-	[ProductId(VendorIdSource.Pci, NVidiaVendorId, 0x2204)]
+	[VendorId(VendorIdSource.Pci, NVidiaVendorId)]
 	public static ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
@@ -102,13 +113,6 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		{
 			throw new InvalidOperationException("The returned number of zone controls is different from the number of zone informations.");
 		}
-
-		//var displays = foundGpu.GetConnectedDisplays(default);
-		//foreach (var display in displays)
-		//{
-		//	NvApi.System.GetGpuAndOutputIdFromDisplayId(display.DisplayId, out _, out uint outputId);
-		//	var edid = foundGpu.GetEdid(outputId);
-		//}
 
 		var @lock = new object();
 
@@ -226,6 +230,34 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 				)
 			)
 		);
+	}
+
+	private sealed class MonitorI2CBus : II2CBus
+	{
+		private readonly NvApi.PhysicalGpu _gpu;
+		private readonly uint _outputId;
+
+		public MonitorI2CBus(NvApi.PhysicalGpu gpu, uint outputId)
+		{
+			_gpu = gpu;
+			_outputId = outputId;
+		}
+
+		public ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+		{
+			_gpu.I2CMonitorWrite(_outputId, address, register, bytes);
+			return ValueTask.CompletedTask;
+		}
+
+		public ValueTask ReadAsync(byte address, Memory<byte> bytes, CancellationToken cancellationToken)
+		{
+			_gpu.I2CMonitorRead(_outputId, address, bytes);
+			return ValueTask.CompletedTask;
+		}
+
+		public void Dispose()
+		{
+		}
 	}
 
 	// GPUs that support "piecewise" effects could support more effects, but I don't have this on hand, so for now it is only disabled or static.
@@ -576,6 +608,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 	}
 
 	private readonly NvApi.Gpu.Client.IlluminationZoneControl[] _illuminationZoneControls;
+	private readonly IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly ImmutableArray<LightingZone> _lightingZones;
 	private readonly NvApi.PhysicalGpu _gpu;
@@ -588,6 +621,7 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
 	public override IDeviceFeatureCollection<IDeviceFeature> Features { get; }
+	IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 	private NVidiaGpuDriver
@@ -606,9 +640,10 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
+		_displayAdapterFeatures = FeatureCollection.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
 		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
-		Features = FeatureCollection.Create<IDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
+		Features = FeatureCollection.Create<IDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature, IDisplayAdapterI2CBusProviderFeature, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -631,5 +666,29 @@ public class NVidiaGpuDriver : Driver, IDeviceIdFeature, IDeviceDriver<ILighting
 			return ValueTask.FromException(ex);
 		}
 		return ValueTask.CompletedTask;
+	}
+
+	string IDisplayAdapterI2CBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
+
+	ValueTask<II2CBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+	{
+		var displays = _gpu.GetConnectedDisplays(default);
+		foreach (var display in displays)
+		{
+			NvApi.System.GetGpuAndOutputIdFromDisplayId(display.DisplayId, out _, out uint outputId);
+			try
+			{
+				var edid = Edid.Parse(_gpu.GetEdid(outputId));
+				if (edid.VendorId == vendorId && edid.ProductId == productId && edid.IdSerialNumber == idSerialNumber && edid.SerialNumber == serialNumber)
+				{
+					return new(new MonitorI2CBus(_gpu, outputId));
+				}
+			}
+			catch (Exception ex)
+			{
+				// TODO: Log.
+			}
+		}
+		return ValueTask.FromException<II2CBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Could not find the monitor.")));
 	}
 }

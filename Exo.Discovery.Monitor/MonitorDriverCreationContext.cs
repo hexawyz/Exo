@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
+using Exo.I2C;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
@@ -31,6 +32,9 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 	public string? FriendlyName { get; }
 	/// <summary>Gets the EDID information associated with the monitor.</summary>
 	public Edid Edid { get; }
+	/// <summary>Gets an interface used to access the I2C bus associated with this monitor.</summary>
+	// TODO: Make optional?
+	public II2CBus I2cBus { get; }
 	/// <summary>Gets the name of the adapter device as returned by <see cref="DisplayDevice.DeviceName"/>.</summary>
 	/// <remarks>
 	/// <para>This name would typically be of the form \\.\DISPLAY1.</para>
@@ -44,7 +48,6 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 	/// </remarks>
 	public string MonitorDeviceName { get; }
 	/// <summary>Gets the name of the adapter device interface.</summary>
-	/// <remarks>This name would typically be of the form \\.\DISPLAY1.</remarks>
 	public string AdapterDeviceInterfaceName { get; }
 	/// <summary>Gets the physical monitor associated with this monitor.</summary>
 	public PhysicalMonitor PhysicalMonitor { get; }
@@ -84,6 +87,7 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		Guid containerId,
 		string? friendlyName,
 		Edid edid,
+		II2CBus i2cBus,
 		string adapterDeviceName,
 		string monitorDeviceName,
 		string adapterDeviceInterfaceName,
@@ -99,6 +103,7 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		ContainerId = containerId;
 		FriendlyName = friendlyName;
 		Edid = edid;
+		I2cBus = i2cBus;
 		AdapterDeviceName = adapterDeviceName;
 		MonitorDeviceName = monitorDeviceName;
 		AdapterDeviceInterfaceName = adapterDeviceInterfaceName;

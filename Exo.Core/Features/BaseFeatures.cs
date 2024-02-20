@@ -41,6 +41,11 @@ public interface IMonitorDeviceFeature : IDeviceFeature
 {
 }
 
+[TypeId(0x58D73E98, 0xE202, 0x4F40, 0xBF, 0x69, 0x45, 0x1B, 0x82, 0x44, 0xF0, 0xAD)]
+public interface IDisplayAdapterDeviceFeature : IDeviceFeature
+{
+}
+
 /// <summary>Defines features related to lighting.</summary>
 /// <remarks>
 /// <para>Devices providing controllable lights control should expose features based on <see cref="ILightingDeviceFeature"/> to allow client components to control the lighting.</para>
@@ -119,7 +124,7 @@ public interface IDeviceIdFeature : IDeviceFeature
 /// <remarks>
 /// <para>
 /// This feature is very similar to the <see cref="IDeviceIdFeature"/> but allows devices to return multiple device IDs.
-/// This feature is mostly useful for devices that can connect through multiple busses using different IDs, but it can always be provided in addition to or instead of <see cref="IDeviceIdFeature"/>.
+/// This feature is mostly useful for devices that can connect through multiple buses using different IDs, but it can always be provided in addition to or instead of <see cref="IDeviceIdFeature"/>.
 /// </para>
 /// <para>
 /// If a driver exposes both interfaces, the ID returned by <see cref="IDeviceIdFeature"/> must be constant and represent the device ID that can be used for uniquely identifying the hardware.

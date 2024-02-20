@@ -1,6 +1,6 @@
 using DeviceTools;
 
-namespace Exo.Services;
+namespace Exo.I2C;
 
 /// <summary>Provides the raw API to interact with an I2C bus.</summary>
 public interface II2CBus : IDisposable
@@ -13,16 +13,18 @@ public interface II2CBus : IDisposable
 	/// <param name="address">The final register address as it will be emitted to the I2C device.</param>
 	/// <param name="register">The register to write.</param>
 	/// <param name="bytes">The raw message bytes, including the checksum that should be computed by the caller.</param>
+	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
-	ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes);
+	ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken);
 
 	//ValueTask WriteAsync(byte address, ushort register, ReadOnlySpan<byte> bytes);
 
 	/// <summary>Reads data from the HID bus.</summary>
 	/// <param name="address">The device address that is to be read from.</param>
 	/// <param name="bytes">The buffer of bytes that will be filled with the response, including the checksum.</param>
+	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
-	ValueTask ReadAsync(byte address, ReadOnlyMemory<byte> bytes);
+	ValueTask ReadAsync(byte address, Memory<byte> bytes, CancellationToken cancellationToken);
 }
 
 /// <summary>A resolver that will provide an I2C bus for the requested monitor.</summary>
@@ -36,7 +38,7 @@ public interface II2CBus : IDisposable
 /// <param name="serialNumber">The actual serial number of the monitor, if available.</param>
 /// <param name="cancellationToken"></param>
 /// <returns></returns>
-public delegate ValueTask<II2CBus> MonitorI2CBusResolver(PnpVendorId vendorId, ushort productId, int idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
+public delegate ValueTask<II2CBus> MonitorI2CBusResolver(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
 
 public interface II2CBusProvider
 {

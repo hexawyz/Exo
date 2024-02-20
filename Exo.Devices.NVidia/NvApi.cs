@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32;
 
 namespace Exo.Devices.NVidia;
 
@@ -30,8 +31,8 @@ internal unsafe sealed class NvApi
 		public static readonly delegate* unmanaged[Cdecl]<uint, ShortString*, uint> GetErrorMessage = (delegate* unmanaged[Cdecl]<uint, ShortString*, uint>)QueryInterface(0x6c2d048c);
 		public static readonly delegate* unmanaged[Cdecl]<ShortString*, uint> GetInterfaceVersionString = (delegate* unmanaged[Cdecl]<ShortString*, uint>)QueryInterface(0x01053fa5);
 		public static readonly delegate* unmanaged[Cdecl]<nint*, int*, uint> EnumPhysicalGPUs = (delegate* unmanaged[Cdecl]<nint*, int*, uint>)QueryInterface(0xe5ac921f);
-		public static readonly delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint> I2CRead = (delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint>)QueryInterface(0x2fde12c5);
-		public static readonly delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint> I2CWrite = (delegate* unmanaged[Cdecl]<nint*, I2CInfo*, uint>)QueryInterface(0xe812eb07);
+		public static readonly delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint> I2CRead = (delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint>)QueryInterface(0x2fde12c5);
+		public static readonly delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint> I2CWrite = (delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint>)QueryInterface(0xe812eb07);
 
 		public static class Gpu
 		{
@@ -635,7 +636,7 @@ internal unsafe sealed class NvApi
 		return str.ToString();
 	}
 
-	public static unsafe PhysicalGpu[] GetPhysicalGpus()
+	public static PhysicalGpu[] GetPhysicalGpus()
 	{
 		nint* array = stackalloc nint[64];
 		int count;
@@ -738,6 +739,38 @@ internal unsafe sealed class NvApi
 				}
 			}
 			return data;
+		}
+
+		public void I2CMonitorWrite(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
+		{
+			using var handle = data.Pin();
+			var info = new I2CInfo
+			{
+				Version = StructVersion<I2CInfo>(3),
+				DisplayMask = outputId,
+				IsDdcPort = true,
+				DeviceAddress = address,
+				RegisterAddress = &register,
+				RegisterAddressSize = 1,
+				Data = (byte*)handle.Pointer,
+				Size = (uint)data.Length,
+			};
+			ValidateResult(Functions.I2CWrite(_handle, &info));
+		}
+
+		public void I2CMonitorRead(uint outputId, byte address, ReadOnlyMemory<byte> data)
+		{
+			using var handle = data.Pin();
+			var info = new I2CInfo
+			{
+				Version = StructVersion<I2CInfo>(3),
+				DisplayMask = outputId,
+				IsDdcPort = true,
+				DeviceAddress = address,
+				Data = (byte*)handle.Pointer,
+				Size = (uint)data.Length,
+			};
+			ValidateResult(Functions.I2CRead(_handle, &info));
 		}
 
 		public bool SupportsIllumination(Gpu.IlluminationZone zone)

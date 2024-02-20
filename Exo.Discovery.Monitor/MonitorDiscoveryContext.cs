@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
+using Exo.I2C;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
@@ -94,6 +95,11 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			}
 		}
 
+		if (!deviceProperties.TryGetValue(Properties.System.Devices.Parent.Key, out string? displayAdapterName))
+		{
+			throw new InvalidOperationException($"Could not resolve the display adapter for {sourceDeviceName}.");
+		}
+
 		byte[]? cachedRawEdid;
 		using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{sourceDeviceName}\Device Parameters"))
 		{
@@ -107,12 +113,24 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 
 		var edid = Edid.Parse(cachedRawEdid);
 
+		// Use a timeout for resolving the I2C Bus. Depending on time is bad design, but for now, we don't have any way to know when waiting is ok or not.
+		// e.g. Propagating a signal from the Pci discovery to inform that all known adapters have been processed: If all adapters have had the chance to initialize, we can know for sure that the I2C bus is unavailable.
+		II2CBus? i2cBus;
+		using (var i2cTimeoutCancellationTokenSource = new CancellationTokenSource(new TimeSpan(60 * TimeSpan.TicksPerSecond)))
+		using (var hybridCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, i2cTimeoutCancellationTokenSource.Token))
+		{
+			var i2cBusResolver = await _discoverySubsystem.I2CBusProvider.GetMonitorBusResolver(displayAdapterName, hybridCancellationTokenSource.Token).ConfigureAwait(false) ??
+				throw new InvalidOperationException($"Could not resolve the I2C bus for {sourceDeviceName}.");
+
+			i2cBus = await i2cBusResolver(edid.VendorId, edid.ProductId, edid.IdSerialNumber, edid.SerialNumber, hybridCancellationTokenSource.Token).ConfigureAwait(false);
+		}
+
 		// NB: The code below will not work in a non-interactive process. Which is a huge problem.
 		// It seems quite likely that a user mode application will be needed to control the monitors.
 		// Which is not a huge deal, as we already have the overlay service (not the best name for this, though) that can be used and was mostly designed for this purpose.
 		// It will, however, require some smart plumbing to get things to work smoothly. (We'd rely on the user mode client to send VCP codes *unless* we have access to the GPU in the service)
 
-		string displayAdapterName;
+		string displayAdapterName2;
 		string displayMonitorName;
 
 		// Try to locate the device in what is returned by EnumerateDisplayDevices.
@@ -123,7 +141,7 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 				if (monitor.DeviceId.EndsWith(driver))
 				{
 					displayMonitorName = monitor.DeviceName;
-					displayAdapterName = displayAdapter.DeviceName;
+					displayAdapterName2 = displayAdapter.DeviceName;
 					goto DisplayMonitorFound;
 				}
 			}
@@ -218,6 +236,7 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			containerId,
 			friendlyName,
 			edid,
+			i2cBus,
 			displayAdapterName,
 			displayMonitorName,
 			adapterDeviceInterfaceName,

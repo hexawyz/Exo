@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Channels;
 using Exo.Discovery;
+using Exo.I2C;
 using Exo.Service.Services;
 using Exo.Services;
 using Microsoft.AspNetCore.Builder;
@@ -54,6 +55,9 @@ public class Startup
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<INestedDriverRegistryProvider>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());
+		services.AddSingleton<I2CBusRegistry>();
+		services.AddSingleton<II2CBusRegistry>(sp => sp.GetRequiredService<I2CBusRegistry>());
+		services.AddSingleton<II2CBusProvider>(sp => sp.GetRequiredService<I2CBusRegistry>());
 		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<DpiWatcher>();
 		services.AddSingleton<LockedKeysWatcher>();
@@ -61,6 +65,7 @@ public class Startup
 		services.AddSingleton<LightingService>();
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
+		services.AddSingleton<DisplayAdapterService>();
 		services.AddSingleton<MonitorService>();
 		services.AddSingleton<MouseService>();
 		services.AddSingleton<ImageService>();

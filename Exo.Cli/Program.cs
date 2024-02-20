@@ -19,7 +19,7 @@ namespace Exo.Cli
 		{
 			if (monitorName is null || changeSource is null) return;
 
-			var parsedMonitorName = MonitorName.Parse(monitorName);
+			var parsedMonitorName = MonitorId.Parse(monitorName);
 
 			var displayConfiguration = DisplayConfiguration.GetForActivePaths();
 

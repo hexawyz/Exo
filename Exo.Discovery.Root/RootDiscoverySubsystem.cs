@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +16,7 @@ public class RootDiscoverySubsystem :
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	internal IDiscoveryOrchestrator DiscoveryOrchestrator { get; }
 	internal IDeviceNotificationService DeviceNotificationService { get; }
+	internal II2CBusProvider I2CBusProvider { get; }
 
 	internal ConcurrentDictionary<RootComponentKey, Guid> RegisteredFactories { get; }
 	private readonly IDiscoverySink<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext> _discoverySink;
@@ -27,13 +29,15 @@ public class RootDiscoverySubsystem :
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		II2CBusProvider i2cBusProvider
 	)
 	{
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		DiscoveryOrchestrator = discoveryOrchestrator;
 		DeviceNotificationService = deviceNotificationService;
+		I2CBusProvider = i2cBusProvider;
 		RegisteredFactories = new();
 		_pendingKeys = new();
 		_discoverySink = discoveryOrchestrator.RegisterDiscoveryService

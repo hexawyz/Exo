@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
-using DeviceTools.DisplayDevices.Mccs;
 using Exo.Features;
 using Exo.Features.MonitorFeatures;
 

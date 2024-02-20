@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using DeviceTools;
 using DeviceTools.DisplayDevices.Configuration;
+using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -18,10 +19,11 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		II2CBusProvider i2cBusProvider
 	)
 	{
-		return new(new RootComponentCreationResult(typeof(MonitorDiscoverySubsystem), new MonitorDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService), null));
+		return new(new RootComponentCreationResult(typeof(MonitorDiscoverySubsystem), new MonitorDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider), null));
 	}
 
 	// We allow a unique "catch-all" factory for monitors, as many monitors can be handled with generic DDC code and some text-based configuration files per monitor model.
@@ -35,7 +37,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	private readonly IDiscoveryOrchestrator _discoveryOrchestrator;
 	private readonly IDeviceNotificationService _deviceNotificationService;
-
+	internal II2CBusProvider I2CBusProvider { get; }
 	private IDisposable? _monitorNotificationRegistration;
 	private IDiscoverySink<SystemDevicePath, MonitorDiscoveryContext, MonitorDriverCreationContext>? _sink;
 	private readonly object _lock;
@@ -45,7 +47,8 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		II2CBusProvider i2cBusProvider
 	)
 	{
 		LoggerFactory = loggerFactory;
@@ -54,7 +57,7 @@ public sealed class MonitorDiscoverySubsystem : Component, IDiscoveryService<Sys
 		_contextLogger = loggerFactory.CreateLogger<MonitorDiscoveryContext>();
 		_discoveryOrchestrator = discoveryOrchestrator;
 		_deviceNotificationService = deviceNotificationService;
-
+		I2CBusProvider = i2cBusProvider;
 		_productFactories = new();
 		_vendorFactories = new();
 

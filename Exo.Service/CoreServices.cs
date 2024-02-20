@@ -5,7 +5,7 @@ namespace Exo.Service;
 // This is only used to pull a dependency on core services.
 // Because we need the core services to be started even if they are not requested for some reason.
 // This seems simpler than making all those services hosted services.
-public sealed class CoreServices : IHostedService
+internal sealed class CoreServices : IHostedService
 {
 	public CoreServices
 	(
@@ -14,6 +14,8 @@ public sealed class CoreServices : IHostedService
 		BatteryService batteryService,
 		KeyboardService keyboardService,
 		MouseService mouseService,
+		DisplayAdapterService displayAdapterService,
+		MonitorService monitorService,
 		ImageService imageService,
 		OverlayNotificationService overlayNotificationService,
 		ProgrammingService programmingService
