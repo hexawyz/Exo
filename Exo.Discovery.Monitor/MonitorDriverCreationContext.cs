@@ -35,22 +35,6 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 	/// <summary>Gets an interface used to access the I2C bus associated with this monitor.</summary>
 	// TODO: Make optional?
 	public II2CBus I2cBus { get; }
-	/// <summary>Gets the name of the adapter device as returned by <see cref="DisplayDevice.DeviceName"/>.</summary>
-	/// <remarks>
-	/// <para>This name would typically be of the form \\.\DISPLAY1.</para>
-	/// <para>It can't really be matched with other objects in any useful manner, but it helps identifying the physical device in the results of <see cref="DisplayAdapterDevice.GetAll(bool)"/>.</para>
-	/// </remarks>
-	public string AdapterDeviceName { get; }
-	/// <summary>Gets the name of the monitor device as returned by <see cref="DisplayDevice.DeviceName"/>.</summary>
-	/// <remarks>
-	/// <para>This name would typically be of the form \\.\DISPLAY1\Monitor0.</para>
-	/// <para>It can't really be matched with other objects in any useful manner, but it helps identifying the physical device in the results of <see cref="DisplayAdapterDevice.GetMonitors(bool)"/>.</para>
-	/// </remarks>
-	public string MonitorDeviceName { get; }
-	/// <summary>Gets the name of the adapter device interface.</summary>
-	public string AdapterDeviceInterfaceName { get; }
-	/// <summary>Gets the physical monitor associated with this monitor.</summary>
-	public PhysicalMonitor PhysicalMonitor { get; }
 	/// <summary>Gets all the device interfaces in the container.</summary>
 	/// <remarks>These can easily be filtered on the HID device interface class in order to retrieve the required details.</remarks>
 	public ImmutableArray<DeviceObjectInformation> DeviceInterfaces { get; }
@@ -88,10 +72,6 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		string? friendlyName,
 		Edid edid,
 		II2CBus i2cBus,
-		string adapterDeviceName,
-		string monitorDeviceName,
-		string adapterDeviceInterfaceName,
-		PhysicalMonitor physicalMonitor,
 		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
 		ImmutableArray<DeviceObjectInformation> devices,
 		int topLevelDeviceIndex
@@ -104,10 +84,6 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		FriendlyName = friendlyName;
 		Edid = edid;
 		I2cBus = i2cBus;
-		AdapterDeviceName = adapterDeviceName;
-		MonitorDeviceName = monitorDeviceName;
-		AdapterDeviceInterfaceName = adapterDeviceInterfaceName;
-		PhysicalMonitor = physicalMonitor;
 		DeviceInterfaces = deviceInterfaces;
 		Devices = devices;
 		TopLevelDeviceIndex = topLevelDeviceIndex;

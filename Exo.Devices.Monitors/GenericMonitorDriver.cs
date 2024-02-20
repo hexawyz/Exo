@@ -32,7 +32,6 @@ public class GenericMonitorDriver
 		DeviceId deviceId,
 		Edid edid,
 		II2CBus i2cBus,
-		PhysicalMonitor physicalMonitor,
 		string topLevelDeviceName,
 		CancellationToken cancellationToken
 	)
@@ -79,8 +78,7 @@ public class GenericMonitorDriver
 			keys,
 			new GenericMonitorDriver
 			(
-				i2cBus,
-				physicalMonitor,
+				ddc,
 				features,
 				rawCapabilities,
 				capabilities,
@@ -92,7 +90,7 @@ public class GenericMonitorDriver
 	}
 
 	[Flags]
-	private enum SupportedFeatures : ulong
+	protected enum SupportedFeatures : ulong
 	{
 		None = 0x00000000,
 		Capabilities = 0x00000001,
@@ -143,8 +141,7 @@ public class GenericMonitorDriver
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
-	private readonly II2CBus _i2cBus;
-	private readonly PhysicalMonitor _physicalMonitor;
+	private readonly DisplayDataChannel _ddc;
 	private readonly SupportedFeatures _supportedFeatures;
 	private readonly ReadOnlyMemory<byte> _rawCapabilities;
 	private readonly MonitorCapabilities? _capabilities;
@@ -158,10 +155,9 @@ public class GenericMonitorDriver
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
-	private GenericMonitorDriver
+	protected GenericMonitorDriver
 	(
-		II2CBus i2cBus,
-		PhysicalMonitor physicalMonitor,
+		DisplayDataChannel ddc,
 		SupportedFeatures supportedFeatures,
 		ReadOnlyMemory<byte> rawCapabilities,
 		MonitorCapabilities? capabilities,
@@ -171,8 +167,7 @@ public class GenericMonitorDriver
 	)
 		: base(friendlyName, configurationKey)
 	{
-		_i2cBus = i2cBus;
-		_physicalMonitor = physicalMonitor;
+		_ddc = ddc;
 		_supportedFeatures = supportedFeatures;
 		_rawCapabilities = rawCapabilities;
 		_capabilities = capabilities;
@@ -193,32 +188,17 @@ public class GenericMonitorDriver
 		if ((_supportedFeatures & features) != features) throw new NotSupportedException();
 	}
 
-	private ValueTask<ContinuousValue> GetVcpAsync(SupportedFeatures features, VcpCode code, CancellationToken cancellationToken)
+	private async ValueTask<ContinuousValue> GetVcpAsync(SupportedFeatures features, VcpCode code, CancellationToken cancellationToken)
 	{
-		try
-		{
-			EnsureSupportedFeatures(features);
-			var reply = _physicalMonitor.GetVcpFeature((byte)code);
-			return ValueTask.FromResult(new ContinuousValue(reply.CurrentValue, 0, reply.MaximumValue));
-		}
-		catch (Exception ex)
-		{
-			return ValueTask.FromException<ContinuousValue>(ex);
-		}
+		EnsureSupportedFeatures(features);
+		var reply = await _ddc.GetVcpFeatureAsync((byte)code, cancellationToken).ConfigureAwait(false);
+		return new ContinuousValue(reply.CurrentValue, 0, reply.MaximumValue);
 	}
 
-	private ValueTask SetVcpAsync(SupportedFeatures features, VcpCode code, ushort value, CancellationToken cancellationToken)
+	private async ValueTask SetVcpAsync(SupportedFeatures features, VcpCode code, ushort value, CancellationToken cancellationToken)
 	{
-		try
-		{
-			EnsureSupportedFeatures(features);
-			_physicalMonitor.SetVcpFeature((byte)code, value);
-			return ValueTask.CompletedTask;
-		}
-		catch (Exception ex)
-		{
-			return ValueTask.FromException(ex);
-		}
+		EnsureSupportedFeatures(features);
+		await _ddc.SetVcpFeatureAsync((byte)code, value, cancellationToken).ConfigureAwait(false);
 	}
 
 	ReadOnlySpan<byte> IMonitorRawCapabilitiesFeature.RawCapabilities

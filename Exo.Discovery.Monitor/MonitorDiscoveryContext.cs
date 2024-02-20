@@ -125,106 +125,6 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			i2cBus = await i2cBusResolver(edid.VendorId, edid.ProductId, edid.IdSerialNumber, edid.SerialNumber, hybridCancellationTokenSource.Token).ConfigureAwait(false);
 		}
 
-		// NB: The code below will not work in a non-interactive process. Which is a huge problem.
-		// It seems quite likely that a user mode application will be needed to control the monitors.
-		// Which is not a huge deal, as we already have the overlay service (not the best name for this, though) that can be used and was mostly designed for this purpose.
-		// It will, however, require some smart plumbing to get things to work smoothly. (We'd rely on the user mode client to send VCP codes *unless* we have access to the GPU in the service)
-
-		string displayAdapterName2;
-		string displayMonitorName;
-
-		// Try to locate the device in what is returned by EnumerateDisplayDevices.
-		foreach (var displayAdapter in DisplayAdapterDevice.GetAll(false))
-		{
-			foreach (var monitor in displayAdapter.GetMonitors(false))
-			{
-				if (monitor.DeviceId.EndsWith(driver))
-				{
-					displayMonitorName = monitor.DeviceName;
-					displayAdapterName2 = displayAdapter.DeviceName;
-					goto DisplayMonitorFound;
-				}
-			}
-		}
-		throw new InvalidOperationException("Could not match the monitor in objects returned by EnumerateDisplayDevices.");
-	DisplayMonitorFound:;
-
-		// Now, resolve the physical monitor object associated with the device.
-		// To do this, we first retrieve the display configuration (covering all monitors), then we try to match it with logical and physical monitors, assuming that they should be identically ordered.
-		// See https://stackoverflow.com/questions/27042576/enumdisplaydevices-vs-enumdisplaymonitors answer by Hans Passant.
-
-		// TODO: We may want to introduce some retry logic here if we detect a mismatch between display configuration and logical/physical monitors.
-
-		PhysicalMonitor physicalMonitor;
-		string adapterDeviceInterfaceName;
-
-		// First, build a more workable structure of the sources and targets from the display configuration.
-		var targetsBySource = new List<(DisplayConfigurationPathSourceInfo Source, List<DisplayConfigurationPathTargetInfo> Targets)>();
-		foreach (var path in DisplayConfiguration.GetForActivePaths().Paths)
-		{
-			if (targetsBySource.Count == 0 || path.SourceInfo != CollectionsMarshal.AsSpan(targetsBySource)[^1].Source)
-			{
-				targetsBySource.Add((path.SourceInfo, new() { path.TargetInfo }));
-			}
-			else
-			{
-				CollectionsMarshal.AsSpan(targetsBySource)[^1].Targets.Add(path.TargetInfo);
-			}
-		}
-
-		var logicalMonitors = LogicalMonitor.GetAll();
-
-		if (logicalMonitors.Length != targetsBySource.Count)
-		{
-			goto DisplayConfigurationMismatch;
-		}
-
-		for (int i = 0; i < logicalMonitors.Length; i++)
-		{
-			var logicalMonitor = logicalMonitors[i];
-			if (targetsBySource[i].Source.GetDeviceName() != logicalMonitor.GetMonitorInformation().DeviceName)
-			{
-				goto DisplayConfigurationMismatch;
-			}
-
-			var targets = targetsBySource[i].Targets;
-			var physicalMonitors = logicalMonitor.GetPhysicalMonitors();
-			if (physicalMonitors.Length != targets.Count)
-			{
-				goto DisplayConfigurationMismatch;
-			}
-
-			for (int j = 0; j < physicalMonitors.Length; j++)
-			{
-				var currentPhysicalMonitor = physicalMonitors[j];
-				var target = targets[j];
-
-				var targetNameInformation = target.GetDeviceNameInformation();
-				// The friendly name we got from the device container should be the same as the physical monitor description, so we can use this to help avoiding mistakes.
-				// Hopefully, there is never a case where this doesn't match. But it is better to fail than to return something invalid here.
-				if (currentPhysicalMonitor.Description == friendlyName && targetNameInformation.GetMonitorDeviceName() == sourceDeviceInterfaceName)
-				{
-					// We found the monitor. See if we need to update the device ID with the most direct source information we can have. (Device names should be derived from this, but who knows…)
-					if (targetNameInformation.IsEdidValid && !hasDeviceId)
-					{
-						deviceId = DeviceId.ForDisplay(targetNameInformation.EdidVendorId, targetNameInformation.EdidProductId);
-					}
-					physicalMonitor = currentPhysicalMonitor;
-					adapterDeviceInterfaceName = target.Adapter.GetDeviceName();
-					// Play nice and dispose all physical monitors after the successful one. (Worst case, they would get finalized)
-					for (int k = j + 1; k < physicalMonitors.Length; k++)
-					{
-						physicalMonitors[k].Dispose();
-					}
-					goto FoundPhysicalMonitor;
-				}
-				// If the physical monitor is not a match dispose it.
-				currentPhysicalMonitor.Dispose();
-			}
-		}
-		throw new InvalidOperationException($"Could not find the physical monitor associated with the device {sourceDeviceName}.");
-	FoundPhysicalMonitor:;
-
 		if (!hasDeviceId) throw new InvalidOperationException("Could not resolve the device ID.");
 
 		var associatedKeys = ImmutableArray.Create<SystemDevicePath>(sourceDeviceInterfaceName, sourceDeviceName);
@@ -237,10 +137,6 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			friendlyName,
 			edid,
 			i2cBus,
-			displayAdapterName,
-			displayMonitorName,
-			adapterDeviceInterfaceName,
-			physicalMonitor,
 			[new DeviceObjectInformation(DeviceObjectKind.DeviceInterface, sourceDeviceInterfaceName, deviceInterfaceProperties)],
 			[new DeviceObjectInformation(DeviceObjectKind.Device, sourceDeviceName, deviceProperties)],
 			0
