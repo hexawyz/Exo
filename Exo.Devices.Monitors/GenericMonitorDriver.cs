@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -7,6 +8,7 @@ using DeviceTools.DisplayDevices.Mccs;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.MonitorFeatures;
+using Exo.I2C;
 
 namespace Exo.Devices.Monitors;
 
@@ -23,20 +25,35 @@ public class GenericMonitorDriver
 {
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.Monitor)]
-	public static ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
 		string friendlyName,
 		DeviceId deviceId,
 		Edid edid,
+		II2CBus i2cBus,
 		PhysicalMonitor physicalMonitor,
 		string topLevelDeviceName,
 		CancellationToken cancellationToken
 	)
 	{
 		var features = SupportedFeatures.None;
-		var rawCapabilities = physicalMonitor.GetCapabilitiesUtf8String();
-		if (MonitorCapabilities.TryParse(rawCapabilities.Span, out var capabilities))
+
+		var ddc = new DisplayDataChannel(i2cBus, true);
+
+		var buffer = ArrayPool<byte>.Shared.Rent(1000);
+		byte[] rawCapabilities;
+		try
+		{
+			ushort length = await ddc.GetCapabilitiesAsync(buffer, cancellationToken).ConfigureAwait(false);
+			rawCapabilities = buffer[..length].ToArray();
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(buffer);
+		}
+
+		if (MonitorCapabilities.TryParse(rawCapabilities, out var capabilities))
 		{
 			features |= SupportedFeatures.Capabilities;
 
@@ -56,21 +73,20 @@ public class GenericMonitorDriver
 				}
 			}
 		}
-		return new
+
+		return new DriverCreationResult<SystemDevicePath>
 		(
-			new DriverCreationResult<SystemDevicePath>
+			keys,
+			new GenericMonitorDriver
 			(
-				keys,
-				new GenericMonitorDriver
-				(
-					physicalMonitor,
-					features,
-					rawCapabilities,
-					capabilities,
-					deviceId,
-					friendlyName,
-					new("monitor", topLevelDeviceName, deviceId.ToString(), edid.SerialNumber)
-				)
+				i2cBus,
+				physicalMonitor,
+				features,
+				rawCapabilities,
+				capabilities,
+				deviceId,
+				friendlyName,
+				new("monitor", topLevelDeviceName, deviceId.ToString(), edid.SerialNumber)
 			)
 		);
 	}
@@ -127,6 +143,7 @@ public class GenericMonitorDriver
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
+	private readonly II2CBus _i2cBus;
 	private readonly PhysicalMonitor _physicalMonitor;
 	private readonly SupportedFeatures _supportedFeatures;
 	private readonly ReadOnlyMemory<byte> _rawCapabilities;
@@ -143,6 +160,7 @@ public class GenericMonitorDriver
 
 	private GenericMonitorDriver
 	(
+		II2CBus i2cBus,
 		PhysicalMonitor physicalMonitor,
 		SupportedFeatures supportedFeatures,
 		ReadOnlyMemory<byte> rawCapabilities,
@@ -153,6 +171,7 @@ public class GenericMonitorDriver
 	)
 		: base(friendlyName, configurationKey)
 	{
+		_i2cBus = i2cBus;
 		_physicalMonitor = physicalMonitor;
 		_supportedFeatures = supportedFeatures;
 		_rawCapabilities = rawCapabilities;
