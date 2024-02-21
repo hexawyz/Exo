@@ -51,7 +51,10 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		public TDiscoveryService Service { get; }
 		public override Type Type => typeof(TDiscoveryService);
 
-		public void Dispose() => throw new NotImplementedException();
+		public void Dispose()
+		{
+			// TODO
+		}
 
 		public override ValueTask StartAsync(CancellationToken cancellationToken) => Service.StartAsync(cancellationToken);
 

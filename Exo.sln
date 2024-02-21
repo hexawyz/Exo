@@ -129,6 +129,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Discovery.Monitor", "Ex
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Monitors", "Exo.Devices.Monitors\Exo.Devices.Monitors.csproj", "{459BDF9D-F681-4FC2-A708-106AF56D80BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Intel", "Exo.Devices.Intel\Exo.Devices.Intel.csproj", "{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -869,6 +871,22 @@ Global
 		{459BDF9D-F681-4FC2-A708-106AF56D80BB}.Release|x64.Build.0 = Release|Any CPU
 		{459BDF9D-F681-4FC2-A708-106AF56D80BB}.Release|x86.ActiveCfg = Release|Any CPU
 		{459BDF9D-F681-4FC2-A708-106AF56D80BB}.Release|x86.Build.0 = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|arm64.Build.0 = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|x64.Build.0 = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Debug|x86.Build.0 = Debug|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|arm64.ActiveCfg = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|arm64.Build.0 = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|x64.ActiveCfg = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|x64.Build.0 = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|x86.ActiveCfg = Release|Any CPU
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -906,6 +924,7 @@ Global
 		{CFA0E592-F09A-49DE-A576-2A32F477FCE8} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
 		{68E61446-5F65-497F-B24D-9D89188BB21C} = {DC0016F5-89F2-4164-A4DE-E772B6F75357}
 		{459BDF9D-F681-4FC2-A708-106AF56D80BB} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
+		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9FEED7F-27EC-4720-9CAB-C2E6FDD8556D}

@@ -612,7 +612,7 @@ internal unsafe sealed class NvApi
 		}
 	}
 
-	[DllImport("nvapi64", EntryPoint = "nvapi_QueryInterface", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+	[DllImport("nvapi64", EntryPoint = "nvapi_QueryInterface", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
 	public static extern void* QueryInterface(uint functionId);
 
 	public static string GetInterfaceVersionString()
