@@ -6,6 +6,8 @@ namespace Exo.Discovery;
 
 public sealed class HidDiscoveryContext : IComponentDiscoveryContext<SystemDevicePath, HidDriverCreationContext>
 {
+	private static readonly Guid RootContainerGuid = new(0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255);
+
 	private static readonly Property[] RequestedDeviceInterfaceProperties =
 	[
 		Properties.System.Devices.DeviceInstanceId,
@@ -66,7 +68,14 @@ public sealed class HidDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 			throw new ArgumentOutOfRangeException("Could not resolve the container ID for the device.");
 		}
 
-		string? friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false);
+		bool isRootContainer = containerId == RootContainerGuid;
+
+		string? friendlyName = !isRootContainer ?
+			await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) :
+			null;
+
+		// TODO
+		if (isRootContainer) throw new NotSupportedException("Resolving HID devices in the root container is not supported yet.");
 
 		var deviceInterfaces = await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, RequestedDeviceInterfaceProperties, Properties.System.Devices.ContainerId == containerId, cancellationToken).ConfigureAwait(false);
 		var devices = await DeviceQuery.FindAllAsync(DeviceObjectKind.Device, RequestedDeviceProperties, Properties.System.Devices.ContainerId == containerId, cancellationToken).ConfigureAwait(false);
