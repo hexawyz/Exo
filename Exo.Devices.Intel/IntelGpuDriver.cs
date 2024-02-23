@@ -90,9 +90,7 @@ public sealed class IntelGpuDriver :
 			return ValueTask.CompletedTask;
 		}
 
-		public void Dispose()
-		{
-		}
+		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 
 	private readonly IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;

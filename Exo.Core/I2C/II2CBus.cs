@@ -3,7 +3,7 @@ using DeviceTools;
 namespace Exo.I2C;
 
 /// <summary>Provides the raw API to interact with an I2C bus.</summary>
-public interface II2CBus : IDisposable
+public interface II2CBus : IAsyncDisposable
 {
 	/// <summary>Writes data to the specified register.</summary>
 	/// <remarks>

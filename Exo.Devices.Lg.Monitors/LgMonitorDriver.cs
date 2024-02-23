@@ -130,31 +130,33 @@ public class LgMonitorDriver :
 		const int I2CRetryCount = 1;
 
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
-		var i2cTransport = await HidI2CTransport.CreateAsync
+		var i2cBus = await HidI2CTransport.CreateAsync
 		(
 			new HidFullDuplexStream(i2cDeviceInterfaceName),
 			sessionId,
-			HidI2CTransport.DefaultDdcDeviceAddress,
 			loggerFactory.CreateLogger<HidI2CTransport>(),
 			cancellationToken
 		).ConfigureAwait(false);
 
-		(ushort scalerVersion, _, _) = await i2cTransport.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, I2CRetryCount, cancellationToken).ConfigureAwait(false);
+		var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, I2CRetryCount);
+
+		var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
+		ushort scalerVersion = vcpResponse.CurrentValue;
 		var data = ArrayPool<byte>.Shared.Rent(1000);
 
 		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
-		await i2cTransport.SendLgCustomCommandWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), I2CRetryCount, cancellationToken).ConfigureAwait(false);
+		await ddc.SendLgCustomCommandWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
 		byte dscVersion = data[1];
 
 		// This special call will return the monitor model name. We can then use it as the friendly name.
-		await i2cTransport.SendLgCustomCommandWithRetryAsync(0xCA, 0x00, data.AsMemory(0, 10), I2CRetryCount, cancellationToken).ConfigureAwait(false);
+		await ddc.SendLgCustomCommandWithRetryAsync(0xCA, 0x00, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
 		friendlyName = "LG " + Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
 
 		// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
-		await i2cTransport.SendLgCustomCommandWithRetryAsync(0x78, 0x00, data.AsMemory(0, 12), I2CRetryCount, cancellationToken).ConfigureAwait(false);
+		await ddc.SendLgCustomCommandWithRetryAsync(0x78, 0x00, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
 		string serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
 
-		var length = await i2cTransport.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+		var length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
 		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 		ArrayPool<byte>.Shared.Return(data);
 		if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
@@ -198,7 +200,7 @@ public class LgMonitorDriver :
 			keys,
 			new LgMonitorDriver
 			(
-				i2cTransport,
+				ddc,
 				lightingTransport,
 				productId,
 				version,
@@ -222,7 +224,7 @@ public class LgMonitorDriver :
 	const int StateBrightnessChanged = 0x02;
 	const int StateLocked = 0x100;
 
-	private readonly HidI2CTransport _i2cTransport;
+	private readonly LgDisplayDataChannelWithRetry _ddc;
 	private readonly UltraGearLightingTransport _lightingTransport;
 	private ILightingEffect _currentEffect;
 	// Protect against concurrent accesses using a combination of lock and state.
@@ -252,7 +254,7 @@ public class LgMonitorDriver :
 
 	private LgMonitorDriver
 	(
-		HidI2CTransport transport,
+		LgDisplayDataChannelWithRetry ddc,
 		UltraGearLightingTransport lightingTransport,
 		ushort productId,
 		ushort nxpVersion,
@@ -269,7 +271,7 @@ public class LgMonitorDriver :
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
-		_i2cTransport = transport;
+		_ddc = ddc;
 		_lightingTransport = lightingTransport;
 		_currentEffect = activeEffect switch
 		{
@@ -335,42 +337,42 @@ public class LgMonitorDriver :
 
 	public override async ValueTask DisposeAsync()
 	{
-		await _i2cTransport.DisposeAsync().ConfigureAwait(false);
+		await _ddc.DisposeAsync().ConfigureAwait(false);
 		await _lightingTransport.DisposeAsync().ConfigureAwait(false);
 	}
 
-	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync(vcpCode, value, cancellationToken));
+	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => _ddc.SetVcpFeatureAsync(vcpCode, value, cancellationToken);
 
 	public async ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
-		var result = await _i2cTransport.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
-		return new(result.CurrentValue, result.MaximumValue, result.IsTemporary);
+		var result = await _ddc.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
+		return new(result.CurrentValue, result.MaximumValue, result.IsMomentary);
 	}
 
 	public async ValueTask<ContinuousValue> GetBrightnessAsync(CancellationToken cancellationToken)
 	{
-		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
+		var result = await _ddc.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
 		return new(result.CurrentValue, 0, result.MaximumValue);
 	}
 
-	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken));
+	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => _ddc.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken);
 
 	public async ValueTask<ContinuousValue> GetContrastAsync(CancellationToken cancellationToken)
 	{
-		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
+		var result = await _ddc.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
 		return new(result.CurrentValue, 0, result.MaximumValue);
 	}
 
-	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken));
+	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => _ddc.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken);
 
 	async ValueTask<ContinuousValue> IMonitorSpeakerAudioVolumeFeature.GetVolumeAsync(CancellationToken cancellationToken)
 	{
-		var result = await _i2cTransport.GetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, cancellationToken).ConfigureAwait(false);
+		var result = await _ddc.GetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, cancellationToken).ConfigureAwait(false);
 		return new(result.CurrentValue, 0, result.MaximumValue);
 	}
 
 	ValueTask IMonitorSpeakerAudioVolumeFeature.SetVolumeAsync(ushort value, CancellationToken cancellationToken)
-		=> new(_i2cTransport.SetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, value, cancellationToken));
+		=> _ddc.SetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, value, cancellationToken);
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync()
 	{

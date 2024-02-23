@@ -23,6 +23,7 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		Properties.System.Devices.CompatibleIds,
 		Properties.System.Devices.BusNumber,
 		Properties.System.Devices.Address,
+		Properties.System.Devices.Driver,
 	];
 
 	private readonly PciDiscoverySubsystem _discoverySubsystem;
@@ -71,7 +72,7 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 			var deviceProperties = await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, sourceDeviceName, RequestedDeviceProperties, cancellationToken).ConfigureAwait(false);
 			devices = [new DeviceObjectInformation(DeviceObjectKind.Device, sourceDeviceName, deviceProperties)];
 
-			deviceInterfaces = await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.DeviceInstanceId == sourceDeviceName, cancellationToken).ConfigureAwait(false);
+			deviceInterfaces = await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, RequestedDeviceInterfaceProperties, Properties.System.Devices.DeviceInstanceId == sourceDeviceName, cancellationToken).ConfigureAwait(false);
 
 			topLevelDeviceIndex = 0;
 		}

@@ -255,9 +255,7 @@ public class NVidiaGpuDriver :
 			return ValueTask.CompletedTask;
 		}
 
-		public void Dispose()
-		{
-		}
+		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 
 	// GPUs that support "piecewise" effects could support more effects, but I don't have this on hand, so for now it is only disabled or static.

@@ -4,7 +4,7 @@ using DeviceTools.DisplayDevices;
 namespace Exo.I2C;
 
 // TODO: We can make the delays deferred rather than immediate. (Remember the time of the last operation then wait at the beginning of the next one if necessary)
-public class DisplayDataChannel : IDisposable
+public class DisplayDataChannel : IAsyncDisposable
 {
 	// We need to wait 40ms after a VCP Request operation.
 	public const int VcpRequestDelay = 40;
@@ -43,12 +43,13 @@ public class DisplayDataChannel : IDisposable
 		_isOwned = isOwned;
 	}
 
-	public void Dispose()
+	public ValueTask DisposeAsync()
 	{
 		if (_isOwned && Interlocked.Exchange(ref _i2cBus, null) is { } i2cBus)
 		{
-			i2cBus.Dispose();
+			return i2cBus.DisposeAsync();
 		}
+		return ValueTask.CompletedTask;
 	}
 
 	protected static void WriteVcpRequest(Span<byte> buffer, byte vcpCode, byte checksumInitialValue)
