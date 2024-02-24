@@ -145,7 +145,7 @@ internal unsafe sealed class NvApi
 		public uint RegisterAddressSize;
 		public byte* Data;
 		public uint Size;
-		private readonly uint _deprecatedSpeed;
+		public uint DeprecatedSpeed;
 		public I2CSpeed Speed;
 		public byte PortId;
 		private uint _isPortIdSet;
@@ -754,8 +754,27 @@ internal unsafe sealed class NvApi
 				RegisterAddressSize = 1,
 				Data = (byte*)handle.Pointer,
 				Size = (uint)data.Length,
+				DeprecatedSpeed = 0xFFFF,
 			};
 			ValidateResult(Functions.I2CWrite(_handle, &info));
+		}
+
+		public void I2CMonitorRead(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
+		{
+			using var handle = data.Pin();
+			var info = new I2CInfo
+			{
+				Version = StructVersion<I2CInfo>(3),
+				DisplayMask = outputId,
+				IsDdcPort = true,
+				DeviceAddress = address,
+				RegisterAddress = &register,
+				RegisterAddressSize = 1,
+				Data = (byte*)handle.Pointer,
+				Size = (uint)data.Length,
+				DeprecatedSpeed = 0xFFFF,
+			};
+			ValidateResult(Functions.I2CRead(_handle, &info));
 		}
 
 		public void I2CMonitorRead(uint outputId, byte address, ReadOnlyMemory<byte> data)
@@ -769,6 +788,7 @@ internal unsafe sealed class NvApi
 				DeviceAddress = address,
 				Data = (byte*)handle.Pointer,
 				Size = (uint)data.Length,
+				DeprecatedSpeed = 0xFFFF,
 			};
 			ValidateResult(Functions.I2CRead(_handle, &info));
 		}

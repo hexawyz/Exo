@@ -255,6 +255,12 @@ public class NVidiaGpuDriver :
 			return ValueTask.CompletedTask;
 		}
 
+		public ValueTask ReadAsync(byte address, byte register, Memory<byte> bytes, CancellationToken cancellationToken)
+		{
+			_gpu.I2CMonitorRead(_outputId, address, register, bytes);
+			return ValueTask.CompletedTask;
+		}
+
 		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 

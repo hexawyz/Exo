@@ -90,6 +90,11 @@ public sealed class IntelGpuDriver :
 			return ValueTask.CompletedTask;
 		}
 
+		public ValueTask ReadAsync(byte address, byte register, Memory<byte> bytes, CancellationToken cancellationToken)
+		{
+			return ValueTask.CompletedTask;
+		}
+
 		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 

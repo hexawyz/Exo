@@ -182,6 +182,38 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		}
 	}
 
+	public async ValueTask ReadAsync(byte address, byte register, Memory<byte> bytes, CancellationToken cancellationToken)
+	{
+		if (bytes.Length > 60)
+		{
+			// It might be possible to request more than 60 bytes and retrieve the results in multiple packets. (Up to 255 bytes over 5 packets ?)
+			// But unless there is a need for this and more importantly, a way to try this, it is better to stay limited to the maximum possible in a single packet.
+			//throw new ArgumentException("Cannot request more than 60 bytes at once.");
+		}
+
+		byte sequenceNumber = BeginRequest();
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+			WriteI2CReadRequest(buffer.Span[1..], _sessionId, sequenceNumber, (byte)(address >>> 1), register, (byte)bytes.Length);
+			var waitState = new ReadWaitState(sequenceNumber, bytes);
+			Volatile.Write(ref _pendingOperation, waitState);
+			try
+			{
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await waitState.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				_pendingOperation = null;
+			}
+		}
+		finally
+		{
+			EndRequest(sequenceNumber);
+		}
+	}
+
 	private static void WriteHandshakeRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber)
 	{
 		buffer.Clear();
@@ -225,6 +257,12 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		WriteI2CWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, (byte)(data.Length + 1));
 		buffer[8] = register;
 		data.CopyTo(buffer[9..]);
+	}
+
+	private static void WriteI2CReadRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte register, byte length)
+	{
+		WriteI2CReadRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, length);
+		buffer[8] = register;
 	}
 
 	private async Task ReadAsync(CancellationToken cancellationToken)

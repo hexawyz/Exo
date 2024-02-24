@@ -25,6 +25,14 @@ public interface II2CBus : IAsyncDisposable
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	ValueTask ReadAsync(byte address, Memory<byte> bytes, CancellationToken cancellationToken);
+
+	/// <summary>Reads data from the HID bus.</summary>
+	/// <param name="address">The device address that is to be read from.</param>
+	/// <param name="register">The register to read from.</param>
+	/// <param name="bytes">The buffer of bytes that will be filled with the response, including the checksum.</param>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	ValueTask ReadAsync(byte address, byte register, Memory<byte> bytes, CancellationToken cancellationToken);
 }
 
 /// <summary>A resolver that will provide an I2C bus for the requested monitor.</summary>

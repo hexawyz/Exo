@@ -1,4 +1,4 @@
-﻿using Exo.I2C;
+using Exo.I2C;
 
 namespace Exo.Devices.Lg.Monitors;
 
@@ -44,14 +44,48 @@ public class LgDisplayDataChannelWithRetry : LgDisplayDataChannel
 		}
 	}
 
-	public async Task SendLgCustomCommandWithRetryAsync(byte code, ushort value, Memory<byte> destination, CancellationToken cancellationToken)
+	public async Task GetLgCustomWithRetryAsync(byte code, Memory<byte> destination, CancellationToken cancellationToken)
 	{
 		int retryCount = _retryCount;
 		while (true)
 		{
 			try
 			{
-				await SendLgCustomCommandAsync(code, value, destination, cancellationToken).ConfigureAwait(false);
+				await GetLgCustomAsync(code, destination, cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch (Exception ex) when (ex is not ArgumentException && retryCount > 0)
+			{
+				retryCount--;
+			}
+		}
+	}
+
+	public async Task SetLgCustomWithRetryAsync(byte code, ushort value, CancellationToken cancellationToken)
+	{
+		int retryCount = _retryCount;
+		while (true)
+		{
+			try
+			{
+				await SetLgCustomAsync(code, value, cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch (Exception ex) when (ex is not ArgumentException && retryCount > 0)
+			{
+				retryCount--;
+			}
+		}
+	}
+
+	public async Task SetLgCustomWithRetryAsync(byte code, ushort value, Memory<byte> destination, CancellationToken cancellationToken)
+	{
+		int retryCount = _retryCount;
+		while (true)
+		{
+			try
+			{
+				await SetLgCustomAsync(code, value, destination, cancellationToken).ConfigureAwait(false);
 				return;
 			}
 			catch (Exception ex) when (ex is not ArgumentException && retryCount > 0)
