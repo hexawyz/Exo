@@ -5,10 +5,16 @@ namespace Exo.I2C;
 /// <summary>Provides the raw API to interact with an I2C bus.</summary>
 public interface II2CBus : IAsyncDisposable
 {
-	/// <summary>Writes data to the specified register.</summary>
+	/// <summary>Writes data to the specified address and register.</summary>
 	/// <remarks>
+	/// <para>
 	/// The bytes sent to the I2C device are to be formatted properly by the caller, including the checksum.
 	/// The device address is fully computed (it includes the read or write bit), and it will be emitted automatically, as well as the register, before the provided bytes.
+	/// </para>
+	/// <para>
+	/// It should produce identical results to call the other <see cref="WriteAsync(byte, ReadOnlyMemory{byte}, CancellationToken)"/> method that does not take a register,
+	/// and to include the register as the first byte inside the payload. As per the I2C spec, the register is delimited exactly as any other byte.
+	/// </para>
 	/// </remarks>
 	/// <param name="address">The final register address as it will be emitted to the I2C device.</param>
 	/// <param name="register">The register to write.</param>
@@ -16,6 +22,22 @@ public interface II2CBus : IAsyncDisposable
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken);
+
+	/// <summary>Writes data to the specified address.</summary>
+	/// <remarks>
+	/// <para>
+	/// The bytes sent to the I2C device are to be formatted properly by the caller, including the checksum.
+	/// The device address is fully computed (it includes the read or write bit), and it will be emitted automatically, as well as the register, before the provided bytes.
+	/// </para>
+	/// <para>
+	/// Writes must include the 8bit register as their first data byte in order to get equivalent behavior as expected from <see cref="WriteAsync(byte, byte, ReadOnlyMemory{byte}, CancellationToken)"/>.
+	/// </para>
+	/// </remarks>
+	/// <param name="address">The final register address as it will be emitted to the I2C device.</param>
+	/// <param name="bytes">The raw message bytes, including the checksum that should be computed by the caller.</param>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken);
 
 	//ValueTask WriteAsync(byte address, ushort register, ReadOnlySpan<byte> bytes);
 

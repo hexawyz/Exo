@@ -80,6 +80,11 @@ public sealed class IntelGpuDriver :
 			_gpu = gpu;
 		}
 
+		public ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+		{
+			return ValueTask.CompletedTask;
+		}
+
 		public ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
 		{
 			return ValueTask.CompletedTask;

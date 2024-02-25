@@ -244,6 +244,12 @@ public class NVidiaGpuDriver :
 			_outputId = outputId;
 		}
 
+		public ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+		{
+			_gpu.I2CMonitorWrite(_outputId, address, bytes);
+			return ValueTask.CompletedTask;
+		}
+
 		public ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
 		{
 			_gpu.I2CMonitorWrite(_outputId, address, register, bytes);

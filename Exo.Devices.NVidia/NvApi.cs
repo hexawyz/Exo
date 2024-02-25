@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Win32;
 
 namespace Exo.Devices.NVidia;
 
@@ -51,7 +50,7 @@ internal unsafe sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DisplayIdInfo*, uint*, NvApi.Gpu.ConnectedIdFlags, uint> GetConnectedDisplayIds = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DisplayIdInfo*, uint*, NvApi.Gpu.ConnectedIdFlags, uint>)QueryInterface(0x0078dba2);
 			// Found about this here: https://www.cnblogs.com/zzz3265/p/16517057.html (NvAPI_GPU_Get_I2C_Ports_Info)
 			// The API seems mostly straightforward, but I'm yet unsure how to exploit the results. (Here it lists ports with an info value of either 100 or 400. Could be the speed?)
-			public static readonly delegate* unmanaged[Cdecl]<nint, I2cPortInfo*, uint, uint> GetI2cPortsInfo = (delegate* unmanaged[Cdecl]<nint, I2cPortInfo*, uint, uint>)QueryInterface(0x5E4B36C3);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.I2cPortInfo*, uint, uint> GetI2cPortsInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.I2cPortInfo*, uint, uint>)QueryInterface(0x5E4B36C3);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> QueryIlluminationSupport = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0xa629da31);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> GetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x9a1b9365);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> SetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x0254a187);
@@ -249,7 +248,7 @@ internal unsafe sealed class NvApi
 			public DisplayFlags Flags;
 		}
 
-		public struct I2cPortInfo
+		internal struct I2cPortInfo
 		{
 			public uint Version;
 			public uint Index;
@@ -753,9 +752,8 @@ internal unsafe sealed class NvApi
 		// Actually assuming that I2C speed in KHz this is what the API returns, because I have limited information and that's what looks like the most realistic.
 		public uint[] GetI2cPortSpeeds()
 		{
-			var infos = stackalloc I2cPortInfo[16];
-			infos[0].Version = StructVersion<I2cPortInfo>(1);
-			uint unknown = 0;
+			var infos = stackalloc Gpu.I2cPortInfo[16];
+			infos[0].Version = StructVersion<Gpu.I2cPortInfo>(1);
 
 			ValidateResult(Functions.Gpu.GetI2cPortsInfo(_handle, infos, 16));
 
@@ -797,6 +795,12 @@ internal unsafe sealed class NvApi
 			return data;
 		}
 
+		// It seems there are few flags:
+		// Bit 0: Can be on or off, but is generally sent as 1 by custom RGB code found on internet
+		// Bits 1-3: Exclusive. Can be all 0 but at most one can be set. Seem to somewhat alter the behavior, but in ways that I don't understand.
+		// The value 1 seems relatively safe, and I haven't observed any obvious change in behavior by using it.
+		private const ulong I2cUnknownFlags = 0x0000000000000000;
+
 		public void I2CMonitorWrite(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
 		{
 			using var handle = data.Pin();
@@ -804,15 +808,33 @@ internal unsafe sealed class NvApi
 			{
 				Version = StructVersion<I2CInfo>(3),
 				DisplayMask = outputId,
-				IsDdcPort = true,
-				DeviceAddress = address,
+				IsDdcPort = false,
+				DeviceAddress = (byte)(address & 0xFE),
 				RegisterAddress = &register,
 				RegisterAddressSize = 1,
 				Data = (byte*)handle.Pointer,
 				Size = (uint)data.Length,
 				DeprecatedSpeed = 0xFFFF,
 			};
-			ValidateResult(Functions.I2CWrite(_handle, &info));
+			ulong unknown = I2cUnknownFlags;
+			ValidateResult(Functions.I2CWriteEx(_handle, &info, (uint*)&unknown));
+		}
+
+		public void I2CMonitorWrite(uint outputId, byte address, ReadOnlyMemory<byte> data)
+		{
+			using var handle = data.Pin();
+			var info = new I2CInfo
+			{
+				Version = StructVersion<I2CInfo>(3),
+				DisplayMask = outputId,
+				IsDdcPort = false,
+				DeviceAddress = (byte)(address & 0xFE),
+				Data = (byte*)handle.Pointer,
+				Size = (uint)data.Length,
+				DeprecatedSpeed = 0xFFFF,
+			};
+			ulong unknown = I2cUnknownFlags;
+			ValidateResult(Functions.I2CWriteEx(_handle, &info, (uint*)&unknown));
 		}
 
 		public void I2CMonitorRead(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
@@ -822,15 +844,16 @@ internal unsafe sealed class NvApi
 			{
 				Version = StructVersion<I2CInfo>(3),
 				DisplayMask = outputId,
-				IsDdcPort = true,
-				DeviceAddress = address,
+				IsDdcPort = false,
+				DeviceAddress = (byte)(address & 0xFE),
 				RegisterAddress = &register,
 				RegisterAddressSize = 1,
 				Data = (byte*)handle.Pointer,
 				Size = (uint)data.Length,
 				DeprecatedSpeed = 0xFFFF,
 			};
-			ValidateResult(Functions.I2CRead(_handle, &info));
+			ulong unknown = I2cUnknownFlags;
+			ValidateResult(Functions.I2CReadEx(_handle, &info, (uint*)&unknown));
 		}
 
 		public void I2CMonitorRead(uint outputId, byte address, ReadOnlyMemory<byte> data)
@@ -840,13 +863,14 @@ internal unsafe sealed class NvApi
 			{
 				Version = StructVersion<I2CInfo>(3),
 				DisplayMask = outputId,
-				IsDdcPort = true,
+				IsDdcPort = false,
 				DeviceAddress = address,
 				Data = (byte*)handle.Pointer,
 				Size = (uint)data.Length,
 				DeprecatedSpeed = 0xFFFF,
 			};
-			ValidateResult(Functions.I2CRead(_handle, &info));
+			ulong unknown = I2cUnknownFlags;
+			ValidateResult(Functions.I2CReadEx(_handle, &info, (uint*)&unknown));
 		}
 
 		public bool SupportsIllumination(Gpu.IlluminationZone zone)

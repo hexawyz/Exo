@@ -65,15 +65,13 @@ public class LgMonitorDriver :
 	{
 		//using (await CreationLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		//{
-		//	//await Task.Delay(500);
 		//	var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, 1);
 
 		//	var data = ArrayPool<byte>.Shared.Rent(1000);
 		//	try
 		//	{
-		//		//await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
-		//		//await ddc.GetLgCustomWithRetryAsync(0xC8, data.AsMemory(0, 11), cancellationToken).ConfigureAwait(false);
-		//		//await ddc.SetLgCustomWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+		//		//var z = await ddc.GetVcpFeatureAsync(0xCA, cancellationToken).ConfigureAwait(false);
+		//		//await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 11), cancellationToken).ConfigureAwait(false);
 		//	}
 		//	catch (Exception ex)
 		//	{

@@ -130,6 +130,26 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		}
 	}
 
+	public async ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+	{
+		if (bytes.Length > 56)
+		{
+			throw new ArgumentException("Cannot write more than 56 bytes.");
+		}
+
+		byte sequenceNumber = BeginRequest();
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+			WriteI2CWriteRequest(buffer.Span[1..], _sessionId, sequenceNumber, (byte)(address >>> 1), bytes.Span);
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			EndRequest(sequenceNumber);
+		}
+	}
+
 	public async ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
 	{
 		if (bytes.Length > 55)
@@ -250,6 +270,12 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		buffer[5] = 0;
 		buffer[6] = 0x0b;
 		buffer[7] = deviceAddress;
+	}
+
+	private static void WriteI2CWriteRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, ReadOnlySpan<byte> data)
+	{
+		WriteI2CWriteRequestHeader(buffer, sessionId, sequenceNumber, deviceAddress, (byte)data.Length);
+		data.CopyTo(buffer[8..]);
 	}
 
 	private static void WriteI2CWriteRequest(Span<byte> buffer, byte sessionId, byte sequenceNumber, byte deviceAddress, byte register, ReadOnlySpan<byte> data)
