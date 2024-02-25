@@ -6,6 +6,7 @@ namespace Exo.I2C;
 // TODO: We can make the delays deferred rather than immediate. (Remember the time of the last operation then wait at the beginning of the next one if necessary)
 public class DisplayDataChannel : IAsyncDisposable
 {
+	public const byte DefaultDeviceAddress = 0x37;
 	// We need to wait 40ms after a VCP Request operation.
 	public const int VcpRequestDelay = 40;
 	// We need to wait 40ms after a VCP Set operation.
@@ -85,7 +86,7 @@ public class DisplayDataChannel : IAsyncDisposable
 
 	private static ReadOnlySpan<byte> ValidateDdcResponse(ReadOnlySpan<byte> message, DdcCiCommand command)
 	{
-		if (message[0] != 0x6E)
+		if (message[0] != DefaultDeviceAddress << 1)
 		{
 			throw new InvalidDataException("The received response has an unexpected destination address.");
 		}
@@ -180,10 +181,10 @@ public class DisplayDataChannel : IAsyncDisposable
 	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
-		WriteVcpRequest(buffer.Span, vcpCode, 0x6E ^ 0x51);
-		await i2cBus.WriteAsync(0x6E, 0x51, buffer[..4], cancellationToken).ConfigureAwait(false);
+		WriteVcpRequest(buffer.Span, vcpCode, (DefaultDeviceAddress << 1) ^ 0x51);
+		await i2cBus.WriteAsync(DefaultDeviceAddress, 0x51, buffer[..4], cancellationToken).ConfigureAwait(false);
 		await Task.Delay(VcpRequestDelay, cancellationToken).ConfigureAwait(false);
-		await i2cBus.ReadAsync(0x6F, buffer[..11], cancellationToken).ConfigureAwait(false);
+		await i2cBus.ReadAsync(DefaultDeviceAddress, buffer[..11], cancellationToken).ConfigureAwait(false);
 		return ReadVcpFeatureReply(buffer.Span[..11], vcpCode);
 	}
 
@@ -191,8 +192,8 @@ public class DisplayDataChannel : IAsyncDisposable
 	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
-		WriteVcpSet(buffer.Span, vcpCode, value, 0x6E ^ 0x51);
-		await i2cBus.WriteAsync(0x6E, 0x51, buffer[..6], cancellationToken).ConfigureAwait(false);
+		WriteVcpSet(buffer.Span, vcpCode, value, (DefaultDeviceAddress << 1) ^ 0x51);
+		await i2cBus.WriteAsync(DefaultDeviceAddress, 0x51, buffer[..6], cancellationToken).ConfigureAwait(false);
 		await Task.Delay(VcpSetDelay, cancellationToken).ConfigureAwait(false);
 	}
 
@@ -204,10 +205,10 @@ public class DisplayDataChannel : IAsyncDisposable
 		ushort offset = 0;
 		while (true)
 		{
-			WriteVariableRead(buffer.Span, requestCommand, offset, 0x6E ^ 0x51);
-			await i2cBus.WriteAsync(0x6E, 0x51, buffer[..5], cancellationToken).ConfigureAwait(false);
+			WriteVariableRead(buffer.Span, requestCommand, offset, (DefaultDeviceAddress << 1) ^ 0x51);
+			await i2cBus.WriteAsync(DefaultDeviceAddress, 0x51, buffer[..5], cancellationToken).ConfigureAwait(false);
 			await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-			await i2cBus.ReadAsync(0x6F, buffer[..38], cancellationToken).ConfigureAwait(false);
+			await i2cBus.ReadAsync(DefaultDeviceAddress, buffer[..38], cancellationToken).ConfigureAwait(false);
 			if (ReadVariableLengthResponse(destination.Span[offset..], buffer.Span[..38], replyCommand, ref offset)) break;
 		}
 		return offset;

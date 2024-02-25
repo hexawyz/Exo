@@ -141,7 +141,7 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		try
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-			WriteI2CWriteRequest(buffer.Span[1..], _sessionId, sequenceNumber, (byte)(address >>> 1), bytes.Span);
+			WriteI2CWriteRequest(buffer.Span[1..], _sessionId, sequenceNumber, address, bytes.Span);
 			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 		}
 		finally
@@ -161,7 +161,7 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		try
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-			WriteI2CWriteRequest(buffer.Span[1..], _sessionId, sequenceNumber, (byte)(address >>> 1), register, bytes.Span);
+			WriteI2CWriteRequest(buffer.Span[1..], _sessionId, sequenceNumber, address, register, bytes.Span);
 			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 		}
 		finally
@@ -183,7 +183,7 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		try
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-			WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, (byte)(address >>> 1), (byte)bytes.Length);
+			WriteI2CReadRequestHeader(buffer.Span[1..], _sessionId, sequenceNumber, address, (byte)bytes.Length);
 			var waitState = new ReadWaitState(sequenceNumber, bytes);
 			Volatile.Write(ref _pendingOperation, waitState);
 			try
@@ -215,7 +215,7 @@ public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
 		try
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-			WriteI2CReadRequest(buffer.Span[1..], _sessionId, sequenceNumber, (byte)(address >>> 1), register, (byte)bytes.Length);
+			WriteI2CReadRequest(buffer.Span[1..], _sessionId, sequenceNumber, address, register, (byte)bytes.Length);
 			var waitState = new ReadWaitState(sequenceNumber, bytes);
 			Volatile.Write(ref _pendingOperation, waitState);
 			try

@@ -246,25 +246,25 @@ public class NVidiaGpuDriver :
 
 		public ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
 		{
-			_gpu.I2CMonitorWrite(_outputId, address, bytes);
+			_gpu.I2CMonitorWrite(_outputId, (byte)(address << 1), bytes);
 			return ValueTask.CompletedTask;
 		}
 
 		public ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
 		{
-			_gpu.I2CMonitorWrite(_outputId, address, register, bytes);
+			_gpu.I2CMonitorWrite(_outputId, (byte)(address << 1), register, bytes);
 			return ValueTask.CompletedTask;
 		}
 
 		public ValueTask ReadAsync(byte address, Memory<byte> bytes, CancellationToken cancellationToken)
 		{
-			_gpu.I2CMonitorRead(_outputId, address, bytes);
+			_gpu.I2CMonitorRead(_outputId, (byte)(address << 1), bytes);
 			return ValueTask.CompletedTask;
 		}
 
 		public ValueTask ReadAsync(byte address, byte register, Memory<byte> bytes, CancellationToken cancellationToken)
 		{
-			_gpu.I2CMonitorRead(_outputId, address, register, bytes);
+			_gpu.I2CMonitorRead(_outputId, (byte)(address << 1), register, bytes);
 			return ValueTask.CompletedTask;
 		}
 

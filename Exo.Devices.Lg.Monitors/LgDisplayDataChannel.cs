@@ -15,9 +15,9 @@ public class LgDisplayDataChannel : DisplayDataChannel
 		var i2cBus = I2CBus;
 
 		buffer.Span[0] = 0x50;
-		WriteVcpSet(buffer.Span[1..], code, value, 0x6E ^ 0x50);
+		WriteVcpSet(buffer.Span[1..], code, value, (DefaultDeviceAddress << 1) ^ 0x50);
 
-		await i2cBus.WriteAsync(0x6E, buffer[..7], cancellationToken).ConfigureAwait(false);
+		await i2cBus.WriteAsync(DefaultDeviceAddress, buffer[..7], cancellationToken).ConfigureAwait(false);
 		await Task.Delay(50, cancellationToken);
 	}
 
@@ -27,11 +27,11 @@ public class LgDisplayDataChannel : DisplayDataChannel
 		var i2cBus = I2CBus;
 
 		buffer.Span[0] = 0x50;
-		WriteVcpSet(buffer.Span[1..], code, value, 0x6E ^ 0x50);
+		WriteVcpSet(buffer.Span[1..], code, value, (DefaultDeviceAddress << 1) ^ 0x50);
 
-		await i2cBus.WriteAsync(0x6E, buffer[..7], cancellationToken).ConfigureAwait(false);
+		await i2cBus.WriteAsync(DefaultDeviceAddress, buffer[..7], cancellationToken).ConfigureAwait(false);
 		await Task.Delay(50, cancellationToken);
-		await i2cBus.ReadAsync(0x6F, destination, cancellationToken).ConfigureAwait(false);
+		await i2cBus.ReadAsync(DefaultDeviceAddress, destination, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task GetLgCustomAsync(byte code, Memory<byte> destination, CancellationToken cancellationToken)
@@ -40,10 +40,10 @@ public class LgDisplayDataChannel : DisplayDataChannel
 		var i2cBus = I2CBus;
 
 		buffer.Span[0] = 0x50;
-		WriteVcpRequest(buffer.Span[1..], code, 0x6E ^ 0x50);
+		WriteVcpRequest(buffer.Span[1..], code, (DefaultDeviceAddress << 1) ^ 0x50);
 
-		await i2cBus.WriteAsync(0x6E, buffer[..5], cancellationToken).ConfigureAwait(false);
+		await i2cBus.WriteAsync(DefaultDeviceAddress, buffer[..5], cancellationToken).ConfigureAwait(false);
 		await Task.Delay(50, cancellationToken);
-		await i2cBus.ReadAsync(0x6F, destination, cancellationToken).ConfigureAwait(false);
+		await i2cBus.ReadAsync(DefaultDeviceAddress, destination, cancellationToken).ConfigureAwait(false);
 	}
 }
