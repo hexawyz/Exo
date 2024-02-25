@@ -100,6 +100,7 @@ public class NVidiaGpuDriver :
 		}
 
 		string friendlyName = foundGpu.GetFullName();
+		byte[] serialNumber = foundGpu.GetSerialNumber();
 
 		// It seems that NVAPI doesn't return the GPU Serial Number (anymore?) :(
 		//var serialNumber = foundGpu.GetBoardNumber();
@@ -222,7 +223,7 @@ public class NVidiaGpuDriver :
 				(
 					deviceId,
 					friendlyName,
-					new("nv", topLevelDevice.Id, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", null),
+					new("nv", topLevelDevice.Id, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", serialNumber.Length > 0 ? Convert.ToHexString(serialNumber) : null),
 					foundGpu,
 					@lock,
 					zoneControls,

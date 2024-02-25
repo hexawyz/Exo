@@ -31,13 +31,20 @@ internal unsafe sealed class NvApi
 		public static readonly delegate* unmanaged[Cdecl]<uint, ShortString*, uint> GetErrorMessage = (delegate* unmanaged[Cdecl]<uint, ShortString*, uint>)QueryInterface(0x6c2d048c);
 		public static readonly delegate* unmanaged[Cdecl]<ShortString*, uint> GetInterfaceVersionString = (delegate* unmanaged[Cdecl]<ShortString*, uint>)QueryInterface(0x01053fa5);
 		public static readonly delegate* unmanaged[Cdecl]<nint*, int*, uint> EnumPhysicalGPUs = (delegate* unmanaged[Cdecl]<nint*, int*, uint>)QueryInterface(0xe5ac921f);
+		// NB: The …Ex versions of I2C APIs are not officially documented but are easily found all over internet.
+		// I'm assuming those can be used to bypass some of the forced data processing of the regular versions.
+		// Notably, it allows passing bIsDDCPort as false without returning an error, but it stills seems to process the data. (Need to find the right parameters to use)
 		public static readonly delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint> I2CRead = (delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint>)QueryInterface(0x2fde12c5);
+		public static readonly delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint*, uint> I2CReadEx = (delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint*, uint>)QueryInterface(0x4d7b0709);
 		public static readonly delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint> I2CWrite = (delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint>)QueryInterface(0xe812eb07);
+		public static readonly delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint*, uint> I2CWriteEx = (delegate* unmanaged[Cdecl]<nint, I2CInfo*, uint*, uint>)QueryInterface(0x283ac65a);
 
 		public static class Gpu
 		{
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, Edid*, uint> GetEdid = (delegate* unmanaged[Cdecl]<nint, uint, Edid*, uint>)QueryInterface(0x37d32e69);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.BoardInfo*, uint> GetBoardInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.BoardInfo*, uint>)QueryInterface(0x22d54523);
+			// See: https://github.com/graphitemaster/NVFC/blob/master/src/nvapi.h for the serial number stuff.
+			public static readonly delegate* unmanaged[Cdecl]<nint, ByteArray64*, uint> GetSerialNumber = (delegate* unmanaged[Cdecl]<nint, ByteArray64*, uint>)QueryInterface(0x014b83a5f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, ShortString*, uint> GetFullName = (delegate* unmanaged[Cdecl]<nint, ShortString*, uint>)QueryInterface(0xceee8e9f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x1be0b8e5);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusSlotId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x2a0a350f);
@@ -688,6 +695,22 @@ internal unsafe sealed class NvApi
 			var boardInfo = new Gpu.BoardInfo { Version = StructVersion<Gpu.BoardInfo>(1) };
 			ValidateResult(Functions.Gpu.GetBoardInfo(_handle, &boardInfo));
 			return boardInfo.BoardNumber.ToByteArray();
+		}
+
+		private static byte[] ReadSerialNumber(ReadOnlySpan<byte> data)
+		{
+			int endIndex = data.IndexOf((byte)0);
+
+			if (endIndex < 0) return Array.Empty<byte>();
+
+			return data[..endIndex].ToArray();
+		}
+
+		public byte[] GetSerialNumber()
+		{
+			var data = new ByteArray64();
+			ValidateResult(Functions.Gpu.GetSerialNumber(_handle, &data));
+			return ReadSerialNumber(data);
 		}
 
 		public Gpu.DisplayIdInfo[] GetConnectedDisplays(Gpu.ConnectedIdFlags flags)
