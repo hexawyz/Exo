@@ -49,6 +49,9 @@ internal unsafe sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x1be0b8e5);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetBusSlotId = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x2a0a350f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DisplayIdInfo*, uint*, NvApi.Gpu.ConnectedIdFlags, uint> GetConnectedDisplayIds = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DisplayIdInfo*, uint*, NvApi.Gpu.ConnectedIdFlags, uint>)QueryInterface(0x0078dba2);
+			// Found about this here: https://www.cnblogs.com/zzz3265/p/16517057.html (NvAPI_GPU_Get_I2C_Ports_Info)
+			// The API seems mostly straightforward, but I'm yet unsure how to exploit the results. (Here it lists ports with an info value of either 100 or 400. Could be the speed?)
+			public static readonly delegate* unmanaged[Cdecl]<nint, I2cPortInfo*, uint, uint> GetI2cPortsInfo = (delegate* unmanaged[Cdecl]<nint, I2cPortInfo*, uint, uint>)QueryInterface(0x5E4B36C3);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> QueryIlluminationSupport = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0xa629da31);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> GetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x9a1b9365);
 			public static readonly delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint> SetIllumination = (delegate* unmanaged[Cdecl]<NvApi.Gpu.IlluminationQuery*, uint>)QueryInterface(0x0254a187);
@@ -244,6 +247,13 @@ internal unsafe sealed class NvApi
 			public MonitorConnectorType ConnectorType;
 			public uint DisplayId;
 			public DisplayFlags Flags;
+		}
+
+		public struct I2cPortInfo
+		{
+			public uint Version;
+			public uint Index;
+			public uint Data;
 		}
 
 		public enum IlluminationZone : int
@@ -738,6 +748,29 @@ internal unsafe sealed class NvApi
 					return displays;
 				}
 			}
+		}
+
+		// Actually assuming that I2C speed in KHz this is what the API returns, because I have limited information and that's what looks like the most realistic.
+		public uint[] GetI2cPortSpeeds()
+		{
+			var infos = stackalloc I2cPortInfo[16];
+			infos[0].Version = StructVersion<I2cPortInfo>(1);
+			uint unknown = 0;
+
+			ValidateResult(Functions.Gpu.GetI2cPortsInfo(_handle, infos, 16));
+
+			var speeds = stackalloc uint[16];
+			int i;
+			for (i = 0; i < 16; i++)
+			{
+				if (infos[i].Index != i)
+				{
+					if (infos[i].Index != 0) throw new InvalidOperationException("TODO: The indices returned are not contiguous.");
+					break;
+				}
+				speeds[i] = infos[i].Data;
+			}
+			return new ReadOnlySpan<uint>(speeds, i).ToArray();
 		}
 
 		public byte[] GetEdid(uint outputId)
