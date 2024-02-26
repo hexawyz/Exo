@@ -1,0 +1,194 @@
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".Generated.cs" #>
+<#
+// List known monitors here with all they known IDs.
+// NB: LG Monitors are likely to have a different product ID for different ports and configurations.
+// Try to be as exhaustive as possible, but the list can always be improved in the future.
+// USB Monitors must always provide the (single) USB product ID as the first ID (as the device IDs reside in a different space).
+// Otherwise, the choice of the "main" device ID will be more arbitrary. If possible (when it exists), the main device ID should be the one of the Port+Mode exposing most of the monitor's capabilities.
+// The model name provided must be the official model name, as can be read from USB (or DDC2AB side channel) in order to be matched.
+var monitors = new Monitor[] {
+	// 27GP850(P), missing corresponding USB ID
+	//new("27GP850", MonitorType.Usb, 0x????, 0x5BD3, 0x5BD2),
+	// 27GP950, IDs obtained from official INFs files (AFAIK, 5BC0 should be for the "legacy" 120Hz HDMI, and 5BEE for the 144Hz HDMI after firmware update. 5BBF is DisplayPort)
+	new("27GP950", MonitorType.Usb, 0x9A8A, 0x5BBF, 0x5BEE, 0x5BC0),
+};
+
+var usbMonitors = new List<Monitor>();
+var nonUsbMonitors = new List<Monitor>();
+
+foreach (var monitor in monitors)
+{
+	if (monitor.Type == MonitorType.Usb)
+	{
+		usbMonitors.Add(monitor);
+	}
+	else
+	{
+		nonUsbMonitors.Add(monitor);
+	}
+}
+
+usbMonitors.Sort((x, y) => Comparer<ushort>.Default.Compare(x.ProductIds[0], y.ProductIds[0]));
+nonUsbMonitors.Sort((x, y) => Comparer<ushort>.Default.Compare(x.ProductIds[0], y.ProductIds[0]));
+
+var orderedMonitors = usbMonitors.Concat(nonUsbMonitors).ToArray();
+var nonUsbIndices = new List<(ushort ProductId, ushort Index)>();
+for (int i = 0; i < orderedMonitors.Length; i++)
+{
+	var monitor = orderedMonitors[i];
+	for (int j = 1; j < monitor.ProductIds.Length; j++)
+	{
+		nonUsbIndices.Add((monitor.ProductIds[j], (ushort)i));
+	}
+}
+nonUsbIndices.Sort((x, y) => Comparer<ushort>.Default.Compare(x.ProductId, y.ProductId));
+
+var indiceBytes = new byte[nonUsbIndices.Count * 4];
+for (int i = 0; i < nonUsbIndices.Count; i++)
+{
+	int offset = i << 2;
+	var (productId, index) = nonUsbIndices[i];
+	indiceBytes[offset++] = (byte)(productId & 0xFF);
+	indiceBytes[offset++] = (byte)(productId >>> 8);
+	indiceBytes[offset++] = (byte)(index & 0xFF);
+	indiceBytes[offset] = (byte)(index >>> 8);
+}
+
+var detailBytes = new byte[orderedMonitors.Length * 6];
+var productIdBytes = new List<byte>();
+var strings = new List<string>();
+var stringReferences = new Dictionary<string, ushort>();
+for (int i = 0; i < orderedMonitors.Length; i++)
+{
+	byte[] bytes;
+	var monitor = orderedMonitors[i];
+	if (!stringReferences.TryGetValue(monitor.ModelName, out var stringIndex))
+	{
+		stringIndex = (ushort)strings.Count;
+		strings.Add(monitor.ModelName);
+		stringReferences.Add(monitor.ModelName, stringIndex);
+	}
+	ushort productIdIndex = (ushort)productIdBytes.Count;
+	bytes = new byte[monitor.ProductIds.Length * 2];
+	for (int j = 0; j < monitor.ProductIds.Length; j++)
+	{
+		ushort productId = monitor.ProductIds[j];
+		bytes[j << 1] = (byte)(productId & 0xFF);
+		bytes[j << 1 | 1] = (byte)(productId >>> 8);
+	}
+	productIdBytes.AddRange(bytes);
+	int offset = i * 6;
+	detailBytes[offset++] = (byte)(stringIndex & 0xFF);
+	detailBytes[offset++] = (byte)(stringIndex >>> 8);
+	detailBytes[offset++] = (byte)(productIdIndex & 0xFF);
+	detailBytes[offset++] = (byte)(productIdIndex >>> 8);
+	detailBytes[offset++] = (byte)(monitor.ProductIds.Length);
+	detailBytes[offset] = 0;
+}
+#>
+namespace Exo.Devices.Lg.Monitors;
+
+// We should in theory be able to retrieve the device IDs by querying the device, but even if technically possible, it is not straightforward, and not guaranteed exhaustive.
+// Instead, we'll provide here a list of DeviceIds for each device.
+partial class DeviceDatabase
+{
+	private const ushort UsbMonitorCount = <#= usbMonitors.Count #>;
+
+	// Index table mapping product ID => Detail Index. Only regular PNP IDs here, as USB IDs can be shared for multiple monitor models.
+	private static ReadOnlySpan<byte> Index =>
+	[<# PushIndent("\t\t"); OutputBytes(indiceBytes); PopIndent(); #>
+	];
+
+	// Product ID details giving pointers into Product IDs and Names. USB Details are in the first part.
+	private static ReadOnlySpan<byte> Details =>
+	[<# PushIndent("\t\t"); OutputBytes(detailBytes); PopIndent(); #>
+	];
+
+	// Product ID sequences. Ordered by detail index, but this is an implementation detail.
+	private static ReadOnlySpan<byte> ProductIds =>
+	[<# PushIndent("\t\t"); OutputBytes(productIdBytes.ToArray()); PopIndent(); #>
+	];
+
+	// Unique strings.
+	private static readonly string[] Strings =
+	[<#
+PushIndent("\t\t");
+if (strings.Count > 0) WriteLine("");
+foreach (var text in strings)
+{
+	Write("@\"");
+	Write(text.Replace("\"", "\"\""));
+	WriteLine("\",");
+}
+PopIndent(); #>
+	];
+
+	private static readonly Dictionary<string, ushort> MonitorIndicesByName = new()
+	{<#
+PushIndent("\t\t");
+if (strings.Count > 0) WriteLine("");
+for (int i = 0; i < orderedMonitors.Length; i++)
+{
+	var monitor = orderedMonitors[i];
+	Write("{ @\"");
+	Write(monitor.ModelName.Replace("\"", "\"\""));
+	Write("\", ");
+	Write(i.ToString());
+	WriteLine(" },");
+}
+PopIndent(); #>
+	};
+}
+
+<#+
+
+void OutputBytes(byte[] data)
+{
+	if (data.Length > 0)
+	{
+		WriteLine("");
+		for (int i = 0; i < data.Length; i++)
+		{
+			Write("0x");
+			Write(data[i].ToString("X2"));
+			if (((i + 1) & 0xF) == 0 || i + 1 == data.Length)
+			{
+				WriteLine(",");
+			}
+			else
+			{
+				Write(", ");
+			}
+		}
+	}
+}
+
+#>
+
+<#+
+enum MonitorType
+{
+	Default,
+	Usb,
+}
+
+class Monitor
+{
+	public string ModelName { get; }
+	public MonitorType Type { get; }
+	public ushort[] ProductIds { get; }
+
+	// NB: In the case of USB monitors, the USB product ID should be the first product ID, and all other IDs must be PNP product IDs.
+	public Monitor(string modelName, MonitorType type, params ushort[] productIds)
+	{
+		ModelName = modelName;
+		Type = type;
+		ProductIds = productIds;
+	}
+}
+#>

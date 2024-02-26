@@ -22,4 +22,23 @@
 		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Update="DeviceDatabase.tt">
+	    <Generator>TextTemplatingFileGenerator</Generator>
+	    <LastGenOutput>DeviceDatabase.Generated.cs</LastGenOutput>
+	  </None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="DeviceDatabase.Generated.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>DeviceDatabase.tt</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
 </Project>

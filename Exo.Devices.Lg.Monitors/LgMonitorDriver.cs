@@ -49,12 +49,12 @@ public class LgMonitorDriver :
 {
 	private static readonly AsyncLock CreationLock = new();
 
-	private const int LgVendorId = 0x043E;
-
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
 
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
 	[MonitorId("GSM5BBF")]
+	[MonitorId("GSM5BEE")]
+	[MonitorId("GSM5BC0")]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
@@ -63,6 +63,7 @@ public class LgMonitorDriver :
 		CancellationToken cancellationToken
 	)
 	{
+		var info = DeviceDatabase.GetMonitorInformationFromMonitorProductId(edid.ProductId);
 		//using (await CreationLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		//{
 		//	var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, 1);
@@ -86,11 +87,10 @@ public class LgMonitorDriver :
 	}
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
-	[ProductId(VendorIdSource.Usb, LgVendorId, 0x9A8A)]
+	[ProductId(VendorIdSource.Usb, DeviceDatabase.LgUsbVendorId, 0x9A8A)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
-		string friendlyName,
 		ushort productId,
 		ushort version,
 		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
@@ -168,8 +168,6 @@ public class LgMonitorDriver :
 
 			var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, I2CRetryCount);
 
-			//var edid = await ddc.GetEdidAsync(cancellationToken).ConfigureAwait(false);
-
 			var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
 			ushort scalerVersion = vcpResponse.CurrentValue;
 			var data = ArrayPool<byte>.Shared.Rent(1000);
@@ -184,7 +182,7 @@ public class LgMonitorDriver :
 
 			// This special call will return the monitor model name. We can then use it as the friendly name.
 			await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
-			friendlyName = "LG " + Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
+			string modelName = Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
 
 			// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
 			await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
@@ -197,38 +195,9 @@ public class LgMonitorDriver :
 			{
 				throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
 			}
-			//var opcodes = new VcpCommandDefinition?[256];
-			//foreach (var def in parsedCapabilities.SupportedVcpCommands)
-			//{
-			//	opcodes[def.VcpCode] = def;
-			//}
-			//for (int i = 0; i < opcodes.Length; i++)
-			//{
-			//	var def = opcodes[i];
-			//	try
-			//	{
-			//		var result = await transport.GetVcpFeatureAsync((byte)i, cancellationToken).ConfigureAwait(false);
-			//		string? name;
-			//		string? category;
-			//		if (def is null)
-			//		{
-			//			((VcpCode)i).TryGetNameAndCategory(out name, out category);
-			//		}
-			//		else
-			//		{
-			//			name = def.GetValueOrDefault().Name;
-			//			category = def.GetValueOrDefault().Category;
-			//		}
-			//		Console.WriteLine($"[{(def is null ? "U" : "R")}] [{(result.IsTemporary ? "T" : "P")}] {i:X2} {result.CurrentValue:X4} {result.MaximumValue:X4} [{category ?? "Unknown"}] {name ?? "Unknown"}");
-			//	}
-			//	catch (Exception ex)
-			//	{
-			//		if (def is not null)
-			//		{
-			//			Console.WriteLine($"[R] [-] {i:X2} - {ex.Message}");
-			//		}
-			//	}
-			//}
+
+			var info = DeviceDatabase.GetMonitorInformationFromModelName(modelName);
+
 			return new DriverCreationResult<SystemDevicePath>
 			(
 				keys,
@@ -236,7 +205,7 @@ public class LgMonitorDriver :
 				(
 					ddc,
 					lightingTransport,
-					productId,
+					info.DeviceIds,
 					version,
 					scalerVersion,
 					dscVersion,
@@ -247,7 +216,7 @@ public class LgMonitorDriver :
 					lightingStatus.MaximumBrightnessLevel,
 					rawCapabilities,
 					parsedCapabilities,
-					friendlyName,
+					"LG " + info.ModelName,
 					new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{productId:X4}", serialNumber)
 				),
 				null
@@ -255,9 +224,9 @@ public class LgMonitorDriver :
 		}
 	}
 
-	const int StateEffectChanged = 0x01;
-	const int StateBrightnessChanged = 0x02;
-	const int StateLocked = 0x100;
+	private const int StateEffectChanged = 0x01;
+	private const int StateBrightnessChanged = 0x02;
+	private const int StateLocked = 0x100;
 
 	private readonly LgDisplayDataChannelWithRetry _ddc;
 	private readonly UltraGearLightingTransport _lightingTransport;
@@ -269,7 +238,7 @@ public class LgMonitorDriver :
 	// The state is locked when the ApplyChangesAsync method is executing, and unlocked afterwards.
 	private readonly object _lock;
 	private int _state;
-	private readonly ushort _productId;
+	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly ushort _nxpVersion;
 	private readonly ushort _scalerVersion;
 	private readonly byte _dscVersion;
@@ -291,7 +260,7 @@ public class LgMonitorDriver :
 	(
 		LgDisplayDataChannelWithRetry ddc,
 		UltraGearLightingTransport lightingTransport,
-		ushort productId,
+		ImmutableArray<DeviceId> deviceIds,
 		ushort nxpVersion,
 		ushort scalerVersion,
 		byte dscVersion,
@@ -321,7 +290,7 @@ public class LgMonitorDriver :
 			_ => DisabledEffect.SharedInstance,
 		};
 		_lock = new();
-		_productId = productId;
+		_deviceIds = deviceIds;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
 		_dscVersion = dscVersion;
@@ -353,7 +322,7 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature>(this);
+		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
 		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures, baseFeatures);
 	}
 
@@ -568,7 +537,9 @@ public class LgMonitorDriver :
 		return new ValueTask(_lightingTransport.SetVideoSyncColors(colors, default));
 	}
 
-	DeviceId IDeviceIdFeature.DeviceId => new(DeviceIdSource.Usb, VendorIdSource.Usb, LgVendorId, _productId, _nxpVersion);
+	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
+	int? IDeviceIdsFeature.MainDeviceIdIndex => 0;
+	DeviceId IDeviceIdFeature.DeviceId => _deviceIds[0];
 
 	byte ILightingBrightnessFeature.MinimumBrightness => _minimumBrightness;
 	byte ILightingBrightnessFeature.MaximumBrightness => _maximumBrightness;
@@ -590,7 +561,4 @@ public class LgMonitorDriver :
 	}
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
-
-	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds { get; }
-	int? IDeviceIdsFeature.MainDeviceIdIndex { get; }
 }
