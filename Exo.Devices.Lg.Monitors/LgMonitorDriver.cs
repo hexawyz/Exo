@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text;
 using DeviceTools;
@@ -32,8 +33,9 @@ public class LgMonitorDriver :
 	ILgMonitorNxpVersionFeature,
 	ILgMonitorDisplayStreamCompressionVersionFeature
 {
-	private static readonly AsyncLock CreationLock = new();
+	private static readonly ConcurrentDictionary<string, LgMonitorDriver> DriversBySerialNumber = new();
 
+	[ExclusionCategory(typeof(LgMonitorDriver))]
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
 	[MonitorId("GSM5BBF")]
 	[MonitorId("GSM5BEE")]
@@ -69,6 +71,7 @@ public class LgMonitorDriver :
 		throw new NotImplementedException("TODO");
 	}
 
+	[ExclusionCategory(typeof(LgMonitorDriver))]
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[ProductId(VendorIdSource.Usb, DeviceDatabase.LgUsbVendorId, 0x9A8A)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
@@ -83,130 +86,127 @@ public class LgMonitorDriver :
 		CancellationToken cancellationToken
 	)
 	{
-		using (await CreationLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		string? i2cDeviceInterfaceName = null;
+		string? lightingDeviceInterfaceName = null;
+
+		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
-			string? i2cDeviceInterfaceName = null;
-			string? lightingDeviceInterfaceName = null;
+			var deviceInterface = deviceInterfaces[i];
 
-			for (int i = 0; i < deviceInterfaces.Length; i++)
+			// Skip non-HID device interfaces.
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.Devices.InterfaceClassGuid.Key, out Guid interfaceClassGuid) || interfaceClassGuid != DeviceInterfaceClassGuids.Hid)
 			{
-				var deviceInterface = deviceInterfaces[i];
-
-				// Skip non-HID device interfaces.
-				if (!deviceInterface.Properties.TryGetValue(Properties.System.Devices.InterfaceClassGuid.Key, out Guid interfaceClassGuid) || interfaceClassGuid != DeviceInterfaceClassGuids.Hid)
-				{
-					continue;
-				}
-
-				if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage))
-				{
-					throw new InvalidOperationException($"No HID Usage Page associated with the device interface {deviceInterface.Id}.");
-				}
-
-				if ((usagePage & 0xFFFE) != 0xFF00)
-				{
-					throw new InvalidOperationException($"Unexpected HID Usage Page associated with the device interface {deviceInterface.Id}.");
-				}
-
-				if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId))
-				{
-					throw new InvalidOperationException($"No HID Usage ID associated with the device interface {deviceInterface.Id}.");
-				}
-
-				if (usagePage == 0xFF00 && usageId == 0x01)
-				{
-					i2cDeviceInterfaceName = deviceInterface.Id;
-				}
-				else if (usagePage == 0xFF01 && usageId == 0x01)
-				{
-					lightingDeviceInterfaceName = deviceInterface.Id;
-				}
+				continue;
 			}
 
-			if (i2cDeviceInterfaceName is null || lightingDeviceInterfaceName is null)
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage))
 			{
-				throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device {topLevelDeviceName}.");
+				throw new InvalidOperationException($"No HID Usage Page associated with the device interface {deviceInterface.Id}.");
 			}
 
-			// The HID I2C protocol can occasionally fail, so we want to retry our requests at least once.
-			// NB: I didn't dig up the reason for failures, but I saw them happen a few times. It could just be concurrent accesses with the OS or GPU. (Because I don't think the bus can be locked?)
-			const int I2CRetryCount = 1;
-
-			byte sessionId = (byte)Random.Shared.Next(1, 256);
-			var i2cBus = await HidI2CTransport.CreateAsync
-			(
-				new HidFullDuplexStream(i2cDeviceInterfaceName),
-				sessionId,
-				loggerFactory.CreateLogger<HidI2CTransport>(),
-				cancellationToken
-			).ConfigureAwait(false);
-
-			var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, I2CRetryCount);
-
-			var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
-			ushort scalerVersion = vcpResponse.CurrentValue;
-			var data = ArrayPool<byte>.Shared.Rent(1000);
-
-			// Reads the USB product ID.
-			//await ddc.SendLgCustomCommandWithRetryAsync(0xC8, 0x00, data.AsMemory(0, 2), cancellationToken).ConfigureAwait(false);
-			var pid = await ddc.GetVcpFeatureWithRetryAsync(0xA1, cancellationToken).ConfigureAwait(false);
-
-			// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
-			await ddc.SetLgCustomWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
-			byte dscVersion = data[1];
-
-			// This special call will return the monitor model name. We can use it to match extra device information and to build the friendly name.
-			await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
-			string modelName = Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
-
-			// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
-			await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
-			string serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
-
-			var length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
-			var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
-			ArrayPool<byte>.Shared.Return(data);
-			if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
+			if ((usagePage & 0xFFFE) != 0xFF00)
 			{
-				throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
+				throw new InvalidOperationException($"Unexpected HID Usage Page associated with the device interface {deviceInterface.Id}.");
 			}
 
-			var info = DeviceDatabase.GetMonitorInformationFromModelName(modelName);
-
-			// For now, hardcode the lighting for 27GP950. It will be relatively to support other monitors, but we need to make sure that everything works properly.
-			UltraGearLightingFeatures? lightingFeatures = null;
-			if (info.ModelName == "27GP950")
+			if (!deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId))
 			{
-				var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName), loggerFactory.CreateLogger<UltraGearLightingTransport>());
-
-				byte ledCount = await lightingTransport.GetLedCountAsync(cancellationToken).ConfigureAwait(false);
-				var activeEffect = await lightingTransport.GetActiveEffectAsync(cancellationToken).ConfigureAwait(false);
-				var lightingStatus = await lightingTransport.GetLightingStatusAsync(cancellationToken).ConfigureAwait(false);
-				// In the current model, we don't really have a use for the current menu selection if lighting is disabled, so we can just override the active effect here to force the effect to disabled.
-				if (!lightingStatus.IsLightingEnabled) activeEffect = 0;
-
-				lightingFeatures = new(lightingTransport, ledCount, activeEffect, lightingStatus.CurrentBrightnessLevel, lightingStatus.MinimumBrightnessLevel, lightingStatus.MaximumBrightnessLevel);
+				throw new InvalidOperationException($"No HID Usage ID associated with the device interface {deviceInterface.Id}.");
 			}
 
-			return new DriverCreationResult<SystemDevicePath>
-			(
-				keys,
-				new LgMonitorDriver
-				(
-					ddc,
-					lightingFeatures,
-					info.DeviceIds,
-					version,
-					scalerVersion,
-					dscVersion,
-					rawCapabilities,
-					parsedCapabilities,
-					"LG " + info.ModelName,
-					new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{modelName}", serialNumber)
-				),
-				null
-			);
+			if (usagePage == 0xFF00 && usageId == 0x01)
+			{
+				i2cDeviceInterfaceName = deviceInterface.Id;
+			}
+			else if (usagePage == 0xFF01 && usageId == 0x01)
+			{
+				lightingDeviceInterfaceName = deviceInterface.Id;
+			}
 		}
+
+		if (i2cDeviceInterfaceName is null || lightingDeviceInterfaceName is null)
+		{
+			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device {topLevelDeviceName}.");
+		}
+
+		// The HID I2C protocol can occasionally fail, so we want to retry our requests at least once.
+		// NB: I didn't dig up the reason for failures, but I saw them happen a few times. It could just be concurrent accesses with the OS or GPU. (Because I don't think the bus can be locked?)
+		const int I2CRetryCount = 1;
+
+		byte sessionId = (byte)Random.Shared.Next(1, 256);
+		var i2cBus = await HidI2CTransport.CreateAsync
+		(
+			new HidFullDuplexStream(i2cDeviceInterfaceName),
+			sessionId,
+			loggerFactory.CreateLogger<HidI2CTransport>(),
+			cancellationToken
+		).ConfigureAwait(false);
+
+		var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, I2CRetryCount);
+
+		var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
+		ushort scalerVersion = vcpResponse.CurrentValue;
+		var data = ArrayPool<byte>.Shared.Rent(1000);
+
+		// Reads the USB product ID.
+		//await ddc.SendLgCustomCommandWithRetryAsync(0xC8, 0x00, data.AsMemory(0, 2), cancellationToken).ConfigureAwait(false);
+		var pid = await ddc.GetVcpFeatureWithRetryAsync(0xA1, cancellationToken).ConfigureAwait(false);
+
+		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
+		await ddc.SetLgCustomWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+		byte dscVersion = data[1];
+
+		// This special call will return the monitor model name. We can use it to match extra device information and to build the friendly name.
+		await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
+		string modelName = Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
+
+		// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
+		await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
+		string serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
+
+		var length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
+		ArrayPool<byte>.Shared.Return(data);
+		if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
+		{
+			throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
+		}
+
+		var info = DeviceDatabase.GetMonitorInformationFromModelName(modelName);
+
+		// For now, hardcode the lighting for 27GP950. It will be relatively to support other monitors, but we need to make sure that everything works properly.
+		UltraGearLightingFeatures? lightingFeatures = null;
+		if (info.ModelName == "27GP950")
+		{
+			var lightingTransport = new UltraGearLightingTransport(new HidFullDuplexStream(lightingDeviceInterfaceName), loggerFactory.CreateLogger<UltraGearLightingTransport>());
+
+			byte ledCount = await lightingTransport.GetLedCountAsync(cancellationToken).ConfigureAwait(false);
+			var activeEffect = await lightingTransport.GetActiveEffectAsync(cancellationToken).ConfigureAwait(false);
+			var lightingStatus = await lightingTransport.GetLightingStatusAsync(cancellationToken).ConfigureAwait(false);
+			// In the current model, we don't really have a use for the current menu selection if lighting is disabled, so we can just override the active effect here to force the effect to disabled.
+			if (!lightingStatus.IsLightingEnabled) activeEffect = 0;
+
+			lightingFeatures = new(lightingTransport, ledCount, activeEffect, lightingStatus.CurrentBrightnessLevel, lightingStatus.MinimumBrightnessLevel, lightingStatus.MaximumBrightnessLevel);
+		}
+
+		return new DriverCreationResult<SystemDevicePath>
+		(
+			keys,
+			new LgMonitorDriver
+			(
+				ddc,
+				lightingFeatures,
+				info.DeviceIds,
+				version,
+				scalerVersion,
+				dscVersion,
+				rawCapabilities,
+				parsedCapabilities,
+				"LG " + info.ModelName,
+				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{modelName}", serialNumber)
+			),
+			null
+		);
 	}
 
 	private readonly LgDisplayDataChannelWithRetry _ddc;
