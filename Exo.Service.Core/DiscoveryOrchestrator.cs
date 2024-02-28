@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Exo.Discovery;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static Exo.AsyncLock;
 
 namespace Exo.Service;
 
@@ -188,14 +191,27 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 				// Now run through the factories to find one that will successfully create the result.
 				TResult? result = null;
+				ExclusionLock? exclusionLock;
 				foreach (var factoryId in creationParameters.FactoryIds)
 				{
 					if (KnownFactoryMethods.TryGetValue(factoryId, out var details))
 					{
 						try
 						{
-							var factory = details.GetValue<TFactory, TCreationContext, TResult>(Orchestrator.AssemblyLoader);
-							result = await Service.InvokeFactoryAsync(factory, creationParameters, cancellationToken).ConfigureAwait(false);
+							var liveFactoryDetails = details.GetLiveDetails<TFactory, TCreationContext, TResult>(Orchestrator.AssemblyLoader, Orchestrator.ExclusionLocks);
+							exclusionLock = liveFactoryDetails.ExclusionLock;
+
+							if (exclusionLock is not null)
+							{
+								using (await exclusionLock.AcquireForCreationAsync(factoryId, cancellationToken).ConfigureAwait(false))
+								{
+									result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
+								}
+							}
+							else
+							{
+								result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
+							}
 							if (result is null) continue;
 						}
 						catch (Exception ex)
@@ -220,6 +236,21 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					// TODO: Log some information. NB: It could be important to know if some factories were called.
 					_states.Remove(creationParameters.AssociatedKeys, state);
 					return;
+				}
+
+				// TODO: Still need to handle the additional disposables managed by the creation context.
+				// Drivers are supposed to properly dispose of what they use, so it is not a huge problem, but it would be better to guarantee cleanup.
+				// Only caveat is that these disposables need to be tied up to the lifetime rather than the state, as we can't know when the driver will stop using the objects.
+				// This is especially important for the nested driver registries, that will generally be tied to the lifetime of a driver and not to that of the registration.
+
+				state.AssociatedKeys = result.RegistrationKeys;
+				state.Component = result.Component;
+				state.Registration = result.DisposableResult;
+				state.ComponentReferenceCounter = Orchestrator.ReferenceCounters.GetOrCreateValue(result.Component);
+
+				using (await state.ComponentReferenceCounter.Lock.WaitAsync(default).ConfigureAwait(false))
+				{
+					state.ComponentReferenceCounter.ReferenceCount++;
 				}
 
 				if (typeof(TComponent) == typeof(Driver))
@@ -254,24 +285,17 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					{
 						// TODO: Log duplicate keys.
 						_states.Remove(result.RegistrationKeys, state);
-						if (result.DisposableResult is not null) await result.DisposableResult.DisposeAsync().ConfigureAwait(false);
-						else await result.Component.DisposeAsync();
+						await DisposeStateAsync(state, false, default).ConfigureAwait(false);
 						return;
 					}
 					if (!ReferenceEquals(_states.GetOrAdd(key, state), state))
 					{
 						// TODO: Log ?
 						_states.Remove(result.RegistrationKeys, state);
-						if (result.DisposableResult is not null) await result.DisposableResult.DisposeAsync().ConfigureAwait(false);
-						else await result.Component.DisposeAsync();
+						await DisposeStateAsync(state, false, default).ConfigureAwait(false);
 						return;
 					}
 				}
-
-				// TODO: Implement the reference counting for multi-registration components.
-				state.AssociatedKeys = result.RegistrationKeys;
-				state.Component = result.Component;
-				state.Registration = result.DisposableResult;
 
 				if (typeof(TComponent) == typeof(Driver))
 				{
@@ -288,14 +312,32 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			{
 				_states.Remove(state.AssociatedKeys, state);
 
-				if (state.Registration is not null) await state.Registration.DisposeAsync();
-				else if (state.Component is { } component)
+				await DisposeStateAsync(state, true, cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		public async ValueTask DisposeStateAsync(ComponentState<TKey> state, bool shouldUnregisterDriver, CancellationToken cancellationToken)
+		{
+			if (state.ComponentReferenceCounter is not null)
+			{
+				using (await state.ComponentReferenceCounter.Lock.WaitAsync(default).ConfigureAwait(false))
 				{
-					if (typeof(TComponent) == typeof(Driver))
+					if (state.Registration is not null)
 					{
-						await Orchestrator.DriverRegistry.RemoveDriverAsync(Unsafe.As<Driver>(component)).ConfigureAwait(false);
+						await state.Registration.DisposeAsync().ConfigureAwait(false);
 					}
-					await state.Component.DisposeAsync();
+
+					if (--state.ComponentReferenceCounter.ReferenceCount == 0)
+					{
+						if (state.Component is { } component)
+						{
+							if (typeof(TComponent) == typeof(Driver) && shouldUnregisterDriver)
+							{
+								await Orchestrator.DriverRegistry.RemoveDriverAsync(Unsafe.As<Driver>(component)).ConfigureAwait(false);
+							}
+							await state.Component.DisposeAsync();
+						}
+					}
 				}
 			}
 		}
@@ -308,6 +350,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		public ImmutableArray<TKey> AssociatedKeys { get; set; }
 		public IAsyncDisposable? Component { get; set; }
 		public IAsyncDisposable? Registration { get; set; }
+		public ComponentReferenceCounter? ComponentReferenceCounter { get; set; }
 
 		public ComponentState(ImmutableArray<TKey> associatedKeys)
 		{
@@ -326,34 +369,49 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		public ConcurrentDictionary<Guid, FactoryMethodDetails> KnownFactoryMethods { get; } = new();
 	}
 
-	private sealed class FactoryMethodDetails : WeakReference
+	private sealed class FactoryMethodDetails
 	{
 		public Guid FactoryId { get; }
 		public AssemblyName AssemblyName { get; }
 		public MethodReference MethodReference { get; }
+		private DependentHandle _dependentHandle;
 
-		public FactoryMethodDetails(Guid factoryId, AssemblyName assemblyName, MethodReference methodReference) : base(null, false)
+		public FactoryMethodDetails(Guid factoryId, AssemblyName assemblyName, MethodReference methodReference)
 		{
 			FactoryId = factoryId;
 			AssemblyName = assemblyName;
 			MethodReference = methodReference;
 		}
 
-		public TFactory GetValue<TFactory, TCreationContext, TResult>(IAssemblyLoader assemblyLoader)
+		public LiveFactoryMethodDetails<TFactory> GetLiveDetails<TFactory, TCreationContext, TResult>(IAssemblyLoader assemblyLoader, ConditionalWeakTable<Type, ExclusionLock> exclusionLocks)
 			where TFactory : class, Delegate
 			where TCreationContext : class, IComponentCreationContext
 			where TResult : class
 		{
-			TFactory? value;
-
-			if ((value = Target as TFactory) is not null) return value;
 			lock (this)
 			{
-				if ((value = Target as TFactory) is not null) return value;
+				if (_dependentHandle.IsAllocated)
+				{
+					var (target, dependent) = _dependentHandle.TargetAndDependent;
 
-				value = ComponentFactory.Get<TFactory, TCreationContext, TResult>(GetMethod(assemblyLoader, AssemblyName, MethodReference));
-				Target = value;
-				return value;
+					if (dependent is not null) return Unsafe.As<LiveFactoryMethodDetails<TFactory>>(dependent);
+
+					_dependentHandle.Dispose();
+				}
+
+				var method = GetMethod(assemblyLoader, AssemblyName, MethodReference);
+
+				var exclusionLock = method.GetCustomAttribute<ExclusionCategoryAttribute>() is { } exclusionCategory ?
+					exclusionLocks.GetOrCreateValue(exclusionCategory.Category) :
+					null;
+
+				var factory = ComponentFactory.Get<TFactory, TCreationContext, TResult>(method);
+
+				var details = new LiveFactoryMethodDetails<TFactory>(factory, exclusionLock);
+
+				_dependentHandle = new(method, details);
+
+				return details;
 			}
 		}
 
@@ -367,10 +425,41 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		}
 	}
 
-	// TODO
-	private sealed class ReferenceCountedLifetime
+	private sealed class LiveFactoryMethodDetails<TFactory>
 	{
-		//private nint _referenceCount;
+		public TFactory Factory { get; }
+		public ExclusionLock? ExclusionLock { get; }
+
+		public LiveFactoryMethodDetails(TFactory factory, ExclusionLock? exclusionLock)
+		{
+			Factory = factory;
+			ExclusionLock = exclusionLock;
+		}
+	}
+
+	// This implements the exclusion locks.
+	// Basic idea is that we want to maintain at least some amounts of parallelism by allowing two instances of the same factory to run simultaneously.
+	// However, we want to prevent two distinct factories from running at the same time.
+	// And a component should never be disposed while any factory is run.
+	// As such, it follows that at most one factory can be running at a given time, in one or multiple instances.
+	// Additionally, we should be able to maximize parallelism by allowing reordering of any operations between two destructions.
+	// The minimum valid implementation of this is a full exclusive lock, which will prevent any form of parallelism. Not ideal, but quite simple.
+	// TODO: Implement the better version that allows for parallelism.
+	private sealed class ExclusionLock
+	{
+		private readonly AsyncLock _mainLock = new();
+
+		public ValueTask<AsyncLock.Registration> AcquireForCreationAsync(Guid factory, CancellationToken cancellationToken)
+			=> _mainLock.WaitAsync(cancellationToken);
+
+		public ValueTask<AsyncLock.Registration> AcquireForDestructionAsync(CancellationToken cancellationToken)
+			=> _mainLock.WaitAsync(cancellationToken);
+	}
+
+	private sealed class ComponentReferenceCounter
+	{
+		public AsyncLock Lock { get; } = new();
+		public int ReferenceCount { get; set; }
 	}
 
 	private ILogger<DiscoveryOrchestrator> Logger { get; }
@@ -379,6 +468,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 	private IAssemblyLoader AssemblyLoader { get; }
 	private readonly IAssemblyParsedDataCache<DiscoveredAssemblyDetails> _parsedDataCache;
 	private readonly ConditionalWeakTable<Type, object> _componentStates;
+	private ConditionalWeakTable<Type, ExclusionLock> ExclusionLocks { get; }
+	private ConditionalWeakTable<object, ComponentReferenceCounter> ReferenceCounters { get; }
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private List<DiscoveryServiceState>? _pendingInitializations;
 
@@ -390,6 +481,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		AssemblyLoader = assemblyLoader;
 		_parsedDataCache = parsedDataCache;
 		_componentStates = new();
+		ExclusionLocks = new();
+		ReferenceCounters = new();
 		_cancellationTokenSource = new();
 		_pendingInitializations = new();
 	}
