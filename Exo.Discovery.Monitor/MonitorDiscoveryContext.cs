@@ -143,8 +143,5 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 		);
 
 		return new(associatedKeys, creationContext, _discoverySubsystem.ResolveFactories(deviceId));
-
-	DisplayConfigurationMismatch:;
-		throw new InvalidOperationException("Could not match the display configuration with the logical monitors. Please help improve the code if you can.");
 	}
 }

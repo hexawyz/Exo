@@ -113,11 +113,6 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		public Dictionary<string, List<DeviceState>> DevicesByCompatibleHardwareId { get; } = new();
 
 		public DriverConfigurationState(string key) => Key = key;
-
-		// TODO: Move the device management methods back into the parent class. Because it mixes up with writing the configuration, it is not the right place to have this code. (but it is also not urgent)
-		// We only need this class as an implementation detail to hold related state information together anyway. It is fine if everything is accessed from outside.
-
-		
 	}
 
 	private static readonly ConditionalWeakTable<Type, Type[]> DriverFeatureCache = new();

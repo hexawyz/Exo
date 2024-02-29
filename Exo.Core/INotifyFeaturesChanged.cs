@@ -1,11 +1,8 @@
-using System;
+namespace Exo;
 
-namespace Exo
+/// <summary>An interface exposed by driver implementations whose feature set can change dynamically.</summary>
+/// <remarks></remarks>
+public interface INotifyFeaturesChanged
 {
-	/// <summary>An interface exposed by driver implementations whose feature set can change dynamically.</summary>
-	/// <remarks></remarks>
-	public interface INotifyFeaturesChanged
-	{
-		event EventHandler FeaturesChanged;
-	}
+	event EventHandler FeaturesChanged;
 }

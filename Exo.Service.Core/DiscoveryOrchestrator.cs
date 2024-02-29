@@ -212,7 +212,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 							{
 								result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
 							}
-							if (result is null) continue;
+							if (result is not null) break;
 						}
 						catch (Exception ex)
 						{

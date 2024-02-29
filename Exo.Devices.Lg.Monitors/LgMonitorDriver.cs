@@ -1,3 +1,4 @@
+using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -22,6 +23,7 @@ public class LgMonitorDriver :
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceIdsFeature,
+	INotifyFeaturesChanged,
 	IDeviceSerialNumberFeature,
 	IRawVcpFeature,
 	IMonitorBrightnessFeature,
@@ -33,6 +35,9 @@ public class LgMonitorDriver :
 	ILgMonitorNxpVersionFeature,
 	ILgMonitorDisplayStreamCompressionVersionFeature
 {
+	// The (HID) I2C protocol can occasionally fail, so we want to retry our requests at least once.
+	private const int I2CRetryCount = 1;
+
 	private static readonly ConcurrentDictionary<string, LgMonitorDriver> DriversBySerialNumber = new();
 
 	[ExclusionCategory(typeof(LgMonitorDriver))]
@@ -45,30 +50,60 @@ public class LgMonitorDriver :
 		ImmutableArray<SystemDevicePath> keys,
 		Edid edid,
 		II2CBus i2cBus,
+		string topLevelDeviceName,
 		CancellationToken cancellationToken
 	)
 	{
-		var info = DeviceDatabase.GetMonitorInformationFromMonitorProductId(edid.ProductId);
-		//using (await CreationLock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		//{
-		//	var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, 1);
+		if (edid.SerialNumber is null) throw new InvalidOperationException("The monitor doesn't have a serial number.");
 
-		//	var data = ArrayPool<byte>.Shared.Rent(1000);
-		//	try
-		//	{
-		//		//var z = await ddc.GetVcpFeatureAsync(0xCA, cancellationToken).ConfigureAwait(false);
-		//		//await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 11), cancellationToken).ConfigureAwait(false);
-		//	}
-		//	catch (Exception ex)
-		//	{
-		//	}
-		//	finally
-		//	{
-		//		ArrayPool<byte>.Shared.Return(data);
-		//	}
-		//}
+		if (!DriversBySerialNumber.TryGetValue(edid.SerialNumber, out var driver))
+		{
+			ushort scalerVersion;
+			byte[] rawCapabilities;
+			await using (var ddc = new LgDisplayDataChannelWithRetry(i2cBus, false, I2CRetryCount))
+			{
+				var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
+				scalerVersion = vcpResponse.CurrentValue;
+				byte[] data = ArrayPool<byte>.Shared.Rent(1000);
+				try
+				{
+					ushort length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+					rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
+				}
+				finally
+				{
+					ArrayPool<byte>.Shared.Return(data);
+				}
+			}
 
-		throw new NotImplementedException("TODO");
+			if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
+			{
+				throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
+			}
+
+			var info = DeviceDatabase.GetMonitorInformationFromMonitorProductId(edid.ProductId);
+
+			// NB: We will not always get the same top level device name depending on which connection is initialized first (USB or one of the multiple display connections).
+			// TODO: See if something must be done about the main device name. (Maybe reuse the SN in that case? Anyway, the ID SN from EDID would be part of the Windows device name)
+			driver = new LgMonitorDriver
+			(
+				null,
+				info.DeviceIds,
+				0,
+				scalerVersion,
+				0,
+				rawCapabilities,
+				parsedCapabilities,
+				"LG " + info.ModelName,
+				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{info.ModelName}", edid.SerialNumber)
+			);
+		}
+		else
+		{
+			driver.CompositeI2cBus.AddBus(i2cBus);
+		}
+
+		return new(keys, driver, new ConnectedMonitorFacet(driver, i2cBus));
 	}
 
 	[ExclusionCategory(typeof(LgMonitorDriver))]
@@ -129,10 +164,6 @@ public class LgMonitorDriver :
 			throw new InvalidOperationException($"Could not find device interfaces with correct HID usages on the device {topLevelDeviceName}.");
 		}
 
-		// The HID I2C protocol can occasionally fail, so we want to retry our requests at least once.
-		// NB: I didn't dig up the reason for failures, but I saw them happen a few times. It could just be concurrent accesses with the OS or GPU. (Because I don't think the bus can be locked?)
-		const int I2CRetryCount = 1;
-
 		byte sessionId = (byte)Random.Shared.Next(1, 256);
 		var i2cBus = await HidI2CTransport.CreateAsync
 		(
@@ -142,31 +173,43 @@ public class LgMonitorDriver :
 			cancellationToken
 		).ConfigureAwait(false);
 
-		var ddc = new LgDisplayDataChannelWithRetry(i2cBus, true, I2CRetryCount);
+		ushort scalerVersion;
+		byte dscVersion;
+		string modelName;
+		string serialNumber;
+		byte[] rawCapabilities;
+		await using (var ddc = new LgDisplayDataChannelWithRetry(i2cBus, false, I2CRetryCount))
+		{
+			var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
+			scalerVersion = vcpResponse.CurrentValue;
+			byte[] data = ArrayPool<byte>.Shared.Rent(1000);
+			try
+			{
+				// Reads the USB product ID.
+				//await ddc.SendLgCustomCommandWithRetryAsync(0xC8, 0x00, data.AsMemory(0, 2), cancellationToken).ConfigureAwait(false);
+				//var pid = await ddc.GetVcpFeatureWithRetryAsync(0xA1, cancellationToken).ConfigureAwait(false);
 
-		var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
-		ushort scalerVersion = vcpResponse.CurrentValue;
-		var data = ArrayPool<byte>.Shared.Rent(1000);
+				// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
+				await ddc.SetLgCustomWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+				dscVersion = data[1];
 
-		// Reads the USB product ID.
-		//await ddc.SendLgCustomCommandWithRetryAsync(0xC8, 0x00, data.AsMemory(0, 2), cancellationToken).ConfigureAwait(false);
-		var pid = await ddc.GetVcpFeatureWithRetryAsync(0xA1, cancellationToken).ConfigureAwait(false);
+				// This special call will return the monitor model name. We can use it to match extra device information and to build the friendly name.
+				await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
+				modelName = Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
 
-		// This special call will return various data, including a byte representing the DSC firmware version. (In BCD format)
-		await ddc.SetLgCustomWithRetryAsync(0xC9, 0x06, data.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
-		byte dscVersion = data[1];
+				// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
+				await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
+				serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
 
-		// This special call will return the monitor model name. We can use it to match extra device information and to build the friendly name.
-		await ddc.GetLgCustomWithRetryAsync(0xCA, data.AsMemory(0, 10), cancellationToken).ConfigureAwait(false);
-		string modelName = Encoding.ASCII.GetString(data.AsSpan(0, data.AsSpan(0, 10).IndexOf((byte)0)));
+				ushort length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+				rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(data);
+			}
+		}
 
-		// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
-		await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
-		string serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
-
-		var length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
-		var rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
-		ArrayPool<byte>.Shared.Return(data);
 		if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
 		{
 			throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
@@ -189,12 +232,10 @@ public class LgMonitorDriver :
 			lightingFeatures = new(lightingTransport, ledCount, activeEffect, lightingStatus.CurrentBrightnessLevel, lightingStatus.MinimumBrightnessLevel, lightingStatus.MaximumBrightnessLevel);
 		}
 
-		return new DriverCreationResult<SystemDevicePath>
-		(
-			keys,
-			new LgMonitorDriver
+		if (!DriversBySerialNumber.TryGetValue(serialNumber, out var driver))
+		{
+			driver = new LgMonitorDriver
 			(
-				ddc,
 				lightingFeatures,
 				info.DeviceIds,
 				version,
@@ -204,9 +245,97 @@ public class LgMonitorDriver :
 				parsedCapabilities,
 				"LG " + info.ModelName,
 				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{modelName}", serialNumber)
-			),
-			null
-		);
+			);
+			if (!DriversBySerialNumber.TryAdd(serialNumber, driver))
+			{
+				await driver.DisposeAsync().ConfigureAwait(false);
+				await i2cBus.DisposeAsync().ConfigureAwait(false);
+				if (lightingFeatures is not null)
+				{
+					await lightingFeatures.DisposeAsync().ConfigureAwait(false);
+				}
+
+				throw new InvalidOperationException($"""A driver with the serial number "{serialNumber}" was already registered.""");
+			}
+		}
+		else if (lightingFeatures is not null)
+		{
+			driver.UpdateFeatures(lightingFeatures);
+		}
+
+		driver.CompositeI2cBus.SetUsbBus(i2cBus);
+
+		return new DriverCreationResult<SystemDevicePath>(keys, driver, lightingFeatures is not null ? new UsbI2cWithLightingFacet(driver, i2cBus, lightingFeatures) : new UsbI2cFacet(driver, i2cBus));
+	}
+
+	private abstract class Facet : IAsyncDisposable
+	{
+		private LgMonitorDriver? _driver;
+
+		protected Facet(LgMonitorDriver driver) => _driver = driver;
+
+		public async ValueTask DisposeAsync()
+		{
+			if (Interlocked.Exchange(ref _driver, null) is { } driver)
+			{
+				await DisposeAsync(driver);
+			}
+		}
+
+		protected abstract ValueTask DisposeAsync(LgMonitorDriver driver);
+	}
+
+	private sealed class ConnectedMonitorFacet : Facet
+	{
+		private readonly II2CBus _i2cBus;
+
+		public ConnectedMonitorFacet(LgMonitorDriver driver, II2CBus i2cBus)
+			: base(driver)
+		{
+			_i2cBus = i2cBus;
+		}
+
+		protected override ValueTask DisposeAsync(LgMonitorDriver driver)
+		{
+			driver.CompositeI2cBus.RemoveBus(_i2cBus);
+			return ValueTask.CompletedTask;
+		}
+	}
+
+	private sealed class UsbI2cFacet : Facet
+	{
+		private readonly HidI2CTransport _i2cBus;
+
+		public UsbI2cFacet(LgMonitorDriver driver, HidI2CTransport i2cBus)
+			: base(driver)
+		{
+			_i2cBus = i2cBus;
+		}
+
+		protected override ValueTask DisposeAsync(LgMonitorDriver driver)
+		{
+			driver.CompositeI2cBus.UnsetUsbBus(_i2cBus);
+			return ValueTask.CompletedTask;
+		}
+	}
+
+	private sealed class UsbI2cWithLightingFacet : Facet
+	{
+		private readonly HidI2CTransport _i2cBus;
+		private readonly UltraGearLightingFeatures _ultraGearLightingFeatures;
+
+		public UsbI2cWithLightingFacet(LgMonitorDriver driver, HidI2CTransport i2cBus, UltraGearLightingFeatures ultraGearLightingFeatures) : base(driver)
+		{
+			_i2cBus = i2cBus;
+			_ultraGearLightingFeatures = ultraGearLightingFeatures;
+		}
+
+		protected override async ValueTask DisposeAsync(LgMonitorDriver driver)
+		{
+			driver.CompositeI2cBus.UnsetUsbBus(_i2cBus);
+			driver.UpdateFeatures(null);
+			await _ultraGearLightingFeatures.DisposeAsync().ConfigureAwait(false);
+		}
 	}
 
 	private readonly LgDisplayDataChannelWithRetry _ddc;
@@ -216,18 +345,35 @@ public class LgMonitorDriver :
 	private readonly byte _dscVersion;
 	private readonly byte[] _rawCapabilities;
 	private readonly MonitorCapabilities _parsedCapabilities;
-	private readonly UltraGearLightingFeatures? _ultraGearLightingFeatures;
-	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
+	private IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
-	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+	private readonly IDeviceFeatureCollection<IDeviceFeature> _baseFeatures;
+	private IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+	private CompositeI2cBus CompositeI2cBus { get; }
+
+	private void UpdateFeatures(UltraGearLightingFeatures? ultraGearLightingFeatures)
+	{
+		var lightingFeatures = ultraGearLightingFeatures is not null ?
+			FeatureCollection.Create<
+				ILightingDeviceFeature,
+				UltraGearLightingFeatures,
+				IUnifiedLightingFeature,
+				ILightingDeferredChangesFeature,
+				ILightingBrightnessFeature>(ultraGearLightingFeatures) :
+				FeatureCollection.Empty<ILightingDeviceFeature>();
+		Volatile.Write(ref _allFeatures, FeatureCollection.CreateMerged(lightingFeatures, _monitorFeatures, _lgMonitorFeatures, _baseFeatures));
+		Volatile.Write(ref _lightingFeatures, lightingFeatures);
+		FeaturesChanged?.Invoke(this, EventArgs.Empty);
+	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
+	public event EventHandler FeaturesChanged;
+
 	private LgMonitorDriver
 	(
-		LgDisplayDataChannelWithRetry ddc,
-		UltraGearLightingFeatures? lightingFeatures,
+		UltraGearLightingFeatures? ultraGearLightingFeatures,
 		ImmutableArray<DeviceId> deviceIds,
 		ushort nxpVersion,
 		ushort scalerVersion,
@@ -238,8 +384,8 @@ public class LgMonitorDriver :
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
-		_ddc = ddc;
-		_ultraGearLightingFeatures = lightingFeatures;
+		CompositeI2cBus = new();
+		_ddc = new LgDisplayDataChannelWithRetry(CompositeI2cBus, true, I2CRetryCount);
 		_deviceIds = deviceIds;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
@@ -255,22 +401,14 @@ public class LgMonitorDriver :
 			IMonitorBrightnessFeature,
 			IMonitorContrastFeature,
 			IMonitorSpeakerAudioVolumeFeature>(this);
-		_lightingFeatures = _ultraGearLightingFeatures is not null ?
-			FeatureCollection.Create<
-				ILightingDeviceFeature,
-				UltraGearLightingFeatures,
-				IUnifiedLightingFeature,
-				ILightingDeferredChangesFeature,
-				ILightingBrightnessFeature>(_ultraGearLightingFeatures) :
-				FeatureCollection.Empty<ILightingDeviceFeature>();
 		_lgMonitorFeatures = FeatureCollection.Create<
 			ILgMonitorDeviceFeature,
 			LgMonitorDriver,
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		var baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
-		_allFeatures = FeatureCollection.CreateMerged(_lightingFeatures, _monitorFeatures, _lgMonitorFeatures, baseFeatures);
+		_baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
+		UpdateFeatures(ultraGearLightingFeatures);
 	}
 
 	// The firmware archive explicitly names the SV, DV and NV as "Scaler", "DSC" and "NXP"
@@ -283,8 +421,8 @@ public class LgMonitorDriver :
 
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureCollection<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
-	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
-	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
+	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => Volatile.Read(ref _lightingFeatures);
+	public override IDeviceFeatureCollection<IDeviceFeature> Features => Volatile.Read(ref _allFeatures);
 
 	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
 	int? IDeviceIdsFeature.MainDeviceIdIndex => 0;
@@ -293,10 +431,13 @@ public class LgMonitorDriver :
 
 	public override async ValueTask DisposeAsync()
 	{
-		await _ddc.DisposeAsync().ConfigureAwait(false);
-		if (_ultraGearLightingFeatures is { } lightingFeatures)
+		try
 		{
-			await lightingFeatures.DisposeAsync().ConfigureAwait(false);
+			await _ddc.DisposeAsync().ConfigureAwait(false);
+		}
+		finally
+		{
+			DriversBySerialNumber.TryRemove(new(ConfigurationKey.UniqueId!, this));
 		}
 	}
 
