@@ -13,6 +13,7 @@ namespace Exo
 	public interface IDeviceFeatureCollection<TFeature> : IEnumerable<KeyValuePair<Type, TFeature>>
 		where TFeature : class, IDeviceFeature
 	{
+		bool IsEmpty { get; }
 		TFeature? this[Type type] { get; }
 		T? GetFeature<T>() where T : class, TFeature;
 		bool HasFeature<T>() where T : class, TFeature => GetFeature<T>() is not null;

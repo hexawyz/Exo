@@ -196,6 +196,12 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 		lock (_lock)
 		{
+			// TODO: Refactoring to properly handle drivers with changing feature sets.
+			// At the minimum, we should consider the device offline from the lighting service POV, but maybe the feature change notification is not good enough.
+			// The better design might be a IDeviceFeature that lists the supported feature sets, the active ones, and provide more detailed notifications for when a feature set is enabled or not.
+			// That's because we probably shouldn't expect a random feature to pop out of thin air among similar ones, but instead have something more like while feature categories being optionally enabled.
+			if (lightingDriver.Features.IsEmpty) return ValueTask.CompletedTask;
+
 			lock (deviceState.Lock)
 			{
 				if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } lightingBrightnessFeature)

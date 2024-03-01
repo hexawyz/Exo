@@ -754,6 +754,8 @@ internal static class FeatureCollection<TFeature>
 	{
 		public static EmptyFeatureCollection Instance = new EmptyFeatureCollection();
 
+		public bool IsEmpty => true;
+
 		public TFeature? this[Type type] => null;
 
 		public T? GetFeature<T>() where T : class, TFeature => null;
@@ -773,6 +775,8 @@ internal static class FeatureCollection<TFeature>
 		}
 
 		private readonly TSingleFeature _feature;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type] => type == typeof(TSingleFeature) ? _feature : null;
 
@@ -801,6 +805,8 @@ internal static class FeatureCollection<TFeature>
 
 		private readonly TFeature1 _feature1;
 		private readonly TFeature2 _feature2;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type]
 		{
@@ -853,6 +859,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly TFeature1 _feature1;
 		private readonly TFeature2 _feature2;
 		private readonly TFeature3 _feature3;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type]
 		{
@@ -915,6 +923,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly TFeature2 _feature2;
 		private readonly TFeature3 _feature3;
 		private readonly TFeature4 _feature4;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type]
 		{
@@ -988,6 +998,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly TFeature3 _feature3;
 		private readonly TFeature4 _feature4;
 		private readonly TFeature5 _feature5;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type]
 		{
@@ -1073,6 +1085,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly TFeature4 _feature4;
 		private readonly TFeature5 _feature5;
 		private readonly TFeature6 _feature6;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type]
 		{
@@ -1171,6 +1185,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly TFeature5 _feature5;
 		private readonly TFeature6 _feature6;
 		private readonly TFeature7 _feature7;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type]
 		{
@@ -1284,6 +1300,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly TFeature7 _feature7;
 		private readonly TFeature8 _feature8;
 
+		public bool IsEmpty => false;
+
 		public TFeature? this[Type type]
 		{
 			get
@@ -1358,6 +1376,8 @@ internal static class FeatureCollection<TFeature>
 			_fallbackFeatures = fallbackFeatures;
 		}
 
+		public bool IsEmpty => _features1.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
+
 		public TFeature? this[Type type]
 		{
 			get
@@ -1409,6 +1429,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly IDeviceFeatureCollection<TFeature1> _features1;
 		private readonly IDeviceFeatureCollection<TFeature2> _features2;
 		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
+
+		public bool IsEmpty => _features1.IsEmpty && _features2.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
 
 		public MergedFeatureCollection(IDeviceFeatureCollection<TFeature1> features1, IDeviceFeatureCollection<TFeature2> features2, IDeviceFeatureCollection<TFeature>? fallbackFeatures)
 		{
@@ -1479,6 +1501,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly IDeviceFeatureCollection<TFeature2> _features2;
 		private readonly IDeviceFeatureCollection<TFeature3> _features3;
 		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
+
+		public bool IsEmpty => _features1.IsEmpty && _features2.IsEmpty && _features3.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
 
 		public MergedFeatureCollection
 		(
@@ -1569,6 +1593,8 @@ internal static class FeatureCollection<TFeature>
 		private readonly IDeviceFeatureCollection<TFeature4> _features4;
 		private readonly IDeviceFeatureCollection<TFeature>? _fallbackFeatures;
 
+		public bool IsEmpty => _features1.IsEmpty && _features2.IsEmpty && _features3.IsEmpty && _features4.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
+
 		public MergedFeatureCollection
 		(
 			IDeviceFeatureCollection<TFeature1> features1,
@@ -1644,6 +1670,8 @@ internal static class FeatureCollection<TFeature>
 	{
 		private readonly HashSet<Type> _featureTypes;
 		private readonly TFeature _implementation;
+
+		public bool IsEmpty => false;
 
 		public TFeature? this[Type type] => _featureTypes.Contains(type) ? _implementation : null;
 

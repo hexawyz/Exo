@@ -104,6 +104,8 @@ public class GenericMonitorDriver
 		private readonly GenericMonitorDriver _driver;
 		private Dictionary<Type, IMonitorDeviceFeature>? _cachedFeatureDictionary;
 
+		public bool IsEmpty => _driver._supportedFeatures != SupportedFeatures.None;
+
 		public MonitorFeatureCollection(GenericMonitorDriver driver) => _driver = driver;
 
 		IMonitorDeviceFeature? IDeviceFeatureCollection<IMonitorDeviceFeature>.this[Type type]
