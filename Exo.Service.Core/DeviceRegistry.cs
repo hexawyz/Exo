@@ -477,19 +477,22 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private static (ImmutableArray<DeviceId>, int?) GetDeviceIds(Driver driver)
 	{
-		if (driver.Features.GetFeature<IDeviceIdsFeature>() is { } deviceIdsFeature)
+		if (driver is IDeviceDriver<IBaseDeviceFeature> { } baseDriver)
 		{
-			return (deviceIdsFeature.DeviceIds, deviceIdsFeature.MainDeviceIdIndex);
-		}
-		else if (driver.Features.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
-		{
-			return (ImmutableArray.Create(deviceIdFeature.DeviceId), 0);
+			if (baseDriver.Features.GetFeature<IDeviceIdsFeature>() is { } deviceIdsFeature)
+			{
+				return (deviceIdsFeature.DeviceIds, deviceIdsFeature.MainDeviceIdIndex);
+			}
+			else if (baseDriver.Features.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
+			{
+				return (ImmutableArray.Create(deviceIdFeature.DeviceId), 0);
+			}
 		}
 		return (ImmutableArray<DeviceId>.Empty, null);
 	}
 
 	private string? GetSerialNumber(Driver driver)
-		=> driver.Features.GetFeature<IDeviceSerialNumberFeature>()?.SerialNumber;
+		=> (driver as IDeviceDriver<IBaseDeviceFeature>)?.Features.GetFeature<IDeviceSerialNumberFeature>()?.SerialNumber;
 
 	public async ValueTask<bool> RemoveDriverAsync(Driver driver)
 	{

@@ -14,6 +14,7 @@ namespace Exo.Devices.Monitors;
 
 public class GenericMonitorDriver
 	: Driver,
+	IDeviceDriver<IBaseDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
@@ -149,8 +150,10 @@ public class GenericMonitorDriver
 	private readonly MonitorCapabilities? _capabilities;
 	private readonly DeviceId _deviceId;
 
+	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
-	public override IDeviceFeatureCollection<IDeviceFeature> Features { get; }
+
+	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 
 	DeviceId IDeviceIdFeature.DeviceId => _deviceId;
@@ -174,13 +177,12 @@ public class GenericMonitorDriver
 		_rawCapabilities = rawCapabilities;
 		_capabilities = capabilities;
 		_deviceId = deviceId;
+
+		_baseFeatures = configurationKey.UniqueId is not null ?
+			FeatureCollection.Create<IBaseDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureCollection.Create<IBaseDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
+
 		_monitorFeatures = new MonitorFeatureCollection(this);
-
-		var baseFeatures = configurationKey.UniqueId is not null ?
-			FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
-
-		Features = FeatureCollection.CreateMerged(_monitorFeatures, baseFeatures);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

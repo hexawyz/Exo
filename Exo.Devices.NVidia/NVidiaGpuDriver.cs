@@ -17,6 +17,7 @@ namespace Exo.Devices.NVidia;
 public class NVidiaGpuDriver :
 	Driver,
 	IDeviceIdFeature,
+	IDeviceDriver<IBaseDeviceFeature>,
 	IDeviceDriver<IDisplayAdapterDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDisplayAdapterI2CBusProviderFeature,
@@ -621,6 +622,7 @@ public class NVidiaGpuDriver :
 	private readonly NvApi.Gpu.Client.IlluminationZoneControl[] _illuminationZoneControls;
 	private readonly IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
+	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
 	private readonly ImmutableArray<LightingZone> _lightingZones;
 	private readonly NvApi.PhysicalGpu _gpu;
 	private readonly object _lock;
@@ -631,7 +633,7 @@ public class NVidiaGpuDriver :
 	public DeviceId DeviceId { get; }
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
-	public override IDeviceFeatureCollection<IDeviceFeature> Features { get; }
+	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
 	IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
@@ -651,10 +653,10 @@ public class NVidiaGpuDriver :
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
+		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureCollection.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
 		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
-		Features = FeatureCollection.Create<IDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature, IDisplayAdapterI2CBusProviderFeature, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

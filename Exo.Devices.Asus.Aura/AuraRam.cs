@@ -81,7 +81,6 @@ public class AuraRamDriver :
 	public override ValueTask DisposeAsync() => throw new NotImplementedException();
 
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
-	public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
 	public IReadOnlyCollection<ILightingZone> LightingZones { get; }
 

@@ -18,6 +18,7 @@ namespace Exo.Devices.Lg.Monitors;
 
 public class LgMonitorDriver :
 	Driver,
+	IDeviceDriver<IBaseDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
@@ -348,8 +349,7 @@ public class LgMonitorDriver :
 	private IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
-	private readonly IDeviceFeatureCollection<IDeviceFeature> _baseFeatures;
-	private IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
+	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
 	private CompositeI2cBus CompositeI2cBus { get; }
 
 	private void UpdateFeatures(UltraGearLightingFeatures? ultraGearLightingFeatures)
@@ -362,7 +362,6 @@ public class LgMonitorDriver :
 				ILightingDeferredChangesFeature,
 				ILightingBrightnessFeature>(ultraGearLightingFeatures) :
 				FeatureCollection.Empty<ILightingDeviceFeature>();
-		Volatile.Write(ref _allFeatures, FeatureCollection.CreateMerged(lightingFeatures, _monitorFeatures, _lgMonitorFeatures, _baseFeatures));
 		Volatile.Write(ref _lightingFeatures, lightingFeatures);
 		FeaturesChanged?.Invoke(this, EventArgs.Empty);
 	}
@@ -407,7 +406,7 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_baseFeatures = FeatureCollection.Create<IDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
+		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
 		UpdateFeatures(ultraGearLightingFeatures);
 	}
 
@@ -419,10 +418,10 @@ public class LgMonitorDriver :
 	public ReadOnlySpan<byte> RawCapabilities => _rawCapabilities;
 	public MonitorCapabilities Capabilities => _parsedCapabilities;
 
+	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureCollection<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => Volatile.Read(ref _lightingFeatures);
-	public override IDeviceFeatureCollection<IDeviceFeature> Features => Volatile.Read(ref _allFeatures);
 
 	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
 	int? IDeviceIdsFeature.MainDeviceIdIndex => 0;

@@ -33,7 +33,7 @@ public sealed class BatteryWatcher : Watcher<Guid, BatteryState>
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					if (notification.Driver!.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
+					if ((notification.Driver as IDeviceDriver<IBaseDeviceFeature>)?.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
 					{
 						if (Add(deviceId, batteryStateFeature.BatteryState))
 						{
@@ -50,7 +50,7 @@ public sealed class BatteryWatcher : Watcher<Guid, BatteryState>
 				try
 				{
 					if (Remove(notification.DeviceInformation.Id, out var v) &&
-						notification.Driver!.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
+						(notification.Driver as IDeviceDriver<IBaseDeviceFeature>)?.Features.GetFeature<IBatteryStateDeviceFeature>() is { } batteryStateFeature)
 					{
 						batteryStateFeature.BatteryStateChanged -= onBatteryStateChanged;
 					}

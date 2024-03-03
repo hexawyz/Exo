@@ -15,7 +15,7 @@ namespace Exo;
 /// Use of this interface is not mandatory, but it is expected that most device managers will use this interface to detect and instanciate device drivers for devices they can manage.
 /// </para>
 /// </remarks>
-public abstract class Driver : Component, IDeviceDriver<IDeviceFeature>
+public abstract class Driver : Component
 {
 	/// <summary>Gets a friendly name for this driver instance.</summary>
 	/// <remarks>
@@ -32,9 +32,6 @@ public abstract class Driver : Component, IDeviceDriver<IDeviceFeature>
 
 	/// <summary>Gets the category of the device managed by this driver.</summary>
 	public abstract DeviceCategory DeviceCategory { get; }
-
-	/// <summary>Gets the list of all features associated with this driver</summary>
-	public abstract IDeviceFeatureCollection<IDeviceFeature> Features { get; }
 
 	protected Driver(string friendlyName, DeviceConfigurationKey configurationKey)
 	{

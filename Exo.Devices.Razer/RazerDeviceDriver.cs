@@ -20,6 +20,7 @@ namespace Exo.Devices.Razer;
 // NB: This driver relies on system drivers provided by Razer to access device features. The protocol part is still implemented here, but we need the driver to get access to the device.
 public abstract class RazerDeviceDriver :
 	Driver,
+	IDeviceDriver<IBaseDeviceFeature>,
 	IRazerDeviceNotificationSink,
 	IRazerPeriodicEventHandler,
 	IDeviceSerialNumberFeature,
@@ -501,6 +502,22 @@ public abstract class RazerDeviceDriver :
 	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly byte _mainDeviceIdIndex;
 
+	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+
+	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+
+	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
+
+	string IDeviceSerialNumberFeature.SerialNumber
+		=> HasSerialNumber ?
+			ConfigurationKey.UniqueId! :
+			throw new NotSupportedException("This device does not support the Serial Number feature.");
+
+	DeviceId IDeviceIdFeature.DeviceId => _deviceIds[_mainDeviceIdIndex];
+
+	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
+	int? IDeviceIdsFeature.MainDeviceIdIndex => _mainDeviceIdIndex;
+
 	private RazerDeviceDriver
 	(
 		RazerProtocolTransport transport,
@@ -515,6 +532,7 @@ public abstract class RazerDeviceDriver :
 		_periodicEventGenerator = periodicEventGenerator;
 		_deviceIds = deviceIds;
 		_mainDeviceIdIndex = mainDeviceIdIndex;
+		_baseFeatures = CreateBaseFeatures();
 	}
 
 	protected virtual ValueTask InitializeAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
@@ -530,6 +548,11 @@ public abstract class RazerDeviceDriver :
 		_periodicEventGenerator.Dispose();
 		_transport.Dispose();
 	}
+
+	protected virtual IDeviceFeatureCollection<IBaseDeviceFeature> CreateBaseFeatures()
+		=> HasSerialNumber ?
+			FeatureCollection.Create<IBaseDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureCollection.Create<IBaseDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
 
 	async void IRazerPeriodicEventHandler.HandlePeriodicEvent()
 	{
@@ -558,23 +581,9 @@ public abstract class RazerDeviceDriver :
 	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
 	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) { }
 
-	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
-
-	public string SerialNumber
-		=> HasSerialNumber ?
-			ConfigurationKey.UniqueId! :
-			throw new NotSupportedException("This device does not support the Serial Number feature.");
-
-	public DeviceId DeviceId => _deviceIds[_mainDeviceIdIndex];
-
-	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
-	int? IDeviceIdsFeature.MainDeviceIdIndex => _mainDeviceIdIndex;
-
 	private class Generic : BaseDevice
 	{
 		public override DeviceCategory DeviceCategory { get; }
-
-		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 		public Generic(
 			RazerProtocolTransport transport,
@@ -589,10 +598,7 @@ public abstract class RazerDeviceDriver :
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
 			DeviceCategory = deviceCategory;
-			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, CreateBaseFeatures());
 		}
-
-		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 	}
 
 	private class Mouse :
@@ -608,7 +614,6 @@ public abstract class RazerDeviceDriver :
 		private ulong _currentDpi;
 
 		private readonly IDeviceFeatureCollection<IMouseDeviceFeature> _mouseFeatures;
-		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 		public Mouse(
 			RazerProtocolTransport transport,
@@ -623,7 +628,6 @@ public abstract class RazerDeviceDriver :
 		{
 			_dpiProfiles = [];
 			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetFeature>(this);
-			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, _mouseFeatures, CreateBaseFeatures());
 		}
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
@@ -637,7 +641,6 @@ public abstract class RazerDeviceDriver :
 		}
 
 		IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
-		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
 		protected override void OnDeviceDpiChange(ushort dpiX, ushort dpiY)
 		{
@@ -702,8 +705,6 @@ public abstract class RazerDeviceDriver :
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-		private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
-
 		public Keyboard(
 			RazerProtocolTransport transport,
 			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
@@ -715,10 +716,7 @@ public abstract class RazerDeviceDriver :
 			byte mainDeviceIdIndex
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 		{
-			_allFeatures = FeatureCollection.CreateMerged(LightingFeatures, CreateBaseFeatures());
 		}
-
-		public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 	}
 
 	// Classes implementing ISystemDeviceDriver and relying on their own Notification Watcher.
@@ -740,11 +738,7 @@ public abstract class RazerDeviceDriver :
 			// As of now, there can be only two devices, but we can use an array here to be more future-proof. (Still need to understand how to address these other devices)
 			private PairedDeviceState[]? _pairedDevices;
 
-			private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
-
 			public override DeviceCategory DeviceCategory => DeviceCategory.UsbWirelessReceiver;
-
-			public override IDeviceFeatureCollection<IDeviceFeature> Features => _allFeatures;
 
 			public UsbReceiver(
 				RazerProtocolTransport transport,
@@ -758,7 +752,6 @@ public abstract class RazerDeviceDriver :
 			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex)
 			{
 				_driverRegistry = driverRegistry;
-				_allFeatures = FeatureCollection.Create<IDeviceFeature, UsbReceiver, IDeviceIdFeature>(this);
 				_watcher = new(notificationStream, this);
 			}
 
@@ -1211,14 +1204,14 @@ public abstract class RazerDeviceDriver :
 			return base.DisposeAsync();
 		}
 
-		protected IDeviceFeatureCollection<IDeviceFeature> CreateBaseFeatures()
+		protected override IDeviceFeatureCollection<IBaseDeviceFeature> CreateBaseFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
-					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 				HasBattery ?
-					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
+					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
 		protected override async ValueTask HandlePeriodicEventAsync()
 		{

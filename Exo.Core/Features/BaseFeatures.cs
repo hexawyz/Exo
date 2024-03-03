@@ -3,6 +3,11 @@ using DeviceTools;
 
 namespace Exo.Features;
 
+[TypeId(0x7D989093, 0xB4F6, 0x4D41, 0x8E, 0xE8, 0x56, 0x5E, 0x37, 0xA4, 0x15, 0x37)]
+public interface IBaseDeviceFeature : IDeviceFeature
+{
+}
+
 /// <summary>Composite drivers must implement <see cref="IDeviceDriver{TFeature}"/> with <see cref="ICompositeDeviceFeature"/>.</summary>
 /// <remarks>
 /// <para>A composite driver is a driver which expose multiple dependent drivers.</para>
@@ -87,14 +92,14 @@ public interface ILightingDeviceFeature : IDeviceFeature
 }
 
 /// <summary>Devices can allow access to their serial number by providing this feature.</summary>
-public interface IDeviceSerialNumberFeature : IDeviceFeature
+public interface IDeviceSerialNumberFeature : IBaseDeviceFeature
 {
 	/// <summary>Gets the serial number of this device.</summary>
 	string SerialNumber { get; }
 }
 
 /// <summary>Devices can allow access to their battery level by providing this feature.</summary>
-public interface IBatteryStateDeviceFeature : IDeviceFeature
+public interface IBatteryStateDeviceFeature : IBaseDeviceFeature
 {
 	/// <summary>This event is raised when the battery level of the device has changed.</summary>
 	event Action<Driver, BatteryState> BatteryStateChanged;
@@ -115,7 +120,7 @@ public interface IBatteryStateDeviceFeature : IDeviceFeature
 /// It is possible for the version number to not always be available, though.
 /// </para>
 /// </remarks>
-public interface IDeviceIdFeature : IDeviceFeature
+public interface IDeviceIdFeature : IBaseDeviceFeature
 {
 	DeviceId DeviceId { get; }
 }
@@ -141,7 +146,7 @@ public interface IDeviceIdFeature : IDeviceFeature
 /// In many cases, it might be wiser to expose the PNP ID from EDID as the main one.
 /// </para>
 /// </remarks>
-public interface IDeviceIdsFeature : IDeviceFeature
+public interface IDeviceIdsFeature : IBaseDeviceFeature
 {
 	ImmutableArray<DeviceId> DeviceIds { get; }
 	int? MainDeviceIdIndex { get; }
@@ -159,7 +164,7 @@ public interface IDeviceIdsFeature : IDeviceFeature
 /// This would be the case of a monitor connected both through DisplayPort and USB.
 /// </para>
 /// </remarks>
-public interface IDeviceConnectionType : IDeviceFeature
+public interface IDeviceConnectionType : IBaseDeviceFeature
 {
 	DeviceConnectionTypes CurrentConnectionTypes { get; }
 	DeviceConnectionTypes SupportedConnectionTypes { get; }
