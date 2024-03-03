@@ -2,6 +2,8 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
@@ -24,7 +26,7 @@ public class LgMonitorDriver :
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceIdsFeature,
-	INotifyFeaturesChanged,
+	IVariableFeatureSetDeviceFeature,
 	IDeviceSerialNumberFeature,
 	IRawVcpFeature,
 	IMonitorBrightnessFeature,
@@ -95,6 +97,7 @@ public class LgMonitorDriver :
 				0,
 				rawCapabilities,
 				parsedCapabilities,
+				info.Features,
 				"LG " + info.ModelName,
 				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{info.ModelName}", edid.SerialNumber)
 			);
@@ -244,6 +247,7 @@ public class LgMonitorDriver :
 				dscVersion,
 				rawCapabilities,
 				parsedCapabilities,
+				info.Features,
 				"LG " + info.ModelName,
 				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{modelName}", serialNumber)
 			);
@@ -350,6 +354,7 @@ public class LgMonitorDriver :
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
 	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private FeatureSetDescription[] _featureSets;
 	private CompositeI2cBus CompositeI2cBus { get; }
 
 	private void UpdateFeatures(UltraGearLightingFeatures? ultraGearLightingFeatures)
@@ -363,12 +368,44 @@ public class LgMonitorDriver :
 				ILightingBrightnessFeature>(ultraGearLightingFeatures) :
 				FeatureCollection.Empty<ILightingDeviceFeature>();
 		Volatile.Write(ref _lightingFeatures, lightingFeatures);
-		FeaturesChanged?.Invoke(this, EventArgs.Empty);
+		Volatile.Write
+		(
+			ref _featureSets,
+			[
+				FeatureSetDescription.CreateStatic<IBaseDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IMonitorDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ILgMonitorDeviceFeature>(),
+				FeatureSetDescription.CreateDynamic<ILightingDeviceFeature>(ultraGearLightingFeatures is not null),
+			]
+		);
+		FeatureAvailabilityChanged?.Invoke(this, typeof(ILightingDeviceFeature), lightingFeatures);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
-	public event EventHandler FeaturesChanged;
+	private event FeatureSetEventHandler FeatureAvailabilityChanged;
+
+	event FeatureSetEventHandler IVariableFeatureSetDeviceFeature.FeatureAvailabilityChanged
+	{
+		add => FeatureAvailabilityChanged += value;
+		remove => FeatureAvailabilityChanged -= value;
+	}
+
+	public override ImmutableArray<FeatureSetDescription> FeatureSets => ImmutableCollectionsMarshal.AsImmutableArray(_featureSets);
+
+	public override IDeviceFeatureCollection<TFeature> GetFeatures<TFeature>()
+	{
+		System.Collections.IEnumerable GetFeatures()
+		{
+			if (typeof(TFeature) == typeof(ILightingDeviceFeature)) return _lightingFeatures;
+			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return _monitorFeatures;
+			if (typeof(TFeature) == typeof(ILgMonitorDeviceFeature)) return _lgMonitorFeatures;
+
+			throw new InvalidOperationException("Unsupported feature type.");
+		}
+
+		return Unsafe.As<IDeviceFeatureCollection<TFeature>>(GetFeatures());
+	}
 
 	private LgMonitorDriver
 	(
@@ -379,6 +416,7 @@ public class LgMonitorDriver :
 		byte dscVersion,
 		byte[] rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
+		MonitorDeviceFeatures features,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
@@ -407,7 +445,20 @@ public class LgMonitorDriver :
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
 		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
-		UpdateFeatures(ultraGearLightingFeatures);
+		if ((features & MonitorDeviceFeatures.Lighting) != 0)
+		{
+			UpdateFeatures(ultraGearLightingFeatures);
+		}
+		else
+		{
+			_lightingFeatures = FeatureCollection.Empty<ILightingDeviceFeature>();
+			_featureSets =
+			[
+				FeatureSetDescription.CreateStatic<IBaseDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IMonitorDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ILgMonitorDeviceFeature>(),
+			];
+		}
 	}
 
 	// The firmware archive explicitly names the SV, DV and NV as "Scaler", "DSC" and "NXP"

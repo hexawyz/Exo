@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using DeviceTools;
@@ -113,31 +114,6 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		public Dictionary<string, List<DeviceState>> DevicesByCompatibleHardwareId { get; } = new();
 
 		public DriverConfigurationState(string key) => Key = key;
-	}
-
-	private static readonly ConditionalWeakTable<Type, Type[]> DriverFeatureCache = new();
-
-	private static Type[] GetDriverFeatures(Type driverType)
-		=> DriverFeatureCache.GetValue(driverType, GetNonCachedDriverFeatures);
-
-	private static Type[] GetNonCachedDriverFeatures(Type driverType)
-	{
-		var featureTypes = new List<Type>();
-		foreach (var interfaceType in driverType.GetInterfaces())
-		{
-			var t = interfaceType;
-			while (t.BaseType is not null)
-			{
-				t = t.BaseType;
-			}
-
-			if (t.IsGenericType && t != typeof(IDeviceDriver<IDeviceFeature>) && t.GetGenericTypeDefinition() == typeof(IDeviceDriver<>))
-			{
-				featureTypes.Add(t.GetGenericArguments()[0]);
-			}
-		}
-
-		return featureTypes.ToArray();
 	}
 
 	public static async Task<DeviceRegistry> CreateAsync(ConfigurationService configurationService, CancellationToken cancellationToken)
@@ -427,7 +403,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			_driverConfigurationStates.Add(key.DriverKey, driverConfigurationState = new(key.DriverKey));
 		}
 
-		var featureIds = new HashSet<Guid>(GetDriverFeatures(driver.GetType()).Select(TypeId.Get));
+		var featureIds = new HashSet<Guid>(ImmutableCollectionsMarshal.AsArray(driver.FeatureSets)!.Select(fs => TypeId.Get(fs.FeatureType)));
 		var (deviceIds, mainDeviceIdIndex) = GetDeviceIds(driver);
 		string? serialNumber = GetSerialNumber(driver);
 		DeviceState? deviceState;

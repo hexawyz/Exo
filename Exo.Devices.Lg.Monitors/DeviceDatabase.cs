@@ -9,6 +9,14 @@ internal readonly struct MonitorDeviceInformation
 {
 	public required string ModelName { get; init; }
 	public required ImmutableArray<DeviceId> DeviceIds { get; init; }
+	public required MonitorDeviceFeatures Features { get; init; }
+}
+
+[Flags]
+internal enum MonitorDeviceFeatures
+{
+	Default = 0,
+	Lighting = 1,
 }
 
 internal static partial class DeviceDatabase
@@ -35,6 +43,7 @@ internal static partial class DeviceDatabase
 		{
 			ModelName = modelName,
 			DeviceIds = deviceIds,
+			Features = (MonitorDeviceFeatures)details[5],
 		};
 	}
 

@@ -1,3 +1,8 @@
+using Exo.Features;
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace Exo;
 
 /// <summary>The base class for a device driver.</summary>
@@ -12,11 +17,37 @@ namespace Exo;
 /// </para>
 /// <para>
 /// When applicable, drivers should also implement the <see cref="IManagedDeviceDriver{TDeviceManager}"/> interface to indicate that they are (can be) managed by the specified device manager.
-/// Use of this interface is not mandatory, but it is expected that most device managers will use this interface to detect and instanciate device drivers for devices they can manage.
+/// Use of this interface is not mandatory, but it is expected that most device managers will use this interface to detect and instantiate device drivers for devices they can manage.
 /// </para>
 /// </remarks>
 public abstract class Driver : Component
 {
+	// Implement a per-type cache of features for drivers providing simple non-dynamic feature sets.
+	private static readonly ConditionalWeakTable<Type, FeatureSetDescription[]> DriverFeatureCache = new();
+
+	private static ImmutableArray<FeatureSetDescription> GetDefinedDriverFeatures(Type driverType)
+		=> ImmutableCollectionsMarshal.AsImmutableArray(DriverFeatureCache.GetValue(driverType, GetNonCachedDefinedDriverFeatures));
+
+	private static FeatureSetDescription[] GetNonCachedDefinedDriverFeatures(Type driverType)
+	{
+		var featureTypes = new List<FeatureSetDescription>();
+		foreach (var interfaceType in driverType.GetInterfaces())
+		{
+			var t = interfaceType;
+			while (t.BaseType is not null)
+			{
+				t = t.BaseType;
+			}
+
+			if (t.IsGenericType && t != typeof(IDeviceDriver<IDeviceFeature>) && t.GetGenericTypeDefinition() == typeof(IDeviceDriver<>))
+			{
+				featureTypes.Add(new(t.GetGenericArguments()[0], false, true));
+			}
+		}
+
+		return [.. featureTypes];
+	}
+
 	/// <summary>Gets a friendly name for this driver instance.</summary>
 	/// <remarks>
 	/// <para>
@@ -33,9 +64,35 @@ public abstract class Driver : Component
 	/// <summary>Gets the category of the device managed by this driver.</summary>
 	public abstract DeviceCategory DeviceCategory { get; }
 
+	/// <summary>Gets the description of all the supported feature sets.</summary>
+	/// <remarks>
+	/// <para>
+	/// This must always return a snapshot of all the feature sets supported by the current device, along with their current availability.
+	/// Devices for which feature sets can become dynamically online or offline must provide the <see cref="IVariableFeatureSetDeviceFeature"/> feature to notify of changes.
+	/// </para>
+	/// <para>
+	/// The value returned here can change between calls, as feature sets become available or unavailable.
+	/// <see cref="IVariableFeatureSetDeviceFeature.FeatureAvailabilityChanged"/> will be used to notify of a change in availability for a given feature set.
+	/// </para>
+	/// <para>A feature set must always be reported as unavailable when the corresponding collection is empty.</para>
+	/// </remarks>
+	public virtual ImmutableArray<FeatureSetDescription> FeatureSets => GetDefinedDriverFeatures(GetType());
+
 	protected Driver(string friendlyName, DeviceConfigurationKey configurationKey)
 	{
 		FriendlyName = friendlyName ?? throw new ArgumentNullException(nameof(friendlyName));
 		ConfigurationKey = configurationKey;
 	}
+
+	/// <summary>Gets the feature collection for the specified base feature type.</summary>
+	/// <remarks>
+	/// Implementors should return <see cref="FeatureCollection.Empty{TFeature}"/> for unavailable features.
+	/// An empty collection is always assumed to represent an unavailable feature set.
+	/// </remarks>
+	/// <typeparam name="TFeature">The base feature type.</typeparam>
+	/// <returns>A feature collection of the specified type.</returns>
+	/// <exception cref="InvalidOperationException">The requested feature type is not supported.</exception>
+	public virtual IDeviceFeatureCollection<TFeature> GetFeatures<TFeature>()
+		where TFeature : class, IDeviceFeature
+		=> ((IDeviceDriver<TFeature>)this).Features;
 }

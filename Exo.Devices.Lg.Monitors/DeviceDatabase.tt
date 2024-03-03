@@ -13,9 +13,9 @@
 // The model name provided must be the official model name, as can be read from USB (or DDC2AB side channel) in order to be matched.
 var monitors = new Monitor[] {
 	// 27GP850(P), missing corresponding USB ID
-	//new("27GP850", MonitorType.Usb, 0x????, 0x5BD3, 0x5BD2),
+	//new("27GP850", MonitorOptions.HasUsbConnection, 0x????, 0x5BD3, 0x5BD2),
 	// 27GP950, IDs obtained from official INFs files (AFAIK, 5BC0 should be for the "legacy" 120Hz HDMI, and 5BEE for the 144Hz HDMI after firmware update. 5BBF is DisplayPort)
-	new("27GP950", MonitorType.Usb, 0x9A8A, 0x5BBF, 0x5BEE, 0x5BC0),
+	new("27GP950", MonitorOptions.HasUsbConnection | MonitorOptions.HasLighting, 0x9A8A, 0x5BBF, 0x5BEE, 0x5BC0),
 };
 
 var usbMonitors = new List<Monitor>();
@@ -23,7 +23,7 @@ var nonUsbMonitors = new List<Monitor>();
 
 foreach (var monitor in monitors)
 {
-	if (monitor.Type == MonitorType.Usb)
+	if ((monitor.Options & MonitorOptions.HasUsbConnection) != 0)
 	{
 		usbMonitors.Add(monitor);
 	}
@@ -88,7 +88,7 @@ for (int i = 0; i < orderedMonitors.Length; i++)
 	detailBytes[offset++] = (byte)(productIdIndex & 0xFF);
 	detailBytes[offset++] = (byte)(productIdIndex >>> 8);
 	detailBytes[offset++] = (byte)(monitor.ProductIds.Length);
-	detailBytes[offset] = 0;
+	detailBytes[offset] = (byte)((int)monitor.Options >>> 1);
 }
 #>
 namespace Exo.Devices.Lg.Monitors;
@@ -171,23 +171,25 @@ void OutputBytes(byte[] data)
 #>
 
 <#+
-enum MonitorType
+[Flags]
+enum MonitorOptions
 {
-	Default,
-	Usb,
+	Default = 0,
+	HasUsbConnection = 1,
+	HasLighting = 2,
 }
 
 class Monitor
 {
 	public string ModelName { get; }
-	public MonitorType Type { get; }
+	public MonitorOptions Options { get; }
 	public ushort[] ProductIds { get; }
 
 	// NB: In the case of USB monitors, the USB product ID should be the first product ID, and all other IDs must be PNP product IDs.
-	public Monitor(string modelName, MonitorType type, params ushort[] productIds)
+	public Monitor(string modelName, MonitorOptions options, params ushort[] productIds)
 	{
 		ModelName = modelName;
-		Type = type;
+		Options = options;
 		ProductIds = productIds;
 	}
 }

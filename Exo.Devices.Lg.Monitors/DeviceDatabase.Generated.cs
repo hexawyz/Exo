@@ -15,7 +15,7 @@ partial class DeviceDatabase
 	// Product ID details giving pointers into Product IDs and Names. USB Details are in the first part.
 	private static ReadOnlySpan<byte> Details =>
 	[
-		0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x04, 0x01,
 	];
 
 	// Product ID sequences. Ordered by detail index, but this is an implementation detail.
