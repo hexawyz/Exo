@@ -74,18 +74,26 @@ public class Startup
 		services.AddSingleton<EventQueue>();
 		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Reader);
 		services.AddSingleton(sp => sp.GetRequiredService<EventQueue>().Writer);
+		services.AddSingleton<IAssemblyParsedDataCache<DiscoveredAssemblyDetails>>
+		(
+			sp => PersistedAssemblyParsedDataCache.CreateAsync<DiscoveredAssemblyDetails>
+			(
+				sp.GetRequiredService<IAssemblyLoader>(),
+				sp.GetRequiredService<ConfigurationService>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		// TODO: See if we want to keep this as a hosted service or not.
 		services.AddSingleton
 		(
 			sp =>
 			{
-				var assemblyLoader = sp.GetRequiredService<IAssemblyLoader>();
 				return new DiscoveryOrchestrator
 				(
 					sp.GetRequiredService<ILogger<DiscoveryOrchestrator>>(),
 					sp.GetRequiredService<IDriverRegistry>(),
-					new AssemblyParsedDataCache<DiscoveredAssemblyDetails>(assemblyLoader),
-					assemblyLoader
+					sp.GetRequiredService<IAssemblyParsedDataCache<DiscoveredAssemblyDetails>>(),
+					sp.GetRequiredService<IAssemblyLoader>()
 				);
 			}
 		);

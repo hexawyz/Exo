@@ -7,9 +7,9 @@ namespace Exo.Service;
 
 internal readonly struct MethodSignature : IEquatable<MethodSignature>
 {
-	public string MethodName { get; }
-	public TypeReference ReturnType { get; }
-	public ImmutableArray<MethodParameterDefinition> Parameters { get; }
+	public string MethodName { get; init; }
+	public TypeReference ReturnType { get; init; }
+	public ImmutableArray<MethodParameterDefinition> Parameters { get; init; }
 
 	public MethodSignature(string methodName, TypeReference returnType, ImmutableArray<MethodParameterDefinition> parameters)
 	{

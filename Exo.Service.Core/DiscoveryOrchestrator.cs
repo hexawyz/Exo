@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
@@ -609,12 +610,12 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		using var context = AssemblyLoader.CreateMetadataLoadContext(assemblyName);
 		var assembly = context.LoadFromAssemblyName(assemblyName);
 
-		DiscoveredAssemblyDetails details;
+		DiscoveredAssemblyDetails assemblyDetails;
 		try
 		{
-			if (!_parsedDataCache.TryGetValue(assemblyName, out details))
+			if (!_parsedDataCache.TryGetValue(assemblyName, out assemblyDetails))
 			{
-				_parsedDataCache.SetValue(assemblyName, details = ParseAssembly(assembly));
+				_parsedDataCache.SetValue(assemblyName, assemblyDetails = ParseAssembly(assembly));
 			}
 		}
 		catch (Exception ex)
@@ -623,25 +624,25 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			return;
 		}
 
-		if (details.FactoryMethods.Length > 0)
+		if (assemblyDetails.Types.Length > 0)
 		{
-			foreach (var (typeName, factoryMethods) in details.FactoryMethods)
+			foreach (var typeDetails in assemblyDetails.Types)
 			{
-				var type = assembly.GetType(typeName)!;
+				var type = assembly.GetType(typeDetails.Name)!;
 				var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
-				foreach (var (id, methodSignature, discoverySubsystemTypes) in factoryMethods)
+				foreach (var methodDetails in typeDetails.FactoryMethods)
 				{
-					var method = methods.Single(methodSignature.Matches);
-					foreach (var discoverySubsystemType in discoverySubsystemTypes)
+					var method = methods.Single(methodDetails.MethodSignature.Matches);
+					foreach (var discoverySubsystemType in methodDetails.DiscoverySubsystemTypes)
 					{
 						var state = _states.GetOrAdd(discoverySubsystemType, _ => new());
 
 						lock (state)
 						{
-							state.KnownFactoryMethods.TryAdd(id, new(id, assemblyName, new MethodReference(typeName, method)));
+							state.KnownFactoryMethods.TryAdd(methodDetails.Id, new(methodDetails.Id, assemblyName, new MethodReference(typeDetails.Name, method)));
 							if (state.Source is { } source)
 							{
-								source.RegisterFactory(id, [.. method.GetCustomAttributesData()], new MethodReference(typeName, methodSignature), assembly.GetName());
+								source.RegisterFactory(methodDetails.Id, [.. method.GetCustomAttributesData()], new MethodReference(typeDetails.Name, methodDetails.MethodSignature), assembly.GetName());
 							}
 						}
 					}
@@ -659,8 +660,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 	private static DiscoveredAssemblyDetails ParseAssembly(Assembly assembly)
 	{
-		var factoryMethods = ImmutableArray.CreateBuilder<(string, ImmutableArray<(Guid, MethodSignature, ImmutableArray<TypeReference>)>)>();
-		var typeFactoryMethods = ImmutableArray.CreateBuilder<(Guid, MethodSignature, ImmutableArray<TypeReference>)>();
+		var factoryMethods = ImmutableArray.CreateBuilder<DiscoveredTypeDetails>();
+		var typeFactoryMethods = ImmutableArray.CreateBuilder<DiscoveredFactoryMethodDetails>();
 		var discoverySubsystems = ImmutableArray.CreateBuilder<TypeReference>();
 		foreach (var type in assembly.DefinedTypes)
 		{
@@ -710,13 +711,13 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 				// Ignore methods that don't have a discovery subsystem.
 				if (discoverySubsystems.Count == 0) continue;
 
-				typeFactoryMethods.Add((Guid.NewGuid(), method, discoverySubsystems.DrainToImmutable()));
+				typeFactoryMethods.Add(new(Guid.NewGuid(), method, discoverySubsystems.DrainToImmutable()));
 			}
 
 			// Ignore types that don't have any factory method.
 			if (typeFactoryMethods.Count == 0) continue;
 
-			factoryMethods.Add((type.FullName!, typeFactoryMethods.DrainToImmutable()));
+			factoryMethods.Add(new(type.FullName!, typeFactoryMethods.DrainToImmutable()));
 		}
 
 		return new(factoryMethods.DrainToImmutable());

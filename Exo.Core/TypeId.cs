@@ -22,6 +22,7 @@ public static class TypeId
 	public static Guid Get(Type type) => GetValueRef(type) ?? throw new InvalidOperationException($"The type {type} does not have a unique identifier.");
 
 	public static Guid Get<T>() => Cache<T>.Value ?? throw new InvalidOperationException($"The type {typeof(T)} does not have a unique identifier.");
+	public static string GetString<T>() => Cache<T>.StringValue ?? throw new InvalidOperationException($"The type {typeof(T)} does not have a unique identifier.");
 
 	public static bool TryGet(Type type, out Guid id)
 	{
@@ -42,5 +43,6 @@ public static class TypeId
 	private static class Cache<T>
 	{
 		public static readonly Guid? Value = GetNonCached(typeof(T));
+		public static readonly string? StringValue = Value?.ToString("D");
 	}
 }

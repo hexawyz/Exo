@@ -124,17 +124,25 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		foreach (var deviceId in await configurationService.GetDevicesAsync(cancellationToken).ConfigureAwait(false))
 		{
-			var indexedKey = await configurationService.ReadDeviceConfigurationAsync<IndexedConfigurationKey?>(deviceId, null, cancellationToken).ConfigureAwait(false);
-			var config = await configurationService.ReadDeviceConfigurationAsync<DeviceUserConfiguration?>(deviceId, null, cancellationToken).ConfigureAwait(false);
-			var info = await configurationService.ReadDeviceConfigurationAsync<DeviceInformation?>(deviceId, null, cancellationToken).ConfigureAwait(false);
+			var indexedKeyResult = await configurationService.ReadDeviceConfigurationAsync<IndexedConfigurationKey>(deviceId, cancellationToken).ConfigureAwait(false);
+			var configResult = await configurationService.ReadDeviceConfigurationAsync<DeviceUserConfiguration>(deviceId, cancellationToken).ConfigureAwait(false);
+			var infoResult = await configurationService.ReadDeviceConfigurationAsync<DeviceInformation>(deviceId, cancellationToken).ConfigureAwait(false);
 
-			if (indexedKey is null || info is null)
+			if (!indexedKeyResult.Found || !infoResult.Found)
 			{
 				// TODO: Log an error.
 				continue;
 			}
 
-			if (config is null)
+			var indexedKey = indexedKeyResult.Value!;
+			var info = infoResult.Value!;
+
+			DeviceUserConfiguration config;
+			if (configResult.Found)
+			{
+				config = configResult.Value!;
+			}
+			else
 			{
 				// TODO: Log an error.
 				config = new() { FriendlyName = info.FriendlyName };
