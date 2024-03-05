@@ -99,7 +99,18 @@ public class Startup
 			}
 		);
 		// The root discovery service must be pulled in as a hard dependency, as it will serve to bootstrap all other discovery services.
-		services.AddSingleton<RootDiscoverySubsystem>();
+		services.AddSingleton<RootDiscoverySubsystem>
+		(
+			sp => new RootDiscoverySubsystem
+			(
+				sp.GetRequiredService<ILoggerFactory>(),
+				sp.GetRequiredService<INestedDriverRegistryProvider>(),
+				sp.GetRequiredService<IDiscoveryOrchestrator>(),
+				sp.GetRequiredService<IDeviceNotificationService>(),
+				sp.GetRequiredService<II2CBusProvider>(),
+				sp.GetRequiredService<ConfigurationService>().GetContainer("dcv", GuidNameSerializer.Instance)
+			)
+		);
 		services.AddSingleton<IDiscoveryOrchestrator>(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();

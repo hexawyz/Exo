@@ -6,11 +6,13 @@ public sealed class RootComponentDiscoveryContext : IComponentDiscoveryContext<R
 {
 	private readonly RootDiscoverySubsystem _discoverySubsystem;
 	public ImmutableArray<RootComponentKey> DiscoveredKeys { get; }
+	private readonly Guid _typeId;
 
-	internal RootComponentDiscoveryContext(RootDiscoverySubsystem discoverySubsystem, RootComponentKey key)
+	internal RootComponentDiscoveryContext(RootDiscoverySubsystem discoverySubsystem, RootComponentKey discoveredKey, Guid typeId)
 	{
 		_discoverySubsystem = discoverySubsystem;
-		DiscoveredKeys = [key];
+		DiscoveredKeys = [discoveredKey];
+		_typeId = typeId;
 	}
 
 	public ValueTask<ComponentCreationParameters<RootComponentKey, RootComponentCreationContext>> PrepareForCreationAsync(CancellationToken cancellationToken)
@@ -19,7 +21,7 @@ public sealed class RootComponentDiscoveryContext : IComponentDiscoveryContext<R
 			new ComponentCreationParameters<RootComponentKey, RootComponentCreationContext>
 			(
 				DiscoveredKeys,
-				new RootComponentCreationContext(_discoverySubsystem, DiscoveredKeys),
+				new RootComponentCreationContext(_discoverySubsystem, DiscoveredKeys, _typeId),
 				[_discoverySubsystem.RegisteredFactories[DiscoveredKeys[0]]]
 			)
 		);

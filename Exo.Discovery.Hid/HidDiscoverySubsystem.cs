@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Xml.Serialization;
 using DeviceTools;
+using Exo.Configuration;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -9,6 +11,7 @@ namespace Exo.Discovery;
 
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
+[TypeId(0xEC7784B8, 0x4CB6, 0x48B5, 0x9E, 0xD5, 0x6C, 0x0F, 0xD7, 0xD8, 0x7B, 0x27)]
 public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>, IDeviceNotificationSink
 {
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
@@ -18,10 +21,26 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		IConfigurationContainer configurationContainer
 	)
 	{
-		return new(new RootComponentCreationResult(typeof(HidDiscoverySubsystem), new HidDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService), null));
+		return new
+		(
+			new RootComponentCreationResult
+			(
+				typeof(HidDiscoverySubsystem),
+				new HidDiscoverySubsystem
+				(
+					loggerFactory,
+					driverRegistry,
+					discoveryOrchestrator,
+					deviceNotificationService,
+					configurationContainer.GetContainer("fac", GuidNameSerializer.Instance)
+				),
+				null
+			)
+		);
 	}
 
 	private readonly Dictionary<ProductVersionKey, Guid> _productVersionFactories;
@@ -37,13 +56,15 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	private IDisposable? _deviceNotificationRegistration;
 	private IDiscoverySink<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext>? _sink;
 	private readonly object _lock;
+	private readonly IConfigurationContainer<Guid> _factoriesConfigurationContainer;
 
 	public HidDiscoverySubsystem
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		IConfigurationContainer<Guid> configurationContainer
 	)
 	{
 		LoggerFactory = loggerFactory;
@@ -57,6 +78,8 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		_vendorFactories = new();
 
 		_lock = new();
+
+		_factoriesConfigurationContainer = configurationContainer;
 
 		_sink = _discoveryOrchestrator.RegisterDiscoveryService<HidDiscoverySubsystem, SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>(this);
 	}
@@ -211,7 +234,31 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			}
 		}
 
+		PersistFactoryDetails(factoryId, productVersionKeys, productKeys, vendorKeys);
+
 		return true;
+	}
+
+	private async void PersistFactoryDetails(Guid factoryId, HashSet<ProductVersionKey> productVersionKeys, HashSet<ProductKey> productKeys, HashSet<VendorKey> vendorKeys)
+	{
+		try
+		{
+			await _factoriesConfigurationContainer.WriteValueAsync
+			(
+				factoryId,
+				new FactoryDetails
+				{
+					ProductVersions = [.. productVersionKeys],
+					Products = [.. productKeys],
+					Vendors = [.. vendorKeys],
+				},
+				default
+			).ConfigureAwait(false);
+		}
+		catch
+		{
+			// TODO: Log.
+		}
 	}
 
 	void IDeviceNotificationSink.OnDeviceArrival(Guid deviceInterfaceClassGuid, string deviceName)
@@ -264,4 +311,12 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		return factories[..count].ToImmutableArray();
 	}
+}
+
+[TypeId(0x20B354B1, 0xD4F7, 0x49F3, 0xB7, 0xD8, 0x06, 0xF1, 0xAB, 0x7F, 0x8F, 0xFA)]
+internal readonly struct FactoryDetails
+{
+	public ImmutableArray<ProductVersionKey> ProductVersions { get; init; }
+	public ImmutableArray<ProductKey> Products { get; init; }
+	public ImmutableArray<VendorKey> Vendors { get; init; }
 }
