@@ -1,56 +1,12 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Exo.Configuration;
 
 namespace Exo.Service;
 
-public readonly struct ConfigurationResult<T>
+public class ConfigurationService : IConfigurationNode
 {
-	public T? Value { get; }
-	public ConfigurationStatus Status { get; }
-
-	internal ConfigurationResult(ConfigurationStatus status)
-	{
-		Value = default!;
-		Status = status;
-	}
-
-	internal ConfigurationResult(T value)
-	{
-		Value = value;
-		Status = ConfigurationStatus.Found;
-	}
-
-	public bool Found => Status == ConfigurationStatus.Found;
-
-	public void ThrowIfNotFound()
-	{
-		var status = Status;
-		switch (status)
-		{
-		case ConfigurationStatus.Found: return;
-		case ConfigurationStatus.MissingContainer: throw new InvalidOperationException("Missing configuration container.");
-		case ConfigurationStatus.MissingValue: throw new InvalidOperationException("Missing configuration value.");
-		case ConfigurationStatus.InvalidValue: throw new InvalidOperationException("Invalid configuration value.");
-		default: throw new InvalidOperationException();
-		}
-	}
-}
-
-public enum ConfigurationStatus : sbyte
-{
-	Found = 0,
-	MissingContainer = 1,
-	MissingValue = 2,
-	InvalidValue = 3,
-}
-
-public class ConfigurationService
-{
-	private const string DevicesRootDirectory = "dev";
-	private const string AssembliesRootDirectory = "asm";
-
 	private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
 	{
 		AllowTrailingCommas = false,
@@ -60,35 +16,145 @@ public class ConfigurationService
 		DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
 	};
 
+	private sealed class ConfigurationContainer : IConfigurationContainer
+	{
+		private readonly ConfigurationService _configurationService;
+		private readonly string _directory;
+
+		public ConfigurationContainer(ConfigurationService configurationService, string directoryName)
+		{
+			_configurationService = configurationService;
+			_directory = directoryName;
+		}
+
+		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(CancellationToken cancellationToken)
+			=> _configurationService.ReadValueAsync<TValue>(_directory, null, cancellationToken);
+
+		public ValueTask WriteValueAsync<TValue>(TValue value, CancellationToken cancellationToken)
+			where TValue : notnull
+			=> _configurationService.WriteValueAsync(_directory, null, value, cancellationToken);
+
+		public ValueTask DeleteValueAsync<TValue>()
+			=> _configurationService.DeleteValueAsync<TValue>(_directory);
+
+
+		public IConfigurationContainer GetContainer(string containerName)
+			=> new ConfigurationContainer(_configurationService, PrepareChildDirectory(_directory, containerName, false));
+
+		public IConfigurationContainer<TKey> GetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer)
+			=> new ConfigurationContainer<TKey>(_configurationService, PrepareChildDirectory(_directory, containerName, false), nameSerializer);
+	}
+
+	private sealed class ConfigurationContainer<TKey> : IConfigurationContainer<TKey>
+	{
+		private readonly ConfigurationService _configurationService;
+		private readonly string _directory;
+		private readonly INameSerializer<TKey> _nameSerializer;
+
+		public ConfigurationContainer(ConfigurationService configurationService, string directoryName, INameSerializer<TKey> nameSerializer)
+		{
+			_configurationService = configurationService;
+			_directory = directoryName;
+			_nameSerializer = nameSerializer;
+		}
+
+		public async ValueTask<TKey[]> GetKeysAsync(CancellationToken cancellationToken)
+		{
+			string[] directoryNames = await _configurationService.GetDirectoryNamesAsync(_directory, _nameSerializer.FileNamePattern, cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				return Array.ConvertAll(directoryNames, n => _nameSerializer.Parse(Path.GetFileName(n.AsSpan())));
+			}
+			catch (Exception ex)
+			{
+				// TODO: Log
+				return ParseKeysSlow(directoryNames);
+			}
+		}
+
+		private TKey[] ParseKeysSlow(string[] directoryNames)
+		{
+			var keys = new TKey[directoryNames.Length];
+			int count = 0;
+			foreach (var directoryName in directoryNames)
+			{
+				if (_nameSerializer.TryParse(Path.GetFileName(directoryName.AsSpan()), out TKey? key))
+				{
+					keys[count++] = key;
+				}
+			}
+			return count == keys.Length ? keys : keys[..count];
+		}
+
+		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, CancellationToken cancellationToken)
+			=> _configurationService.ReadValueAsync<TValue>(_directory, _nameSerializer.ToString(key), cancellationToken);
+
+		public ValueTask WriteValueAsync<TValue>(TKey key, TValue value, CancellationToken cancellationToken)
+			where TValue : notnull
+			=> _configurationService.WriteValueAsync(_directory, _nameSerializer.ToString(key), value, cancellationToken);
+
+		public ValueTask DeleteValueAsync<TValue>(TKey key)
+			=> _configurationService.DeleteValueAsync<TValue>(_directory, _nameSerializer.ToString(key));
+
+		public ValueTask DeleteValuesAsync(TKey key)
+			=> _configurationService.DeleteValuesAsync(_directory, _nameSerializer.ToString(key));
+
+		public IConfigurationContainer GetContainer(TKey key)
+			=> new ConfigurationContainer(_configurationService, PrepareChildDirectory(_directory, _nameSerializer.ToString(key), true));
+	}
+
 	private readonly AsyncLock _lock;
 	private readonly string _directory;
-	private readonly string _devicesDirectory;
-	private readonly string _assembliesDirectory;
 
 	public ConfigurationService(string directory)
 	{
 		directory = Path.GetFullPath(directory);
-		var devicesDirectory = Path.Combine(directory, DevicesRootDirectory);
-		var assembliesDirectory = Path.Combine(directory, AssembliesRootDirectory);
 		Directory.CreateDirectory(directory);
-		Directory.CreateDirectory(devicesDirectory);
 		_lock = new();
 		_directory = directory;
-		_devicesDirectory = devicesDirectory;
-		_assembliesDirectory = assembliesDirectory;
 	}
 
-	private async ValueTask<ConfigurationResult<T>> ReadConfigurationAsync<T>(string directory, string key, CancellationToken cancellationToken)
+	private static string PrepareChildDirectory(string baseDirectory, string directoryName, bool allowGuid)
+	{
+		ArgumentNullException.ThrowIfNull(directoryName);
+		// This first check is a relatively quick way to validate that the directory doesn't contain any directory separators.
+		// It does however not prevent the name from being ".", ".." and similar.
+		if (Path.GetFileName(directoryName.AsSpan()).Length == directoryName.Length && (allowGuid || !Guid.TryParseExact(directoryName, "D", out _)))
+		{
+			// We only need to compute the full path in order to validate that the requested directory is correctly rooted under the parent directory.
+			string childDirectory = Path.GetFullPath(Path.Combine(baseDirectory, directoryName));
+			if (childDirectory.Length > baseDirectory.Length && childDirectory.StartsWith(baseDirectory))
+			{
+				Directory.CreateDirectory(childDirectory);
+				return childDirectory;
+			}
+		}
+		throw new InvalidOperationException($"Invalid directory name: {directoryName}.");
+	}
+
+	public IConfigurationContainer GetContainer(string containerName)
+		=> new ConfigurationContainer(this, PrepareChildDirectory(_directory, containerName, true));
+
+	public IConfigurationContainer<TKey> GetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer)
+		=> new ConfigurationContainer<TKey>(this, PrepareChildDirectory(_directory, containerName, true), nameSerializer);
+
+	private async ValueTask<ConfigurationResult<T>> ReadValueAsync<T>(string directory, string? key, CancellationToken cancellationToken)
 	{
 		string typeId = TypeId.GetString<T>();
 
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			string configurationDirectory = Path.Combine(directory, key);
+			string configurationDirectory = directory;
 
-			if (!Directory.Exists(configurationDirectory))
+			if (key is not null)
 			{
-				return new(ConfigurationStatus.MissingContainer);
+				configurationDirectory = Path.Combine(directory, key);
+
+				if (!Directory.Exists(configurationDirectory))
+				{
+					return new(ConfigurationStatus.MissingContainer);
+				}
 			}
 
 			string fileName = Path.Combine(configurationDirectory, typeId) + ".json";
@@ -104,25 +170,29 @@ public class ConfigurationService
 		}
 	}
 
-	private async ValueTask WriteConfigurationAsync<T>(string directory, string key, T value, CancellationToken cancellationToken)
+	private async ValueTask WriteValueAsync<T>(string directory, string? key, T value, CancellationToken cancellationToken)
 	{
 		string typeId = TypeId.GetString<T>();
 		if (value is null) throw new ArgumentOutOfRangeException(nameof(value));
 
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			string deviceDirectory = Path.Combine(directory, key);
+			string configurationDirectory = directory;
 
-			Directory.CreateDirectory(deviceDirectory);
+			if (key is not null)
+			{
+				configurationDirectory = Path.Combine(directory, key);
+				Directory.CreateDirectory(configurationDirectory);
+			}
 
-			string fileName = Path.Combine(deviceDirectory, typeId) + ".json";
+			string fileName = Path.Combine(configurationDirectory, typeId) + ".json";
 
 			using var file = File.Create(fileName);
 			await JsonSerializer.SerializeAsync(file, value, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
-	private async ValueTask DeleteConfigurationAsync(string directory, string key)
+	private async ValueTask DeleteValuesAsync(string directory, string key)
 	{
 		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
@@ -130,7 +200,7 @@ public class ConfigurationService
 		}
 	}
 
-	private async ValueTask DeleteConfigurationAsync<T>(string directory, string key)
+	private async ValueTask DeleteValueAsync<T>(string directory, string key)
 	{
 		string typeId = TypeId.GetString<T>();
 
@@ -140,62 +210,23 @@ public class ConfigurationService
 		}
 	}
 
-	public async ValueTask<Guid[]> GetDevicesAsync(CancellationToken cancellationToken)
+	private async ValueTask DeleteValueAsync<T>(string directory)
 	{
-		string[] directoryNames;
+		string typeId = TypeId.GetString<T>();
+
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			File.Delete(Path.Combine(directory, typeId) + ".json");
+		}
+	}
+
+	public async ValueTask<string[]> GetDirectoryNamesAsync(string directory, string pattern, CancellationToken cancellationToken)
+	{
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			directoryNames = Directory.GetDirectories(_devicesDirectory, "????????-????-????-????-????????????", SearchOption.TopDirectoryOnly);
-		}
-		try
-		{
-			return Array.ConvertAll(directoryNames, n => Guid.ParseExact(Path.GetFileName(n.AsSpan()), "D"));
-		}
-		catch (Exception ex)
-		{
-			// TODO: Log
-			return ParseDeviceIdsSlow(directoryNames);
+			return Directory.GetDirectories(directory, pattern, SearchOption.TopDirectoryOnly);
 		}
 	}
-
-	private Guid[] ParseDeviceIdsSlow(string[] directoryNames)
-	{
-		var deviceIds = new List<Guid>(directoryNames.Length);
-		foreach (var directoryName in directoryNames)
-		{
-			if (Guid.TryParseExact(Path.GetFileName(directoryName.AsSpan()), "D", out Guid deviceId))
-			{
-				deviceIds.Add(deviceId);
-			}
-		}
-		return [.. deviceIds];
-	}
-
-	public ValueTask<ConfigurationResult<T>> ReadDeviceConfigurationAsync<T>(Guid deviceId, CancellationToken cancellationToken)
-		=> ReadConfigurationAsync<T>(_devicesDirectory, deviceId.ToString("D"), cancellationToken)!;
-
-	public ValueTask WriteDeviceConfigurationAsync<T>(Guid deviceId, T value, CancellationToken cancellationToken)
-		where T : notnull
-		=> WriteConfigurationAsync(_devicesDirectory, deviceId.ToString("D"), value, cancellationToken);
-
-	public ValueTask DeleteDeviceConfigurationAsync(Guid deviceId)
-		=> DeleteConfigurationAsync(_devicesDirectory, deviceId.ToString("D"));
-
-	public ValueTask DeleteDeviceConfigurationAsync<T>(Guid deviceId)
-		=> DeleteConfigurationAsync<T>(_devicesDirectory, deviceId.ToString("D"));
-
-
-	public ValueTask<ConfigurationResult<T>> ReadAssemblyConfigurationAsync<T>(AssemblyName assemblyName, CancellationToken cancellationToken)
-		=> ReadConfigurationAsync<T>(_assembliesDirectory, assemblyName.FullName, cancellationToken);
-
-	public ValueTask WriteAssemblyConfigurationAsync<T>(AssemblyName assemblyName, T value, CancellationToken cancellationToken)
-		=> WriteConfigurationAsync(_assembliesDirectory, assemblyName.FullName, value, cancellationToken);
-
-	public ValueTask DeleteAssemblyConfigurationAsync(AssemblyName assemblyName)
-		=> DeleteConfigurationAsync(_assembliesDirectory, assemblyName.FullName);
-
-	public ValueTask DeleteAssemblyConfigurationAsync<T>(AssemblyName assemblyName)
-		=> DeleteConfigurationAsync<T>(_assembliesDirectory, assemblyName.FullName);
 
 	/// <summary>Exports the whole configuration in a zip archive format.</summary>
 	/// <param name="stream"></param>

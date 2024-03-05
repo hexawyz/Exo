@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Channels;
+using Exo.Configuration;
 using Exo.Discovery;
 using Exo.I2C;
 using Exo.Service.Services;
@@ -51,7 +52,7 @@ public class Startup
 			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
 		}
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
-		services.AddSingleton(sp => DeviceRegistry.CreateAsync(sp.GetRequiredService<ConfigurationService>(), default).GetAwaiter().GetResult());
+		services.AddSingleton(sp => DeviceRegistry.CreateAsync(sp.GetRequiredService<ConfigurationService>().GetContainer("dev", GuidNameSerializer.Instance), default).GetAwaiter().GetResult());
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<INestedDriverRegistryProvider>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());
@@ -79,7 +80,7 @@ public class Startup
 			sp => PersistedAssemblyParsedDataCache.CreateAsync<DiscoveredAssemblyDetails>
 			(
 				sp.GetRequiredService<IAssemblyLoader>(),
-				sp.GetRequiredService<ConfigurationService>(),
+				sp.GetRequiredService<ConfigurationService>().GetContainer("asm", AssemblyNameSerializer.Instance),
 				default
 			).GetAwaiter().GetResult()
 		);

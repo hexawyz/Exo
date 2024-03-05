@@ -1,18 +1,20 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Channels;
+using Exo.Configuration;
 
 namespace Exo.Service;
 
 public static class PersistedAssemblyParsedDataCache
 {
-	public static async Task<PersistedAssemblyParsedDataCache<T>> CreateAsync<T>(IAssemblyLoader assemblyLoader, ConfigurationService configurationService, CancellationToken cancellationToken)
+	public static async Task<PersistedAssemblyParsedDataCache<T>> CreateAsync<T>(IAssemblyLoader assemblyLoader, IConfigurationContainer<AssemblyName> assemblyConfigurationService, CancellationToken cancellationToken)
+		where T : notnull
 	{
 		var cache = new ConcurrentDictionary<string, T>();
 
 		foreach (var assembly in assemblyLoader.AvailableAssemblies)
 		{
-			var result = await configurationService.ReadAssemblyConfigurationAsync<T>(assembly, cancellationToken).ConfigureAwait(false);
+			var result = await assemblyConfigurationService.ReadValueAsync<T>(assembly, cancellationToken).ConfigureAwait(false);
 
 			if (result.Found)
 			{
@@ -20,24 +22,25 @@ public static class PersistedAssemblyParsedDataCache
 			}
 		}
 
-		return new PersistedAssemblyParsedDataCache<T>(cache, assemblyLoader, configurationService);
+		return new PersistedAssemblyParsedDataCache<T>(cache, assemblyLoader, assemblyConfigurationService);
 	}
 }
 
 public sealed class PersistedAssemblyParsedDataCache<T> : IAssemblyParsedDataCache<T>, IAsyncDisposable
+	where T : notnull
 {
 	private readonly ConcurrentDictionary<string, T> _cache;
 	private readonly IAssemblyLoader _assemblyLoader;
-	private readonly ConfigurationService _configurationService;
+	private readonly IConfigurationContainer<AssemblyName> _assemblyConfigurationService;
 	private readonly ChannelWriter<KeyValuePair<AssemblyName, T>> _changeWriter;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _persistanceTask;
 
-	internal PersistedAssemblyParsedDataCache(ConcurrentDictionary<string, T> cache, IAssemblyLoader assemblyLoader, ConfigurationService configurationService)
+	internal PersistedAssemblyParsedDataCache(ConcurrentDictionary<string, T> cache, IAssemblyLoader assemblyLoader, IConfigurationContainer<AssemblyName> assemblyConfigurationService)
 	{
 		_cache = cache;
 		_assemblyLoader = assemblyLoader;
-		_configurationService = configurationService;
+		_assemblyConfigurationService = assemblyConfigurationService;
 		var channel = Channel.CreateUnbounded<KeyValuePair<AssemblyName, T>>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
 		_changeWriter = channel;
 		_cancellationTokenSource = new();
@@ -63,7 +66,7 @@ public sealed class PersistedAssemblyParsedDataCache<T> : IAssemblyParsedDataCac
 			{
 				try
 				{
-					await _configurationService.WriteAssemblyConfigurationAsync<T>(kvp.Key, kvp.Value, cancellationToken).ConfigureAwait(false);
+					await _assemblyConfigurationService.WriteValueAsync<T>(kvp.Key, kvp.Value, cancellationToken).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
