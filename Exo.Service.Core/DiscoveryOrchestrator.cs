@@ -1,21 +1,16 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Exo.Discovery;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using static Exo.AsyncLock;
 
 namespace Exo.Service;
 
 internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 {
-	private delegate ValueTask<object> DriverFactory<TContext>(TContext context, CancellationToken cancellationToken);
-
 	private abstract class DiscoverySource
 	{
 		protected DiscoveryOrchestrator Orchestrator { get; }
