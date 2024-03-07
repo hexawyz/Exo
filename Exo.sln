@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		global.json = global.json
 		LICENCE.txt = LICENCE.txt
 		ReadMe.md = ReadMe.md
+		Publish.ps1 = Publish.ps1
 		Useful Bits.md = Useful Bits.md
 	EndProjectSection
 EndProject
@@ -129,7 +130,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Discovery.Monitor", "Ex
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Monitors", "Exo.Devices.Monitors\Exo.Devices.Monitors.csproj", "{459BDF9D-F681-4FC2-A708-106AF56D80BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Intel", "Exo.Devices.Intel\Exo.Devices.Intel.csproj", "{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Intel", "Exo.Devices.Intel\Exo.Devices.Intel.csproj", "{DFA01E4B-E46F-4CCD-949F-4131087AE8C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

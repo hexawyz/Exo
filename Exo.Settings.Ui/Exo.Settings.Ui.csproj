@@ -13,7 +13,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
 		<UseRidGraph>true</UseRidGraph>
 		<WindowsPackageType>None</WindowsPackageType>
-		<PublishSingleFile>true</PublishSingleFile>
+		<PublishSingleFile>false</PublishSingleFile>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DataTemplates.xaml" />
