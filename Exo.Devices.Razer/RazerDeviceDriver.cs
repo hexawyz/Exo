@@ -501,6 +501,7 @@ public abstract class RazerDeviceDriver :
 	private readonly DeviceIdSource _deviceIdSource;
 	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly byte _mainDeviceIdIndex;
+	private readonly RazerDeviceFlags _deviceFlags;
 
 	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
 
@@ -525,13 +526,15 @@ public abstract class RazerDeviceDriver :
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
 		ImmutableArray<DeviceId> deviceIds,
-		byte mainDeviceIdIndex
+		byte mainDeviceIdIndex,
+		RazerDeviceFlags deviceFlags
 	) : base(friendlyName, configurationKey)
 	{
 		_transport = transport;
 		_periodicEventGenerator = periodicEventGenerator;
 		_deviceIds = deviceIds;
 		_mainDeviceIdIndex = mainDeviceIdIndex;
+		_deviceFlags = deviceFlags;
 		_baseFeatures = CreateBaseFeatures();
 	}
 
@@ -595,7 +598,7 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			DeviceCategory = deviceCategory;
 		}
@@ -624,7 +627,7 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_dpiProfiles = [];
 			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetFeature>(this);
@@ -714,7 +717,7 @@ public abstract class RazerDeviceDriver :
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 		}
 	}
@@ -749,7 +752,7 @@ public abstract class RazerDeviceDriver :
 				DeviceConfigurationKey configurationKey,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex)
+			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
 			{
 				_driverRegistry = driverRegistry;
 				_watcher = new(notificationStream, this);
@@ -1127,7 +1130,6 @@ public abstract class RazerDeviceDriver :
 		private ILightingEffect _currentEffect;
 		private byte _appliedBrightness;
 		private byte _currentBrightness;
-		private readonly RazerDeviceFlags _deviceFlags;
 		private readonly AsyncLock _lightingLock;
 		private readonly AsyncLock _batteryStateLock;
 		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
@@ -1139,23 +1141,23 @@ public abstract class RazerDeviceDriver :
 		private bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
 		private bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
 
-		protected BaseDevice(
+		protected BaseDevice
+		(
 			RazerProtocolTransport transport,
 			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
-			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
-			byte mainDeviceIdIndex
-		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex)
+			byte mainDeviceIdIndex,
+			RazerDeviceFlags deviceFlags
+		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_appliedEffect = DisabledEffect.SharedInstance;
 			_currentEffect = DisabledEffect.SharedInstance;
 			_lightingLock = new();
 			_batteryStateLock = new();
 			_currentBrightness = 0x54; // 33%
-			_deviceFlags = deviceFlags;
 
 			_lightingFeatures = HasReactiveLighting ?
 				FeatureCollection.Create<
@@ -1369,7 +1371,7 @@ public abstract class RazerDeviceDriver :
 			_currentBrightness = brightness;
 		}
 
-		private event Action<Driver, BatteryState> BatteryStateChanged;
+		private event Action<Driver, BatteryState>? BatteryStateChanged;
 
 		event Action<Driver, BatteryState> IBatteryStateDeviceFeature.BatteryStateChanged
 		{
