@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Exo.Configuration;
 
 namespace Exo.Service;
@@ -13,6 +15,28 @@ public class ConfigurationService : IConfigurationNode
 		NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.AllowNamedFloatingPointLiterals,
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+		Converters = { new JsonStringEnumConverter() },
+		TypeInfoResolver = new DefaultJsonTypeInfoResolver
+		{
+			Modifiers =
+			{
+				ti =>
+				{
+					foreach (var property in ti.Properties)
+					{
+						if (typeof(System.Collections.ICollection).IsAssignableFrom(property.PropertyType))
+						{
+							property.ShouldSerialize = (_, obj) => obj is not null && ((System.Collections.ICollection)obj).Count != 0;
+							if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(ImmutableArray<>))
+							{
+								property.ObjectCreationHandling = JsonObjectCreationHandling.Replace;
+								property.IsRequired = false;
+							}
+						}
+					}
+				}
+			}
+		},
 	};
 
 	private sealed class ConfigurationContainer : IConfigurationContainer

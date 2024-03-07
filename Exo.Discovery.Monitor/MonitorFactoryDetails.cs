@@ -6,6 +6,8 @@ namespace Exo.Discovery;
 public readonly struct MonitorFactoryDetails
 {
 	public bool IsRegisteredForMonitorDeviceInterfaceClass { get; init; }
-	public ImmutableArray<ProductKey> Products { get; init; }
-	public ImmutableArray<VendorKey> Vendors { get; init; }
+	public ImmutableArray<ProductKey> Products { get; init; } = [];
+	public ImmutableArray<VendorKey> Vendors { get; init; } = [];
+
+	public MonitorFactoryDetails() { }
 }

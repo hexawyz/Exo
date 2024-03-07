@@ -71,7 +71,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 			parsedFactoryDetails = new()
 			{
 				TypeName = key.AssemblyQualifiedName ?? throw new InvalidOperationException(),
-				TypeId = typeId,
+				TypeId = typeId != default ? typeId : null,
 			};
 			return true;
 		}

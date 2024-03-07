@@ -11,11 +11,10 @@ public sealed class DeviceInformation : IEquatable<DeviceInformation?>
 	public DeviceInformation(string friendlyName, DeviceCategory category, HashSet<Guid> featureIds, ImmutableArray<DeviceId> deviceIds, int? mainDeviceIdIndex, string? serialNumber)
 	{
 		if (featureIds is null) throw new ArgumentNullException(nameof(featureIds));
-		if (deviceIds.IsDefault) throw new ArgumentNullException(nameof(deviceIds));
 		FriendlyName = friendlyName;
 		Category = category;
 		FeatureIds = featureIds;
-		DeviceIds = deviceIds;
+		DeviceIds = deviceIds.IsDefault ? [] : deviceIds;
 		MainDeviceIdIndex = mainDeviceIdIndex;
 		SerialNumber = serialNumber;
 	}

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,10 +8,16 @@ namespace Exo.Service;
 
 internal readonly struct MethodSignature : IEquatable<MethodSignature>
 {
-	public string MethodName { get; init; }
-	public TypeReference ReturnType { get; init; }
+	public required string MethodName { get; init; }
+	public required TypeReference ReturnType { get; init; }
 	public ImmutableArray<MethodParameterDefinition> Parameters { get; init; }
 
+	public MethodSignature()
+	{
+		Parameters = [];
+	}
+
+	[SetsRequiredMembers]
 	public MethodSignature(string methodName, TypeReference returnType, ImmutableArray<MethodParameterDefinition> parameters)
 	{
 		if (parameters.IsDefaultOrEmpty) throw new ArgumentNullException(nameof(parameters));
@@ -20,6 +27,7 @@ internal readonly struct MethodSignature : IEquatable<MethodSignature>
 		Parameters = parameters;
 	}
 
+	[SetsRequiredMembers]
 	public MethodSignature(MethodInfo method)
 	{
 		MethodName = method.Name;
