@@ -38,10 +38,28 @@ internal static partial class LoggerExtensions
 	public static partial void DiscoveryFactoryRegistrationFailure(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName);
 
 	[LoggerMessage(EventId = 1010,
+		EventName = "DiscoveryFactoryParsingError",
+		Level = LogLevel.Warning,
+		Message = "An exception occurred when trying to parse the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" with the service {ComponentFriendlyName}.")]
+	public static partial void DiscoveryFactoryParsingError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
+
+	[LoggerMessage(EventId = 1011,
 		EventName = "DiscoveryFactoryRegistrationError",
 		Level = LogLevel.Warning,
 		Message = "An exception occurred when trying to register the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" with the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryRegistrationError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
+
+	[LoggerMessage(EventId = 1012,
+		EventName = "DiscoveryFactoryDetailsReadError",
+		Level = LogLevel.Warning,
+		Message = "An exception occurred when trying to read the factory details for \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" for the service {ComponentFriendlyName}.")]
+	public static partial void DiscoveryFactoryDetailsReadError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
+
+	[LoggerMessage(EventId = 1013,
+		EventName = "DiscoveryFactoryDetailsWriteError",
+		Level = LogLevel.Warning,
+		Message = "An exception occurred when trying to persist the factory details for \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" for the service {ComponentFriendlyName}.")]
+	public static partial void DiscoveryFactoryDetailsWriteError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
 
 	[LoggerMessage(EventId = 3000, EventName = "DevicePropertiesRetrievalError", Level = LogLevel.Error, Message = "Failed to retrieve properties of device: \"{DeviceName}\".")]
 	public static partial void DevicePropertiesRetrievalError(this ILogger logger, string deviceName, Exception exception);

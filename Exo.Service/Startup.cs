@@ -94,22 +94,22 @@ public class Startup
 					sp.GetRequiredService<ILogger<DiscoveryOrchestrator>>(),
 					sp.GetRequiredService<IDriverRegistry>(),
 					sp.GetRequiredService<IAssemblyParsedDataCache<DiscoveredAssemblyDetails>>(),
-					sp.GetRequiredService<IAssemblyLoader>()
+					sp.GetRequiredService<IAssemblyLoader>(),
+					sp.GetRequiredService<ConfigurationService>().GetContainer("dcv").GetContainer("fac", GuidNameSerializer.Instance)
 				);
 			}
 		);
 		// The root discovery service must be pulled in as a hard dependency, as it will serve to bootstrap all other discovery services.
 		services.AddSingleton<RootDiscoverySubsystem>
 		(
-			sp => new RootDiscoverySubsystem
+			sp => RootDiscoverySubsystem.CreateAsync
 			(
 				sp.GetRequiredService<ILoggerFactory>(),
 				sp.GetRequiredService<INestedDriverRegistryProvider>(),
 				sp.GetRequiredService<IDiscoveryOrchestrator>(),
 				sp.GetRequiredService<IDeviceNotificationService>(),
-				sp.GetRequiredService<II2CBusProvider>(),
-				sp.GetRequiredService<ConfigurationService>().GetContainer("dcv", GuidNameSerializer.Instance)
-			)
+				sp.GetRequiredService<II2CBusProvider>()
+			).GetAwaiter().GetResult()
 		);
 		services.AddSingleton<IDiscoveryOrchestrator>(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());

@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
-using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
-using DeviceTools.DisplayDevices.Configuration;
 using Exo.I2C;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;

@@ -20,23 +20,23 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1005, EventName = "DisplayAdapterDeviceRemoval", Level = LogLevel.Debug, Message = "Removal of Monitor device: \"{DeviceName}\".")]
 	public static partial void MonitorDeviceRemoval(this ILogger logger, string deviceName);
 
-	[LoggerMessage(EventId = 1006, EventName = "MonitorNameParsingFailure", Level = LogLevel.Warning, Message = "Failed to parse the monitor name \"{RawMonitorName}\" for factory \"{FactoryId}\".")]
-	public static partial void MonitorNameParsingFailure(this ILogger logger, Guid factoryId, string? rawMonitorName);
+	[LoggerMessage(EventId = 1006, EventName = "MonitorNameParsingFailure", Level = LogLevel.Warning, Message = "Failed to parse the monitor name \"{RawMonitorName}\".")]
+	public static partial void MonitorNameParsingFailure(this ILogger logger, string? rawMonitorName);
 
 	[LoggerMessage(EventId = 1007,
 		EventName = "MonitorInvalidVendorId",
 		Level = LogLevel.Warning,
-		Message = "The vendor ID \"{VendorId:X4}\" for factory \"{FactoryId}\" could not be parsed into a valid vendor name.")]
-	public static partial void MonitorInvalidVendorId(this ILogger logger, Guid factoryId, ushort vendorId);
+		Message = "The vendor ID \"{VendorId:X4}\" could not be parsed into a valid vendor name.")]
+	public static partial void MonitorInvalidVendorId(this ILogger logger, ushort vendorId);
 
-	[LoggerMessage(EventId = 1008, EventName = "MonitorVendorIdParsingFailure", Level = LogLevel.Warning, Message = "Failed to parse the vendor ID \"{RawVendorId}\" for factory \"{FactoryId}\".")]
-	public static partial void MonitorVendorIdParsingFailure(this ILogger logger, Guid factoryId, string? rawVendorId);
+	[LoggerMessage(EventId = 1008, EventName = "MonitorVendorIdParsingFailure", Level = LogLevel.Warning, Message = "Failed to parse the vendor ID \"{RawVendorId}\".")]
+	public static partial void MonitorVendorIdParsingFailure(this ILogger logger, string? rawVendorId);
 
 	[LoggerMessage(EventId = 1009,
 		EventName = "MonitorFactoryMissingKeys",
 		Level = LogLevel.Error,
-		Message = "The factory \"{FactoryId}\" did not define any valid keys for Monitor discovery")]
-	public static partial void MonitorFactoryMissingKeys(this ILogger logger, Guid factoryId);
+		Message = "The factory did not define any valid keys for Monitor discovery")]
+	public static partial void MonitorFactoryMissingKeys(this ILogger logger);
 
 	[LoggerMessage(EventId = 1010,
 		EventName = "MonitorVendorDuplicateKey",

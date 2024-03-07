@@ -1,5 +1,5 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using DeviceTools;
 using Exo.Services;
@@ -9,11 +9,13 @@ namespace Exo.Discovery;
 
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
-public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>, IDeviceNotificationSink
+public sealed class PciDiscoverySubsystem :
+	DiscoveryService<PciDiscoverySubsystem, SystemDevicePath, PciFactoryDetails, PciDiscoveryContext, PciDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>,
+	IDeviceNotificationSink
 {
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(PciDiscoverySubsystem))]
-	public static ValueTask<RootComponentCreationResult> CreateAsync
+	public static async ValueTask<RootComponentCreationResult> CreateAsync
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
@@ -21,7 +23,17 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		IDeviceNotificationService deviceNotificationService
 	)
 	{
-		return new(new RootComponentCreationResult(typeof(PciDiscoverySubsystem), new PciDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService), null));
+		var service = new PciDiscoverySubsystem(loggerFactory, driverRegistry, deviceNotificationService);
+		try
+		{
+			await service.RegisterAsync(discoveryOrchestrator);
+		}
+		catch
+		{
+			await service.DisposeAsync();
+			throw;
+		}
+		return new RootComponentCreationResult(typeof(PciDiscoverySubsystem), service);
 	}
 
 	private readonly Dictionary<ProductVersionKey, Guid> _productVersionFactories;
@@ -31,26 +43,22 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	private readonly ILogger<PciDiscoverySubsystem> _logger;
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
-	private readonly IDiscoveryOrchestrator _discoveryOrchestrator;
 	private readonly IDeviceNotificationService _deviceNotificationService;
 
 	private IDisposable? _displayAdapterNotificationRegistration;
 	private IDisposable? _displayDeviceArrivalDeviceNotificationRegistration;
-	private IDiscoverySink<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext>? _sink;
 	private readonly object _lock;
 
 	public PciDiscoverySubsystem
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
-		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService
 	)
 	{
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		_logger = loggerFactory.CreateLogger<PciDiscoverySubsystem>();
-		_discoveryOrchestrator = discoveryOrchestrator;
 		_deviceNotificationService = deviceNotificationService;
 
 		_productVersionFactories = new();
@@ -58,8 +66,6 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		_vendorFactories = new();
 
 		_lock = new();
-
-		_sink = _discoveryOrchestrator.RegisterDiscoveryService<PciDiscoverySubsystem, SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>(this);
 	}
 
 	public override string FriendlyName => "PCI Discovery";
@@ -70,12 +76,12 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		{
 			Interlocked.Exchange(ref _displayAdapterNotificationRegistration, null)?.Dispose();
 			Interlocked.Exchange(ref _displayDeviceArrivalDeviceNotificationRegistration, null)?.Dispose();
-			Interlocked.Exchange(ref _sink, null)?.Dispose();
+			DisposeSink();
 		}
 		return ValueTask.CompletedTask;
 	}
 
-	public ValueTask StartAsync(CancellationToken cancellationToken)
+	protected override ValueTask StartAsync(IDiscoverySink<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -94,7 +100,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
 				{
 					_logger.DisplayAdapterDeviceArrival(deviceName);
-					_sink?.HandleArrival(new(this, deviceName));
+					sink?.HandleArrival(new(this, deviceName));
 				}
 
 				_logger.PciDiscoveryStarted();
@@ -107,7 +113,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		return ValueTask.CompletedTask;
 	}
 
-	public bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes)
+	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out PciFactoryDetails parsedFactoryDetails)
 	{
 		var productVersionKeys = new HashSet<ProductVersionKey>();
 		var productKeys = new HashSet<ProductKey>();
@@ -142,7 +148,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 							if (!productVersionKeys.Add(key))
 							{
 								_logger.PciVersionedProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
-								return false;
+								goto Failed;
 							}
 						}
 						else
@@ -151,7 +157,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 							if (!productKeys.Add(key))
 							{
 								_logger.PciProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId);
-								return false;
+								goto Failed;
 							}
 						}
 					}
@@ -161,7 +167,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 						if (!vendorKeys.Add(key))
 						{
 							_logger.PciVendorDuplicateKey(key.VendorIdSource, key.VendorId);
-							return false;
+							goto Failed;
 						}
 					}
 				}
@@ -170,10 +176,24 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		if (productVersionKeys.Count == 0 && productKeys.Count == 0 && vendorKeys.Count == 0)
 		{
-			_logger.PciFactoryMissingKeys(factoryId);
-			return false;
+			_logger.PciFactoryMissingKeys();
+			goto Failed;
 		}
 
+		parsedFactoryDetails = new()
+		{
+			ProductVersions = [.. productVersionKeys],
+			Products = [.. productKeys],
+			Vendors = [.. vendorKeys],
+		};
+		return true;
+	Failed:;
+		parsedFactoryDetails = default;
+		return false;
+	}
+
+	public override bool TryRegisterFactory(Guid factoryId, PciFactoryDetails parsedFactoryDetails)
+	{
 		// Prevent factories from being registered in parallel, so that key conflicts between factories can be avoided mostly deterministically.
 		// Obviously, key conflicts will still depend on the order of discovery of the factories, but they should not exist at all anyway.
 		lock (_lock)
@@ -182,7 +202,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			// We mostly need coherence for the sake of providing complete factory registrations upon device arrivals.
 
 			// First, check that all the keys will avoid a conflict
-			foreach (var key in productVersionKeys)
+			foreach (var key in parsedFactoryDetails.ProductVersions)
 			{
 				if (_productVersionFactories.ContainsKey(key))
 				{
@@ -190,7 +210,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 					return false;
 				}
 			}
-			foreach (var key in productKeys)
+			foreach (var key in parsedFactoryDetails.Products)
 			{
 				if (_productFactories.ContainsKey(key))
 				{
@@ -198,7 +218,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 					return false;
 				}
 			}
-			foreach (var key in vendorKeys)
+			foreach (var key in parsedFactoryDetails.Vendors)
 			{
 				if (_vendorFactories.ContainsKey(key))
 				{
@@ -208,15 +228,15 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 			}
 
 			// Once we are guaranteed to be conflict-free, the keys are added.
-			foreach (var key in productVersionKeys)
+			foreach (var key in parsedFactoryDetails.ProductVersions)
 			{
 				_productVersionFactories.Add(key, factoryId);
 			}
-			foreach (var key in productKeys)
+			foreach (var key in parsedFactoryDetails.Products)
 			{
 				_productFactories.Add(key, factoryId);
 			}
-			foreach (var key in vendorKeys)
+			foreach (var key in parsedFactoryDetails.Vendors)
 			{
 				_vendorFactories.Add(key, factoryId);
 			}
@@ -230,7 +250,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		lock (_lock)
 		{
 			_logger.DisplayAdapterDeviceArrival(deviceName);
-			_sink?.HandleArrival(new(this, deviceName));
+			TryGetSink()?.HandleArrival(new(this, deviceName));
 		}
 	}
 
@@ -238,7 +258,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		lock (_lock)
 		{
-			_sink?.HandleRemoval(deviceName);
+			TryGetSink()?.HandleRemoval(deviceName);
 		}
 	}
 
@@ -247,7 +267,7 @@ public sealed class PciDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		lock (_lock)
 		{
 			_logger.DisplayAdapterDeviceRemoval(deviceName);
-			_sink?.HandleRemoval(deviceName);
+			TryGetSink()?.HandleRemoval(deviceName);
 		}
 	}
 

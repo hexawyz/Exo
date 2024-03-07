@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Exo.Configuration;
 using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
@@ -17,10 +16,10 @@ public sealed class RootComponentCreationContext : ComponentCreationContext
 	public IDiscoveryOrchestrator DiscoveryOrchestrator => _discoverySubsystem.DiscoveryOrchestrator;
 	public IDeviceNotificationService DeviceNotificationService => _discoverySubsystem.DeviceNotificationService;
 	public II2CBusProvider I2cBusProvider => _discoverySubsystem.I2CBusProvider;
-	public IConfigurationContainer ConfigurationContainer
-		=> _typeId != default ?
-			_discoverySubsystem.DiscoveryConfigurationContainer.GetContainer(_typeId) :
-			throw new InvalidOperationException($"No type ID was specified for {Keys[0]}");
+	//public IConfigurationContainer ConfigurationContainer
+	//	=> _typeId != default ?
+	//		_discoverySubsystem.DiscoveryConfigurationContainer.GetContainer(_typeId) :
+	//		throw new InvalidOperationException($"No type ID was specified for {Keys[0]}");
 
 	public RootComponentCreationContext(RootDiscoverySubsystem discoverySubsystem, ImmutableArray<RootComponentKey> keys, Guid typeId)
 	{

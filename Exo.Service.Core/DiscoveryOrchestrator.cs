@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
+using Exo.Configuration;
 using Exo.Discovery;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,14 +24,16 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			KnownFactoryMethods = knownFactoryMethods;
 		}
 
-		public abstract bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName);
+		public abstract ValueTask<bool> TryReadAndRegisterFactoryAsync(Guid factoryId, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken);
+		public abstract ValueTask<bool> TryParseAndRegisterFactoryAsync(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken);
 		public abstract ValueTask StartAsync(CancellationToken cancellationToken);
 	}
 
-	private sealed class DiscoverySource<TDiscoveryService, TFactory, TKey, TDiscoveryContext, TCreationContext, TComponent, TResult> : DiscoverySource, IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>
-		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TDiscoveryContext, TCreationContext, TComponent, TResult>
+	private sealed class DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult> : DiscoverySource, IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>
+		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
 		where TFactory : class, Delegate
 		where TKey : IEquatable<TKey>
+		where TParsedFactoryDetails : notnull
 		where TDiscoveryContext : class, IComponentDiscoveryContext<TKey, TCreationContext>
 		where TCreationContext : class, IComponentCreationContext
 		where TComponent : class, IAsyncDisposable
@@ -57,12 +60,84 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 		public override ValueTask StartAsync(CancellationToken cancellationToken) => Service.StartAsync(cancellationToken);
 
-		public override bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName)
+		public override async ValueTask<bool> TryReadAndRegisterFactoryAsync(Guid factoryId, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken)
 		{
+			TParsedFactoryDetails parsedDetails;
+
+			try
+			{
+				var readResult = await Orchestrator._factoryConfigurationContainer.ReadValueAsync<TParsedFactoryDetails>(factoryId, cancellationToken).ConfigureAwait(false);
+				if (!readResult.Found)
+				{
+					return false;
+				}
+				parsedDetails = readResult.Value!;
+			}
+			catch (Exception ex)
+			{
+				Orchestrator.Logger.DiscoveryFactoryDetailsWriteError(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName, ex);
+				return false;
+			}
+
 			bool success;
 			try
 			{
-				success = Service.RegisterFactory(factoryId, attributes);
+				success = Service.TryRegisterFactory(factoryId, parsedDetails!);
+			}
+			catch (Exception ex)
+			{
+				Orchestrator.Logger.DiscoveryFactoryRegistrationError(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName, ex);
+				goto Completed;
+			}
+
+			if (success)
+			{
+				Orchestrator.Logger.DiscoveryFactoryRegistrationSuccess(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName);
+			}
+			else
+			{
+				Orchestrator.Logger.DiscoveryFactoryRegistrationFailure(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName);
+			}
+
+		Completed:;
+			// NB: Perhaps having multiple result states here could be useful, but the idea is that we want to return false only if the value failed to be deserialized.
+			// Because the methods here do multiple things at once (read & register or parse & write & register), the intent is not exactly clear, but we want to avoid parsing assemblies for nothing.
+			// In this case, returning true indicate that we have run the Register method, regardless of its success.
+			return true;
+		}
+
+		public override async ValueTask<bool> TryParseAndRegisterFactoryAsync(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken)
+		{
+			TParsedFactoryDetails? parsedDetails;
+
+			bool success;
+			try
+			{
+				success = Service.TryParseFactory(attributes, out parsedDetails);
+			}
+			catch (Exception ex)
+			{
+				Orchestrator.Logger.DiscoveryFactoryParsingError(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName, ex);
+				return false;
+			}
+
+			if (success)
+			{
+				try
+				{
+					// NB: Should not need the ! here but for some reason it does not makes the link with the value of success ?
+					await Orchestrator._factoryConfigurationContainer.WriteValueAsync(factoryId, parsedDetails!, cancellationToken).ConfigureAwait(false);
+				}
+				catch (Exception ex)
+				{
+					Orchestrator.Logger.DiscoveryFactoryDetailsWriteError(methodReference.Signature.MethodName, methodReference.TypeName, assemblyName.FullName, Service.FriendlyName, ex);
+					return false;
+				}
+			}
+
+			try
+			{
+				success = Service.TryRegisterFactory(factoryId, parsedDetails!);
 			}
 			catch (Exception ex)
 			{
@@ -363,6 +438,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		// If the source is active, they must all have been registered with it. Otherwise they are kept there for when the source is registered, if it ever is.
 		// Generally, all the discovery sources are going to be registered, but we can't guarantee the order of operations.
 		public ConcurrentDictionary<Guid, FactoryMethodDetails> KnownFactoryMethods { get; } = new();
+		// A lock used to access the state.
+		public AsyncLock Lock { get; } = new();
 	}
 
 	private sealed class FactoryMethodDetails
@@ -468,8 +545,16 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 	private ConditionalWeakTable<object, ComponentReferenceCounter> ReferenceCounters { get; }
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private List<DiscoveryServiceState>? _pendingInitializations;
+	private readonly IConfigurationContainer<Guid> _factoryConfigurationContainer;
 
-	public DiscoveryOrchestrator(ILogger<DiscoveryOrchestrator> logger, IDriverRegistry driverRegistry, IAssemblyParsedDataCache<DiscoveredAssemblyDetails> parsedDataCache, IAssemblyLoader assemblyLoader)
+	public DiscoveryOrchestrator
+	(
+		ILogger<DiscoveryOrchestrator> logger,
+		IDriverRegistry driverRegistry,
+		IAssemblyParsedDataCache<DiscoveredAssemblyDetails> parsedDataCache,
+		IAssemblyLoader assemblyLoader,
+		IConfigurationContainer<Guid> factoryConfigurationContainer
+	)
 	{
 		Logger = logger;
 		_states = new();
@@ -481,6 +566,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		ReferenceCounters = new();
 		_cancellationTokenSource = new();
 		_pendingInitializations = new();
+		_factoryConfigurationContainer = factoryConfigurationContainer;
 	}
 
 	public async Task StartAsync(CancellationToken cancellationToken)
@@ -490,7 +576,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			throw new InvalidOperationException("The service was already served.");
 		}
 		// First refresh the assemblies, ensuring everything is up to date
-		RefreshAssemblyCache();
+		await RefreshAssemblyCacheAsync().ConfigureAwait(false);
 		// Then, initialize all the sources, which will ensure the discovery is started once all factories have been registered.
 		// This will be enough until we ever decide to support dynamic addition of plugins. (Then, the code will need to be improved to react to factories registered late)
 		foreach (var state in pendingInitializations)
@@ -499,27 +585,32 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		}
 	}
 
-	public IDiscoverySink<TKey, TDiscoveryContext, TCreationContext> RegisterDiscoveryService<TDiscoveryService, TFactory, TKey, TDiscoveryContext, TCreationContext, TComponent, TResult>(TDiscoveryService service)
-		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TDiscoveryContext, TCreationContext, TComponent, TResult>
+	public async ValueTask<IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>> RegisterDiscoveryServiceAsync<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>(TDiscoveryService service)
+		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
 		where TFactory : class, Delegate
 		where TDiscoveryContext : class, IComponentDiscoveryContext<TKey, TCreationContext>
 		where TKey : IEquatable<TKey>
+		where TParsedFactoryDetails : notnull
 		where TCreationContext : class, IComponentCreationContext
 		where TComponent : class, IAsyncDisposable
 		where TResult : ComponentCreationResult<TKey, TComponent>
 	{
+		// Validate that the parsed factory details have a GUID applied that will allow them to be serialized.
+		// It is better to validate this upfront, as it is easy to do and will avoid starting too much stuff.
+		_ = TypeId.Get<TParsedFactoryDetails>();
+
 		var state = _states.GetOrAdd(typeof(TDiscoveryService), _ => new());
 
-		DiscoverySource<TDiscoveryService, TFactory, TKey, TDiscoveryContext, TCreationContext, TComponent, TResult> source;
-		lock (state)
+		DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult> source;
+		using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
 		{
 			if (state.Source is not null) throw new InvalidOperationException("A discovery service of the same type has already been registered.");
 
-			state.Source = source = new DiscoverySource<TDiscoveryService, TFactory, TKey, TDiscoveryContext, TCreationContext, TComponent, TResult>(this, state.KnownFactoryMethods, service);
+			state.Source = source = new DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>(this, state.KnownFactoryMethods, service);
 
 			if (!state.KnownFactoryMethods.IsEmpty)
 			{
-				RegisterFactories(source, state.KnownFactoryMethods);
+				await RegisterFactoriesAsync(source, state.KnownFactoryMethods, default).ConfigureAwait(false);
 			}
 
 			var pendingInitializations = Volatile.Read(ref _pendingInitializations);
@@ -543,29 +634,35 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 	private async Task StartSourceAsync(DiscoveryServiceState state, CancellationToken cancellationToken)
 	{
 		DiscoverySource? source;
-		lock (state)
+		using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
 		{
 			source = state.Source;
-		}
-		if (source is null) return;
-		try
-		{
-			await source.StartAsync(cancellationToken).ConfigureAwait(false);
-		}
-		catch
-		{
-			// TODO: Log.
-			// TODO: Dispose the source?
+			if (source is null) return;
+			try
+			{
+				await source.StartAsync(cancellationToken).ConfigureAwait(false);
+			}
+			catch
+			{
+				// TODO: Log.
+				// TODO: Dispose the source?
+			}
 		}
 	}
 
-	private void RegisterFactories(DiscoverySource source, ConcurrentDictionary<Guid, FactoryMethodDetails> factories)
+	private async ValueTask RegisterFactoriesAsync(DiscoverySource source, ConcurrentDictionary<Guid, FactoryMethodDetails> factories, CancellationToken cancellationToken)
 	{
 		try
 		{
 			var assemblies = new Dictionary<AssemblyName, Assembly>();
 			foreach (var kvp in factories)
 			{
+				// Avoid parsing assemblies if we can avoid it.
+				if (await source.TryReadAndRegisterFactoryAsync(kvp.Key, kvp.Value.MethodReference, kvp.Value.AssemblyName, cancellationToken).ConfigureAwait(false))
+				{
+					continue;
+				}
+
 				if (!assemblies.TryGetValue(kvp.Value.AssemblyName, out var assembly))
 				{
 					assemblies.Add(kvp.Value.AssemblyName, assembly = AssemblyLoader.CreateMetadataLoadContext(kvp.Value.AssemblyName).LoadFromAssemblyName(kvp.Value.AssemblyName));
@@ -583,7 +680,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					// TODO: Log
 					continue;
 				}
-				source.RegisterFactory(kvp.Key, [.. method.GetCustomAttributesData()], kvp.Value.MethodReference, kvp.Value.AssemblyName);
+				await source.TryParseAndRegisterFactoryAsync(kvp.Key, [.. method.GetCustomAttributesData()], kvp.Value.MethodReference, kvp.Value.AssemblyName, cancellationToken).ConfigureAwait(false);
 			}
 		}
 		catch (Exception ex)
@@ -592,26 +689,63 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		}
 	}
 
-	private void RefreshAssemblyCache()
+	private async ValueTask RefreshAssemblyCacheAsync()
 	{
 		foreach (var assembly in AssemblyLoader.AvailableAssemblies)
 		{
-			OnAssemblyAdded(assembly);
+			await OnAssemblyAdded(assembly).ConfigureAwait(false);
 		}
 	}
 
-	private void OnAssemblyAdded(AssemblyName assemblyName)
+	private async ValueTask OnAssemblyAdded(AssemblyName assemblyName)
 	{
+		if (_parsedDataCache.TryGetValue(assemblyName, out var assemblyDetails))
+		{
+			// NB: This is mostly duplicated from the code at the end of the method.
+			// TODO: There might be a way to re-merge both of those. (Ideally also with RegisterFactoriesAsync)
+			// Probably want to reuse the code that lazily loads assemblies based on the needs of the methods to register.
+			// In the code just below, the methods are not registered if they were not parsed previously, so we might end up in weird places if some configuration files are missing.
+			// While assuming that methods will have been parsed when the assembly was first parsed is a generally safe assumption,
+			// it means that the whole parsing caches need to be deleted for a method to be reparsed, which is less than great in case some files were inadvertently deleted.
+			if (assemblyDetails.Types.Length > 0)
+			{
+				foreach (var typeDetails in assemblyDetails.Types)
+				{
+					foreach (var methodDetails in typeDetails.FactoryMethods)
+					{
+						var methodReference = new MethodReference(typeDetails.Name, methodDetails.MethodSignature);
+
+						foreach (var discoverySubsystemType in methodDetails.DiscoverySubsystemTypes)
+						{
+							var state = _states.GetOrAdd(discoverySubsystemType, _ => new());
+
+							using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
+							{
+								state.KnownFactoryMethods.TryAdd(methodDetails.Id, new(methodDetails.Id, assemblyName, methodReference));
+								if (state.Source is { } source)
+								{
+									await source.TryReadAndRegisterFactoryAsync
+									(
+										methodDetails.Id,
+										methodReference,
+										assemblyName,
+										default
+									).ConfigureAwait(false);
+								}
+							}
+						}
+					}
+				}
+			}
+			return;
+		}
+
 		using var context = AssemblyLoader.CreateMetadataLoadContext(assemblyName);
 		var assembly = context.LoadFromAssemblyName(assemblyName);
 
-		DiscoveredAssemblyDetails assemblyDetails;
 		try
 		{
-			if (!_parsedDataCache.TryGetValue(assemblyName, out assemblyDetails))
-			{
-				_parsedDataCache.SetValue(assemblyName, assemblyDetails = ParseAssembly(assembly));
-			}
+			_parsedDataCache.SetValue(assemblyName, assemblyDetails = ParseAssembly(assembly));
 		}
 		catch (Exception ex)
 		{
@@ -627,17 +761,25 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 				var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
 				foreach (var methodDetails in typeDetails.FactoryMethods)
 				{
+					var methodReference = new MethodReference(typeDetails.Name, methodDetails.MethodSignature);
 					var method = methods.Single(methodDetails.MethodSignature.Matches);
 					foreach (var discoverySubsystemType in methodDetails.DiscoverySubsystemTypes)
 					{
 						var state = _states.GetOrAdd(discoverySubsystemType, _ => new());
 
-						lock (state)
+						using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
 						{
-							state.KnownFactoryMethods.TryAdd(methodDetails.Id, new(methodDetails.Id, assemblyName, new MethodReference(typeDetails.Name, method)));
+							state.KnownFactoryMethods.TryAdd(methodDetails.Id, new(methodDetails.Id, assemblyName, methodReference));
 							if (state.Source is { } source)
 							{
-								source.RegisterFactory(methodDetails.Id, [.. method.GetCustomAttributesData()], new MethodReference(typeDetails.Name, methodDetails.MethodSignature), assembly.GetName());
+								await source.TryParseAndRegisterFactoryAsync
+								(
+									methodDetails.Id,
+									[.. method.GetCustomAttributesData()],
+									methodReference,
+									assembly.GetName(),
+									default
+								).ConfigureAwait(false);
 							}
 						}
 					}
@@ -685,11 +827,11 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 					foreach (var @interface in discoverySubsystem.GetInterfaces())
 					{
-						if (!@interface.MatchesGeneric(typeof(IDiscoveryService<,,,,,>))) continue;
+						if (!@interface.MatchesGeneric(typeof(IDiscoveryService<,,,,,,>))) continue;
 
 						var arguments = @interface.GetGenericArguments();
 
-						var result = ComponentFactory.Validate(method, arguments[0], arguments[3], arguments[5]);
+						var result = ComponentFactory.Validate(method, arguments[0], arguments[4], arguments[6]);
 
 						if (result.ErrorCode != ComponentFactory.ValidationErrorCode.None)
 						{

@@ -153,7 +153,7 @@ public static class ComponentFactory
 
 	private static FactoryParameter[] ParseFactoryDelegate(Type delegateType, Type contextType, Type resultType)
 	{
-		var invokeMethod = delegateType.GetMethod("Invoke") ?? throw new InvalidOperationException($"The type {delegateType} is nto a valid delegate type.");
+		var invokeMethod = delegateType.GetMethod("Invoke") ?? throw new InvalidOperationException($"The type {delegateType} is not a valid delegate type.");
 		var parameters = invokeMethod.GetParameters();
 		if (!invokeMethod.ReturnType.Matches(typeof(ValueTask<>).MakeGenericType(resultType)) ||
 			parameters.Length < 2 ||

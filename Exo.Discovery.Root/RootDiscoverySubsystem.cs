@@ -1,39 +1,57 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using Exo.Configuration;
 using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
 
-public class RootDiscoverySubsystem :
-	IDiscoveryService<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext, Component, RootComponentCreationResult>,
-	IAsyncDisposable
+public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, RootComponentKey, RootFactoryDetails, RootComponentDiscoveryContext, RootComponentCreationContext, Component, RootComponentCreationResult>
 {
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	internal IDiscoveryOrchestrator DiscoveryOrchestrator { get; }
 	internal IDeviceNotificationService DeviceNotificationService { get; }
 	internal II2CBusProvider I2CBusProvider { get; }
-	internal IConfigurationContainer<Guid> DiscoveryConfigurationContainer { get; }
 
 	internal ConcurrentDictionary<RootComponentKey, Guid> RegisteredFactories { get; }
-	private readonly IDiscoverySink<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext> _discoverySink;
 	private List<(RootComponentKey Key, Guid TypeId)>? _pendingArrivals;
 
-	public string FriendlyName => "Root component discovery";
+	public override string FriendlyName => "Root component discovery";
 
-	public RootDiscoverySubsystem
+	public static async ValueTask<RootDiscoverySubsystem> CreateAsync
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider,
-		IConfigurationContainer<Guid> discoveryConfigurationContainer
+		II2CBusProvider i2cBusProvider
+	)
+	{
+		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider);
+		try
+		{
+			await service.RegisterAsync(discoveryOrchestrator);
+		}
+		catch
+		{
+			await service.DisposeAsync();
+			throw;
+		}
+		return service;
+	}
+
+	private RootDiscoverySubsystem
+	(
+		ILoggerFactory loggerFactory,
+		INestedDriverRegistryProvider driverRegistry,
+		IDiscoveryOrchestrator discoveryOrchestrator,
+		IDeviceNotificationService deviceNotificationService,
+		II2CBusProvider i2cBusProvider
 	)
 	{
 		LoggerFactory = loggerFactory;
@@ -41,31 +59,33 @@ public class RootDiscoverySubsystem :
 		DiscoveryOrchestrator = discoveryOrchestrator;
 		DeviceNotificationService = deviceNotificationService;
 		I2CBusProvider = i2cBusProvider;
-		DiscoveryConfigurationContainer = discoveryConfigurationContainer;
 		RegisteredFactories = new();
 		_pendingArrivals = new();
-		_discoverySink = discoveryOrchestrator.RegisterDiscoveryService
-		<
-			RootDiscoverySubsystem,
-			RootComponentKey,
-			RootComponentDiscoveryContext,
-			RootComponentCreationContext,
-			Component,
-			RootComponentCreationResult
-		>(this);
 	}
 
-	public ValueTask DisposeAsync()
+	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out RootFactoryDetails parsedFactoryDetails)
 	{
-		_discoverySink.Dispose();
-		return ValueTask.CompletedTask;
-	}
-
-	public bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes)
-	{
-		if (attributes.FirstOrDefault<RootComponentAttribute>() is { } attribute && attribute.ConstructorArguments[0].Value is Type key && RegisteredFactories.TryAdd(key, factoryId))
+		if (attributes.FirstOrDefault<RootComponentAttribute>() is { } attribute && attribute.ConstructorArguments[0].Value is Type key)
 		{
 			var typeId = TryGetTypeId(key);
+			parsedFactoryDetails = new()
+			{
+				TypeName = key.AssemblyQualifiedName ?? throw new InvalidOperationException(),
+				TypeId = typeId,
+			};
+			return true;
+		}
+		parsedFactoryDetails = default;
+		return false;
+	}
+
+	public override bool TryRegisterFactory(Guid factoryId, RootFactoryDetails parsedFactoryDetails)
+	{
+		var typeName = parsedFactoryDetails.TypeName;
+		var key = Unsafe.As<string, RootComponentKey>(ref typeName);
+		var typeId = parsedFactoryDetails.TypeId.GetValueOrDefault();
+		if (RegisteredFactories.TryAdd(key, factoryId))
+		{
 			var pendingArrivals = Volatile.Read(ref _pendingArrivals);
 			if (pendingArrivals is not null)
 			{
@@ -78,7 +98,7 @@ public class RootDiscoverySubsystem :
 					}
 				}
 			}
-			_discoverySink.HandleArrival(new(this, key, typeId));
+			Sink.HandleArrival(new(this, key, typeId));
 			return true;
 		}
 		return false;
@@ -109,7 +129,7 @@ public class RootDiscoverySubsystem :
 		return default;
 	}
 
-	public ValueTask StartAsync(CancellationToken cancellationToken)
+	protected override ValueTask StartAsync(IDiscoverySink<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext> sink, CancellationToken cancellationToken)
 	{
 		if (Volatile.Read(ref _pendingArrivals) is not { } pendingArrival) goto Failed;
 
@@ -120,12 +140,11 @@ public class RootDiscoverySubsystem :
 
 		foreach (var (key, typeId) in pendingArrival)
 		{
-			_discoverySink.HandleArrival(new(this, key, typeId));
+			sink.HandleArrival(new(this, key, typeId));
 		}
 
 		return ValueTask.CompletedTask;
-
 	Failed:;
-		return ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("The service ahs already been initialized.")));
+		return ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("The service has already been initialized.")));
 	}
 }

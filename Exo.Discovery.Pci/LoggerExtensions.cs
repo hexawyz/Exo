@@ -23,8 +23,8 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1006,
 		EventName = "PciFactoryMissingKeys",
 		Level = LogLevel.Error,
-		Message = "The factory \"{FactoryId}\" did not define any valid keys for PCI discovery.")]
-	public static partial void PciFactoryMissingKeys(this ILogger logger, Guid factoryId);
+		Message = "The factory did not define any valid keys for PCI discovery.")]
+	public static partial void PciFactoryMissingKeys(this ILogger logger);
 
 	[LoggerMessage(EventId = 1007,
 		EventName = "PciVendorDuplicateKey",

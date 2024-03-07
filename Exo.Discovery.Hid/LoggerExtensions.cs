@@ -23,8 +23,8 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1006,
 		EventName = "HidFactoryMissingKeys",
 		Level = LogLevel.Error,
-		Message = "The factory \"{FactoryId}\" did not define any valid keys for HID discovery.")]
-	public static partial void HidFactoryMissingKeys(this ILogger logger, Guid factoryId);
+		Message = "The factory did not define any valid keys for HID discovery.")]
+	public static partial void HidFactoryMissingKeys(this ILogger logger);
 
 	[LoggerMessage(EventId = 1007,
 		EventName = "HidVendorDuplicateKey",

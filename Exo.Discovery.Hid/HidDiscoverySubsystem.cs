@@ -1,9 +1,8 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Xml.Serialization;
 using DeviceTools;
 using Exo.Configuration;
+using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -12,35 +11,31 @@ namespace Exo.Discovery;
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
 [TypeId(0xEC7784B8, 0x4CB6, 0x48B5, 0x9E, 0xD5, 0x6C, 0x0F, 0xD7, 0xD8, 0x7B, 0x27)]
-public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>, IDeviceNotificationSink
+public sealed class HidDiscoverySubsystem :
+	DiscoveryService<HidDiscoverySubsystem, SystemDevicePath, HidFactoryDetails, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>,
+	IDeviceNotificationSink
 {
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(HidDiscoverySubsystem))]
-	public static ValueTask<RootComponentCreationResult> CreateAsync
+	public static async ValueTask<RootComponentCreationResult> CreateAsync
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService,
-		IConfigurationContainer configurationContainer
+		IDeviceNotificationService deviceNotificationService
 	)
 	{
-		return new
-		(
-			new RootComponentCreationResult
-			(
-				typeof(HidDiscoverySubsystem),
-				new HidDiscoverySubsystem
-				(
-					loggerFactory,
-					driverRegistry,
-					discoveryOrchestrator,
-					deviceNotificationService,
-					configurationContainer.GetContainer("fac", GuidNameSerializer.Instance)
-				),
-				null
-			)
-		);
+		var service = new HidDiscoverySubsystem(loggerFactory, driverRegistry, deviceNotificationService);
+		try
+		{
+			await service.RegisterAsync(discoveryOrchestrator);
+		}
+		catch
+		{
+			await service.DisposeAsync();
+			throw;
+		}
+		return new RootComponentCreationResult(typeof(HidDiscoverySubsystem), service);
 	}
 
 	private readonly Dictionary<ProductVersionKey, Guid> _productVersionFactories;
@@ -50,27 +45,21 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	private readonly ILogger<HidDiscoverySubsystem> _logger;
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
-	private readonly IDiscoveryOrchestrator _discoveryOrchestrator;
 	private readonly IDeviceNotificationService _deviceNotificationService;
 
 	private IDisposable? _deviceNotificationRegistration;
-	private IDiscoverySink<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext>? _sink;
 	private readonly object _lock;
-	private readonly IConfigurationContainer<Guid> _factoriesConfigurationContainer;
 
 	public HidDiscoverySubsystem
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
-		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService,
-		IConfigurationContainer<Guid> configurationContainer
+		IDeviceNotificationService deviceNotificationService
 	)
 	{
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		_logger = loggerFactory.CreateLogger<HidDiscoverySubsystem>();
-		_discoveryOrchestrator = discoveryOrchestrator;
 		_deviceNotificationService = deviceNotificationService;
 
 		_productVersionFactories = new();
@@ -78,10 +67,6 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		_vendorFactories = new();
 
 		_lock = new();
-
-		_factoriesConfigurationContainer = configurationContainer;
-
-		_sink = _discoveryOrchestrator.RegisterDiscoveryService<HidDiscoverySubsystem, SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>(this);
 	}
 
 	public override string FriendlyName => "HID Discovery";
@@ -91,12 +76,12 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		lock (_lock)
 		{
 			Interlocked.Exchange(ref _deviceNotificationRegistration, null)?.Dispose();
-			Interlocked.Exchange(ref _sink, null)?.Dispose();
+			DisposeSink();
 		}
 		return ValueTask.CompletedTask;
 	}
 
-	public ValueTask StartAsync(CancellationToken cancellationToken)
+	protected override ValueTask StartAsync(IDiscoverySink<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -111,7 +96,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid))
 				{
 					_logger.HidDeviceArrival(deviceName);
-					_sink?.HandleArrival(new(this, deviceName));
+					sink?.HandleArrival(new(this, deviceName));
 				}
 
 				_logger.HidDiscoveryStarted();
@@ -124,7 +109,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		return ValueTask.CompletedTask;
 	}
 
-	public bool RegisterFactory(Guid factoryId, ImmutableArray<CustomAttributeData> attributes)
+	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, out HidFactoryDetails details)
 	{
 		var productVersionKeys = new HashSet<ProductVersionKey>();
 		var productKeys = new HashSet<ProductKey>();
@@ -154,7 +139,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 							if (!productVersionKeys.Add(key))
 							{
 								_logger.HidVersionedProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
-								return false;
+								goto Failed;
 							}
 						}
 						else
@@ -163,7 +148,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 							if (!productKeys.Add(key))
 							{
 								_logger.HidProductDuplicateKey(key.VendorIdSource, key.VendorId, key.ProductId);
-								return false;
+								goto Failed;
 							}
 						}
 					}
@@ -173,7 +158,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 						if (!vendorKeys.Add(key))
 						{
 							_logger.HidVendorDuplicateKey(key.VendorIdSource, key.VendorId);
-							return false;
+							goto Failed;
 						}
 					}
 				}
@@ -182,83 +167,72 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		if (productVersionKeys.Count == 0 && productKeys.Count == 0 && vendorKeys.Count == 0)
 		{
-			_logger.HidFactoryMissingKeys(factoryId);
-			return false;
+			_logger.HidFactoryMissingKeys();
+			goto Failed;
 		}
 
+		details = new()
+		{
+			ProductVersions = [.. productVersionKeys],
+			Products = [.. productKeys],
+			Vendors = [.. vendorKeys],
+		};
+
+		return true;
+	Failed:;
+		details = default;
+		return false;
+	}
+
+	public override bool TryRegisterFactory(Guid factoryId, HidFactoryDetails parsedFactoryDetails)
+	{
 		// Prevent factories from being registered in parallel, so that key conflicts between factories can be avoided mostly deterministically.
 		// Obviously, key conflicts will still depend on the order of discovery of the factories, but they should not exist at all anyway.
 		lock (_lock)
 		{
-			// Sadly, the best way to ensure coherence is to do all of this in two steps, which will be a little bit costlier.
-			// We mostly need coherence for the sake of providing complete factory registrations upon device arrivals.
-
 			// First, check that all the keys will avoid a conflict
-			foreach (var key in productVersionKeys)
+			foreach (var key in parsedFactoryDetails.ProductVersions)
 			{
 				if (_productVersionFactories.ContainsKey(key))
 				{
 					_logger.HidVersionedProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId, key.VersionNumber);
-					return false;
+					goto Failed;
 				}
 			}
-			foreach (var key in productKeys)
+			foreach (var key in parsedFactoryDetails.Products)
 			{
 				if (_productFactories.ContainsKey(key))
 				{
 					_logger.HidProductRegistrationConflict(key.VendorIdSource, key.VendorId, key.ProductId);
-					return false;
+					goto Failed;
 				}
 			}
-			foreach (var key in vendorKeys)
+			foreach (var key in parsedFactoryDetails.Vendors)
 			{
 				if (_vendorFactories.ContainsKey(key))
 				{
 					_logger.HidVendorRegisteredTwice(key.VendorIdSource, key.VendorId);
-					return false;
+					goto Failed;
 				}
 			}
 
 			// Once we are guaranteed to be conflict-free, the keys are added.
-			foreach (var key in productVersionKeys)
+			foreach (var key in parsedFactoryDetails.ProductVersions)
 			{
 				_productVersionFactories.Add(key, factoryId);
 			}
-			foreach (var key in productKeys)
+			foreach (var key in parsedFactoryDetails.Products)
 			{
 				_productFactories.Add(key, factoryId);
 			}
-			foreach (var key in vendorKeys)
+			foreach (var key in parsedFactoryDetails.Vendors)
 			{
 				_vendorFactories.Add(key, factoryId);
 			}
 		}
-
-		PersistFactoryDetails(factoryId, productVersionKeys, productKeys, vendorKeys);
-
 		return true;
-	}
-
-	private async void PersistFactoryDetails(Guid factoryId, HashSet<ProductVersionKey> productVersionKeys, HashSet<ProductKey> productKeys, HashSet<VendorKey> vendorKeys)
-	{
-		try
-		{
-			await _factoriesConfigurationContainer.WriteValueAsync
-			(
-				factoryId,
-				new FactoryDetails
-				{
-					ProductVersions = [.. productVersionKeys],
-					Products = [.. productKeys],
-					Vendors = [.. vendorKeys],
-				},
-				default
-			).ConfigureAwait(false);
-		}
-		catch
-		{
-			// TODO: Log.
-		}
+	Failed:;
+		return false;
 	}
 
 	void IDeviceNotificationSink.OnDeviceArrival(Guid deviceInterfaceClassGuid, string deviceName)
@@ -266,7 +240,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		lock (_lock)
 		{
 			_logger.HidDeviceArrival(deviceName);
-			_sink?.HandleArrival(new(this, deviceName));
+			TryGetSink()?.HandleArrival(new(this, deviceName));
 		}
 	}
 
@@ -274,7 +248,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 	{
 		lock (_lock)
 		{
-			_sink?.HandleRemoval(deviceName);
+			TryGetSink()?.HandleRemoval(deviceName);
 		}
 	}
 
@@ -283,7 +257,7 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 		lock (_lock)
 		{
 			_logger.HidDeviceRemoval(deviceName);
-			_sink?.HandleRemoval(deviceName);
+			TryGetSink()?.HandleRemoval(deviceName);
 		}
 	}
 
@@ -311,12 +285,4 @@ public sealed class HidDiscoverySubsystem : Component, IDiscoveryService<SystemD
 
 		return factories[..count].ToImmutableArray();
 	}
-}
-
-[TypeId(0x20B354B1, 0xD4F7, 0x49F3, 0xB7, 0xD8, 0x06, 0xF1, 0xAB, 0x7F, 0x8F, 0xFA)]
-internal readonly struct FactoryDetails
-{
-	public ImmutableArray<ProductVersionKey> ProductVersions { get; init; }
-	public ImmutableArray<ProductKey> Products { get; init; }
-	public ImmutableArray<VendorKey> Vendors { get; init; }
 }
