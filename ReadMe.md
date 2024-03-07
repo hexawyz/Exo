@@ -32,6 +32,7 @@ Exo currently support the following features, provided that there is a custom dr
 * Monitor control: Brightness, Contrast and Audio Volume.
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
 * Mouse: The service can observe and display DPI changes.
+* GPU: Provide support for accessing connected monitors in non-interactive (service) mode.
 
 # Supported devices
 
@@ -43,15 +44,19 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* DeathAdder V2 Pro (USB, Dongle): Battery Level, RGB lighting, DPI changes.
 	* Mouse Dock Chroma: RGB
 * NVIDIA
-	* GeForce RTX 3090 (Support for same-gen and other GPUs should be straightforward): RGB lighting
+	* All GPUs: Support for the I2C interface to control connected monitors.
+	* GeForce RTX 3090 FE and select other GPUs: RGB lighting
+* Intel
+	* WIP: Should at term be able to expose the I2C interface to control connected monitors, however the IGCL library support is currently very poor and doesn't work on many not-too-old configurations.
 * Gigabyte
 	* IT5702 RGB controller: RGB lighting
 * LG
-	* GP950 Monitor (USB): Standard Monitor control, RGB lighting.
+	* 27GP950 Monitor (USB): Standard Monitor control, RGB lighting.
+	* 27GP950 Monitor (DP/HDMI): Standard Monitor control (if connected through supported GPU)
 * Elgato
 	* SteamDeck XL (Protocol is implemented and mostly tested, but features are not exposed)
 * Other
-	* Generic monitor support (* Currently broken if run in service mode)
+	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
 
 # Running Exo
 
@@ -59,13 +64,20 @@ There is currently no official build available, but you can run and help develop
 
 From within Visual Studio, you can start `Exo.Service` to run the service, `Exo.Overlay` for the overlay UI, and `Exo.Settings.UI` for the Settings UI.
 
-If you fancy trying to run it as a service, you can create a service using the following PowerShell command:
+You can generate a publish build of the service from the VS developer command prompt:
+````
+MSBuild Exo.Service\Exo.Service.csproj /t:Publish /p:Configuration=Release
+````
+
+And if you fancy trying to run it as a service, you can create a service using the following PowerShell command:
 
 ````PowerShell
 New-Service -Name "Exo" -BinaryPathName "<PATH TO YOUR GIT REPOSITORY>Exo.Service\bin\Release\net8.0-windows\publish\Exo.Service.exe" -DisplayName "Exo" -Description "Exo the exoskeleton for your Windows PC and devices." -StartupType Manual
 ````
 
 The command will create a manual startup service, which you can then start with `Start-Service Exo`.
+
+NB: The `Publish.ps1` script can be used to generate a publish build of all the binaries under a `publish` directory at the root of the git repository.
 
 # Architecture
 
