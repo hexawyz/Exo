@@ -61,6 +61,9 @@ internal static partial class LoggerExtensions
 		Message = "An exception occurred when trying to persist the factory details for \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" for the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryDetailsWriteError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
 
+	[LoggerMessage(EventId = 2001, EventName = "DeviceRegistryDeviceSerialNumberRetrievalFailure", Level = LogLevel.Error, Message = "Failed to retrieve the serial number for device \"{DeviceFriendlyName}\".")]
+	public static partial void DeviceRegistryDeviceSerialNumberRetrievalFailure(this ILogger logger, string deviceFriendlyName, Exception exception);
+
 	[LoggerMessage(EventId = 3000, EventName = "DevicePropertiesRetrievalError", Level = LogLevel.Error, Message = "Failed to retrieve properties of device: \"{DeviceName}\".")]
 	public static partial void DevicePropertiesRetrievalError(this ILogger logger, string deviceName, Exception exception);
 

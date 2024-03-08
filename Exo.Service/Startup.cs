@@ -52,7 +52,15 @@ public class Startup
 			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
 		}
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
-		services.AddSingleton(sp => DeviceRegistry.CreateAsync(sp.GetRequiredService<ConfigurationService>().GetContainer("dev", GuidNameSerializer.Instance), default).GetAwaiter().GetResult());
+		services.AddSingleton
+		(
+			sp => DeviceRegistry.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<DeviceRegistry>>(),
+				sp.GetRequiredService<ConfigurationService>().GetContainer("dev", GuidNameSerializer.Instance),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<INestedDriverRegistryProvider>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());

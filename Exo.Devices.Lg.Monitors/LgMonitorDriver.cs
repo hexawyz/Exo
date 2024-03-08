@@ -397,6 +397,7 @@ public class LgMonitorDriver :
 	{
 		System.Collections.IEnumerable GetFeatures()
 		{
+			if (typeof(TFeature) == typeof(IBaseDeviceFeature)) return _baseFeatures;
 			if (typeof(TFeature) == typeof(ILightingDeviceFeature)) return _lightingFeatures;
 			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return _monitorFeatures;
 			if (typeof(TFeature) == typeof(ILgMonitorDeviceFeature)) return _lgMonitorFeatures;

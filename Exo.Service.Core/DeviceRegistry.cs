@@ -9,6 +9,7 @@ using System.Threading.Channels;
 using DeviceTools;
 using Exo.Configuration;
 using Exo.Features;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
@@ -110,14 +111,14 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	private sealed class DriverConfigurationState
 	{
 		public string Key { get; }
-		public Dictionary<string, DeviceState> DevicesByUniqueId { get; } = new();
-		public Dictionary<string, DeviceState> DevicesByMainDeviceName { get; } = new();
-		public Dictionary<string, List<DeviceState>> DevicesByCompatibleHardwareId { get; } = new();
+		public Dictionary<string, DeviceState> DevicesByUniqueId { get; } = [];
+		public Dictionary<string, DeviceState> DevicesByMainDeviceName { get; } = [];
+		public Dictionary<string, List<DeviceState>> DevicesByCompatibleHardwareId { get; } = [];
 
 		public DriverConfigurationState(string key) => Key = key;
 	}
 
-	public static async Task<DeviceRegistry> CreateAsync(IConfigurationContainer<Guid> deviceConfigurationService, CancellationToken cancellationToken)
+	public static async Task<DeviceRegistry> CreateAsync(ILogger<DeviceRegistry> logger, IConfigurationContainer<Guid> deviceConfigurationService, CancellationToken cancellationToken)
 	{
 		var deviceStates = new ConcurrentDictionary<Guid, DeviceState>();
 		var reservedDeviceIds = new HashSet<Guid>();
@@ -166,7 +167,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			await FixupDeviceInstanceIdsAsync(deviceConfigurationService, driverState.DevicesByCompatibleHardwareId).ConfigureAwait(false);
 		}
 
-		return new(deviceConfigurationService, deviceStates, driverStates, reservedDeviceIds);
+		return new(logger, deviceConfigurationService, deviceStates, driverStates, reservedDeviceIds);
 	}
 
 	// This supports upgrading from no serial number to serial number for now, but it is maybe not not a desirable feature in the long run.
@@ -193,7 +194,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		if (!devicesByCompatibleHardwareId.TryGetValue(compatibleHardwareId, out var devicesWithCompatibleHardwareId))
 		{
-			devicesByCompatibleHardwareId.TryAdd(compatibleHardwareId, devicesWithCompatibleHardwareId = new());
+			devicesByCompatibleHardwareId.TryAdd(compatibleHardwareId, devicesWithCompatibleHardwareId = []);
 		}
 
 		return devicesWithCompatibleHardwareId;
@@ -300,7 +301,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			if (!state.DevicesByCompatibleHardwareId.TryGetValue(newKey.CompatibleHardwareId, out var devicesWithSameHardwareId))
 			{
-				state.DevicesByCompatibleHardwareId.Add(newKey.CompatibleHardwareId, devicesWithSameHardwareId = new());
+				state.DevicesByCompatibleHardwareId.Add(newKey.CompatibleHardwareId, devicesWithSameHardwareId = []);
 			}
 			instanceIndex = devicesWithSameHardwareId.Count;
 			devicesWithSameHardwareId.Add(device);
@@ -340,13 +341,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	// This is the configuration mapping state.
 	// For each driver key, this allows mapping the configuration key to a unique device ID that will serve as the configuration ID.
-	private readonly Dictionary<string, DriverConfigurationState> _driverConfigurationStates = new();
+	private readonly Dictionary<string, DriverConfigurationState> _driverConfigurationStates = [];
 
 	// We need to maintain a strict list of already used device IDs just to be absolutely certain to not reuse a device ID during the run of the service.
 	// It is a very niche scenario, but newly created devices could reuse the device IDs of a recently removed device and generate a mix-up between concurrently running change listeners,
 	// as async code does not have a guaranteed order of execution. This is a problem for all dependent services such as the lighting service or the settings UI itself.
 	// The contents of this blacklist do not strictly need to be persisted between service runs, but it could be useful to keep it around to avoid even more niche scenarios.
-	private readonly HashSet<Guid> _reservedDeviceIds = new();
+	private readonly HashSet<Guid> _reservedDeviceIds = [];
 
 	private readonly AsyncLock _lock;
 
@@ -354,16 +355,20 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private readonly IConfigurationContainer<Guid> _deviceConfigurationService;
 
+	private readonly ILogger<DeviceRegistry> _logger;
+
 	AsyncLock IInternalDriverRegistry.Lock => _lock;
 
 	private DeviceRegistry
 	(
+		ILogger<DeviceRegistry> logger,
 		IConfigurationContainer<Guid> deviceConfigurationService,
 		ConcurrentDictionary<Guid, DeviceState> deviceStates,
 		Dictionary<string, DriverConfigurationState> driverConfigurationStates,
 		HashSet<Guid> reservedDeviceIds
 	)
 	{
+		_logger = logger;
 		_deviceConfigurationService = deviceConfigurationService;
 		_deviceStates = deviceStates;
 		_driverConfigurationStates = driverConfigurationStates;
@@ -415,9 +420,8 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		var featureIds = new HashSet<Guid>(ImmutableCollectionsMarshal.AsArray(driver.FeatureSets)!.Select(fs => TypeId.Get(fs.FeatureType)));
 		var (deviceIds, mainDeviceIdIndex) = GetDeviceIds(driver);
 		string? serialNumber = GetSerialNumber(driver);
-		DeviceState? deviceState;
 
-		if (TryGetDevice(driverConfigurationState, key, out deviceState))
+		if (TryGetDevice(driverConfigurationState, key, out var deviceState))
 		{
 			await UpdateDeviceConfigurationKeyAsync(_deviceConfigurationService, driverConfigurationState, deviceState, key).ConfigureAwait(false);
 
@@ -473,11 +477,21 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				return (ImmutableArray.Create(deviceIdFeature.DeviceId), 0);
 			}
 		}
-		return (ImmutableArray<DeviceId>.Empty, null);
+		return ([], null);
 	}
 
 	private string? GetSerialNumber(Driver driver)
-		=> (driver as IDeviceDriver<IBaseDeviceFeature>)?.Features.GetFeature<IDeviceSerialNumberFeature>()?.SerialNumber;
+	{
+		try
+		{
+			return driver.GetFeatures<IBaseDeviceFeature>()?.GetFeature<IDeviceSerialNumberFeature>()?.SerialNumber;
+		}
+		catch (Exception ex)
+		{
+			_logger.DeviceRegistryDeviceSerialNumberRetrievalFailure(driver.FriendlyName, ex);
+			return null;
+		}
+	}
 
 	public async ValueTask<bool> RemoveDriverAsync(Driver driver)
 	{
