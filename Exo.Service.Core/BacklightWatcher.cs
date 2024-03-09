@@ -32,7 +32,7 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					if (notification.Driver!.GetFeatures<IKeyboardDeviceFeature>().GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
+					if (notification.Driver!.GetFeatureSet<IKeyboardDeviceFeature>().GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
 					{
 						if (Add(deviceId, backlightFeature.BacklightState))
 						{
@@ -49,7 +49,7 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 				try
 				{
 					if (Remove(notification.DeviceInformation.Id, out var v) &&
-						notification.Driver!.GetFeatures<IKeyboardDeviceFeature>().GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
+						notification.Driver!.GetFeatureSet<IKeyboardDeviceFeature>().GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
 					{
 						backlightFeature.BacklightStateChanged -= onBacklightStateChanged;
 					}

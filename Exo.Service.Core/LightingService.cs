@@ -192,7 +192,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 		var lightingZoneStates = deviceState.LightingZones;
 
-		var lightingFeatures = notification.Driver!.GetFeatures<ILightingDeviceFeature>();
+		var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
 
 		// TODO: Refactoring to properly handle drivers with changing feature sets.
 		// At the minimum, we should consider the device offline from the lighting service POV, but maybe the feature change notification is not good enough.
@@ -570,7 +570,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			{
 				if (deviceState.Driver is null) return;
 
-				var lightingFeatures = deviceState.Driver.GetFeatures<ILightingDeviceFeature>();
+				var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
 
 				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } bf)
 				{
@@ -602,7 +602,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			{
 				if (deviceState.Driver is null) goto Completed;
 
-				var lightingFeatures = deviceState.Driver.GetFeatures<ILightingDeviceFeature>();
+				var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
 
 				if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 				{

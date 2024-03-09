@@ -20,7 +20,7 @@ namespace Exo.Devices.Razer;
 // NB: This driver relies on system drivers provided by Razer to access device features. The protocol part is still implemented here, but we need the driver to get access to the device.
 public abstract class RazerDeviceDriver :
 	Driver,
-	IDeviceDriver<IBaseDeviceFeature>,
+	IDeviceDriver<IGenericDeviceFeature>,
 	IRazerDeviceNotificationSink,
 	IRazerPeriodicEventHandler,
 	IDeviceSerialNumberFeature,
@@ -503,9 +503,9 @@ public abstract class RazerDeviceDriver :
 	private readonly byte _mainDeviceIdIndex;
 	private readonly RazerDeviceFlags _deviceFlags;
 
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
 
@@ -535,7 +535,7 @@ public abstract class RazerDeviceDriver :
 		_deviceIds = deviceIds;
 		_mainDeviceIdIndex = mainDeviceIdIndex;
 		_deviceFlags = deviceFlags;
-		_baseFeatures = CreateBaseFeatures();
+		_genericFeatures = CreateGenericFeatures();
 	}
 
 	protected virtual ValueTask InitializeAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
@@ -552,10 +552,10 @@ public abstract class RazerDeviceDriver :
 		_transport.Dispose();
 	}
 
-	protected virtual IDeviceFeatureCollection<IBaseDeviceFeature> CreateBaseFeatures()
+	protected virtual IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
 		=> HasSerialNumber ?
-			FeatureCollection.Create<IBaseDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IBaseDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
+			FeatureCollection.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureCollection.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
 
 	async void IRazerPeriodicEventHandler.HandlePeriodicEvent()
 	{
@@ -1206,14 +1206,14 @@ public abstract class RazerDeviceDriver :
 			return base.DisposeAsync();
 		}
 
-		protected override IDeviceFeatureCollection<IBaseDeviceFeature> CreateBaseFeatures()
+		protected override IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
-					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 				HasBattery ?
-					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IBaseDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
+					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
 		protected override async ValueTask HandlePeriodicEventAsync()
 		{

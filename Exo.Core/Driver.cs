@@ -97,7 +97,7 @@ public abstract class Driver : Component
 	/// </remarks>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
 	/// <returns>A feature collection of the specified type.</returns>
-	public virtual IDeviceFeatureCollection<TFeature> GetFeatures<TFeature>()
+	public virtual IDeviceFeatureCollection<TFeature> GetFeatureSet<TFeature>()
 		where TFeature : class, IDeviceFeature
 		=> (this as IDeviceDriver<TFeature>)?.Features ?? FeatureCollection.Empty<TFeature>();
 }

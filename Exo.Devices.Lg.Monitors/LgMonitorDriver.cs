@@ -20,7 +20,7 @@ namespace Exo.Devices.Lg.Monitors;
 
 public class LgMonitorDriver :
 	Driver,
-	IDeviceDriver<IBaseDeviceFeature>,
+	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
@@ -353,7 +353,7 @@ public class LgMonitorDriver :
 	private IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 	private FeatureSetDescription[] _featureSets;
 	private CompositeI2cBus CompositeI2cBus { get; }
 
@@ -372,7 +372,7 @@ public class LgMonitorDriver :
 		(
 			ref _featureSets,
 			[
-				FeatureSetDescription.CreateStatic<IBaseDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
 				FeatureSetDescription.CreateStatic<IMonitorDeviceFeature>(),
 				FeatureSetDescription.CreateStatic<ILgMonitorDeviceFeature>(),
 				FeatureSetDescription.CreateDynamic<ILightingDeviceFeature>(ultraGearLightingFeatures is not null),
@@ -393,11 +393,11 @@ public class LgMonitorDriver :
 
 	public override ImmutableArray<FeatureSetDescription> FeatureSets => ImmutableCollectionsMarshal.AsImmutableArray(_featureSets);
 
-	public override IDeviceFeatureCollection<TFeature> GetFeatures<TFeature>()
+	public override IDeviceFeatureCollection<TFeature> GetFeatureSet<TFeature>()
 	{
 		System.Collections.IEnumerable GetFeatures()
 		{
-			if (typeof(TFeature) == typeof(IBaseDeviceFeature)) return _baseFeatures;
+			if (typeof(TFeature) == typeof(IGenericDeviceFeature)) return _genericFeatures;
 			if (typeof(TFeature) == typeof(ILightingDeviceFeature)) return _lightingFeatures;
 			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return _monitorFeatures;
 			if (typeof(TFeature) == typeof(ILgMonitorDeviceFeature)) return _lgMonitorFeatures;
@@ -445,7 +445,7 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
+		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
 		if ((features & MonitorDeviceFeatures.Lighting) != 0)
 		{
 			UpdateFeatures(ultraGearLightingFeatures);
@@ -455,7 +455,7 @@ public class LgMonitorDriver :
 			_lightingFeatures = FeatureCollection.Empty<ILightingDeviceFeature>();
 			_featureSets =
 			[
-				FeatureSetDescription.CreateStatic<IBaseDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
 				FeatureSetDescription.CreateStatic<IMonitorDeviceFeature>(),
 				FeatureSetDescription.CreateStatic<ILgMonitorDeviceFeature>(),
 			];
@@ -470,7 +470,7 @@ public class LgMonitorDriver :
 	public ReadOnlySpan<byte> RawCapabilities => _rawCapabilities;
 	public MonitorCapabilities Capabilities => _parsedCapabilities;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureCollection<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => Volatile.Read(ref _lightingFeatures);

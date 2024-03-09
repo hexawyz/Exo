@@ -53,7 +53,7 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					var mouseFeatures = notification.Driver!.GetFeatures<IMouseDeviceFeature>();
+					var mouseFeatures = notification.Driver!.GetFeatureSet<IMouseDeviceFeature>();
 					if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
 					{
 						_presets[deviceId] = mouseDpiPresetFeature.DpiPresets;
@@ -84,7 +84,7 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 				{
 					if (Remove(notification.DeviceInformation.Id, out _) && notification.Driver is not null)
 					{
-						var mouseFeatures = notification.Driver!.GetFeatures<IMouseDeviceFeature>();
+						var mouseFeatures = notification.Driver!.GetFeatureSet<IMouseDeviceFeature>();
 						if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
 						{
 							mouseDpiPresetFeature.DpiChanged -= onDpiChanged;

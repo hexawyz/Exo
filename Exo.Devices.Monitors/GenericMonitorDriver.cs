@@ -14,7 +14,7 @@ namespace Exo.Devices.Monitors;
 
 public class GenericMonitorDriver
 	: Driver,
-	IDeviceDriver<IBaseDeviceFeature>,
+	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
@@ -150,10 +150,10 @@ public class GenericMonitorDriver
 	private readonly MonitorCapabilities? _capabilities;
 	private readonly DeviceId _deviceId;
 
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 
 	DeviceId IDeviceIdFeature.DeviceId => _deviceId;
@@ -178,9 +178,9 @@ public class GenericMonitorDriver
 		_capabilities = capabilities;
 		_deviceId = deviceId;
 
-		_baseFeatures = configurationKey.UniqueId is not null ?
-			FeatureCollection.Create<IBaseDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IBaseDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
+		_genericFeatures = configurationKey.UniqueId is not null ?
+			FeatureCollection.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureCollection.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
 
 		_monitorFeatures = new MonitorFeatureCollection(this);
 	}

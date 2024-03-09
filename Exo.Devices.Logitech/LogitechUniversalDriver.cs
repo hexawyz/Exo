@@ -16,7 +16,7 @@ namespace Exo.Devices.Logitech;
 // This driver is a catch-all for Logitech devices. On first approximation, they should all implement the proprietary HID++ protocol.
 public abstract class LogitechUniversalDriver :
 	Driver,
-	IDeviceDriver<IBaseDeviceFeature>,
+	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceSerialNumberFeature,
 	IDeviceIdFeature
 {
@@ -299,9 +299,9 @@ public abstract class LogitechUniversalDriver :
 	// The logger will use the category of the derived class… I don't believe we want to have one logger reference for each class in the class hierarchy.
 	private readonly ILogger<LogitechUniversalDriver> _logger;
 	private readonly ushort _versionNumber;
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
 
@@ -324,14 +324,14 @@ public abstract class LogitechUniversalDriver :
 		_device = device;
 		_logger = logger;
 		_versionNumber = versionNumber;
-		_baseFeatures = CreateBaseFeatures();
+		_genericFeatures = CreateGenericFeatures();
 	}
 
 	// NB: Called from the main constructor, so derived classes need to make sure they are not missing any information at that point.
-	protected virtual IDeviceFeatureCollection<IBaseDeviceFeature> CreateBaseFeatures()
+	protected virtual IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
 		=> HasSerialNumber ?
-			FeatureCollection.Create<IBaseDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IBaseDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature>(this);
+			FeatureCollection.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureCollection.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature>(this);
 
 	// NB: This calls DisposeAsync on all devices, but child devices will not actually be disposed, as they are managed by their parent.
 	public override ValueTask DisposeAsync() => _device.DisposeAsync();
@@ -356,14 +356,14 @@ public abstract class LogitechUniversalDriver :
 			if (HasLockKeys) device.LockKeysChanged += OnLockKeysChanged;
 		}
 
-		protected override IDeviceFeatureCollection<IBaseDeviceFeature> CreateBaseFeatures()
+		protected override IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
-					FeatureCollection.Create<IBaseDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IBaseDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 				HasBattery ?
-					FeatureCollection.Create<IBaseDeviceFeature, FeatureAccess, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IBaseDeviceFeature, FeatureAccess, IDeviceIdFeature>(this);
+					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature>(this);
 
 		public override ValueTask DisposeAsync()
 		{

@@ -18,7 +18,7 @@ namespace Exo.Devices.Gigabyte;
 
 public sealed class RgbFusionIT5702Driver :
 	Driver,
-	IDeviceDriver<IBaseDeviceFeature>,
+	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	ILightingControllerFeature,
@@ -505,12 +505,12 @@ public sealed class RgbFusionIT5702Driver :
 	private readonly byte[] _rgb = new byte[2 * 3 * 32];
 	private readonly byte[] _buffer;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 	private readonly LightingZone[] _lightingZones;
 	private readonly WaveLightingZone _unifiedLightingZone;
 	private readonly ReadOnlyCollection<LightingZone> _lightingZoneCollection;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
@@ -539,7 +539,7 @@ public sealed class RgbFusionIT5702Driver :
 			IUnifiedLightingFeature,
 			ILightingDeferredChangesFeature,
 			IPersistentLightingFeature>(this);
-		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
+		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
 
 		_unifiedLightingZone = new WaveLightingZone((byte)((1 << ledCount) - 1), Z490MotherboardUnifiedZoneId, this);
 		_lightingZones = new LightingZone[ledCount];

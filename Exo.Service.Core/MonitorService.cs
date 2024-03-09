@@ -83,7 +83,7 @@ internal class MonitorService : IAsyncDisposable
 						}
 					}
 
-					var monitorFeatures = notification.Driver!.GetFeatures<IMonitorDeviceFeature>();
+					var monitorFeatures = notification.Driver!.GetFeatureSet<IMonitorDeviceFeature>();
 
 					settings.Clear();
 
@@ -132,7 +132,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			using (deviceLock)
 			{
-				var monitorFeatures = details.Driver!.GetFeatures<IMonitorDeviceFeature>();
+				var monitorFeatures = details.Driver!.GetFeatureSet<IMonitorDeviceFeature>();
 
 				// Compute all the changes after the details have been published. (Which means new watchers might have both captured the details and registered for update notifications)
 				changes.Clear();
@@ -255,7 +255,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (details.Driver.GetFeatures<IMonitorDeviceFeature>().GetFeature<IMonitorBrightnessFeature>() is not { } feature)
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBrightnessFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
@@ -279,7 +279,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (details.Driver.GetFeatures<IMonitorDeviceFeature>().GetFeature<IMonitorContrastFeature>() is not { } feature)
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorContrastFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
@@ -303,7 +303,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (details.Driver.GetFeatures<IMonitorDeviceFeature>().GetFeature<IMonitorSpeakerAudioVolumeFeature>() is not { } feature)
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorSpeakerAudioVolumeFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}

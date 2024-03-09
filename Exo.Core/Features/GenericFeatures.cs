@@ -4,7 +4,7 @@ using DeviceTools;
 namespace Exo.Features;
 
 [TypeId(0x7D989093, 0xB4F6, 0x4D41, 0x8E, 0xE8, 0x56, 0x5E, 0x37, 0xA4, 0x15, 0x37)]
-public interface IBaseDeviceFeature : IDeviceFeature
+public interface IGenericDeviceFeature : IDeviceFeature
 {
 }
 
@@ -69,14 +69,14 @@ public interface ILightingDeviceFeature : IDeviceFeature
 }
 
 /// <summary>Devices can allow access to their serial number by providing this feature.</summary>
-public interface IDeviceSerialNumberFeature : IBaseDeviceFeature
+public interface IDeviceSerialNumberFeature : IGenericDeviceFeature
 {
 	/// <summary>Gets the serial number of this device.</summary>
 	string SerialNumber { get; }
 }
 
 /// <summary>Devices can allow access to their battery level by providing this feature.</summary>
-public interface IBatteryStateDeviceFeature : IBaseDeviceFeature
+public interface IBatteryStateDeviceFeature : IGenericDeviceFeature
 {
 	/// <summary>This event is raised when the battery level of the device has changed.</summary>
 	event Action<Driver, BatteryState> BatteryStateChanged;
@@ -97,7 +97,7 @@ public interface IBatteryStateDeviceFeature : IBaseDeviceFeature
 /// It is possible for the version number to not always be available, though.
 /// </para>
 /// </remarks>
-public interface IDeviceIdFeature : IBaseDeviceFeature
+public interface IDeviceIdFeature : IGenericDeviceFeature
 {
 	DeviceId DeviceId { get; }
 }
@@ -123,7 +123,7 @@ public interface IDeviceIdFeature : IBaseDeviceFeature
 /// In many cases, it might be wiser to expose the PNP ID from EDID as the main one.
 /// </para>
 /// </remarks>
-public interface IDeviceIdsFeature : IBaseDeviceFeature
+public interface IDeviceIdsFeature : IGenericDeviceFeature
 {
 	ImmutableArray<DeviceId> DeviceIds { get; }
 	int? MainDeviceIdIndex { get; }
@@ -141,7 +141,7 @@ public interface IDeviceIdsFeature : IBaseDeviceFeature
 /// This would be the case of a monitor connected both through DisplayPort and USB.
 /// </para>
 /// </remarks>
-public interface IDeviceConnectionType : IBaseDeviceFeature
+public interface IDeviceConnectionType : IGenericDeviceFeature
 {
 	DeviceConnectionTypes CurrentConnectionTypes { get; }
 	DeviceConnectionTypes SupportedConnectionTypes { get; }

@@ -43,7 +43,7 @@ internal class DisplayAdapterService
 					switch (notification.Kind)
 					{
 					case WatchNotificationKind.Addition:
-						if (notification.Driver!.GetFeatures<IDisplayAdapterDeviceFeature>().GetFeature<IDisplayAdapterI2CBusProviderFeature>() is { } busFeature)
+						if (notification.Driver!.GetFeatureSet<IDisplayAdapterDeviceFeature>().GetFeature<IDisplayAdapterI2CBusProviderFeature>() is { } busFeature)
 						{
 							busRegistrations.Add(notification.DeviceInformation.Id, _busRegistry.RegisterBusResolver(busFeature.DeviceName, busFeature.GetBusForMonitorAsync));
 						}

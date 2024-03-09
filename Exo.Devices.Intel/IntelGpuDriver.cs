@@ -11,7 +11,7 @@ namespace Exo.Devices.Intel;
 public sealed class IntelGpuDriver :
 	Driver,
 	IDeviceIdFeature,
-	IDeviceDriver<IBaseDeviceFeature>,
+	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IDisplayAdapterDeviceFeature>,
 	IDisplayAdapterI2CBusProviderFeature
 {
@@ -105,13 +105,13 @@ public sealed class IntelGpuDriver :
 	}
 
 	private readonly IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 	private readonly ControlLibrary.DisplayAdapter _gpu;
 
 	public DeviceId DeviceId { get; }
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
 
 	private IntelGpuDriver
@@ -125,7 +125,7 @@ public sealed class IntelGpuDriver :
 		DeviceId = deviceId;
 		_gpu = gpu;
 		_displayAdapterFeatures = FeatureCollection.Create<IDisplayAdapterDeviceFeature, IntelGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
-		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, IntelGpuDriver, IDeviceIdFeature>(this);
+		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, IntelGpuDriver, IDeviceIdFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

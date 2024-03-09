@@ -30,7 +30,7 @@ internal class GrpcLightingService : ILightingService
 
 			RegisterEffectTypes(notification);
 
-			var lightingFeatures = notification.Driver!.GetFeatures<ILightingDeviceFeature>();
+			var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
 
 			if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
 			{

@@ -26,7 +26,7 @@ namespace Exo.Devices.Elgato.StreamDeck;
 // Or all buttons could be exposed as a generic feature… Depends on what we want to do.
 // Generally the idea would be to expose stuff as close to what the hardware support, but that would require very elgato-specific stuff and restrict a bit the fun that can be implemented.
 // The first part may be fine, but the second would be a bit more annoying.
-public sealed class StreamDeckDeviceDriver : Driver, IDeviceDriver<IBaseDeviceFeature>, IDeviceIdFeature, IDeviceSerialNumberFeature
+public sealed class StreamDeckDeviceDriver : Driver, IDeviceDriver<IGenericDeviceFeature>, IDeviceIdFeature, IDeviceSerialNumberFeature
 {
 	private const ushort ElgatoVendorId = 0x0FD9;
 
@@ -118,9 +118,9 @@ public sealed class StreamDeckDeviceDriver : Driver, IDeviceDriver<IBaseDeviceFe
 	private readonly StreamDeckDevice _device;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
-	private readonly IDeviceFeatureCollection<IBaseDeviceFeature> _baseFeatures;
+	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
 
-	IDeviceFeatureCollection<IBaseDeviceFeature> IDeviceDriver<IBaseDeviceFeature>.Features => _baseFeatures;
+	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private StreamDeckDeviceDriver
 	(
@@ -135,7 +135,7 @@ public sealed class StreamDeckDeviceDriver : Driver, IDeviceDriver<IBaseDeviceFe
 		_productId = productId;
 		_versionNumber = versionNumber;
 
-		_baseFeatures = FeatureCollection.Create<IBaseDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
+		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
