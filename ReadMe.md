@@ -60,24 +60,115 @@ NB: Support of a device does not mean that all of its features will be exposed i
 
 # Running Exo
 
-There is currently no official build available, but you can run and help develop Exo by installing the latest version of Visual Studio. You will need the C# and C++ workloads installed, as well as anything necessary to develop WinUI3 applications.
+## Prerequisites
+
+### Mandatory
+
+Exo relies on these runtimes, that you can download from the official websites:
+
+* .NET 8.0 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/8.0
+* Windows App SDK 1.5 Runtime: https://aka.ms/windowsappsdk/1.5/1.5.240227000/windowsappruntimeinstall-x64.exe
+
+### Optional
+
+Some devices comme with kernel drivers that are made by the manufacturer and help with providing support for the device features.
+We can't bundle those drivers with Exo (at least not for now), but we do rely on them to provide the features as well.
+
+* Razer: The simplest way to get the drivers is to actually rely on a Synapse 3 installation
+	1. Install Razer Synapse 3
+	2. Drivers will already be installed, but you can find the drivers in `C:\Program Files (x86)\Razer`.
+	3. Save the drivers somewhere else.
+	4. Either uninstall Razer Synapse (and reinstall the drivers if necessary) or disable and stop the Razer services (Setting them to manual startup is enough to disable them)
+
+## Getting a binary release
+
+You can grab binaries for a release here: https://github.com/hexawyz/Exo/releases
+
+⚠️ Please note that as long as the product features are being worked on, the cached configuration can become incompatible between versions.
+
+After upgrading your installation, it is strongly recommended to manually delete the `Exo.Service/cfg/asm` and `Exo.Service/cfg/dcv` directories that were created by the service.
+In doubt, it can also be much simpler to delete the entire `Exo.Service/cfg` directory. For the time being, the only consequence is that your previously discovered devices will be rediscovered.
+Future versions will handle configuration migrations, but that is not the priority for now.
+
+## Running Exo
+
+Extract the release somewhere of your choice. e.g. create a directory `c:\tools\exo` and put everything ere. It is up to you to decide.
+
+### As a command line application (Recommended for a first try)
+
+* Run `Exo.Service.exe` from where it was extracted, and watch the service start. There can be some error messages appearing during startup for some non supported devices, this is normal.
+* Optionally, run `Exo.Overlay.exe` from where it was extracted. This will start the overlay UI that can display some notifications. (Still WIP, you need to kill it with task manager)
+* In order to access the UI, run `Exo.Settings.UI.exe` from where it was extracted. The UI windows will show up and present you with the supported devices that were detected on your system.
+
+### As a Windows Service
+
+If you know that Exo.Service is working on your system, you can instead start it as a Windows Service, which is the intended way of using it 🙂
+
+Let's assume that you extracted the release in `C:\Tools\Exo` for this. (You can adapt depending on your installation)
+
+#### Create the Service
+
+If not yet created, you can create the service using the following PowerShell command:
+
+````PowerShell
+New-Service -Name "Exo" -BinaryPathName "C:\Tools\Exo\Exo.Service\Exo.Service.exe" -DisplayName "Exo" -Description "Exo the exoskeleton for your Windows PC and devices." -StartupType Manual
+````
+
+In the command above, I set the startup type to `Manual`, but you can set it to `Automatic` in order to have it start with Windows.
+
+#### Starting the service
+
+Still in PowerShell, run the following command:
+
+````PowerShell
+Start-Service Exo
+````
+
+Alternatively, you can control the service using the Windows Service Manager UI, or the Windows 11 Task Manager.
+
+#### Running the UIs
+
+The UI can be started manually in the same way as was explained earlier for running Exo in command line mode.
+
+#### Stopping the service
+
+Similarly, in PowerShell, run the following command:
+
+````PowerShell
+Stop-Service Exo
+````
+
+This can also be done from the Windows UI.
+
+#### Removing the service
+
+If you decide to remove the service from your system for any reason, this can be done as simply as you created it, using the PowerShell command:
+
+````PowerShell
+Remove-Service -Name "Exo"
+````
+
+## Developing and building Exo
+
+### Prerequisites
+
+* Visual Studio 2022 (Version Supporting .NET 8.0 at least) with the following workloads:
+	* ASP.NET development
+	* C++ Desktop development (This is only needed for a tiny bit of code that is sadly unavoidable)
+	* .NET Desktop development
+	* UWP development
+
+### Within Visual Studio
 
 From within Visual Studio, you can start `Exo.Service` to run the service, `Exo.Overlay` for the overlay UI, and `Exo.Settings.UI` for the Settings UI.
 
-You can generate a publish build of the service from the VS developer command prompt:
-````
-MSBuild Exo.Service\Exo.Service.csproj /t:Publish /p:Configuration=Release
-````
+### Generating a publish release
 
-And if you fancy trying to run it as a service, you can create a service using the following PowerShell command:
+From the VS developer command prompt, you can run the `Publish.ps1` script that is at the root of the repository:
 
 ````PowerShell
-New-Service -Name "Exo" -BinaryPathName "<PATH TO YOUR GIT REPOSITORY>Exo.Service\bin\Release\net8.0-windows\publish\Exo.Service.exe" -DisplayName "Exo" -Description "Exo the exoskeleton for your Windows PC and devices." -StartupType Manual
+pwsh -ExecutionPolicy Bypass -File .\Publish.ps1
 ````
-
-The command will create a manual startup service, which you can then start with `Start-Service Exo`.
-
-NB: The `Publish.ps1` script can be used to generate a publish build of all the binaries under a `publish` directory at the root of the git repository.
 
 # Architecture
 
@@ -151,7 +242,7 @@ Each discovery subsystem provides a set of parameters available to factory metho
 
 A driver for a device will derive from the `Driver` class, and implement `IDeviceDriver<>` for various kinds of features, such as `ILightingDeviceFeature`.
 
-The drivers will be instantiated from one or more factories declared as static methods attaching themselves to one or more discovery subsystems using the `DiscoverySubsystem<>` attribute.
+The drivers are instantiated from one or more factories declared as static methods attaching themselves to one or more discovery subsystems using the `DiscoverySubsystem<>` attribute.
 
 The set of parameters available to the factory method depends on the device discovery subsystem. Their driver creation context will expose all of the available properties, and the factories will automatically be matched and validated by the discovery orchestrator.
 
