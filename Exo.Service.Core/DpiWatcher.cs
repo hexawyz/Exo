@@ -53,7 +53,8 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					if ((notification.Driver as IDeviceDriver<IMouseDeviceFeature>)?.Features.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
+					var mouseFeatures = notification.Driver!.GetFeatures<IMouseDeviceFeature>();
+					if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
 					{
 						_presets[deviceId] = mouseDpiPresetFeature.DpiPresets;
 						if (Add(deviceId, mouseDpiPresetFeature.CurrentDpi))
@@ -61,14 +62,14 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 							mouseDpiPresetFeature.DpiChanged += onDpiChanged;
 						}
 					}
-					else if ((notification.Driver as IDeviceDriver<IMouseDeviceFeature>)?.Features.GetFeature<IMouseDynamicDpiFeature>() is { } mouseDynamicDpiFeature)
+					else if (mouseFeatures.GetFeature<IMouseDynamicDpiFeature>() is { } mouseDynamicDpiFeature)
 					{
 						if (Add(deviceId, mouseDynamicDpiFeature.CurrentDpi))
 						{
 							mouseDynamicDpiFeature.DpiChanged += onDpiChanged;
 						}
 					}
-					else if ((notification.Driver as IDeviceDriver<IMouseDeviceFeature>)?.Features.GetFeature<IMouseDpiFeature>() is { } mouseDpiFeature)
+					else if (mouseFeatures.GetFeature<IMouseDpiFeature>() is { } mouseDpiFeature)
 					{
 						Add(deviceId, mouseDpiFeature.CurrentDpi);
 					}
@@ -81,14 +82,15 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 			case WatchNotificationKind.Removal:
 				try
 				{
-					if (Remove(notification.DeviceInformation.Id, out _))
+					if (Remove(notification.DeviceInformation.Id, out _) && notification.Driver is not null)
 					{
-						if ((notification.Driver as IDeviceDriver<IMouseDeviceFeature>)?.Features.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
+						var mouseFeatures = notification.Driver!.GetFeatures<IMouseDeviceFeature>();
+						if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
 						{
 							mouseDpiPresetFeature.DpiChanged -= onDpiChanged;
 							_presets.TryRemove(notification.DeviceInformation.Id, out _);
 						}
-						else if ((notification.Driver as IDeviceDriver<IMouseDeviceFeature>)?.Features.GetFeature<IMouseDynamicDpiFeature>() is { } mouseDynamicDpiFeature)
+						else if (mouseFeatures.GetFeature<IMouseDynamicDpiFeature>() is { } mouseDynamicDpiFeature)
 						{
 							mouseDynamicDpiFeature.DpiChanged -= onDpiChanged;
 						}

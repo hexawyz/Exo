@@ -402,7 +402,7 @@ public class LgMonitorDriver :
 			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return _monitorFeatures;
 			if (typeof(TFeature) == typeof(ILgMonitorDeviceFeature)) return _lgMonitorFeatures;
 
-			throw new InvalidOperationException("Unsupported feature type.");
+			return FeatureCollection.Empty<TFeature>();
 		}
 
 		return Unsafe.As<IDeviceFeatureCollection<TFeature>>(GetFeatures());

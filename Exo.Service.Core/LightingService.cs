@@ -192,19 +192,20 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 		var lightingZoneStates = deviceState.LightingZones;
 
-		var lightingDriver = Unsafe.As<IDeviceDriver<ILightingDeviceFeature>>(notification.Driver!);
+		var lightingFeatures = notification.Driver!.GetFeatures<ILightingDeviceFeature>();
+
+		// TODO: Refactoring to properly handle drivers with changing feature sets.
+		// At the minimum, we should consider the device offline from the lighting service POV, but maybe the feature change notification is not good enough.
+		// The better design might be a IDeviceFeature that lists the supported feature sets, the active ones, and provide more detailed notifications for when a feature set is enabled or not.
+		// That's because we probably shouldn't expect a random feature to pop out of thin air among similar ones, but instead have something more like while feature categories being optionally enabled.
+		// NB: This is likely doable inside the device registry itself, so the added complexity there will benefit most if not all use cases like this one.
+		if (lightingFeatures.IsEmpty) return ValueTask.CompletedTask;
 
 		lock (_lock)
 		{
-			// TODO: Refactoring to properly handle drivers with changing feature sets.
-			// At the minimum, we should consider the device offline from the lighting service POV, but maybe the feature change notification is not good enough.
-			// The better design might be a IDeviceFeature that lists the supported feature sets, the active ones, and provide more detailed notifications for when a feature set is enabled or not.
-			// That's because we probably shouldn't expect a random feature to pop out of thin air among similar ones, but instead have something more like while feature categories being optionally enabled.
-			if (lightingDriver.Features.IsEmpty) return ValueTask.CompletedTask;
-
 			lock (deviceState.Lock)
 			{
-				if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } lightingBrightnessFeature)
+				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } lightingBrightnessFeature)
 				{
 					if (!isNewState && deviceState.Brightness is not null)
 					{
@@ -222,7 +223,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					deviceState.Brightness = null;
 				}
 
-				if (lightingDriver.Features.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
+				if (lightingFeatures.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
 				{
 					unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
 					if (lightingZoneStates.TryGetValue(unifiedLightingFeature.ZoneId, out var lightingZoneState))
@@ -240,7 +241,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					}
 				}
 
-				if (lightingDriver.Features.GetFeature<ILightingControllerFeature>() is { } lightingControllerFeature)
+				if (lightingFeatures.GetFeature<ILightingControllerFeature>() is { } lightingControllerFeature)
 				{
 					zones = new LightingZoneInformation[lightingControllerFeature.LightingZones.Count];
 
@@ -267,7 +268,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 				if (shouldApplyChanges)
 				{
-					if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
+					if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 					{
 						applyChangesTask = ApplyChangesAsync(dcf, notification.DeviceInformation.Id);
 					}
@@ -569,9 +570,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			{
 				if (deviceState.Driver is null) return;
 
-				var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)deviceState.Driver;
+				var lightingFeatures = deviceState.Driver.GetFeatures<ILightingDeviceFeature>();
 
-				if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } bf)
+				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } bf)
 				{
 					bf.CurrentBrightness = brightness;
 				}
@@ -601,9 +602,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 			{
 				if (deviceState.Driver is null) goto Completed;
 
-				var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)deviceState.Driver;
+				var lightingFeatures = deviceState.Driver.GetFeatures<ILightingDeviceFeature>();
 
-				if (lightingDriver.Features.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
+				if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 				{
 					applyChangesTask = dcf.ApplyChangesAsync();
 				}

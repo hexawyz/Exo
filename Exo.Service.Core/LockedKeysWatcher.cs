@@ -32,7 +32,7 @@ public sealed class LockedKeysWatcher : Watcher<Guid, LockKeys>
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					if (((IDeviceDriver<IKeyboardDeviceFeature>)notification.Driver!).Features.GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
+					if (notification.Driver!.GetFeatures<IKeyboardDeviceFeature>().GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
 					{
 						if (Add(deviceId, lockKeysFeature.LockedKeys))
 						{
@@ -49,7 +49,7 @@ public sealed class LockedKeysWatcher : Watcher<Guid, LockKeys>
 				try
 				{
 					if (Remove(notification.DeviceInformation.Id, out var v) &&
-						((IDeviceDriver<IKeyboardDeviceFeature>)notification.Driver!).Features.GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
+						notification.Driver!.GetFeatures<IKeyboardDeviceFeature>().GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
 					{
 						lockKeysFeature.LockedKeysChanged -= onLockedKeysChanged;
 					}

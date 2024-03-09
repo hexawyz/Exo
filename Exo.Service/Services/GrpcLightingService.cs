@@ -30,9 +30,9 @@ internal class GrpcLightingService : ILightingService
 
 			RegisterEffectTypes(notification);
 
-			var lightingDriver = (IDeviceDriver<ILightingDeviceFeature>)notification.Driver!;
+			var lightingFeatures = notification.Driver!.GetFeatures<ILightingDeviceFeature>();
 
-			if (lightingDriver.Features.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
+			if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
 			{
 				brightnessCapabilities = new() { MinimumBrightness = brightnessFeature.MinimumBrightness, MaximumBrightness = brightnessFeature.MaximumBrightness };
 			}

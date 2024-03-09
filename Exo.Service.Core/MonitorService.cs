@@ -12,12 +12,12 @@ internal class MonitorService : IAsyncDisposable
 {
 	private sealed class MonitorDeviceDetails
 	{
-		public IDeviceDriver<IMonitorDeviceFeature>? Driver;
+		public Driver? Driver;
 		public MonitorSetting[] SupportedSettings;
 		public readonly Dictionary<MonitorSetting, ContinuousValue> KnownValues;
 		public readonly AsyncLock Lock;
 
-		public MonitorDeviceDetails(IDeviceDriver<IMonitorDeviceFeature> driver, MonitorSetting[] supportedSettings)
+		public MonitorDeviceDetails(Driver driver, MonitorSetting[] supportedSettings)
 		{
 			Driver = driver;
 			SupportedSettings = supportedSettings;
@@ -83,25 +83,25 @@ internal class MonitorService : IAsyncDisposable
 						}
 					}
 
-					var monitorDriver = (IDeviceDriver<IMonitorDeviceFeature>)notification.Driver!;
+					var monitorFeatures = notification.Driver!.GetFeatures<IMonitorDeviceFeature>();
 
 					settings.Clear();
 
-					if (monitorDriver.Features.HasFeature<IMonitorBrightnessFeature>())
+					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>())
 					{
 						settings.Add(MonitorSetting.Brightness);
 					}
-					if (monitorDriver.Features.HasFeature<IMonitorContrastFeature>())
+					if (monitorFeatures.HasFeature<IMonitorContrastFeature>())
 					{
 						settings.Add(MonitorSetting.Contrast);
 					}
-					if (monitorDriver.Features.HasFeature<IMonitorSpeakerAudioVolumeFeature>())
+					if (monitorFeatures.HasFeature<IMonitorSpeakerAudioVolumeFeature>())
 					{
 						settings.Add(MonitorSetting.AudioVolume);
 					}
 
 					// Create and lock the details to prevent changes to be made before we read all the features.
-					details = new MonitorDeviceDetails(monitorDriver, [.. settings]);
+					details = new MonitorDeviceDetails(notification.Driver!, [.. settings]);
 
 					var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 					// We want to avoid delaying publishing the device, so we first add a empty state to the dictionary.
@@ -132,22 +132,25 @@ internal class MonitorService : IAsyncDisposable
 		{
 			using (deviceLock)
 			{
-				var monitorDriver = details.Driver!;
+				var monitorFeatures = details.Driver!.GetFeatures<IMonitorDeviceFeature>();
+
 				// Compute all the changes after the details have been published. (Which means new watchers might have both captured the details and registered for update notifications)
 				changes.Clear();
 				foreach (var setting in details.SupportedSettings)
 				{
+					// NB: The code below will throw NRE if any of the features has become unavailable (which shouldn't happen, but the whole feature set could have been taken offline)
+					// This can be improved later, but it is "fine" for now, as we will catch this exception and do nothing, which is actually the best that must be done in this case.
 					ContinuousValue value;
 					switch (setting)
 					{
 					case MonitorSetting.Brightness:
-						value = await monitorDriver.Features.GetFeature<IMonitorBrightnessFeature>()!.GetBrightnessAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorBrightnessFeature>()!.GetBrightnessAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.Contrast:
-						value = await monitorDriver.Features.GetFeature<IMonitorContrastFeature>()!.GetContrastAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorContrastFeature>()!.GetContrastAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.AudioVolume:
-						value = await monitorDriver.Features.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetVolumeAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetVolumeAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					default:
 						continue;
@@ -252,7 +255,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (Unsafe.As<IDeviceDriver<IMonitorDeviceFeature>>(details.Driver).Features.GetFeature<IMonitorBrightnessFeature>() is not { } feature)
+			if (details.Driver.GetFeatures<IMonitorDeviceFeature>().GetFeature<IMonitorBrightnessFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
@@ -276,7 +279,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (Unsafe.As<IDeviceDriver<IMonitorDeviceFeature>>(details.Driver).Features.GetFeature<IMonitorContrastFeature>() is not { } feature)
+			if (details.Driver.GetFeatures<IMonitorDeviceFeature>().GetFeature<IMonitorContrastFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
@@ -300,7 +303,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (Unsafe.As<IDeviceDriver<IMonitorDeviceFeature>>(details.Driver).Features.GetFeature<IMonitorSpeakerAudioVolumeFeature>() is not { } feature)
+			if (details.Driver.GetFeatures<IMonitorDeviceFeature>().GetFeature<IMonitorSpeakerAudioVolumeFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}

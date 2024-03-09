@@ -466,13 +466,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private static (ImmutableArray<DeviceId>, int?) GetDeviceIds(Driver driver)
 	{
-		if (driver is IDeviceDriver<IBaseDeviceFeature> { } baseDriver)
+		if (driver.GetFeatures<IBaseDeviceFeature>() is { IsEmpty: false } baseFeatures)
 		{
-			if (baseDriver.Features.GetFeature<IDeviceIdsFeature>() is { } deviceIdsFeature)
+			if (baseFeatures.GetFeature<IDeviceIdsFeature>() is { } deviceIdsFeature)
 			{
 				return (deviceIdsFeature.DeviceIds, deviceIdsFeature.MainDeviceIdIndex);
 			}
-			else if (baseDriver.Features.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
+			else if (baseFeatures.GetFeature<IDeviceIdFeature>() is { } deviceIdFeature)
 			{
 				return (ImmutableArray.Create(deviceIdFeature.DeviceId), 0);
 			}
@@ -675,7 +675,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
-				if (state.Driver is null ? state.DeviceInformation.FeatureIds.Contains(featureId) : state.Driver is IDeviceDriver<TFeature>)
+				if (state.Driver is null ? state.DeviceInformation.FeatureIds.Contains(featureId) : !state.Driver.GetFeatures<TFeature>().IsEmpty)
 				{
 					initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
 				}
@@ -701,7 +701,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 			await foreach (var (kind, deviceInformation, driver) in channel.Reader.ReadAllAsync(cancellationToken))
 			{
-				if (driver is null ? deviceInformation.FeatureIds.Contains(featureId) : driver is IDeviceDriver<TFeature>)
+				if (driver is null ? deviceInformation.FeatureIds.Contains(featureId) : !driver.GetFeatures<TFeature>().IsEmpty)
 				{
 					yield return new
 					(
@@ -728,6 +728,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	/// Just because a driver implements <see cref="IDeviceDriver{TFeature}"/> does not necessarily means that the instance actually exposes any such feature.
 	/// Drivers should generally not expose feature sets that they do not support, but some specific devices may end up having no corresponding features.
 	/// Such device drivers will still be reported by this method. It is up to the consumer of the notifications to decide what to do with the devices.
+	/// TODO: Make it so that this dynamically reports devices supporting a specific feature set only when it is actually available. It will simplify work in client services by a lot.
 	/// </remarks>
 	/// <param name="cancellationToken">A token used to cancel the watch operation.</param>
 	/// <returns>An asynchronous enumerable providing live access to all devices.</returns>
@@ -744,7 +745,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
-				if (state.Driver is IDeviceDriver<TFeature>)
+				if (!state.Driver?.GetFeatures<TFeature>().IsEmpty == false)
 				{
 					initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
 				}
@@ -773,7 +774,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				// Removal notifications can only happen for disconnected devices, so they should be ignored.
 				if (kind != UpdateKind.RemovedDevice)
 				{
-					if (driver is IDeviceDriver<TFeature>)
+					if (driver?.GetFeatures<TFeature>().IsEmpty == false)
 					{
 						yield return new
 						(
