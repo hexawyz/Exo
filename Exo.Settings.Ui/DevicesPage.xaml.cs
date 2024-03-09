@@ -36,6 +36,7 @@ internal sealed partial class DevicesPage : Page
 
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
+		ViewModel.Icon = "\uE772";
 		ViewModel.Title = "Devices";
 	}
 }

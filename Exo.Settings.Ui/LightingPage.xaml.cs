@@ -23,6 +23,7 @@ public sealed partial class LightingPage : Page
 
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
+		ViewModel.Icon = "\uE781";
 		ViewModel.Title = "Lighting";
 	}
 }

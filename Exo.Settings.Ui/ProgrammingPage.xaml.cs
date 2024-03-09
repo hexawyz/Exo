@@ -32,6 +32,7 @@ public sealed partial class ProgrammingPage : Page
 
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
+		ViewModel.Icon = "\uE943";
 		ViewModel.Title = "Programming";
 	}
 }

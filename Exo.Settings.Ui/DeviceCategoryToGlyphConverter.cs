@@ -31,9 +31,12 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 		{ DeviceCategory.Camera, "\uE722" },
 		{ DeviceCategory.Smartphone, "\uE8EA" },
 		{ DeviceCategory.Battery, "\uF5FC" },
-		{ DeviceCategory.MouseDock, "\uE95F" },
+		{ DeviceCategory.MouseDock, "\uE945" },
 		{ DeviceCategory.MousePad, "\uE7FB" },
 	};
+
+	public static string GetGlyph(DeviceCategory category)
+		=> DeviceCategoryToGlyphMapping[category];
 
 	public object Convert(object value, Type targetType, object parameter, string language)
 	{
@@ -42,7 +45,7 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 			category = DeviceCategory.Other;
 		}
 
-		return DeviceCategoryToGlyphMapping[category];
+		return GetGlyph(category);
 	}
 
 	public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();

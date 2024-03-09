@@ -34,7 +34,16 @@ public sealed partial class DevicePage : Page
 			devicesViewModel.SelectedDevice = selectedDevice;
 		}
 
-		ViewModel.Title = selectedDevice is not null ? selectedDevice.FriendlyName : "<Unknown Device>";
+		if (selectedDevice is not null)
+		{
+			ViewModel.Icon = DeviceCategoryToGlyphConverter.GetGlyph(selectedDevice.Category);
+			ViewModel.Title = selectedDevice.FriendlyName;
+		}
+		else
+		{
+			ViewModel.Icon = null;
+			ViewModel.Title = "<Unknown Device>";
+		}
 	}
 
 	protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
