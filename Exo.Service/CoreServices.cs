@@ -10,6 +10,9 @@ internal sealed class CoreServices : IHostedService
 	public CoreServices
 	(
 		RootDiscoverySubsystem rootDiscoverySubsystem,
+#if WITH_FAKE_DEVICES
+		Debug.DebugDiscoverySystem debugDiscoverySubsystem,
+#endif
 		LightingService lightingService,
 		BatteryService batteryService,
 		KeyboardService keyboardService,

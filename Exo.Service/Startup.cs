@@ -119,6 +119,18 @@ public class Startup
 				sp.GetRequiredService<II2CBusProvider>()
 			).GetAwaiter().GetResult()
 		);
+		// Pull up the debug discovery service if we are building with support for fake devices
+#if WITH_FAKE_DEVICES
+		services.AddSingleton
+		(
+			sp => Debug.DebugDiscoverySystem.CreateAsync
+			(
+				sp.GetRequiredService<ILoggerFactory>(),
+				sp.GetRequiredService<INestedDriverRegistryProvider>(),
+				sp.GetRequiredService<IDiscoveryOrchestrator>()
+			).GetAwaiter().GetResult()
+		);
+#endif
 		services.AddSingleton<IDiscoveryOrchestrator>(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();

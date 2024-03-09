@@ -5,6 +5,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<EnableFakeDevices>false</EnableFakeDevices>
+		<EnableFakeDevices Condition="'$(Configuration)' == 'Debug'">true</EnableFakeDevices>
+		<DefineConstants Condition="'$(EnableFakeDevices)' == 'true'">$(DefineConstants);WITH_FAKE_DEVICES</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,7 +31,8 @@
     <ProjectReference Include="..\Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
     <ProjectReference Include="..\Exo.Service.ImageService\Exo.Service.ImageService.csproj" />
-    <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
+		<ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
+		<ProjectReference Condition="'$(EnableFakeDevices)' == 'true'" Include="..\Exo.Debug\Exo.Debug.csproj" />
   </ItemGroup>
 
 	<!-- Detect plugin project names. -->

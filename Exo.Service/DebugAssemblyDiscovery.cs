@@ -40,6 +40,9 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Devices.Elgato.StreamDeck",
 			"Exo.Devices.Intel",
 			"Exo.Devices.NVidia",
+#if WITH_FAKE_DEVICES
+			"Exo.Debug",
+#endif
 		};
 
 		AssemblyPaths = plugins.Select(p => template.Replace(Placeholder, p)).ToImmutableArray();
