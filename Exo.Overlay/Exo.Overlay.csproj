@@ -10,6 +10,10 @@
 		<PublishSingleFile>true</PublishSingleFile>
 	</PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="FluentSystemIcons-Resizable.ttf" />
+  </ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Grpc.Net.Client" Version="2.55.0" />
 		<PackageReference Include="protobuf-net.Grpc" Version="1.1.1" />
@@ -19,6 +23,10 @@
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Resource Include="FluentSystemIcons-Resizable.ttf" />
 	</ItemGroup>
 
 </Project>

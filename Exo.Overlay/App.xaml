@@ -6,5 +6,7 @@
     <Application.Resources>
         <local:BooleanToVisibilityHiddenConverter x:Key="BooleanToVisibilityHiddenConverter" />
         <local:BooleanToVisibilityCollapsedConverter x:Key="BooleanToVisibilityCollapsedConverter" />
+        <FontFamily x:Key="FluentSystemIcons-Resizable">/FluentSystemIcons-Resizable.ttf#FluentSystemIcons-Resizable</FontFamily>
+        <local:GlyphFontToFontFamilyConverter x:Key="GlyphFontToFontFamilyConverter" SegoeFluentIcons="Segoe Fluent Icons" FluentSystemIcons="{StaticResource FluentSystemIcons-Resizable}" />
     </Application.Resources>
 </Application>

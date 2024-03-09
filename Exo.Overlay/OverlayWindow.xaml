@@ -52,7 +52,9 @@
             RadiusY="{StaticResource Radius}"
             Fill="{StaticResource OverlayBackground}" />
         <Viewbox Grid.Column="2" Grid.Row="1" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Foreground="{StaticResource OverlayForeground}" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe Fluent Icons" Text="{Binding Glyph}" />
+            <Grid>
+                <TextBlock Foreground="{StaticResource OverlayForeground}" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{Binding Font, Converter={StaticResource GlyphFontToFontFamilyConverter}}" Text="{Binding Glyph}" />
+            </Grid>
         </Viewbox>
         <Grid
             Grid.Column="2"

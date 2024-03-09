@@ -2,38 +2,19 @@ namespace Exo.Overlay;
 
 public sealed class OverlayContentViewModel
 {
-	public OverlayContentViewModel(string? glyph, string? description)
-		: this(glyph, description, 0, 0, null)
-	{
-	}
-	public OverlayContentViewModel(string? glyph, string? description, long? value)
-		: this(glyph, description, 0, 0, value)
-	{
-	}
+	public GlyphFont Font { get; init; } = GlyphFont.SegoeFluentIcons;
 
-	public OverlayContentViewModel(string? glyph, string? description, int currentLevel, int levelCount)
-		: this(glyph, description, currentLevel, levelCount, null)
-	{
-	}
+	public string? Glyph { get; init; }
 
-	public OverlayContentViewModel(string? glyph, string? description, int currentLevel, int levelCount, long? value)
-	{
-		Glyph = glyph;
-		Description = description;
-		CurrentLevel = currentLevel;
-		LevelCount = levelCount;
-		Value = value;
-	}
+	//public string? OverlayGlyph { get; init; }
 
-	public string? Glyph { get; }
+	public string? Description { get; init; }
 
-	public string? Description { get; }
+	public int CurrentLevel { get; init; }
 
-	public int CurrentLevel { get; }
+	public int LevelCount { get; init; }
 
-	public int LevelCount { get; }
-
-	public long? Value { get; }
+	public long? Value { get; init; }
 
 	public bool ShouldShowLevel => LevelCount > 0;
 

@@ -88,53 +88,59 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 				case OverlayNotificationKind.Custom:
 					break;
 				case OverlayNotificationKind.CapsLockOff:
-					content = new("\uE84A", request.DeviceName);
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE975", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.CapsLockOn:
-					content = new("\uE84B", request.DeviceName);
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE974", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.NumLockOff:
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB65", Description = request.DeviceName };
+					break;
 				case OverlayNotificationKind.NumLockOn:
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB64", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.ScrollLockOff:
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BE", Description = request.DeviceName };
+					break;
 				case OverlayNotificationKind.ScrollLockOn:
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BC", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.FnLockOff:
-					content = new("\uE785", request.DeviceName);
+					content = new() { Glyph = "\uE785", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.FnLockOn:
-					content = new("\uE72E", request.DeviceName);
+					content = new() { Glyph = "\uE72E", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.MonitorBrightnessDown:
-					content = new("\uEC8A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new() { Glyph = "\uEC8A", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
 					break;
 				case OverlayNotificationKind.MonitorBrightnessUp:
-					content = new("\uE706", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new() { Glyph = "\uE706", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
 					break;
 				case OverlayNotificationKind.KeyboardBacklightDown:
-					content = new("\uED3A", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new() { Glyph = "\uED3A", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
 					break;
 				case OverlayNotificationKind.KeyboardBacklightUp:
-					content = new("\uED39", request.DeviceName, (int)request.Level, (int)request.MaxLevel);
+					content = new() { Glyph = "\uED39", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
 					break;
 				case OverlayNotificationKind.BatteryLow:
-					content = new(GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), request.DeviceName);
+					content = new() { Glyph = GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.BatteryFullyCharged:
-					content = new(BatteryChargingGlyphs[10], request.DeviceName);
+					content = new() { Glyph = BatteryChargingGlyphs[10], Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerDisconnected:
 					// TODO: Better glyph when charge status is unknown.
-					content = new(request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", request.DeviceName);
+					content = new() { Glyph = request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.BatteryExternalPowerConnected:
-					content = new(request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", request.DeviceName);
+					content = new() { Glyph = request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.MouseDpiDown:
-					content = new("\uF08E", request.DeviceName, (int)request.Level, (int)request.MaxLevel, request.Value > 0 ? request.Value : null);
+					content = new() { Glyph = "\uF08E", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel, Value = request.Value > 0 ? request.Value : null };
 					break;
 				case OverlayNotificationKind.MouseDpiUp:
-					content = new("\uF090", request.DeviceName, (int)request.Level, (int)request.MaxLevel, request.Value > 0 ? request.Value : null);
+					content = new() { Glyph = "\uF090", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel, Value = request.Value > 0 ? request.Value : null };
 					break;
 				default:
 					continue;
