@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace Exo;
 
@@ -38,8 +39,8 @@ public readonly struct JedecManufacturerCode : IEquatable<JedecManufacturerCode>
 	/// </remarks>
 	public ushort SpdManufacturerIdCode
 		=> BitConverter.IsLittleEndian ?
-			Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(_code)) :
-			BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(_code)));
+			Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(in _bankNumberWithParity)) :
+			BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(in _bankNumberWithParity)));
 
 	/// <summary>Creates the structure from a raw value.</summary>
 	/// <param name="manufacturerCode"></param>
@@ -63,15 +64,20 @@ public readonly struct JedecManufacturerCode : IEquatable<JedecManufacturerCode>
 	private static bool IsEven(byte value) => (BitOperations.PopCount(value) & 1) == 0;
 	private static bool IsOdd(byte value) => (BitOperations.PopCount(value) & 1) != 0;
 
+	[JsonConstructor]
 	public JedecManufacturerCode(byte bankNumber, byte manufacturerIndex)
 	{
+		// Validate that the parity bit is unset.
+		if ((sbyte)bankNumber < 0) throw new ArgumentOutOfRangeException(nameof(bankNumber));
+		if ((sbyte)manufacturerIndex < 0) throw new ArgumentOutOfRangeException(nameof(manufacturerIndex));
+
 		_bankNumberWithParity = (byte)(bankNumber | (IsEven(bankNumber) ? 0x80 : 0x00));
 		_code = (byte)(manufacturerIndex | (IsEven(manufacturerIndex) ? 0x80 : 0x00));
 	}
 
 	private JedecManufacturerCode(ushort rawValue) => this = Unsafe.As<ushort, JedecManufacturerCode>(ref rawValue);
 
-	public bool IsDefault => Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(_bankNumberWithParity)) == 0;
+	public bool IsDefault => Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(in _bankNumberWithParity)) == 0;
 
 	public override bool Equals(object? obj) => obj is JedecManufacturerCode manufacturer && Equals(manufacturer);
 	public bool Equals(JedecManufacturerCode other) => _bankNumberWithParity == other._bankNumberWithParity && _code == other._code;

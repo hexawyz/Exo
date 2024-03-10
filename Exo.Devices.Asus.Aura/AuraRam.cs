@@ -2,10 +2,11 @@ using Exo.Features.LightingFeatures;
 using Exo.Lighting.Effects;
 using Exo.Lighting;
 using Exo.Features;
+using Exo.Discovery;
+using System.Collections.Immutable;
 
 namespace Exo.Devices.Asus.Aura;
 
-[RamStick(0x04, 0x8D, "F4-3600C18-32GTZN")]
 public class AuraRamDriver :
 	Driver,
 	IDeviceDriver<ILightingDeviceFeature>,
@@ -20,13 +21,13 @@ public class AuraRamDriver :
 	ILightingZoneEffect<ColorWaveEffect>
 {
 
-	// TODO: How should we handle the RAM ?
-	// Aura sticks are generally configured all at once, since they start mapped at the same 0x77 register.
-	// Either we expose all the sticks as a single device, or we map each stick individually. But if we want to map sticks individually, the simple way CreateAsync() will not do.
-	// => It might be better to expose the driver as a generic "hub" device, mapping each RAM stick as a child driver of the main Aura driver ?
-	// In the case of SMBus, we also need some detection protocol. SMBus device discovery is theoretically possible, but it does not seem realistic to count on it.
-	// For the RAM sticks, I'm thinking we should be able to read meaningful-enough information from the SMBIOS tables. If not, we'd have to read SPD data from the SMBus…
-	public async Task<AuraRamDriver> CreateAsync(ISmBusDriver smBusDriver)
+	// NB: Aura sticks are generally configured all at once, since they start mapped at the same 0x77 register.
+	// We should be able to detect and map each of the discovered sticks as separate lighting zones under the same device, but we could also expose each ram stick as its own device.
+	// Let's try mapping the sticks as lighting zones for now, but maybe we'll want to revisit this later on and return one driver for each stick.
+	// This would, however, necessitate to rework the discovery system again, because we want to handle initialization for all sticks at once, and we probably don't want to expose a dummy parent device.
+	[DiscoverySubsystem<SystemManagementBiosRamDiscoverySubsystem>]
+	[RamModuleId(0x04, 0x4D, "F4-3600C18-32GTZN")]
+	public static async Task<DriverCreationResult<SystemMemoryDeviceKey>?> CreateAsync(ImmutableArray<SystemMemoryDeviceKey> discoveredKeys, ImmutableArray<MemoryModuleInformation> memoryModules)
 	{
 		return null;
 	}

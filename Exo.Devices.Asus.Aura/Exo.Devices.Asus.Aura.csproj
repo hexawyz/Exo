@@ -10,6 +10,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" />
 	</ItemGroup>
 
 </Project>

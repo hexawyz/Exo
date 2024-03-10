@@ -31,6 +31,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Discovery.Pci",
 			"Exo.Discovery.Monitor",
 			"Exo.Discovery.System",
+			"Exo.Discovery.SmBios",
 			"Exo.Devices.Logitech",
 			"Exo.Devices.Gigabyte",
 			"Exo.Devices.Apple.Keyboard",
@@ -40,6 +41,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Devices.Elgato.StreamDeck",
 			"Exo.Devices.Intel",
 			"Exo.Devices.NVidia",
+			"Exo.Devices.Asus.Aura",
 #if WITH_FAKE_DEVICES
 			"Exo.Debug",
 #endif
