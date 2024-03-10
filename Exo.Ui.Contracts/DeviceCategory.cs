@@ -10,6 +10,10 @@ public enum DeviceCategory
 	[EnumMember]
 	Other = 0,
 	[EnumMember]
+	Motherboard,
+	[EnumMember]
+	MemoryModule,
+	[EnumMember]
 	Usb,
 	[EnumMember]
 	Keyboard,

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using DeviceTools.Firmware;
+using Exo.SystemManagementBus;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
@@ -15,7 +16,8 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
-		IDiscoveryOrchestrator discoveryOrchestrator
+		IDiscoveryOrchestrator discoveryOrchestrator,
+		ISystemManagementBusProvider systemManagementBusProvider
 	)
 	{
 		var modules = GetInstalledModules(SmBios.GetForCurrentMachine());
@@ -25,7 +27,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 		// (Don't know how things would work out for memory hotplug though, but that is not a realistic feature for consumer devices)
 		if (modules.Length == 0) return null;
 
-		var service = new SystemManagementBiosRamDiscoverySubsystem(loggerFactory, driverRegistry, modules);
+		var service = new SystemManagementBiosRamDiscoverySubsystem(loggerFactory, driverRegistry, systemManagementBusProvider, modules);
 		try
 		{
 			await service.RegisterAsync(discoveryOrchestrator);
@@ -59,6 +61,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 	private readonly ILogger<SystemManagementBiosRamDiscoverySubsystem> _logger;
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
+	internal ISystemManagementBusProvider SystemManagementBusProvider { get; }
 
 	private readonly object _lock;
 
@@ -66,12 +69,14 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
+		ISystemManagementBusProvider systemManagementBusProvider,
 		ImmutableArray<MemoryModuleInformation> installedModules
 	)
 	{
 		_logger = loggerFactory.CreateLogger<SystemManagementBiosRamDiscoverySubsystem>();
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
+		SystemManagementBusProvider = systemManagementBusProvider;
 		_installedModules = installedModules;
 
 		_ramModuleFactories = new();
@@ -152,21 +157,4 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 		}
 		return true;
 	}
-}
-
-public readonly struct SystemMemoryDeviceKey : IEquatable<SystemMemoryDeviceKey>
-{
-	private readonly byte _index;
-
-	private SystemMemoryDeviceKey(byte index) => _index = index;
-
-	public override bool Equals(object? obj) => obj is SystemMemoryDeviceKey key && Equals(key);
-	public bool Equals(SystemMemoryDeviceKey other) => _index == other._index;
-	public override int GetHashCode() => HashCode.Combine(_index);
-
-	public static implicit operator SystemMemoryDeviceKey(byte index) => new(index);
-	public static explicit operator byte(SystemMemoryDeviceKey key) => key._index;
-
-	public static bool operator ==(SystemMemoryDeviceKey left, SystemMemoryDeviceKey right) => left.Equals(right);
-	public static bool operator !=(SystemMemoryDeviceKey left, SystemMemoryDeviceKey right) => !(left == right);
 }

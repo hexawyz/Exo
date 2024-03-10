@@ -4,6 +4,7 @@ using Exo.Lighting;
 using Exo.Features;
 using Exo.Discovery;
 using System.Collections.Immutable;
+using Exo.SystemManagementBus;
 
 namespace Exo.Devices.Asus.Aura;
 
@@ -27,7 +28,12 @@ public class AuraRamDriver :
 	// This would, however, necessitate to rework the discovery system again, because we want to handle initialization for all sticks at once, and we probably don't want to expose a dummy parent device.
 	[DiscoverySubsystem<SystemManagementBiosRamDiscoverySubsystem>]
 	[RamModuleId(0x04, 0x4D, "F4-3600C18-32GTZN")]
-	public static async Task<DriverCreationResult<SystemMemoryDeviceKey>?> CreateAsync(ImmutableArray<SystemMemoryDeviceKey> discoveredKeys, ImmutableArray<MemoryModuleInformation> memoryModules)
+	public static async Task<DriverCreationResult<SystemMemoryDeviceKey>?> CreateAsync
+	(
+		ImmutableArray<SystemMemoryDeviceKey> discoveredKeys,
+		ImmutableArray<MemoryModuleInformation> memoryModules,
+		ISystemManagementBus systemManagementBus
+	)
 	{
 		return null;
 	}
@@ -38,40 +44,40 @@ public class AuraRamDriver :
 	private const byte ReadWordCommand = 0x82;
 	private const byte RepeatedSequenceStart = 0xA0;
 
-	private static ValueTask WriteRegisterAddress(ISmBusDriver smBusDriver, byte deviceAddress, ushort registerAddress)
+	private static ValueTask WriteRegisterAddress(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)
 		=> smBusDriver.WriteWordAsync(deviceAddress, WriteAddressCommand, registerAddress);
 
-	private static async ValueTask<byte> ReadByteAsync(ISmBusDriver smBusDriver, byte deviceAddress, ushort registerAddress)
+	private static async ValueTask<byte> ReadByteAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
 		return await smBusDriver.ReadByteAsync(deviceAddress, ReadWriteByteCommand);
 	}
 
-	private static async ValueTask WriteByteAsync(ISmBusDriver smBusDriver, byte deviceAddress, ushort registerAddress, byte value)
+	private static async ValueTask WriteByteAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, byte value)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
 		await smBusDriver.WriteByteAsync(deviceAddress, ReadWriteByteCommand, value);
 	}
 
-	private static async ValueTask<ushort> ReadWordAsync(ISmBusDriver smBusDriver, byte deviceAddress, ushort registerAddress)
+	private static async ValueTask<ushort> ReadWordAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
 		return await smBusDriver.ReadByteAsync(deviceAddress, ReadWordCommand);
 	}
 
-	private static async ValueTask WriteWordAsync(ISmBusDriver smBusDriver, byte deviceAddress, ushort registerAddress, ushort value)
+	private static async ValueTask WriteWordAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, ushort value)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
 		await smBusDriver.WriteWordAsync(deviceAddress, WriteWordCommand, value);
 	}
 
-	private readonly ISmBusDriver _smBusDriver;
+	private readonly ISystemManagementBus _smBusDriver;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
 
-	public AuraRamDriver(string friendlyName, DeviceConfigurationKey configurationKey, ISmBusDriver smBusDriver)
+	public AuraRamDriver(string friendlyName, DeviceConfigurationKey configurationKey, ISystemManagementBus smBusDriver)
 		: base("Aura RAM", default)
 	{
 		_smBusDriver = smBusDriver;

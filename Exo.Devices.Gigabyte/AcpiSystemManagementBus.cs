@@ -3,6 +3,7 @@ using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Firmware.Uefi;
+using Exo.SystemManagementBus;
 using Microsoft.Management.Infrastructure;
 
 namespace Exo.Devices.Gigabyte;
@@ -10,9 +11,9 @@ namespace Exo.Devices.Gigabyte;
 /// <summary>Implements a firmware-specific driver for (some) Gigabyte motherboards.</summary>
 /// <remarks>
 /// Availability of this feature is not guaranteed but it is a relatively safe way to access SMBus, as it doesn't require fiddling with raw IO ports.
-/// Despite this, it
+/// Despite this, it requires administrator rights, and it could be a bit slower than more direct kernel-driver based approaches.
 /// </remarks>
-public class AcpiSmBusDriver : ISmBusDriver
+public class AcpiSystemManagementBus : ISystemManagementBus
 {
 	// From what I found, gigabyte's utilities acquire a system-wide mutex using SetFirmwareEnvironmentVariable.
 	// I don't know yet if this is compatible with the ACPI WMI methods, but we may need this if we want to implement our own SMB driver at some point.
@@ -61,7 +62,7 @@ public class AcpiSmBusDriver : ISmBusDriver
 	private readonly byte[] _writeBuffer;
 	private readonly byte _busIndex;
 
-	private static async Task<AcpiSmBusDriver> CreateAsync()
+	private static async Task<AcpiSystemManagementBus> CreateAsync()
 	{
 		var cimSession = await CimSession.CreateAsync("localhost");
 		var acpiMethodDefinition = new CimInstance(AcpiMethodClassName, CimNamespace);
@@ -72,7 +73,7 @@ public class AcpiSmBusDriver : ISmBusDriver
 		return new(cimSession, acpiMethodInstance, 2);
 	}
 
-	public AcpiSmBusDriver(CimSession cimSession, CimInstance cimInstance, byte busIndex)
+	private AcpiSystemManagementBus(CimSession cimSession, CimInstance cimInstance, byte busIndex)
 	{
 		_cimSession = cimSession;
 		_cimInstance = cimInstance;

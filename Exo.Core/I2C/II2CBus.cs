@@ -72,7 +72,7 @@ public delegate ValueTask<II2CBus> MonitorI2CBusResolver(PnpVendorId vendorId, u
 
 public interface II2CBusProvider
 {
-	ValueTask<MonitorI2CBusResolver> GetMonitorBusResolver(string deviceName, CancellationToken cancellationToken);
+	ValueTask<MonitorI2CBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken);
 	//ValueTask<II2CBus> GetBus(string deviceName, CancellationToken cancellationToken);
 }
 

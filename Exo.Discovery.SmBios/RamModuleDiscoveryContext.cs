@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Exo.SystemManagementBus;
 
 namespace Exo.Discovery;
 
@@ -22,6 +23,24 @@ public sealed class RamModuleDiscoveryContext : IComponentDiscoveryContext<Syste
 		_factoryId = factoryId;
 	}
 
-	public ValueTask<ComponentCreationParameters<SystemMemoryDeviceKey, RamModuleDriverCreationContext>> PrepareForCreationAsync(CancellationToken cancellationToken)
-		=> ValueTask.FromResult(new ComponentCreationParameters<SystemMemoryDeviceKey, RamModuleDriverCreationContext>(DiscoveredKeys, new(_discoverySubsystem, DiscoveredKeys, _memoryModules), [_factoryId]));
+	public async ValueTask<ComponentCreationParameters<SystemMemoryDeviceKey, RamModuleDriverCreationContext>> PrepareForCreationAsync(CancellationToken cancellationToken)
+	{
+		// Similarly to what is done for monitors, we wait some amount of time for an SMBus implementation to become available.
+		// Initially, there won't be SMBus implementations for all hardware, so this is likely to fail, but over time, hopefully, we can have valid SMBus implementations for all systems.
+		ISystemManagementBus? smBus;
+		using (var smBusTimeoutCancellationTokenSource = new CancellationTokenSource(new TimeSpan(60 * TimeSpan.TicksPerSecond)))
+		using (var hybridCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, smBusTimeoutCancellationTokenSource.Token))
+		{
+			try
+			{
+				smBus = await _discoverySubsystem.SystemManagementBusProvider.GetSystemBusAsync(hybridCancellationTokenSource.Token).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException ocex) when (smBusTimeoutCancellationTokenSource.IsCancellationRequested)
+			{
+				throw new InvalidOperationException($"Could not resolve the SMBus implementation for the system in the given period of time. This is likely due to the lack of a provider.");
+			}
+		}
+		await _discoverySubsystem.SystemManagementBusProvider.GetSystemBusAsync(cancellationToken);
+		return new ComponentCreationParameters<SystemMemoryDeviceKey, RamModuleDriverCreationContext>(DiscoveredKeys, new(_discoverySubsystem, DiscoveredKeys, _memoryModules, smBus), [_factoryId]);
+	}
 }

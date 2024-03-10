@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Exo.I2C;
 using Exo.Services;
+using Exo.SystemManagementBus;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
@@ -16,6 +17,7 @@ public sealed class RootComponentCreationContext : ComponentCreationContext
 	public IDiscoveryOrchestrator DiscoveryOrchestrator => _discoverySubsystem.DiscoveryOrchestrator;
 	public IDeviceNotificationService DeviceNotificationService => _discoverySubsystem.DeviceNotificationService;
 	public II2CBusProvider I2cBusProvider => _discoverySubsystem.I2CBusProvider;
+	public ISystemManagementBusProvider SystemManagementBusProvider => _discoverySubsystem.SystemManagementBusProvider;
 	//public IConfigurationContainer ConfigurationContainer
 	//	=> _typeId != default ?
 	//		_discoverySubsystem.DiscoveryConfigurationContainer.GetContainer(_typeId) :

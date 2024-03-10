@@ -8,6 +8,8 @@ namespace Exo;
 public enum DeviceCategory
 {
 	Other = 0,
+	Motherboard,
+	MemoryModule,
 	Usb,
 	Keyboard,
 	Numpad,

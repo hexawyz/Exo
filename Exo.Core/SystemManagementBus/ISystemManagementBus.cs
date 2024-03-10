@@ -1,4 +1,4 @@
-namespace Exo;
+namespace Exo.SystemManagementBus;
 
 /// <summary>Define a standard SMBus interface.</summary>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace Exo;
 /// We should ideally not need to rely on a low-level SMBus interface, but it seems difficult to envision anything without this at the moment.
 /// </para>
 /// </remarks>
-public interface ISmBusDriver
+public interface ISystemManagementBus
 {
 	/// <summary>Acquires the SMBus mutex.</summary>
 	/// <remarks>
@@ -39,7 +39,7 @@ public interface ISmBusDriver
 	/// By acquiring and properly releasing that mutex, SMBus accesses from user code should be relatively safe.
 	/// </para>
 	/// <para>
-	/// Failing to release the Mutex may block proper execution of system software on the computer, and will definitely block other components relying on <see cref="ISmBusDriver"/> from working altogether.
+	/// Failing to release the Mutex may block proper execution of system software on the computer, and will definitely block other components relying on <see cref="ISystemManagementBus"/> from working altogether.
 	/// </para>
 	/// </remarks>
 	/// <returns>An object that must be disposed to release the Mutex.</returns>
@@ -64,4 +64,14 @@ public interface ISmBusDriver
 	ValueTask<byte> ReadByteAsync(byte address, byte command);
 	ValueTask<ushort> ReadWordAsync(byte address, byte command);
 	ValueTask<byte[]> ReadBlockAsync(byte address, byte command);
+}
+
+public interface ISystemManagementBusProvider
+{
+	ValueTask<ISystemManagementBus> GetSystemBusAsync(CancellationToken cancellationToken);
+}
+
+public interface ISystemManagementBusRegistry
+{
+	IDisposable RegisterSystemBus(ISystemManagementBus bus);
 }

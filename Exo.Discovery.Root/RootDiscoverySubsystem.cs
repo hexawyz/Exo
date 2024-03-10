@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using Exo.I2C;
 using Exo.Services;
+using Exo.SystemManagementBus;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
@@ -17,7 +18,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 	internal IDiscoveryOrchestrator DiscoveryOrchestrator { get; }
 	internal IDeviceNotificationService DeviceNotificationService { get; }
 	internal II2CBusProvider I2CBusProvider { get; }
-
+	internal ISystemManagementBusProvider SystemManagementBusProvider { get; }
 	internal ConcurrentDictionary<RootComponentKey, Guid> RegisteredFactories { get; }
 	private List<(RootComponentKey Key, Guid TypeId)>? _pendingArrivals;
 
@@ -29,10 +30,11 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider
+		II2CBusProvider i2cBusProvider,
+		ISystemManagementBusProvider systemManagementBusProvider
 	)
 	{
-		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider);
+		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider, systemManagementBusProvider);
 		try
 		{
 			await service.RegisterAsync(discoveryOrchestrator);
@@ -51,7 +53,8 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider
+		II2CBusProvider i2cBusProvider,
+		ISystemManagementBusProvider systemManagementBusProvider
 	)
 	{
 		LoggerFactory = loggerFactory;
@@ -59,6 +62,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		DiscoveryOrchestrator = discoveryOrchestrator;
 		DeviceNotificationService = deviceNotificationService;
 		I2CBusProvider = i2cBusProvider;
+		SystemManagementBusProvider = systemManagementBusProvider;
 		RegisteredFactories = new();
 		_pendingArrivals = new();
 	}

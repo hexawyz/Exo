@@ -21,9 +21,10 @@ internal class I2CBusRegistry : II2CBusRegistry, II2CBusProvider
 
 		public void Dispose()
 		{
-			var registeredBusses = Interlocked.Exchange(ref _registeredBusses, null);
-			ObjectDisposedException.ThrowIf(registeredBusses is null, typeof(Registration));
-			registeredBusses.TryRemove(new(_deviceName, _resolver));
+			if (Interlocked.Exchange(ref _registeredBusses, null) is { } registeredBuses)
+			{
+				registeredBuses.TryRemove(new(_deviceName, _resolver));
+			}
 		}
 	}
 
@@ -49,7 +50,7 @@ internal class I2CBusRegistry : II2CBusRegistry, II2CBusProvider
 		return registration;
 	}
 
-	public ValueTask<MonitorI2CBusResolver> GetMonitorBusResolver(string deviceName, CancellationToken cancellationToken)
+	public ValueTask<MonitorI2CBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken)
 	{
 		TaskCompletionSource<MonitorI2CBusResolver>? tcs = null;
 		while (true)

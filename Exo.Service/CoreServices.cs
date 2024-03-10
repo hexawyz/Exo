@@ -13,6 +13,7 @@ internal sealed class CoreServices : IHostedService
 #if WITH_FAKE_DEVICES
 		Debug.DebugDiscoverySystem debugDiscoverySubsystem,
 #endif
+		MotherboardService motherboardService,
 		LightingService lightingService,
 		BatteryService batteryService,
 		KeyboardService keyboardService,

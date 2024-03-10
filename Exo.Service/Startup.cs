@@ -5,6 +5,7 @@ using Exo.Discovery;
 using Exo.I2C;
 using Exo.Service.Services;
 using Exo.Services;
+using Exo.SystemManagementBus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -67,6 +68,9 @@ public class Startup
 		services.AddSingleton<I2CBusRegistry>();
 		services.AddSingleton<II2CBusRegistry>(sp => sp.GetRequiredService<I2CBusRegistry>());
 		services.AddSingleton<II2CBusProvider>(sp => sp.GetRequiredService<I2CBusRegistry>());
+		services.AddSingleton<SystemManagementBusRegistry>();
+		services.AddSingleton<ISystemManagementBusRegistry>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
+		services.AddSingleton<ISystemManagementBusProvider>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
 		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<DpiWatcher>();
 		services.AddSingleton<LockedKeysWatcher>();
@@ -75,6 +79,7 @@ public class Startup
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
 		services.AddSingleton<DisplayAdapterService>();
+		services.AddSingleton<MotherboardService>();
 		services.AddSingleton<MonitorService>();
 		services.AddSingleton<MouseService>();
 		services.AddSingleton<ImageService>();
@@ -116,7 +121,8 @@ public class Startup
 				sp.GetRequiredService<INestedDriverRegistryProvider>(),
 				sp.GetRequiredService<IDiscoveryOrchestrator>(),
 				sp.GetRequiredService<IDeviceNotificationService>(),
-				sp.GetRequiredService<II2CBusProvider>()
+				sp.GetRequiredService<II2CBusProvider>(),
+				sp.GetRequiredService<ISystemManagementBusProvider>()
 			).GetAwaiter().GetResult()
 		);
 		// Pull up the debug discovery service if we are building with support for fake devices

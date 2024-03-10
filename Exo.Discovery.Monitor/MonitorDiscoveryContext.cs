@@ -117,8 +117,16 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 		using (var i2cTimeoutCancellationTokenSource = new CancellationTokenSource(new TimeSpan(60 * TimeSpan.TicksPerSecond)))
 		using (var hybridCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, i2cTimeoutCancellationTokenSource.Token))
 		{
-			var i2cBusResolver = await _discoverySubsystem.I2CBusProvider.GetMonitorBusResolver(displayAdapterName, hybridCancellationTokenSource.Token).ConfigureAwait(false) ??
-				throw new InvalidOperationException($"Could not resolve the I2C bus for {sourceDeviceName}.");
+			MonitorI2CBusResolver i2cBusResolver;
+			try
+			{
+				i2cBusResolver = await _discoverySubsystem.I2CBusProvider.GetMonitorBusResolverAsync(displayAdapterName, hybridCancellationTokenSource.Token).ConfigureAwait(false) ??
+					throw new InvalidOperationException($"Could not resolve the I2C bus for {sourceDeviceName}.");
+			}
+			catch (OperationCanceledException ocex) when (i2cTimeoutCancellationTokenSource.IsCancellationRequested)
+			{
+				throw new InvalidOperationException($"Could not resolve the I2C bus for {sourceDeviceName} in the given period of time. This is probably because there are no associated providers for your GPU.");
+			}
 
 			i2cBus = await i2cBusResolver(edid.VendorId, edid.ProductId, edid.IdSerialNumber, edid.SerialNumber, hybridCancellationTokenSource.Token).ConfigureAwait(false);
 		}

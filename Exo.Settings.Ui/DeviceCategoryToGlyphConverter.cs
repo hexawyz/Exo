@@ -10,6 +10,8 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 	private static readonly Dictionary<DeviceCategory, string> DeviceCategoryToGlyphMapping = new()
 	{
 		{ DeviceCategory.Other, "\uEBDE" },
+		{ DeviceCategory.Motherboard, "\uF0B9" },
+		{ DeviceCategory.MemoryModule, "\uE950" },
 		{ DeviceCategory.Usb, "\uE88E" },
 		{ DeviceCategory.Keyboard, "\uE92E" },
 		{ DeviceCategory.Numpad, "\uF261" },

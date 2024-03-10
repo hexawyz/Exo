@@ -1,21 +1,22 @@
 using System.Runtime.CompilerServices;
 using Exo.Features;
 using Exo.I2C;
+using Exo.SystemManagementBus;
 
 namespace Exo.Service;
 
-internal class DisplayAdapterService
+internal class MotherboardService
 {
 	private CancellationTokenSource? _cancellationTokenSource = new();
 	private readonly IDeviceWatcher _deviceWatcher;
-	private readonly II2CBusRegistry _busRegistry;
-	private readonly Task _displayAdapterWatchTask;
+	private readonly ISystemManagementBusRegistry _busRegistry;
+	private readonly Task _motherboardWatchTask;
 
-	public DisplayAdapterService(IDeviceWatcher deviceWatcher, II2CBusRegistry busRegistry)
+	public MotherboardService(IDeviceWatcher deviceWatcher, ISystemManagementBusRegistry busRegistry)
 	{
 		_deviceWatcher = deviceWatcher;
 		_busRegistry = busRegistry;
-		_displayAdapterWatchTask = WatchDisplayAdaptersAsync(_cancellationTokenSource.Token);
+		_motherboardWatchTask = WatchDisplayAdaptersAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -23,29 +24,30 @@ internal class DisplayAdapterService
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{
 			cts.Cancel();
-			await _displayAdapterWatchTask.ConfigureAwait(false);
+			await _motherboardWatchTask.ConfigureAwait(false);
 			cts.Dispose();
 		}
 	}
 
 	private async Task WatchDisplayAdaptersAsync(CancellationToken cancellationToken)
 	{
-		// This method is used to automatically register and unregister the I2C implementations of display adapters that will be used by monitor drivers.
+		// This method is used to automatically register and unregister the SMBus implementations of motherboard drivers.
+		// There should be only one motherboard driver in existence, and it should never cease to exist, but it is better to write the code correctly here too.
 		var busRegistrations = new Dictionary<Guid, IDisposable>();
 		try
 		{
 			var settings = new List<MonitorSetting>();
 
-			await foreach (var notification in _deviceWatcher.WatchAvailableAsync<IDisplayAdapterDeviceFeature>(cancellationToken))
+			await foreach (var notification in _deviceWatcher.WatchAvailableAsync<IMotherboardDeviceFeature>(cancellationToken))
 			{
 				try
 				{
 					switch (notification.Kind)
 					{
 					case WatchNotificationKind.Addition:
-						if (notification.Driver!.GetFeatureSet<IDisplayAdapterDeviceFeature>().GetFeature<IDisplayAdapterI2CBusProviderFeature>() is { } busFeature)
+						if (notification.Driver!.GetFeatureSet<IMotherboardDeviceFeature>().GetFeature<IMotherboardSystemManagementBusFeature>() is { } busFeature)
 						{
-							busRegistrations.Add(notification.DeviceInformation.Id, _busRegistry.RegisterBusResolver(busFeature.DeviceName, busFeature.GetBusForMonitorAsync));
+							busRegistrations.Add(notification.DeviceInformation.Id, _busRegistry.RegisterSystemBus(busFeature));
 						}
 						break;
 					case WatchNotificationKind.Removal:
