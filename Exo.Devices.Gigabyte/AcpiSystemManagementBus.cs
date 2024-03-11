@@ -3,6 +3,7 @@ using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Firmware.Uefi;
+using Exo.Features;
 using Exo.SystemManagementBus;
 using Microsoft.Management.Infrastructure;
 
@@ -13,7 +14,7 @@ namespace Exo.Devices.Gigabyte;
 /// Availability of this feature is not guaranteed but it is a relatively safe way to access SMBus, as it doesn't require fiddling with raw IO ports.
 /// Despite this, it requires administrator rights, and it could be a bit slower than more direct kernel-driver based approaches.
 /// </remarks>
-public class AcpiSystemManagementBus : ISystemManagementBus
+internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboardSystemManagementBusFeature
 {
 	// From what I found, gigabyte's utilities acquire a system-wide mutex using SetFirmwareEnvironmentVariable.
 	// I don't know yet if this is compatible with the ACPI WMI methods, but we may need this if we want to implement our own SMB driver at some point.
@@ -42,7 +43,7 @@ public class AcpiSystemManagementBus : ISystemManagementBus
 		}
 	}
 
-	private const string CimNamespace = @"root\wmi";
+	private const string CimNamespace = @"root/wmi";
 	private const string AcpiMethodClassName = "GSA1_ACPIMethod";
 
 	private const string SmbQuickReadMethodName = "SMBQuickRead";
@@ -62,11 +63,11 @@ public class AcpiSystemManagementBus : ISystemManagementBus
 	private readonly byte[] _writeBuffer;
 	private readonly byte _busIndex;
 
-	private static async Task<AcpiSystemManagementBus> CreateAsync()
+	public static async Task<AcpiSystemManagementBus> CreateAsync()
 	{
-		var cimSession = await CimSession.CreateAsync("localhost");
+		var cimSession = await CimSession.CreateAsync(null);
 		var acpiMethodDefinition = new CimInstance(AcpiMethodClassName, CimNamespace);
-		var acpiMethodInstance = await cimSession.GetInstanceAsync(AcpiMethodClassName, acpiMethodDefinition);
+		var acpiMethodInstance = await cimSession.GetInstanceAsync(CimNamespace, acpiMethodDefinition);
 
 		// In the motherboard I own, the only valid value to pass as bus index is 2.
 		// This can be verified by looking at the ACPI data. (Methods are exposed in SSDT1 here)

@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
+using DeviceTools.Firmware;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Devices.Gigabyte.LightingEffects;
 using Exo.Discovery;
@@ -18,8 +19,6 @@ namespace Exo.Devices.Gigabyte;
 
 public sealed class RgbFusionIT5702Driver :
 	Driver,
-	IDeviceDriver<IGenericDeviceFeature>,
-	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdFeature,
 	ILightingControllerFeature,
 	ILightingDeferredChangesFeature,
@@ -371,6 +370,40 @@ public sealed class RgbFusionIT5702Driver :
 			throw new InvalidOperationException("Expected exactly three devices.");
 		}
 
+		// Request the SMBIOS for the current machine.
+		// The idea is to expose this as the motherboard driver, although we may want to change that later, and maybe at least make this a composite driver based on HID and SMBIOS discovery.
+		// But for now, this avoid implementing SMBIOS motherboard discovery 😁
+		var smBios = SmBios.GetForCurrentMachine();
+
+		string? motherboardFriendlyName = null;
+		string? serialNumber = null;
+		bool isMotherboard = false;
+		IMotherboardSystemManagementBusFeature? smBusFeature = null;
+
+		if (smBios.SystemInformation.Manufacturer == "Gigabyte Technology Co., Ltd.")
+		{
+			motherboardFriendlyName = smBios.SystemInformation.ProductName;
+			if (smBios.SystemInformation.SerialNumber is { Length: not 0 } sn && sn != "Default string")
+			{
+				serialNumber = smBios.SystemInformation.SerialNumber;
+			}
+			else if (smBios.SystemInformation.Uuid is Guid uuid)
+			{
+				serialNumber = uuid.ToString("D");
+			}
+
+			try
+			{
+				smBusFeature = await AcpiSystemManagementBus.CreateAsync().ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				// TODO: Handle and log.
+			}
+
+			isMotherboard = true;
+		}
+
 		string? ledDeviceInterfaceName = null;
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
@@ -418,11 +451,13 @@ public sealed class RgbFusionIT5702Driver :
 				new RgbFusionIT5702Driver
 				(
 					new HidFullDuplexStream(ledDeviceInterfaceName),
+					smBusFeature,
 					productId,
 					version,
-					productName,
+					motherboardFriendlyName ?? productName,
 					ledCount,
-					new("IT5702", topLevelDeviceName, "IT5702", null)
+					isMotherboard ? DeviceCategory.Motherboard : DeviceCategory.Lighting,
+					new("IT5702", topLevelDeviceName, "IT5702", serialNumber)
 				),
 				null
 			);
@@ -506,25 +541,41 @@ public sealed class RgbFusionIT5702Driver :
 	private readonly byte[] _buffer;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureCollection<IMotherboardDeviceFeature> _motherboardFeatures;
 	private readonly LightingZone[] _lightingZones;
 	private readonly WaveLightingZone _unifiedLightingZone;
 	private readonly ReadOnlyCollection<LightingZone> _lightingZoneCollection;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
-
-	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
+	public override DeviceCategory DeviceCategory { get; }
 
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 
+	public override ImmutableArray<FeatureSetDescription> FeatureSets { get; }
+
+	public override IDeviceFeatureCollection<TFeature> GetFeatureSet<TFeature>()
+	{
+		System.Collections.IEnumerable GetFeatures()
+		{
+			if (typeof(TFeature) == typeof(IGenericDeviceFeature)) return _genericFeatures;
+			if (typeof(TFeature) == typeof(ILightingDeviceFeature)) return _lightingFeatures;
+			if (typeof(TFeature) == typeof(IMotherboardDeviceFeature)) return _motherboardFeatures;
+
+			return FeatureCollection.Empty<TFeature>();
+		}
+
+		return Unsafe.As<IDeviceFeatureCollection<TFeature>>(GetFeatures());
+	}
+
 	private RgbFusionIT5702Driver
 	(
 		HidFullDuplexStream stream,
+		IMotherboardSystemManagementBusFeature? smBusFeature,
 		ushort productId,
 		ushort versionNumber,
 		string productName,
 		int ledCount,
+		DeviceCategory deviceCategory,
 		DeviceConfigurationKey configurationKey
 	)
 		: base(productName ?? "RGB Fusion 2.0 Controller", configurationKey)
@@ -560,6 +611,27 @@ public sealed class RgbFusionIT5702Driver :
 
 		_productId = productId;
 		_versionNumber = versionNumber;
+
+		DeviceCategory = deviceCategory;
+
+		if (smBusFeature is not null)
+		{
+			_motherboardFeatures = FeatureCollection.Create<IMotherboardDeviceFeature, IMotherboardSystemManagementBusFeature>(smBusFeature);
+			FeatureSets =
+			[
+				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ILightingDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IMotherboardDeviceFeature>(),
+			];
+		}
+		else
+		{
+			FeatureSets =
+			[
+				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ILightingDeviceFeature>(),
+			];
+		}
 
 		// Test:
 		//(_unifiedLightingZone as ILightingZoneEffect<StaticColorEffect>).ApplyEffect(new StaticColorEffect(new(255, 0, 255)));

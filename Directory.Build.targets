@@ -36,6 +36,7 @@
 		<ProjectReference Update="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.DeviceIds.Databases\DeviceTools.DeviceIds.Databases.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" Private="false" ExcludeAssets="runtime" />
