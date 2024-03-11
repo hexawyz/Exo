@@ -1,5 +1,4 @@
 using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Firmware.Uefi;
@@ -34,16 +33,16 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 
 		public void OnAfterAcquire()
 		{
-			SetSystemMutex(true);
+			//SetSystemMutex(true);
 		}
 
 		public void OnBeforeRelease()
 		{
-			SetSystemMutex(false);
+			//SetSystemMutex(false);
 		}
 	}
 
-	private const string CimNamespace = @"root/wmi";
+	private const string CimNamespace = @"ROOT/wmi";
 	private const string AcpiMethodClassName = "GSA1_ACPIMethod";
 
 	private const string SmbQuickReadMethodName = "SMBQuickRead";
@@ -65,9 +64,17 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 
 	public static async Task<AcpiSystemManagementBus> CreateAsync()
 	{
+		// NB: We need to use a local connection. Despite what you would think, connecting to "localhost" is NOT a local connection.
 		var cimSession = await CimSession.CreateAsync(null);
-		var acpiMethodDefinition = new CimInstance(AcpiMethodClassName, CimNamespace);
-		var acpiMethodInstance = await cimSession.GetInstanceAsync(CimNamespace, acpiMethodDefinition);
+		// NB: This is weird and really annoying, but the CimSession.GetInstance(Async) method DOES NOT work.
+		// The PowerShell cmdlet for Get-CimInstance is using EnumerateInstances(Async) instead, and it does indeed work perfectly fine in this case.
+		// If the instance is retrieved via GetInstance(Async), it will look superficially fine, but it will be profoundly incorrect for some reason.
+		// The most visible symptom being that Instance Properties of the CIM instance returned by GetInstance(Async) are not properly filled. (Values are missing)
+		// But these instances will not be able to execute any methods, and throw an exception for incorrect parameter.
+		// AFAIK, there's close to no documentation on how to work on this API, and I've had to work out the quirks on my own,
+		// as many of the few developers that confronted themselves to this on internet had similar problems in various parts of the API, but none had a use case as specific as this one.
+		// What saved me is knowing that the PowerShell cmdlets work fine, as I've used them for prototyping this in the past, and thankfully, we have the code for these commands available on GitHub.
+		var acpiMethodInstance = await cimSession.EnumerateInstancesAsync(CimNamespace, AcpiMethodClassName).SingleAsync();
 
 		// In the motherboard I own, the only valid value to pass as bus index is 2.
 		// This can be verified by looking at the ACPI data. (Methods are exposed in SSDT1 here)
@@ -82,16 +89,59 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		_writeBuffer = new byte[260];
 	}
 
+	private static uint ParseResult(CimMethodResult? cimResult)
+	{
+		if (cimResult is null ||
+			!(bool)cimResult.ReturnValue.Value ||
+			cimResult.OutParameters["ret"].Value is not CimInstance returnValueInstance ||
+			returnValueInstance.CimInstanceProperties["data"].Value is not uint result)
+		{
+			throw new SystemManagementBusException();
+		}
+
+		return result;
+	}
+
+	private static void ValidateResult(CimMethodResult? cimResult, byte address)
+	{
+		uint result = ParseResult(cimResult);
+		if (result != 0)
+		{
+			throw new SystemManagementBusDeviceNotFoundException(address);
+		}
+	}
+
+	private static byte ParseByteResult(CimMethodResult? cimResult, byte address)
+	{
+		uint result = ParseResult(cimResult);
+		if (result > 255)
+		{
+			throw new SystemManagementBusDeviceNotFoundException(address);
+		}
+		return (byte)result;
+	}
+
+	private static ushort ParseUInt16Result(CimMethodResult? cimResult, byte address)
+	{
+		uint result = ParseResult(cimResult);
+		if (result > 65535)
+		{
+			throw new SystemManagementBusDeviceNotFoundException(address);
+		}
+		return (ushort)result;
+	}
+
 	public ValueTask<OwnedMutex> AcquireMutexAsync()
 	{
 		return new ValueTask<OwnedMutex>(AsyncGlobalMutex.SmBus.AcquireAsync(MutexLifecycle.Instance, false));
 	}
 
-	public ValueTask QuickReadAsync(byte address)
-		=> new ValueTask
+	public async ValueTask QuickReadAsync(byte address)
+		=> ValidateResult
 		(
-			_cimSession.InvokeMethodAsync
+			await _cimSession.InvokeMethodAsync
 			(
+			_cimInstance.CimSystemProperties.Namespace,
 				_cimInstance,
 				SmbQuickReadMethodName,
 				new CimMethodParametersCollection
@@ -99,63 +149,67 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
 				}
-			).ToTask()
+			),
+			address
 		);
 
 	public async ValueTask<byte> ReceiveByteAsync(byte address)
-	{
-		var result = await _cimSession.InvokeMethodAsync
+		=> ParseByteResult
 		(
-			_cimInstance,
-			SmbReceiveByteMethodName,
-			new CimMethodParametersCollection
-			{
-				CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-				CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
-			}
+			await _cimSession.InvokeMethodAsync
+			(
+				_cimInstance.CimSystemProperties.Namespace,
+				_cimInstance,
+				SmbReceiveByteMethodName,
+				new CimMethodParametersCollection
+				{
+					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+				}
+			),
+			address
 		);
-
-		return (byte)result.OutParameters["ret"].Value;
-	}
 
 	public async ValueTask<byte> ReadByteAsync(byte address, byte command)
-	{
-		var result = await _cimSession.InvokeMethodAsync
+		=> ParseByteResult
 		(
-			_cimInstance,
-			SmbReadByteMethodName,
-			new CimMethodParametersCollection
-			{
-				CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-				CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+			await _cimSession.InvokeMethodAsync
+			(
+				_cimInstance.CimSystemProperties.Namespace,
+				_cimInstance,
+				SmbReadByteMethodName,
+				new CimMethodParametersCollection
+				{
+					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
-			}
+				}
+			),
+			address
 		);
-
-		return (byte)result.OutParameters["ret"].Value;
-	}
 
 	public async ValueTask<ushort> ReadWordAsync(byte address, byte command)
-	{
-		var result = await _cimSession.InvokeMethodAsync
+		=> ParseUInt16Result
 		(
-			_cimInstance,
-			SmbReadWordMethodName,
-			new CimMethodParametersCollection
-			{
-				CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-				CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
-				CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
-			}
+			await _cimSession.InvokeMethodAsync
+			(
+				_cimInstance,
+				SmbReadWordMethodName,
+				new CimMethodParametersCollection
+				{
+					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
+				}
+			),
+			address
 		);
-
-		return (ushort)result.OutParameters["ret"].Value;
-	}
 
 	public async ValueTask<byte[]> ReadBlockAsync(byte address, byte command)
 	{
 		var result = await _cimSession.InvokeMethodAsync
 		(
+			_cimInstance.CimSystemProperties.Namespace,
 			_cimInstance,
 			SmbBlockReadMethodName,
 			new CimMethodParametersCollection
@@ -166,6 +220,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 			}
 		);
 
+		// TODO
 		// NB: I'm not entirely sure about this part, as I've not needed to use the method, but judging by the signature, this should be right.
 		var buffer = (byte[])result.OutParameters["ret"].Value;
 
@@ -176,11 +231,12 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		return buffer.AsSpan(4, length).ToArray();
 	}
 
-	public ValueTask QuickWriteAsync(byte address)
-		=> new ValueTask
+	public async ValueTask QuickWriteAsync(byte address)
+		=> ValidateResult
 		(
-			_cimSession.InvokeMethodAsync
+			await _cimSession.InvokeMethodAsync
 			(
+				_cimInstance.CimSystemProperties.Namespace,
 				_cimInstance,
 				SmbQuickWriteMethodName,
 				new CimMethodParametersCollection
@@ -188,14 +244,16 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
 				}
-			).ToTask()
+			),
+			address
 		);
 
-	public ValueTask SendByteAsync(byte address, byte value)
-		=> new ValueTask
+	public async ValueTask SendByteAsync(byte address, byte value)
+		=> ValidateResult
 		(
-			_cimSession.InvokeMethodAsync
+			await _cimSession.InvokeMethodAsync
 			(
+				_cimInstance.CimSystemProperties.Namespace,
 				_cimInstance,
 				SmbSendByteMethodName,
 				new CimMethodParametersCollection
@@ -204,14 +262,16 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", value, CimType.UInt8, CimFlags.In),
 				}
-			).ToTask()
+			),
+			address
 		);
 
-	public ValueTask WriteByteAsync(byte address, byte command, byte value)
-		=> new ValueTask
+	public async ValueTask WriteByteAsync(byte address, byte command, byte value)
+		=> ValidateResult
 		(
-			_cimSession.InvokeMethodAsync
+			await _cimSession.InvokeMethodAsync
 			(
+				_cimInstance.CimSystemProperties.Namespace,
 				_cimInstance,
 				SmbWriteByteMethodName,
 				new CimMethodParametersCollection
@@ -221,14 +281,16 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", value, CimType.UInt8, CimFlags.In),
 				}
-			).ToTask()
+			),
+			address
 		);
 
-	public ValueTask WriteWordAsync(byte address, byte command, ushort value)
-		=> new ValueTask
+	public async ValueTask WriteWordAsync(byte address, byte command, ushort value)
+		=> ValidateResult
 		(
-			_cimSession.InvokeMethodAsync
+			await _cimSession.InvokeMethodAsync
 			(
+				_cimInstance.CimSystemProperties.Namespace,
 				_cimInstance,
 				SmbWriteWordMethodName,
 				new CimMethodParametersCollection
@@ -238,10 +300,11 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", value, CimType.UInt16, CimFlags.In),
 				}
-			).ToTask()
+			),
+			address
 		);
 
-	public ValueTask WriteBlockAsync(byte address, byte command, Span<byte> value)
+	public async ValueTask WriteBlockAsync(byte address, byte command, ReadOnlyMemory<byte> value)
 	{
 		if (value.Length is 0 or > 256) throw new ArgumentException();
 
@@ -251,12 +314,12 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		buffer[1] = (byte)((value.Length >> 8) & 0xFF);
 		buffer[2] = 0;
 		buffer[3] = 0;
-		value.CopyTo(buffer.AsSpan(4));
+		value.Span.CopyTo(buffer.AsSpan(4));
 		buffer.AsSpan(4 + value.Length).Clear();
 
-		return new ValueTask
+		ValidateResult
 		(
-			_cimSession.InvokeMethodAsync
+			await _cimSession.InvokeMethodAsync
 			(
 				_cimInstance,
 				SmbBlockWriteMethodName,
@@ -267,7 +330,8 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", buffer, CimType.UInt8Array, CimFlags.In),
 				}
-			).ToTask()
+			),
+			address
 		);
 	}
 }

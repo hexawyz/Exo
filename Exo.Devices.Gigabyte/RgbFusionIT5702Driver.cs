@@ -626,6 +626,7 @@ public sealed class RgbFusionIT5702Driver :
 		}
 		else
 		{
+			_motherboardFeatures = FeatureCollection.Empty<IMotherboardDeviceFeature>();
 			FeatureSets =
 			[
 				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),

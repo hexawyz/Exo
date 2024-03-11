@@ -21,7 +21,6 @@ public class AuraRamDriver :
 	ILightingZoneEffect<ColorCycleEffect>,
 	ILightingZoneEffect<ColorWaveEffect>
 {
-
 	// NB: Aura sticks are generally configured all at once, since they start mapped at the same 0x77 register.
 	// We should be able to detect and map each of the discovered sticks as separate lighting zones under the same device, but we could also expose each ram stick as its own device.
 	// Let's try mapping the sticks as lighting zones for now, but maybe we'll want to revisit this later on and return one driver for each stick.
@@ -35,7 +34,46 @@ public class AuraRamDriver :
 		ISystemManagementBus systemManagementBus
 	)
 	{
+		await using (await systemManagementBus.AcquireMutexAsync())
+		{
+			// First try to detect unmapped Aura RAM stick.
+			if (await DetectAuraRamAsync(systemManagementBus, 0x77))
+			{
+				// If the RAM sticks are unmapped, we will have to map them somewhere available.
+			}
+
+			// Detect and validate mapped aura RAM sticks.
+			// Previously, RAM sticks would generally be mapped at 0x70‥0x77, but from what is said around, this can change depending on availability of the addresses.
+			// I know this mapping is at least supported on the Z490 VISION D, as that's what I got in the past, but it might be hard to tell on other motherboards.
+			// In fact, after checking, RAM sticks now seem to be mapped from 0x72 onwards.
+			// However, something seems to have happened, as there are 8 devices mapped from 0x72 to 0x79 included for only 4 sticks.
+			// I'm not sure the Aura addresses that were documented there are still entirely right, though:
+			// https://web.archive.org/web/20211010175028/https://gitlab.com/CalcProgrammer1/OpenRGB/-/wikis/Aura-Controller-Registers
+			// * If I request the last accessed address after using RGB Fusion, I get 0x8030, so this must definitely map to something, but what?
+			// * Trying to request 0x80F9 does not seem to return anything coherent for the I2C/SMBus address?
+
+			//await DetectAuraRamAsync(systemManagementBus, 0x70);
+		}
 		return null;
+	}
+
+	private static async ValueTask<bool> DetectAuraRamAsync(ISystemManagementBus smBus, byte address)
+	{
+		for (uint i = 0; i < 32; i++)
+		{
+			try
+			{
+				if (await smBus.ReadByteAsync(address, (byte)(RepeatedSequenceStart + i)).ConfigureAwait(false) != i)
+				{
+					return false;
+				}
+			}
+			catch (SystemManagementBusDeviceNotFoundException)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private const byte WriteAddressCommand = 0x00;
@@ -71,16 +109,16 @@ public class AuraRamDriver :
 		await smBusDriver.WriteWordAsync(deviceAddress, WriteWordCommand, value);
 	}
 
-	private readonly ISystemManagementBus _smBusDriver;
+	private readonly ISystemManagementBus _smBus;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureCollection<IDeviceFeature> _allFeatures;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
 
-	public AuraRamDriver(string friendlyName, DeviceConfigurationKey configurationKey, ISystemManagementBus smBusDriver)
+	public AuraRamDriver(string friendlyName, DeviceConfigurationKey configurationKey, ISystemManagementBus smBus)
 		: base("Aura RAM", default)
 	{
-		_smBusDriver = smBusDriver;
+		_smBus = smBus;
 		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, IUnifiedLightingFeature>(this);
 		_allFeatures = FeatureCollection.Create<IDeviceFeature, AuraRamDriver, ILightingControllerFeature, IUnifiedLightingFeature>(this);
 	}

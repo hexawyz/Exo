@@ -169,6 +169,7 @@ public sealed class AsyncGlobalMutex
 		_pendingTaskList = new();
 		_waitQueue = new();
 		_manualResetEvent = new(false);
+		_thread.Start();
 	}
 
 	/// <summary>Acquires the global mutex.</summary>
@@ -235,6 +236,8 @@ public sealed class AsyncGlobalMutex
 
 					continue;
 				}
+
+				tcs.TrySetResult(new(scheduler));
 
 				while (true)
 				{

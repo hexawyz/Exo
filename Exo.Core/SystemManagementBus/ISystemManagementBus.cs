@@ -1,3 +1,5 @@
+using System.Runtime.Serialization;
+
 namespace Exo.SystemManagementBus;
 
 /// <summary>Define a standard SMBus interface.</summary>
@@ -56,7 +58,7 @@ public interface ISystemManagementBus
 	/// <param name="address">The SMBus device address.</param>
 	/// <param name="command">The command code.</param>
 	/// <param name="data">The data to write.</param>
-	ValueTask WriteBlockAsync(byte address, byte command, Span<byte> data);
+	ValueTask WriteBlockAsync(byte address, byte command, ReadOnlyMemory<byte> data);
 
 	ValueTask QuickReadAsync(byte address);
 	ValueTask<byte> ReceiveByteAsync(byte address);
