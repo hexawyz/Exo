@@ -40,6 +40,9 @@ public class AuraRamDriver :
 			if (await DetectAuraRamAsync(systemManagementBus, 0x77))
 			{
 				// If the RAM sticks are unmapped, we will have to map them somewhere available.
+
+				//var bytes = await DumpRegistersAsync(systemManagementBus, 0x3B);
+				//File.WriteAllBytes("dmp3B.bin", bytes);
 			}
 
 			// Detect and validate mapped aura RAM sticks.
@@ -49,12 +52,31 @@ public class AuraRamDriver :
 			// However, something seems to have happened, as there are 8 devices mapped from 0x72 to 0x79 included for only 4 sticks.
 			// I'm not sure the Aura addresses that were documented there are still entirely right, though:
 			// https://web.archive.org/web/20211010175028/https://gitlab.com/CalcProgrammer1/OpenRGB/-/wikis/Aura-Controller-Registers
-			// * If I request the last accessed address after using RGB Fusion, I get 0x8030, so this must definitely map to something, but what?
-			// * Trying to request 0x80F9 does not seem to return anything coherent for the I2C/SMBus address?
+			// * If I request the last accessed address after using RGB Fusion, I get 0x8030, so this must definitely map to something, but what => No actually, that's just the end of color bank 8020.
+			// * Trying to request 0x80F9 does not seem to return anything coherent for the I2C/SMBus address? (=> No)
+			// In fact, when doing a full dump of the RAM, I found some interesting stuff
+			// It seems as if the data at 7FE0 is some kind of chip info. I'm assuming BCD date, and chip ID "6K582"
+			// A quick search in google for "6k582" finds some information on Asus motherboards, so that can't be a coincidence.
+			// We can probably use this to safeguard the code a bit.
+			// As for the 8 mapped devices, it seems, as I suspected, that they are all duplicated for some reason I can't explain.
+			// I don't think this was the case in the past, but maybe ? IIRC, for the two sticks I had, those were mapped at 0x72 and 0x74, so it could be a match.
+			// In fact, it might be that the ACPI stuff for SMBus is using shifted I2C addresses 😑
+			// Then, it would follow that in fact, the devices are mapped to 0x39,0x3A,0x3B and 0x3C. Which would make more sense…
 
-			//await DetectAuraRamAsync(systemManagementBus, 0x70);
+			//await DetectAuraRamAsync(systemManagementBus, 0x39);
 		}
 		return null;
+	}
+
+	private static async ValueTask<byte[]> DumpRegistersAsync(ISystemManagementBus smBus, byte address)
+	{
+		await smBus.WriteWordAsync(address, 0x00, 0x0000);
+		var bytes = new byte[65536];
+		for (uint i = 0; i < 65536; i++)
+		{
+			bytes[i] = await smBus.ReadByteAsync(address, ReadByteCommand);
+		}
+		return bytes;
 	}
 
 	private static async ValueTask<bool> DetectAuraRamAsync(ISystemManagementBus smBus, byte address)
@@ -63,7 +85,7 @@ public class AuraRamDriver :
 		{
 			try
 			{
-				if (await smBus.ReadByteAsync(address, (byte)(RepeatedSequenceStart + i)).ConfigureAwait(false) != i)
+				if (await smBus.ReadByteAsync(address, (byte)(RepeatedSequenceStart + i)) != i)
 				{
 					return false;
 				}
@@ -77,8 +99,9 @@ public class AuraRamDriver :
 	}
 
 	private const byte WriteAddressCommand = 0x00;
-	private const byte ReadWriteByteCommand = 0x01;
+	private const byte WriteByteCommand = 0x01;
 	private const byte WriteWordCommand = 0x02;
+	private const byte ReadByteCommand = 0x81;
 	private const byte ReadWordCommand = 0x82;
 	private const byte RepeatedSequenceStart = 0xA0;
 
@@ -88,13 +111,13 @@ public class AuraRamDriver :
 	private static async ValueTask<byte> ReadByteAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
-		return await smBusDriver.ReadByteAsync(deviceAddress, ReadWriteByteCommand);
+		return await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
 	}
 
 	private static async ValueTask WriteByteAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, byte value)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
-		await smBusDriver.WriteByteAsync(deviceAddress, ReadWriteByteCommand, value);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value);
 	}
 
 	private static async ValueTask<ushort> ReadWordAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)

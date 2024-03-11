@@ -111,6 +111,15 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		}
 	}
 
+	private static void ValidateWriteResult(CimMethodResult? cimResult, byte address)
+	{
+		uint result = ParseResult(cimResult);
+		if (result != 1)
+		{
+			throw new SystemManagementBusDeviceNotFoundException(address);
+		}
+	}
+
 	private static byte ParseByteResult(CimMethodResult? cimResult, byte address)
 	{
 		uint result = ParseResult(cimResult);
@@ -147,7 +156,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 				}
 			),
 			address
@@ -164,7 +173,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 				}
 			),
 			address
@@ -181,7 +190,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 				}
 			),
@@ -198,7 +207,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 				}
 			),
@@ -215,7 +224,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 			new CimMethodParametersCollection
 			{
 				CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-				CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+				CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 				CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 			}
 		);
@@ -242,7 +251,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 				}
 			),
 			address
@@ -259,7 +268,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", value, CimType.UInt8, CimFlags.In),
 				}
 			),
@@ -267,7 +276,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		);
 
 	public async ValueTask WriteByteAsync(byte address, byte command, byte value)
-		=> ValidateResult
+		=> ValidateWriteResult
 		(
 			await _cimSession.InvokeMethodAsync
 			(
@@ -277,7 +286,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", value, CimType.UInt8, CimFlags.In),
 				}
@@ -286,7 +295,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		);
 
 	public async ValueTask WriteWordAsync(byte address, byte command, ushort value)
-		=> ValidateResult
+		=> ValidateWriteResult
 		(
 			await _cimSession.InvokeMethodAsync
 			(
@@ -296,7 +305,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", value, CimType.UInt16, CimFlags.In),
 				}
@@ -317,7 +326,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		value.Span.CopyTo(buffer.AsSpan(4));
 		buffer.AsSpan(4 + value.Length).Clear();
 
-		ValidateResult
+		ValidateWriteResult
 		(
 			await _cimSession.InvokeMethodAsync
 			(
@@ -326,7 +335,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 				new CimMethodParametersCollection
 				{
 					CimMethodParameter.Create("bus", _busIndex, CimType.UInt8, CimFlags.In),
-					CimMethodParameter.Create("addr", address, CimType.UInt8, CimFlags.In),
+					CimMethodParameter.Create("addr", (byte)(address << 1), CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("cmd", command, CimType.UInt8, CimFlags.In),
 					CimMethodParameter.Create("data", buffer, CimType.UInt8Array, CimFlags.In),
 				}
