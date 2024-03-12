@@ -43,7 +43,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Razer (NB: Requires the official *kernel* drivers from Razer to be installed)
 	* DeathAdder V2 Pro (USB, Dongle): Battery Level, RGB lighting, DPI changes.
 	* Mouse Dock Chroma: RGB
-* Asus & Various constructors:
+* Asus & Various RAM manufacturers:
 	* Aura compatible RAM: RGB lighting (Provided that there is a SMBus driver for your motherboard or chipset, and that the RAM module ID is added to the list of supported module IDs is updated in the code)
 		* G-Skill Trident Z Neo (F4-3600C18-32GTZN)
 * NVIDIA
@@ -54,7 +54,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Gigabyte
 	* Z490 VISION D and other similar motherboards:
 		* IT5702 RGB controller: RGB lighting
-		* SMBus driver for providing access to RGB RAM and other devices.
+		* SMBus driver for providing access to RGB RAM and other devices. (⚠️ Only available when run in Administrator mode or as a service)
 * LG
 	* 27GP950 Monitor (USB): Standard Monitor control, RGB lighting.
 	* 27GP950 Monitor (DP/HDMI): Standard Monitor control (if connected through supported GPU)
@@ -84,6 +84,17 @@ We can't bundle those drivers with Exo (at least not for now), but we do rely on
 	2. Drivers will already be installed, but you can find the drivers in `C:\Program Files (x86)\Razer`.
 	3. Save the drivers somewhere else.
 	4. Either uninstall Razer Synapse (and reinstall the drivers if necessary) or disable and stop the Razer services (Setting them to manual startup is enough to disable them)
+
+### ⚠️ Conflicts with other software
+
+As is usually the case for this category of software, Exo can sometimes conflict with other software running to control a device.
+This is not always the case and depends on the device, but it is advised to stop other softwares (apps and services) before running Exo, in order to avoid problems.
+
+e.g.:
+* Logitech software: There is generally no conflict, as far as I can tell. An application ID is used in the protocol to prevent problems.
+* Razer Synapse (in case of a supported device): The Razer protocol is not really designed to avoid conflicts, so the softwares can run into problems if two are running simultaneously.
+* Stream Deck: When accessing the device Exo can slightly disrupt the StreamDeck software, but this is probably an intentional behavior from Elgato in order to allow others to control the device. Distruption is instantly fixed by simply opening the main window of the Stream Deck software.
+* RGB Fusion 2.0: As long as the software is not open and running any effects, it seems that there are generally no conflicts.
 
 ## Getting a binary release
 
