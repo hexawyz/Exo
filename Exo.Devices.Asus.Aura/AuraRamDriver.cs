@@ -219,7 +219,7 @@ public partial class AuraRamDriver :
 		modules[index].ColorCount = await ReadByteAsync(smBus, address, 0x1C02);
 		modules[index].Effect = isDynamic ? AuraEffect.Dynamic : (AuraEffect)buffer[1];
 		await ReadBytesAsync(smBus, address, isDynamic ? (ushort)0x8100 : (ushort)0x8160, buffer.AsMemory(0, 32));
-		MemoryMarshal.Cast<byte, RgbColor>(buffer.AsSpan(0, 15)).CopyTo(modules[index].Colors);
+		MemoryMarshal.Cast<byte, RgbColor>(buffer.AsSpan(0, 30)).CopyTo(modules[index].Colors);
 	}
 
 	// Helper to use for debugging and dumping an Aura device memory.

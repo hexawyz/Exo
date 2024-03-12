@@ -43,13 +43,18 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Razer (NB: Requires the official *kernel* drivers from Razer to be installed)
 	* DeathAdder V2 Pro (USB, Dongle): Battery Level, RGB lighting, DPI changes.
 	* Mouse Dock Chroma: RGB
+* Asus & Various constructors:
+	* Aura compatible RAM: RGB lighting (Provided that there is a SMBus driver for your motherboard or chipset, and that the RAM module ID is added to the list of supported module IDs is updated in the code)
+		* G-Skill Trident Z Neo (F4-3600C18-32GTZN)
 * NVIDIA
 	* All GPUs: Support for the I2C interface to control connected monitors.
 	* GeForce RTX 3090 FE and select other GPUs: RGB lighting
 * Intel
 	* WIP: Should at term be able to expose the I2C interface to control connected monitors, however the IGCL library support is currently very poor and doesn't work on many not-too-old configurations.
 * Gigabyte
-	* IT5702 RGB controller: RGB lighting
+	* Z490 VISION D and other similar motherboards:
+		* IT5702 RGB controller: RGB lighting
+		* SMBus driver for providing access to RGB RAM and other devices.
 * LG
 	* 27GP950 Monitor (USB): Standard Monitor control, RGB lighting.
 	* 27GP950 Monitor (DP/HDMI): Standard Monitor control (if connected through supported GPU)

@@ -21,6 +21,15 @@ public partial class AuraRamDriver
 		where TColorBuffer : unmanaged
 		=> MemoryMarshal.CreateSpan(ref Unsafe.As<TColorBuffer, RgbColor>(ref colors), Unsafe.SizeOf<TColorBuffer>() / 3);
 
+	private static RgbColor SwapGreenAndBlue(RgbColor color) => new RgbColor(color.R, color.B, color.G);
+
+	private static void SwapGreenAndBlue(ref RgbColor color)
+	{
+		byte g = color.G;
+		color.G = color.B;
+		color.B = g;
+	}
+
 	private abstract class AuraRamLightingZone :
 		ILightingZone,
 		ILightingZoneEffect<DisabledEffect>,
@@ -71,15 +80,15 @@ public partial class AuraRamDriver
 				break;
 			case AuraEffect.Static:
 				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new StaticColorEffect(StaticColors[0]);
+				CurrentEffect = new StaticColorEffect(SwapGreenAndBlue(StaticColors[0]));
 				break;
 			case AuraEffect.Pulse:
 				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new ColorFlashEffect(StaticColors[0]);
+				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(StaticColors[0]));
 				break;
 			case AuraEffect.Flash:
 				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new ColorFlashEffect(StaticColors[0]);
+				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(StaticColors[0]));
 				break;
 			case AuraEffect.ColorCycle:
 				CurrentEffect = ColorCycleEffect.SharedInstance;
@@ -141,15 +150,15 @@ public partial class AuraRamDriver
 		bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
 		[SkipLocalsInit]
-		protected bool UpdateColors(RgbColor color)
+		protected bool UpdateRawColors(RgbColor color)
 		{
 			TenColorArray newColors;
 			Unsafe.SkipInit(out newColors);
 			AsSpan(ref newColors)[..ColorCount].Fill(color);
-			return UpdateColors(ref newColors);
+			return UpdateRawColors(ref newColors);
 		}
 
-		protected bool UpdateColors(ref TenColorArray colors)
+		protected bool UpdateRawColors(ref TenColorArray colors)
 		{
 			var oldColors = MemoryMarshal.Cast<RgbColor, byte>(StaticColors);
 			var newColors = MemoryMarshal.Cast<RgbColor, byte>(AsSpan(ref colors)[..ColorCount]);
@@ -172,7 +181,7 @@ public partial class AuraRamDriver
 					AuraEffect = auraEffect;
 					changes |= EffectChanges.Effect;
 				}
-				if (UpdateColors(effect.Color)) changes |= EffectChanges.Colors;
+				if (UpdateRawColors(SwapGreenAndBlue(effect.Color))) changes |= EffectChanges.Colors;
 				PendingChanges = changes;
 				CurrentEffect = effect;
 			}
@@ -248,7 +257,14 @@ public partial class AuraRamDriver
 			switch (AuraEffect)
 			{
 			case AuraEffect.Static:
-				CurrentEffect = new Static5ColorEffect(colors[0], colors[1], colors[2], colors[3], colors[4]);
+				CurrentEffect = new Static5ColorEffect
+				(
+					SwapGreenAndBlue(colors[0]),
+					SwapGreenAndBlue(colors[1]),
+					SwapGreenAndBlue(colors[2]),
+					SwapGreenAndBlue(colors[3]),
+					SwapGreenAndBlue(colors[4])
+				);
 				break;
 			}
 		}
@@ -259,12 +275,12 @@ public partial class AuraRamDriver
 			TenColorArray newColors;
 			Unsafe.SkipInit(out newColors);
 			var span = (Span<RgbColor>)newColors;
-			span[0] = color1;
-			span[1] = color2;
-			span[2] = color3;
-			span[3] = color4;
-			span[4] = color5;
-			return UpdateColors(ref newColors);
+			span[0] = SwapGreenAndBlue(color1);
+			span[1] = SwapGreenAndBlue(color2);
+			span[2] = SwapGreenAndBlue(color3);
+			span[3] = SwapGreenAndBlue(color4);
+			span[4] = SwapGreenAndBlue(color5);
+			return UpdateRawColors(ref newColors);
 		}
 
 		bool ILightingZoneEffect<Static5ColorEffect>.TryGetCurrentEffect(out Static5ColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -301,7 +317,17 @@ public partial class AuraRamDriver
 			switch (AuraEffect)
 			{
 			case AuraEffect.Static:
-				CurrentEffect = new Static8ColorEffect(colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6], colors[7]);
+				CurrentEffect = new Static8ColorEffect
+				(
+					SwapGreenAndBlue(colors[0]),
+					SwapGreenAndBlue(colors[1]),
+					SwapGreenAndBlue(colors[2]),
+					SwapGreenAndBlue(colors[3]),
+					SwapGreenAndBlue(colors[4]),
+					SwapGreenAndBlue(colors[5]),
+					SwapGreenAndBlue(colors[6]),
+					SwapGreenAndBlue(colors[7])
+				);
 				break;
 			}
 		}
@@ -312,15 +338,15 @@ public partial class AuraRamDriver
 			TenColorArray newColors;
 			Unsafe.SkipInit(out newColors);
 			var span = (Span<RgbColor>)newColors;
-			span[0] = color1;
-			span[1] = color2;
-			span[2] = color3;
-			span[3] = color4;
-			span[4] = color5;
-			span[5] = color6;
-			span[6] = color7;
-			span[7] = color8;
-			return UpdateColors(ref newColors);
+			span[0] = SwapGreenAndBlue(color1);
+			span[1] = SwapGreenAndBlue(color2);
+			span[2] = SwapGreenAndBlue(color3);
+			span[3] = SwapGreenAndBlue(color4);
+			span[4] = SwapGreenAndBlue(color5);
+			span[5] = SwapGreenAndBlue(color6);
+			span[6] = SwapGreenAndBlue(color7);
+			span[7] = SwapGreenAndBlue(color8);
+			return UpdateRawColors(ref newColors);
 		}
 
 		bool ILightingZoneEffect<Static8ColorEffect>.TryGetCurrentEffect(out Static8ColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
