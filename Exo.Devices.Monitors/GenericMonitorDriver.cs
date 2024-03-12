@@ -2,13 +2,16 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Text;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
+using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.MonitorFeatures;
 using Exo.I2C;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Monitors;
 
@@ -28,6 +31,7 @@ public class GenericMonitorDriver
 	[DeviceInterfaceClass(DeviceInterfaceClass.Monitor)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
+		ILogger<GenericMonitorDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		string friendlyName,
 		DeviceId deviceId,
@@ -46,7 +50,11 @@ public class GenericMonitorDriver
 		try
 		{
 			ushort length = await ddc.GetCapabilitiesAsync(buffer, cancellationToken).ConfigureAwait(false);
-			rawCapabilities = buffer[..length].ToArray();
+			rawCapabilities = [.. buffer[..length]];
+			if (logger.IsEnabled(LogLevel.Information))
+			{
+				logger.MonitorRetrievedCapabilities(new MonitorId(edid.VendorId, edid.ProductId).ToString()!, Encoding.UTF8.GetString(rawCapabilities));
+			}
 		}
 		finally
 		{

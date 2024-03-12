@@ -13,7 +13,7 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1003, EventName = "DiscoveryDriverCreationParametersPreparationFailure", Level = LogLevel.Error, Message = "Failed to prepare the driver creation parameters.")]
 	public static partial void DiscoveryDriverCreationParametersPreparationFailure(this ILogger logger, Exception exception);
 
-	[LoggerMessage(EventId = 1004, EventName = "DiscoveryComponentCreationSuccess", Level = LogLevel.Information, Message = "The component {ComponentFriendlyName} was created successfully.")]
+	[LoggerMessage(EventId = 1004, EventName = "DiscoveryComponentCreationSuccess", Level = LogLevel.Information, Message = "The component {ComponentFriendlyName} was created successfully.")]
 	public static partial void DiscoveryComponentCreationSuccess(this ILogger logger, string componentFriendlyName);
 
 	[LoggerMessage(EventId = 1005, EventName = "DiscoveryComponentCreationFailure", Level = LogLevel.Error, Message = "An error occurred during creation of the component with the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\".")]
