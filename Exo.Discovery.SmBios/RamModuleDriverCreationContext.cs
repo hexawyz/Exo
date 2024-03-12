@@ -11,6 +11,8 @@ public sealed class RamModuleDriverCreationContext : DriverCreationContext
 	public ImmutableArray<SystemMemoryDeviceKey> DiscoveredKeys { get; }
 	public ImmutableArray<MemoryModuleInformation> MemoryModules { get; }
 	public ISystemManagementBus SystemManagementBus { get; }
+	/// <summary>Provides information on the total number of memory modules.</summary>
+	public int TotalMemoryModuleCount => _discoverySubsystem.InstalledModules.Length;
 
 	protected override INestedDriverRegistryProvider NestedDriverRegistryProvider => _discoverySubsystem.DriverRegistry;
 	public override ILoggerFactory LoggerFactory => _discoverySubsystem.LoggerFactory;

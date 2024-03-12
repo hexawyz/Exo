@@ -26,6 +26,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8BFF-41F1-8589-922D8BE1B233}"
 	ProjectSection(SolutionItems) = preProject
 		Docs\Apple USB Keyboard.md = Docs\Apple USB Keyboard.md
+		Docs\Aura RAM.md = Docs\Aura RAM.md
 		Docs\Corsair HX1200i.md = Docs\Corsair HX1200i.md
 		Docs\Design Philosophy.md = Docs\Design Philosophy.md
 		Docs\Gigabyte Z490 Vision D.md = Docs\Gigabyte Z490 Vision D.md

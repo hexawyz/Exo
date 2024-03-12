@@ -56,7 +56,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 	}
 
 	private readonly Dictionary<RamModuleKey, Guid> _ramModuleFactories;
-	private readonly ImmutableArray<MemoryModuleInformation> _installedModules;
+	internal ImmutableArray<MemoryModuleInformation> InstalledModules { get; }
 
 	private readonly ILogger<SystemManagementBiosRamDiscoverySubsystem> _logger;
 	internal ILoggerFactory LoggerFactory { get; }
@@ -77,7 +77,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		SystemManagementBusProvider = systemManagementBusProvider;
-		_installedModules = installedModules;
+		InstalledModules = installedModules;
 
 		_ramModuleFactories = new();
 
@@ -95,7 +95,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 		{
 			if (_ramModuleFactories.Count == 0) return ValueTask.CompletedTask;
 
-			foreach (var module in _installedModules)
+			foreach (var module in InstalledModules)
 			{
 				if (_ramModuleFactories.TryGetValue(new RamModuleKey() { ManufacturerCode = module.ManufacturerCode, PartNumber = module.PartNumber }, out var factoryId))
 				{

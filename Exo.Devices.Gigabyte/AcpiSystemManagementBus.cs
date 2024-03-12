@@ -105,15 +105,6 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 	private static void ValidateResult(CimMethodResult? cimResult, byte address)
 	{
 		uint result = ParseResult(cimResult);
-		if (result != 0)
-		{
-			throw new SystemManagementBusDeviceNotFoundException(address);
-		}
-	}
-
-	private static void ValidateWriteResult(CimMethodResult? cimResult, byte address)
-	{
-		uint result = ParseResult(cimResult);
 		if (result != 1)
 		{
 			throw new SystemManagementBusDeviceNotFoundException(address);
@@ -276,7 +267,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		);
 
 	public async ValueTask WriteByteAsync(byte address, byte command, byte value)
-		=> ValidateWriteResult
+		=> ValidateResult
 		(
 			await _cimSession.InvokeMethodAsync
 			(
@@ -295,7 +286,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		);
 
 	public async ValueTask WriteWordAsync(byte address, byte command, ushort value)
-		=> ValidateWriteResult
+		=> ValidateResult
 		(
 			await _cimSession.InvokeMethodAsync
 			(
@@ -326,7 +317,7 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 		value.Span.CopyTo(buffer.AsSpan(4));
 		buffer.AsSpan(4 + value.Length).Clear();
 
-		ValidateWriteResult
+		ValidateResult
 		(
 			await _cimSession.InvokeMethodAsync
 			(
