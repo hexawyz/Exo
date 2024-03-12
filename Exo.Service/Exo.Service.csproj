@@ -8,11 +8,18 @@
 		<EnableFakeDevices>false</EnableFakeDevices>
 		<EnableFakeDevices Condition="'$(Configuration)' == 'Debug'">true</EnableFakeDevices>
 		<DefineConstants Condition="'$(EnableFakeDevices)' == 'true'">$(DefineConstants);WITH_FAKE_DEVICES</DefineConstants>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.1.1" />
+	
+	<ItemGroup>
+		<PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.1.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
+	</ItemGroup>
+
+	<!-- These references are not used in the service itself but can be necessary for drivers. -->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Management.Infrastructure" />
+		<PackageReference Include="System.Reactive" />
 	</ItemGroup>
 
 	<!--

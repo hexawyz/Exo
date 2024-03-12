@@ -14,6 +14,7 @@ using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Gigabyte;
 
@@ -351,6 +352,7 @@ public sealed class RgbFusionIT5702Driver :
 	[ProductId(VendorIdSource.Usb, IteVendorId, 0x5702)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
+		ILogger<RgbFusionIT5702Driver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		ushort productId,
 		ushort version,
@@ -398,7 +400,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 			catch (Exception ex)
 			{
-				// TODO: Handle and log.
+				logger.AcpiSystemManagementBusAccessError(ex);
 			}
 
 			isMotherboard = true;
