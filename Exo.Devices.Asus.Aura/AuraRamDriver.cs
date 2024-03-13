@@ -8,6 +8,7 @@ using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Collections.ObjectModel;
 using System.Buffers;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Asus.Aura;
 
@@ -52,6 +53,7 @@ public partial class AuraRamDriver :
 	[RamModuleId(0x04, 0x4D, "F4-3600C18-32GTZN")]
 	public static async Task<DriverCreationResult<SystemMemoryDeviceKey>?> CreateAsync
 	(
+		ILogger<AuraRamDriver> logger,
 		ImmutableArray<SystemMemoryDeviceKey> discoveredKeys,
 		ImmutableArray<MemoryModuleInformation> memoryModules,
 		int totalMemoryModuleCount,
@@ -87,6 +89,7 @@ public partial class AuraRamDriver :
 			await using (await systemManagementBus.AcquireMutexAsync())
 			{
 				int candidateIndex = 0;
+				bool canHaveDeviceAtDefaultAddress = true;
 
 				while (unmappedDeviceCount != 0 && candidateIndex < CandidateAddresses.Length)
 				{
@@ -94,37 +97,63 @@ public partial class AuraRamDriver :
 
 					if (await DetectDevicePresenceAsync(systemManagementBus, candidateAddress))
 					{
+						logger.SmBusDeviceDetected(candidateAddress);
 						if (await DetectAuraRamAsync(systemManagementBus, candidateAddress))
 						{
+							logger.SmBusAuraDeviceDetected(candidateAddress);
+
 							byte slotIndex = await ReadByteAsync(systemManagementBus, candidateAddress, AddressDeviceSlotId);
 							int moduleIndex = slotIndex < 8 ? slotIndexToIndex[slotIndex] : -1;
 
 							if (moduleIndex < 0) throw new InvalidOperationException("Expected to read a slot index, but got something else instead.");
 
+							logger.SmBusAuraDeviceSlotDetected(candidateAddress, slotIndex);
+
 							await ReadModuleSettingsAsync(systemManagementBus, candidateAddress, slotIndex, discoveredModules, moduleIndex, buffer);
 							unmappedDeviceCount--;
 						}
 					}
-					else if (await DetectDevicePresenceAsync(systemManagementBus, DefaultDeviceAddress) && await DetectAuraRamAsync(systemManagementBus, DefaultDeviceAddress))
+					else if (canHaveDeviceAtDefaultAddress)
 					{
-						// We don't really know which modules are unmapped, so we have to try the slot IDs one by one.
-						// This is only really a problem in the case where some devices were already mapped but not all of them. (e.g. if the code is interrupted in the middle of its work)
-						for (int moduleIndex = 0; moduleIndex < memoryModules.Length; moduleIndex++)
+						// If we fail to find a mapped device at a candidate address, we need to check if there is a device that can be remapped.
+						// The general idea is that if there is a device, it would always be remappable, so we only need to remember the status of "no device".
+						if (await DetectDevicePresenceAsync(systemManagementBus, DefaultDeviceAddress) &&
+							await DetectAuraRamAsync(systemManagementBus, DefaultDeviceAddress))
 						{
-							if ((sbyte)discoveredModules[moduleIndex].Address > 0) continue;
-							// Try to move the module. This should only do something if the module for the specified slot ID is still
-							await WriteBytesAsync(systemManagementBus, DefaultDeviceAddress, AddressDeviceSlotId, memoryModules[moduleIndex].Index, candidateAddress);
+							logger.SmBusAuraDeviceDetectedAtDefaultAddress();
 
-							if (await DetectDevicePresenceAsync(systemManagementBus, candidateAddress))
+							// We don't really know which modules are unmapped, so we have to try the slot IDs one by one.
+							// This is only really a problem in the case where some devices were already mapped but not all of them. (e.g. if the code is interrupted in the middle of its work)
+							for (int moduleIndex = 0; moduleIndex < memoryModules.Length; moduleIndex++)
 							{
-								// Generally, there should be no reason why we would detect a device after the move but fail the Aura RAM detection, but who knows.
-								if (await DetectAuraRamAsync(systemManagementBus, candidateAddress))
+								if ((sbyte)discoveredModules[moduleIndex].Address > 0) continue;
+								// Try to move the module. This should only do something if the module for the specified slot ID is still
+								await WriteBytesAsync(systemManagementBus, DefaultDeviceAddress, AddressDeviceSlotId, memoryModules[moduleIndex].Index, candidateAddress);
+
+								if (await DetectDevicePresenceAsync(systemManagementBus, candidateAddress))
 								{
-									await ReadModuleSettingsAsync(systemManagementBus, candidateAddress, memoryModules[moduleIndex].Index, discoveredModules, moduleIndex, buffer);
-									unmappedDeviceCount--;
+									// Generally, there should be no reason why we would detect a device after the move but fail the Aura RAM detection, but who knows.
+									if (await DetectAuraRamAsync(systemManagementBus, candidateAddress))
+									{
+										await ReadModuleSettingsAsync(systemManagementBus, candidateAddress, memoryModules[moduleIndex].Index, discoveredModules, moduleIndex, buffer);
+										unmappedDeviceCount--;
+										logger.SmBusAuraDeviceRemapped(candidateAddress);
+									}
+									else
+									{
+										logger.SmBusAuraDeviceRemappingFailure(candidateAddress);
+									}
+									break;
 								}
-								break;
 							}
+						}
+						else
+						{
+							logger.SmBusAuraDeviceNotDetectedAtDefaultAddress();
+
+							// Remember that there wasn't a device at the default address so that we don't check it anymore.
+							// It will be faster in case the addresses we check last are the good ones, or if the devices are mapped to an unusual address.
+							canHaveDeviceAtDefaultAddress = false;
 						}
 					}
 					candidateIndex++;
