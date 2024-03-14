@@ -1,4 +1,4 @@
-﻿namespace Exo.Devices.Asus.Aura;
+namespace Exo.Devices.Asus.Aura;
 
 public partial class AuraRamDriver
 {
@@ -6,9 +6,11 @@ public partial class AuraRamDriver
 	private enum EffectChanges : byte
 	{
 		None = 0,
-		Effect = 1,
-		Colors = 2,
-		Dynamic = 128,
+		Colors = 1,
+		Dynamic = 2,
+		Effect = 4,
+		FrameDelay = 8,
+		Direction = 16,
 	}
 }
 

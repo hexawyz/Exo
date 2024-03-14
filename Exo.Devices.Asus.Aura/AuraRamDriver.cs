@@ -242,11 +242,13 @@ public partial class AuraRamDriver :
 	{
 		modules[index].Address = address;
 		modules[index].ZoneId = MemoryModuleZoneIds[slotIndex];
-		await ReadBytesAsync(smBus, address, 0x8020, buffer.AsMemory(0, 2));
+		await ReadBytesAsync(smBus, address, 0x8020, buffer.AsMemory(0, 4));
 		bool isDynamic = buffer[0] != 0;
 		modules[index].HasExtendedColors = true;
 		modules[index].ColorCount = await ReadByteAsync(smBus, address, 0x1C02);
 		modules[index].Effect = isDynamic ? AuraEffect.Dynamic : (AuraEffect)buffer[1];
+		modules[index].FrameDelay = (sbyte)buffer[2];
+		modules[index].IsReversed = buffer[3] == 1;
 		await ReadBytesAsync(smBus, address, isDynamic ? (ushort)0x8100 : (ushort)0x8160, buffer.AsMemory(0, 32));
 		MemoryMarshal.Cast<byte, RgbColor>(buffer.AsSpan(0, 30)).CopyTo(modules[index].Colors);
 	}
@@ -306,6 +308,23 @@ public partial class AuraRamDriver :
 		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value2);
 	}
 
+	private static async ValueTask WriteBytesAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, byte value1, byte value2, byte value3)
+	{
+		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value1);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value2);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value3);
+	}
+
+	private static async ValueTask WriteBytesAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, byte value1, byte value2, byte value3, byte value4)
+	{
+		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value1);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value2);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value3);
+		await smBusDriver.WriteByteAsync(deviceAddress, WriteByteCommand, value4);
+	}
+
 	private static async ValueTask WriteBytesAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, ReadOnlyMemory<byte> values)
 	{
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
@@ -327,6 +346,7 @@ public partial class AuraRamDriver :
 	private readonly ISystemManagementBus _smBus;
 	private readonly object _lock;
 	private readonly ImmutableArray<AuraRamLightingZone> _lightingZones;
+	private readonly FinalPendingChanges[] _deferredChangesBuffer;
 	private readonly ReadOnlyCollection<ILightingZone> _lightingZoneCollection;
 	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
 
@@ -353,6 +373,7 @@ public partial class AuraRamDriver :
 			};
 		}
 		_lightingZones = ImmutableCollectionsMarshal.AsImmutableArray(lightingZones);
+		_deferredChangesBuffer = new FinalPendingChanges[lightingZones.Length];
 		_lightingZoneCollection = new ReadOnlyCollection<ILightingZone>(lightingZones);
 		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 	}
@@ -363,9 +384,20 @@ public partial class AuraRamDriver :
 	{
 		await using (await _smBus.AcquireMutexAsync())
 		{
-			foreach (var zone in _lightingZones)
+			var pendingChanges = _deferredChangesBuffer;
+			// First pass: Transmit deferred updates to each RAM stick.
+			for (int i = 0; i < _lightingZones.Length; i++)
 			{
-				await zone.ApplyChangesAsync();
+				var zone = _lightingZones[i];
+				pendingChanges[i] = await zone.UploadDeferredChangesAsync();
+			}
+			// Second pass: Apply pending changes on each RAM stick.
+			// This is done to reduce the visual delay to a minimum.
+			// Updates at this point will be done with a single SMBus operation per stick. (Color updates might be a bit slower than just sending a commit flag, but that's the best we can do)
+			for (int i = 0; i < _lightingZones.Length; i++)
+			{
+				var zone = _lightingZones[i];
+				await zone.ApplyChangesAsync(pendingChanges[i]);
 			}
 		}
 	}

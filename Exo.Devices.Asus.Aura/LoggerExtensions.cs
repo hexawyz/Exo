@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Exo.Devices.Gigabyte;
+namespace Exo.Devices.Asus.Aura;
 
 internal static partial class LoggerExtensions
 {

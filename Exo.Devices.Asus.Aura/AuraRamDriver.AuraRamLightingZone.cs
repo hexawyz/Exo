@@ -55,12 +55,14 @@ public partial class AuraRamDriver
 		protected readonly byte ColorCount;
 		protected AuraEffect AuraEffect;
 		protected EffectChanges PendingChanges;
+		protected sbyte FrameDelay;
+		protected bool IsReversed;
 		private readonly ushort _dynamicColorBufferAddress;
 		private readonly ushort _staticColorBufferAddress;
-		private TenColorArray _staticColors;
+		private TenColorArray _localColors;
 		private readonly Guid _zoneId;
 
-		protected Span<RgbColor> StaticColors => AsSpan(ref _staticColors)[..ColorCount];
+		protected Span<RgbColor> LocalColors => AsSpan(ref _localColors)[..ColorCount];
 
 		public AuraRamLightingZone(AuraRamDriver driver, in DiscoveredModuleDescription description)
 		{
@@ -69,6 +71,8 @@ public partial class AuraRamDriver
 			Address = description.Address;
 			ColorCount = description.ColorCount;
 			AuraEffect = description.Effect;
+			FrameDelay = description.FrameDelay;
+			IsReversed = description.IsReversed;
 			if (description.HasExtendedColors)
 			{
 				_dynamicColorBufferAddress = 0x8100;
@@ -79,8 +83,8 @@ public partial class AuraRamDriver
 				_dynamicColorBufferAddress = 0x8000;
 				_staticColorBufferAddress = 0x8010;
 			}
-			((ReadOnlySpan<RgbColor>)description.Colors)[..ColorCount].CopyTo(StaticColors);
-			var colors = StaticColors;
+			((ReadOnlySpan<RgbColor>)description.Colors)[..ColorCount].CopyTo(LocalColors);
+			var colors = LocalColors;
 			bool isSingleColor = IsSingleColor(colors);
 			_zoneId = description.ZoneId;
 			switch (description.Effect)
@@ -89,15 +93,15 @@ public partial class AuraRamDriver
 				break;
 			case AuraEffect.Static:
 				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new StaticColorEffect(SwapGreenAndBlue(StaticColors[0]));
+				CurrentEffect = new StaticColorEffect(SwapGreenAndBlue(LocalColors[0]));
 				break;
 			case AuraEffect.Pulse:
 				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(StaticColors[0]));
+				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(LocalColors[0]));
 				break;
 			case AuraEffect.Flash:
 				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(StaticColors[0]));
+				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(LocalColors[0]));
 				break;
 			case AuraEffect.ColorCycle:
 				CurrentEffect = ColorCycleEffect.SharedInstance;
@@ -109,13 +113,13 @@ public partial class AuraRamDriver
 				CurrentEffect = ColorCyclePulseEffect.SharedInstance;
 				break;
 			case AuraEffect.Wave:
-				CurrentEffect = new WaveEffect(SwapGreenAndBlue(StaticColors[0]));
+				CurrentEffect = new WaveEffect(SwapGreenAndBlue(LocalColors[0]));
 				break;
 			case AuraEffect.CycleWave:
 				CurrentEffect = ColorCycleWaveEffect.SharedInstance;
 				break;
 			case AuraEffect.Chase:
-				CurrentEffect = new ColorChaseEffect(SwapGreenAndBlue(StaticColors[0]));
+				CurrentEffect = new ColorChaseEffect(SwapGreenAndBlue(LocalColors[0]));
 				break;
 			case AuraEffect.CycleChase:
 				CurrentEffect = ColorCycleChaseEffect.SharedInstance;
@@ -144,35 +148,103 @@ public partial class AuraRamDriver
 
 		ILightingEffect ILightingZone.GetCurrentEffect() => CurrentEffect;
 
-		public async ValueTask ApplyChangesAsync()
+		// Changes applying is split in two parts:
+		// First, we prepare the bulk of the changes and send them to the devices
+		// Then, we send the 
+		public async ValueTask<FinalPendingChanges> UploadDeferredChangesAsync()
 		{
-			if (PendingChanges != 0)
+			FinalPendingChanges finalPendingChanges = FinalPendingChanges.None;
+			var pendingChanges = PendingChanges;
+			if (pendingChanges != 0)
 			{
-				if ((PendingChanges & EffectChanges.Colors) != 0)
+				var effect = AuraEffect;
+
+				if ((pendingChanges & EffectChanges.Colors) != 0)
 				{
-					await WriteBytesAsync(Driver._smBus, Address, _staticColorBufferAddress, MemoryMarshal.Cast<RgbColor, byte>(StaticColors).ToArray());
-				}
-				if ((PendingChanges & EffectChanges.Effect) != 0)
-				{
-					if ((PendingChanges & EffectChanges.Dynamic) != 0)
+					if (effect == AuraEffect.Dynamic)
 					{
-						if (AuraEffect == AuraEffect.Dynamic)
+						// In the initial change from static to dynamic, push the new colors here.
+						if ((pendingChanges & EffectChanges.Dynamic) != 0)
+						{
+							await WriteBytesAsync(Driver._smBus, Address, _dynamicColorBufferAddress, MemoryMarshal.Cast<RgbColor, byte>(LocalColors).ToArray());
+						}
+						else
+						{
+							finalPendingChanges |= FinalPendingChanges.DynamicColors;
+						}
+					}
+					else
+					{
+						await WriteBytesAsync(Driver._smBus, Address, _staticColorBufferAddress, MemoryMarshal.Cast<RgbColor, byte>(LocalColors).ToArray());
+						finalPendingChanges |= FinalPendingChanges.Commit;
+					}
+				}
+				if ((pendingChanges & ~EffectChanges.Colors) != 0)
+				{
+					if ((pendingChanges & EffectChanges.Dynamic) != 0)
+					{
+						if (effect == AuraEffect.Dynamic)
 						{
 							await WriteByteAsync(Driver._smBus, Address, 0x8020, 0x01);
 						}
 						else
 						{
-							await WriteBytesAsync(Driver._smBus, Address, 0x8020, 0x00, (byte)AuraEffect);
+							// When switching from dynamic to predefined effects, update all other states.
+							// TODO: Fix the possible missed updates for colors when switching away from dynamic lighting.
+							await WriteBytesAsync(Driver._smBus, Address, 0x8020, 0x00, (byte)effect, (byte)FrameDelay, IsReversed ? (byte)1 : (byte)0);
 						}
 					}
 					else
 					{
-						await WriteByteAsync(Driver._smBus, Address, 0x8021, (byte)AuraEffect);
+						// The goal here is to minimize changes, as SMBus operations are relatively costly.
+						// However, it might make the code itself les efficient. This can be revisited later if necessary.
+						ValueTask task;
+						switch (pendingChanges & ~(EffectChanges.Colors | EffectChanges.Dynamic))
+						{
+						case EffectChanges.None:
+							goto default;
+						case EffectChanges.Effect:
+							task = WriteByteAsync(Driver._smBus, Address, 0x8021, (byte)effect);
+							break;
+						case EffectChanges.FrameDelay:
+							task = WriteByteAsync(Driver._smBus, Address, 0x8021, (byte)FrameDelay);
+							break;
+						case EffectChanges.Effect | EffectChanges.FrameDelay:
+							task = WriteBytesAsync(Driver._smBus, Address, 0x8021, (byte)effect, (byte)FrameDelay);
+							break;
+						case EffectChanges.Direction:
+							task = WriteByteAsync(Driver._smBus, Address, 0x8021, (byte)FrameDelay);
+							break;
+						case EffectChanges.Effect | EffectChanges.Direction:
+						case EffectChanges.Effect | EffectChanges.FrameDelay | EffectChanges.Direction:
+							task = WriteBytesAsync(Driver._smBus, Address, 0x8021, (byte)effect, (byte)FrameDelay, IsReversed ? (byte)1 : (byte)0);
+							break;
+						case EffectChanges.FrameDelay | EffectChanges.Direction:
+							task = WriteBytesAsync(Driver._smBus, Address, 0x8021, (byte)FrameDelay, IsReversed ? (byte)1 : (byte)0);
+							break;
+						default:
+							task = ValueTask.CompletedTask;
+							break;
+						}
+						await task;
 					}
+					finalPendingChanges |= FinalPendingChanges.Commit;
 				}
-				await WriteByteAsync(Driver._smBus, Address, 0x80A0, 0x01);
-				PendingChanges = 0;
 			}
+			return finalPendingChanges;
+		}
+
+		public async ValueTask ApplyChangesAsync(FinalPendingChanges pendingChanges)
+		{
+			if ((pendingChanges & FinalPendingChanges.DynamicColors) != 0)
+			{
+				await WriteBytesAsync(Driver._smBus, Address, _dynamicColorBufferAddress, MemoryMarshal.Cast<RgbColor, byte>(LocalColors).ToArray());
+			}
+			if ((pendingChanges & FinalPendingChanges.Commit) != 0)
+			{
+				await WriteByteAsync(Driver._smBus, Address, 0x80A0, 0x01);
+			}
+			PendingChanges = 0;
 		}
 
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -201,7 +273,7 @@ public partial class AuraRamDriver
 
 		protected bool UpdateRawColors(ref TenColorArray colors)
 		{
-			var oldColors = MemoryMarshal.Cast<RgbColor, byte>(StaticColors);
+			var oldColors = MemoryMarshal.Cast<RgbColor, byte>(LocalColors);
 			var newColors = MemoryMarshal.Cast<RgbColor, byte>(AsSpan(ref colors)[..ColorCount]);
 
 			if (oldColors.SequenceEqual(newColors)) return false;
@@ -252,7 +324,7 @@ public partial class AuraRamDriver
 				var changes = PendingChanges;
 				if (AuraEffect == AuraEffect.Dynamic) changes ^= EffectChanges.Dynamic;
 				AuraEffect = AuraEffect.Off;
-				_staticColors = default;
+				_localColors = default;
 				changes |= EffectChanges.Effect | EffectChanges.Colors;
 				PendingChanges = changes;
 				CurrentEffect = DisabledEffect.SharedInstance;
