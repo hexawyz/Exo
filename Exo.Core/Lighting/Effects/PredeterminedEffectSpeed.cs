@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
-namespace Exo.Devices.Gigabyte.LightingEffects;
+namespace Exo.Lighting.Effects;
 
 [DataContract]
 public enum PredeterminedEffectSpeed : byte

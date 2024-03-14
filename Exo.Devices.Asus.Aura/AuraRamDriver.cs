@@ -37,6 +37,8 @@ public partial class AuraRamDriver :
 		new(0xA3BBB8F5, 0x16E6, 0x4AF2, 0x9B, 0x46, 0x9C, 0xEC, 0x68, 0xC2, 0x4E, 0x95),
 	];
 
+	private static ReadOnlySpan<sbyte> DefaultFrameDelays => [3, 2, 1, 0, -1, -2];
+
 	private const byte DefaultDeviceAddress = 0x77;
 
 	// Address used to indicate the slot ID to control for reassigning device addresses.
@@ -162,7 +164,7 @@ public partial class AuraRamDriver :
 				// We allow one device to be mapped on address 0x77, because that should never really be a problem (right?)
 				if (unmappedDeviceCount == 1 && await DetectAuraRamAsync(systemManagementBus, DefaultDeviceAddress))
 				{
-					int slotIndex = await ReadByteAsync(systemManagementBus, 0x77, AddressDeviceSlotId);
+					int slotIndex = await ReadByteAsync(systemManagementBus, DefaultDeviceAddress, AddressDeviceSlotId);
 					int moduleIndex = slotIndex < 8 ? slotIndexToIndex[slotIndex] : -1;
 
 					if (moduleIndex < 0) throw new InvalidOperationException("Expected to read a slot index, but got something else instead.");
