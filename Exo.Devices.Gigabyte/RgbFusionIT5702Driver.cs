@@ -36,9 +36,9 @@ public sealed class RgbFusionIT5702Driver :
 	ILightingZoneEffect<AdvancedColorFlashEffect>,
 	ILightingZoneEffect<ColorDoubleFlashEffect>,
 	ILightingZoneEffect<VariableColorDoubleFlashEffect>,
-	ILightingZoneEffect<ColorCycleEffect>,
-	ILightingZoneEffect<ColorCycleWithBrightnessEffect>,
-	ILightingZoneEffect<ColorWaveEffect>
+	ILightingZoneEffect<SpectrumCycleEffect>,
+	ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>,
+	ILightingZoneEffect<SpectrumWaveEffect>
 {
 	private const int IteVendorId = 0x048D;
 
@@ -771,9 +771,9 @@ public sealed class RgbFusionIT5702Driver :
 	void ILightingZoneEffect<AdvancedColorFlashEffect>.ApplyEffect(in AdvancedColorFlashEffect effect) => ((ILightingZoneEffect<AdvancedColorFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<ColorDoubleFlashEffect>.ApplyEffect(in ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
 	void ILightingZoneEffect<VariableColorDoubleFlashEffect>.ApplyEffect(in VariableColorDoubleFlashEffect effect) => ((ILightingZoneEffect<VariableColorDoubleFlashEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect) => ((ILightingZoneEffect<ColorCycleEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<ColorCycleWithBrightnessEffect>.ApplyEffect(in ColorCycleWithBrightnessEffect effect) => ((ILightingZoneEffect<ColorCycleWithBrightnessEffect>)_unifiedLightingZone).ApplyEffect(effect);
-	void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => ((ILightingZoneEffect<ColorWaveEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => ((ILightingZoneEffect<SpectrumCycleEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>.ApplyEffect(in SpectrumCycleWithBrightnessEffect effect) => ((ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>)_unifiedLightingZone).ApplyEffect(effect);
+	void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => ((ILightingZoneEffect<SpectrumWaveEffect>)_unifiedLightingZone).ApplyEffect(effect);
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => ((ILightingZoneEffect<DisabledEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => ((ILightingZoneEffect<StaticColorEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
@@ -785,9 +785,9 @@ public sealed class RgbFusionIT5702Driver :
 	bool ILightingZoneEffect<AdvancedColorFlashEffect>.TryGetCurrentEffect(out AdvancedColorFlashEffect effect) => ((ILightingZoneEffect<AdvancedColorFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => ((ILightingZoneEffect<ColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 	bool ILightingZoneEffect<VariableColorDoubleFlashEffect>.TryGetCurrentEffect(out VariableColorDoubleFlashEffect effect) => ((ILightingZoneEffect<VariableColorDoubleFlashEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
-	bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => ((ILightingZoneEffect<ColorCycleEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
-	bool ILightingZoneEffect<ColorCycleWithBrightnessEffect>.TryGetCurrentEffect(out ColorCycleWithBrightnessEffect effect) => ((ILightingZoneEffect<ColorCycleWithBrightnessEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
-	bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => ((ILightingZoneEffect<ColorWaveEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => ((ILightingZoneEffect<SpectrumCycleEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>.TryGetCurrentEffect(out SpectrumCycleWithBrightnessEffect effect) => ((ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
+	bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => ((ILightingZoneEffect<SpectrumWaveEffect>)_unifiedLightingZone).TryGetCurrentEffect(out effect);
 
 	private class LightingZone
 		: ILightingZone,
@@ -801,8 +801,8 @@ public sealed class RgbFusionIT5702Driver :
 		ILightingZoneEffect<AdvancedColorFlashEffect>,
 		ILightingZoneEffect<ColorDoubleFlashEffect>,
 		ILightingZoneEffect<VariableColorDoubleFlashEffect>,
-		ILightingZoneEffect<ColorCycleEffect>,
-		ILightingZoneEffect<ColorCycleWithBrightnessEffect>
+		ILightingZoneEffect<SpectrumCycleEffect>,
+		ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>
 	{
 		internal byte LedMask { get; }
 		public Guid ZoneId { get; }
@@ -1162,7 +1162,7 @@ public sealed class RgbFusionIT5702Driver :
 			}
 		}
 
-		void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect)
+		void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -1180,11 +1180,11 @@ public sealed class RgbFusionIT5702Driver :
 						ColorCount = 7,
 					}
 				};
-				CurrentEffect = ColorCycleEffect.SharedInstance;
+				CurrentEffect = SpectrumCycleEffect.SharedInstance;
 			}
 		}
 
-		void ILightingZoneEffect<ColorCycleWithBrightnessEffect>.ApplyEffect(in ColorCycleWithBrightnessEffect effect)
+		void ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>.ApplyEffect(in SpectrumCycleWithBrightnessEffect effect)
 		{
 			if ((nint)(effect.BrightnessLevel - 1) > 99) throw new ArgumentException("Invalid brightness value.");
 
@@ -1218,17 +1218,17 @@ public sealed class RgbFusionIT5702Driver :
 		bool ILightingZoneEffect<AdvancedColorFlashEffect>.TryGetCurrentEffect(out AdvancedColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorDoubleFlashEffect>.TryGetCurrentEffect(out ColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableColorDoubleFlashEffect>.TryGetCurrentEffect(out VariableColorDoubleFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ColorCycleWithBrightnessEffect>.TryGetCurrentEffect(out ColorCycleWithBrightnessEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<SpectrumCycleWithBrightnessEffect>.TryGetCurrentEffect(out SpectrumCycleWithBrightnessEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	}
 
-	private class WaveLightingZone : LightingZone, ILightingZoneEffect<ColorWaveEffect>
+	private class WaveLightingZone : LightingZone, ILightingZoneEffect<SpectrumWaveEffect>
 	{
 		public WaveLightingZone(byte ledMask, Guid zoneId, RgbFusionIT5702Driver owner) : base(ledMask, zoneId, owner)
 		{
 		}
 
-		void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect)
+		void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect)
 		{
 			lock (Owner._lock)
 			{
@@ -1245,11 +1245,11 @@ public sealed class RgbFusionIT5702Driver :
 						ColorCount = 7,
 					}
 				};
-				CurrentEffect = ColorWaveEffect.SharedInstance;
+				CurrentEffect = SpectrumWaveEffect.SharedInstance;
 			}
 		}
 
-		bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	}
 
 	private class AddressableLightingZone : LightingZone

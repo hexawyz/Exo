@@ -323,8 +323,8 @@ internal sealed class RazerProtocolTransport : IDisposable
 						1 => new ColorPulseEffect(color1),
 						_ => new TwoColorPulseEffect(color1, color2),
 					},
-					RazerLightingEffect.SpectrumCycle => ColorCycleEffect.SharedInstance,
-					RazerLightingEffect.Wave => ColorWaveEffect.SharedInstance,
+					RazerLightingEffect.SpectrumCycle => SpectrumCycleEffect.SharedInstance,
+					RazerLightingEffect.Wave => SpectrumWaveEffect.SharedInstance,
 					RazerLightingEffect.Reactive => new ReactiveEffect(color1),
 					_ => null,
 				};

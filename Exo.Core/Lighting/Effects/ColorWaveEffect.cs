@@ -1,18 +1,18 @@
-namespace Exo.Lighting.Effects;
+using System.ComponentModel;
+using System.Runtime.Serialization;
+using Exo.Lighting.Effects;
 
-/// <summary>Represents an effect where colors of the rainbow will move in a wave.</summary>
-/// <remarks>
-/// <para>
-/// This is a slightly more advanced version of <see cref="ColorCycleEffect"/> that is designed for adressable lighting zones only.
-/// The adressable lighting zones supporting this effect may not necessarily be adressable through software, but the effect will work as long as the lighting controller supports it.
-/// </para>
-/// <para>
-/// Some lighting controllers may support applying this effect across multiple zones, as if they were a single addressable lighting zone.
-/// </para>
-/// </remarks>
-[TypeId(0xB93254E0, 0xD39C, 0x40DF, 0xBF, 0x1F, 0x89, 0xD6, 0xCE, 0xB6, 0x16, 0x15)]
-public readonly struct ColorWaveEffect : ISingletonLightingEffect
+namespace Exo.Devices.Asus.Aura.Effects;
+
+/// <summary>Represents an effect where a color will move across an area following a wave pattern.</summary>
+/// <remarks>This is the monochrome, less common, version of <see cref="SpectrumWaveEffect"/>.</remarks>
+[DataContract]
+[TypeId(0xF64133DF, 0x043A, 0x4E9F, 0x82, 0xCA, 0x64, 0x89, 0xB8, 0xF7, 0x86, 0xA7)]
+public readonly struct ColorWaveEffect : ISingleColorLightEffect
 {
-	/// <summary>Gets a boxed instance of the effect.</summary>
-	public static ISingletonLightingEffect SharedInstance { get; } = new ColorWaveEffect();
+	[DataMember(Order = 1)]
+	[DisplayName("Color")]
+	public RgbColor Color { get; }
+
+	public ColorWaveEffect(RgbColor color) => Color = color;
 }

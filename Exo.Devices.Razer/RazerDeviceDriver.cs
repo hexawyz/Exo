@@ -1076,8 +1076,8 @@ public abstract class RazerDeviceDriver :
 			ILightingZoneEffect<ColorPulseEffect>,
 			ILightingZoneEffect<TwoColorPulseEffect>,
 			ILightingZoneEffect<RandomColorPulseEffect>,
-			ILightingZoneEffect<ColorCycleEffect>,
-			ILightingZoneEffect<ColorWaveEffect>
+			ILightingZoneEffect<SpectrumCycleEffect>,
+			ILightingZoneEffect<SpectrumWaveEffect>
 		{
 			public BasicLightingZone(BaseDevice device, Guid zoneId) : base(device, zoneId)
 			{
@@ -1087,15 +1087,15 @@ public abstract class RazerDeviceDriver :
 			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => Device.SetCurrentEffect(effect);
 			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => Device.SetCurrentEffect(effect);
 			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => Device.SetCurrentEffect(RandomColorPulseEffect.SharedInstance);
-			void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect) => Device.SetCurrentEffect(ColorCycleEffect.SharedInstance);
-			void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => Device.SetCurrentEffect(ColorWaveEffect.SharedInstance);
+			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => Device.SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
+			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => Device.SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
 
 			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => Device._currentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => Device._currentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 		}
 
 		private class ReactiveLightingZone : BasicLightingZone, ILightingZoneEffect<ReactiveEffect>
@@ -1345,10 +1345,10 @@ public abstract class RazerDeviceDriver :
 			case TwoColorPulseEffect twoColorPulseEffect:
 				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
 				break;
-			case ColorCycleEffect:
+			case SpectrumCycleEffect:
 				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
 				break;
-			case ColorWaveEffect:
+			case SpectrumWaveEffect:
 				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Wave, 0, default, default, cancellationToken);
 				break;
 			case ReactiveEffect reactiveEffect:

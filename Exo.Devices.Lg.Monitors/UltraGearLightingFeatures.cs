@@ -18,8 +18,8 @@ internal sealed class UltraGearLightingFeatures :
 	ILightingZoneEffect<StaticColorPreset2Effect>,
 	ILightingZoneEffect<StaticColorPreset3Effect>,
 	ILightingZoneEffect<StaticColorPreset4Effect>,
-	ILightingZoneEffect<ColorCycleEffect>,
-	ILightingZoneEffect<ColorWaveEffect>
+	ILightingZoneEffect<SpectrumCycleEffect>,
+	ILightingZoneEffect<SpectrumWaveEffect>
 {
 	private static readonly Guid LightingZoneGuid = new(0x7105A4FA, 0x2235, 0x49FC, 0xA7, 0x5A, 0xFD, 0x0D, 0xEC, 0x13, 0x51, 0x99);
 
@@ -58,8 +58,8 @@ internal sealed class UltraGearLightingFeatures :
 			LightingEffect.Static2 => StaticColorPreset2Effect.SharedInstance,
 			LightingEffect.Static3 => StaticColorPreset3Effect.SharedInstance,
 			LightingEffect.Static4 => StaticColorPreset4Effect.SharedInstance,
-			LightingEffect.Peaceful => ColorCycleEffect.SharedInstance,
-			LightingEffect.Dynamic => ColorWaveEffect.SharedInstance,
+			LightingEffect.Peaceful => SpectrumCycleEffect.SharedInstance,
+			LightingEffect.Dynamic => SpectrumWaveEffect.SharedInstance,
 			// I'm unsure what would happen here if the current effect was reported as audio sync or video sync ?
 			// If these modes are reported, we need to explicitly disable the lighting.
 			_ => DisabledEffect.SharedInstance,
@@ -88,14 +88,14 @@ internal sealed class UltraGearLightingFeatures :
 	void ILightingZoneEffect<StaticColorPreset2Effect>.ApplyEffect(in StaticColorPreset2Effect effect) => CurrentEffect = StaticColorPreset2Effect.SharedInstance;
 	void ILightingZoneEffect<StaticColorPreset3Effect>.ApplyEffect(in StaticColorPreset3Effect effect) => CurrentEffect = StaticColorPreset3Effect.SharedInstance;
 	void ILightingZoneEffect<StaticColorPreset4Effect>.ApplyEffect(in StaticColorPreset4Effect effect) => CurrentEffect = StaticColorPreset4Effect.SharedInstance;
-	void ILightingZoneEffect<ColorCycleEffect>.ApplyEffect(in ColorCycleEffect effect) => CurrentEffect = ColorCycleEffect.SharedInstance;
-	void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => CurrentEffect = ColorWaveEffect.SharedInstance;
+	void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => CurrentEffect = SpectrumCycleEffect.SharedInstance;
+	void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => CurrentEffect = SpectrumWaveEffect.SharedInstance;
 	void ILightingZoneEffect<AddressableColorEffect>.ApplyEffect(in AddressableColorEffect effect) => CurrentEffect = AddressableColorEffect.SharedInstance;
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	//bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
-	bool ILightingZoneEffect<ColorCycleEffect>.TryGetCurrentEffect(out ColorCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
-	bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset1Effect>.TryGetCurrentEffect(out StaticColorPreset1Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset2Effect>.TryGetCurrentEffect(out StaticColorPreset2Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset3Effect>.TryGetCurrentEffect(out StaticColorPreset3Effect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -189,11 +189,11 @@ internal sealed class UltraGearLightingFeatures :
 				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
 				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Static4, default).ConfigureAwait(false);
 				break;
-			case ColorCycleEffect:
+			case SpectrumCycleEffect:
 				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
 				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Peaceful, default).ConfigureAwait(false);
 				break;
-			case ColorWaveEffect:
+			case SpectrumWaveEffect:
 				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
 				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
 				break;
