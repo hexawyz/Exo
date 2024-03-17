@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Exo;
+namespace Exo.ColorFormats;
 
 [StructLayout(LayoutKind.Sequential, Size = 3)]
 public struct RgbwColor : IEquatable<RgbwColor>

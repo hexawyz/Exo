@@ -152,8 +152,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					{
 						await OnDriverAddedAsync(notification).ConfigureAwait(false);
 					}
-					catch
+					catch (Exception ex)
 					{
+						_logger.LightingServiceDeviceArrivalError(notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, ex);
 					}
 					break;
 				case WatchNotificationKind.Removal:
@@ -161,8 +162,9 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					{
 						OnDriverRemoved(notification);
 					}
-					catch
+					catch (Exception ex)
 					{
+						_logger.LightingServiceDeviceRemovalError(notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, ex);
 					}
 					break;
 				}

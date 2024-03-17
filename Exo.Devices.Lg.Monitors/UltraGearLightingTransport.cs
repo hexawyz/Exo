@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.ColorFormats;
 using Exo.Service;
 using Microsoft.Extensions.Logging;
 

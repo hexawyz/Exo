@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using DeviceTools;
+using Exo.ColorFormats;
 using Exo.Devices.Razer.LightingEffects;
 using Exo.Lighting.Effects;
 

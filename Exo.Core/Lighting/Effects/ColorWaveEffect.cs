@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using Exo.ColorFormats;
 using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Asus.Aura.Effects;

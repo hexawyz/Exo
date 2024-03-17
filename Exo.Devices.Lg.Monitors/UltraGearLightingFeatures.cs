@@ -1,3 +1,4 @@
+using Exo.ColorFormats;
 using Exo.Devices.Lg.Monitors.LightingEffects;
 using Exo.Features.LightingFeatures;
 using Exo.Lighting;

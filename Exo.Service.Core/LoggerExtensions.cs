@@ -67,6 +67,12 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 3000, EventName = "DevicePropertiesRetrievalError", Level = LogLevel.Error, Message = "Failed to retrieve properties of device: \"{DeviceName}\".")]
 	public static partial void DevicePropertiesRetrievalError(this ILogger logger, string deviceName, Exception exception);
 
-	[LoggerMessage(EventId = 2000, Level = LogLevel.Critical, Message = "An exception occurred when applying changes for restoring the state of the device {deviceId:B}.")]
+	[LoggerMessage(EventId = 2000, Level = LogLevel.Critical, Message = "An exception occurred when applying changes for restoring the state of the device {DeviceId:B}.")]
 	public static partial void LightingServiceRestoreStateApplyChangesError(this ILogger logger, Guid deviceId, Exception ex);
+
+	[LoggerMessage(EventId = 2001, Level = LogLevel.Error, Message = "An exception occurred when processing arrival for lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
+	public static partial void LightingServiceDeviceArrivalError(this ILogger logger, Guid deviceId, string deviceFriendlyName, Exception ex);
+
+	[LoggerMessage(EventId = 2001, Level = LogLevel.Error, Message = "An exception occurred when processing removal of lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
+	public static partial void LightingServiceDeviceRemovalError(this ILogger logger, Guid deviceId, string deviceFriendlyName, Exception ex);
 }

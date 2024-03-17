@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using Exo.ColorFormats;
 
 namespace Exo.Lighting.Effects;
 
@@ -9,31 +10,10 @@ namespace Exo.Lighting.Effects;
 public readonly struct Static5ColorEffect : ILightingEffect
 {
 	[DataMember(Order = 1)]
-	[DisplayName("Color 1")]
-	public RgbColor Color { get; }
+	public readonly FixedArray5<RgbColor> Colors;
 
-	[DataMember(Order = 2)]
-	[DisplayName("Color 2")]
-	public RgbColor Color1 { get; }
-
-	[DataMember(Order = 3)]
-	[DisplayName("Color 3")]
-	public RgbColor Color2 { get; }
-
-	[DataMember(Order = 4)]
-	[DisplayName("Color 4")]
-	public RgbColor Color3 { get; }
-
-	[DataMember(Order = 5)]
-	[DisplayName("Color 5")]
-	public RgbColor Color4 { get; }
-
-	public Static5ColorEffect(RgbColor color, RgbColor color1, RgbColor color2, RgbColor color3, RgbColor color4)
+	public Static5ColorEffect(in FixedArray5<RgbColor> colors)
 	{
-		Color = color;
-		Color1 = color1;
-		Color2 = color2;
-		Color3 = color3;
-		Color4 = color4;
+		Colors = colors;
 	}
 }

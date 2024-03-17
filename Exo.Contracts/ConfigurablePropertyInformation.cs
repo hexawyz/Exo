@@ -42,7 +42,7 @@ public sealed class ConfigurablePropertyInformation
 	[DataMember(Order = 8)]
 	public DataValue? MaximumValue { get; init; }
 
-	/// <summary>The unit in which numeric value are expressed, if applicable.</summary>
+	/// <summary>The unit in which numeric values are expressed, if applicable.</summary>
 	[DataMember(Order = 9)]
 	public string? Unit { get; init; }
 
@@ -50,4 +50,9 @@ public sealed class ConfigurablePropertyInformation
 	// NB: Might not be very efficient to have this here, since it would be replicated for every property if the same type is reused. Let's see how critical this is later.
 	[DataMember(Order = 10)]
 	public required ImmutableArray<EnumerationValue> EnumerationValues { get; init; }
+
+	/// <summary>The number of elements in the array, for fixed-length array data types.</summary>
+	/// <remarks>Fixed-length arrays are the only kind of array supported. The array data will be materialized into <see cref="DataValue.BytesValue"/>.</remarks>
+	[DataMember(Order = 11)]
+	public int? ArrayLength { get; init; }
 }

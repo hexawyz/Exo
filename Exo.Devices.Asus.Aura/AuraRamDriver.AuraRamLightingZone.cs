@@ -3,6 +3,7 @@ using Exo.Lighting.Effects;
 using Exo.Lighting;
 using System.Runtime.InteropServices;
 using Exo.Devices.Asus.Aura.Effects;
+using Exo.ColorFormats;
 
 namespace Exo.Devices.Asus.Aura;
 

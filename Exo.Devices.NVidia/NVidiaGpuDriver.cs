@@ -4,6 +4,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
+using Exo.ColorFormats;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.LightingFeatures;

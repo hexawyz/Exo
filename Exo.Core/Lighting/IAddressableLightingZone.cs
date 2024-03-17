@@ -1,3 +1,4 @@
+using Exo.ColorFormats;
 using Exo.Lighting.Effects;
 
 namespace Exo.Lighting;

@@ -1,5 +1,6 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.Serialization;
+using Exo.ColorFormats;
 
 namespace Exo.Lighting.Effects;
 
@@ -9,46 +10,10 @@ namespace Exo.Lighting.Effects;
 public readonly struct Static8ColorEffect : ILightingEffect
 {
 	[DataMember(Order = 1)]
-	[DisplayName("Color 1")]
-	public RgbColor Color { get; }
+	public readonly FixedArray8<RgbColor> Colors;
 
-	[DataMember(Order = 2)]
-	[DisplayName("Color 2")]
-	public RgbColor Color1 { get; }
-
-	[DataMember(Order = 3)]
-	[DisplayName("Color 3")]
-	public RgbColor Color2 { get; }
-
-	[DataMember(Order = 4)]
-	[DisplayName("Color 4")]
-	public RgbColor Color3 { get; }
-
-	[DataMember(Order = 5)]
-	[DisplayName("Color 5")]
-	public RgbColor Color4 { get; }
-
-	[DataMember(Order = 6)]
-	[DisplayName("Color 6")]
-	public RgbColor Color5 { get; }
-
-	[DataMember(Order = 7)]
-	[DisplayName("Color 7")]
-	public RgbColor Color6 { get; }
-
-	[DataMember(Order = 8)]
-	[DisplayName("Color 8")]
-	public RgbColor Color7 { get; }
-
-	public Static8ColorEffect(RgbColor color, RgbColor color1, RgbColor color2, RgbColor color3, RgbColor color4, RgbColor color5, RgbColor color6, RgbColor color7)
+	public Static8ColorEffect(in FixedArray8<RgbColor> colors)
 	{
-		Color = color;
-		Color1 = color1;
-		Color2 = color2;
-		Color3 = color3;
-		Color4 = color4;
-		Color5 = color5;
-		Color6 = color6;
-		Color7 = color7;
+		Colors = colors;
 	}
 }

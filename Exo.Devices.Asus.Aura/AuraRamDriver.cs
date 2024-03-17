@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Collections.ObjectModel;
 using System.Buffers;
 using Microsoft.Extensions.Logging;
+using Exo.ColorFormats;
 
 namespace Exo.Devices.Asus.Aura;
 

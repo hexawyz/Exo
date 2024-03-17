@@ -8,6 +8,7 @@ using System.Text;
 using DeviceTools;
 using DeviceTools.Firmware;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.ColorFormats;
 using Exo.Devices.Gigabyte.LightingEffects;
 using Exo.Discovery;
 using Exo.Features;

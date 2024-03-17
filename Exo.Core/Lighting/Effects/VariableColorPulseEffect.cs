@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using Exo.ColorFormats;
 
 namespace Exo.Lighting.Effects;
 

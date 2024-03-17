@@ -52,5 +52,18 @@ public enum DataType
 	[EnumMember]
 	ColorRgb24,
 	[EnumMember]
+	ColorRgbw32,
+	[EnumMember]
 	ColorArgb32,
+
+	[EnumMember]
+	ArrayOfColorGrayscale8,
+	[EnumMember]
+	ArrayOfColorGrayscale16,
+	[EnumMember]
+	ArrayOfColorRgb24,
+	[EnumMember]
+	ArrayOfColorRgbw32,
+	[EnumMember]
+	ArrayOfColorArgb32,
 }

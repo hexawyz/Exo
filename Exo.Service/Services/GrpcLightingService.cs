@@ -10,8 +10,13 @@ namespace Exo.Service.Services;
 internal class GrpcLightingService : ILightingService
 {
 	private readonly LightingService _lightingService;
+	private readonly ILogger<GrpcLightingService> _logger;
 
-	public GrpcLightingService(LightingService lightingService) => _lightingService = lightingService;
+	public GrpcLightingService(ILogger<GrpcLightingService> logger, LightingService lightingService)
+	{
+		_logger = logger;
+		_lightingService = lightingService;
+	}
 
 	// TODO: Refactor the lighting service and remove the raw device-related stuff.
 	// The remove notifications are also kind of a duplicate with device notifications, so they could maybe be removed.
@@ -64,7 +69,14 @@ internal class GrpcLightingService : ILightingService
 	{
 		foreach (var effectType in supportedEffectTypes)
 		{
-			_ = EffectSerializer.GetEffectInformation(effectType);
+			try
+			{
+				_ = EffectSerializer.GetEffectInformation(effectType);
+			}
+			catch (Exception ex)
+			{
+				_logger.GrpcLightingServiceEffectInformationRetrievalError(effectType, ex);
+			}
 		}
 	}
 

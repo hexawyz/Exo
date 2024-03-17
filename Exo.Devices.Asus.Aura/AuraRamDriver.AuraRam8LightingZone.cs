@@ -1,6 +1,8 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Exo.Lighting.Effects;
 using Exo.Lighting;
+using Exo.ColorFormats;
+using System.Runtime.InteropServices;
 
 namespace Exo.Devices.Asus.Aura;
 
@@ -17,38 +19,34 @@ public partial class AuraRamDriver
 
 		protected override void InitializeMultiColorCurrentEffect(ReadOnlySpan<RgbColor> colors)
 		{
+			Span<RgbColor> buffers = stackalloc RgbColor[colors.Length];
+			for (int i = 0; i < colors.Length; i++)
+			{
+				buffers[i] = SwapGreenAndBlue(colors[i]);
+			}
+			var swappedColors = Unsafe.As<RgbColor, FixedArray5<RgbColor>>(ref MemoryMarshal.GetReference(buffers));
 			switch (AuraEffect)
 			{
 			case AuraEffect.Static:
-				CurrentEffect = new Static8ColorEffect
-				(
-					SwapGreenAndBlue(colors[0]),
-					SwapGreenAndBlue(colors[1]),
-					SwapGreenAndBlue(colors[2]),
-					SwapGreenAndBlue(colors[3]),
-					SwapGreenAndBlue(colors[4]),
-					SwapGreenAndBlue(colors[5]),
-					SwapGreenAndBlue(colors[6]),
-					SwapGreenAndBlue(colors[7])
-				);
+				CurrentEffect = new Static5ColorEffect(swappedColors);
 				break;
 			}
 		}
 
 		[SkipLocalsInit]
-		private bool UpdateColors(RgbColor color1, RgbColor color2, RgbColor color3, RgbColor color4, RgbColor color5, RgbColor color6, RgbColor color7, RgbColor color8)
+		private bool UpdateColors(ReadOnlySpan<RgbColor> colors)
 		{
 			TenColorArray newColors;
 			Unsafe.SkipInit(out newColors);
 			var span = (Span<RgbColor>)newColors;
-			span[0] = SwapGreenAndBlue(color1);
-			span[1] = SwapGreenAndBlue(color2);
-			span[2] = SwapGreenAndBlue(color3);
-			span[3] = SwapGreenAndBlue(color4);
-			span[4] = SwapGreenAndBlue(color5);
-			span[5] = SwapGreenAndBlue(color6);
-			span[6] = SwapGreenAndBlue(color7);
-			span[7] = SwapGreenAndBlue(color8);
+			span[0] = SwapGreenAndBlue(colors[0]);
+			span[1] = SwapGreenAndBlue(colors[1]);
+			span[2] = SwapGreenAndBlue(colors[2]);
+			span[3] = SwapGreenAndBlue(colors[3]);
+			span[4] = SwapGreenAndBlue(colors[4]);
+			span[5] = SwapGreenAndBlue(colors[5]);
+			span[6] = SwapGreenAndBlue(colors[6]);
+			span[7] = SwapGreenAndBlue(colors[7]);
 			return UpdateRawColors(ref newColors);
 		}
 
@@ -65,7 +63,7 @@ public partial class AuraRamDriver
 					AuraEffect = AuraEffect.Static;
 					changes |= EffectChanges.Effect;
 				}
-				if (UpdateColors(effect.Color, effect.Color1, effect.Color2, effect.Color3, effect.Color4, effect.Color5, effect.Color6, effect.Color7)) changes |= EffectChanges.Colors;
+				if (UpdateColors(effect.Colors)) changes |= EffectChanges.Colors;
 				PendingChanges = changes;
 				CurrentEffect = effect;
 			}

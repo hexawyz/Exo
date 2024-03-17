@@ -1,18 +1,16 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Numerics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using Exo.Lighting;
-using Exo.Lighting.Effects;
+using System.Runtime.InteropServices;
+using Exo.ColorFormats;
 using Exo.Contracts;
+using Exo.Lighting.Effects;
 using SerializerDataType = Exo.Contracts.DataType;
 
 namespace Exo.Service;
@@ -32,6 +30,9 @@ public static class EffectSerializer
 
 	private static readonly MethodInfo RgbColorToInt32MethodInfo = typeof(RgbColor).GetMethod(nameof(RgbColor.ToInt32))!;
 	private static readonly MethodInfo RgbColorFromInt32MethodInfo = typeof(RgbColor).GetMethod(nameof(RgbColor.FromInt32), BindingFlags.Public | BindingFlags.Static)!;
+
+	private static readonly MethodInfo RgbwColorToInt32MethodInfo = typeof(RgbwColor).GetMethod(nameof(RgbwColor.ToInt32))!;
+	private static readonly MethodInfo RgbwColorFromInt32MethodInfo = typeof(RgbwColor).GetMethod(nameof(RgbwColor.FromInt32), BindingFlags.Public | BindingFlags.Static)!;
 
 	private static readonly MethodInfo HalfToSingleMethodInfo =
 		typeof(Half)
@@ -53,6 +54,7 @@ public static class EffectSerializer
 	private static readonly PropertyInfo DataValueSingleValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.SingleValue))!;
 	private static readonly PropertyInfo DataValueDoubleValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.DoubleValue))!;
 	private static readonly PropertyInfo DataValueGuidValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.GuidValue))!;
+	private static readonly PropertyInfo DataValueBytesValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.BytesValue))!;
 	private static readonly PropertyInfo DataValueStringValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.StringValue))!;
 
 	private static readonly FieldInfo ImmutableArrayEmptyFieldInfo =
@@ -69,15 +71,52 @@ public static class EffectSerializer
 	private static readonly MethodInfo ImmutableArrayBuilderDrainToImmutableMethodInfo =
 		typeof(ImmutableArray<PropertyValue>.Builder).GetMethod(nameof(ImmutableArray<PropertyValue>.Builder.DrainToImmutable))!;
 
-	private static readonly MethodInfo UnsafeAsPropertyValueArrayMethodInfo =
+	private static readonly MethodInfo UnsafeAsMethodInfo =
 		typeof(Unsafe)
 			.GetMethods(BindingFlags.Public | BindingFlags.Static)
 			.Where(m => m.Name == nameof(Unsafe.As) && m.GetGenericArguments() is { Length: 2 })
-			.Single().MakeGenericMethod(typeof(ImmutableArray<PropertyValue>), typeof(PropertyValue[]));
+			.Single();
+
+	private static readonly MethodInfo MemoryMarshalCastReadOnlySpanMethodInfo =
+		typeof(MemoryMarshal)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(m => m.Name == nameof(MemoryMarshal.Cast) && m.GetGenericArguments() is { Length: 2 } && m.GetParameters() is { Length: 1 } p && p[0].ParameterType.GetGenericTypeDefinition() == typeof(ReadOnlySpan<>))
+			.Single();
+
+	private static readonly MethodInfo MemoryMarshalGetReferenceReadOnlySpanMethodInfo =
+		typeof(MemoryMarshal)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(m => m.Name == nameof(MemoryMarshal.GetReference) && m.GetGenericArguments() is { Length: 1 } && m.GetParameters() is { Length: 1 } p && p[0].ParameterType.GetGenericTypeDefinition() == typeof(ReadOnlySpan<>))
+			.Single();
+
+	private static readonly MethodInfo MemoryMarshalCreateReadOnlySpanMethodInfo =
+		typeof(MemoryMarshal)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(m => m.Name == nameof(MemoryMarshal.CreateReadOnlySpan) && m.GetGenericArguments() is { Length: 1 })
+			.Single();
+
+	private static readonly MethodInfo ByteArrayAsSpanMethodInfo =
+		typeof(MemoryExtensions)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(m => m.Name == nameof(MemoryExtensions.AsSpan) && m.GetGenericArguments() is { Length: 1 } a && m.GetParameters() is { Length: 1 } p && p[0].ParameterType.IsArray && p[0].ParameterType.GetElementType() == a[0])
+			.Single();
+
+	private static readonly MethodInfo SpanAsReadOnlySpanMethodInfo =
+		typeof(Span<byte>)
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(m => m.Name == "op_Implicit" && m.ReturnType == typeof(ReadOnlySpan<byte>) && m.GetParameters() is { Length: 1 } p && p[0].ParameterType == typeof(Span<byte>))
+			.Single();
+
+	private static readonly MethodInfo UnsafeAsPropertyValueArrayMethodInfo =
+		UnsafeAsMethodInfo.MakeGenericMethod(typeof(ImmutableArray<PropertyValue>), typeof(PropertyValue[]));
+
+	private static readonly MethodInfo ReadOnlySpanBytesToArrayMethodInfo =
+		typeof(ReadOnlySpan<byte>)
+			.GetMethod(nameof(ReadOnlySpan<byte>.ToArray), BindingFlags.Public | BindingFlags.Instance)!;
 
 	private static readonly ConstructorInfo GuidConstructorInfo =
 		typeof(Guid)
-			.GetConstructor(new[] { typeof(uint), typeof(ushort), typeof(ushort), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte) })!;
+			.GetConstructor([typeof(uint), typeof(ushort), typeof(ushort), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte), typeof(byte)])!;
 
 	private sealed class LightingEffectSerializationDetails
 	{
@@ -148,9 +187,11 @@ public static class EffectSerializer
 
 	private readonly struct SerializationPropertyDetails
 	{
-		public required readonly PropertyInfo Property { get; init; }
+		public required readonly MemberInfo FieldOrProperty { get; init; }
+		public required readonly Type RuntimeType { get; init; }
 		public required readonly int DataIndex { get; init; }
 		public required readonly SerializerDataType DataType { get; init; }
+		public required readonly byte FixedArrayLength { get; init; }
 		public readonly Label? DeserializationLabel { get; init; }
 		public readonly LocalBuilder? DeserializationLocal { get; init; }
 		public readonly LocalBuilder? DeserializationConditionalLocal { get; init; }
@@ -167,7 +208,7 @@ public static class EffectSerializer
 		var typeId = effectType.GetCustomAttribute<TypeIdAttribute>()?.Value ?? throw new InvalidOperationException($"The effect type {effectType} does not specify a type ID.");
 		typeId.TryWriteBytes(typeIdBytes);
 
-		var properties = effectType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+		var members = effectType.GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(m => m.MemberType is MemberTypes.Field or MemberTypes.Property).ToArray();
 
 		var constructors = effectType.GetConstructors();
 		ConstructorInfo? parameterlessConstructor = null;
@@ -211,7 +252,7 @@ public static class EffectSerializer
 		// Try to optimize the default capacity of the lists that will hold property details.
 		// We want to avoid allocations if we can, so we shouldn't force array creation if there are less properties than the default list capacity,
 		// but otherwise, force a single allocation able to fit the number of properties.
-		int listInitialCapacity = properties.Length > 4 ? properties.Length : 0;
+		int listInitialCapacity = members.Length > 4 ? members.Length : 0;
 
 		// We need to do up to four passes for deserialization, but having at least two passes improves serialization when all properties are well-known.
 		// The DataIndex will be set negative for well-known properties, and used to write the serialization logic in the second pass.
@@ -250,31 +291,44 @@ public static class EffectSerializer
 
 		int currentPropertyDataIndex = 0;
 
-		for (int i = 0; i < properties.Length; i++)
+		for (int i = 0; i < members.Length; i++)
 		{
-			var property = properties[i];
+			var member = members[i];
+			var property = member as PropertyInfo;
+			var field = member as FieldInfo;
 			ParameterInfo? parameter = null;
+			Type propertyType = field is not null ? field.FieldType : property!.PropertyType;
 
-			if (property.GetMethod is null)
+			var (dataType, fixedArrayLength) = GetDataType(propertyType);
+
+			if (dataType == SerializerDataType.Other) throw new InvalidOperationException($"Could not map {propertyType} for property {member.Name} of effect {effectType}.");
+
+			// Enforce that fixed length array must be fields and not properties.
+			// This is both for performance and convenience reasons, as ref properties in structures are not safe,
+			// and fixed length arrays returned by value are not convenient to work with in addition to incur a performance cost.
+			if (IsFixedLengthArray(dataType) && field is null) throw new InvalidOperationException($"Members of type {propertyType} must be properties.");
+
+			if (field is null && property!.GetMethod is null)
 			{
-				throw new InvalidOperationException($"The property {property.Name} of effect {effectType} does not have a getter.");
+				throw new InvalidOperationException($"The property {member.Name} of effect {effectType} does not have a getter.");
 			}
-			else if (constructorParametersByName?.TryGetValue(property.Name, out parameter) == true)
+			else if (constructorParametersByName?.TryGetValue(member.Name, out parameter) == true)
 			{
-				constructorParametersByName.Remove(property.Name);
-				if (parameter.ParameterType != property.PropertyType)
+				constructorParametersByName.Remove(member.Name);
+				if (parameter.ParameterType != (fixedArrayLength > 0 ? propertyType.MakeByRefType() : propertyType))
 				{
-					throw new InvalidOperationException($"There is a type mismatch between the constructor and the property {property.Name} of effect {effectType}.");
+					throw new InvalidOperationException($"There is a type mismatch between the constructor and the property {member.Name} of effect {effectType}.");
 				}
 			}
-			else if (property.SetMethod is null)
+			else if (field is not null ? field.IsInitOnly : property!.SetMethod is null)
 			{
-				throw new InvalidOperationException($"The property {property.Name} of effect {effectType} does not have a setter.");
+				throw new InvalidOperationException
+				(
+					field is not null ?
+					$"The property {member.Name} of effect {effectType} does not have a setter." :
+					$"The field {member.Name} of effect {effectType} is read-only."
+				);
 			}
-
-			var dataType = GetDataType(property.PropertyType);
-
-			if (dataType == SerializerDataType.Other) throw new InvalidOperationException($"Could not map {property.PropertyType} for property {property.Name} of effect {effectType}.");
 
 			int dataIndex;
 			Label? deserializationLabel = null;
@@ -284,7 +338,7 @@ public static class EffectSerializer
 			// Properties will need a local to be deserialized if the constructor is used.
 			if (constructorParameters is not null)
 			{
-				deserializationLocal = deserializeIlGenerator.DeclareLocal(property.PropertyType);
+				deserializationLocal = deserializeIlGenerator.DeclareLocal(fixedArrayLength > 0 ? propertyType.MakeByRefType() : propertyType);
 				if (parameter is not null)
 				{
 					constructorParameterLocals!.Add(parameter.Name!, deserializationLocal);
@@ -293,12 +347,12 @@ public static class EffectSerializer
 
 			PropertyInfo? wellKnownProperty = null;
 
-			if (property.Name == nameof(LightingEffect.Color) && IsUInt32Compatible(dataType))
+			if (member.Name == nameof(LightingEffect.Color) && IsUInt32Compatible(dataType))
 			{
 				dataIndex = -1;
 				wellKnownProperty = LightingEffectColorPropertyInfo;
 			}
-			else if (property.Name == nameof(LightingEffect.Speed) && IsUInt32Compatible(dataType))
+			else if (member.Name == nameof(LightingEffect.Speed) && IsUInt32Compatible(dataType))
 			{
 				dataIndex = -2;
 				wellKnownProperty = LightingEffectSpeedPropertyInfo;
@@ -320,9 +374,11 @@ public static class EffectSerializer
 
 			var details = new SerializationPropertyDetails()
 			{
-				Property = property,
+				FieldOrProperty = member,
+				RuntimeType = propertyType,
 				DataIndex = dataIndex,
 				DataType = dataType,
+				FixedArrayLength = fixedArrayLength,
 				DeserializationLabel = deserializationLabel,
 				DeserializationLocal = deserializationLocal,
 				DeserializationConditionalLocal = deserializationConditionalLocal,
@@ -381,11 +437,18 @@ public static class EffectSerializer
 			deserializeIlGenerator.Emit(OpCodes.Ldarg_0);
 			deserializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.GetMethod!);
 
-			EmitConversionToTargetType(deserializeIlGenerator, details.DataType, true);
+			EmitConversionToTargetType(deserializeIlGenerator, details.DataType, details.RuntimeType, true);
 
 			if (details.DeserializationLocal is null)
 			{
-				deserializeIlGenerator.Emit(OpCodes.Call, details.Property.SetMethod!);
+				if (details.FieldOrProperty is FieldInfo field)
+				{
+					deserializeIlGenerator.Emit(OpCodes.Stfld, field);
+				}
+				else if (details.FieldOrProperty is PropertyInfo property)
+				{
+					deserializeIlGenerator.Emit(OpCodes.Call, property.SetMethod!);
+				}
 			}
 			else
 			{
@@ -403,6 +466,7 @@ public static class EffectSerializer
 		LocalBuilder? immutableArrayBuilderLocal = null;
 		LocalBuilder? propertyValueLocal = null;
 		LocalBuilder? rgb24Local = null;
+		LocalBuilder? rgbw32Local = null;
 
 		// We only need an ImmutableArray<>.Builder when there are non-well-known properties.
 		if (deserializationLabels.Count > 0)
@@ -480,18 +544,34 @@ public static class EffectSerializer
 				deserializeIlGenerator.MarkLabel(label);
 			}
 
+			var field = details.FieldOrProperty as FieldInfo;
+			var property = details.FieldOrProperty as PropertyInfo;
+
 			if (details.DataIndex == -1)
 			{
 				// lightingEffect.Color = effect.Color;
 				serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
-				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
+				if (field is not null)
+				{
+					serializeIlGenerator.Emit(OpCodes.Ldfld, field);
+				}
+				else
+				{
+					serializeIlGenerator.Emit(OpCodes.Call, property!.GetMethod!);
+				}
 				// Special-case the color types (only one for now)
 				if (details.DataType == SerializerDataType.ColorRgb24)
 				{
 					serializeIlGenerator.Emit(OpCodes.Stloc, rgb24Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbColor)));
 					serializeIlGenerator.Emit(OpCodes.Ldloca, rgb24Local);
 					serializeIlGenerator.Emit(OpCodes.Call, RgbColorToInt32MethodInfo);
+				}
+				else if (details.DataType == SerializerDataType.ColorRgbw32)
+				{
+					serializeIlGenerator.Emit(OpCodes.Stloc, rgbw32Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbwColor)));
+					serializeIlGenerator.Emit(OpCodes.Ldloca, rgbw32Local);
+					serializeIlGenerator.Emit(OpCodes.Call, RgbwColorToInt32MethodInfo);
 				}
 				// All compatible integer types are automatically expanded to int32 on the stack, so no additional conversion is needed.
 				serializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.SetMethod!);
@@ -501,7 +581,14 @@ public static class EffectSerializer
 				// lightingEffect.Speed = effect.Speed;
 				serializeIlGenerator.Emit(OpCodes.Dup); // lightingEffect
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
-				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
+				if (field is not null)
+				{
+					serializeIlGenerator.Emit(OpCodes.Ldfld, field);
+				}
+				else
+				{
+					serializeIlGenerator.Emit(OpCodes.Call, property!.GetMethod!);
+				}
 				serializeIlGenerator.Emit(OpCodes.Conv_U4);
 				serializeIlGenerator.Emit(OpCodes.Call, details.WellKnownProperty!.SetMethod!);
 			}
@@ -518,7 +605,14 @@ public static class EffectSerializer
 				serializeIlGenerator.Emit(OpCodes.Newobj, DataValueConstructorInfo);
 				serializeIlGenerator.Emit(OpCodes.Dup); // new DataValue()
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
-				serializeIlGenerator.Emit(OpCodes.Call, details.Property.GetMethod!);
+				if (field is not null)
+				{
+					serializeIlGenerator.Emit(details.FixedArrayLength > 0 ? OpCodes.Ldflda : OpCodes.Ldfld, field);
+				}
+				else
+				{
+					serializeIlGenerator.Emit(OpCodes.Call, property!.GetMethod!);
+				}
 				switch (details.DataType)
 				{
 				case SerializerDataType.UInt8:
@@ -558,9 +652,27 @@ public static class EffectSerializer
 					serializeIlGenerator.Emit(OpCodes.Ldloca, rgb24Local);
 					serializeIlGenerator.Emit(OpCodes.Call, RgbColorToInt32MethodInfo);
 					goto case SerializerDataType.UInt32;
+				case SerializerDataType.ColorRgbw32:
+					serializeIlGenerator.Emit(OpCodes.Stloc, rgbw32Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbwColor)));
+					serializeIlGenerator.Emit(OpCodes.Ldloca, rgbw32Local);
+					serializeIlGenerator.Emit(OpCodes.Call, RgbwColorToInt32MethodInfo);
+					goto case SerializerDataType.UInt32;
+				case SerializerDataType.ArrayOfColorRgb24:
+				case SerializerDataType.ArrayOfColorRgbw32:
+					var elementType = details.RuntimeType.GetGenericArguments()[0];
+					serializeIlGenerator.Emit(OpCodes.Call, UnsafeAsMethodInfo.MakeGenericMethod(details.RuntimeType, elementType));
+					serializeIlGenerator.Emit(OpCodes.Ldc_I4, (int)details.FixedArrayLength);
+					serializeIlGenerator.Emit(OpCodes.Call, MemoryMarshalCreateReadOnlySpanMethodInfo.MakeGenericMethod(elementType));
+					serializeIlGenerator.Emit(OpCodes.Call, MemoryMarshalCastReadOnlySpanMethodInfo.MakeGenericMethod(elementType, typeof(byte)));
+					serializeIlGenerator.Emit(OpCodes.Call, ReadOnlySpanBytesToArrayMethodInfo);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueBytesValuePropertyInfo.SetMethod!);
+					break;
 				case SerializerDataType.ColorGrayscale8:
 				case SerializerDataType.ColorGrayscale16:
 				case SerializerDataType.ColorArgb32:
+				case SerializerDataType.ArrayOfColorGrayscale8:
+				case SerializerDataType.ArrayOfColorGrayscale16:
+				case SerializerDataType.ArrayOfColorArgb32:
 				case SerializerDataType.DateTime:
 				case SerializerDataType.TimeSpan:
 				default:
@@ -592,6 +704,7 @@ public static class EffectSerializer
 				case SerializerDataType.Boolean:
 				case SerializerDataType.UInt64:
 				case SerializerDataType.ColorRgb24:
+				case SerializerDataType.ColorRgbw32:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueUnsignedValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.Int8:
@@ -613,6 +726,10 @@ public static class EffectSerializer
 				case SerializerDataType.Guid:
 					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueGuidValuePropertyInfo.GetMethod!);
 					break;
+				case SerializerDataType.ArrayOfColorRgb24:
+				case SerializerDataType.ArrayOfColorRgbw32:
+					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueBytesValuePropertyInfo.GetMethod!);
+					break;
 				case SerializerDataType.DateTime:
 				case SerializerDataType.TimeSpan:
 				default:
@@ -620,12 +737,26 @@ public static class EffectSerializer
 					throw new NotImplementedException();
 				}
 
-				EmitConversionToTargetType(deserializeIlGenerator, details.DataType, false);
+				EmitConversionToTargetType(deserializeIlGenerator, details.DataType, details.RuntimeType, false);
 
 				// property = value;
 				if (details.DeserializationLocal is null)
 				{
-					deserializeIlGenerator.Emit(OpCodes.Call, details.Property.SetMethod!);
+					if (field is not null)
+					{
+						// Fixed-array must first be dereferenced in order to be copied into the target.
+						// NB: We could use ReadOnlySpan<>.CopyTo, but it would be more complex and in the end, produces mostly the same IL as relying on the dumb framework stuff.
+						// In the end, all we want to do, and the best we can do, is still copying the data into the target.
+						if (IsFixedLengthArray(details.DataType))
+						{
+							deserializeIlGenerator.Emit(OpCodes.Ldobj, details.RuntimeType);
+						}
+						deserializeIlGenerator.Emit(OpCodes.Stfld, field);
+					}
+					else
+					{
+						deserializeIlGenerator.Emit(OpCodes.Call, property!.SetMethod!);
+					}
 				}
 				else
 				{
@@ -640,21 +771,22 @@ public static class EffectSerializer
 				}
 			}
 
-			var displayAttribute = details.Property.GetCustomAttribute<DisplayAttribute>();
-			var defaultValueAttribute = details.Property.GetCustomAttribute<DefaultValueAttribute>();
-			var rangeAttribute = details.Property.GetCustomAttribute<RangeAttribute>();
+			var displayAttribute = details.FieldOrProperty.GetCustomAttribute<DisplayAttribute>();
+			var defaultValueAttribute = details.FieldOrProperty.GetCustomAttribute<DefaultValueAttribute>();
+			var rangeAttribute = details.FieldOrProperty.GetCustomAttribute<RangeAttribute>();
 
 			serializableProperties[i] = new()
 			{
 				Index = details.DataIndex >= 0 ? (uint)details.DataIndex : null,
-				Name = details.Property.Name,
-				DisplayName = displayAttribute?.Name ?? details.Property.Name,
+				Name = details.FieldOrProperty.Name,
+				DisplayName = displayAttribute?.Name ?? details.FieldOrProperty.Name,
 				Description = displayAttribute?.Description,
 				DataType = details.DataType,
 				DefaultValue = defaultValueAttribute is not null ? GetValue(details.DataType, defaultValueAttribute.Value) : null,
 				MinimumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Minimum) : null,
 				MaximumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Maximum) : null,
-				EnumerationValues = details.Property.PropertyType.IsEnum ? GetEnumerationValues(details.Property.PropertyType) : ImmutableArray<EnumerationValue>.Empty,
+				EnumerationValues = details.RuntimeType.IsEnum ? GetEnumerationValues(details.RuntimeType) : ImmutableArray<EnumerationValue>.Empty,
+				ArrayLength = details.FixedArrayLength,
 			};
 		}
 
@@ -701,7 +833,7 @@ public static class EffectSerializer
 			// First sub-pass: Create the instance.
 			foreach (var parameter in constructorParameters)
 			{
-				deserializeIlGenerator.Emit(OpCodes.Ldloc, constructorParameterLocals![parameter.Name!]);
+				deserializeIlGenerator.Emit(parameter.ParameterType.IsByRef ? OpCodes.Ldloca : OpCodes.Ldloc, constructorParameterLocals![parameter.Name!]);
 			}
 			deserializeIlGenerator.Emit(OpCodes.Newobj, parameterizedConstructor!);
 			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationEffectLocal);
@@ -716,7 +848,14 @@ public static class EffectSerializer
 					deserializeIlGenerator.Emit(OpCodes.Brfalse, skipLabel);
 					deserializeIlGenerator.Emit(OpCodes.Ldloca, deserializationEffectLocal);
 					deserializeIlGenerator.Emit(OpCodes.Ldloc, details.DeserializationLocal!);
-					deserializeIlGenerator.Emit(OpCodes.Call, details.Property.SetMethod!);
+					if (details.FieldOrProperty is FieldInfo field)
+					{
+						deserializeIlGenerator.Emit(OpCodes.Stloc, field);
+					}
+					else
+					{
+						deserializeIlGenerator.Emit(OpCodes.Call, Unsafe.As<PropertyInfo>(details.FieldOrProperty).SetMethod!);
+					}
 					deserializeIlGenerator.MarkLabel(skipLabel);
 				}
 			}
@@ -786,7 +925,7 @@ public static class EffectSerializer
 		return method;
 	}
 
-	private static void EmitConversionToTargetType(ILGenerator ilGenerator, SerializerDataType dataType, bool isInt32)
+	private static void EmitConversionToTargetType(ILGenerator ilGenerator, SerializerDataType dataType, Type runtimeType, bool isInt32)
 	{
 		// Convert the read value into the appropriate type.
 		switch (dataType)
@@ -830,6 +969,22 @@ public static class EffectSerializer
 			if (!isInt32) ilGenerator.Emit(OpCodes.Conv_I4);
 			ilGenerator.Emit(OpCodes.Call, RgbColorFromInt32MethodInfo);
 			break;
+		case SerializerDataType.ColorRgbw32:
+			if (!isInt32) ilGenerator.Emit(OpCodes.Conv_I4);
+			ilGenerator.Emit(OpCodes.Call, RgbwColorFromInt32MethodInfo);
+			break;
+		case SerializerDataType.ArrayOfColorGrayscale8:
+		case SerializerDataType.ArrayOfColorGrayscale16:
+		case SerializerDataType.ArrayOfColorRgb24:
+		case SerializerDataType.ArrayOfColorRgbw32:
+		case SerializerDataType.ArrayOfColorArgb32:
+			// Fixed length arrays are serialized into raw byte arrays, which we must transform into a reference to the fixed array type.
+			// If assignment by value is required, we will later insert a ldobj instruction.
+			ilGenerator.Emit(OpCodes.Call, ByteArrayAsSpanMethodInfo);
+			ilGenerator.Emit(OpCodes.Call, SpanAsReadOnlySpanMethodInfo);
+			ilGenerator.Emit(OpCodes.Call, MemoryMarshalCastReadOnlySpanMethodInfo.MakeGenericMethod(typeof(byte), runtimeType));
+			ilGenerator.Emit(OpCodes.Call, MemoryMarshalGetReferenceReadOnlySpanMethodInfo.MakeGenericMethod(runtimeType));
+			break;
 		default:
 			throw new NotImplementedException();
 		}
@@ -859,7 +1014,23 @@ public static class EffectSerializer
 		case SerializerDataType.ColorGrayscale8:
 		case SerializerDataType.ColorGrayscale16:
 		case SerializerDataType.ColorRgb24:
+		case SerializerDataType.ColorRgbw32:
 		case SerializerDataType.ColorArgb32:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	private static bool IsFixedLengthArray(SerializerDataType type)
+	{
+		switch (type)
+		{
+		case SerializerDataType.ArrayOfColorGrayscale8:
+		case SerializerDataType.ArrayOfColorGrayscale16:
+		case SerializerDataType.ArrayOfColorRgb24:
+		case SerializerDataType.ArrayOfColorRgbw32:
+		case SerializerDataType.ArrayOfColorArgb32:
 			return true;
 		default:
 			return false;
@@ -881,6 +1052,7 @@ public static class EffectSerializer
 		case SerializerDataType.ColorGrayscale8:
 		case SerializerDataType.ColorGrayscale16:
 		case SerializerDataType.ColorRgb24:
+		case SerializerDataType.ColorRgbw32:
 		case SerializerDataType.ColorArgb32:
 			return true;
 		default:
@@ -948,41 +1120,88 @@ public static class EffectSerializer
 		}
 	}
 
-	private static SerializerDataType GetDataType(Type type)
+	private static (SerializerDataType, byte fixedArrayLength) GetDataType(Type type)
 	{
+		SerializerDataType dataType;
+		byte arrayLength;
+
 		switch (Type.GetTypeCode(type))
 		{
-		case TypeCode.Boolean: return SerializerDataType.Boolean;
-		case TypeCode.Byte: return SerializerDataType.UInt8;
-		case TypeCode.SByte: return SerializerDataType.Int8;
-		case TypeCode.UInt16: return SerializerDataType.UInt16;
-		case TypeCode.Int16: return SerializerDataType.Int16;
-		case TypeCode.UInt32: return SerializerDataType.UInt32;
-		case TypeCode.Int32: return SerializerDataType.Int32;
-		case TypeCode.UInt64: return SerializerDataType.UInt64;
-		case TypeCode.Int64: return SerializerDataType.Int64;
-		case TypeCode.Single: return SerializerDataType.Float32;
-		case TypeCode.Double: return SerializerDataType.Float64;
-		case TypeCode.String: return SerializerDataType.String;
+		case TypeCode.Boolean: dataType = SerializerDataType.Boolean; goto SimpleDataTypeIdentified;
+		case TypeCode.Byte: dataType = SerializerDataType.UInt8; goto SimpleDataTypeIdentified;
+		case TypeCode.SByte: dataType = SerializerDataType.Int8; goto SimpleDataTypeIdentified;
+		case TypeCode.UInt16: dataType = SerializerDataType.UInt16; goto SimpleDataTypeIdentified;
+		case TypeCode.Int16: dataType = SerializerDataType.Int16; goto SimpleDataTypeIdentified;
+		case TypeCode.UInt32: dataType = SerializerDataType.UInt32; goto SimpleDataTypeIdentified;
+		case TypeCode.Int32: dataType = SerializerDataType.Int32; goto SimpleDataTypeIdentified;
+		case TypeCode.UInt64: dataType = SerializerDataType.UInt64; goto SimpleDataTypeIdentified;
+		case TypeCode.Int64: dataType = SerializerDataType.Int64; goto SimpleDataTypeIdentified;
+		case TypeCode.Single: dataType = SerializerDataType.Float32; goto SimpleDataTypeIdentified;
+		case TypeCode.Double: dataType = SerializerDataType.Float64; goto SimpleDataTypeIdentified;
+		case TypeCode.String: dataType = SerializerDataType.String; goto SimpleDataTypeIdentified;
 		default:
-			if (type == typeof(RgbColor))
+			if (type.IsGenericType)
 			{
-				return SerializerDataType.ColorRgb24;
+				var genericTypeDefinition = type.GetGenericTypeDefinition();
+				if (genericTypeDefinition == typeof(FixedArray5<>)) arrayLength = 5;
+				else if (genericTypeDefinition == typeof(FixedArray8<>)) arrayLength = 8;
+				else if (genericTypeDefinition == typeof(FixedArray10<>)) arrayLength = 10;
+				else if (genericTypeDefinition == typeof(FixedArray16<>)) arrayLength = 16;
+				else if (genericTypeDefinition == typeof(FixedArray32<>)) arrayLength = 32;
+				else
+				{
+					dataType = SerializerDataType.Other;
+					goto SimpleDataTypeIdentified;
+				}
+
+				var elementType = type.GetGenericArguments()[0];
+				if (elementType == typeof(RgbColor))
+				{
+					dataType = SerializerDataType.ArrayOfColorRgb24;
+				}
+				else if (elementType == typeof(RgbwColor))
+				{
+					dataType = SerializerDataType.ArrayOfColorRgbw32;
+				}
+				else
+				{
+					dataType = SerializerDataType.Other;
+					goto SimpleDataTypeIdentified;
+				}
+				goto DataTypeIdentified;
+			}
+			else if (type == typeof(RgbColor))
+			{
+				dataType = SerializerDataType.ColorRgb24;
+				goto SimpleDataTypeIdentified;
+			}
+			else if (type == typeof(RgbwColor))
+			{
+				dataType = SerializerDataType.ColorRgbw32;
+				goto SimpleDataTypeIdentified;
 			}
 			else if (type == typeof(TimeSpan))
 			{
-				return SerializerDataType.TimeSpan;
+				dataType = SerializerDataType.TimeSpan;
+				goto SimpleDataTypeIdentified;
 			}
 			else if (type == typeof(DateTime))
 			{
-				return SerializerDataType.DateTime;
+				dataType = SerializerDataType.DateTime;
+				goto SimpleDataTypeIdentified;
 			}
 			else if (type == typeof(Half))
 			{
-				return SerializerDataType.Float16;
+				dataType = SerializerDataType.Float16;
+				goto SimpleDataTypeIdentified;
 			}
-			return SerializerDataType.Other;
+			dataType = SerializerDataType.Other;
+			goto SimpleDataTypeIdentified;
 		}
+	SimpleDataTypeIdentified:;
+		arrayLength = 0;
+	DataTypeIdentified:;
+		return (dataType, arrayLength);
 	}
 
 	public static ILightingEffect Deserialize()
