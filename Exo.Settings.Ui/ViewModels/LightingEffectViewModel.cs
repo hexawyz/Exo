@@ -1,4 +1,3 @@
-using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using Exo.Contracts;
@@ -29,7 +28,15 @@ internal sealed class LightingEffectViewModel
 
 		for (int i = 0; i < properties.Length; i++)
 		{
-			vm[i] = new(properties[i], brightnessCapabilities);
+			var property = properties[i];
+			if (property.DataType is DataType.ArrayOfColorRgb24)
+			{
+				vm[i] = new RgbColorFixedLengthArrayPropertyViewModel(property);
+			}
+			else
+			{
+				vm[i] = new ScalarPropertyViewModel(property, brightnessCapabilities);
+			}
 		}
 
 		return Array.AsReadOnly(vm);

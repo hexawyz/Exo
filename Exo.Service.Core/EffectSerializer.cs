@@ -785,7 +785,7 @@ public static class EffectSerializer
 				DefaultValue = defaultValueAttribute is not null ? GetValue(details.DataType, defaultValueAttribute.Value) : null,
 				MinimumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Minimum) : null,
 				MaximumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Maximum) : null,
-				EnumerationValues = details.RuntimeType.IsEnum ? GetEnumerationValues(details.RuntimeType) : ImmutableArray<EnumerationValue>.Empty,
+				EnumerationValues = details.RuntimeType.IsEnum ? GetEnumerationValues(details.RuntimeType) : [],
 				ArrayLength = details.FixedArrayLength,
 			};
 		}

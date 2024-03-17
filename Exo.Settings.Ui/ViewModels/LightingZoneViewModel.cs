@@ -27,7 +27,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	private PropertyViewModel? _speedProperty;
 	private readonly Dictionary<uint, PropertyViewModel> _propertiesByIndex;
 
-	public Color? Color => _colorProperty?.Value as Color?;
+	public Color? Color => (_colorProperty as ScalarPropertyViewModel)?.Value as Color?;
 
 	private int _changedPropertyCount = 0;
 
@@ -116,11 +116,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 	private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (sender == _colorProperty && e.PropertyName == nameof(PropertyViewModel.Value))
+		if (sender == _colorProperty && e.PropertyName == nameof(ScalarPropertyViewModel.Value))
 		{
 			NotifyPropertyChanged(ChangedProperty.Color);
 		}
-		
+
 		if (e.PropertyName == nameof(PropertyViewModel.IsChanged))
 		{
 			bool wasChanged = IsChanged;
@@ -158,20 +158,20 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 		foreach (var property in properties)
 		{
-			if (property.Value is { } value)
+			if (property is ScalarPropertyViewModel scalarProperty && scalarProperty.Value is { } value)
 			{
-				if (property.Index is null)
+				if (scalarProperty.Index is null)
 				{
-					if (property.Name == "Color")
+					if (scalarProperty.Name == "Color")
 					{
-						if (property.DataType == DataType.ColorRgb24)
+						if (scalarProperty.DataType == DataType.ColorRgb24)
 						{
 							if (value is Color c)
 							{
 								color = (uint)c.ToInt() & 0xFFFFFFU;
 							}
 						}
-						else if (property.DataType == DataType.ColorArgb32)
+						else if (scalarProperty.DataType == DataType.ColorArgb32)
 						{
 							if (value is Color c)
 							{
@@ -181,17 +181,17 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 					}
 					else if (property.Name == "Speed" && IsUInt32Compatible(property.DataType))
 					{
-						speed = Convert.ToUInt32(property.Value);
+						speed = Convert.ToUInt32(scalarProperty.Value);
 					}
 				}
-				else
-				{
-					DataValue? dataValue = property.GetDataValue();
+			}
+			else
+			{
+				DataValue? dataValue = property.GetDataValue();
 
-					if (dataValue is not null)
-					{
-						propertyValues.Add(new() { Index = property.Index.GetValueOrDefault(), Value = dataValue });
-					}
+				if (dataValue is not null)
+				{
+					propertyValues.Add(new() { Index = property.Index.GetValueOrDefault(), Value = dataValue });
 				}
 			}
 		}

@@ -12,53 +12,37 @@
     d:DataContext="{d:DesignInstance vm:LightingZoneViewModel, IsDesignTimeCreatable=False}">
     <UserControl.Resources>
         <!-- TODO: Put back into App.xaml when the color picker palette can actually be set in style. -->
-        <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:PropertyViewModel">
+        <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
             <controls:ColorPickerButton SelectedColor="{Binding Value, Mode=TwoWay}" ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}" Loaded="OnColorPickerButtonLoaded" />
         </DataTemplate>
-        <DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
-        </DataTemplate>
-        <DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <NumberBox Value="{Binding Value, Mode=TwoWay}" />
-        </DataTemplate>
-        <DataTemplate x:Key="EnumPropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <ComboBox SelectedValuePath="Value" SelectedValue="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding EnumerationValues, Mode=OneTime}" HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding DisplayName}" />
+        <DataTemplate x:Key="ColorArrayPropertyTemplate" x:DataType="vm:FixedLengthArrayPropertyViewModel">
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ArrayElementViewModel">
+                        <Border Margin="3,0,3,0" Width="20" Height="20" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
+                            <Border.Background>
+                                <SolidColorBrush Color="{Binding Value, Mode=OneWay}" />
+                            </Border.Background>
+                        </Border>
                     </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </DataTemplate>
-        <DataTemplate x:Key="EnumRangePropertyTemplate" x:DataType="vm:PropertyViewModel">
-            <Slider SnapsTo="StepValues" TickFrequency="1" Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
-                <Slider.ThumbToolTipValueConverter>
-                    <local:EnumerationValueToNameConverter Values="{Binding EnumerationValues, Mode=OneTime}" />
-                </Slider.ThumbToolTipValueConverter>
-            </Slider>
-        </DataTemplate>
-        <DataTemplate x:Key="FallbackPropertyTemplate" />
-        <DataTemplate x:Key="BrightnessTemplate">
-            <Slider
-                Minimum="{Binding MinimumValue, Mode=OneTime}"
-                Maximum="{Binding MaximumValue, Mode=OneTime}"
-                Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
-                HorizontalAlignment="Stretch"
-                Style="{StaticResource BrightnessSliderStyle}">
-                <Slider.ThumbToolTipValueConverter>
-                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-                </Slider.ThumbToolTipValueConverter>
-            </Slider>
+                </ItemsControl.ItemTemplate>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
         </DataTemplate>
         <local:EffectPropertyTemplateSelector
-                x:Key="EffectPropertyTemplateSelector"
-                NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
-                NumericTemplate="{StaticResource NumericPropertyTemplate}"
-                BrightnessTemplate="{StaticResource BrightnessTemplate}"
-                ColorTemplate="{StaticResource ColorPropertyTemplate}"
-                EnumTemplate="{StaticResource EnumPropertyTemplate}"
-                EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
-                FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
+            x:Key="EffectPropertyTemplateSelector"
+            NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
+            NumericTemplate="{StaticResource NumericPropertyTemplate}"
+            BrightnessTemplate="{StaticResource BrightnessTemplate}"
+            ColorTemplate="{StaticResource ColorPropertyTemplate}"
+            EnumTemplate="{StaticResource EnumPropertyTemplate}"
+            EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
+            ColorArrayTemplate="{StaticResource ColorArrayPropertyTemplate}"
+            FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
     </UserControl.Resources>
     <StackPanel Orientation="Vertical">
         <Grid HorizontalAlignment="Stretch">

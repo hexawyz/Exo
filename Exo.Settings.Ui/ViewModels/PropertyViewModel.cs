@@ -1,15 +1,12 @@
-using System;
-using System.Collections.ObjectModel;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
-using Exo.Ui.Contracts;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class PropertyViewModel : ChangeableBindableObject
+internal abstract class PropertyViewModel : ChangeableBindableObject
 {
-	private static object? GetValue(DataType type, DataValue? value)
+	protected static object? GetValue(DataType type, DataValue? value)
 		=> value is not null ?
 			type switch
 			{
@@ -36,7 +33,17 @@ internal sealed class PropertyViewModel : ChangeableBindableObject
 			} :
 			null;
 
-	private static object? GetDefaultValueForType(DataType type)
+	private static object? GetValue(DataType type, DataValue? value, int index)
+		=> value is not null ?
+			type switch
+			{
+				DataType.ArrayOfColorRgb24 => value.BytesValue is { } bytes && 3 * index is int offset ? Color.FromArgb(255, bytes[offset], bytes[offset + 2], bytes[offset + 2]) : null,
+				DataType.ArrayOfColorArgb32 => value.BytesValue is { } bytes && 4 * index is int offset ? Color.FromArgb(bytes[offset], bytes[offset + 2], bytes[offset + 2], bytes[offset + 3]) : null,
+				_ => throw new NotSupportedException()
+			} :
+			null;
+
+	protected static object? GetDefaultValueForType(DataType type)
 		=> type switch
 		{
 			DataType.UInt8 => (byte?)0,
@@ -60,67 +67,7 @@ internal sealed class PropertyViewModel : ChangeableBindableObject
 			_ => throw new NotSupportedException()
 		};
 
-	private readonly ConfigurablePropertyInformation _propertyInformation;
-	private object? _value;
-	private object? _initialValue;
-
-	public object? MinimumValue { get; }
-	public object? MaximumValue { get; }
-	public object? DefaultValue { get; }
-
-	public object? InitialValue
-	{
-		get => _initialValue;
-		private set
-		{
-			bool wasChanged = IsChanged;
-			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
-			{
-				if (!wasChanged)
-				{
-					_value = _initialValue;
-				}
-				else
-				{
-					OnChangeStateChange(wasChanged);
-				}
-			}
-		}
-	}
-
-	public object? Value
-	{
-		get => _value;
-		set
-		{
-			bool wasChanged = IsChanged;
-			if (SetValue(ref _value, value, ChangedProperty.Value))
-			{
-				OnChangeStateChange(wasChanged);
-			}
-		}
-	}
-
-	public uint? Index => _propertyInformation.Index;
-
-	public DataType DataType => _propertyInformation.DataType;
-
-	public string Name => _propertyInformation.Name;
-
-	public string DisplayName => _propertyInformation.DisplayName;
-
-	public override bool IsChanged => Value is null ? InitialValue is not null : !Value.Equals(InitialValue);
-
-	public void Reset() => Value = InitialValue;
-
-	public void SetInitialValue(DataValue? value)
-	{
-		InitialValue = GetValue(DataType, value);
-	}
-
-	public DataValue? GetDataValue() => GetDataValue(DataType, Value);
-
-	private static DataValue? GetDataValue(DataType dataType, object? value)
+	protected static DataValue? GetDataValue(DataType dataType, object? value)
 	{
 		if (value is null) return null;
 
@@ -158,52 +105,19 @@ internal sealed class PropertyViewModel : ChangeableBindableObject
 		}
 	}
 
-	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation, LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
-	{
-		_propertyInformation = propertyInformation;
-		var dataType = _propertyInformation.DataType;
-		if (dataType == DataType.UInt8 && propertyInformation.Name == "BrightnessLevel")
-		{
-			if (brightnessCapabilities is not null)
-			{
-				MinimumValue = brightnessCapabilities.MinimumLevel;
-				MaximumValue = brightnessCapabilities.MaximumLevel;
-				DefaultValue = brightnessCapabilities.MaximumLevel;
-			}
-		}
-		else
-		{
-			MinimumValue = GetValue(dataType, _propertyInformation.MinimumValue);
-			MaximumValue = GetValue(dataType, _propertyInformation.MaximumValue);
-			DefaultValue = GetValue(dataType, _propertyInformation.DefaultValue) ?? GetDefaultValueForType(dataType);
-		}
-		EnumerationValues = _propertyInformation.EnumerationValues.IsDefaultOrEmpty ?
-			ReadOnlyCollection<EnumerationValueViewModel>.Empty :
-			Array.AsReadOnly
-			(
-				Array.ConvertAll
-				(
-					_propertyInformation.EnumerationValues.AsMutable(),
-					e => new EnumerationValueViewModel
-					(
-						e.DisplayName,
-						dataType switch
-						{
-							DataType.UInt8 => (byte)e.Value,
-							DataType.Int8 => (sbyte)e.Value,
-							DataType.UInt16 => (ushort)e.Value,
-							DataType.Int16 => (short)e.Value,
-							DataType.UInt32 => (uint)e.Value,
-							DataType.Int32 => (int)e.Value,
-							DataType.UInt64 => e.Value,
-							DataType.Int64 => (long)e.Value,
-							_ => throw new NotSupportedException()
-						}
-					)
-				)
-			);
-		_value = _initialValue = DefaultValue;
-	}
+	protected readonly ConfigurablePropertyInformation PropertyInformation;
 
-	public ReadOnlyCollection<EnumerationValueViewModel> EnumerationValues { get; }
+	public uint? Index => PropertyInformation.Index;
+
+	public DataType DataType => PropertyInformation.DataType;
+
+	public string Name => PropertyInformation.Name;
+
+	public string DisplayName => PropertyInformation.DisplayName;
+
+	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation) => PropertyInformation = propertyInformation;
+
+	public abstract void Reset();
+	public abstract void SetInitialValue(DataValue? value);
+	public abstract DataValue? GetDataValue();
 }

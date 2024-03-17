@@ -60,4 +60,41 @@
         BrightnessTemplate="{StaticResource MonitorBrightnessLabelTemplate}"
         ContrastTemplate="{StaticResource MonitorContrastLabelTemplate}"
         DefaultContinuousTemplate="{StaticResource MonitorDefaultLabelSettingTemplate}" />
+
+    <!-- Lighting property templates -->
+    <DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+        <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+    </DataTemplate>
+    <DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+        <NumberBox Value="{Binding Value, Mode=TwoWay}" />
+    </DataTemplate>
+    <DataTemplate x:Key="EnumPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+        <ComboBox SelectedValuePath="Value" SelectedValue="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding EnumerationValues, Mode=OneTime}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </DataTemplate>
+    <DataTemplate x:Key="EnumRangePropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+        <Slider SnapsTo="StepValues" TickFrequency="1" Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
+            <Slider.ThumbToolTipValueConverter>
+                <local:EnumerationValueToNameConverter Values="{Binding EnumerationValues, Mode=OneTime}" />
+            </Slider.ThumbToolTipValueConverter>
+        </Slider>
+    </DataTemplate>
+    <DataTemplate x:Key="FallbackPropertyTemplate" />
+    <DataTemplate x:Key="BrightnessTemplate">
+        <Slider
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource BrightnessSliderStyle}">
+            <Slider.ThumbToolTipValueConverter>
+                <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+            </Slider.ThumbToolTipValueConverter>
+        </Slider>
+    </DataTemplate>
 </ResourceDictionary>

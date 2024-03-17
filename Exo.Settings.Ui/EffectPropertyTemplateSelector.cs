@@ -7,6 +7,7 @@ namespace Exo.Settings.Ui;
 
 internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 	public DataTemplate NumericRangeTemplate { get; set; }
 	public DataTemplate NumericTemplate { get; set; }
 	public DataTemplate BrightnessTemplate { get; set; }
@@ -17,16 +18,18 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 	public DataTemplate TimeSpanTemplate { get; set; }
 	public DataTemplate EnumTemplate { get; set; }
 	public DataTemplate EnumRangeTemplate { get; set; }
+	public DataTemplate ColorArrayTemplate { get; set; }
 	public DataTemplate FallbackTemplate { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 	protected override DataTemplate SelectTemplateCore(object item, DependencyObject container)
 		=> SelectTemplateCore(item);
 
 	protected override DataTemplate SelectTemplateCore(object item)
 	{
-		if (item is PropertyViewModel p)
+		if (item is ScalarPropertyViewModel sp)
 		{
-			switch (p.DataType)
+			switch (sp.DataType)
 			{
 			case DataType.UInt8:
 			case DataType.Int8:
@@ -36,15 +39,15 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 			case DataType.Int32:
 			case DataType.UInt64:
 			case DataType.Int64:
-				if (p.EnumerationValues.Count > 0)
+				if (sp.EnumerationValues.Count > 0)
 				{
-					if (p.MinimumValue is not null && p.MaximumValue is not null)
+					if (sp.MinimumValue is not null && sp.MaximumValue is not null)
 					{
 						return EnumRangeTemplate;
 					}
 					return EnumTemplate;
 				}
-				else if (p.Name == "BrightnessLevel")
+				else if (sp.Name == "BrightnessLevel")
 				{
 					return BrightnessTemplate;
 				}
@@ -52,7 +55,7 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 			case DataType.Float16:
 			case DataType.Float32:
 			case DataType.Float64:
-				return p.MinimumValue is not null && p.MaximumValue is not null ? NumericRangeTemplate : NumericTemplate;
+				return sp.MinimumValue is not null && sp.MaximumValue is not null ? NumericRangeTemplate : NumericTemplate;
 			case DataType.String:
 				return TextTemplate;
 			case DataType.TimeSpan:
@@ -65,6 +68,14 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 			case DataType.ColorRgb24:
 			case DataType.ColorArgb32:
 				return ColorTemplate;
+			}
+		}
+		else if (item is FixedLengthArrayPropertyViewModel ap)
+		{
+			switch (ap.DataType)
+			{
+			case DataType.ArrayOfColorRgb24:
+				return ColorArrayTemplate;
 			}
 		}
 		return FallbackTemplate;
