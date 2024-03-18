@@ -3,53 +3,11 @@
     x:Class="Exo.Settings.Ui.LightingZoneControl"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:LightingZoneViewModel, IsDesignTimeCreatable=False}">
-    <UserControl.Resources>
-        <!-- TODO: Put back into App.xaml when the color picker palette can actually be set in style. -->
-        <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
-            <controls:ColorPickerButton SelectedColor="{Binding Value, Mode=TwoWay}" ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}" Loaded="OnColorPickerButtonLoaded" />
-        </DataTemplate>
-        <DataTemplate x:Key="ColorArrayPropertyTemplate" x:DataType="vm:FixedLengthArrayPropertyViewModel">
-            <ItemsControl ItemsSource="{Binding Items}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ArrayElementViewModel">
-                        <Button Click="OnColorSwatchButtonClick">
-                            <Button.Background>
-                                <SolidColorBrush Color="{Binding Value, Mode=OneWay}" />
-                            </Button.Background>
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Margin="3,0,3,0" Width="20" Height="20" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1" Background="{TemplateBinding Background}" />
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
-        </DataTemplate>
-        <local:EffectPropertyTemplateSelector
-            x:Key="EffectPropertyTemplateSelector"
-            NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
-            NumericTemplate="{StaticResource NumericPropertyTemplate}"
-            BooleanTemplate="{StaticResource BooleanPropertyTemplate}"
-            BrightnessTemplate="{StaticResource BrightnessTemplate}"
-            ColorTemplate="{StaticResource ColorPropertyTemplate}"
-            EnumTemplate="{StaticResource EnumPropertyTemplate}"
-            EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
-            ColorArrayTemplate="{StaticResource ColorArrayPropertyTemplate}"
-            FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
-    </UserControl.Resources>
     <StackPanel Orientation="Vertical">
         <Grid HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>

@@ -34,22 +34,5 @@ internal sealed partial class LightingZoneControl : UserControl
 
 	private void OnPropertyResetButtonClick(object sender, RoutedEventArgs e) => ((PropertyViewModel)((FrameworkElement)sender).DataContext).Reset();
 
-	// Works around the bug that prevents ColorPicker.CustomPalette from being styled 😐
-	// Also works around the limitation that forces the color picker to be constrained to bounds. 😩
-	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e)
-	{
-		var button = (ColorPickerButton)sender;
-
-		button.ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
-		button.Flyout.ShouldConstrainToRootBounds = false;
-		button.Flyout.SystemBackdrop = new DesktopAcrylicBackdrop();
-	}
-
 	private void OnEffectResetButtonClick(object sender, RoutedEventArgs e) => ((LightingZoneViewModel)((FrameworkElement)sender).DataContext).Reset();
-
-	private void OnColorSwatchButtonClick(object sender, RoutedEventArgs e)
-	{
-		var dataContext = ((FrameworkElement)sender).DataContext;
-		((ArrayElementViewModel)dataContext).Value = App.Current.Services.GetRequiredService<IEditionService>().Color;
-    }
 }

@@ -215,7 +215,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            
+
             <!--
                 TODO: The gradient should be made relative to the minimum.
             -->
@@ -235,6 +235,25 @@
                         </Style>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <!-- Color swatch -->
+            <ControlTemplate x:Key="ColorSwatchDefaultTemplate" TargetType="local:ColorSwatch">
+                <Border
+                    Width="{TemplateBinding Width}"
+                    Height="{TemplateBinding Height}"
+                    BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}"
+                    BorderThickness="1">
+                    <Border.Background>
+                        <SolidColorBrush Color="{Binding Color, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                    </Border.Background>
+                </Border>
+            </ControlTemplate>
+
+            <Style TargetType="local:ColorSwatch">
+                <Setter Property="Template" Value="{StaticResource ColorSwatchDefaultTemplate}" />
+                <Setter Property="Width" Value="20" />
+                <Setter Property="Height" Value="20" />
             </Style>
 
         </ResourceDictionary>

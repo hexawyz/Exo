@@ -100,4 +100,35 @@
             </Slider.ThumbToolTipValueConverter>
         </Slider>
     </DataTemplate>
+    <DataTemplate x:Key="ColorArrayPropertyTemplate" x:DataType="vm:FixedLengthArrayPropertyViewModel">
+        <ItemsControl ItemsSource="{Binding Items}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ArrayElementViewModel">
+                    <local:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+    </DataTemplate>
+    <DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+        <local:ColorSwatch Color="{Binding Value, Mode=TwoWay}" HorizontalAlignment="Left" />
+    </DataTemplate>
+    
+    <!-- Template selector for the above effect property templates. -->
+    <local:EffectPropertyTemplateSelector
+            x:Key="EffectPropertyTemplateSelector"
+            NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
+            NumericTemplate="{StaticResource NumericPropertyTemplate}"
+            BooleanTemplate="{StaticResource BooleanPropertyTemplate}"
+            BrightnessTemplate="{StaticResource BrightnessTemplate}"
+            ColorTemplate="{StaticResource ColorPropertyTemplate}"
+            EnumTemplate="{StaticResource EnumPropertyTemplate}"
+            EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
+            ColorArrayTemplate="{StaticResource ColorArrayPropertyTemplate}"
+            FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
+
 </ResourceDictionary>
