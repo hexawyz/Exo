@@ -51,8 +51,6 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	private readonly Dictionary<Guid, byte> _brightnessLevels;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 
-	private readonly IEditionService _editionService;
-
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchDevicesTask;
 	private readonly Task _watchEffectsTask;
@@ -63,7 +61,6 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	public LightingViewModel(ILightingService lightingService, DevicesViewModel devicesViewModel, IEditionService editionService)
 	{
 		_devicesViewModel = devicesViewModel;
-		_editionService = editionService;
 		LightingService = lightingService;
 		_lightingDevices = new();
 		_lightingDeviceById = new();
@@ -76,15 +73,6 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
 		_watchBrightnessTask = WatchBrightnessAsync(_cancellationTokenSource.Token);
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
-		_editionService.PropertyChanged += OnEditionServicePropertyChanged;
-	}
-
-	private void OnEditionServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (e.PropertyName == nameof(IEditionService.Color))
-		{
-			NotifyPropertyChanged(ChangedProperty.CurrentEditColor);
-		}
 	}
 
 	public async ValueTask DisposeAsync()
@@ -259,10 +247,4 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 
 	public byte? GetBrightness(Guid deviceId)
 		=> _brightnessLevels.TryGetValue(deviceId, out var brightness) ? brightness : null;
-
-	public Color CurrentEditColor
-	{
-		get => _editionService.Color;
-		set => _editionService.Color = value;
-	}
 }

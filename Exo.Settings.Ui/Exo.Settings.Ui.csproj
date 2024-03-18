@@ -19,6 +19,7 @@
     <None Remove="DataTemplates.xaml" />
     <None Remove="DevicePage.xaml" />
     <None Remove="DevicesPage.xaml" />
+    <None Remove="EditionToolbar.xaml" />
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
     <None Remove="MonitorSettingControl.xaml" />
@@ -59,6 +60,11 @@
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="EditionToolbar.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="DataTemplates.xaml">

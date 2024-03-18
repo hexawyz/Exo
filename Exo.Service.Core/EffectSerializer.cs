@@ -936,6 +936,7 @@ public static class EffectSerializer
 		switch (dataType)
 		{
 		case SerializerDataType.Boolean:
+			ilGenerator.Emit(OpCodes.Conv_U1);
 			ilGenerator.Emit(OpCodes.Ldc_I4_0);
 			ilGenerator.Emit(OpCodes.Cgt_Un);
 			break;

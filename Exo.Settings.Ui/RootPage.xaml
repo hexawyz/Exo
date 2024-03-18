@@ -96,6 +96,7 @@
             <Grid Padding="{StaticResource NavigationContentPadding}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -133,8 +134,14 @@
                         ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
                 </Grid>
 
-                <ScrollViewer
+                <local:EditionToolbar
                     Grid.Row="1"
+                    Margin="{StaticResource NavigationContentHeaderMargin}"
+                    DataContext="{Binding EditionService}"
+                    Visibility="{Binding ShowToolbar, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <ScrollViewer
+                    Grid.Row="2"
                     VerticalScrollBarVisibility="Auto"
                     VerticalScrollMode="Auto">
                     <Frame

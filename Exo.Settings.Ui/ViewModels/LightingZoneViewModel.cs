@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -158,31 +156,28 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 		foreach (var property in properties)
 		{
-			if (property is ScalarPropertyViewModel scalarProperty && scalarProperty.Value is { } value)
+			if (property is ScalarPropertyViewModel scalarProperty && scalarProperty.Value is { } value && scalarProperty.Index is null)
 			{
-				if (scalarProperty.Index is null)
+				if (scalarProperty.Name == "Color")
 				{
-					if (scalarProperty.Name == "Color")
+					if (scalarProperty.DataType == DataType.ColorRgb24)
 					{
-						if (scalarProperty.DataType == DataType.ColorRgb24)
+						if (value is Color c)
 						{
-							if (value is Color c)
-							{
-								color = (uint)c.ToInt() & 0xFFFFFFU;
-							}
-						}
-						else if (scalarProperty.DataType == DataType.ColorArgb32)
-						{
-							if (value is Color c)
-							{
-								color = (uint)c.ToInt();
-							}
+							color = (uint)c.ToInt() & 0xFFFFFFU;
 						}
 					}
-					else if (property.Name == "Speed" && IsUInt32Compatible(property.DataType))
+					else if (scalarProperty.DataType == DataType.ColorArgb32)
 					{
-						speed = Convert.ToUInt32(scalarProperty.Value);
+						if (value is Color c)
+						{
+							color = (uint)c.ToInt();
+						}
 					}
+				}
+				else if (property.Name == "Speed" && IsUInt32Compatible(property.DataType))
+				{
+					speed = Convert.ToUInt32(scalarProperty.Value);
 				}
 			}
 			else

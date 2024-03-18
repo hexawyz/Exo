@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using CommunityToolkit.WinUI.UI.Controls;
+using CommunityToolkit.WinUI.UI;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -15,6 +17,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI.ViewManagement;
+using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui;
 
@@ -30,6 +33,7 @@ internal sealed partial class RootPage : Page
 	public RootPage(Window window)
 	{
 		ViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
+
 		InitializeComponent();
 
 		Loaded += delegate (object sender, RoutedEventArgs e)
@@ -38,6 +42,7 @@ internal sealed partial class RootPage : Page
 			window.ExtendsContentIntoTitleBar = true;
 			window.SetTitleBar(AppTitleBar);
 			window.Activated += OnWindowActivated;
+			App.Current.Services.GetRequiredService<IEditionService>().ShowToolbar = false;
 		};
 	}
 

@@ -42,6 +42,7 @@
             x:Key="EffectPropertyTemplateSelector"
             NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
             NumericTemplate="{StaticResource NumericPropertyTemplate}"
+            BooleanTemplate="{StaticResource BooleanPropertyTemplate}"
             BrightnessTemplate="{StaticResource BrightnessTemplate}"
             ColorTemplate="{StaticResource ColorPropertyTemplate}"
             EnumTemplate="{StaticResource EnumPropertyTemplate}"

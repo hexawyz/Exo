@@ -6,8 +6,8 @@ using Exo.Lighting.Effects;
 namespace Exo.Devices.Asus.Aura.Effects;
 
 [DataContract]
-[TypeId(0xEDD773B0, 0x727E, 0x4C12, 0xB9, 0x2A, 0xDA, 0x05, 0x5A, 0xCE, 0x49, 0x91)]
-public readonly struct AlternateSpectrumEffect : ILightingEffect
+[TypeId(0xF6A8C369, 0xD230, 0x4E63, 0xB6, 0x00, 0xA4, 0x4F, 0x1B, 0x3B, 0xBE, 0xCA)]
+public readonly struct SpectrumWaveEffect : ILightingEffect
 {
 	[DataMember(Order = 1)]
 	[Display(Name = "Speed")]
@@ -15,8 +15,13 @@ public readonly struct AlternateSpectrumEffect : ILightingEffect
 	[DefaultValue(3)]
 	public PredeterminedEffectSpeed Speed { get; }
 
-	public AlternateSpectrumEffect(PredeterminedEffectSpeed speed)
+	[DataMember(Order = 2)]
+	[Display(Name = "Reverse")]
+	public bool IsReversed { get; }
+
+	public SpectrumWaveEffect(PredeterminedEffectSpeed speed, bool isReversed)
 	{
 		Speed = speed;
+		IsReversed = isReversed;
 	}
 }

@@ -3,7 +3,6 @@
     x:Class="Exo.Settings.Ui.LightingPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:local="using:Exo.Settings.Ui"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -11,81 +10,64 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <StackPanel>
-        <Grid Margin="0,0,0,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="Edition controls" />
-            <controls:ColorPickerButton
-                Grid.Column="1"
-                VerticalAlignment="Center"
-                DataContext="{Binding Lighting}"
-                Margin="{StaticResource RowContentMargin}"
-                SelectedColor="{Binding CurrentEditColor, Mode=TwoWay}"
-                ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}"
-                Loaded="OnColorPickerButtonLoaded" />
-        </Grid>
-        <ItemsControl ItemsSource="{Binding Lighting.LightingDevices}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsNotBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                        <Expander.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-                                <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
-                            </StackPanel>
-                        </Expander.Header>
-                        <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
-                            <Grid Margin="0,0,0,12" Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Brightness" Margin="{StaticResource RowLabelMargin}" />
-                                <Slider
-                                    Grid.Column="1"
-                                    Style="{StaticResource BrightnessSliderStyle}"
-                                    DataContext="{Binding Brightness}"
-                                    Margin="{StaticResource RowContentMargin}"
-                                    Value="{Binding Level, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
-                                    Minimum="{Binding MinimumLevel, Mode=OneTime}"
-                                    Maximum="{Binding MaximumLevel, Mode=OneTime}">
-                                    <Slider.ThumbToolTipValueConverter>
-                                        <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
-                                    </Slider.ThumbToolTipValueConverter>
-                                </Slider>
-                            </Grid>
-                            <local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}" LightingZone="{Binding UnifiedLightingZone}" />
-                            <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Expander Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                                            <Expander.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <FontIcon Glyph="&#xE950;" />
-                                                    <TextBlock Text="{Binding Name, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
-                                                    <Border Margin="12,0,0,0" Width="20" Height="20" Visibility="{Binding Color, Converter={StaticResource NullabilityToVisibilityConverter}}" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
-                                                        <Border.Background>
-                                                            <SolidColorBrush Color="{Binding Color, Mode=OneWay}" />
-                                                        </Border.Background>
-                                                    </Border>
-                                                </StackPanel>
-                                            </Expander.Header>
-                                            <local:LightingZoneControl LightingZone="{Binding}" />
-                                        </Expander>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-                                <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Click="OnDeviceResetButtonClick" />
-                                <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnDeviceApplyButtonClick" />
-                            </StackPanel>
+    <ItemsControl ItemsSource="{Binding Lighting.LightingDevices}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsNotBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
+                            <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
                         </StackPanel>
-                    </Expander>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
+                        <Grid Margin="0,0,0,12" Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Brightness" Margin="{StaticResource RowLabelMargin}" />
+                            <Slider
+                                Grid.Column="1"
+                                Style="{StaticResource BrightnessSliderStyle}"
+                                DataContext="{Binding Brightness}"
+                                Margin="{StaticResource RowContentMargin}"
+                                Value="{Binding Level, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+                                Minimum="{Binding MinimumLevel, Mode=OneTime}"
+                                Maximum="{Binding MaximumLevel, Mode=OneTime}">
+                                <Slider.ThumbToolTipValueConverter>
+                                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
+                                </Slider.ThumbToolTipValueConverter>
+                            </Slider>
+                        </Grid>
+                        <local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}" LightingZone="{Binding UnifiedLightingZone}" />
+                        <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                        <Expander.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <FontIcon Glyph="&#xE950;" />
+                                                <TextBlock Text="{Binding Name, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+                                                <Border Margin="12,0,0,0" Width="20" Height="20" Visibility="{Binding Color, Converter={StaticResource NullabilityToVisibilityConverter}}" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
+                                                    <Border.Background>
+                                                        <SolidColorBrush Color="{Binding Color, Mode=OneWay}" />
+                                                    </Border.Background>
+                                                </Border>
+                                            </StackPanel>
+                                        </Expander.Header>
+                                        <local:LightingZoneControl LightingZone="{Binding}" />
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                            <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Click="OnDeviceResetButtonClick" />
+                            <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnDeviceApplyButtonClick" />
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
 </Page>

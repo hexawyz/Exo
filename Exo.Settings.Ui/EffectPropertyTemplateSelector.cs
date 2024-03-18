@@ -10,6 +10,7 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 	public DataTemplate NumericRangeTemplate { get; set; }
 	public DataTemplate NumericTemplate { get; set; }
+	public DataTemplate BooleanTemplate { get; set; }
 	public DataTemplate BrightnessTemplate { get; set; }
 	public DataTemplate TextTemplate { get; set; }
 	public DataTemplate GrayscaleTemplate { get; set; }
@@ -56,6 +57,8 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 			case DataType.Float32:
 			case DataType.Float64:
 				return sp.MinimumValue is not null && sp.MaximumValue is not null ? NumericRangeTemplate : NumericTemplate;
+			case DataType.Boolean:
+				return BooleanTemplate;
 			case DataType.String:
 				return TextTemplate;
 			case DataType.TimeSpan:

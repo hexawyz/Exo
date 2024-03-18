@@ -68,6 +68,9 @@
     <DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
         <NumberBox Value="{Binding Value, Mode=TwoWay}" />
     </DataTemplate>
+    <DataTemplate x:Key="BooleanPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+        <ToggleSwitch IsOn="{Binding Value, Mode=TwoWay}" />
+    </DataTemplate>
     <DataTemplate x:Key="EnumPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
         <ComboBox SelectedValuePath="Value" SelectedValue="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding EnumerationValues, Mode=OneTime}" HorizontalAlignment="Stretch">
             <ComboBox.ItemTemplate>
