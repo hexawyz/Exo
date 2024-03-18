@@ -1,15 +1,13 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Threading;
-using System.Threading.Tasks;
+using System.ComponentModel;
 using Exo.Contracts;
+using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Exo.Ui.Contracts;
-using Windows.UI.Notifications;
+using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -53,6 +51,8 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	private readonly Dictionary<Guid, byte> _brightnessLevels;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 
+	private readonly IEditionService _editionService;
+
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchDevicesTask;
 	private readonly Task _watchEffectsTask;
@@ -60,9 +60,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 
-	public LightingViewModel(ILightingService lightingService, DevicesViewModel devicesViewModel)
+	public LightingViewModel(ILightingService lightingService, DevicesViewModel devicesViewModel, IEditionService editionService)
 	{
 		_devicesViewModel = devicesViewModel;
+		_editionService = editionService;
 		LightingService = lightingService;
 		_lightingDevices = new();
 		_lightingDeviceById = new();
@@ -75,6 +76,23 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
 		_watchBrightnessTask = WatchBrightnessAsync(_cancellationTokenSource.Token);
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
+		_editionService.PropertyChanged += OnEditionServicePropertyChanged;
+	}
+
+	private void OnEditionServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(IEditionService.Color))
+		{
+			NotifyPropertyChanged(ChangedProperty.CurrentEditColor);
+		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		_cancellationTokenSource.Cancel();
+		await _watchDevicesTask.ConfigureAwait(false);
+		await _watchEffectsTask.ConfigureAwait(false);
+		await _watchBrightnessTask.ConfigureAwait(false);
 	}
 
 	private void OnDevicesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -100,14 +118,6 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 			// As of writing this code, we don't require support for anything else, but if this change in the future, this exception will be triggered.
 			throw new InvalidOperationException("This case is not handled.");
 		}
-	}
-
-	public async ValueTask DisposeAsync()
-	{
-		_cancellationTokenSource.Cancel();
-		await _watchDevicesTask.ConfigureAwait(false);
-		await _watchEffectsTask.ConfigureAwait(false);
-		await _watchBrightnessTask.ConfigureAwait(false);
 	}
 
 	private void OnDeviceAdded(DeviceViewModel device, LightingDeviceInformation lightingDeviceInformation)
@@ -249,4 +259,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 
 	public byte? GetBrightness(Guid deviceId)
 		=> _brightnessLevels.TryGetValue(deviceId, out var brightness) ? brightness : null;
+
+	public Color CurrentEditColor
+	{
+		get => _editionService.Color;
+		set => _editionService.Color = value;
+	}
 }

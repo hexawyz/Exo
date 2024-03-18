@@ -89,7 +89,14 @@ internal class GrpcLightingService : ILightingService
 
 		foreach (var ze in update.ZoneEffects)
 		{
-			EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+			try
+			{
+				EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+			}
+			catch (Exception ex)
+			{
+				_logger.GrpcLightingServiceEffectApplicationError(update.DeviceId, ze.Effect?.EffectId ?? default, ze.ZoneId, ex);
+			}
 		}
 
 		await _lightingService.ApplyChanges(update.DeviceId);
@@ -106,7 +113,14 @@ internal class GrpcLightingService : ILightingService
 
 			foreach (var ze in update.ZoneEffects)
 			{
-				EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+				try
+				{
+					EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+				}
+				catch (Exception ex)
+				{
+					_logger.GrpcLightingServiceEffectApplicationError(update.DeviceId, ze.Effect?.EffectId ?? default, ze.ZoneId, ex);
+				}
 			}
 		}
 

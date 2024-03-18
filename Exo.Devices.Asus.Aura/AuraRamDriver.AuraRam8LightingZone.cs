@@ -24,11 +24,11 @@ public partial class AuraRamDriver
 			{
 				buffers[i] = SwapGreenAndBlue(colors[i]);
 			}
-			var swappedColors = Unsafe.As<RgbColor, FixedArray5<RgbColor>>(ref MemoryMarshal.GetReference(buffers));
+			var swappedColors = Unsafe.As<RgbColor, FixedArray8<RgbColor>>(ref MemoryMarshal.GetReference(buffers));
 			switch (AuraEffect)
 			{
 			case AuraEffect.Static:
-				CurrentEffect = new Static5ColorEffect(swappedColors);
+				CurrentEffect = new Static8ColorEffect(swappedColors);
 				break;
 			}
 		}

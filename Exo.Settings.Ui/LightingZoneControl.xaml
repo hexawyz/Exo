@@ -19,11 +19,16 @@
             <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ArrayElementViewModel">
-                        <Border Margin="3,0,3,0" Width="20" Height="20" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
-                            <Border.Background>
+                        <Button Click="OnColorSwatchButtonClick">
+                            <Button.Background>
                                 <SolidColorBrush Color="{Binding Value, Mode=OneWay}" />
-                            </Border.Background>
-                        </Border>
+                            </Button.Background>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Margin="3,0,3,0" Width="20" Height="20" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1" Background="{TemplateBinding Background}" />
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
                 <ItemsControl.ItemsPanel>

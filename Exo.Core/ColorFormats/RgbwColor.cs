@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Exo.ColorFormats;
 
-[StructLayout(LayoutKind.Sequential, Size = 3)]
+[DebuggerDisplay("R = {R}, G = {G}, B = {B}, W = {W}")]
+[StructLayout(LayoutKind.Sequential, Size = 4)]
 public struct RgbwColor : IEquatable<RgbwColor>
 {
 	public byte W;

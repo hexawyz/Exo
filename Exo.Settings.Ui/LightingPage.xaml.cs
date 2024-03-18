@@ -1,6 +1,9 @@
+using CommunityToolkit.WinUI.UI.Controls;
+using CommunityToolkit.WinUI.UI;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 
 namespace Exo.Settings.Ui;
@@ -25,5 +28,16 @@ public sealed partial class LightingPage : Page
 	{
 		ViewModel.Icon = "\uE781";
 		ViewModel.Title = "Lighting";
+	}
+
+	// Works around the bug that prevents ColorPicker.CustomPalette from being styled 😐
+	// Also works around the limitation that forces the color picker to be constrained to bounds. 😩
+	private void OnColorPickerButtonLoaded(object sender, RoutedEventArgs e)
+	{
+		var button = (ColorPickerButton)sender;
+
+		button.ColorPicker.CustomPalette = (IColorPalette)this.FindResource("RgbLightingDefaultPalette");
+		button.Flyout.ShouldConstrainToRootBounds = false;
+		button.Flyout.SystemBackdrop = new DesktopAcrylicBackdrop();
 	}
 }

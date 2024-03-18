@@ -17,6 +17,9 @@ using Windows.Foundation.Collections;
 using Exo.Ui.Contracts;
 using Exo.Programming;
 using ProtoBuf.Meta;
+using Microsoft.Extensions.DependencyInjection;
+using Exo.Settings.Ui.Services;
+using Exo.Settings.Ui.ViewModels;
 
 namespace Exo.Settings.Ui;
 
@@ -43,6 +46,8 @@ public partial class App : Application
 
 		GrpcClientFactory.AllowUnencryptedHttp2 = true;
 
+		Services = ConfigureServices();
+
 		InitializeComponent();
 	}
 
@@ -60,4 +65,19 @@ public partial class App : Application
 	}
 
 	private Window? _window;
+
+	public new static App Current => (App)Application.Current;
+
+	public IServiceProvider Services { get; }
+
+	private static IServiceProvider ConfigureServices()
+	{
+		var services = new ServiceCollection();
+
+		services.AddSingleton<IEditionService, EditionService>();
+
+		services.AddSingleton<SettingsViewModel>();
+
+		return services.BuildServiceProvider();
+	}
 }

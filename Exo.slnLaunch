@@ -4,15 +4,18 @@
     "Projects": [
       {
         "Name": "Exo.Service\\Exo.Service.csproj",
-        "Action": "Start"
+        "Action": "Start",
+        "DebugTarget": "Exo.Service"
       },
       {
         "Name": "Exo.Settings.Ui\\Exo.Settings.Ui.csproj",
-        "Action": "Start"
+        "Action": "Start",
+        "DebugTarget": ""
       },
       {
         "Name": "Exo.Overlay\\Exo.Overlay.csproj",
-        "Action": "Start"
+        "Action": "Start",
+        "DebugTarget": "Exo.Overlay"
       }
     ]
   }

@@ -1,8 +1,9 @@
-using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Exo.ColorFormats;
 
+[DebuggerDisplay("R = {R}, G = {G}, B = {B}")]
 [StructLayout(LayoutKind.Sequential, Size = 3)]
 public struct RgbColor : IEquatable<RgbColor>
 {

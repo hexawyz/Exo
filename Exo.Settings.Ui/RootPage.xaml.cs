@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -28,7 +29,7 @@ internal sealed partial class RootPage : Page
 
 	public RootPage(Window window)
 	{
-		ViewModel = new SettingsViewModel();
+		ViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
 		InitializeComponent();
 
 		Loaded += delegate (object sender, RoutedEventArgs e)

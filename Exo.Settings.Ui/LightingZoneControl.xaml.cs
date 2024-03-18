@@ -1,7 +1,8 @@
 using CommunityToolkit.WinUI.UI;
 using CommunityToolkit.WinUI.UI.Controls;
+using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
-using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -45,4 +46,10 @@ internal sealed partial class LightingZoneControl : UserControl
 	}
 
 	private void OnEffectResetButtonClick(object sender, RoutedEventArgs e) => ((LightingZoneViewModel)((FrameworkElement)sender).DataContext).Reset();
+
+	private void OnColorSwatchButtonClick(object sender, RoutedEventArgs e)
+	{
+		var dataContext = ((FrameworkElement)sender).DataContext;
+		((ArrayElementViewModel)dataContext).Value = App.Current.Services.GetRequiredService<IEditionService>().Color;
+    }
 }

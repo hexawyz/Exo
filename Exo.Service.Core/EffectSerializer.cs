@@ -95,11 +95,13 @@ public static class EffectSerializer
 			.Where(m => m.Name == nameof(MemoryMarshal.CreateReadOnlySpan) && m.GetGenericArguments() is { Length: 1 })
 			.Single();
 
-	private static readonly MethodInfo ByteArrayAsSpanMethodInfo =
+	private static readonly MethodInfo ArrayAsSpanMethodInfo =
 		typeof(MemoryExtensions)
 			.GetMethods(BindingFlags.Public | BindingFlags.Static)
 			.Where(m => m.Name == nameof(MemoryExtensions.AsSpan) && m.GetGenericArguments() is { Length: 1 } a && m.GetParameters() is { Length: 1 } p && p[0].ParameterType.IsArray && p[0].ParameterType.GetElementType() == a[0])
 			.Single();
+
+	private static readonly MethodInfo ByteArrayAsSpanMethodInfo = ArrayAsSpanMethodInfo.MakeGenericMethod(typeof(byte));
 
 	private static readonly MethodInfo SpanAsReadOnlySpanMethodInfo =
 		typeof(Span<byte>)
@@ -467,6 +469,7 @@ public static class EffectSerializer
 		LocalBuilder? propertyValueLocal = null;
 		LocalBuilder? rgb24Local = null;
 		LocalBuilder? rgbw32Local = null;
+		LocalBuilder? readOnlySpanByteLocal = null;
 
 		// We only need an ImmutableArray<>.Builder when there are non-well-known properties.
 		if (deserializationLabels.Count > 0)
@@ -664,8 +667,10 @@ public static class EffectSerializer
 					serializeIlGenerator.Emit(OpCodes.Ldc_I4, (int)details.FixedArrayLength);
 					serializeIlGenerator.Emit(OpCodes.Call, MemoryMarshalCreateReadOnlySpanMethodInfo.MakeGenericMethod(elementType));
 					serializeIlGenerator.Emit(OpCodes.Call, MemoryMarshalCastReadOnlySpanMethodInfo.MakeGenericMethod(elementType, typeof(byte)));
+					serializeIlGenerator.Emit(OpCodes.Stloc, readOnlySpanByteLocal ??= serializeIlGenerator.DeclareLocal(typeof(ReadOnlySpan<byte>)));
+					serializeIlGenerator.Emit(OpCodes.Ldloca, readOnlySpanByteLocal);
 					serializeIlGenerator.Emit(OpCodes.Call, ReadOnlySpanBytesToArrayMethodInfo);
-					serializeIlGenerator.Emit(OpCodes.Call, DataValueBytesValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueBytesValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.ColorGrayscale8:
 				case SerializerDataType.ColorGrayscale16:
@@ -833,7 +838,7 @@ public static class EffectSerializer
 			// First sub-pass: Create the instance.
 			foreach (var parameter in constructorParameters)
 			{
-				deserializeIlGenerator.Emit(parameter.ParameterType.IsByRef ? OpCodes.Ldloca : OpCodes.Ldloc, constructorParameterLocals![parameter.Name!]);
+				deserializeIlGenerator.Emit(OpCodes.Ldloc, constructorParameterLocals![parameter.Name!]);
 			}
 			deserializeIlGenerator.Emit(OpCodes.Newobj, parameterizedConstructor!);
 			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationEffectLocal);
