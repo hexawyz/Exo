@@ -39,6 +39,8 @@ public partial class AuraRamDriver :
 	];
 
 	private static ReadOnlySpan<sbyte> DefaultFrameDelays => [3, 2, 1, 0, -1, -2];
+	private const int DefaultFrameDelayIndex = 4;
+	private static sbyte DefaultFrameDelay => DefaultFrameDelays[DefaultFrameDelayIndex];
 
 	private const byte DefaultDeviceAddress = 0x77;
 

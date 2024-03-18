@@ -10,7 +10,9 @@ public partial class AuraRamDriver
 {
 	private sealed class AuraRam8LightingZone :
 		AuraRamLightingZone,
-		ILightingZoneEffect<Static8ColorEffect>
+		ILightingZoneEffect<Static8ColorEffect>,
+		ILightingZoneEffect<ColorPulse8Effect>,
+		ILightingZoneEffect<ColorFlash8Effect>
 	{
 		public AuraRam8LightingZone(AuraRamDriver driver, in DiscoveredModuleDescription description)
 			: base(driver, description)
@@ -30,44 +32,22 @@ public partial class AuraRamDriver
 			case AuraEffect.Static:
 				CurrentEffect = new Static8ColorEffect(swappedColors);
 				break;
+			case AuraEffect.Pulse:
+				CurrentEffect = new ColorPulse8Effect(swappedColors);
+				break;
+			case AuraEffect.Flash:
+				CurrentEffect = new ColorFlash8Effect(swappedColors);
+				break;
 			}
-		}
-
-		[SkipLocalsInit]
-		private bool UpdateColors(ReadOnlySpan<RgbColor> colors)
-		{
-			TenColorArray newColors;
-			Unsafe.SkipInit(out newColors);
-			var span = (Span<RgbColor>)newColors;
-			span[0] = SwapGreenAndBlue(colors[0]);
-			span[1] = SwapGreenAndBlue(colors[1]);
-			span[2] = SwapGreenAndBlue(colors[2]);
-			span[3] = SwapGreenAndBlue(colors[3]);
-			span[4] = SwapGreenAndBlue(colors[4]);
-			span[5] = SwapGreenAndBlue(colors[5]);
-			span[6] = SwapGreenAndBlue(colors[6]);
-			span[7] = SwapGreenAndBlue(colors[7]);
-			return UpdateRawColors(ref newColors);
 		}
 
 		bool ILightingZoneEffect<Static8ColorEffect>.TryGetCurrentEffect(out Static8ColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ColorPulse8Effect>.TryGetCurrentEffect(out ColorPulse8Effect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ColorFlash8Effect>.TryGetCurrentEffect(out ColorFlash8Effect effect) => CurrentEffect.TryGetEffect(out effect);
 
-		void ILightingZoneEffect<Static8ColorEffect>.ApplyEffect(in Static8ColorEffect effect)
-		{
-			lock (Driver._lock)
-			{
-				var changes = PendingChanges;
-				if (AuraEffect != AuraEffect.Static)
-				{
-					if (AuraEffect == AuraEffect.Dynamic) changes ^= EffectChanges.Dynamic;
-					AuraEffect = AuraEffect.Static;
-					changes |= EffectChanges.Effect;
-				}
-				if (UpdateColors(effect.Colors)) changes |= EffectChanges.Colors;
-				PendingChanges = changes;
-				CurrentEffect = effect;
-			}
-		}
+		void ILightingZoneEffect<Static8ColorEffect>.ApplyEffect(in Static8ColorEffect effect) => ApplyColorEffect(AuraEffect.Static, DefaultFrameDelay, effect.Colors, effect);
+		void ILightingZoneEffect<ColorPulse8Effect>.ApplyEffect(in ColorPulse8Effect effect) => ApplyColorEffect(AuraEffect.Pulse, DefaultFrameDelay, effect.Colors, effect);
+		void ILightingZoneEffect<ColorFlash8Effect>.ApplyEffect(in ColorFlash8Effect effect) => ApplyColorEffect(AuraEffect.Flash, DefaultFrameDelay, effect.Colors, effect);
 	}
 }
 

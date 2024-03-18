@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Runtime.Serialization;
 using Exo.ColorFormats;
 

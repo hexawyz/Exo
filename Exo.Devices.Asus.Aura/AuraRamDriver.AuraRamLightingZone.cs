@@ -98,17 +98,11 @@ public partial class AuraRamDriver
 			case AuraEffect.Off:
 				break;
 			case AuraEffect.Static:
-				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new StaticColorEffect(SwapGreenAndBlue(LocalColors[0]));
-				break;
+				goto InitializeMultiColor;
 			case AuraEffect.Pulse:
-				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(LocalColors[0]));
-				break;
+				goto InitializeMultiColor;
 			case AuraEffect.Flash:
-				if (!isSingleColor) goto InitializeMultiColor;
-				CurrentEffect = new ColorFlashEffect(SwapGreenAndBlue(LocalColors[0]));
-				break;
+				goto InitializeMultiColor;
 			case AuraEffect.ColorCycle:
 				CurrentEffect = SpectrumCycleEffect.SharedInstance;
 				break;
@@ -275,7 +269,7 @@ public partial class AuraRamDriver
 		bool ILightingZoneEffect<VariableColorWaveEffect>.TryGetCurrentEffect(out VariableColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
 		[SkipLocalsInit]
-		protected bool UpdateRawColors(RgbColor color)
+		private bool UpdateRawColors(RgbColor color)
 		{
 			TenColorArray newColors;
 			Unsafe.SkipInit(out newColors);
@@ -283,7 +277,7 @@ public partial class AuraRamDriver
 			return UpdateRawColors(ref newColors);
 		}
 
-		protected bool UpdateRawColors(ref TenColorArray colors)
+		private bool UpdateRawColors(ref TenColorArray colors)
 		{
 			var oldColors = MemoryMarshal.Cast<RgbColor, byte>(LocalColors);
 			var newColors = MemoryMarshal.Cast<RgbColor, byte>(AsSpan(ref colors)[..ColorCount]);
@@ -292,6 +286,19 @@ public partial class AuraRamDriver
 
 			newColors.CopyTo(oldColors);
 			return true;
+		}
+
+		[SkipLocalsInit]
+		protected bool UpdateColors(ReadOnlySpan<RgbColor> colors)
+		{
+			TenColorArray newColors;
+			Unsafe.SkipInit(out newColors);
+			var span = (Span<RgbColor>)newColors;
+			for (int i = 0; i < colors.Length; i++)
+			{
+				span[i] = SwapGreenAndBlue(colors[i]);
+			}
+			return UpdateRawColors(ref newColors);
 		}
 
 		private void ApplySingleColorEffect<TEffect>(AuraEffect auraEffect, sbyte frameDelay, in TEffect effect)
@@ -312,6 +319,28 @@ public partial class AuraRamDriver
 					changes |= EffectChanges.FrameDelay;
 				}
 				if (UpdateRawColors(SwapGreenAndBlue(effect.Color))) changes |= EffectChanges.Colors;
+				PendingChanges = changes;
+				CurrentEffect = effect;
+			}
+		}
+
+		protected void ApplyColorEffect(AuraEffect auraEffect, sbyte frameDelay, ReadOnlySpan<RgbColor> colors, ILightingEffect effect)
+		{
+			lock (Driver._lock)
+			{
+				var changes = PendingChanges;
+				if (AuraEffect != auraEffect)
+				{
+					if (AuraEffect == AuraEffect.Dynamic) changes ^= EffectChanges.Dynamic;
+					AuraEffect = auraEffect;
+					changes |= EffectChanges.Effect;
+				}
+				if (FrameDelay != frameDelay)
+				{
+					FrameDelay = frameDelay;
+					changes |= EffectChanges.FrameDelay;
+				}
+				if (UpdateColors(colors)) changes |= EffectChanges.Colors;
 				PendingChanges = changes;
 				CurrentEffect = effect;
 			}
@@ -353,19 +382,19 @@ public partial class AuraRamDriver
 			}
 		}
 
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => ApplySingleColorEffect(AuraEffect.Static, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => ApplySingleColorEffect(AuraEffect.Pulse, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect) => ApplySingleColorEffect(AuraEffect.Flash, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorWave, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<SpectrumCyclePulseEffect>.ApplyEffect(in SpectrumCyclePulseEffect effect) => ApplyPredefinedEffect(AuraEffect.CyclePulse, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => ApplySingleColorEffect(AuraEffect.Wave, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<SpectrumCycleWaveEffect>.ApplyEffect(in SpectrumCycleWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleWave, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<ColorChaseEffect>.ApplyEffect(in ColorChaseEffect effect) => ApplySingleColorEffect(AuraEffect.Chase, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<SpectrumCycleChaseEffect>.ApplyEffect(in SpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleChase, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<WideSpectrumCycleChaseEffect>.ApplyEffect(in WideSpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.WideCycleChase, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<AlternateSpectrumEffect>.ApplyEffect(in AlternateSpectrumEffect effect) => ApplyPredefinedEffect(AuraEffect.Alternate, DefaultFrameDelays[4], effect);
-		void ILightingZoneEffect<SparklingSpectrumCycleEffect>.ApplyEffect(in SparklingSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleRandomFlashes, DefaultFrameDelays[4], effect);
+		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => ApplySingleColorEffect(AuraEffect.Static, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => ApplySingleColorEffect(AuraEffect.Pulse, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect) => ApplySingleColorEffect(AuraEffect.Flash, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorWave, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<SpectrumCyclePulseEffect>.ApplyEffect(in SpectrumCyclePulseEffect effect) => ApplyPredefinedEffect(AuraEffect.CyclePulse, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => ApplySingleColorEffect(AuraEffect.Wave, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<SpectrumCycleWaveEffect>.ApplyEffect(in SpectrumCycleWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleWave, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<ColorChaseEffect>.ApplyEffect(in ColorChaseEffect effect) => ApplySingleColorEffect(AuraEffect.Chase, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<SpectrumCycleChaseEffect>.ApplyEffect(in SpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleChase, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<WideSpectrumCycleChaseEffect>.ApplyEffect(in WideSpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.WideCycleChase, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<AlternateSpectrumEffect>.ApplyEffect(in AlternateSpectrumEffect effect) => ApplyPredefinedEffect(AuraEffect.Alternate, DefaultFrameDelay, effect);
+		void ILightingZoneEffect<SparklingSpectrumCycleEffect>.ApplyEffect(in SparklingSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleRandomFlashes, DefaultFrameDelay, effect);
 		void ILightingZoneEffect<VariableColorFlashEffect>.ApplyEffect(in VariableColorFlashEffect effect) => ApplySingleColorEffect(AuraEffect.Flash, DefaultFrameDelays[(byte)effect.Speed], effect);
 		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect) => ApplySingleColorEffect(AuraEffect.Pulse, DefaultFrameDelays[(byte)effect.Speed], effect);
 		void ILightingZoneEffect<VariableSpectrumCycleEffect>.ApplyEffect(in VariableSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelays[(byte)effect.Speed], effect);

@@ -10,7 +10,9 @@ public partial class AuraRamDriver
 {
 	private sealed class AuraRam5LightingZone :
 		AuraRamLightingZone,
-		ILightingZoneEffect<Static5ColorEffect>
+		ILightingZoneEffect<Static5ColorEffect>,
+		ILightingZoneEffect<ColorPulse5Effect>,
+		ILightingZoneEffect<ColorFlash5Effect>
 	{
 		public AuraRam5LightingZone(AuraRamDriver driver, in DiscoveredModuleDescription description)
 			: base(driver, description)
@@ -33,38 +35,13 @@ public partial class AuraRamDriver
 			}
 		}
 
-		[SkipLocalsInit]
-		private bool UpdateColors(ReadOnlySpan<RgbColor> colors)
-		{
-			TenColorArray newColors;
-			Unsafe.SkipInit(out newColors);
-			var span = (Span<RgbColor>)newColors;
-			span[0] = SwapGreenAndBlue(colors[0]);
-			span[1] = SwapGreenAndBlue(colors[1]);
-			span[2] = SwapGreenAndBlue(colors[2]);
-			span[3] = SwapGreenAndBlue(colors[3]);
-			span[4] = SwapGreenAndBlue(colors[4]);
-			return UpdateRawColors(ref newColors);
-		}
-
 		bool ILightingZoneEffect<Static5ColorEffect>.TryGetCurrentEffect(out Static5ColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ColorPulse5Effect>.TryGetCurrentEffect(out ColorPulse5Effect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ColorFlash5Effect>.TryGetCurrentEffect(out ColorFlash5Effect effect) => CurrentEffect.TryGetEffect(out effect);
 
-		void ILightingZoneEffect<Static5ColorEffect>.ApplyEffect(in Static5ColorEffect effect)
-		{
-			lock (Driver._lock)
-			{
-				var changes = PendingChanges;
-				if (AuraEffect != AuraEffect.Static)
-				{
-					if (AuraEffect == AuraEffect.Dynamic) changes ^= EffectChanges.Dynamic;
-					AuraEffect = AuraEffect.Static;
-					changes |= EffectChanges.Effect;
-				}
-				if (UpdateColors(effect.Colors)) changes |= EffectChanges.Colors;
-				PendingChanges = changes;
-				CurrentEffect = effect;
-			}
-		}
+		void ILightingZoneEffect<Static5ColorEffect>.ApplyEffect(in Static5ColorEffect effect) => ApplyColorEffect(AuraEffect.Static, DefaultFrameDelay, effect.Colors, effect);
+		void ILightingZoneEffect<ColorPulse5Effect>.ApplyEffect(in ColorPulse5Effect effect) => ApplyColorEffect(AuraEffect.Pulse, DefaultFrameDelay, effect.Colors, effect);
+		void ILightingZoneEffect<ColorFlash5Effect>.ApplyEffect(in ColorFlash5Effect effect) => ApplyColorEffect(AuraEffect.Flash, DefaultFrameDelay, effect.Colors, effect);
 	}
 }
 
