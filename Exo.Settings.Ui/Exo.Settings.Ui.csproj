@@ -14,6 +14,7 @@
 		<UseRidGraph>true</UseRidGraph>
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
+		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DataTemplates.xaml" />

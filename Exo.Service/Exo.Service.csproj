@@ -9,6 +9,7 @@
 		<EnableFakeDevices Condition="'$(Configuration)' == 'Debug'">true</EnableFakeDevices>
 		<DefineConstants Condition="'$(EnableFakeDevices)' == 'true'">$(DefineConstants);WITH_FAKE_DEVICES</DefineConstants>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
   </PropertyGroup>
 	
 	<ItemGroup>

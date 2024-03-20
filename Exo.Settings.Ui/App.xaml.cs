@@ -20,6 +20,8 @@ using ProtoBuf.Meta;
 using Microsoft.Extensions.DependencyInjection;
 using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.UI;
+using System.Runtime.InteropServices;
 
 namespace Exo.Settings.Ui;
 
@@ -28,6 +30,11 @@ namespace Exo.Settings.Ui;
 /// </summary>
 public partial class App : Application
 {
+	[DllImport("kernel32", EntryPoint = "GetModuleHandleW", ExactSpelling = true, CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true)]
+	private static extern nint GetModuleHandle(nint zero);
+	[DllImport("user32", EntryPoint = "LoadImageW", ExactSpelling = true, CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true)]
+	private static extern nint LoadImage(nint instanceHandle, nint resourceId, uint type, int cx, int cy, uint flags);
+
 	/// <summary>
 	/// Initializes the singleton application object.  This is the first line of authored code
 	/// executed, and as such is the logical equivalent of main() or WinMain().
@@ -57,7 +64,12 @@ public partial class App : Application
 	/// <param name="args">Details about the launch request and process.</param>
 	protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
 	{
+		// NB: Not sure how we are supposed to handle DPI here, as icons are loaded for one dimension at a time 🤷
+		// This code loads the default icon size, and it seems to work but I didn't check it deeply.
+		nint instanceHandle = GetModuleHandle(0);
+		nint icon = LoadImage(instanceHandle, 32512, 1, 0, 0, 0x8040);
 		_window = new Window();
+		_window.AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon));
 		_window.SystemBackdrop = new MicaBackdrop();
 		_window.ExtendsContentIntoTitleBar = true;
 		_window.Content = new RootPage(_window);
