@@ -1,38 +1,13 @@
 using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Interop;
 using DeviceTools.DisplayDevices;
+using static Exo.Overlay.NativeMethods;
 
 namespace Exo.Overlay;
 
 internal partial class OverlayWindow : Window
 {
-	[DllImport("user32")]
-	[SuppressUnmanagedCodeSecurity]
-	private static extern int GetWindowLong(IntPtr hwnd, int index);
-
-	[DllImport("user32")]
-	[SuppressUnmanagedCodeSecurity]
-	private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
-
-	[DllImport("user32")]
-	[SuppressUnmanagedCodeSecurity]
-	private static extern int MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, int bRepaint);
-
-	[DllImport("user32.dll")]
-	[return: MarshalAs(UnmanagedType.Bool)]
-	private static extern bool GetCursorPos(out Point point);
-
-	[StructLayout(LayoutKind.Sequential)]
-	private struct Point
-	{
-		public int X;
-		public int Y;
-	}
-
 	private static void SetWindowExTransparent(IntPtr hwnd) => SetWindowLong(hwnd, -20, GetWindowLong(hwnd, -20) | 0x00000020);
 
 	private IntPtr _windowHandle;
@@ -58,7 +33,7 @@ internal partial class OverlayWindow : Window
 			// Positioning Windows using WPF APIs is very broken on multi-monitor systems with a mix of different per-monitor DPIs.
 			// See https://github.com/dotnet/wpf/issues/4127 for the issue.
 			// NB: The code here should address that, but it has not been tested under these conditions.
-			GetCursorPos(out var point);
+			var point = GetCursorPos();
 			var monitor = LogicalMonitor.GetNearestFromPoint(point.X, point.Y);
 			var dpi = monitor.GetDpi();
 			var bounds = monitor.GetMonitorInformation().MonitorArea;

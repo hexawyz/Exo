@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Threading;
-using System.Threading.Tasks;
 using Exo.DeviceNotifications;
 using Exo.Services;
 using Microsoft.Win32.SafeHandles;
@@ -21,13 +18,13 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 	[SuppressUnmanagedCodeSecurity]
 	private static extern IntPtr GetModuleHandleW(IntPtr zero);
 
-	private unsafe ref struct WindowClassEx
+	private unsafe struct WindowClassEx
 	{
 		public int Size;
 		public uint Style;
 		public delegate* unmanaged<IntPtr, uint, IntPtr, IntPtr, IntPtr> WindowProcedure;
 		public int ClassExtraByteCount;
-		public int WindowExtraByteCOunt;
+		public int WindowExtraByteCount;
 		public IntPtr InstanceHandle;
 		public IntPtr IconHandle;
 		public IntPtr CursorHandle;

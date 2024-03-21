@@ -7,7 +7,9 @@
 		<Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<PublishSingleFile>true</PublishSingleFile>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
 	</PropertyGroup>
 
