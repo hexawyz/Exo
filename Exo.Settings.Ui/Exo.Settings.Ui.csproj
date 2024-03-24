@@ -15,6 +15,7 @@
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
 		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DataTemplates.xaml" />

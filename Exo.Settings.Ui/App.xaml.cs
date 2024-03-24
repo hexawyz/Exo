@@ -80,6 +80,8 @@ public partial class App : Application
 
 	public new static App Current => (App)Application.Current;
 
+	public Window? MainWindow => _window;
+
 	public IServiceProvider Services { get; }
 
 	private static IServiceProvider ConfigureServices()
