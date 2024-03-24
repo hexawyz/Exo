@@ -108,6 +108,7 @@ internal static class NativeMethods
 	public const int WmWindowsPosChanging = 0x0046;
 	public const int WmClose = 0x0010;
 	public const int WmContextMenu = 0x007B;
+	public const int WmCommand = 0x0111;
 	public const int WmMenuCommand = 0x0126;
 	public const int WmRightButtonUp = 0x0205;
 

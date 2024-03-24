@@ -230,7 +230,7 @@ internal sealed partial class NotificationWindow : SynchronizationContext, IDisp
 
 	private NotificationWindow()
 	{
-		_messageThread = new(MessageLoopThreadProcedure);
+		_messageThread = new(MessageLoopThreadProcedure) { IsBackground = true };
 		_pendingCallbacks = new();
 		_registeredIcons = new();
 		_registeredMenus = new();
@@ -392,35 +392,6 @@ internal sealed partial class NotificationWindow : SynchronizationContext, IDisp
 		}
 	}
 
-	private unsafe nint WindowProcedure(uint message, nint wParam, nint lParam)
-	{
-		switch (message)
-		{
-		case IconMessageId:
-			if (!_registeredIcons.TryGetValue((ushort)(lParam >>> 16), out var wr) || !wr.TryGetTarget(out var icon)) break;
-			switch ((ushort)lParam)
-			{
-			case WmContextMenu:
-			case WmRightButtonUp:
-				SetForegroundWindow(_handle);
-				TrackPopupMenuEx
-				(
-					icon.ContextMenu.Handle,
-					TrackPopupMenuOptions.CenterAlign | TrackPopupMenuOptions.BottomAlign,
-					(short)(ushort)wParam,
-					(short)(ushort)(wParam >>> 16),
-					_handle,
-					null
-				);
-				PostMessage(_handle, WmNull, 0, 0);
-				return 0;
-			}
-			return 0;
-		}
-
-		return DefWindowProc(_handle, message, wParam, lParam);
-	}
-
 	private void ProcessCallback()
 	{
 		// NB: There is no good reason why this call would ever return false (unless somebody is messing with the messages), but we have to handle the result anyway.
@@ -449,9 +420,52 @@ internal sealed partial class NotificationWindow : SynchronizationContext, IDisp
 		}
 	}
 
-	public override void Post(SendOrPostCallback d, object? state) => throw new NotSupportedException();
+	private unsafe nint WindowProcedure(uint message, nint wParam, nint lParam)
+	{
+		switch (message)
+		{
+		case WmMenuCommand:
+			HandleMenuCommand(lParam, (int)wParam);
+			return 0;
+		case IconMessageId:
+			if (!_registeredIcons.TryGetValue((ushort)(lParam >>> 16), out var wr) || !wr.TryGetTarget(out var icon)) break;
+			switch ((ushort)lParam)
+			{
+			case WmContextMenu:
+			case WmRightButtonUp:
+				SetForegroundWindow(_handle);
+				var result = TrackPopupMenuEx
+				(
+					icon.ContextMenu.Handle,
+					TrackPopupMenuOptions.RightAlign | TrackPopupMenuOptions.BottomAlign | TrackPopupMenuOptions.RightButton,
+					(short)(ushort)wParam,
+					(short)(ushort)(wParam >>> 16),
+					_handle,
+					null
+				);
+				PostMessage(_handle, WmNull, 0, 0);
+				return 0;
+			}
+			return 0;
+		}
 
-	public override void Send(SendOrPostCallback d, object? state)
+		return DefWindowProc(_handle, message, wParam, lParam);
+	}
+
+	private void HandleMenuCommand(nint menuHandle, int itemIndex)
+	{
+		if (!_registeredMenus.TryGetValue(menuHandle, out var wr) || !wr.TryGetTarget(out var menu)) return;
+
+		try
+		{
+			menu.OnClick(itemIndex);
+		}
+		catch
+		{
+		}
+	}
+
+	public override void Post(SendOrPostCallback d, object? state)
 	{
 		ObjectDisposedException.ThrowIf(IsDisposed, typeof(NotificationWindow));
 		_pendingCallbacks.Enqueue(new RegisteredSendOrPostCallback(ExecutionContext.Capture(), d, state));
@@ -460,6 +474,8 @@ internal sealed partial class NotificationWindow : SynchronizationContext, IDisp
 			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 		}
 	}
+
+	public override void Send(SendOrPostCallback d, object? state) => throw new NotSupportedException();
 
 	private void RegisterCallback(Action callback, bool shouldFlowContext)
 	{

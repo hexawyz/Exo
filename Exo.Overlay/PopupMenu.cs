@@ -30,7 +30,7 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 	}
 
 	private readonly nint _handle;
-	private MenuItem[] _items;
+	private MenuItem?[] _items;
 	private int _itemCount;
 
 	internal unsafe PopupMenu(NotificationWindow notificationWindow)
@@ -74,7 +74,7 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 
 	public MenuItem this[int index]
 	{
-		get => _items[index];
+		get => _items.AsSpan(0, _itemCount)[index]!;
 		set => _items[index] = value;
 	}
 
@@ -86,7 +86,7 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 		item.AttachTo(this, index);
 		if (_items.Length == _itemCount)
 		{
-			var newItems = new MenuItem[_itemCount == 0 ? 10 : 2 * _itemCount];
+			var newItems = new MenuItem?[_itemCount == 0 ? 10 : 2 * _itemCount];
 			_items.AsSpan(0, index).CopyTo(newItems);
 			_items.AsSpan(index, _itemCount - index).CopyTo(newItems.AsSpan(index + 1));
 			_items = newItems;
@@ -99,15 +99,16 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 		_itemCount++;
 		for (int i = index + 1; i < _itemCount; i++)
 		{
-			_items[i].IncrementIndex();
+			_items[i]!.IncrementIndex();
 		}
 	}
 
 	private void RemoveCore(int index)
 	{
-		var item = _items[index];
+		var item = _items[index]!;
 		item.Detach();
 		Array.Copy(_items, index + 1, _items, index, --_itemCount - index);
+		_items[_itemCount] = null!;
 	}
 
 	public bool Contains(MenuItem item) => IndexOf(item) >= 0;
@@ -156,7 +157,7 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 	public void CopyTo(MenuItem[] array, int arrayIndex)
 	{
 		NotificationWindow.EnforceThreadSafety();
-		_items.AsSpan(0, _itemCount).CopyTo(array.AsSpan(arrayIndex));
+		_items.AsSpan(0, _itemCount).CopyTo(array.AsSpan(arrayIndex)!);
 	}
 
 	public Enumerator GetEnumerator() => new();
@@ -168,6 +169,12 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 #if DEBUG
 	internal partial void EnforceThreadSafety() => NotificationWindow.EnforceThreadSafety();
 #endif
+
+	internal void OnClick(int itemIndex)
+	{
+		if (itemIndex >= _itemCount) return;
+		_items[itemIndex]?.OnClick();
+	}
 }
 
 internal abstract partial class MenuItem
@@ -236,6 +243,8 @@ internal abstract partial class MenuItem
 #if DEBUG
 	internal partial void EnforceThreadSafety() => Menu?.EnforceThreadSafety();
 #endif
+
+	internal virtual void OnClick() { }
 }
 
 internal abstract class BaseTextMenuItem : MenuItem
@@ -282,6 +291,8 @@ internal sealed class TextMenuItem : BaseTextMenuItem
 	}
 
 	protected override void FillMenuItemInfo(ref MenuItemInfo info) { }
+
+	internal override void OnClick() => Click?.Invoke(this, EventArgs.Empty);
 }
 
 internal sealed class SubMenuItem : BaseTextMenuItem

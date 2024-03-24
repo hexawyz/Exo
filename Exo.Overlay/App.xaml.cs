@@ -16,7 +16,19 @@ public partial class App : Application
 		var window = await NotificationWindow.GetOrCreateAsync().ConfigureAwait(false);
 		await window.SwitchTo();
 		_icon = window.CreateNotifyIcon(0, 32512, "Exo");
-		_icon.ContextMenu.Add(new TextMenuItem("Exit"));
+		var settingsMenuItem = new TextMenuItem("&Settings…");
+		settingsMenuItem.Click += OnSettingsMenuItemClick;
+		var exitMenuItem = new TextMenuItem("E&xit");
+		exitMenuItem.Click += OnExitMenuItemClick;
+		_icon.ContextMenu.Add(settingsMenuItem);
+		_icon.ContextMenu.Add(new SeparatorMenuItem());
+		_icon.ContextMenu.Add(exitMenuItem);
 	}
+
+	private void OnSettingsMenuItemClick(object? sender, EventArgs e)
+	{
+	}
+
+	private async void OnExitMenuItemClick(object? sender, EventArgs e) => await Dispatcher.InvokeAsync(() => Shutdown(0));
 }
 
