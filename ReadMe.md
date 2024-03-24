@@ -113,8 +113,9 @@ Extract the release somewhere of your choice. e.g. create a directory `c:\tools\
 ### As a command line application (Recommended for a first try)
 
 * Run `Exo.Service.exe` from where it was extracted, and watch the service start. There can be some error messages appearing during startup for some non supported devices, this is normal.
-* Optionally, run `Exo.Overlay.exe` from where it was extracted. This will start the overlay UI that can display some notifications. (Still WIP, you need to kill it with task manager)
-* In order to access the UI, run `Exo.Settings.UI.exe` from where it was extracted. The UI windows will show up and present you with the supported devices that were detected on your system.
+* Run `Exo.Overlay.exe` from where it was extracted. This will start the overlay UI that can display some notifications.
+* In order to access the settings UI, you can use the taskbar tray icon created by `Exo.Overlay.exe` or manually run `Exo.Settings.UI.exe` from where it was extracted.
+  The UI windows will show up and present you with the supported devices that were detected on your system.
 
 ### As a Windows Service
 
