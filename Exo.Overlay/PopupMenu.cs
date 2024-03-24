@@ -1,11 +1,12 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Exo.Overlay.NativeMethods;
 
 namespace Exo.Overlay;
 
-internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
+internal sealed class PopupMenu : NotificationControl, IList<MenuItem>
 {
 	public struct Enumerator : IEnumerator<MenuItem>
 	{
@@ -164,11 +165,8 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 	IEnumerator<MenuItem> IEnumerable<MenuItem>.GetEnumerator() => GetEnumerator();
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-	internal partial void EnforceThreadSafety();
-
-#if DEBUG
-	internal partial void EnforceThreadSafety() => NotificationWindow.EnforceThreadSafety();
-#endif
+	[Conditional("DEBUG")]
+	internal void EnforceThreadSafety() => NotificationWindow.EnforceThreadSafety();
 
 	internal void OnClick(int itemIndex)
 	{
@@ -177,7 +175,7 @@ internal sealed partial class PopupMenu : NotificationControl, IList<MenuItem>
 	}
 }
 
-internal abstract partial class MenuItem
+internal abstract class MenuItem
 {
 	private PopupMenu? _menu;
 	private int _index;
@@ -224,11 +222,8 @@ internal abstract partial class MenuItem
 	private unsafe void InsertMenuItem()
 	{
 		var menuItemInfo = new MenuItemInfo { Size = Unsafe.SizeOf<MenuItemInfo>() };
-		FillMenuItemInfo(ref menuItemInfo);
 		InsertMenuItemCore(&menuItemInfo);
 	}
-
-	protected abstract void FillMenuItemInfo(ref MenuItemInfo info);
 
 	protected unsafe virtual void InsertMenuItemCore(MenuItemInfo* info)
 	{
@@ -238,11 +233,26 @@ internal abstract partial class MenuItem
 		}
 	}
 
-	internal partial void EnforceThreadSafety();
+	protected unsafe void UpdateMenuItem(MenuItemFields fields)
+	{
+		if (_menu is null) return;
 
-#if DEBUG
-	internal partial void EnforceThreadSafety() => Menu?.EnforceThreadSafety();
-#endif
+		var menuItemInfo = new MenuItemInfo { Size = Unsafe.SizeOf<MenuItemInfo>() };
+		UpdateMenuItemCore(&menuItemInfo, fields);
+	}
+
+	protected unsafe virtual void UpdateMenuItemCore(MenuItemInfo* info, MenuItemFields fields) => throw new NotImplementedException();
+
+	protected unsafe void UpdateMenuItemCore(MenuItemInfo* info)
+	{
+		if (SetMenuItemInfo(_menu!.Handle, (uint)_index, 1, info) == 0)
+		{
+			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+		}
+	}
+
+	[Conditional("DEBUG")]
+	internal void EnforceThreadSafety() => Menu?.EnforceThreadSafety();
 
 	internal virtual void OnClick() { }
 }
@@ -250,6 +260,7 @@ internal abstract partial class MenuItem
 internal abstract class BaseTextMenuItem : MenuItem
 {
 	private string _text;
+	private bool _isDisabled;
 
 	public BaseTextMenuItem(string text)
 	{
@@ -264,7 +275,25 @@ internal abstract class BaseTextMenuItem : MenuItem
 		{
 			ArgumentException.ThrowIfNullOrEmpty(value);
 			EnforceThreadSafety();
-			_text = value;
+			if (value != _text)
+			{
+				_text = value;
+				UpdateMenuItem(MenuItemFields.String);
+			}
+		}
+	}
+
+	public bool IsEnabled
+	{
+		get => !_isDisabled;
+		set
+		{
+			EnforceThreadSafety();
+			if (value == _isDisabled)
+			{
+				_isDisabled = !value;
+				UpdateMenuItem(MenuItemFields.State);
+			}
 		}
 	}
 
@@ -272,12 +301,37 @@ internal abstract class BaseTextMenuItem : MenuItem
 
 	protected override unsafe void InsertMenuItemCore(MenuItemInfo* info)
 	{
+		info->Fields |= MenuItemFields.State | MenuItemFields.String;
+		info->State = _isDisabled ? MenuItemState.Grayed | MenuItemState.Disabled : 0;
 		fixed (char* textPointer = _text)
 		{
-			info->Fields |= MenuItemFields.String;
 			info->TypeData = (nint)textPointer;
 			info->CharacterCount = _text.Length;
 			base.InsertMenuItemCore(info);
+		}
+	}
+
+	protected override unsafe void UpdateMenuItemCore(MenuItemInfo* info, MenuItemFields fields)
+	{
+		if ((fields & MenuItemFields.State) != 0)
+		{
+			info->Fields |= MenuItemFields.State;
+			info->State = _isDisabled ? MenuItemState.Grayed | MenuItemState.Disabled : 0;
+		}
+
+		if ((fields & MenuItemFields.String) != 0)
+		{
+			fixed (char* textPointer = _text)
+			{
+				info->Fields |= MenuItemFields.String;
+				info->TypeData = (nint)textPointer;
+				info->CharacterCount = _text.Length;
+				UpdateMenuItemCore(info);
+			}
+		}
+		else
+		{
+			UpdateMenuItemCore(info);
 		}
 	}
 }
@@ -289,8 +343,6 @@ internal sealed class TextMenuItem : BaseTextMenuItem
 	public TextMenuItem(string text) : base(text)
 	{
 	}
-
-	protected override void FillMenuItemInfo(ref MenuItemInfo info) { }
 
 	internal override void OnClick() => Click?.Invoke(this, EventArgs.Empty);
 }
@@ -312,10 +364,11 @@ internal sealed class SubMenuItem : BaseTextMenuItem
 		base.AttachTo(menu, index);
 	}
 
-	protected override void FillMenuItemInfo(ref MenuItemInfo info)
+	protected override unsafe void InsertMenuItemCore(MenuItemInfo* info)
 	{
-		info.Fields = MenuItemFields.SubMenu;
-		info.SubMenuHandle = _subMenu.Handle;
+		info->Fields = MenuItemFields.SubMenu;
+		info->SubMenuHandle = _subMenu.Handle;
+		base.InsertMenuItemCore(info);
 	}
 }
 
@@ -323,10 +376,11 @@ internal sealed class SeparatorMenuItem : MenuItem
 {
 	public SeparatorMenuItem() { }
 
-	protected override void FillMenuItemInfo(ref MenuItemInfo info)
+	protected override unsafe void InsertMenuItemCore(MenuItemInfo* info)
 	{
-		info.Fields = MenuItemFields.Type;
-		info.Type = MenuItemType.Separator;
+		info->Fields = MenuItemFields.Type;
+		info->Type = MenuItemType.Separator;
+		base.InsertMenuItemCore(info);
 	}
 }
 

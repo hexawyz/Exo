@@ -438,4 +438,7 @@ internal static class NativeMethods
 		Modeless = 0x40000000,
 		NoCheck = 0x80000000,
 	}
+
+	[DllImport("uxtheme", EntryPoint = "#135", SetLastError = true, CharSet = CharSet.Unicode)]
+	public static extern int SetPreferredAppMode(int preferredAppMode);
 }

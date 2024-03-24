@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -7,7 +8,7 @@ using static Exo.Overlay.NativeMethods;
 
 namespace Exo.Overlay;
 
-internal sealed partial class NotificationWindow : SynchronizationContext, IDisposable
+internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 {
 	private abstract class RegisteredCallback
 	{
@@ -254,17 +255,14 @@ internal sealed partial class NotificationWindow : SynchronizationContext, IDisp
 		PostMessage(_handle, WmClose, 0, 0);
 	}
 
-	internal partial void EnforceThreadSafety();
-
-#if DEBUG
-	internal partial void EnforceThreadSafety()
+	[Conditional("DEBUG")]
+	internal void EnforceThreadSafety()
 	{
 		if (Thread.CurrentThread != _messageThread)
 		{
 			throw new InvalidOperationException("All accesses must be synchronized using the NotificationWindow SynchronizationContext.");
 		}
 	}
-#endif
 
 	public NotifyIcon CreateNotifyIcon(ushort iconId, int iconResourceId, string tooltipText)
 	{
