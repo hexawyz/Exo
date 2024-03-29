@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using Exo.Core.Contracts;
 using Exo.Ui;
 using Exo.Ui.Contracts;
 

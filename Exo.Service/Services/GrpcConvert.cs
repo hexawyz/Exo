@@ -6,7 +6,7 @@ using GrpcDeviceInformation = Exo.Ui.Contracts.DeviceInformation;
 using GrpcLightingZoneInformation = Exo.Ui.Contracts.LightingZoneInformation;
 using GrpcMonitorSetting = Exo.Ui.Contracts.MonitorSetting;
 using GrpcVendorIdSource = Exo.Ui.Contracts.VendorIdSource;
-using GrpcWatchNotificationKind = Exo.Ui.Contracts.WatchNotificationKind;
+using GrpcWatchNotificationKind = Exo.Core.Contracts.WatchNotificationKind;
 
 namespace Exo.Service.Services;
 

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Exo.Contracts\Exo.Contracts.csproj" />
+    <ProjectReference Include="..\Exo.Core.Contracts\Exo.Core.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
   </ItemGroup>
 

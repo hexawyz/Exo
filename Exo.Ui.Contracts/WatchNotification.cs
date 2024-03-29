@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using Exo.Core.Contracts;
 
 namespace Exo.Ui.Contracts;
 
