@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using Exo.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -81,7 +82,7 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 			(
 				Array.ConvertAll
 				(
-					PropertyInformation.EnumerationValues.AsMutable(),
+					ImmutableCollectionsMarshal.AsArray(PropertyInformation.EnumerationValues)!,
 					e => new EnumerationValueViewModel
 					(
 						e.DisplayName,

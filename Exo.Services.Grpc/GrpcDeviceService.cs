@@ -1,7 +1,8 @@
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 
-namespace Exo.Service.Services;
+namespace Exo.Service.Grpc;
 
 internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 {

@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
-using System.Threading;
+using System.Runtime.InteropServices;
 using System.Threading.Channels;
 
 namespace Exo.Service;
@@ -13,7 +10,7 @@ internal static class ArrayExtensions
 		=> !array.IsDefault ? array.Length : 0;
 
 	public static int GetHashCode<T>(this ImmutableArray<T> array)
-		=> GetHashCode(AsMutable(array));
+		=> GetHashCode(ImmutableCollectionsMarshal.AsArray(array)!);
 
 	public static int GetHashCode<T>(this T[] array)
 	{
@@ -43,10 +40,6 @@ internal static class ArrayExtensions
 		}
 		return hash.ToHashCode();
 	}
-
-	public static ImmutableArray<T> AsImmutable<T>(this T[] array) => Unsafe.As<T[], ImmutableArray<T>>(ref array);
-
-	public static T[] AsMutable<T>(this ImmutableArray<T> array) => Unsafe.As<ImmutableArray<T>, T[]>(ref array);
 
 	public static T[] Add<T>(this T[]? array, T item)
 	{

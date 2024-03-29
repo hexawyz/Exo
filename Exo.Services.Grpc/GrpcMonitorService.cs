@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 
-namespace Exo.Service.Services;
+namespace Exo.Service.Grpc;
 
 internal sealed class GrpcMonitorService : IMonitorService
 {

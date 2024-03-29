@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using Exo.Features;
 using Exo.Features.MouseFeatures;
 
-namespace Exo.Service.Services;
+namespace Exo.Service;
 
 public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotification>
 {

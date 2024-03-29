@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Exo.Contracts;
 using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
+using System.Runtime.InteropServices;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -57,7 +58,7 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? new LightingZoneViewModel(this, lightingDeviceInformation.UnifiedLightingZone) : null;
 		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
 			ReadOnlyCollection<LightingZoneViewModel>.Empty :
-			Array.AsReadOnly(Array.ConvertAll(lightingDeviceInformation.LightingZones.AsMutable(), z => new LightingZoneViewModel(this, z)));
+			Array.AsReadOnly(Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(lightingDeviceInformation.LightingZones)!, z => new LightingZoneViewModel(this, z)));
 		_lightingZoneById = new();
 		if (UnifiedLightingZone is not null)
 		{

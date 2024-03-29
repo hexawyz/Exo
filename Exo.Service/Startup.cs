@@ -3,7 +3,7 @@ using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Discovery;
 using Exo.I2C;
-using Exo.Service.Services;
+using Exo.Service.Grpc;
 using Exo.Services;
 using Exo.SystemManagementBus;
 using Microsoft.AspNetCore.Builder;

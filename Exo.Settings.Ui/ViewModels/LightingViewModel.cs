@@ -8,6 +8,7 @@ using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
 using Windows.UI;
+using System.Runtime.InteropServices;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -226,7 +227,7 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	}
 
 	private async ValueTask CacheEffectInformationAsync(ImmutableArray<Guid> effectIds, CancellationToken cancellationToken)
-		=> await Parallel.ForEachAsync(effectIds.AsMutable(), cancellationToken, CacheEffectInformationAsync).ConfigureAwait(false);
+		=> await Parallel.ForEachAsync(ImmutableCollectionsMarshal.AsArray(effectIds)!, cancellationToken, CacheEffectInformationAsync).ConfigureAwait(false);
 
 	private async ValueTask CacheEffectInformationAsync(Guid effectId, CancellationToken cancellationToken)
 	{

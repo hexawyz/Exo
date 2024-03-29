@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
@@ -42,7 +43,14 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
 		_propertiesByIndex = new();
 		Id = lightingZoneInformation.ZoneId;
-		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>(Array.ConvertAll(lightingZoneInformation.SupportedEffectIds.AsMutable(), _device.LightingViewModel.GetEffect));
+		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>
+		(
+			Array.ConvertAll
+			(
+				ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectIds)!,
+				_device.LightingViewModel.GetEffect
+			)
+		);
 		OnEffectUpdated();
 	}
 

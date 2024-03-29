@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using Exo.Programming;
 using Exo.Contracts.Ui.Settings;
 
-namespace Exo.Service.Services;
+namespace Exo.Service.Grpc;
 
 internal class GrpcProgrammingService : IProgrammingService
 {

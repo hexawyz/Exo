@@ -36,11 +36,10 @@
 		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
 		<ProjectReference Include="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
 		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
-    <ProjectReference Include="..\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
     <ProjectReference Include="..\Exo.Service.ImageService\Exo.Service.ImageService.csproj" />
-		<ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
 		<ProjectReference Condition="'$(EnableFakeDevices)' == 'true'" Include="..\Exo.Debug\Exo.Debug.csproj" />
+		<ProjectReference Include="..\Exo.Services.Grpc\Exo.Service.Grpc.csproj" />
   </ItemGroup>
 
 	<!-- Detect plugin project names. -->

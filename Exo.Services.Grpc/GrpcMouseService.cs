@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 
-namespace Exo.Service.Services;
+namespace Exo.Service.Grpc;
 
 public class GrpcMouseService : IMouseService
 {

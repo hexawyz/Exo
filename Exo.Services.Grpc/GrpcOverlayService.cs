@@ -1,6 +1,6 @@
 using Exo.Contracts.Ui.Overlay;
 
-namespace Exo.Service.Services;
+namespace Exo.Service.Grpc;
 
 internal class GrpcOverlayNotificationService : IOverlayNotificationService
 {

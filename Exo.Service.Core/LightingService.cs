@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts;
 using Exo.Features;
@@ -227,7 +228,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 				if (lightingFeatures.GetFeature<IUnifiedLightingFeature>() is { } unifiedLightingFeature)
 				{
-					unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, GetSupportedEffects(unifiedLightingFeature.GetType()).AsImmutable());
+					unifiedLightingZone = new LightingZoneInformation(unifiedLightingFeature.ZoneId, ImmutableCollectionsMarshal.AsImmutableArray(GetSupportedEffects(unifiedLightingFeature.GetType())));
 					if (lightingZoneStates.TryGetValue(unifiedLightingFeature.ZoneId, out var lightingZoneState))
 					{
 						// We restore the effect from the saved state if available.
@@ -264,7 +265,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 							lightingZoneStates.TryAdd(zone.ZoneId, lightingZoneState);
 						}
 
-						zones[i++] = new LightingZoneInformation(zone.ZoneId, GetSupportedEffects(zone.GetType()).AsImmutable());
+						zones[i++] = new LightingZoneInformation(zone.ZoneId, ImmutableCollectionsMarshal.AsImmutableArray(GetSupportedEffects(zone.GetType())));
 					}
 				}
 
@@ -282,7 +283,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 					new
 					(
 						unifiedLightingZone,
-						zones is not null ? zones.AsImmutable() : ImmutableArray<LightingZoneInformation>.Empty,
+						zones is not null ? ImmutableCollectionsMarshal.AsImmutableArray(zones) : ImmutableArray<LightingZoneInformation>.Empty,
 						deviceState.Brightness is not null
 					)
 				);

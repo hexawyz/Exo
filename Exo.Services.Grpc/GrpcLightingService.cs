@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Contracts;
+using Exo.Contracts.Ui.Settings;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
-using Exo.Contracts.Ui.Settings;
+using Microsoft.Extensions.Logging;
 
-namespace Exo.Service.Services;
+namespace Exo.Service.Grpc;
 
 internal class GrpcLightingService : ILightingService
 {

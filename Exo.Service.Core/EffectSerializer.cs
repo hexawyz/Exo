@@ -893,7 +893,7 @@ public static class EffectSerializer
 			{
 				EffectId = typeId,
 				EffectTypeName = effectTypeName,
-				Properties = serializableProperties.AsImmutable()
+				Properties = ImmutableCollectionsMarshal.AsImmutableArray(serializableProperties)
 			},
 			serializeMethod,
 			deserializeMethod,
@@ -1066,7 +1066,7 @@ public static class EffectSerializer
 		}
 	}
 	private static ImmutableArray<EnumerationValue> GetEnumerationValues(Type type)
-		=> EnumerationValuesCache.GetValue(type, GetNonCachedEnumerationValues).AsImmutable();
+		=> ImmutableCollectionsMarshal.AsImmutableArray(EnumerationValuesCache.GetValue(type, GetNonCachedEnumerationValues));
 
 	private static EnumerationValue[] GetNonCachedEnumerationValues(Type type)
 	{

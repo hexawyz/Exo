@@ -2,7 +2,6 @@ using System.Threading.Channels;
 using Exo.Programming;
 using Exo.Programming.Annotations;
 using Exo.Service.Events;
-using Exo.Service.Services;
 
 namespace Exo.Service;
 
