@@ -1,9 +1,9 @@
 using System.ServiceModel;
 
-namespace Exo.Contracts.Ui;
+namespace Exo.Contracts.Ui.Settings;
 
 [ServiceContract]
-public interface ICustomMenuService
+public interface ISettingsCustomMenuService
 {
 	[OperationContract]
 	IAsyncEnumerable<MenuChangeNotification> WatchMenuChangesAsync(CancellationToken cancellationToken);

@@ -22,7 +22,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Exo.Contracts\Exo.Contracts.csproj" />
 		<ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
-		<ProjectReference Include="..\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
 		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
 		<ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
 	</ItemGroup>

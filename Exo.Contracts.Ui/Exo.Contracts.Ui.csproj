@@ -6,8 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="protobuf-net.Grpc" Version="1.1.1" />
-	</ItemGroup>
-
 </Project>
