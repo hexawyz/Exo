@@ -1,4 +1,4 @@
-using Exo.Overlay.Contracts;
+using Exo.Contracts.Ui.Overlay;
 
 namespace Exo.Service.Services;
 

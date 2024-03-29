@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Service.Services;
 

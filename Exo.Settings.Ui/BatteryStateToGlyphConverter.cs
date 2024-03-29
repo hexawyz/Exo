@@ -1,6 +1,6 @@
 using System;
 using Microsoft.UI.Xaml.Data;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Settings.Ui;
 

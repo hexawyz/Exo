@@ -14,7 +14,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 using Exo.Programming;
 using ProtoBuf.Meta;
 using Microsoft.Extensions.DependencyInjection;

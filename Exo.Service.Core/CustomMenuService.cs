@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
-using Exo.Core.Contracts;
+using Exo.Contracts.Ui;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;

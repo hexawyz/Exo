@@ -90,7 +90,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Lg.Monitors", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Settings.Ui", "Exo.Settings.Ui\Exo.Settings.Ui.csproj", "{61897B6E-2FB0-44A6-AE44-6B469A4E257A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Contracts", "Exo.Ui.Contracts\Exo.Ui.Contracts.csproj", "{658A0673-82C3-4A90-AF76-BC070208FDCD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Contracts.Ui.Settings", "Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj", "{658A0673-82C3-4A90-AF76-BC070208FDCD}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Razer", "Exo.Devices.Razer\Exo.Devices.Razer.csproj", "{C3E16E9F-C30F-4491-A767-1B0BD7AFC048}"
 EndProject
@@ -98,7 +98,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Contracts", "Exo.Contra
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Overlay", "Exo.Overlay\Exo.Overlay.csproj", "{4A247CB2-1EAB-4799-9E16-E1841BD18601}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Overlay.Contracts", "Exo.Overlay.Contracts\Exo.Overlay.Contracts.csproj", "{026F4AAB-4DA4-448C-B611-F03AA032576F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Contracts.Ui.Overlay", "Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj", "{026F4AAB-4DA4-448C-B611-F03AA032576F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Ui.Core", "Exo.Ui.Core\Exo.Ui.Core.csproj", "{227ED3C8-A44C-4196-8D17-B8E884EF8C38}"
 EndProject
@@ -136,7 +136,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Debug", "Exo.Debug\Exo.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Discovery.SmBios", "Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj", "{98C39F6C-CA3C-485F-8B72-C95D1AF6A389}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Core.Contracts", "Exo.Core.Contracts\Exo.Core.Contracts.csproj", "{20EA9F32-73D5-49AD-8BE6-F0D9E5C83B32}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Contracts.Ui", "Exo.Contracts.Ui\Exo.Contracts.Ui.csproj", "{20EA9F32-73D5-49AD-8BE6-F0D9E5C83B32}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

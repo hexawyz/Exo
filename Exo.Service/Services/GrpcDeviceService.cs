@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Service.Services;
 
@@ -26,7 +26,7 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 
 	public ValueTask DisposeAsync() => _batteryWatcher.DisposeAsync();
 
-	public async IAsyncEnumerable<WatchNotification<Ui.Contracts.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<WatchNotification<Contracts.Ui.Settings.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		await foreach (var notification in _driverRegistry.WatchAllAsync(cancellationToken).ConfigureAwait(false))
 		{
@@ -84,8 +84,8 @@ internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
 			{
 				DeviceId = notification.Key,
 				Level = notification.NewValue.Level,
-				BatteryStatus = (Ui.Contracts.BatteryStatus)notification.NewValue.BatteryStatus,
-				ExternalPowerStatus = (Ui.Contracts.ExternalPowerStatus)notification.NewValue.ExternalPowerStatus
+				BatteryStatus = (BatteryStatus)notification.NewValue.BatteryStatus,
+				ExternalPowerStatus = (ExternalPowerStatus)notification.NewValue.ExternalPowerStatus
 			};
 		}
 	}

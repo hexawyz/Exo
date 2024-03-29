@@ -6,7 +6,7 @@ using System.ComponentModel;
 using Exo.Contracts;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;

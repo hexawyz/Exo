@@ -1,12 +1,12 @@
 using System.Collections.Immutable;
 using DeviceTools;
-using GrpcDeviceId = Exo.Ui.Contracts.DeviceId;
-using GrpcDeviceIdSource = Exo.Ui.Contracts.DeviceIdSource;
-using GrpcDeviceInformation = Exo.Ui.Contracts.DeviceInformation;
-using GrpcLightingZoneInformation = Exo.Ui.Contracts.LightingZoneInformation;
-using GrpcMonitorSetting = Exo.Ui.Contracts.MonitorSetting;
-using GrpcVendorIdSource = Exo.Ui.Contracts.VendorIdSource;
-using GrpcWatchNotificationKind = Exo.Core.Contracts.WatchNotificationKind;
+using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
+using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
+using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
+using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
+using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
+using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
+using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 
 namespace Exo.Service.Services;
 
@@ -17,7 +17,7 @@ internal static class GrpcConvert
 		{
 			Id = deviceInformation.Id,
 			FriendlyName = deviceInformation.FriendlyName,
-			Category = (Exo.Ui.Contracts.DeviceCategory)deviceInformation.Category,
+			Category = (Exo.Contracts.Ui.Settings.DeviceCategory)deviceInformation.Category,
 			FeatureIds = deviceInformation.FeatureIds,
 			DeviceIds = ImmutableArray.CreateRange(deviceInformation.DeviceIds, id => id.ToGrpc()),
 			MainDeviceIdIndex = deviceInformation.MainDeviceIdIndex,

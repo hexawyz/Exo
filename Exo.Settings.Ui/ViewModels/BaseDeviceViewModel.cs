@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Exo.Ui;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Settings.Ui.ViewModels;
 

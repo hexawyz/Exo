@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;

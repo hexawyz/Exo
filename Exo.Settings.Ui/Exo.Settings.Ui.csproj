@@ -60,7 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
-    <ProjectReference Include="..\Exo.Ui.Contracts\Exo.Ui.Contracts.csproj" />
+    <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

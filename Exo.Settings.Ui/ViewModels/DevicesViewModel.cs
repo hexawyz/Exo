@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using Exo.Core.Contracts;
+using Exo.Contracts.Ui;
 using Exo.Ui;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Settings.Ui.ViewModels;
 

@@ -1,6 +1,6 @@
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 using ProtoBuf.Grpc.Client;
 
 namespace Exo.Settings.Ui.ViewModels;

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.LightingFeatures;
-using Exo.Ui.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Service.Services;
 
@@ -21,7 +21,7 @@ internal class GrpcLightingService : ILightingService
 	// TODO: Refactor the lighting service and remove the raw device-related stuff.
 	// The remove notifications are also kind of a duplicate with device notifications, so they could maybe be removed.
 	// Maybe simply having a GetLightingDeviceCapabilities call would be enough. => Let's have a simpler watcher instead. Only push device capabilities.
-	public async IAsyncEnumerable<Ui.Contracts.LightingDeviceInformation> WatchLightingDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<Contracts.Ui.Settings.LightingDeviceInformation> WatchLightingDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
 		{

@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Features;
-using Exo.Overlay.Contracts;
+using Exo.Contracts.Ui.Overlay;
 using Exo.Programming;
 using Exo.Programming.Annotations;
 using Exo.Service.Events;
