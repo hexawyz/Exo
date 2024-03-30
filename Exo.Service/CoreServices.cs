@@ -21,6 +21,7 @@ internal sealed class CoreServices : IHostedService
 		DisplayAdapterService displayAdapterService,
 		MonitorService monitorService,
 		ImageService imageService,
+		CustomMenuService customMenuService,
 		OverlayNotificationService overlayNotificationService,
 		ProgrammingService programmingService
 	)

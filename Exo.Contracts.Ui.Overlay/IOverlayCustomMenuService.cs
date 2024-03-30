@@ -2,12 +2,12 @@ using System.ServiceModel;
 
 namespace Exo.Contracts.Ui.Overlay;
 
-[ServiceContract]
+[ServiceContract(Name = "OverlayCustomMenu")]
 public interface IOverlayCustomMenuService
 {
-	[OperationContract]
+	[OperationContract(Name = "WatchMenuChanges")]
 	IAsyncEnumerable<MenuChangeNotification> WatchMenuChangesAsync(CancellationToken cancellationToken);
 
-	[OperationContract]
+	[OperationContract(Name = "InvokeMenuItem")]
 	ValueTask InvokeMenuItemAsync(MenuItemReference menuItemReference, CancellationToken cancellationToken);
 }

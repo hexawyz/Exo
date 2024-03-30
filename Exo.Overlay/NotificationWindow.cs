@@ -186,11 +186,7 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 		MessageLoop(Unsafe.As<object, Tuple<NotificationWindow, TaskCompletionSource<NotificationWindow>>>(ref state));
 	}
 
-	private static void MessageLoop(Tuple<NotificationWindow, TaskCompletionSource<NotificationWindow>> state)
-	{
-		if (!state.Item1.TryCreateWindow(state.Item2)) return;
-		state.Item1.MessageLoop();
-	}
+	private static void MessageLoop(Tuple<NotificationWindow, TaskCompletionSource<NotificationWindow>> state) => state.Item1.TryCreateWindowAndRunMessageLoop(state.Item2);
 
 	private static readonly ParameterizedThreadStart MessageLoopThreadProcedure = MessageLoop;
 
@@ -299,7 +295,7 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 			{
 				foreach (var item in items)
 				{
-					menu.Add(item);
+					menu.MenuItems.Add(item);
 				}
 			}
 		}
@@ -363,30 +359,36 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 		return true;
 	}
 
-	private unsafe void MessageLoop()
+	private void TryCreateWindowAndRunMessageLoop(TaskCompletionSource<NotificationWindow> taskCompletionSource)
 	{
 		var previous = Current;
 		SetSynchronizationContext(this);
 		try
 		{
-			Unsafe.SkipInit(out Message message);
-			while (GetMessage(&message, IntPtr.Zero, 0, 0) > 0)
-			{
-				if (message.MessageId == CallbackMessageId)
-				{
-					ProcessCallback();
-				}
-				else
-				{
-					TranslateMessage(&message);
-					DispatchMessage(&message);
-				}
-			}
+			if (!TryCreateWindow(taskCompletionSource)) return;
+			MessageLoop();
 		}
 		finally
 		{
 			ProcessRemainingCallbacks();
 			SetSynchronizationContext(previous);
+		}
+	}
+
+	private unsafe void MessageLoop()
+	{
+		Unsafe.SkipInit(out Message message);
+		while (GetMessage(&message, IntPtr.Zero, 0, 0) > 0)
+		{
+			if (message.MessageId == CallbackMessageId)
+			{
+				ProcessCallback();
+			}
+			else
+			{
+				TranslateMessage(&message);
+				DispatchMessage(&message);
+			}
 		}
 	}
 

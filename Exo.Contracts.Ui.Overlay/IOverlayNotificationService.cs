@@ -2,9 +2,9 @@ using System.ServiceModel;
 
 namespace Exo.Contracts.Ui.Overlay;
 
-[ServiceContract]
+[ServiceContract(Name = "OverlayNotification")]
 public interface IOverlayNotificationService
 {
-	[OperationContract]
+	[OperationContract(Name = "WatchRequests")]
 	IAsyncEnumerable<OverlayRequest> WatchOverlayRequestsAsync(CancellationToken cancellationToken);
 }

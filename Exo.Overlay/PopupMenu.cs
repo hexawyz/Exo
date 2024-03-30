@@ -6,28 +6,117 @@ using static Exo.Overlay.NativeMethods;
 
 namespace Exo.Overlay;
 
-internal sealed class PopupMenu : NotificationControl, IList<MenuItem>
+internal sealed class PopupMenu : NotificationControl
 {
-	public struct Enumerator : IEnumerator<MenuItem>
+	public readonly struct MenuItemCollection : IList<MenuItem>
 	{
-		private readonly MenuItem[] _items;
-		private readonly int _itemCount;
-		private int _index;
-
-		public readonly MenuItem Current => _items[_index];
-		readonly object IEnumerator.Current => Current;
-
-		internal Enumerator(MenuItem[] items, int itemCount)
+		public struct Enumerator : IEnumerator<MenuItem>
 		{
-			_items = items;
-			_itemCount = itemCount;
-			_index = -1;
+			private readonly MenuItem[] _items;
+			private readonly int _itemCount;
+			private int _index;
+
+			public readonly MenuItem Current => _items[_index];
+			readonly object IEnumerator.Current => Current;
+
+			internal Enumerator(MenuItem[] items, int itemCount)
+			{
+				_items = items;
+				_itemCount = itemCount;
+				_index = -1;
+			}
+
+			public readonly void Dispose() { }
+
+			public bool MoveNext() => ++_index < _itemCount;
+			public void Reset() => _index = -1;
 		}
 
-		public readonly void Dispose() { }
+		private readonly PopupMenu _popupMenu;
 
-		public bool MoveNext() => ++_index < _itemCount;
-		public void Reset() => _index = -1;
+		internal MenuItemCollection(PopupMenu popupMenu)
+		{
+			_popupMenu = popupMenu;
+		}
+
+		public int Count
+		{
+			get
+			{
+				_popupMenu.NotificationWindow.EnforceThreadSafety();
+				return _popupMenu._itemCount;
+			}
+		}
+
+		public MenuItem this[int index]
+		{
+			get => _popupMenu._items.AsSpan(0, _popupMenu._itemCount)[index]!;
+			set => _popupMenu._items[index] = value;
+		}
+
+		bool ICollection<MenuItem>.IsReadOnly => false;
+
+		public bool Contains(MenuItem item) => IndexOf(item) >= 0;
+
+		public int IndexOf(MenuItem item)
+		{
+			EnforceThreadSafety();
+			return Array.IndexOf(_popupMenu._items, item, 0, _popupMenu._itemCount);
+		}
+
+		public void Add(MenuItem item)
+		{
+			EnforceThreadSafety();
+			_popupMenu.InsertCore(_popupMenu._itemCount, item);
+		}
+
+		public void Insert(int index, MenuItem item)
+		{
+			EnforceThreadSafety();
+			_popupMenu.InsertCore(index, item);
+		}
+
+		public void Move(int oldIndex, int newIndex)
+		{
+			EnforceThreadSafety();
+			_popupMenu.MoveCore(oldIndex, newIndex);
+		}
+
+		public bool Remove(MenuItem item)
+		{
+			EnforceThreadSafety();
+			int index = Array.IndexOf(_popupMenu._items, item, 0, _popupMenu._itemCount);
+			if (index >= 0)
+			{
+				_popupMenu.RemoveCore(index);
+				return true;
+			}
+			return false;
+		}
+
+		public void RemoveAt(int index)
+		{
+			EnforceThreadSafety();
+			_popupMenu.RemoveCore(index);
+		}
+
+		public void Clear()
+		{
+			EnforceThreadSafety();
+		}
+
+		public void CopyTo(MenuItem[] array, int arrayIndex)
+		{
+			EnforceThreadSafety();
+			_popupMenu._items.AsSpan(0, _popupMenu._itemCount).CopyTo(array.AsSpan(arrayIndex)!);
+		}
+
+		public Enumerator GetEnumerator() => new();
+		IEnumerator<MenuItem> IEnumerable<MenuItem>.GetEnumerator() => GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		[Conditional("DEBUG")]
+		private void EnforceThreadSafety() => _popupMenu.EnforceThreadSafety();
 	}
 
 	private readonly nint _handle;
@@ -64,26 +153,48 @@ internal sealed class PopupMenu : NotificationControl, IList<MenuItem>
 
 	internal nint Handle => _handle;
 
-	public int Count
+	public MenuItemCollection MenuItems => AsMenuItemCollection(this);
+
+	private static MenuItemCollection AsMenuItemCollection(PopupMenu menu)
+		=> Unsafe.As<PopupMenu, MenuItemCollection>(ref menu);
+
+	// Provide a more direct way of moving items avoiding some inefficiencies.
+	private unsafe void MoveCore(int oldIndex, int newIndex)
 	{
-		get
+		if ((uint)oldIndex > (uint)_itemCount) throw new ArgumentOutOfRangeException(nameof(oldIndex));
+		if ((uint)newIndex > (uint)_itemCount) throw new ArgumentOutOfRangeException(nameof(newIndex));
+		if (oldIndex == newIndex) return;
+		var item = _items[oldIndex]!;
+		item.MoveTo(newIndex);
+
+		// Start and end indices of the items that need to be updated. 
+		int start, end;
+		if (newIndex < oldIndex)
 		{
-			NotificationWindow.EnforceThreadSafety();
-			return _itemCount;
+			start = newIndex;
+			end = oldIndex;
+			Array.Copy(_items, start, _items, start + 1, end - start);
+			start++;
+		}
+		else
+		{
+			start = oldIndex;
+			end = newIndex;
+			Array.Copy(_items, start + 1, _items, start, end - start);
+			end--;
+		}
+		_items[newIndex] = item;
+		while (true)
+		{
+			_items[start]!.SetIndex(start);
+			if (start == end) break;
+			start++;
 		}
 	}
 
-	public MenuItem this[int index]
-	{
-		get => _items.AsSpan(0, _itemCount)[index]!;
-		set => _items[index] = value;
-	}
-
-	bool ICollection<MenuItem>.IsReadOnly => false;
-
 	private unsafe void InsertCore(int index, MenuItem item)
 	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _itemCount);
+		if ((uint)index > (uint)_itemCount) throw new ArgumentOutOfRangeException(nameof(index));
 		item.AttachTo(this, index);
 		if (_items.Length == _itemCount)
 		{
@@ -112,59 +223,6 @@ internal sealed class PopupMenu : NotificationControl, IList<MenuItem>
 		_items[_itemCount] = null!;
 	}
 
-	public bool Contains(MenuItem item) => IndexOf(item) >= 0;
-
-	public int IndexOf(MenuItem item)
-	{
-		NotificationWindow.EnforceThreadSafety();
-		return Array.IndexOf(_items, item, 0, _itemCount);
-	}
-
-	public void Add(MenuItem item)
-	{
-		NotificationWindow.EnforceThreadSafety();
-		InsertCore(_itemCount, item);
-	}
-
-	public void Insert(int index, MenuItem item)
-	{
-		NotificationWindow.EnforceThreadSafety();
-		InsertCore(index, item);
-	}
-
-	public bool Remove(MenuItem item)
-	{
-		NotificationWindow.EnforceThreadSafety();
-		int index = Array.IndexOf(_items, item, 0, _itemCount);
-		if (index >= 0)
-		{
-			RemoveCore(index);
-			return true;
-		}
-		return false;
-	}
-
-	public void RemoveAt(int index)
-	{
-		NotificationWindow.EnforceThreadSafety();
-		RemoveCore(index);
-	}
-
-	public void Clear()
-	{
-		NotificationWindow.EnforceThreadSafety();
-	}
-
-	public void CopyTo(MenuItem[] array, int arrayIndex)
-	{
-		NotificationWindow.EnforceThreadSafety();
-		_items.AsSpan(0, _itemCount).CopyTo(array.AsSpan(arrayIndex)!);
-	}
-
-	public Enumerator GetEnumerator() => new();
-	IEnumerator<MenuItem> IEnumerable<MenuItem>.GetEnumerator() => GetEnumerator();
-	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
 	[Conditional("DEBUG")]
 	internal void EnforceThreadSafety() => NotificationWindow.EnforceThreadSafety();
 
@@ -179,6 +237,8 @@ internal abstract class MenuItem
 {
 	private PopupMenu? _menu;
 	private int _index;
+	public int Index => _index;
+	public object? Tag { get; set; }
 
 	public MenuItem()
 	{
@@ -205,6 +265,27 @@ internal abstract class MenuItem
 		}
 	}
 
+	internal void MoveTo(int index)
+	{
+		if (_menu is null) throw new InvalidOperationException("MenuItem is not attached to any menu.");
+		if (index == _index) return;
+		if (RemoveMenu(_menu!.Handle, (uint)_index, 1) == 0)
+		{
+			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+		}
+		_index = index;
+		try
+		{
+			InsertMenuItem();
+		}
+		catch
+		{
+			_menu = null;
+			_index = 0;
+			throw;
+		}
+	}
+
 	internal void Detach()
 	{
 		if (_menu is null) throw new InvalidOperationException("MenuItem is already detached from any menu.");
@@ -218,6 +299,7 @@ internal abstract class MenuItem
 
 	internal void IncrementIndex() => _index++;
 	internal void DecrementIndex() => _index--;
+	internal void SetIndex(int index) => _index = index;
 
 	private unsafe void InsertMenuItem()
 	{
@@ -301,7 +383,7 @@ internal abstract class BaseTextMenuItem : MenuItem
 
 	protected override unsafe void InsertMenuItemCore(MenuItemInfo* info)
 	{
-		info->Fields |= MenuItemFields.State | MenuItemFields.String;
+		info->Fields |= MenuItemFields.State | MenuItemFields.String;
 		info->State = _isDisabled ? MenuItemState.Grayed | MenuItemState.Disabled : 0;
 		fixed (char* textPointer = _text)
 		{
@@ -347,11 +429,13 @@ internal sealed class TextMenuItem : BaseTextMenuItem
 	internal override void OnClick() => Click?.Invoke(this, EventArgs.Empty);
 }
 
-internal sealed class SubMenuItem : BaseTextMenuItem
+internal sealed class SubMenuMenuItem : BaseTextMenuItem
 {
 	private readonly PopupMenu _subMenu;
 
-	public SubMenuItem(string text, PopupMenu subMenu) : base(text)
+	public PopupMenu SubMenu => _subMenu;
+
+	public SubMenuMenuItem(string text, PopupMenu subMenu) : base(text)
 	{
 		ArgumentNullException.ThrowIfNull(subMenu);
 		_subMenu = subMenu;

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Channels;
 using Exo.Configuration;
+using Exo.Contracts.Ui.Overlay;
 using Exo.Discovery;
 using Exo.I2C;
 using Exo.Service.Grpc;
@@ -83,6 +84,15 @@ public class Startup
 		services.AddSingleton<MonitorService>();
 		services.AddSingleton<MouseService>();
 		services.AddSingleton<ImageService>();
+		services.AddSingleton<CustomMenuService>
+		(
+			sp => CustomMenuService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<CustomMenuService>>(),
+				sp.GetRequiredService< ConfigurationService>().GetContainer("mnu"),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<OverlayNotificationService>();
 		services.AddSingleton<ProgrammingService>();
 		services.AddSingleton<EventQueue>();
@@ -145,6 +155,8 @@ public class Startup
 		services.AddSingleton<GrpcMouseService>();
 		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
+		services.AddSingleton<GrpcCustomMenuService>();
+		services.AddSingleton<IOverlayCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddCodeFirstGrpc();
 	}
 
@@ -177,6 +189,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
+			endpoints.MapGrpcService<IOverlayCustomMenuService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapRazorPages();
 		});
 	}

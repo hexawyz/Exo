@@ -12,7 +12,7 @@ public sealed class MenuChangeNotification
 	public required Guid ParentItemId { get; init; }
 
 	[DataMember(Order = 3)]
-	public required int Position { get; init; }
+	public required uint Position { get; init; }
 
 	[DataMember(Order = 4)]
 	public required Guid ItemId { get; init; }

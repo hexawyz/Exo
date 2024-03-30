@@ -16,7 +16,7 @@ internal partial class OverlayWindow : Window
 	public OverlayWindow()
 	{
 		InitializeComponent();
-		DataContext = new OverlayViewModel();
+		DataContext = App.Current.OverlayViewModel;
 		IsVisibleChanged += OverlayWindow_IsVisibleChanged;
 	}
 

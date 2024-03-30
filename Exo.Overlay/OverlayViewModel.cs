@@ -1,11 +1,10 @@
 using System.Threading.Channels;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Ui;
-using ProtoBuf.Grpc.Client;
 
 namespace Exo.Overlay;
 
-internal class OverlayViewModel : BindableObject, IAsyncDisposable
+internal sealed class OverlayViewModel : BindableObject, IAsyncDisposable
 {
 	private static readonly string[] BatteryDischargingGlyphs = new[]
 	{
@@ -49,17 +48,15 @@ internal class OverlayViewModel : BindableObject, IAsyncDisposable
 		return BatteryChargingGlyphs[level];
 	}
 
-	private readonly ServiceConnectionManager _connectionManager;
 	private readonly IOverlayNotificationService _overlayNotificationService;
 	private readonly Channel<OverlayContentViewModel> _overlayChannel;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
 	private readonly Task _updateTask;
 
-	public OverlayViewModel()
+	public OverlayViewModel(IOverlayNotificationService overlayNotificationService)
 	{
-		_connectionManager = new("Local\\Exo.Service.Overlay");
-		_overlayNotificationService = _connectionManager.Channel.CreateGrpcService<IOverlayNotificationService>();
+		_overlayNotificationService = overlayNotificationService;
 		_overlayChannel = Channel.CreateUnbounded<OverlayContentViewModel>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = true });
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);

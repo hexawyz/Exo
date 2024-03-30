@@ -19,7 +19,7 @@ internal sealed class CustomMenuService
 		public MenuConfiguration() { }
 	}
 
-	public async ValueTask<CustomMenuService> CreateAsync(ILogger<CustomMenuService> logger, IConfigurationContainer configurationContainer, CancellationToken cancellationToken)
+	public static async ValueTask<CustomMenuService> CreateAsync(ILogger<CustomMenuService> logger, IConfigurationContainer configurationContainer, CancellationToken cancellationToken)
 	{
 		var result = await configurationContainer.ReadValueAsync<MenuConfiguration>(cancellationToken).ConfigureAwait(false);
 
