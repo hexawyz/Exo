@@ -36,6 +36,15 @@ internal sealed class CustomMenuService
 				[
 					new TextMenuItem(new Guid(0x3BC23D78, 0x5237, 0x4BD6, 0xB1, 0xB5, 0xD5, 0xCA, 0x65, 0xFE, 0x73, 0x20), "Custom command &1"),
 					new TextMenuItem(new Guid(0x8D93A224, 0x1B57, 0x47AA, 0xBA, 0xBA, 0x4A, 0x3E, 0xEB, 0xB4, 0x4F, 0x38), "Custom command &2"),
+					new SubMenuMenuItem
+					(
+						new Guid(0xCE29B514, 0x06AC, 0x48E1, 0x94, 0x8A, 0x63, 0xEE, 0x62, 0x84, 0x24, 0xB0),
+						"C&ustom submenu",
+						[
+							new TextMenuItem(new Guid(0x5E2FC2AB, 0x4E1C, 0x4851, 0x82, 0x6F, 0x9A, 0x8A, 0xC0, 0x1C, 0xAC, 0x37), "Custom command &3"),
+							new TextMenuItem(new Guid(0x918D2C08, 0x8109, 0x4752, 0x98, 0x02, 0x4F, 0x4D, 0x86, 0x56, 0x84, 0x78), "Custom command &4"),
+						]
+					),
 				],
 			};
 
@@ -236,13 +245,15 @@ public readonly struct MenuItemWatchNotification
 	public required MenuItem MenuItem { get; init; }
 }
 
-[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = nameof(Type), UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
-[JsonDerivedType(typeof(TextMenuItem), (int)MenuItemType.Default)]
-[JsonDerivedType(typeof(SubMenuMenuItem), (int)MenuItemType.SubMenu)]
-[JsonDerivedType(typeof(SeparatorMenuItem), (int)MenuItemType.Separator)]
+[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+[JsonDerivedType(typeof(TextMenuItem), "Default")]
+[JsonDerivedType(typeof(SubMenuMenuItem), "SubMenu")]
+[JsonDerivedType(typeof(SeparatorMenuItem), "Separator")]
 public abstract class MenuItem
 {
 	public Guid ItemId { get; }
+
+	[JsonIgnore]
 	public abstract MenuItemType Type { get; }
 
 	protected MenuItem(Guid itemId) => ItemId = itemId;
@@ -262,6 +273,7 @@ public class TextMenuItem : MenuItem
 {
 	public string Text { get; }
 
+	[JsonIgnore]
 	public override MenuItemType Type => MenuItemType.Default;
 
 	public TextMenuItem(Guid itemId, string text) : base(itemId)
@@ -285,6 +297,7 @@ public sealed class SubMenuMenuItem : TextMenuItem
 {
 	public ImmutableArray<MenuItem> MenuItems { get; }
 
+	[JsonIgnore]
 	public override MenuItemType Type => MenuItemType.SubMenu;
 
 	public SubMenuMenuItem(Guid itemId, string text, ImmutableArray<MenuItem> menuItems) : base(itemId, text)
@@ -311,6 +324,7 @@ public sealed class SubMenuMenuItem : TextMenuItem
 
 public sealed class SeparatorMenuItem : MenuItem
 {
+	[JsonIgnore]
 	public override MenuItemType Type => MenuItemType.Separator;
 
 	public SeparatorMenuItem(Guid itemId) : base(itemId)
@@ -328,53 +342,3 @@ public sealed class SeparatorMenuItem : MenuItem
 
 	public override int GetHashCode() => base.GetHashCode();
 }
-
-//public sealed class MenuItemConverter : JsonConverter<MenuItem>
-//{
-//	public override MenuItem? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-//	{
-//		var readerClone = reader;
-
-//		if (readerClone.TokenType != JsonTokenType.StartObject) goto Failure;
-
-//		readerClone.Read();
-
-//		if (readerClone.TokenType != JsonTokenType.PropertyName) goto Failure;
-
-//		if (readerClone.GetString() is not nameof(MenuItem.Type)) goto Failure;
-
-//		readerClone.Read();
-
-//		if (readerClone.TokenType != JsonTokenType.String) goto Failure;
-
-//		var type = Enum.Parse<MenuItemType>(readerClone.GetString()!, true);
-
-//		switch (type)
-//		{
-//		case MenuItemType.Default: return JsonSerializer.Deserialize<TextMenuItem>(ref reader, options);
-//		case MenuItemType.SubMenu: return JsonSerializer.Deserialize<SubMenuMenuItem>(ref reader, options);
-//		case MenuItemType.Separator: return JsonSerializer.Deserialize<SeparatorMenuItem>(ref reader, options);
-//		}
-
-//		Failure:;
-//		throw new JsonException();
-//	}
-
-//	public override void Write(Utf8JsonWriter writer, MenuItem value, JsonSerializerOptions options)
-//	{
-//		switch (value.Type)
-//		{
-//		case MenuItemType.Default:
-//			JsonSerializer.Serialize(writer, Unsafe.As<TextMenuItem>(value), options);
-//			break;
-//		case MenuItemType.SubMenu:
-//			JsonSerializer.Serialize(writer, Unsafe.As<SubMenuMenuItem>(value), options);
-//			break;
-//		case MenuItemType.Separator:
-//			JsonSerializer.Serialize(writer, Unsafe.As<SeparatorMenuItem>(value), options);
-//			break;
-//		default:
-//			throw new JsonException();
-//		}
-//	}
-//}
