@@ -98,7 +98,7 @@ e.g.:
 
 ## Getting a binary release
 
-You can grab binaries for a release here: https://github.com/hexawyz/Exo/releases
+You can a binary release either from the [Releases page](https://github.com/hexawyz/Exo/releases) or a build artifact from a recent [GitHub actions build](https://github.com/hexawyz/Exo/actions).
 
 ⚠️ Please note that as long as the product features are being worked on, the cached configuration can become incompatible between versions.
 
