@@ -31,4 +31,9 @@ internal class GrpcCustomMenuService : IOverlayCustomMenuService, ISettingsCusto
 	{
 		return ValueTask.CompletedTask;
 	}
+
+	public ValueTask UpdateMenuAsync(MenuDefinition menuDefinition, CancellationToken cancellationToken)
+	{
+		return ValueTask.CompletedTask;
+	}
 }

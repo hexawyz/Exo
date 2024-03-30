@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Exo.Settings.Ui.CustomMenuPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition MinWidth="100" Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ItemsControl
+            Style="{StaticResource MenuPreviewStyle}"
+            Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+            ItemsSource="{Binding CustomMenu.RootMenu.MenuItems}" />
+    </Grid>
+</Page>

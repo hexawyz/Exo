@@ -10,4 +10,7 @@ public interface ISettingsCustomMenuService
 
 	[OperationContract(Name = "InvokeMenuItem")]
 	ValueTask InvokeMenuItemAsync(MenuItemReference menuItemReference, CancellationToken cancellationToken);
+
+	[OperationContract(Name = "UpdateMenu")]
+	ValueTask UpdateMenuAsync(MenuDefinition menuDefinition, CancellationToken cancellationToken);
 }

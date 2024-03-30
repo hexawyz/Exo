@@ -18,6 +18,7 @@
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="CustomMenuPage.xaml" />
     <None Remove="DataTemplates.xaml" />
     <None Remove="DevicePage.xaml" />
     <None Remove="DevicesPage.xaml" />
@@ -81,6 +82,10 @@
   <ItemGroup>
     <Page Update="MonitorSettingsControl.xaml">
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="CustomMenuPage.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
   <ItemGroup>

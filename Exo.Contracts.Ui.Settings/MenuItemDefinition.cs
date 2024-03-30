@@ -1,6 +1,5 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
-using Exo.Contracts.Ui;
 
 namespace Exo.Contracts.Ui.Settings;
 

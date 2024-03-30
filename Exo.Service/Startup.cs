@@ -2,6 +2,7 @@ using System;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Contracts.Ui.Overlay;
+using Exo.Contracts.Ui.Settings;
 using Exo.Discovery;
 using Exo.I2C;
 using Exo.Service.Grpc;
@@ -157,6 +158,7 @@ public class Startup
 		services.AddSingleton<GrpcProgrammingService>();
 		services.AddSingleton<GrpcCustomMenuService>();
 		services.AddSingleton<IOverlayCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
+		services.AddSingleton<ISettingsCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddCodeFirstGrpc();
 	}
 
@@ -188,6 +190,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<IOverlayCustomMenuService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapRazorPages();

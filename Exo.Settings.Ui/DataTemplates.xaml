@@ -131,4 +131,63 @@
             ColorArrayTemplate="{StaticResource ColorArrayPropertyTemplate}"
             FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
 
+    <DataTemplate x:Key="TextMenuItemTemplate" x:DataType="vm:TextMenuMenuItemViewModel">
+        <Grid
+            Padding="{StaticResource MenuFlyoutItemThemePadding}"
+            Background="{ThemeResource MenuFlyoutItemBackground}"
+            BorderBrush="{ThemeResource MenuFlyoutSubItemBackgroundBrush}"
+            BorderThickness="{ThemeResource MenuFlyoutSubItemBorderThickness}"
+            CornerRadius="{ThemeResource ControlCornerRadius}">
+            <TextBlock
+                Text="{Binding Text}"
+                TextTrimming="{ThemeResource MenuFlyoutItemTextTrimming}"
+                Foreground="{ThemeResource MenuFlyoutSubItemForeground}"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                FontSize="{ThemeResource ControlContentThemeFontSize}"
+                Margin="{ThemeResource MenuFlyoutItemPlaceholderThemeThickness}"/>
+        </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="SubMenuMenuItemTemplate" x:DataType="vm:SubMenuMenuItemViewModel">
+        <TextBlock Text="{Binding Text}" />
+    </DataTemplate>
+    <DataTemplate x:Key="SeparatorMenuItemTemplate" x:DataType="vm:SeparatorMenuItemViewModel">
+        <Rectangle Fill="{ThemeResource MenuFlyoutSeparatorBackground}" Margin="{StaticResource MenuFlyoutSeparatorThemePadding}" Height="{StaticResource MenuFlyoutSeparatorHeight}" />
+    </DataTemplate>
+
+    <local:MenuItemTemplateSelector
+        x:Key="MenuItemPreviewTemplateSelector"
+        TextTemplate="{StaticResource TextMenuItemTemplate}"
+        SubMenuTemplate="{StaticResource SubMenuMenuItemTemplate}"
+        SeparatorTemplate="{StaticResource SeparatorMenuItemTemplate}" />
+
+    <Style TargetType="ItemsControl" x:Key="MenuPreviewStyle">
+        <Setter Property="Background" Value="{ThemeResource MenuFlyoutPresenterBackground}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource MenuFlyoutPresenterBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{ThemeResource MenuFlyoutPresenterBorderThemeThickness}" />
+        <Setter Property="Padding" Value="{StaticResource MenuFlyoutPresenterThemePadding}" />
+        <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ScrollViewer.VerticalScrollMode" Value="Auto" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.IsHorizontalRailEnabled" Value="False" />
+        <Setter Property="ScrollViewer.IsVerticalRailEnabled" Value="False" />
+        <Setter Property="ScrollViewer.ZoomMode" Value="Disabled" />
+        <Setter Property="MaxWidth" Value="{ThemeResource FlyoutThemeMaxWidth}" />
+        <Setter Property="MinHeight" Value="{StaticResource MenuFlyoutThemeMinHeight}" />
+        <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
+        <Setter Property="ItemTemplateSelector" Value="{StaticResource MenuItemPreviewTemplateSelector}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ItemsControl">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" BackgroundSizing="InnerBorderEdge">
+                        <ScrollViewer x:Name="MenuFlyoutPresenterScrollViewer" Margin="{TemplateBinding Padding}" MinWidth="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.FlyoutContentMinWidth}" HorizontalScrollMode="{TemplateBinding ScrollViewer.HorizontalScrollMode}" HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}" VerticalScrollMode="{TemplateBinding ScrollViewer.VerticalScrollMode}" VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}" IsHorizontalRailEnabled="{TemplateBinding ScrollViewer.IsHorizontalRailEnabled}" IsVerticalRailEnabled="{TemplateBinding ScrollViewer.IsVerticalRailEnabled}" ZoomMode="{TemplateBinding ScrollViewer.ZoomMode}" AutomationProperties.AccessibilityView="Raw">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>
