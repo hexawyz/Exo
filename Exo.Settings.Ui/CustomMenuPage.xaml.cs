@@ -1,26 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Exo.Settings.Ui.ViewModels;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace Exo.Settings.Ui;
-/// <summary>
-/// An empty page that can be used on its own or navigated to within a Frame.
-/// </summary>
+
 public sealed partial class CustomMenuPage : Page
 {
 	public CustomMenuPage()
@@ -28,11 +11,15 @@ public sealed partial class CustomMenuPage : Page
 		InitializeComponent();
 	}
 
-	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
+	private SettingsViewModel SettingsViewModel => (SettingsViewModel)DataContext;
+	private CustomMenuViewModel CustomMenuViewModel => SettingsViewModel.CustomMenu;
 
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
-		ViewModel.Icon = "\uEDE3";
-		ViewModel.Title = "Custom Menu";
+		SettingsViewModel.Icon = "\uEDE3";
+		SettingsViewModel.Title = "Custom Menu";
 	}
+
+	private void OnBreadcrumbBarItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)
+		=> CustomMenuViewModel.NavigateToSubMenuCommand.Execute(args.Item);
 }

@@ -149,7 +149,33 @@
         </Grid>
     </DataTemplate>
     <DataTemplate x:Key="SubMenuMenuItemTemplate" x:DataType="vm:SubMenuMenuItemViewModel">
-        <TextBlock Text="{Binding Text}" />
+        <Grid
+            Padding="{StaticResource MenuFlyoutItemThemePadding}"
+            Background="{ThemeResource MenuFlyoutItemBackground}"
+            BorderBrush="{ThemeResource MenuFlyoutSubItemBackgroundBrush}"
+            BorderThickness="{ThemeResource MenuFlyoutSubItemBorderThickness}"
+            CornerRadius="{ThemeResource ControlCornerRadius}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Text="{Binding Text}"
+                TextTrimming="{ThemeResource MenuFlyoutItemTextTrimming}"
+                Foreground="{ThemeResource MenuFlyoutSubItemForeground}"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                FontSize="{ThemeResource ControlContentThemeFontSize}"
+                Margin="{ThemeResource MenuFlyoutItemPlaceholderThemeThickness}"/>
+            <Button Grid.Column="1" Margin="6,0,0,0" Command="{Binding NavigateToCommand}" CommandParameter="{Binding}" Width="16" Height="16">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter Content="{TemplateBinding Content}"/>
+                    </ControlTemplate>
+                </Button.Template>
+                <FontIcon Glyph="&#xE76C;" />
+            </Button>
+        </Grid>
     </DataTemplate>
     <DataTemplate x:Key="SeparatorMenuItemTemplate" x:DataType="vm:SeparatorMenuItemViewModel">
         <Rectangle Fill="{ThemeResource MenuFlyoutSeparatorBackground}" Margin="{StaticResource MenuFlyoutSeparatorThemePadding}" Height="{StaticResource MenuFlyoutSeparatorHeight}" />
