@@ -1,23 +1,54 @@
 using System.Collections.ObjectModel;
 using Exo.Contracts.Ui;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal class CustomMenuViewModel : ChangeableBindableObject
 {
-	public override bool IsChanged => false;
-
-	public SubMenuMenuItemViewModel RootMenu { get; } = new(Constants.RootMenuItem, "Root");
+	private readonly SubMenuMenuItemViewModel _rootMenu;
+	private MenuItemViewModel? _selectedMenuItem;
+	private readonly ObservableCollection<SubMenuMenuItemViewModel> _editedMenuHierarchy;
+	private readonly ReadOnlyObservableCollection<SubMenuMenuItemViewModel> _readOnlyEditedMenuHierarchy;
 
 	public CustomMenuViewModel()
 	{
-		RootMenu.MenuItems.Add(new TextMenuMenuItemViewModel(Guid.NewGuid(), "Test 1"));
-		RootMenu.MenuItems.Add(new SeparatorMenuItemViewModel(Guid.NewGuid()));
-		RootMenu.MenuItems.Add(new TextMenuMenuItemViewModel(Guid.NewGuid(), "Test 2"));
+		_rootMenu = new(Constants.RootMenuItem, "Root");
+		_rootMenu.MenuItems.Add(new TextMenuMenuItemViewModel(Guid.NewGuid(), "Test 1"));
+		_rootMenu.MenuItems.Add(new SeparatorMenuItemViewModel(Guid.NewGuid()));
+		_rootMenu.MenuItems.Add(new TextMenuMenuItemViewModel(Guid.NewGuid(), "Test 2"));
+		_editedMenuHierarchy = [_rootMenu];
+		_readOnlyEditedMenuHierarchy = new(_editedMenuHierarchy);
 	}
+
+	public override bool IsChanged => false;
+
+	public SubMenuMenuItemViewModel RootMenu => _rootMenu;
+
+	public ReadOnlyObservableCollection<SubMenuMenuItemViewModel> EditedMenuHierarchy => _readOnlyEditedMenuHierarchy;
+
+	public SubMenuMenuItemViewModel EditedMenu => _editedMenuHierarchy[^1];
+
+	public MenuItemViewModel? SelectedMenuItem
+	{
+		get => _selectedMenuItem;
+		set
+		{
+			bool hadText = SelectedMenuItemHasText;
+			if (SetValue(ref _selectedMenuItem, value))
+			{
+				if (SelectedMenuItemHasText != hadText)
+				{
+					NotifyPropertyChanged(nameof(SelectedMenuItemHasText));
+				}
+			}
+		}
+	}
+
+	public bool SelectedMenuItemHasText => _selectedMenuItem is TextMenuMenuItemViewModel;
 }
 
-public abstract class MenuItemViewModel
+public abstract class MenuItemViewModel : BindableObject
 {
 	public Guid ItemId { get; }
 	public abstract MenuItemType ItemType { get; }
@@ -28,11 +59,18 @@ public abstract class MenuItemViewModel
 public class TextMenuMenuItemViewModel : MenuItemViewModel
 {
 	public override MenuItemType ItemType => MenuItemType.Default;
-	public string Text { get; set; }
+
+	private string _text;
+
+	public string Text
+	{
+		get => _text;
+		set => SetValue(ref _text, value);
+	}
 
 	public TextMenuMenuItemViewModel(Guid itemId, string text) : base(itemId)
 	{
-		Text = text;
+		_text = text;
 	}
 }
 

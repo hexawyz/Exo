@@ -161,7 +161,8 @@
         SubMenuTemplate="{StaticResource SubMenuMenuItemTemplate}"
         SeparatorTemplate="{StaticResource SeparatorMenuItemTemplate}" />
 
-    <Style TargetType="ItemsControl" x:Key="MenuPreviewStyle">
+    <!-- Derived from DefaultMenuFlyoutPresenterStyle -->
+    <Style x:Key="MenuPreviewStyle" TargetType="ListView">
         <Setter Property="Background" Value="{ThemeResource MenuFlyoutPresenterBackground}" />
         <Setter Property="BorderBrush" Value="{ThemeResource MenuFlyoutPresenterBorderBrush}" />
         <Setter Property="BorderThickness" Value="{ThemeResource MenuFlyoutPresenterBorderThemeThickness}" />
@@ -177,9 +178,16 @@
         <Setter Property="MinHeight" Value="{StaticResource MenuFlyoutThemeMinHeight}" />
         <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
         <Setter Property="ItemTemplateSelector" Value="{StaticResource MenuItemPreviewTemplateSelector}" />
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                    <Setter Property="MinHeight" Value="12" />
+                </Style>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="ItemsControl">
+                <ControlTemplate TargetType="ListView">
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" BackgroundSizing="InnerBorderEdge">
                         <ScrollViewer x:Name="MenuFlyoutPresenterScrollViewer" Margin="{TemplateBinding Padding}" MinWidth="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.FlyoutContentMinWidth}" HorizontalScrollMode="{TemplateBinding ScrollViewer.HorizontalScrollMode}" HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}" VerticalScrollMode="{TemplateBinding ScrollViewer.VerticalScrollMode}" VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}" IsHorizontalRailEnabled="{TemplateBinding ScrollViewer.IsHorizontalRailEnabled}" IsVerticalRailEnabled="{TemplateBinding ScrollViewer.IsVerticalRailEnabled}" ZoomMode="{TemplateBinding ScrollViewer.ZoomMode}" AutomationProperties.AccessibilityView="Raw">
                             <ItemsPresenter />

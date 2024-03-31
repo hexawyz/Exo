@@ -10,18 +10,39 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <Grid>
+    <Grid DataContext="{Binding CustomMenu}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition MinWidth="100" Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <ItemsControl
+        <BreadcrumbBar ItemsSource="{Binding EditedMenuHierarchy, Mode=OneWay}">
+            <BreadcrumbBar.ItemTemplate>
+                <DataTemplate x:DataType="vm:SubMenuMenuItemViewModel">
+                    <TextBlock Text="{Binding Text, Mode=TwoWay}" />
+                </DataTemplate>
+            </BreadcrumbBar.ItemTemplate>
+        </BreadcrumbBar>
+        <ListView
+            Grid.Row="1"
             Style="{StaticResource MenuPreviewStyle}"
+            Margin="0,6,0,6"
             Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-            ItemsSource="{Binding CustomMenu.RootMenu.MenuItems}" />
+            ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
+            SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
+            ReorderMode="Enabled"
+            AllowDrop="True"
+            CanReorderItems="True" />
+        <TextBox
+            Grid.Row="2"
+            Margin="0,6,0,6"
+            Visibility="{Binding SelectedMenuItemHasText, Converter={StaticResource BooleanToVisibilityConverter}}"
+            Text="{Binding SelectedMenuItem.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            MaxWidth="{ThemeResource FlyoutThemeMaxWidth}" />
     </Grid>
 </Page>
