@@ -10,6 +10,11 @@ internal abstract class ChangeableBindableObject : BindableObject
 
 	protected void OnChangeStateChange(bool wasChanged, bool isChanged)
 	{
-		if (isChanged != wasChanged) NotifyPropertyChanged(ChangedProperty.IsChanged);
+		if (isChanged != wasChanged) OnChanged();
+	}
+
+	protected virtual void OnChanged()
+	{
+		NotifyPropertyChanged(ChangedProperty.IsChanged);
 	}
 }

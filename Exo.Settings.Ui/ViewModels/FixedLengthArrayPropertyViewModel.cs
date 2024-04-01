@@ -28,7 +28,7 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 		Items = Array.AsReadOnly(viewModels);
 	}
 
-	public override void Reset()
+	protected override void Reset()
 	{
 		bool wasChanged = IsChanged;
 		for (int i = 0; i < _initialValues.Length; i++)

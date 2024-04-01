@@ -1,3 +1,4 @@
+using System.Windows.Input;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
 using Windows.UI;
@@ -108,6 +109,7 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 	}
 
 	protected readonly ConfigurablePropertyInformation PropertyInformation;
+	private readonly Commands.ResetCommand _resetCommand;
 
 	public uint? Index => PropertyInformation.Index;
 
@@ -117,9 +119,38 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 
 	public string DisplayName => PropertyInformation.DisplayName;
 
-	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation) => PropertyInformation = propertyInformation;
+	public ICommand ResetCommand => _resetCommand;
 
-	public abstract void Reset();
+	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation)
+	{
+		PropertyInformation = propertyInformation;
+		_resetCommand = new(this);
+	}
+
+	protected abstract void Reset();
 	public abstract void SetInitialValue(DataValue? value);
 	public abstract DataValue? GetDataValue();
+
+	protected sealed override void OnChanged()
+	{
+		_resetCommand.OnChanged();
+		base.OnChanged();
+	}
+
+	private static class Commands
+	{
+		public sealed class ResetCommand : ICommand
+		{
+			private readonly PropertyViewModel _property;
+
+			public ResetCommand(PropertyViewModel property) => _property = property;
+
+			public bool CanExecute(object? parameter) => _property.IsChanged;
+			public void Execute(object? parameter) => _property.Reset();
+
+			public event EventHandler? CanExecuteChanged;
+
+			internal void OnChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
 }

@@ -48,7 +48,7 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 
 	public override bool IsChanged => Value is null ? InitialValue is not null : !Value.Equals(InitialValue);
 
-	public override void Reset() => Value = InitialValue;
+	protected override void Reset() => Value = InitialValue;
 
 	public override void SetInitialValue(DataValue? value)
 	{

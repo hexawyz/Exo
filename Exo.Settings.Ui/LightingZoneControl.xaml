@@ -23,7 +23,7 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnEffectResetButtonClick">
+            <Button Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>
@@ -38,7 +38,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{Binding DisplayName}" />
                         <ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource RowContentMargin}" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
-                        <Button Grid.Column="2" Margin="6,0,6,0" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnPropertyResetButtonClick">
+                        <Button Grid.Column="2" Margin="6,0,6,0" Command="{Binding ResetCommand}">
                             <FontIcon Glyph="&#xE777;" />
                         </Button>
                     </Grid>

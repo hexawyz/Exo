@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
@@ -37,11 +38,15 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		private set => SetValue(ref _isBusy, !value, ChangedProperty.IsNotBusy);
 	}
 
+	private readonly Commands.ResetCommand _resetCommand;
+	public ICommand ResetCommand => _resetCommand;
+
 	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation)
 	{
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
 		_propertiesByIndex = new();
+		_resetCommand = new(this);
 		Id = lightingZoneInformation.ZoneId;
 		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>
 		(
@@ -291,4 +296,27 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 	internal void OnBeforeApplyingChanges() => IsNotBusy = false;
 	internal void OnAfterApplyingChangesCancellation() => IsNotBusy = true;
+
+	protected sealed override void OnChanged()
+	{
+		_resetCommand.OnChanged();
+		base.OnChanged();
+	}
+
+	private static class Commands
+	{
+		public sealed class ResetCommand : ICommand
+		{
+			private readonly LightingZoneViewModel _lightingZone;
+
+			public ResetCommand(LightingZoneViewModel lightingZone) => _lightingZone = lightingZone;
+
+			public bool CanExecute(object? parameter) => _lightingZone.IsChanged;
+			public void Execute(object? parameter) => _lightingZone.Reset();
+
+			public event EventHandler? CanExecuteChanged;
+
+			internal void OnChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
 }
