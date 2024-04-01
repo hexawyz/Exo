@@ -32,9 +32,10 @@ public class Program
 	public static IHostBuilder CreateHostBuilder(string[] args) =>
 		Host.CreateDefaultBuilder(args)
 			.UseWindowsService()
-			.ConfigureWebHostDefaults
+			.ConfigureWebHost
 			(
 				webBuilder => webBuilder.UseStartup<Startup>()
+					.UseKestrel((ctx, o) => o.Configure(ctx.Configuration.GetSection("Kestrel"), reloadOnChange: true))
 					.UseNamedPipes
 					(
 						o =>
@@ -55,7 +56,8 @@ public class Program
 							o.ListenNamedPipe(@"Local\Exo.Service.Configuration", listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
 							o.ListenNamedPipe(@"Local\Exo.Service.Overlay", listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
 						}
-					)
+					),
+				o => { }
 			)
 			.UseSerilog((ctx, logger) => logger.ReadFrom.Configuration(ctx.Configuration));
 }
