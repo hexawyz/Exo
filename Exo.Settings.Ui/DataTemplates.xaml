@@ -135,13 +135,13 @@
         <Grid
             Padding="{StaticResource MenuFlyoutItemThemePadding}"
             Background="{ThemeResource MenuFlyoutItemBackground}"
-            BorderBrush="{ThemeResource MenuFlyoutSubItemBackgroundBrush}"
-            BorderThickness="{ThemeResource MenuFlyoutSubItemBorderThickness}"
+            BorderBrush="{ThemeResource MenuFlyoutItemBackgroundBrush}"
+            BorderThickness="{ThemeResource MenuFlyoutItemBorderThickness}"
             CornerRadius="{ThemeResource ControlCornerRadius}">
             <TextBlock
                 Text="{Binding Text}"
                 TextTrimming="{ThemeResource MenuFlyoutItemTextTrimming}"
-                Foreground="{ThemeResource MenuFlyoutSubItemForeground}"
+                Foreground="{ThemeResource MenuFlyoutItemForeground}"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Center"
                 FontSize="{ThemeResource ControlContentThemeFontSize}"
@@ -151,7 +151,7 @@
     <DataTemplate x:Key="SubMenuMenuItemTemplate" x:DataType="vm:SubMenuMenuItemViewModel">
         <Grid
             Padding="{StaticResource MenuFlyoutItemThemePadding}"
-            Background="{ThemeResource MenuFlyoutItemBackground}"
+            Background="{ThemeResource MenuFlyoutSubItemBackground}"
             BorderBrush="{ThemeResource MenuFlyoutSubItemBackgroundBrush}"
             BorderThickness="{ThemeResource MenuFlyoutSubItemBorderThickness}"
             CornerRadius="{ThemeResource ControlCornerRadius}">
@@ -167,13 +167,21 @@
                 VerticalAlignment="Center"
                 FontSize="{ThemeResource ControlContentThemeFontSize}"
                 Margin="{ThemeResource MenuFlyoutItemPlaceholderThemeThickness}"/>
-            <Button Grid.Column="1" Margin="6,0,0,0" Command="{Binding NavigateToCommand}" CommandParameter="{Binding}" Width="16" Height="16">
+            <Button Grid.Column="1" Margin="24,-5,-11,-6" Command="{Binding NavigateToCommand}" CommandParameter="{Binding}">
+                <!--
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <ContentPresenter Content="{TemplateBinding Content}"/>
                     </ControlTemplate>
                 </Button.Template>
-                <FontIcon Glyph="&#xE76C;" />
+                -->
+                <FontIcon
+                    Glyph="&#xE974;"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    FontSize="12"
+                    AutomationProperties.AccessibilityView="Raw"
+                    Foreground="{ThemeResource MenuFlyoutSubItemChevron}"
+                    MirroredWhenRightToLeft="True" />
             </Button>
         </Grid>
     </DataTemplate>
