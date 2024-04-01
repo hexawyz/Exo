@@ -445,7 +445,7 @@ public class LgMonitorDriver :
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature>(this);
+		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature, IVariableFeatureSetDeviceFeature>(this);
 		if ((features & MonitorDeviceFeatures.Lighting) != 0)
 		{
 			UpdateFeatures(ultraGearLightingFeatures);

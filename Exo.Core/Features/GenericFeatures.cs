@@ -112,7 +112,7 @@ public interface IDeviceConnectionType : IGenericDeviceFeature
 /// If there is a case for a device to have truly dynamic features, this can be further improved, but it does not look like a very realistic scenario.
 /// </para>
 /// </remarks>
-public interface IVariableFeatureSetDeviceFeature : IDeviceFeature
+public interface IVariableFeatureSetDeviceFeature : IGenericDeviceFeature
 {
 	/// <summary>Notifies of a change in availability of a given feature set.</summary>
 	/// <remarks>

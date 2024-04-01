@@ -197,11 +197,8 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 		var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
 
-		// TODO: Refactoring to properly handle drivers with changing feature sets.
-		// At the minimum, we should consider the device offline from the lighting service POV, but maybe the feature change notification is not good enough.
-		// The better design might be a IDeviceFeature that lists the supported feature sets, the active ones, and provide more detailed notifications for when a feature set is enabled or not.
-		// That's because we probably shouldn't expect a random feature to pop out of thin air among similar ones, but instead have something more like while feature categories being optionally enabled.
-		// NB: This is likely doable inside the device registry itself, so the added complexity there will benefit most if not all use cases like this one.
+		// NB: Avoid adding the device if the feature set is empty, but in general, we should have a valid feature set when this is reached.
+		// TODO: Make the feature set part of the notification so that everything is properly serialized.
 		if (lightingFeatures.IsEmpty) return ValueTask.CompletedTask;
 
 		lock (_lock)

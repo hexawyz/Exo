@@ -22,6 +22,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		RemovedDevice = 2,
 		ConnectedDevice = 3,
 		DisconnectedDevice = 4,
+		UpdatedSupportedFeatures = 5,
 	}
 
 	[TypeId(0x91731318, 0x06F0, 0x402E, 0x8F, 0x6F, 0x23, 0x3D, 0x8C, 0x4D, 0x8F, 0xE5)]
@@ -186,7 +187,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		}
 
 		return key.UniqueId is not null ?
-			state.DevicesByUniqueId.TryGetValue(key.UniqueId, out device) || TryGetDeviceByMainDeviceNameFallback(state, key, out device):
+			state.DevicesByUniqueId.TryGetValue(key.UniqueId, out device) || TryGetDeviceByMainDeviceNameFallback(state, key, out device) :
 			state.DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out device);
 	}
 
@@ -357,6 +358,8 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private readonly ILogger<DeviceRegistry> _logger;
 
+	private readonly FeatureSetEventHandler _featureChangeEventHandler;
+
 	AsyncLock IInternalDriverRegistry.Lock => _lock;
 
 	private DeviceRegistry
@@ -374,6 +377,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		_driverConfigurationStates = driverConfigurationStates;
 		_reservedDeviceIds = reservedDeviceIds;
 		_lock = new();
+		_featureChangeEventHandler = new(OnFeatureAvailabilityChange);
 	}
 
 	public void Dispose() { }
@@ -452,6 +456,10 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		if (deviceState.TrySetDriver(driver))
 		{
+			if (driver.GetFeatureSet<IGenericDeviceFeature>().GetFeature<IVariableFeatureSetDeviceFeature>() is { } variableFeatureSetFeature)
+			{
+				variableFeatureSetFeature.FeatureAvailabilityChanged += _featureChangeEventHandler;
+			}
 			if (_deviceChangeListeners is { } dcl)
 			{
 				dcl.TryWrite((isNewDevice ? UpdateKind.AddedDevice : UpdateKind.ConnectedDevice, deviceState.GetDeviceStateInformation(), driver));
@@ -466,7 +474,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 	private static (ImmutableArray<DeviceId>, int?) GetDeviceIds(Driver driver)
 	{
-		if (driver.GetFeatureSet<IGenericDeviceFeature>() is { IsEmpty: false } genericFeatures)
+		if (driver.GetFeatureSet<IGenericDeviceFeature>() is { IsEmpty: false } genericFeatures)
 		{
 			if (genericFeatures.GetFeature<IDeviceIdsFeature>() is { } deviceIdsFeature)
 			{
@@ -507,6 +515,18 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			try
 			{
+				if (driver.GetFeatureSet<IGenericDeviceFeature>().GetFeature<IVariableFeatureSetDeviceFeature>() is { } variableFeatureSetFeature)
+				{
+					variableFeatureSetFeature.FeatureAvailabilityChanged -= _featureChangeEventHandler;
+				}
+			}
+			catch (Exception ex)
+			{
+				// TODO: Log
+			}
+
+			try
+			{
 				if (_deviceChangeListeners is { } dcl)
 				{
 					dcl.TryWrite((UpdateKind.DisconnectedDevice, device.GetDeviceStateInformation(), driver));
@@ -521,6 +541,17 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		else
 		{
 			return new(false);
+		}
+	}
+
+	private async void OnFeatureAvailabilityChange(Driver driver, Type featureType, System.Collections.IEnumerable featureCollection)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			if (TryGetDevice(driver, out var deviceState) && ReferenceEquals(deviceState.Driver, driver) && _deviceChangeListeners is { } dcl)
+			{
+				dcl.TryWrite((UpdateKind.UpdatedSupportedFeatures, deviceState.GetDeviceStateInformation(), driver));
+			}
 		}
 	}
 
@@ -571,7 +602,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			{
 				yield return new
 				(
-					kind switch 
+					kind switch
 					{
 						UpdateKind.AddedDevice => WatchNotificationKind.Addition,
 						UpdateKind.RemovedDevice => WatchNotificationKind.Removal,
@@ -739,15 +770,18 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		DeviceWatchNotification[]? initialNotifications;
 		int initialNotificationCount = 0;
+		var featureId = TypeId.Get<TFeature>();
+		var connectedDeviceIds = new HashSet<Guid>();
 
 		lock (_lock)
 		{
 			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
-				if (state.Driver is { } driver && !driver.GetFeatureSet<TFeature>().IsEmpty)
+				if (state.Driver is { } driver && !driver.GetFeatureSet<TFeature>().IsEmpty)
 				{
 					initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
+					connectedDeviceIds.Add(state.DeviceId);
 				}
 			}
 
@@ -769,25 +803,55 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				initialNotifications = null;
 			}
 
+			// TODO: If we want to support proper in-sequence updates, we should add the changed feature type in the notification parameters.
 			await foreach (var (kind, deviceInformation, driver) in channel.Reader.ReadAllAsync(cancellationToken))
 			{
-				// Removal notifications can only happen for disconnected devices, so they should be ignored.
-				if (kind != UpdateKind.RemovedDevice)
+				if (driver is not null && deviceInformation.FeatureIds.Contains(featureId))
 				{
-					if (driver is not null && !driver.GetFeatureSet<TFeature>().IsEmpty)
+					bool isFeatureAvailable = !driver.GetFeatureSet<TFeature>().IsEmpty;
+					WatchNotificationKind notificationKind;
+					switch (kind)
 					{
-						yield return new
-						(
-							kind switch
+					case UpdateKind.AddedDevice:
+					case UpdateKind.ConnectedDevice:
+						if (!isFeatureAvailable) continue;
+						connectedDeviceIds.Add(deviceInformation.Id);
+						notificationKind = WatchNotificationKind.Addition;
+						break;
+					case UpdateKind.RemovedDevice:
+						// Removal notifications can only happen for disconnected devices, so they should be ignored.
+						continue;
+					case UpdateKind.DisconnectedDevice:
+						connectedDeviceIds.Remove(deviceInformation.Id);
+						notificationKind = WatchNotificationKind.Removal;
+						break;
+					case UpdateKind.UpdatedSupportedFeatures:
+						bool wasConnected = connectedDeviceIds.Contains(deviceInformation.Id);
+						if (wasConnected != isFeatureAvailable)
+						{
+							if (isFeatureAvailable)
 							{
-								UpdateKind.AddedDevice or UpdateKind.ConnectedDevice => WatchNotificationKind.Addition,
-								UpdateKind.DisconnectedDevice => WatchNotificationKind.Removal,
-								_ => WatchNotificationKind.Update
-							},
-							deviceInformation,
-							driver
-						);
+								goto case UpdateKind.AddedDevice;
+							}
+							else
+							{
+								goto case UpdateKind.DisconnectedDevice;
+							}
+						}
+						else if (!wasConnected)
+						{
+							continue;
+						}
+						else
+						{
+							goto default;
+						}
+					default:
+						notificationKind = WatchNotificationKind.Update;
+						break;
 					}
+
+					yield return new(notificationKind, deviceInformation, driver);
 				}
 			}
 		}
