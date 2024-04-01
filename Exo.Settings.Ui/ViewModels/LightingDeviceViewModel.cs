@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Threading;
-using System.Threading.Tasks;
-using Exo.Contracts;
-using Exo.Ui;
-using Exo.Contracts.Ui.Settings;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
+using Exo.Contracts;
+using Exo.Contracts.Ui.Settings;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -27,6 +24,9 @@ internal sealed class LightingDeviceViewModel : BindableObject
 	private int _changedZoneCount;
 	private int _busyZoneCount;
 	private bool _useUnifiedLighting;
+
+	private readonly Commands.ApplyChangesCommand _applyChangesCommand;
+	private readonly Commands.ResetChangesCommand _resetChangesCommand;
 
 	public bool IsNotBusy => _busyZoneCount == 0;
 
@@ -51,10 +51,15 @@ internal sealed class LightingDeviceViewModel : BindableObject
 	public DeviceCategory Category => _deviceViewModel.Category;
 	public bool IsAvailable => _deviceViewModel.IsAvailable;
 
+	public ICommand ApplyChangesCommand => _applyChangesCommand;
+	public ICommand ResetChangesCommand => _resetChangesCommand;
+
 	public LightingDeviceViewModel(LightingViewModel lightingViewModel, DeviceViewModel deviceViewModel, LightingDeviceInformation lightingDeviceInformation)
 	{
 		_deviceViewModel = deviceViewModel;
 		LightingViewModel = lightingViewModel;
+		_applyChangesCommand = new(this);
+		_resetChangesCommand = new(this);
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? new LightingZoneViewModel(this, lightingDeviceInformation.UnifiedLightingZone) : null;
 		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
 			ReadOnlyCollection<LightingZoneViewModel>.Empty :
@@ -98,7 +103,7 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		{
 			if (!AreZonesChanged)
 			{
-				NotifyPropertyChanged(ChangedProperty.IsChanged);
+				OnChanged();
 			}
 		}
 	}
@@ -109,7 +114,7 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		{
 			if ((((LightingZoneViewModel)sender!).IsChanged ? _changedZoneCount++ : --_changedZoneCount) == 0 && !IsBrightnessChanged)
 			{
-				NotifyPropertyChanged(ChangedProperty.IsChanged);
+				OnChanged();
 			}
 		}
 		else if (e.PropertyName == nameof(LightingZoneViewModel.IsNotBusy))
@@ -173,7 +178,7 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		}
 	}
 
-	public void Reset()
+	private void Reset()
 	{
 		if (UseUnifiedLighting && UnifiedLightingZone is not null)
 		{
@@ -194,6 +199,13 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		}
 	}
 
+	private void OnChanged()
+	{
+		_applyChangesCommand.OnChanged();
+		_resetChangesCommand.OnChanged();
+		NotifyPropertyChanged(ChangedProperty.IsChanged);
+	}
+
 	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
 
 	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(_deviceViewModel.Id, zoneId);
@@ -203,6 +215,37 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		if (Brightness is { } vm && LightingViewModel.GetBrightness(_deviceViewModel.Id) is byte brightnessLevel)
 		{
 			vm.SetInitialBrightness(brightnessLevel);
+		}
+	}
+
+	private static class Commands
+	{
+		public sealed class ApplyChangesCommand : ICommand
+		{
+			private readonly LightingDeviceViewModel _owner;
+
+			public ApplyChangesCommand(LightingDeviceViewModel owner) => _owner = owner;
+
+			public bool CanExecute(object? parameter) => _owner.IsChanged;
+			public async void Execute(object? parameter) => await _owner.ApplyChangesAsync(default);
+
+			public event EventHandler? CanExecuteChanged;
+
+			internal void OnChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
+
+		public sealed class ResetChangesCommand : ICommand
+		{
+			private readonly LightingDeviceViewModel _owner;
+
+			public ResetChangesCommand(LightingDeviceViewModel owner) => _owner = owner;
+
+			public bool CanExecute(object? parameter) => _owner.IsChanged;
+			public void Execute(object? parameter) => _owner.Reset();
+
+			public event EventHandler? CanExecuteChanged;
+
+			internal void OnChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 	}
 }
