@@ -621,9 +621,9 @@ public class NVidiaGpuDriver :
 	}
 
 	private readonly NvApi.Gpu.Client.IlluminationZoneControl[] _illuminationZoneControls;
-	private readonly IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
-	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
+	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly ImmutableArray<LightingZone> _lightingZones;
 	private readonly NvApi.PhysicalGpu _gpu;
 	private readonly object _lock;
@@ -634,9 +634,9 @@ public class NVidiaGpuDriver :
 	public DeviceId DeviceId { get; }
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
-	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
+	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 	private NVidiaGpuDriver
 	(

@@ -83,7 +83,7 @@ internal class MonitorService : IAsyncDisposable
 						}
 					}
 
-					var monitorFeatures = notification.Driver!.GetFeatureSet<IMonitorDeviceFeature>();
+					var monitorFeatures = (IDeviceFeatureSet<IMonitorDeviceFeature>)notification.FeatureSet!;
 
 					settings.Clear();
 

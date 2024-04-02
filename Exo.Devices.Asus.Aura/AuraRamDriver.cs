@@ -353,13 +353,13 @@ public partial class AuraRamDriver :
 	private readonly ImmutableArray<AuraRamLightingZone> _lightingZones;
 	private readonly FinalPendingChanges[] _deferredChangesBuffer;
 	private readonly ReadOnlyCollection<ILightingZone> _lightingZoneCollection;
-	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
+	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Lighting;
 
-	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
+	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 	private AuraRamDriver(ISystemManagementBus smBus, ImmutableArray<DiscoveredModuleDescription> modules)
 		: base("Aura RAM", new("Aura", "RAM", "RAM", null))

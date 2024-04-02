@@ -45,7 +45,8 @@ internal class MotherboardService
 					switch (notification.Kind)
 					{
 					case WatchNotificationKind.Addition:
-						if (notification.Driver!.GetFeatureSet<IMotherboardDeviceFeature>().GetFeature<IMotherboardSystemManagementBusFeature>() is { } busFeature)
+						var motherboardFeatures = (IDeviceFeatureSet<IMotherboardDeviceFeature>)notification.FeatureSet!;
+						if (motherboardFeatures.GetFeature<IMotherboardSystemManagementBusFeature>() is { } busFeature)
 						{
 							busRegistrations.Add(notification.DeviceInformation.Id, _busRegistry.RegisterSystemBus(busFeature));
 						}

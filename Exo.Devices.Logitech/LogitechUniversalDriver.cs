@@ -299,9 +299,9 @@ public abstract class LogitechUniversalDriver :
 	// The logger will use the category of the derived class… I don't believe we want to have one logger reference for each class in the class hierarchy.
 	private readonly ILogger<LogitechUniversalDriver> _logger;
 	private readonly ushort _versionNumber;
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
 
@@ -328,7 +328,7 @@ public abstract class LogitechUniversalDriver :
 	}
 
 	// NB: Called from the main constructor, so derived classes need to make sure they are not missing any information at that point.
-	protected virtual IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
+	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 		=> HasSerialNumber ?
 			FeatureCollection.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureCollection.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature>(this);
@@ -356,7 +356,7 @@ public abstract class LogitechUniversalDriver :
 			if (HasLockKeys) device.LockKeysChanged += OnLockKeysChanged;
 		}
 
-		protected override IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
+		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
 					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
@@ -554,7 +554,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
+			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
 		}
 
 		internal class RegisterAccessDirectMouse : RegisterAccessDirect, IDeviceDriver<IMouseDeviceFeature>
@@ -566,7 +566,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
 		}
 
 		internal class RegisterAccessThroughReceiverGeneric : RegisterAccessThroughReceiver
@@ -589,7 +589,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
+			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
 		}
 
 		internal class RegisterAccessThroughReceiverMouse : RegisterAccessThroughReceiver, IDeviceDriver<IMouseDeviceFeature>
@@ -601,7 +601,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
 		}
 
 		internal class FeatureAccessDirectGeneric : FeatureAccessDirect
@@ -617,7 +617,7 @@ public abstract class LogitechUniversalDriver :
 
 		internal class FeatureAccessDirectKeyboard : FeatureAccessDirect, IDeviceDriver<IKeyboardDeviceFeature>
 		{
-			private readonly IDeviceFeatureCollection<IKeyboardDeviceFeature> _keyboardFeatures;
+			private readonly IDeviceFeatureSet<IKeyboardDeviceFeature> _keyboardFeatures;
 
 			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, ILogger<FeatureAccessDirectKeyboard> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
@@ -633,7 +633,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => _keyboardFeatures;
+			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => _keyboardFeatures;
 		}
 
 		internal class FeatureAccessDirectMouse : FeatureAccessDirect, IDeviceDriver<IMouseDeviceFeature>
@@ -645,7 +645,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
 		}
 
 		internal sealed class FeatureAccessThroughReceiverGeneric : FeatureAccessThroughReceiver
@@ -661,7 +661,7 @@ public abstract class LogitechUniversalDriver :
 
 		internal sealed class FeatureAccessThroughReceiverKeyboard : FeatureAccessThroughReceiver, IDeviceDriver<IKeyboardDeviceFeature>
 		{
-			private readonly IDeviceFeatureCollection<IKeyboardDeviceFeature> _keyboardFeatures;
+			private readonly IDeviceFeatureSet<IKeyboardDeviceFeature> _keyboardFeatures;
 
 			public FeatureAccessThroughReceiverKeyboard(HidPlusPlusDevice.FeatureAccessThroughReceiver device, ILogger<FeatureAccessThroughReceiverKeyboard> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
@@ -677,7 +677,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureCollection<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => _keyboardFeatures;
+			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => _keyboardFeatures;
 		}
 
 		internal sealed class FeatureAccessThroughReceiverMouse : FeatureAccessThroughReceiver, IDeviceDriver<IMouseDeviceFeature>
@@ -689,7 +689,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
 		}
 	}
 

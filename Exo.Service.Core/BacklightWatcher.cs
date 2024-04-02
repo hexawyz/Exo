@@ -31,8 +31,9 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 				try
 				{
 					var deviceId = notification.DeviceInformation.Id;
+					var keyboardFeatures = (IDeviceFeatureSet<IKeyboardDeviceFeature>)notification.FeatureSet!;
 
-					if (notification.Driver!.GetFeatureSet<IKeyboardDeviceFeature>().GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
+					if (keyboardFeatures.GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
 					{
 						if (Add(deviceId, backlightFeature.BacklightState))
 						{
@@ -51,7 +52,8 @@ public sealed class BacklightWatcher : Watcher<Guid, BacklightState>
 					if (Remove(notification.DeviceInformation.Id, out var v) &&
 						notification.Driver!.GetFeatureSet<IKeyboardDeviceFeature>().GetFeature<IKeyboardBacklightFeature>() is { } backlightFeature)
 					{
-						backlightFeature.BacklightStateChanged -= onBacklightStateChanged;
+						// TODO: See if unregistering events is still necessary or not. In its current form, it would not work anymore, as the feature set will always be empty there.
+						//backlightFeature.BacklightStateChanged -= onBacklightStateChanged;
 					}
 				}
 				catch (Exception ex)

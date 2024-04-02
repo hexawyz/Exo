@@ -31,8 +31,9 @@ public sealed class LockedKeysWatcher : Watcher<Guid, LockKeys>
 				try
 				{
 					var deviceId = notification.DeviceInformation.Id;
+					var keyboardFeatures = (IDeviceFeatureSet<IKeyboardDeviceFeature>)notification.FeatureSet!;
 
-					if (notification.Driver!.GetFeatureSet<IKeyboardDeviceFeature>().GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
+					if (keyboardFeatures.GetFeature<IKeyboardLockKeysFeature>() is { } lockKeysFeature)
 					{
 						if (Add(deviceId, lockKeysFeature.LockedKeys))
 						{

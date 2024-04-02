@@ -104,15 +104,15 @@ public sealed class IntelGpuDriver :
 		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 
-	private readonly IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly ControlLibrary.DisplayAdapter _gpu;
 
 	public DeviceId DeviceId { get; }
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureCollection<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
 
 	private IntelGpuDriver
 	(

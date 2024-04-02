@@ -503,9 +503,9 @@ public abstract class RazerDeviceDriver :
 	private readonly byte _mainDeviceIdIndex;
 	private readonly RazerDeviceFlags _deviceFlags;
 
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
 
@@ -552,7 +552,7 @@ public abstract class RazerDeviceDriver :
 		_transport.Dispose();
 	}
 
-	protected virtual IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
+	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 		=> HasSerialNumber ?
 			FeatureCollection.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureCollection.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
@@ -616,7 +616,7 @@ public abstract class RazerDeviceDriver :
 		private DotsPerInch[] _dpiProfiles;
 		private ulong _currentDpi;
 
-		private readonly IDeviceFeatureCollection<IMouseDeviceFeature> _mouseFeatures;
+		private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
 
 		public Mouse(
 			RazerProtocolTransport transport,
@@ -643,7 +643,7 @@ public abstract class RazerDeviceDriver :
 			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 		}
 
-		IDeviceFeatureCollection<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
+		IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
 
 		protected override void OnDeviceDpiChange(ushort dpiX, ushort dpiY)
 		{
@@ -1132,7 +1132,7 @@ public abstract class RazerDeviceDriver :
 		private byte _currentBrightness;
 		private readonly AsyncLock _lightingLock;
 		private readonly AsyncLock _batteryStateLock;
-		private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
+		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 		// How do we use this ?
 		private readonly byte _deviceIndex;
 		private ushort _batteryLevelAndChargingStatus;
@@ -1206,7 +1206,7 @@ public abstract class RazerDeviceDriver :
 			return base.DisposeAsync();
 		}
 
-		protected override IDeviceFeatureCollection<IGenericDeviceFeature> CreateGenericFeatures()
+		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
 					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
@@ -1283,8 +1283,8 @@ public abstract class RazerDeviceDriver :
 			}
 		}
 
-		protected IDeviceFeatureCollection<ILightingDeviceFeature> LightingFeatures => _lightingFeatures;
-		IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
+		protected IDeviceFeatureSet<ILightingDeviceFeature> LightingFeatures => _lightingFeatures;
+		IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 		private byte CurrentBrightness
 		{

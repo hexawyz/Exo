@@ -43,7 +43,7 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 			}
 		};
 
-		await foreach (var notification in _driverRegistry.WatchAvailableAsync(cancellationToken).ConfigureAwait(false))
+		await foreach (var notification in _driverRegistry.WatchAvailableAsync<IMouseDeviceFeature>(cancellationToken).ConfigureAwait(false))
 		{
 			switch (notification.Kind)
 			{
@@ -53,7 +53,7 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 				{
 					var deviceId = notification.DeviceInformation.Id;
 
-					var mouseFeatures = notification.Driver!.GetFeatureSet<IMouseDeviceFeature>();
+					var mouseFeatures = (IDeviceFeatureSet<IMouseDeviceFeature>)notification.FeatureSet!;
 					if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
 					{
 						_presets[deviceId] = mouseDpiPresetFeature.DpiPresets;
@@ -84,16 +84,17 @@ public sealed class DpiWatcher : Watcher<Guid, MouseDpiStatus, DpiWatchNotificat
 				{
 					if (Remove(notification.DeviceInformation.Id, out _) && notification.Driver is not null)
 					{
-						var mouseFeatures = notification.Driver!.GetFeatureSet<IMouseDeviceFeature>();
-						if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
-						{
-							mouseDpiPresetFeature.DpiChanged -= onDpiChanged;
-							_presets.TryRemove(notification.DeviceInformation.Id, out _);
-						}
-						else if (mouseFeatures.GetFeature<IMouseDynamicDpiFeature>() is { } mouseDynamicDpiFeature)
-						{
-							mouseDynamicDpiFeature.DpiChanged -= onDpiChanged;
-						}
+						// TODO: See if unregistering events is still necessary or not. In its current form, it would not work anymore, as the feature set will always be empty there.
+						//var mouseFeatures = notification.Driver!.GetFeatureSet<IMouseDeviceFeature>();
+						//if (mouseFeatures.GetFeature<IMouseDpiPresetFeature>() is { } mouseDpiPresetFeature)
+						//{
+						//	mouseDpiPresetFeature.DpiChanged -= onDpiChanged;
+						//	_presets.TryRemove(notification.DeviceInformation.Id, out _);
+						//}
+						//else if (mouseFeatures.GetFeature<IMouseDynamicDpiFeature>() is { } mouseDynamicDpiFeature)
+						//{
+						//	mouseDynamicDpiFeature.DpiChanged -= onDpiChanged;
+						//}
 					}
 				}
 				catch (Exception ex)

@@ -542,9 +542,9 @@ public sealed class RgbFusionIT5702Driver :
 	private readonly EffectColor[] _palette = new EffectColor[7 * 4];
 	private readonly byte[] _rgb = new byte[2 * 3 * 32];
 	private readonly byte[] _buffer;
-	private readonly IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
-	private readonly IDeviceFeatureCollection<IMotherboardDeviceFeature> _motherboardFeatures;
+	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IMotherboardDeviceFeature> _motherboardFeatures;
 	private readonly LightingZone[] _lightingZones;
 	private readonly WaveLightingZone _unifiedLightingZone;
 	private readonly ReadOnlyCollection<LightingZone> _lightingZoneCollection;
@@ -556,7 +556,7 @@ public sealed class RgbFusionIT5702Driver :
 
 	public override ImmutableArray<FeatureSetDescription> FeatureSets { get; }
 
-	public override IDeviceFeatureCollection<TFeature> GetFeatureSet<TFeature>()
+	public override IDeviceFeatureSet<TFeature> GetFeatureSet<TFeature>()
 	{
 		System.Collections.IEnumerable GetFeatures()
 		{
@@ -567,7 +567,7 @@ public sealed class RgbFusionIT5702Driver :
 			return FeatureCollection.Empty<TFeature>();
 		}
 
-		return Unsafe.As<IDeviceFeatureCollection<TFeature>>(GetFeatures());
+		return Unsafe.As<IDeviceFeatureSet<TFeature>>(GetFeatures());
 	}
 
 	private RgbFusionIT5702Driver

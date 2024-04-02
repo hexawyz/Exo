@@ -350,10 +350,10 @@ public class LgMonitorDriver :
 	private readonly byte _dscVersion;
 	private readonly byte[] _rawCapabilities;
 	private readonly MonitorCapabilities _parsedCapabilities;
-	private IDeviceFeatureCollection<ILightingDeviceFeature> _lightingFeatures;
-	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
-	private readonly IDeviceFeatureCollection<ILgMonitorDeviceFeature> _lgMonitorFeatures;
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
+	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureSet<ILgMonitorDeviceFeature> _lgMonitorFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private FeatureSetDescription[] _featureSets;
 	private CompositeI2cBus CompositeI2cBus { get; }
 
@@ -378,7 +378,7 @@ public class LgMonitorDriver :
 				FeatureSetDescription.CreateDynamic<ILightingDeviceFeature>(ultraGearLightingFeatures is not null),
 			]
 		);
-		FeatureAvailabilityChanged?.Invoke(this, typeof(ILightingDeviceFeature), lightingFeatures);
+		FeatureAvailabilityChanged?.Invoke(this, lightingFeatures);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
@@ -393,7 +393,7 @@ public class LgMonitorDriver :
 
 	public override ImmutableArray<FeatureSetDescription> FeatureSets => ImmutableCollectionsMarshal.AsImmutableArray(_featureSets);
 
-	public override IDeviceFeatureCollection<TFeature> GetFeatureSet<TFeature>()
+	public override IDeviceFeatureSet<TFeature> GetFeatureSet<TFeature>()
 	{
 		System.Collections.IEnumerable GetFeatures()
 		{
@@ -405,7 +405,7 @@ public class LgMonitorDriver :
 			return FeatureCollection.Empty<TFeature>();
 		}
 
-		return Unsafe.As<IDeviceFeatureCollection<TFeature>>(GetFeatures());
+		return Unsafe.As<IDeviceFeatureSet<TFeature>>(GetFeatures());
 	}
 
 	private LgMonitorDriver
@@ -470,10 +470,10 @@ public class LgMonitorDriver :
 	public ReadOnlySpan<byte> RawCapabilities => _rawCapabilities;
 	public MonitorCapabilities Capabilities => _parsedCapabilities;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
-	IDeviceFeatureCollection<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
-	IDeviceFeatureCollection<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => Volatile.Read(ref _lightingFeatures);
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
+	IDeviceFeatureSet<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
+	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => Volatile.Read(ref _lightingFeatures);
 
 	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
 	int? IDeviceIdsFeature.MainDeviceIdIndex => 0;

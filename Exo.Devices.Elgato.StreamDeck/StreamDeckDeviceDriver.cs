@@ -118,9 +118,9 @@ public sealed class StreamDeckDeviceDriver : Driver, IDeviceDriver<IGenericDevic
 	private readonly StreamDeckDevice _device;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private StreamDeckDeviceDriver
 	(

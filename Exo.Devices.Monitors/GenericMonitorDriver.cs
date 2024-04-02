@@ -108,19 +108,35 @@ public class GenericMonitorDriver
 		AudioVolume = 0x00000008,
 	}
 
-	private sealed class MonitorFeatureCollection : IDeviceFeatureCollection<IMonitorDeviceFeature>
+	private sealed class MonitorFeatureCollection : IDeviceFeatureSet<IMonitorDeviceFeature>
 	{
 		private readonly GenericMonitorDriver _driver;
 		private Dictionary<Type, IMonitorDeviceFeature>? _cachedFeatureDictionary;
 
 		public bool IsEmpty => _driver._supportedFeatures == SupportedFeatures.None;
 
+		public int Count
+		{
+			get
+			{
+				int count = 0;
+
+				var supportedFeatures = _driver._supportedFeatures;
+				if ((supportedFeatures & SupportedFeatures.Capabilities) != 0) count += 2;
+				if ((supportedFeatures & SupportedFeatures.Brightness) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.Contrast) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.AudioVolume) != 0) count++;
+
+				return count;
+			}
+		}
+
 		public MonitorFeatureCollection(GenericMonitorDriver driver) => _driver = driver;
 
-		IMonitorDeviceFeature? IDeviceFeatureCollection<IMonitorDeviceFeature>.this[Type type]
+		IMonitorDeviceFeature? IDeviceFeatureSet<IMonitorDeviceFeature>.this[Type type]
 			=> (_cachedFeatureDictionary ??= new(this))[type];
 
-		T? IDeviceFeatureCollection<IMonitorDeviceFeature>.GetFeature<T>() where T : class
+		T? IDeviceFeatureSet<IMonitorDeviceFeature>.GetFeature<T>() where T : class
 		{
 			var supportedFeatures = _driver._supportedFeatures;
 			if (typeof(T) == typeof(IMonitorCapabilitiesFeature) && (supportedFeatures & SupportedFeatures.Capabilities) != 0 ||
@@ -158,11 +174,11 @@ public class GenericMonitorDriver
 	private readonly MonitorCapabilities? _capabilities;
 	private readonly DeviceId _deviceId;
 
-	private readonly IDeviceFeatureCollection<IGenericDeviceFeature> _genericFeatures;
-	private readonly IDeviceFeatureCollection<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 
-	IDeviceFeatureCollection<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureCollection<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 
 	DeviceId IDeviceIdFeature.DeviceId => _deviceId;
 

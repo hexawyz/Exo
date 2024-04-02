@@ -195,11 +195,7 @@ public sealed class LightingService : IAsyncDisposable, ILightingServiceInternal
 
 		var lightingZoneStates = deviceState.LightingZones;
 
-		var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
-
-		// NB: Avoid adding the device if the feature set is empty, but in general, we should have a valid feature set when this is reached.
-		// TODO: Make the feature set part of the notification so that everything is properly serialized.
-		if (lightingFeatures.IsEmpty) return ValueTask.CompletedTask;
+		var lightingFeatures = (IDeviceFeatureSet<ILightingDeviceFeature>)notification.FeatureSet!;
 
 		lock (_lock)
 		{
