@@ -11,7 +11,7 @@ namespace Exo;
 /// <para>Usage of this class to create feature collections is not mandatory, but it can be helpful in simple use cases.</para>
 /// <para>When possible, the feature collections will be more optimized than a naïve implementation.</para>
 /// </remarks>
-public static class FeatureCollection
+public static class FeatureSet
 {
 	internal static void ValidateRootFeatureType(Type featureType)
 	{
@@ -64,7 +64,7 @@ public static class FeatureCollection
 	/// <returns>A device collection that contains no feature.</returns>
 	public static IDeviceFeatureSet<TFeature> Empty<TFeature>()
 		where TFeature : class, IDeviceFeature
-		=> FeatureCollection<TFeature>.Empty();
+		=> FeatureSet<TFeature>.Empty();
 
 	/// <summary>Creates a feature collection containing one feature implementation.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -74,7 +74,7 @@ public static class FeatureCollection
 	public static IDeviceFeatureSet<TFeature> Create<TFeature, TSingleFeature>(TSingleFeature feature)
 		where TFeature : class, IDeviceFeature
 		where TSingleFeature : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature);
+		=> FeatureSet<TFeature>.Create(feature);
 
 	/// <summary>Creates a feature collection containing two feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -87,7 +87,7 @@ public static class FeatureCollection
 		where TFeature : class, IDeviceFeature
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2);
+		=> FeatureSet<TFeature>.Create(feature1, feature2);
 
 	/// <summary>Creates a feature collection containing three feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -103,7 +103,7 @@ public static class FeatureCollection
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3);
+		=> FeatureSet<TFeature>.Create(feature1, feature2, feature3);
 
 	/// <summary>Creates a feature collection containing four feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -122,7 +122,7 @@ public static class FeatureCollection
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4);
+		=> FeatureSet<TFeature>.Create(feature1, feature2, feature3, feature4);
 
 	/// <summary>Creates a feature collection containing five feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -151,7 +151,7 @@ public static class FeatureCollection
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5);
+		=> FeatureSet<TFeature>.Create(feature1, feature2, feature3, feature4, feature5);
 
 	/// <summary>Creates a feature collection containing six feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -184,7 +184,7 @@ public static class FeatureCollection
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6);
+		=> FeatureSet<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6);
 
 	/// <summary>Creates a feature collection containing seven feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -222,7 +222,7 @@ public static class FeatureCollection
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7);
+		=> FeatureSet<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7);
 
 	/// <summary>Creates a feature collection containing eight feature implementations.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -263,7 +263,7 @@ public static class FeatureCollection
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
 		where TFeature8 : class, TFeature
-		=> FeatureCollection<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
+		=> FeatureSet<TFeature>.Create(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
 
 	/// <summary>Creates a feature collection for a type implementing one feature.</summary>
 	/// <remarks>
@@ -293,7 +293,7 @@ public static class FeatureCollection
 		where TImplementation : class, TFeature1, TFeature2
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2>(implementation);
 
 	/// <summary>Creates a feature collection for a type implementing three features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -309,7 +309,7 @@ public static class FeatureCollection
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3>(implementation);
 
 	/// <summary>Creates a feature collection for a type implementing four features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -327,7 +327,7 @@ public static class FeatureCollection
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4>(implementation);
 
 	/// <summary>Creates a feature collection for a type implementing five features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -347,7 +347,7 @@ public static class FeatureCollection
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(implementation);
 
 	/// <summary>Creates a feature collection for a type implementing six features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -369,7 +369,7 @@ public static class FeatureCollection
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(implementation);
 
 	/// <summary>Creates a feature collection for a type implementing seven features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -393,7 +393,7 @@ public static class FeatureCollection
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(implementation);
 
 	/// <summary>Creates a feature collection for a type implementing eight features.</summary>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
@@ -419,7 +419,7 @@ public static class FeatureCollection
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
 		where TFeature8 : class, TFeature
-		=> FeatureCollection<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(implementation);
+		=> FeatureSet<TFeature>.Create<TImplementation, TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(implementation);
 
 	/// <summary>Creates a feature collection as a merge of two other collections.</summary>
 	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
@@ -433,7 +433,7 @@ public static class FeatureCollection
 		IDeviceFeatureSet<IDeviceFeature>? fallbackFeatures = null
 	)
 		where TFeature1 : class, IDeviceFeature
-		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, fallbackFeatures);
+		=> FeatureSet<IDeviceFeature>.CreateMerged(features1, fallbackFeatures);
 
 	/// <summary>Creates a feature collection as a merge of three other collections.</summary>
 	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
@@ -451,7 +451,7 @@ public static class FeatureCollection
 	)
 		where TFeature1 : class, IDeviceFeature
 		where TFeature2 : class, IDeviceFeature
-		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, fallbackFeatures);
+		=> FeatureSet<IDeviceFeature>.CreateMerged(features1, features2, fallbackFeatures);
 
 	/// <summary>Creates a feature collection as a merge of four other collections.</summary>
 	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
@@ -473,7 +473,7 @@ public static class FeatureCollection
 		where TFeature1 : class, IDeviceFeature
 		where TFeature2 : class, IDeviceFeature
 		where TFeature3 : class, IDeviceFeature
-		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, features3, fallbackFeatures);
+		=> FeatureSet<IDeviceFeature>.CreateMerged(features1, features2, features3, fallbackFeatures);
 
 	/// <summary>Creates a feature collection as a merge of five other collections.</summary>
 	/// <remarks>For proper operation, the various feature collections must not overlap.</remarks>
@@ -499,7 +499,7 @@ public static class FeatureCollection
 		where TFeature2 : class, IDeviceFeature
 		where TFeature3 : class, IDeviceFeature
 		where TFeature4 : class, IDeviceFeature
-		=> FeatureCollection<IDeviceFeature>.CreateMerged(features1, features2, features3, features4, fallbackFeatures);
+		=> FeatureSet<IDeviceFeature>.CreateMerged(features1, features2, features3, features4, fallbackFeatures);
 }
 
 /// <summary>Quickly instantiate new feature collections.</summary>
@@ -509,7 +509,7 @@ public static class FeatureCollection
 /// <para>When possible, the feature collections will be more optimized than a naïve implementation.</para>
 /// </remarks>
 /// <typeparam name="TFeature"></typeparam>
-internal static class FeatureCollection<TFeature>
+internal static class FeatureSet<TFeature>
 	where TFeature : class, IDeviceFeature
 {
 	private static class Compatibility<TOtherFeature>
@@ -538,38 +538,38 @@ internal static class FeatureCollection<TFeature>
 		where TOtherFeature : class, IDeviceFeature
 		=> Compatibility<TOtherFeature>.RelaxedGetFeature?.Invoke(features);
 
-	static FeatureCollection()
+	static FeatureSet()
 	{
-		FeatureCollection.ValidateInterfaceType(typeof(TFeature));
+		FeatureSet.ValidateInterfaceType(typeof(TFeature));
 		_ = TypeId.Get<TFeature>();
 	}
 
-	internal static IDeviceFeatureSet<TFeature> Empty() => EmptyFeatureCollection.Instance;
+	internal static IDeviceFeatureSet<TFeature> Empty() => EmptyFeatureSet.Instance;
 
 	private static IDeviceFeatureSet<TFeature> Create(HashSet<Type> featureTypes, TFeature feature)
-		=> new MultiFeatureCollection(featureTypes, feature);
+		=> new MultiFeatureSet(featureTypes, feature);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TSingleFeature>(TSingleFeature feature)
 		where TSingleFeature : class, TFeature
-		=> new FixedFeatureCollection<TSingleFeature>(feature);
+		=> new FixedFeatureSet<TSingleFeature>(feature);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2>(TFeature1 feature1, TFeature2 feature2)
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2>(feature1, feature2);
+		=> new FixedFeatureSet<TFeature1, TFeature2>(feature1, feature2);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2, TFeature3>(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3)
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3>(feature1, feature2, feature3);
+		=> new FixedFeatureSet<TFeature1, TFeature2, TFeature3>(feature1, feature2, feature3);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4>(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4)
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4>(feature1, feature2, feature3, feature4);
+		=> new FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4>(feature1, feature2, feature3, feature4);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>
 	(
@@ -584,7 +584,7 @@ internal static class FeatureCollection<TFeature>
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(feature1, feature2, feature3, feature4, feature5);
+		=> new FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5>(feature1, feature2, feature3, feature4, feature5);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>
 	(
@@ -601,7 +601,7 @@ internal static class FeatureCollection<TFeature>
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(feature1, feature2, feature3, feature4, feature5, feature6);
+		=> new FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6>(feature1, feature2, feature3, feature4, feature5, feature6);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>
 	(
@@ -620,7 +620,7 @@ internal static class FeatureCollection<TFeature>
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(feature1, feature2, feature3, feature4, feature5, feature6, feature7);
+		=> new FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7>(feature1, feature2, feature3, feature4, feature5, feature6, feature7);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>
 	(
@@ -641,7 +641,7 @@ internal static class FeatureCollection<TFeature>
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
 		where TFeature8 : class, TFeature
-		=> new FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
+		=> new FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8>(feature1, feature2, feature3, feature4, feature5, feature6, feature7, feature8);
 
 	internal static IDeviceFeatureSet<TFeature> Create<TImplementation, TFeature1, TFeature2>(TImplementation feature)
 		where TImplementation : class, TFeature1, TFeature2
@@ -712,7 +712,7 @@ internal static class FeatureCollection<TFeature>
 		IDeviceFeatureSet<TFeature>? fallbackFeatures
 	)
 		where TFeature1 : class, TFeature
-		=> new MergedFeatureCollection<TFeature1>(features1, fallbackFeatures);
+		=> new MergedFeatureSet<TFeature1>(features1, fallbackFeatures);
 
 	public static IDeviceFeatureSet<TFeature> CreateMerged<TFeature1, TFeature2>
 	(
@@ -722,7 +722,7 @@ internal static class FeatureCollection<TFeature>
 	)
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
-		=> new MergedFeatureCollection<TFeature1, TFeature2>(features1, features2, fallbackFeatures);
+		=> new MergedFeatureSet<TFeature1, TFeature2>(features1, features2, fallbackFeatures);
 
 	public static IDeviceFeatureSet<TFeature> CreateMerged<TFeature1, TFeature2, TFeature3>
 	(
@@ -734,7 +734,7 @@ internal static class FeatureCollection<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
-		=> new MergedFeatureCollection<TFeature1, TFeature2, TFeature3>(features1, features2, features3, fallbackFeatures);
+		=> new MergedFeatureSet<TFeature1, TFeature2, TFeature3>(features1, features2, features3, fallbackFeatures);
 
 	public static IDeviceFeatureSet<TFeature> CreateMerged<TFeature1, TFeature2, TFeature3, TFeature4>
 	(
@@ -748,11 +748,11 @@ internal static class FeatureCollection<TFeature>
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
-		=> new MergedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4>(features1, features2, features3, features4, fallbackFeatures);
+		=> new MergedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4>(features1, features2, features3, features4, fallbackFeatures);
 
-	private sealed class EmptyFeatureCollection : IDeviceFeatureSet<TFeature>
+	private sealed class EmptyFeatureSet : IDeviceFeatureSet<TFeature>
 	{
-		public static EmptyFeatureCollection Instance = new EmptyFeatureCollection();
+		public static EmptyFeatureSet Instance = new EmptyFeatureSet();
 
 		public bool IsEmpty => true;
 		public int Count => 0;
@@ -761,18 +761,18 @@ internal static class FeatureCollection<TFeature>
 
 		public T? GetFeature<T>() where T : class, TFeature => null;
 
-		private EmptyFeatureCollection() { }
+		private EmptyFeatureSet() { }
 
 		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator() => Enumerable.Empty<KeyValuePair<Type, TFeature>>().GetEnumerator();
 		IEnumerator IEnumerable.GetEnumerator() => Array.Empty<KeyValuePair<Type, TFeature>>().GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TSingleFeature> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TSingleFeature> : IDeviceFeatureSet<TFeature>
 		where TSingleFeature : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TSingleFeature));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TSingleFeature));
 		}
 
 		private readonly TSingleFeature _feature;
@@ -784,7 +784,7 @@ internal static class FeatureCollection<TFeature>
 
 		public T? GetFeature<T>() where T : class, TFeature => typeof(T) == typeof(TSingleFeature) ? Unsafe.As<T>(_feature) : null;
 
-		internal FixedFeatureCollection(TSingleFeature feature) => _feature = feature;
+		internal FixedFeatureSet(TSingleFeature feature) => _feature = feature;
 
 		public IEnumerator<KeyValuePair<Type, TFeature>> GetEnumerator()
 		{
@@ -794,15 +794,15 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -829,7 +829,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -844,19 +844,19 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2, TFeature3> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -886,7 +886,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -903,24 +903,24 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -953,7 +953,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -972,30 +972,30 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 		where TFeature5 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -1031,7 +1031,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -1052,7 +1052,7 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
@@ -1060,29 +1060,29 @@ internal static class FeatureCollection<TFeature>
 		where TFeature5 : class, TFeature
 		where TFeature6 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -1121,7 +1121,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -1144,7 +1144,7 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
@@ -1153,36 +1153,36 @@ internal static class FeatureCollection<TFeature>
 		where TFeature6 : class, TFeature
 		where TFeature7 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature7));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature7));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -1224,7 +1224,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6, TFeature7 feature7)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6, TFeature7 feature7)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -1249,7 +1249,7 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class FixedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8> : IDeviceFeatureSet<TFeature>
+	private sealed class FixedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4, TFeature5, TFeature6, TFeature7, TFeature8> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
@@ -1259,44 +1259,44 @@ internal static class FeatureCollection<TFeature>
 		where TFeature7 : class, TFeature
 		where TFeature8 : class, TFeature
 	{
-		static FixedFeatureCollection()
+		static FixedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature7));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature7));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature8));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature7), typeof(TFeature8));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature5));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature6));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature7));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature5));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature4), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature6));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature5), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature7));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature6), typeof(TFeature8));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature7), typeof(TFeature8));
 		}
 
 		private readonly TFeature1 _feature1;
@@ -1341,7 +1341,7 @@ internal static class FeatureCollection<TFeature>
 			else return null;
 		}
 
-		internal FixedFeatureCollection(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6, TFeature7 feature7, TFeature8 feature8)
+		internal FixedFeatureSet(TFeature1 feature1, TFeature2 feature2, TFeature3 feature3, TFeature4 feature4, TFeature5 feature5, TFeature6 feature6, TFeature7 feature7, TFeature8 feature8)
 		{
 			_feature1 = feature1;
 			_feature2 = feature2;
@@ -1368,18 +1368,18 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class MergedFeatureCollection<TFeature1> : IDeviceFeatureSet<TFeature>
+	private sealed class MergedFeatureSet<TFeature1> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 	{
-		static MergedFeatureCollection()
+		static MergedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
 		}
 
 		private readonly IDeviceFeatureSet<TFeature1> _features1;
 		private readonly IDeviceFeatureSet<TFeature>? _fallbackFeatures;
 
-		public MergedFeatureCollection(IDeviceFeatureSet<TFeature1> features1, IDeviceFeatureSet<TFeature>? fallbackFeatures)
+		public MergedFeatureSet(IDeviceFeatureSet<TFeature1> features1, IDeviceFeatureSet<TFeature>? fallbackFeatures)
 		{
 			_features1 = features1;
 			_fallbackFeatures = fallbackFeatures;
@@ -1401,8 +1401,8 @@ internal static class FeatureCollection<TFeature>
 		public T? GetFeature<T>()
 			where T : class, TFeature
 		{
-			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
-			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
+			if (FeatureSet<TFeature1>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureSet<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureSet<TFeature>.GetFeature<T>(_fallbackFeatures);
 			else return null;
 		}
 
@@ -1425,15 +1425,15 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class MergedFeatureCollection<TFeature1, TFeature2> : IDeviceFeatureSet<TFeature>
+	private sealed class MergedFeatureSet<TFeature1, TFeature2> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 	{
-		static MergedFeatureCollection()
+		static MergedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
 		}
 
 		private readonly IDeviceFeatureSet<TFeature1> _features1;
@@ -1443,7 +1443,7 @@ internal static class FeatureCollection<TFeature>
 		public bool IsEmpty => _features1.IsEmpty && _features2.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
 		public int Count => _features1.Count + _features2.Count + (_fallbackFeatures?.Count ?? 0);
 
-		public MergedFeatureCollection(IDeviceFeatureSet<TFeature1> features1, IDeviceFeatureSet<TFeature2> features2, IDeviceFeatureSet<TFeature>? fallbackFeatures)
+		public MergedFeatureSet(IDeviceFeatureSet<TFeature1> features1, IDeviceFeatureSet<TFeature2> features2, IDeviceFeatureSet<TFeature>? fallbackFeatures)
 		{
 			_features1 = features1;
 			_features2 = features2;
@@ -1464,9 +1464,9 @@ internal static class FeatureCollection<TFeature>
 		public T? GetFeature<T>()
 			where T : class, TFeature
 		{
-			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
-			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
-			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
+			if (FeatureSet<TFeature1>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureSet<TFeature2>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature2>.GetFeature<T>(_features2);
+			else if (FeatureSet<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureSet<TFeature>.GetFeature<T>(_fallbackFeatures);
 			else return null;
 		}
 
@@ -1493,19 +1493,19 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class MergedFeatureCollection<TFeature1, TFeature2, TFeature3> : IDeviceFeatureSet<TFeature>
+	private sealed class MergedFeatureSet<TFeature1, TFeature2, TFeature3> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 	{
-		static MergedFeatureCollection()
+		static MergedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
 		}
 
 		private readonly IDeviceFeatureSet<TFeature1> _features1;
@@ -1516,7 +1516,7 @@ internal static class FeatureCollection<TFeature>
 		public bool IsEmpty => _features1.IsEmpty && _features2.IsEmpty && _features3.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
 		public int Count => _features1.Count + _features2.Count + _features3.Count + (_fallbackFeatures?.Count ?? 0);
 
-		public MergedFeatureCollection
+		public MergedFeatureSet
 		(
 			IDeviceFeatureSet<TFeature1> features1,
 			IDeviceFeatureSet<TFeature2> features2,
@@ -1545,10 +1545,10 @@ internal static class FeatureCollection<TFeature>
 		public T? GetFeature<T>()
 			where T : class, TFeature
 		{
-			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
-			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
-			else if (FeatureCollection<TFeature3>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature3>.GetFeature<T>(_features3);
-			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
+			if (FeatureSet<TFeature1>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureSet<TFeature2>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature2>.GetFeature<T>(_features2);
+			else if (FeatureSet<TFeature3>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature3>.GetFeature<T>(_features3);
+			else if (FeatureSet<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureSet<TFeature>.GetFeature<T>(_fallbackFeatures);
 			else return null;
 		}
 
@@ -1579,24 +1579,24 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class MergedFeatureCollection<TFeature1, TFeature2, TFeature3, TFeature4> : IDeviceFeatureSet<TFeature>
+	private sealed class MergedFeatureSet<TFeature1, TFeature2, TFeature3, TFeature4> : IDeviceFeatureSet<TFeature>
 		where TFeature1 : class, TFeature
 		where TFeature2 : class, TFeature
 		where TFeature3 : class, TFeature
 		where TFeature4 : class, TFeature
 	{
-		static MergedFeatureCollection()
+		static MergedFeatureSet()
 		{
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
-			FeatureCollection.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
-			FeatureCollection.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature1));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature2));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature3));
+			FeatureSet.ValidateFeatureType(typeof(TFeature), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature2));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature1), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature3));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature2), typeof(TFeature4));
+			FeatureSet.ValidateDifferentFeatureTypes(typeof(TFeature3), typeof(TFeature4));
 		}
 
 		private readonly IDeviceFeatureSet<TFeature1> _features1;
@@ -1608,7 +1608,7 @@ internal static class FeatureCollection<TFeature>
 		public bool IsEmpty => _features1.IsEmpty && _features2.IsEmpty && _features3.IsEmpty && _features4.IsEmpty && (_fallbackFeatures?.IsEmpty ?? false);
 		public int Count => _features1.Count + _features2.Count + _features3.Count + _features4.Count + (_fallbackFeatures?.Count ?? 0);
 
-		public MergedFeatureCollection
+		public MergedFeatureSet
 		(
 			IDeviceFeatureSet<TFeature1> features1,
 			IDeviceFeatureSet<TFeature2> features2,
@@ -1640,11 +1640,11 @@ internal static class FeatureCollection<TFeature>
 		public T? GetFeature<T>()
 			where T : class, TFeature
 		{
-			if (FeatureCollection<TFeature1>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature1>.GetFeature<T>(_features1);
-			else if (FeatureCollection<TFeature2>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature2>.GetFeature<T>(_features2);
-			else if (FeatureCollection<TFeature3>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature3>.GetFeature<T>(_features3);
-			else if (FeatureCollection<TFeature4>.Compatibility<T>.IsSubclass) return FeatureCollection<TFeature4>.GetFeature<T>(_features4);
-			else if (FeatureCollection<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureCollection<TFeature>.GetFeature<T>(_fallbackFeatures);
+			if (FeatureSet<TFeature1>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature1>.GetFeature<T>(_features1);
+			else if (FeatureSet<TFeature2>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature2>.GetFeature<T>(_features2);
+			else if (FeatureSet<TFeature3>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature3>.GetFeature<T>(_features3);
+			else if (FeatureSet<TFeature4>.Compatibility<T>.IsSubclass) return FeatureSet<TFeature4>.GetFeature<T>(_features4);
+			else if (FeatureSet<TFeature>.Compatibility<T>.IsSubclass && _fallbackFeatures is not null) return FeatureSet<TFeature>.GetFeature<T>(_fallbackFeatures);
 			else return null;
 		}
 
@@ -1679,7 +1679,7 @@ internal static class FeatureCollection<TFeature>
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
-	private sealed class MultiFeatureCollection : IDeviceFeatureSet<TFeature>
+	private sealed class MultiFeatureSet : IDeviceFeatureSet<TFeature>
 	{
 		private readonly HashSet<Type> _featureTypes;
 		private readonly TFeature _implementation;
@@ -1693,7 +1693,7 @@ internal static class FeatureCollection<TFeature>
 			where T : class, TFeature
 			=> _featureTypes.Contains(typeof(T)) ? Unsafe.As<T>(_implementation) : null;
 
-		internal MultiFeatureCollection(HashSet<Type> featureTypes, TFeature implementation)
+		internal MultiFeatureSet(HashSet<Type> featureTypes, TFeature implementation)
 		{
 			_featureTypes = featureTypes;
 			_implementation = implementation;

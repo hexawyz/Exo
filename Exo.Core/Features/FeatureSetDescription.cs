@@ -6,7 +6,7 @@ public readonly struct FeatureSetDescription
 		where TFeature : class, IDeviceFeature
 	{
 		// This is merely a way to validate the feature type.
-		_ = FeatureCollection.Empty<TFeature>();
+		_ = FeatureSet.Empty<TFeature>();
 
 		return new FeatureSetDescription(typeof(TFeature), true, isAvailable);
 	}
@@ -15,7 +15,7 @@ public readonly struct FeatureSetDescription
 		where TFeature : class, IDeviceFeature
 	{
 		// This is merely a way to validate the feature type.
-		_ = FeatureCollection.Empty<TFeature>();
+		_ = FeatureSet.Empty<TFeature>();
 
 		return new FeatureSetDescription(typeof(TFeature), false, true);
 	}

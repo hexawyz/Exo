@@ -16,6 +16,15 @@ namespace Exo;
 public interface IDeviceFeatureSet : IEnumerable
 {
 	Type FeatureType { get; }
+
+	/// <summary>Gets a value indicating if this feature set is empty.</summary>
+	/// <remarks>
+	/// <para>
+	/// Usage of this property should be preferred over <see cref="ICollection.Count"/> when possible,
+	/// as the implementation of <see cref="ICollection.Count"/> can be costlier in some implementations.
+	/// </para>
+	/// <para>Obviously, implementors should always make evaluating <see cref="IsEmpty"/> as cheap as possible.</para>
+	/// </remarks>
 	bool IsEmpty { get; }
 }
 

@@ -108,7 +108,7 @@ public class GenericMonitorDriver
 		AudioVolume = 0x00000008,
 	}
 
-	private sealed class MonitorFeatureCollection : IDeviceFeatureSet<IMonitorDeviceFeature>
+	private sealed class MonitorFeatureSet : IDeviceFeatureSet<IMonitorDeviceFeature>
 	{
 		private readonly GenericMonitorDriver _driver;
 		private Dictionary<Type, IMonitorDeviceFeature>? _cachedFeatureDictionary;
@@ -131,7 +131,7 @@ public class GenericMonitorDriver
 			}
 		}
 
-		public MonitorFeatureCollection(GenericMonitorDriver driver) => _driver = driver;
+		public MonitorFeatureSet(GenericMonitorDriver driver) => _driver = driver;
 
 		IMonitorDeviceFeature? IDeviceFeatureSet<IMonitorDeviceFeature>.this[Type type]
 			=> (_cachedFeatureDictionary ??= new(this))[type];
@@ -203,10 +203,10 @@ public class GenericMonitorDriver
 		_deviceId = deviceId;
 
 		_genericFeatures = configurationKey.UniqueId is not null ?
-			FeatureCollection.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
+			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
 
-		_monitorFeatures = new MonitorFeatureCollection(this);
+		_monitorFeatures = new MonitorFeatureSet(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

@@ -330,8 +330,8 @@ public abstract class LogitechUniversalDriver :
 	// NB: Called from the main constructor, so derived classes need to make sure they are not missing any information at that point.
 	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 		=> HasSerialNumber ?
-			FeatureCollection.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature>(this);
+			FeatureSet.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureSet.Create<IGenericDeviceFeature, LogitechUniversalDriver, IDeviceIdFeature>(this);
 
 	// NB: This calls DisposeAsync on all devices, but child devices will not actually be disposed, as they are managed by their parent.
 	public override ValueTask DisposeAsync() => _device.DisposeAsync();
@@ -359,11 +359,11 @@ public abstract class LogitechUniversalDriver :
 		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
-					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 				HasBattery ?
-					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature>(this);
+					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature>(this);
 
 		public override ValueTask DisposeAsync()
 		{
@@ -554,7 +554,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
+			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureSet.Empty<IKeyboardDeviceFeature>();
 		}
 
 		internal class RegisterAccessDirectMouse : RegisterAccessDirect, IDeviceDriver<IMouseDeviceFeature>
@@ -566,7 +566,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureSet.Empty<IMouseDeviceFeature>();
 		}
 
 		internal class RegisterAccessThroughReceiverGeneric : RegisterAccessThroughReceiver
@@ -589,7 +589,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
 
-			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection.Empty<IKeyboardDeviceFeature>();
+			IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureSet.Empty<IKeyboardDeviceFeature>();
 		}
 
 		internal class RegisterAccessThroughReceiverMouse : RegisterAccessThroughReceiver, IDeviceDriver<IMouseDeviceFeature>
@@ -601,7 +601,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureSet.Empty<IMouseDeviceFeature>();
 		}
 
 		internal class FeatureAccessDirectGeneric : FeatureAccessDirect
@@ -624,11 +624,11 @@ public abstract class LogitechUniversalDriver :
 			{
 				_keyboardFeatures = HasLockKeys ?
 					HasBacklight ?
-						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardLockKeysFeature, IKeyboardBacklightFeature>(this) :
-						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardLockKeysFeature>(this) :
+						FeatureSet.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardLockKeysFeature, IKeyboardBacklightFeature>(this) :
+						FeatureSet.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardLockKeysFeature>(this) :
 					HasBacklight ?
-						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardBacklightFeature>(this) :
-						FeatureCollection.Empty<IKeyboardDeviceFeature>();
+						FeatureSet.Create<IKeyboardDeviceFeature, FeatureAccessDirectKeyboard, IKeyboardBacklightFeature>(this) :
+						FeatureSet.Empty<IKeyboardDeviceFeature>();
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -645,7 +645,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureSet.Empty<IMouseDeviceFeature>();
 		}
 
 		internal sealed class FeatureAccessThroughReceiverGeneric : FeatureAccessThroughReceiver
@@ -668,11 +668,11 @@ public abstract class LogitechUniversalDriver :
 			{
 				_keyboardFeatures = HasLockKeys ?
 					HasBacklight ?
-						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardLockKeysFeature, IKeyboardBacklightFeature>(this) :
-						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardLockKeysFeature>(this) :
+						FeatureSet.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardLockKeysFeature, IKeyboardBacklightFeature>(this) :
+						FeatureSet.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardLockKeysFeature>(this) :
 					HasBacklight ?
-						FeatureCollection.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardBacklightFeature>(this) :
-						FeatureCollection.Empty<IKeyboardDeviceFeature>();
+						FeatureSet.Create<IKeyboardDeviceFeature, FeatureAccessThroughReceiverKeyboard, IKeyboardBacklightFeature>(this) :
+						FeatureSet.Empty<IKeyboardDeviceFeature>();
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -689,7 +689,7 @@ public abstract class LogitechUniversalDriver :
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureCollection.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureSet.Empty<IMouseDeviceFeature>();
 		}
 	}
 

@@ -135,7 +135,7 @@ public sealed class StreamDeckDeviceDriver : Driver, IDeviceDriver<IGenericDevic
 		_productId = productId;
 		_versionNumber = versionNumber;
 
-		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;

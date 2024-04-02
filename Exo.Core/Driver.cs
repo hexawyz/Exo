@@ -87,17 +87,17 @@ public abstract class Driver : Component
 	/// <summary>Gets the feature collection for the specified base feature type.</summary>
 	/// <remarks>
 	/// <para>
-	/// Implementors should return <see cref="FeatureCollection.Empty{TFeature}"/> for unavailable features anf for all unsupported feature sets.
-	/// In the case of supported feature sets, an empty collection is always assumed to indicate the feature set being unavailable.
+	/// Implementors should return <see cref="FeatureSet.Empty{TFeature}"/> for unavailable features anf for all unsupported feature sets.
+	/// In the case of supported feature sets, an empty set is always assumed to indicate the feature set being unavailable.
 	/// </para>
 	/// <para>
 	/// Returning an empty feature set in all supported cases makes the work of the callers easier, not necessitating to check if a given feature set is supported before requesting it.
-	/// It also does not incur any excessive work in the implementors, as the fallback to <see cref="FeatureCollection.Empty{TFeature}"/> is very easy to implement.
+	/// It also does not incur any excessive work in the implementors, as the fallback to <see cref="FeatureSet.Empty{TFeature}"/> is very easy to implement.
 	/// </para>
 	/// </remarks>
 	/// <typeparam name="TFeature">The base feature type.</typeparam>
 	/// <returns>A feature collection of the specified type.</returns>
 	public virtual IDeviceFeatureSet<TFeature> GetFeatureSet<TFeature>()
 		where TFeature : class, IDeviceFeature
-		=> (this as IDeviceDriver<TFeature>)?.Features ?? FeatureCollection.Empty<TFeature>();
+		=> (this as IDeviceDriver<TFeature>)?.Features ?? FeatureSet.Empty<TFeature>();
 }

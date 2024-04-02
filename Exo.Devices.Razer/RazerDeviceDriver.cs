@@ -554,8 +554,8 @@ public abstract class RazerDeviceDriver :
 
 	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 		=> HasSerialNumber ?
-			FeatureCollection.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureCollection.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
+			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
 
 	async void IRazerPeriodicEventHandler.HandlePeriodicEvent()
 	{
@@ -630,7 +630,7 @@ public abstract class RazerDeviceDriver :
 		) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_dpiProfiles = [];
-			_mouseFeatures = FeatureCollection.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetFeature>(this);
+			_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetFeature>(this);
 		}
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
@@ -1160,13 +1160,13 @@ public abstract class RazerDeviceDriver :
 			_currentBrightness = 0x54; // 33%
 
 			_lightingFeatures = HasReactiveLighting ?
-				FeatureCollection.Create<
+				FeatureSet.Create<
 					ILightingDeviceFeature,
 					UnifiedReactiveLightingZone,
 					ILightingDeferredChangesFeature,
 					IUnifiedLightingFeature,
 					ILightingBrightnessFeature>(new(this, lightingZoneId)) :
-				FeatureCollection.Create<ILightingDeviceFeature,
+				FeatureSet.Create<ILightingDeviceFeature,
 					UnifiedBasicLightingZone,
 					ILightingDeferredChangesFeature,
 					IUnifiedLightingFeature,
@@ -1209,11 +1209,11 @@ public abstract class RazerDeviceDriver :
 		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
-					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 				HasBattery ?
-					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureCollection.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
+					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
+					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
 		protected override async ValueTask HandlePeriodicEventAsync()
 		{

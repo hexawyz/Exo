@@ -14,7 +14,7 @@ public sealed class GenericKeyboardDriver : Driver, IDeviceDriver<IKeyboardDevic
 	{
 	}
 
-	IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureCollection<IKeyboardDeviceFeature>.Empty();
+	IDeviceFeatureSet<IKeyboardDeviceFeature> IDeviceDriver<IKeyboardDeviceFeature>.Features => FeatureSet<IKeyboardDeviceFeature>.Empty();
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

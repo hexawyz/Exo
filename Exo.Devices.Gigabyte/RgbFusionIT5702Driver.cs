@@ -564,7 +564,7 @@ public sealed class RgbFusionIT5702Driver :
 			if (typeof(TFeature) == typeof(ILightingDeviceFeature)) return _lightingFeatures;
 			if (typeof(TFeature) == typeof(IMotherboardDeviceFeature)) return _motherboardFeatures;
 
-			return FeatureCollection.Empty<TFeature>();
+			return FeatureSet.Empty<TFeature>();
 		}
 
 		return Unsafe.As<IDeviceFeatureSet<TFeature>>(GetFeatures());
@@ -585,7 +585,7 @@ public sealed class RgbFusionIT5702Driver :
 	{
 		_stream = stream;
 
-		_lightingFeatures = FeatureCollection.Create<
+		_lightingFeatures = FeatureSet.Create<
 			ILightingDeviceFeature,
 			RgbFusionIT5702Driver,
 			ILightingControllerFeature,
@@ -593,7 +593,7 @@ public sealed class RgbFusionIT5702Driver :
 			IUnifiedLightingFeature,
 			ILightingDeferredChangesFeature,
 			IPersistentLightingFeature>(this);
-		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
 
 		_unifiedLightingZone = new WaveLightingZone((byte)((1 << ledCount) - 1), Z490MotherboardUnifiedZoneId, this);
 		_lightingZones = new LightingZone[ledCount];
@@ -619,7 +619,7 @@ public sealed class RgbFusionIT5702Driver :
 
 		if (smBusFeature is not null)
 		{
-			_motherboardFeatures = FeatureCollection.Create<IMotherboardDeviceFeature, IMotherboardSystemManagementBusFeature>(smBusFeature);
+			_motherboardFeatures = FeatureSet.Create<IMotherboardDeviceFeature, IMotherboardSystemManagementBusFeature>(smBusFeature);
 			FeatureSets =
 			[
 				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
@@ -629,7 +629,7 @@ public sealed class RgbFusionIT5702Driver :
 		}
 		else
 		{
-			_motherboardFeatures = FeatureCollection.Empty<IMotherboardDeviceFeature>();
+			_motherboardFeatures = FeatureSet.Empty<IMotherboardDeviceFeature>();
 			FeatureSets =
 			[
 				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),

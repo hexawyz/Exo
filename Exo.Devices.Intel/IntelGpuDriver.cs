@@ -124,8 +124,8 @@ public sealed class IntelGpuDriver :
 	{
 		DeviceId = deviceId;
 		_gpu = gpu;
-		_displayAdapterFeatures = FeatureCollection.Create<IDisplayAdapterDeviceFeature, IntelGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
-		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, IntelGpuDriver, IDeviceIdFeature>(this);
+		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, IntelGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, IntelGpuDriver, IDeviceIdFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

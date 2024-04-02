@@ -360,13 +360,13 @@ public class LgMonitorDriver :
 	private void UpdateFeatures(UltraGearLightingFeatures? ultraGearLightingFeatures)
 	{
 		var lightingFeatures = ultraGearLightingFeatures is not null ?
-			FeatureCollection.Create<
+			FeatureSet.Create<
 				ILightingDeviceFeature,
 				UltraGearLightingFeatures,
 				IUnifiedLightingFeature,
 				ILightingDeferredChangesFeature,
 				ILightingBrightnessFeature>(ultraGearLightingFeatures) :
-				FeatureCollection.Empty<ILightingDeviceFeature>();
+				FeatureSet.Empty<ILightingDeviceFeature>();
 		Volatile.Write(ref _lightingFeatures, lightingFeatures);
 		Volatile.Write
 		(
@@ -402,7 +402,7 @@ public class LgMonitorDriver :
 			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return _monitorFeatures;
 			if (typeof(TFeature) == typeof(ILgMonitorDeviceFeature)) return _lgMonitorFeatures;
 
-			return FeatureCollection.Empty<TFeature>();
+			return FeatureSet.Empty<TFeature>();
 		}
 
 		return Unsafe.As<IDeviceFeatureSet<TFeature>>(GetFeatures());
@@ -430,7 +430,7 @@ public class LgMonitorDriver :
 		_dscVersion = dscVersion;
 		_rawCapabilities = rawCapabilities;
 		_parsedCapabilities = parsedCapabilities;
-		_monitorFeatures = FeatureCollection.Create<
+		_monitorFeatures = FeatureSet.Create<
 			IMonitorDeviceFeature,
 			LgMonitorDriver,
 			IMonitorRawCapabilitiesFeature,
@@ -439,20 +439,20 @@ public class LgMonitorDriver :
 			IMonitorBrightnessFeature,
 			IMonitorContrastFeature,
 			IMonitorSpeakerAudioVolumeFeature>(this);
-		_lgMonitorFeatures = FeatureCollection.Create<
+		_lgMonitorFeatures = FeatureSet.Create<
 			ILgMonitorDeviceFeature,
 			LgMonitorDriver,
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature, IVariableFeatureSetDeviceFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature, IVariableFeatureSetDeviceFeature>(this);
 		if ((features & MonitorDeviceFeatures.Lighting) != 0)
 		{
 			UpdateFeatures(ultraGearLightingFeatures);
 		}
 		else
 		{
-			_lightingFeatures = FeatureCollection.Empty<ILightingDeviceFeature>();
+			_lightingFeatures = FeatureSet.Empty<ILightingDeviceFeature>();
 			_featureSets =
 			[
 				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),

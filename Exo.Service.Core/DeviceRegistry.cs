@@ -556,7 +556,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		if (featureSet is null)
 		{
-			// TODO: Log an error message, as we never ever want featureCollection to be null.
+			// TODO: Log an error message, as we never ever want featureSet to be null.
 			return;
 		}
 
@@ -852,7 +852,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 						// Removal notifications can only happen for disconnected devices, so they should be ignored.
 						continue;
 					case UpdateKind.DisconnectedDevice:
-						featureSet = FeatureCollection.Empty<TFeature>();
+						featureSet = FeatureSet.Empty<TFeature>();
 						connectedDeviceIds.Remove(notification.DeviceInformation.Id);
 						notificationKind = WatchNotificationKind.Removal;
 						break;

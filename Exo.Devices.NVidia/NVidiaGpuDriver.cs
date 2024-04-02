@@ -654,10 +654,10 @@ public class NVidiaGpuDriver :
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
-		_genericFeatures = FeatureCollection.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
-		_displayAdapterFeatures = FeatureCollection.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
+		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
-		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
+		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;

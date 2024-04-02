@@ -380,7 +380,7 @@ public partial class AuraRamDriver :
 		_lightingZones = ImmutableCollectionsMarshal.AsImmutableArray(lightingZones);
 		_deferredChangesBuffer = new FinalPendingChanges[lightingZones.Length];
 		_lightingZoneCollection = new ReadOnlyCollection<ILightingZone>(lightingZones);
-		_lightingFeatures = FeatureCollection.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
+		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
