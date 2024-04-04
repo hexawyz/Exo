@@ -11,6 +11,11 @@ public sealed class ImageService
 		return null!;
 	}
 
+	public Image Background(int width, int height)
+	{
+		return null!;
+	}
+
 	public Image Rectangle(int x, int y, int width, int height)
 	{
 		return null!;
