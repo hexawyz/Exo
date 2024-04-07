@@ -72,3 +72,9 @@ public interface ILightingDeviceFeature : IDeviceFeature
 public interface IMotherboardDeviceFeature : IDeviceFeature
 {
 }
+
+/// <summary>Defines features for devices surfacing sensor data.</summary>
+[TypeId(0x3794C9DA, 0x9943, 0x4E9E, 0xB6, 0x86, 0x84, 0x8E, 0x31, 0xA5, 0x49, 0x49)]
+public interface ISensorDeviceFeature : IDeviceFeature
+{
+}

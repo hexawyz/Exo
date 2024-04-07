@@ -140,6 +140,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Contracts.Ui", "Exo.Con
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Service.Grpc", "Exo.Services.Grpc\Exo.Service.Grpc.csproj", "{18B9BC5C-71F6-4400-88E1-28B24484122C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Corsair.PowerSupplies", "Exo.Devices.Corsair.PowerSupplies\Exo.Devices.Corsair.PowerSupplies.csproj", "{74A84FC5-6323-4F0C-B2FA-72731292F4C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -944,6 +946,22 @@ Global
 		{18B9BC5C-71F6-4400-88E1-28B24484122C}.Release|x64.Build.0 = Release|Any CPU
 		{18B9BC5C-71F6-4400-88E1-28B24484122C}.Release|x86.ActiveCfg = Release|Any CPU
 		{18B9BC5C-71F6-4400-88E1-28B24484122C}.Release|x86.Build.0 = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|arm64.Build.0 = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|x64.Build.0 = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Debug|x86.Build.0 = Debug|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|arm64.ActiveCfg = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|arm64.Build.0 = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|x64.ActiveCfg = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|x64.Build.0 = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|x86.ActiveCfg = Release|Any CPU
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -984,6 +1002,7 @@ Global
 		{DFA01E4B-E46F-4CCD-949F-4131087AE8C5} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
 		{98C39F6C-CA3C-485F-8B72-C95D1AF6A389} = {DC0016F5-89F2-4164-A4DE-E772B6F75357}
 		{20EA9F32-73D5-49AD-8BE6-F0D9E5C83B32} = {D4EDD1F3-3147-40A8-A40D-7CF39E190808}
+		{74A84FC5-6323-4F0C-B2FA-72731292F4C9} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9FEED7F-27EC-4720-9CAB-C2E6FDD8556D}

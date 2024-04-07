@@ -31,6 +31,7 @@ public enum DeviceCategory
 	Camera,
 	Smartphone,
 	Battery,
+	PowerSupply,
 	MouseDock,
 	MousePad,
 }

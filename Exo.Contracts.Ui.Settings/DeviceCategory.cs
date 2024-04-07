@@ -56,6 +56,8 @@ public enum DeviceCategory
 	[EnumMember]
 	Battery,
 	[EnumMember]
+	PowerSupply,
+	[EnumMember]
 	MouseDock,
 	[EnumMember]
 	MousePad,
