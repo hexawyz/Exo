@@ -590,6 +590,29 @@ And it seems to repeat like that.
 So, it seems that some "registers" are split into "banks" 0/1/2. These could possibly be either the different rails x Units (in which direction)
 HWiNFO64 seems to query the "banks" consecutively and in reverse order, compared to corsair software.
 
+#### Playing with settings in iCUE
+
+There are two settings accessible within Corsait iCUE software:
+
+PSU OCP mode, and Fan profile.
+
+By toggling OCP mode and looking at HID packets, we can see that it is controlled by register `D8`: Value `01` is set for OCP single-rail, and `02` for multi-rail (which is the default)
+
+Creating a custom Fan profile and enabling it, we can see that this induces a write to register `F0` after some delay, as well as periodic writes to `3B`.
+The default value of `00` indicate the default (automatic) mode, and `01` indicates manual mode.
+
+With the default custom curve, writes were observed:
+
+02 3b 38
+02 3b 37
+
+This indicates that `3B` is the fan speed control.
+
+Temperature was around 36°C or 37°C, and the curve goes from 50% at 30°C to 60% at 40°.
+0x37 is 55 and 0x38 is 56, so it is likely that the value is a percentage between 0 and 100 (not scaled between 0 and 255)
+
+NB: Associated reads returning the same values were observed. (Indicating that the register is R/W without any quirk)
+
 #### Compiled details
 
 We can easily deduce that the first byte is a command ID.
@@ -610,9 +633,9 @@ From the above, we can list the registers queried and if they are "banked".
 | 90 | ❌? | ✔ | ? |  |
 | 8C | ✔ | ✔ | ? |  |
 | EE | ❌? | ✔ | ? |  |
-| 3B | ❌? | ✔ | ? |  |
+| 3B | ❌ | ✔ | ✔ | Fan speed percentage |
 | 4F | ❌? | ✔ | ? |  |
-| D8 | ❌? | ✔ | ✔ | ? Read and written to by Corsair SW, always value `02` ? |
+| D8 | ❌ | ✔ | ✔ | OCP Mode: `01` = Single rail; `02` = Multi rail |
 | 40 | ✔ | ✔ | ? |  |
 | 44 | ✔ | ✔ | ? |  |
 | 46 | ✔ | ✔ | ? |  |
@@ -620,4 +643,5 @@ From the above, we can list the registers queried and if they are "banked".
 | 99 | ❌? | ✔ | ? | Manufacturer name |
 | 9A | ❌? | ✔ | ? | Product name |
 | D4 | ❌? | ✔ | ? |  |
-| F0 | ❌? | ? | ✔ |  |
+| F0 | ❌ | ? | ✔ | Fan mode: `00` = Default; `01` = Manual |
+
