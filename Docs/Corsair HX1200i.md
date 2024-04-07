@@ -1,1 +1,623 @@
-﻿TODO 😁
+# Corsair HX1200i
+
+VID: 1B1C (Corsair)
+PID: 1C08 (HX1200i)
+
+There's a very old forum topic on Corsair forums regarding the reverse engineering of Corsair Link, which may contain some useful data:
+https://forum.corsair.com/forums/topic/94252-developers-the-corsair-link-usb-protocol/
+
+Below is the legacy (non-rewritten) links I to dug up from the grave in order to get the archived versions with table formatting and such.
+(NB: legacy thread ID does not match the new thread ID, I have no idea why)
+
+http://forum.corsair.com/forums/showthread.php?t=120092
+
+This way, the topic can be accessed through web archive and we get the old formatting:
+
+https://web.archive.org/web/20151025194042/http://forum.corsair.com/forums/showthread.php?t=120092
+https://web.archive.org/web/20170708165309/http://forum.corsair.com/forums/showthread.php?t=120092
+
+Sadly, the protocol described here does not seem to match the newer PSUs such as HX1200i. I believe it is still a good idea to keep this around just in case. (For example, supporting other or legacy Corsair HW)
+Notably, a post on the forum, edited by corsair, mentions the following global mutex: Global\CorsairLinkReadWriteGuardMutex
+
+## Observations
+
+By starting up either HWiNFO64 or iCUE, we can observe some messages.
+The protocol to monitor the device seem to be polling-based. (Which is a bit of a shame, but also kinda makes sense, as it does not waste CPU cycles when not in use)
+
+Messages seem to be relatively straightforward, consisting of one request followed by a reply from the device, using regular input/output reports.
+
+Reports are 64 byte long (65 if we include the report ID)
+
+### Report descriptions
+
+║ ╔═══════ Input Reports
+║ ║ Maximum Report Length: 65
+║ ║ ╔═══════ Report #00
+║ ║ ║ Report Length: 65
+║ ║ ║ ╒═══════ Channel #0
+║ ║ ║ │ Collection Usage Page: FF00
+║ ║ ║ │ Collection Usage: 0001
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: FF00
+║ ║ ║ │ Usage: 0001 .. 0040
+║ ║ ║ │ Data Index: 0 .. 63
+║ ║ ║ │ Item Size: 8
+║ ║ ║ │ Item Count: 64
+║ ║ ║ │ Report Start Byte Index: 1
+║ ║ ║ │ Report Byte Length: 64
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 512
+║ ║ ║ │ Logical Value: 1 .. 64
+║ ║ ║ │ Is Absolute: True
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╘═══════
+║ ║ ╚═══════
+║ ╠═══════ Output Reports
+║ ║ Maximum Report Length: 65
+║ ║ ╔═══════ Report #00
+║ ║ ║ Report Length: 65
+║ ║ ║ ╒═══════ Channel #0
+║ ║ ║ │ Collection Usage Page: FF00
+║ ║ ║ │ Collection Usage: 0001
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: FF00
+║ ║ ║ │ Usage: 0001 .. 0040
+║ ║ ║ │ Data Index: 0 .. 63
+║ ║ ║ │ Item Size: 8
+║ ║ ║ │ Item Count: 64
+║ ║ ║ │ Report Start Byte Index: 1
+║ ║ ║ │ Report Byte Length: 64
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 512
+║ ║ ║ │ Logical Value: 1 .. 64
+║ ║ ║ │ Is Absolute: True
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╘═══════
+║ ║ ╚═══════
+║ ╠═══════ Feature Reports
+║ ║ Maximum Report Length: 65
+║ ║ ╔═══════ Report #00
+║ ║ ║ Report Length: 65
+║ ║ ║ ╒═══════ Channel #0
+║ ║ ║ │ Collection Usage Page: FF00
+║ ║ ║ │ Collection Usage: 0001
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: FF00
+║ ║ ║ │ Usage: 0001 .. 0040
+║ ║ ║ │ Data Index: 0 .. 63
+║ ║ ║ │ Item Size: 8
+║ ║ ║ │ Item Count: 64
+║ ║ ║ │ Report Start Byte Index: 1
+║ ║ ║ │ Report Byte Length: 64
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 512
+║ ║ ║ │ Logical Value: 1 .. 64
+║ ║ ║ │ Is Absolute: True
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╘═══════
+║ ║ ╚═══════
+║ ╚═══════
+
+### Device name query
+
+Request:
+
+FE 03 …
+
+Response:
+
+FE 03 "48 58 31 32 30 30 69" … (HX1200i)
+
+This message is regularly sent by corsair's software, but only once at the beginning by HWiNFO64 when opening.
+I'm assuming this is a (sad) design quirk in the programming of Corsair's software, as there shouldn't be a reason why the device is requested everytime. (It will also be quite bad for performance)
+
+### Other queries
+
+#### From Corsair service
+
+(Starting up, excluding the device name queries that are repeated before each of the below…)
+
+REQ: 03 88 …
+RES: 03 88 CC F9 …
+
+REQ: 03 90 …
+RES: 03 90 00 10 …
+
+REQ: 03 3B …
+RES: 03 3B 1B …
+
+REQ: 03 4F …
+RES: 03 4F 46 …
+
+REQ: 03 8D …
+RES: 03 8D E4 F0 …
+
+REQ: 03 8E …
+RES: 03 8E AD F0 …
+
+REQ: 03 D8 …
+RES: 03 D8 02 …
+
+REQ: 03 EE …
+RES: 03 EE 43 08 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 8C …
+RES: 03 8C 1F F0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 8B …
+RES: 03 8B 0C D3 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 40 …
+RES: 03 40 E6 D3 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 44 …
+RES: 03 44 1A D2 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 46 …
+RES: 03 46 90 F1 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 96 …
+RES: 03 96 39 08 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 8C …
+RES: 03 8C 52 E0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 8B …
+RES: 03 8B 40 D1 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 40 …
+RES: 03 40 A0 D1 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 44 …
+RES: 03 44 E0 D0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 46 …
+RES: 03 46 80 E2 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 96 …
+RES: 03 96 32 F8 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 8C …
+RES: 03 8C 1E E0 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 8B …
+RES: 03 8B D3 D0 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 40 …
+RES: 03 40 13 D1 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 44 …
+RES: 03 44 94 D0 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 46 …
+RES: 03 46 80 E2 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 96 …
+RES: 03 96 0C F8 …
+
+REQ: 03 99 …
+RES: 03 99 43 4F 52 53 41 49 52 … (CORSAIR)
+
+REQ: 03 9A …
+RES: 03 9A 48 59 31 32 30 30 69 … (HX1200i)
+
+REQ: 03 D4 …
+RES: 03 D4 B2 7F E6 FE …
+
+REQ: 02 F0 …
+RES: 02 F0 …
+
+REQ: 02 D8 02 …
+RES: 02 D8 02 …
+
+REQ: 03 88 …
+RES: 03 88 CC F9 …
+
+REQ: 03 90 00 10 …
+RES: 03 90 00 10 …
+
+REQ: 03 3B …
+RES: 03 3B 1B …
+
+REQ: 03 4F …
+RES: 03 4F 46 …
+
+REQ: 03 8D …
+RES: 03 8D E4 F0 …
+
+REQ: 03 8E …
+RES: 03 8E AD F0 …
+
+REQ: 03 D8 …
+RES: 03 D8 02 …
+
+REQ: 03 EE …
+RES: 03 EE 5E 08 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 8C …
+RES: 03 8C 37 F0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 8B …
+RES: 03 8B 0C D3 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 40 …
+RES: 03 40 E6 D3 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 44 …
+RES: 03 44 1A D2 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 46 …
+RES: 03 46 90 F1 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 96 …
+RES: 03 96 59 08 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 8C …
+RES: 03 8C 55 E0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 8B …
+RES: 03 8B 3F D1 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 40 …
+RES: 03 40 A0 D1 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 44 …
+RES: 03 44 E0 D0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 46 …
+RES: 03 46 80 E2 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 96 …
+RES: 03 96 30 F8 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+At that point, it should be clearly apparent that there is some kind of pattern.
+It repeats to the point where it looks as if it was just running an infinite loop with detailed steps, most of which are very similar.
+
+There are three smaller cycles within a bigger iteration:
+
+The "02 00 00" cycle, followed by the "02 00 01" cycle, followed by the "02 00 02" cycle.
+All of these three cycles seem to request the same numbers (I'm assuming they are some kind of registers that provide data as output)
+
+After the third cycle, some kind of "reset" operates, and we see a bunch of different requests, starting with one requesting the manufacturer name (CORSAIR) and one requesting the device name (HX1200i).
+It is interesting, however that the device name request is **not** the same as the "FE 03" request (that the service actually sends between each request/response pair)
+This request is "03 9A" and returns the same name as "FE 03". It follows "03 99" that returns the manufacturer name.
+
+#### HWiNFO64
+
+HWiNFO seems to do things smarter… at least somewhat, from what I understand.
+We don't have the repeated handshakes here, but all requests are separated by pairs of "02 00" and "03 00" requests.
+
+The way it is donne here seems interesting, as it suggests that after "02 00 XX" (with identical response), a "03 00" request will return "03 00 XX" and confirm the state set by the 02 requests.
+For now, I'm assuming that this sets some kind of register bank on the device, as we also observed the "02 00 00", "02 00 01" and "02 00 02" requests on Corsair side.
+HWiNFO does not proceed in the same order though.
+
+REQ: FE 03 …
+RES: FE 03 48 58 31 32 30 30 69
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8D …
+RES: 03 8D EB F0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8E …
+RES: 03 8E B5 F0 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 …
+RES: 03 00 02 …
+
+REQ: 03 8B …
+RES: 03 8B D3 D0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 …
+RES: 03 00 01 …
+
+REQ: 03 8B …
+RES: 03 8B 40 D1 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8B …
+RES: 03 8B 0C D3 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 88 …
+RES: 03 88 CC F9 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 90 …
+RES: 03 90 00 10 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 …
+RES: 03 00 02 …
+
+REQ: 03 8C …
+RES: 03 8C 1E E0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 …
+RES: 03 00 01 …
+
+REQ: 03 8C  …
+RES: 03 8C 61 E0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8C 2F F0 …
+RES: 03 8C 2F F0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 EE …
+RES: 03 EE 57 08 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8D …
+RES: 03 8D EB F0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8E …
+RES: 03 8E B5 F0 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 …
+RES: 03 00 02 …
+
+REQ: 03 8B …
+RES: 03 8B D3 D0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 …
+RES: 03 00 01 …
+
+REQ: 03 08 …
+RES: 03 08 40 D1 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8B 0B D3 …
+RES: 03 8B 0B D3 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 88 …
+RES: 03 88 CC F9 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 90 …
+RES: 03 90 00 10 …
+
+REQ: 02 00 02 …
+RES: 02 00 02 …
+
+REQ: 03 …
+RES: 03 00 02 …
+
+REQ: 03 8C …
+RES: 03 8C 1E E0 …
+
+REQ: 02 00 01 …
+RES: 02 00 01 …
+
+REQ: 03 …
+RES: 03 00 01 …
+
+REQ: 03 8C …
+RES: 03 8C 55 E0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 8C …
+RES: 03 8C 20 F0 …
+
+REQ: 02 …
+RES: 02 …
+
+REQ: 03 …
+RES: 03 …
+
+REQ: 03 EE …
+RES: 03 EE 44 08 …
+
+And it seems to repeat like that.
+
+So, it seems that some "registers" are split into "banks" 0/1/2. These could possibly be either the different rails x Units (in which direction)
+HWiNFO64 seems to query the "banks" consecutively and in reverse order, compared to corsair software.
+
+#### Compiled details
+
+We can easily deduce that the first byte is a command ID.
+
+`FE` : Handshake / Device name (⚠️ The second byte is `03`, meaning unknown yet)
+`02` : Write register
+`03` : Read register
+
+From the above, we can list the registers queried and if they are "banked".
+
+| Register | Banked | R | W | Description |
+|---------:|:--:|:-:|:-:|:------------|
+| 00 | ❌ | ✔ | ✔ | Bank register ? |
+| 8D | ❌? | ✔ | ? |  |
+| 8E | ❌? | ✔ | ? |  |
+| 8B | ✔ | ✔ | ? |  |
+| 88 | ❌? | ✔ | ? |  |
+| 90 | ❌? | ✔ | ? |  |
+| 8C | ✔ | ✔ | ? |  |
+| EE | ❌? | ✔ | ? |  |
+| 3B | ❌? | ✔ | ? |  |
+| 4F | ❌? | ✔ | ? |  |
+| D8 | ❌? | ✔ | ✔ | ? Read and written to by Corsair SW, always value `02` ? |
+| 40 | ✔ | ✔ | ? |  |
+| 44 | ✔ | ✔ | ? |  |
+| 46 | ✔ | ✔ | ? |  |
+| 96 | ✔ | ✔ | ? |  |
+| 99 | ❌? | ✔ | ? | Manufacturer name |
+| 9A | ❌? | ✔ | ? | Product name |
+| D4 | ❌? | ✔ | ? |  |
+| F0 | ❌? | ? | ✔ |  |
