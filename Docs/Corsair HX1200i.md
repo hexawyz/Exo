@@ -613,6 +613,25 @@ Temperature was around 36°C or 37°C, and the curve goes from 50% at 30°C to 6
 
 NB: Associated reads returning the same values were observed. (Indicating that the register is R/W without any quirk)
 
+#### PMBus
+
+Digging a bit more on the topic on Corsair's forum, [PMBUS was mentioned](https://forum.corsair.com/forums/topic/94252-developers-the-corsair-link-usb-protocol/?do=findComment&comment=637940), and it seems that the registers we can identify in the requests match some PMBus commands.
+
+List of commands can be found in [Part II of the specification](https://pmbusprod.wpenginepowered.com/wp-content/uploads/2022/01/PMBus-Specification-Rev-1-3-1-Part-II-20150313.pdf), Annex 1.
+
+As such,
+`00` is `PAGE`,
+`3B` is `FAN_COMMAND_1`,
+`99` is `MFR_ID`,
+`9A` is `MFR_MODEL`
+
+Also,
+`D8` is `MFR_SPECIFIC_D8`,
+`F0` is `MFR_SPECIFIC_F0`
+
+NB: Regarding the HID communication with the device, it does not seem very clear how this is implemented, as the same read/Write command seems to be used for single bytes, words, or multiple bytes.
+Either the device just conveniently reuses PMBUS commands, or it has some special mapping logic to simplify the HID protocol. (My version of the HX1200i also has a legacy PMBUS connector, so I guess it should be the second one)
+
 #### Compiled details
 
 We can easily deduce that the first byte is a command ID.
@@ -623,25 +642,25 @@ We can easily deduce that the first byte is a command ID.
 
 From the above, we can list the registers queried and if they are "banked".
 
-| Register | Banked | R | W | Description |
-|---------:|:--:|:-:|:-:|:------------|
-| 00 | ❌ | ✔ | ✔ | Bank register ? |
-| 8D | ❌? | ✔ | ? |  |
-| 8E | ❌? | ✔ | ? |  |
-| 8B | ✔ | ✔ | ? |  |
-| 88 | ❌? | ✔ | ? |  |
-| 90 | ❌? | ✔ | ? |  |
-| 8C | ✔ | ✔ | ? |  |
-| EE | ❌? | ✔ | ? |  |
-| 3B | ❌ | ✔ | ✔ | Fan speed percentage |
-| 4F | ❌? | ✔ | ? |  |
-| D8 | ❌ | ✔ | ✔ | OCP Mode: `01` = Single rail; `02` = Multi rail |
-| 40 | ✔ | ✔ | ? |  |
-| 44 | ✔ | ✔ | ? |  |
-| 46 | ✔ | ✔ | ? |  |
-| 96 | ✔ | ✔ | ? |  |
-| 99 | ❌? | ✔ | ? | Manufacturer name |
-| 9A | ❌? | ✔ | ? | Product name |
-| D4 | ❌? | ✔ | ? |  |
-| F0 | ❌ | ? | ✔ | Fan mode: `00` = Default; `01` = Manual |
+| Register | Banked | R | W | PMBUS | Description |
+|---:|:--:|:-:|:-:|:------|:------------|
+| 00 | ❌ | ✔ | ✔ | PAGE | Bank register ? |
+| 8D | ❌? | ✔ | ? | READ_TEMPERATURE_1 |  |
+| 8E | ❌? | ✔ | ? | READ_TEMPERATURE_2 |  |
+| 8B | ✔ | ✔ | ? | READ_VOUT |  |
+| 88 | ❌? | ✔ | ? | READ_VIN |  |
+| 90 | ❌? | ✔ | ? | READ_FAN_SPEED_1 |  |
+| 8C | ✔ | ✔ | ? | READ_IOUT |  |
+| EE | ❌? | ✔ | ? | MFR_SPECIFIC_EE |  |
+| 3B | ❌ | ✔ | ✔ | FAN_COMMAND_1 | Fan speed percentage |
+| 4F | ❌? | ✔ | ? | OT_FAULT_LIMIT |  |
+| D8 | ❌ | ✔ | ✔ | MFR_SPECIFIC_D8 | OCP Mode: `01` = Single rail; `02` = Multi rail |
+| 40 | ✔ | ✔ | ? | VOUT_OV_FAULT_LIMIT |  |
+| 44 | ✔ | ✔ | ? | VOUT_UV_FAULT_LIMIT |  |
+| 46 | ✔ | ✔ | ? | IOUT_OC_FAULT_LIMIT |  |
+| 96 | ✔ | ✔ | ? | READ_POUT |  |
+| 99 | ❌? | ✔ | ? | MFR_ID | Manufacturer name |
+| 9A | ❌? | ✔ | ? | MFR_MODEL | Product name |
+| D4 | ❌? | ✔ | ? | MFR_SPECIFIC_D4 |  |
+| F0 | ❌ | ? | ✔ | MFR_SPECIFIC_F0 | Fan mode: `00` = Default; `01` = Manual |
 
