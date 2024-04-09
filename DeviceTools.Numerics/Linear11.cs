@@ -6,6 +6,7 @@ namespace DeviceTools.Numerics;
 
 public readonly struct Linear11 :
 	IEquatable<Linear11>,
+	IComparable<Linear11>,
 	IMinMaxValue<Linear11>,
 	IAdditiveIdentity<Linear11, Linear11>,
 	IMultiplicativeIdentity<Linear11, Linear11>,
@@ -83,6 +84,8 @@ public readonly struct Linear11 :
 		return Unsafe.As<uint, float>(ref r);
 #endif
 	}
+
+	public int CompareTo(Linear11 other) => Comparer<float>.Default.Compare((float)this, (float)other);
 
 	public bool Equals(Linear11 other) => _value == other._value;
 
