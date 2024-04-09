@@ -33,6 +33,7 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 		{ DeviceCategory.Camera, "\uE722" },
 		{ DeviceCategory.Smartphone, "\uE8EA" },
 		{ DeviceCategory.Battery, "\uF5FC" },
+		{ DeviceCategory.PowerSupply, "\uE945" },
 		{ DeviceCategory.MouseDock, "\uE945" },
 		{ DeviceCategory.MousePad, "\uE7FB" },
 	};

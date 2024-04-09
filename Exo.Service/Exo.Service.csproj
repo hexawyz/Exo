@@ -34,6 +34,7 @@
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
 		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
+		<ProjectReference Include="..\DeviceTools.Numerics\DeviceTools.Numerics.csproj" />
 		<ProjectReference Include="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
 		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
@@ -67,6 +68,7 @@
 		<ProjectReference Include="..\Exo.Devices.Intel\Exo.Devices.Intel.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.NVidia\Exo.Devices.NVidia.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Devices.Asus.Aura\Exo.Devices.Asus.Aura.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Exo.Devices.Corsair.PowerSupplies\Exo.Devices.Corsair.PowerSupplies.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ReferenceOutputAssembly="false" />
