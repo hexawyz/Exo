@@ -5,6 +5,7 @@ public interface IConfigurationContainer : IConfigurationNode
 	ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(CancellationToken cancellationToken);
 	ValueTask WriteValueAsync<TValue>(TValue value, CancellationToken cancellationToken) where TValue : notnull;
 	ValueTask DeleteValueAsync<TValue>();
+	ValueTask DeleteAllValuesAsync();
 }
 
 public interface IConfigurationContainer<TKey>
@@ -23,4 +24,5 @@ public interface IConfigurationContainer<TKey>
 	/// <param name="key"></param>
 	/// <returns></returns>
 	IConfigurationContainer GetContainer(TKey key);
+	ValueTask DeleteAllContainersAsync();
 }

@@ -11,6 +11,11 @@ public interface IConfigurationNode
 	/// <returns></returns>
 	IConfigurationContainer GetContainer(string containerName);
 
+	/// <summary>Tries to get a pre-existing configuration container to store values and child containers.</summary>
+	/// <param name="containerName"></param>
+	/// <returns></returns>
+	IConfigurationContainer? TryGetContainer(string containerName);
+
 	/// <summary>Gets a configuration container used to store keyed configuration.</summary>
 	/// <remarks>If needed, specific keys can be opened as their own containers and define custom child containers.</remarks>
 	/// <typeparam name="TKey">The type of configuration key.</typeparam>
@@ -18,4 +23,12 @@ public interface IConfigurationNode
 	/// <param name="nameSerializer"></param>
 	/// <returns></returns>
 	IConfigurationContainer<TKey> GetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer);
+
+	/// <summary>Tries to get a configuration container used to store keyed configuration.</summary>
+	/// <remarks>If needed, specific keys can be opened as their own containers and define custom child containers.</remarks>
+	/// <typeparam name="TKey">The type of configuration key.</typeparam>
+	/// <param name="containerName"></param>
+	/// <param name="nameSerializer"></param>
+	/// <returns></returns>
+	IConfigurationContainer<TKey>? TryGetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer);
 }

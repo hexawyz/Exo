@@ -25,6 +25,8 @@ namespace Exo.Service;
 
 public class Startup
 {
+	private const string DevicesConfigurationContainerName = "dev";
+
 	public Startup(IHostEnvironment environment, IConfiguration configuration)
 	{
 		Environment = environment;
@@ -55,12 +57,13 @@ public class Startup
 			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
 		}
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
+		services.AddKeyedSingleton(DevicesConfigurationContainerName, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, GuidNameSerializer.Instance));
 		services.AddSingleton
 		(
 			sp => DeviceRegistry.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<DeviceRegistry>>(),
-				sp.GetRequiredService<ConfigurationService>().GetContainer("dev", GuidNameSerializer.Instance),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(DevicesConfigurationContainerName),
 				default
 			).GetAwaiter().GetResult()
 		);
@@ -84,13 +87,23 @@ public class Startup
 		services.AddSingleton<MotherboardService>();
 		services.AddSingleton<MonitorService>();
 		services.AddSingleton<MouseService>();
+		services.AddSingleton
+		(
+			sp => SensorService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<SensorService>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(DevicesConfigurationContainerName),
+				sp.GetRequiredService<IDeviceWatcher>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<ImageService>();
-		services.AddSingleton<CustomMenuService>
+		services.AddSingleton
 		(
 			sp => CustomMenuService.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<CustomMenuService>>(),
-				sp.GetRequiredService< ConfigurationService>().GetContainer("mnu"),
+				sp.GetRequiredService<ConfigurationService>().GetContainer("mnu"),
 				default
 			).GetAwaiter().GetResult()
 		);
@@ -124,7 +137,7 @@ public class Startup
 			}
 		);
 		// The root discovery service must be pulled in as a hard dependency, as it will serve to bootstrap all other discovery services.
-		services.AddSingleton<RootDiscoverySubsystem>
+		services.AddSingleton
 		(
 			sp => RootDiscoverySubsystem.CreateAsync
 			(

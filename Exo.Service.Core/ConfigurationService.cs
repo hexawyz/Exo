@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using System.Threading;
 using Exo.Configuration;
 
 namespace Exo.Service;
@@ -60,12 +62,24 @@ public class ConfigurationService : IConfigurationNode
 		public ValueTask DeleteValueAsync<TValue>()
 			=> _configurationService.DeleteValueAsync<TValue>(_directory);
 
+		public ValueTask DeleteAllValuesAsync()
+			=> _configurationService.DeleteValuesAsync(_directory);
 
 		public IConfigurationContainer GetContainer(string containerName)
-			=> new ConfigurationContainer(_configurationService, PrepareChildDirectory(_directory, containerName, false));
+			=> new ConfigurationContainer(_configurationService, PrepareChildDirectory(_directory, containerName, false, true)!);
 
 		public IConfigurationContainer<TKey> GetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer)
-			=> new ConfigurationContainer<TKey>(_configurationService, PrepareChildDirectory(_directory, containerName, false), nameSerializer);
+			=> new ConfigurationContainer<TKey>(_configurationService, PrepareChildDirectory(_directory, containerName, false, true)!, nameSerializer);
+
+		public IConfigurationContainer? TryGetContainer(string containerName)
+			=> PrepareChildDirectory(_directory, containerName, false, false) is { } childDirectory ?
+				new ConfigurationContainer(_configurationService, childDirectory) :
+				null;
+
+		public IConfigurationContainer<TKey>? TryGetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer)
+			=> PrepareChildDirectory(_directory, containerName, false, false) is { } childDirectory ?
+				new ConfigurationContainer<TKey>(_configurationService, childDirectory, nameSerializer) :
+				null;
 	}
 
 	private sealed class ConfigurationContainer<TKey> : IConfigurationContainer<TKey>
@@ -124,7 +138,9 @@ public class ConfigurationService : IConfigurationNode
 			=> _configurationService.DeleteValuesAsync(_directory, _nameSerializer.ToString(key));
 
 		public IConfigurationContainer GetContainer(TKey key)
-			=> new ConfigurationContainer(_configurationService, PrepareChildDirectory(_directory, _nameSerializer.ToString(key), true));
+			=> new ConfigurationContainer(_configurationService, PrepareChildDirectory(_directory, _nameSerializer.ToString(key), true, true)!);
+
+		public ValueTask DeleteAllContainersAsync() => _configurationService.DeleteContainersAsync(_directory, _nameSerializer);
 	}
 
 	private readonly AsyncLock _lock;
@@ -138,7 +154,7 @@ public class ConfigurationService : IConfigurationNode
 		_directory = directory;
 	}
 
-	private static string PrepareChildDirectory(string baseDirectory, string directoryName, bool allowGuid)
+	private static string? PrepareChildDirectory(string baseDirectory, string directoryName, bool allowGuid, bool createIfNotExists)
 	{
 		ArgumentNullException.ThrowIfNull(directoryName);
 		// This first check is a relatively quick way to validate that the directory doesn't contain any directory separators.
@@ -149,7 +165,14 @@ public class ConfigurationService : IConfigurationNode
 			string childDirectory = Path.GetFullPath(Path.Combine(baseDirectory, directoryName));
 			if (childDirectory.Length > baseDirectory.Length && childDirectory.StartsWith(baseDirectory))
 			{
-				Directory.CreateDirectory(childDirectory);
+				if (createIfNotExists)
+				{
+					Directory.CreateDirectory(childDirectory);
+				}
+				else if (!Directory.Exists(childDirectory))
+				{
+					return null;
+				}
 				return childDirectory;
 			}
 		}
@@ -157,10 +180,20 @@ public class ConfigurationService : IConfigurationNode
 	}
 
 	public IConfigurationContainer GetContainer(string containerName)
-		=> new ConfigurationContainer(this, PrepareChildDirectory(_directory, containerName, true));
+		=> new ConfigurationContainer(this, PrepareChildDirectory(_directory, containerName, true, true)!);
 
 	public IConfigurationContainer<TKey> GetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer)
-		=> new ConfigurationContainer<TKey>(this, PrepareChildDirectory(_directory, containerName, true), nameSerializer);
+		=> new ConfigurationContainer<TKey>(this, PrepareChildDirectory(_directory, containerName, true, true)!, nameSerializer);
+
+	public IConfigurationContainer? TryGetContainer(string containerName)
+		=> PrepareChildDirectory(_directory, containerName, true, false) is { } childDirectory ?
+			new ConfigurationContainer(this, childDirectory) :
+			null;
+
+	public IConfigurationContainer<TKey>? TryGetContainer<TKey>(string containerName, INameSerializer<TKey> nameSerializer)
+		=> PrepareChildDirectory(_directory, containerName, true, false) is { } childDirectory ?
+			new ConfigurationContainer<TKey>(this, childDirectory, nameSerializer) :
+			null;
 
 	private async ValueTask<ConfigurationResult<T>> ReadValueAsync<T>(string directory, string? key, CancellationToken cancellationToken)
 	{
@@ -240,6 +273,38 @@ public class ConfigurationService : IConfigurationNode
 		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
 			File.Delete(Path.Combine(directory, typeId) + ".json");
+		}
+	}
+
+	private async ValueTask DeleteValuesAsync(string directory)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			string[] fileNames = Directory.GetFiles(directory, "????????-????-????-????-????????????.json", SearchOption.TopDirectoryOnly);
+
+			foreach (string fileName in fileNames)
+			{
+				if (GuidNameSerializer.Instance.TryParse(Path.GetFileNameWithoutExtension(fileName), out _))
+				{
+					File.Delete(fileName);
+				}
+			}
+		}
+	}
+
+	private async ValueTask DeleteContainersAsync<TKey>(string directory, INameSerializer<TKey> nameSerializer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			string[] directoryNames = Directory.GetDirectories(directory, nameSerializer.FileNamePattern, SearchOption.TopDirectoryOnly);
+
+			foreach (string directoryName in directoryNames)
+			{
+				if (GuidNameSerializer.Instance.TryParse(Path.GetFileName(directoryName), out _))
+				{
+					Directory.Delete(directoryName, true);
+				}
+			}
 		}
 	}
 
