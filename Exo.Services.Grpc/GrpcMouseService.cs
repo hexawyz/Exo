@@ -3,7 +3,7 @@ using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Service.Grpc;
 
-public class GrpcMouseService : IMouseService
+internal sealed class GrpcMouseService : IMouseService
 {
 	private readonly DeviceRegistry _driverRegistry;
 	private readonly DpiWatcher _dpiWatcher;

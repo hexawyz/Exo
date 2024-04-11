@@ -4,7 +4,7 @@ using Exo.Service;
 
 namespace Exo.Service.Grpc;
 
-internal class GrpcDeviceService : IDeviceService, IAsyncDisposable
+internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
 {
 	//[DataContract]
 	//[TypeId(0xC87705F2, 0x16F8, 0x4506, 0xAF, 0x14, 0x78, 0x26, 0xD7, 0xE0, 0x52, 0xE6)]

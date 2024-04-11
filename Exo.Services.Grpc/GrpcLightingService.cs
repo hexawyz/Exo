@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
 
-internal class GrpcLightingService : ILightingService
+internal sealed class GrpcLightingService : ILightingService
 {
 	private readonly LightingService _lightingService;
 	private readonly ILogger<GrpcLightingService> _logger;

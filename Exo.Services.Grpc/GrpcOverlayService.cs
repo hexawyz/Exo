@@ -2,7 +2,7 @@ using Exo.Contracts.Ui.Overlay;
 
 namespace Exo.Service.Grpc;
 
-internal class GrpcOverlayNotificationService : IOverlayNotificationService
+internal sealed class GrpcOverlayNotificationService : IOverlayNotificationService
 {
 	private readonly OverlayNotificationService _overlayNotificationService;
 

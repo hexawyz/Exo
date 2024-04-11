@@ -4,7 +4,7 @@ using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Service.Grpc;
 
-internal class GrpcProgrammingService : IProgrammingService
+internal sealed class GrpcProgrammingService : IProgrammingService
 {
 	private readonly ProgrammingService _programmingService;
 

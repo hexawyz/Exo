@@ -166,6 +166,7 @@ public class Startup
 		services.AddHostedService<CoreServices>();
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
+		services.AddSingleton<GrpcSensorService>();
 		services.AddSingleton<GrpcMouseService>();
 		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
@@ -200,6 +201,7 @@ public class Startup
 		{
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcSensorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);

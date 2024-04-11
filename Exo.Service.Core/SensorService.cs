@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
 using Exo.Sensors;
@@ -132,20 +134,23 @@ public sealed class SensorService
 	}
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
+	private readonly AsyncLock _lock;
 	private readonly ILogger<SensorService> _logger;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly IDeviceWatcher _deviceWatcher;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _sensorDeviceWatchTask;
+	private ChannelWriter<SensorDeviceInformation>[]? _changeListeners;
 
 	private SensorService(ILogger<SensorService> logger, IConfigurationContainer<Guid> devicesConfigurationContainer, IDeviceWatcher deviceWatcher, ConcurrentDictionary<Guid, DeviceState> deviceStates)
 	{
 		_deviceStates = deviceStates;
+		_lock = new();
 		_logger = logger;
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_deviceWatcher = deviceWatcher;
 		_cancellationTokenSource = new();
-		_sensorDeviceWatchTask = WatchSensorsAsync(_cancellationTokenSource.Token);
+		_sensorDeviceWatchTask = WatchSensorsDevicesAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -158,7 +163,7 @@ public sealed class SensorService
 		}
 	}
 
-	private async Task WatchSensorsAsync(CancellationToken cancellationToken)
+	private async Task WatchSensorsDevicesAsync(CancellationToken cancellationToken)
 	{
 		// This method is used to automatically register and unregister the I2C implementations of display adapters that will be used by monitor drivers.
 		var busRegistrations = new Dictionary<Guid, IDisposable>();
@@ -172,11 +177,18 @@ public sealed class SensorService
 				{
 					switch (notification.Kind)
 					{
+					case WatchNotificationKind.Enumeration:
 					case WatchNotificationKind.Addition:
-						await HandleArrivalAsync(notification, cancellationToken).ConfigureAwait(false);
+						using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+						{
+							await HandleArrivalAsync(notification, cancellationToken).ConfigureAwait(false);
+						}
 						break;
 					case WatchNotificationKind.Removal:
-						await HandleRemovalAsync(notification, cancellationToken).ConfigureAwait(false);
+						using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+						{
+							await HandleRemovalAsync(notification, cancellationToken).ConfigureAwait(false);
+						}
 						break;
 					}
 				}
@@ -271,6 +283,7 @@ public sealed class SensorService
 					state.Information = new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos));
 				}
 			}
+			_changeListeners.TryWrite(state.Information);
 		}
 	}
 
@@ -284,6 +297,35 @@ public sealed class SensorService
 		{
 			state.IsConnected = false;
 			state.SensorStates = null;
+		}
+	}
+
+	public async IAsyncEnumerable<SensorDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateSingleWriterChannel<SensorDeviceInformation>();
+
+		SensorDeviceInformation[]? initialDeviceInfos = null;
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			initialDeviceInfos = _deviceStates.Values.Select(state => state.Information).ToArray();
+			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
+		}
+		try
+		{
+			foreach (var info in initialDeviceInfos)
+			{
+				yield return info;
+			}
+			initialDeviceInfos = null;
+
+			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+			{
+				yield return info;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
 		}
 	}
 }
