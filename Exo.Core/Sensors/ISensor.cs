@@ -27,6 +27,23 @@ public interface ISensor
 	bool IsPolled { get; }
 }
 
+public interface IPolledSensor : ISensor
+{
+	bool ISensor.IsPolled => true;
+
+	/// <summary>Gets a value indicating the group query mode for this sensor.</summary>
+	/// <remarks>
+	/// <para>
+	/// For devices that support <see cref="Exo.Features.ISensorsGroupedQueryFeature"/>, sensors can be queried as a group, which will often be more efficient than individual queries.
+	/// </para>
+	/// <para>
+	/// When a sensor is registered for grouped querying, <see cref="IPolledSensor{TValue}.GetValueAsync(CancellationToken)"/> will return the value cached by the last read operation.
+	/// Otherwise, the sensor will be queried directly.
+	/// </para>
+	/// </remarks>
+	GroupedQueryMode GroupedQueryMode => GroupedQueryMode.None;
+}
+
 public interface ISensor<TValue> : ISensor
 	where TValue : struct, INumber<TValue>
 {
@@ -47,21 +64,18 @@ public interface ISensor<TValue> : ISensor
 	Type ISensor.ValueType => typeof(TValue);
 }
 
-public interface IPolledSensor<TValue> : ISensor<TValue>
+public interface IPolledSensor<TValue> : ISensor<TValue>, IPolledSensor
 	where TValue : struct, INumber<TValue>
 {
-	bool ISensor.IsPolled => true;
-
-	/// <summary>Gets the minimum polling interval to use for querying this sensor.</summary>
+	/// <summary>Gets the last known value of the sensor.</summary>
 	/// <remarks>
 	/// <para>
-	/// Some sensors may be costly to query, or have a hard limit on how often they can be queried.
-	/// This indicates the minimum delay that should be respected between two pollings of the sensor.
+	/// When the sensor is registered for grouped querying, this returns the value of the sensor at the time of the last grouped query.
+	/// If a grouped query for the sensor has not yet been executed, for simplicity of implementation,
+	/// the method shall return the last read, or the default value for <typeparamref name="TValue"/> if the last value is unknown.
 	/// </para>
+	/// <para>When the sensor is not registered for grouped querying, it is queried when the function is called.</para>
 	/// </remarks>
-	TimeSpan MinimumPollingInterval { get; }
-
-	/// <summary>Gets the current value of the sensor.</summary>
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	ValueTask<TValue> GetValueAsync(CancellationToken cancellationToken);
@@ -98,4 +112,11 @@ public enum Unit : short
 	DegreesCelsius = 20,
 	DegreesKelvin = 21,
 	DegreesFahrenheit = 22,
+}
+
+public enum GroupedQueryMode : byte
+{
+	None = 0,
+	Supported = 1,
+	Enabled = 2,
 }

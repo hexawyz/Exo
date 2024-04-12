@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Discovery;
@@ -9,16 +10,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Corsair.PowerSupplies;
 
-public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeature>, ISensorsFeature
+public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeature>, ISensorsFeature, ISensorsGroupedQueryFeature
 {
-	private abstract class Sensor<T> : IPolledSensor<T>
-		where T : struct, INumber<T>
+	private abstract class Sensor
 	{
-		protected CorsairLinkDriver Driver { get; }
+		public CorsairLinkDriver Driver { get; }
 		private readonly Guid _sensorId;
-		protected byte Command { get; }
+		public byte Command { get; }
+		public sbyte Page { get; }
 
-		protected Sensor(CorsairLinkDriver driver, Guid sensorId, byte command)
+		protected Sensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page)
 		{
 			Driver = driver;
 			_sensorId = sensorId;
@@ -27,28 +28,62 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 
 		public Guid SensorId => _sensorId;
 
-		public TimeSpan MinimumPollingInterval => default;
+		public GroupedQueryMode GroupedQueryMode { get; set; }
+
+		public virtual Unit Unit => Unit.Count;
+
+		public abstract ValueTask GroupedQueryValueAsync(CancellationToken cancellationToken);
+	}
+
+	private abstract class Sensor<T> : Sensor, IPolledSensor<T>
+		where T : struct, INumber<T>
+	{
+		private T _lastValue;
+
+		protected Sensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page)
+			: base(driver, sensorId, command, page)
+		{
+		}
 
 		public virtual T? ScaleMinimumValue => null;
 		public virtual T? ScaleMaximumValue => null;
-		public virtual Unit Unit => Unit.Count;
 
-		public abstract ValueTask<T> GetValueAsync(CancellationToken cancellationToken);
+		public ValueTask<T> GetValueAsync(CancellationToken cancellationToken)
+			=> GroupedQueryMode == GroupedQueryMode.Enabled ?
+				ValueTask.FromResult(_lastValue) :
+				QueryValueAsync(cancellationToken);
+
+		private async ValueTask<T> QueryValueAsync(CancellationToken cancellationToken)
+		{
+			await using (await Driver._corsairLinkGuardMutex.AcquireAsync().ConfigureAwait(false))
+			{
+				if (Page >= 0)
+				{
+					await Driver._transport.WriteByteAsync(0x00, (byte)Page, cancellationToken);
+				}
+				return await QueryValueWithinPageAsync(cancellationToken);
+			}
+		}
+
+		public sealed override async ValueTask GroupedQueryValueAsync(CancellationToken cancellationToken)
+			=> _lastValue = await QueryValueWithinPageAsync(cancellationToken);
+
+		protected abstract ValueTask<T> QueryValueWithinPageAsync(CancellationToken cancellationToken);
 	}
 
 	private abstract class Linear11Sensor : Sensor<float>
 	{
-		protected Linear11Sensor(CorsairLinkDriver driver, Guid sensorId, byte command) : base(driver, sensorId, command)
+		protected Linear11Sensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page) : base(driver, sensorId, command, page)
 		{
 		}
 
-		public override async ValueTask<float> GetValueAsync(CancellationToken cancellationToken)
-			=> (float)await Driver._transport.ReadLinear11Async(Command, cancellationToken).ConfigureAwait(false);
+		protected override async ValueTask<float> QueryValueWithinPageAsync(CancellationToken cancellationToken)
+			=> (float)await Driver._transport.ReadLinear11Async(Command, cancellationToken);
 	}
 
 	private sealed class TemperatureSensor : Linear11Sensor
 	{
-		public TemperatureSensor(CorsairLinkDriver driver, Guid sensorId, byte command) : base(driver, sensorId, command)
+		public TemperatureSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -115,13 +150,15 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 
 	private readonly CorsairLinkHidTransport _transport;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
-	private readonly ImmutableArray<ISensor> _sensors;
+	private readonly Sensor[] _sensors;
+	private readonly AsyncGlobalMutex _corsairLinkGuardMutex;
 	private readonly ILogger<CorsairLinkDriver> _logger;
+	private int _groupQueriedSensorCount;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.PowerSupply;
 
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
-	ImmutableArray<ISensor> ISensorsFeature.Sensors => _sensors;
+	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray((ISensor[])_sensors);
 
 	private CorsairLinkDriver
 	(
@@ -133,16 +170,62 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 	{
 		_transport = transport;
 		_logger = logger;
-		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, CorsairLinkDriver, ISensorsFeature>(this);
+		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, CorsairLinkDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		_sensors =
 		[
-			new TemperatureSensor(this, TemperatureSensor1, 0x8D),
-			new TemperatureSensor(this, TemperatureSensor2, 0x8E)
+			new TemperatureSensor(this, TemperatureSensor1, 0x8D, -1, 0),
+			new TemperatureSensor(this, TemperatureSensor2, 0x8E, -1, 1)
 		];
+		_corsairLinkGuardMutex = AsyncGlobalMutex.Get("Global\\CorsairLinkReadWriteGuardMutex");
 	}
 
 	public override async ValueTask DisposeAsync()
 	{
 		await _transport.DisposeAsync().ConfigureAwait(false);
+	}
+
+	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
+	{
+		if (sensor is not Sensor s || s.Driver != this) throw new ArgumentException();
+		if (s.GroupedQueryMode != GroupedQueryMode.Enabled)
+		{
+			s.GroupedQueryMode = GroupedQueryMode.Enabled;
+			_groupQueriedSensorCount++;
+		}
+	}
+
+	void ISensorsGroupedQueryFeature.RemoveSensor(IPolledSensor sensor)
+	{
+		if (sensor is not Sensor s || s.Driver != this) throw new ArgumentException();
+		if (s.GroupedQueryMode == GroupedQueryMode.Enabled)
+		{
+			s.GroupedQueryMode = GroupedQueryMode.Supported;
+			_groupQueriedSensorCount--;
+		}
+	}
+
+	async ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
+	{
+		if (_groupQueriedSensorCount == 0) return;
+
+		await using (await _corsairLinkGuardMutex.AcquireAsync().ConfigureAwait(false))
+		{
+			sbyte currentSetPage = -1;
+			foreach (var sensor in _sensors)
+			{
+				if (sensor.GroupedQueryMode != GroupedQueryMode.Enabled) continue;
+
+				if (currentSetPage != sensor.Page)
+				{
+					currentSetPage = sensor.Page;
+					if (currentSetPage >= 0)
+					{
+						await _transport.WriteByteAsync(0x00, (byte)currentSetPage, cancellationToken);
+					}
+				}
+
+				await sensor.GroupedQueryValueAsync(cancellationToken);
+			}
+		}
 	}
 }

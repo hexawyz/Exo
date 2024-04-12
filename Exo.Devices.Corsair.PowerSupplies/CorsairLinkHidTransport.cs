@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -22,6 +22,54 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 	private interface IPendingCommand<T> : IPendingCommand
 	{
 		new Task<T> WaitAsync(CancellationToken cancellationToken);
+	}
+
+	private abstract class WriteCommand : TaskCompletionSource, IPendingCommand
+	{
+		public abstract void WriteRequest(Span<byte> buffer);
+		public abstract void ProcessResponse(ReadOnlySpan<byte> buffer);
+
+		public Task WaitAsync(CancellationToken cancellationToken) => Task.WaitAsync(cancellationToken);
+		public void Cancel() => TrySetCanceled();
+	}
+
+	private sealed class ByteWriteCommand : WriteCommand
+	{
+		private readonly byte _command;
+		private readonly byte _value;
+
+		public ByteWriteCommand(byte command, byte value)
+		{
+			_command = command;
+			_value = value;
+		}
+
+		public override void WriteRequest(Span<byte> buffer)
+		{
+			buffer[0] = 0x02;
+			buffer[1] = _command;
+			buffer[2] = _value;
+		}
+
+		public override void ProcessResponse(ReadOnlySpan<byte> buffer)
+		{
+			// NB: Not entirely sure about the protocol in case of error here.
+			// e.g. What is returned if we send an inappropriate value?
+			if (buffer[0] == 2)
+			{
+				if (buffer[1] == _command)
+				{
+					if (buffer[2] == _value)
+					{
+						TrySetResult();
+					}
+				}
+				else if (buffer[1] == 0)
+				{
+					TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Invalid command.")));
+				}
+			}
+		}
 	}
 
 	private abstract class ResultCommand<T> : TaskCompletionSource<T>, IPendingCommand<T>
@@ -206,6 +254,27 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 			// TODO: Log
 		}
 	}
+	private async ValueTask ExecuteCommandAsync(IPendingCommand waitState, CancellationToken cancellationToken)
+	{
+		if (Interlocked.CompareExchange(ref _currentWaitState, waitState, null) is { } oldState)
+		{
+			ObjectDisposedException.ThrowIf(ReferenceEquals(oldState, DisposedSentinel), typeof(CorsairLinkHidTransport));
+			throw new InvalidOperationException("An operation is already running.");
+		}
+
+		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+		try
+		{
+			waitState.WriteRequest(buffer.Span[1..]);
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			await waitState.WaitAsync(cancellationToken).ConfigureAwait(false);
+			return;
+		}
+		finally
+		{
+			Interlocked.CompareExchange(ref _currentWaitState, null, waitState);
+		}
+	}
 
 	private async ValueTask<T> ExecuteCommandAsync<T>(IPendingCommand<T> waitState, CancellationToken cancellationToken)
 	{
@@ -235,4 +304,6 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 	public ValueTask<Linear11> ReadLinear11Async(byte command, CancellationToken cancellationToken) => ExecuteCommandAsync(new Linear11ReadCommand(command), cancellationToken);
 
 	public ValueTask<string> ReadStringAsync(byte command, CancellationToken cancellationToken) => ExecuteCommandAsync(new StringReadCommand(command), cancellationToken);
+
+	public ValueTask WriteByteAsync(byte command, byte value, CancellationToken cancellationToken) => ExecuteCommandAsync(new ByteWriteCommand(command, value), cancellationToken);
 }
