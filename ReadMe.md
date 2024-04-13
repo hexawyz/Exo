@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/hexawyz/Exo/actions/workflows/build.yml/badge.svg)](https://github.com/hexawyz/Exo/actions/workflows/build.yml)
+
 # Exo
 
 Exo is the exoskeleton for your Windows computer (Or at least it aims to be ☺️)
@@ -60,6 +62,8 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* 27GP950 Monitor (DP/HDMI): Standard Monitor control (if connected through supported GPU)
 * Elgato
 	* SteamDeck XL (Protocol is implemented and mostly tested, but features are not exposed)
+* Corsair
+	* HX1200i: Sensors accessible via Corsair Link. (e.g. Temperature)
 * Other
 	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
 
