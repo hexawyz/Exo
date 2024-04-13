@@ -67,10 +67,11 @@ public interface ISensor<TValue> : ISensor
 public interface IPolledSensor<TValue> : ISensor<TValue>, IPolledSensor
 	where TValue : struct, INumber<TValue>
 {
-	/// <summary>Gets the last known value of the sensor.</summary>
+	/// <summary>Gets the value of the sensor.</summary>
 	/// <remarks>
 	/// <para>
-	/// When the sensor is registered for grouped querying, this returns the value of the sensor at the time of the last grouped query.
+	/// When the sensor is registered for grouped querying, this returns the value of the sensor at the time of the last grouped query,
+	/// which corresponds to the value that would be returned by <see cref="TryGetLastValue(out TValue)"/>.
 	/// If a grouped query for the sensor has not yet been executed, for simplicity of implementation,
 	/// the method shall return the last read, or the default value for <typeparamref name="TValue"/> if the last value is unknown.
 	/// </para>
@@ -79,6 +80,24 @@ public interface IPolledSensor<TValue> : ISensor<TValue>, IPolledSensor
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	ValueTask<TValue> GetValueAsync(CancellationToken cancellationToken);
+
+	/// <summary>Tries to get the last known value.</summary>
+	/// <remarks>
+	/// <para>
+	/// This is a faster way to read a value from the sensor, if it supports it.
+	/// This is mainly intended for use for grouped queries, but sensors can choose to always expose the last read value here, without freshness guarantee.
+	/// </para>
+	/// <para>
+	/// Sensors that are taking part in a grouped query must <b>always</b> provide their own implementation of this method, and return the value read by the last grouped query.
+	/// </para>
+	/// </remarks>
+	/// <param name="lastValue"></param>
+	/// <returns></returns>
+	bool TryGetLastValue(out TValue lastValue)
+	{
+		lastValue = default;
+		return false;
+	}
 }
 
 public interface IStreamedSensor<TValue> : ISensor<TValue>

@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
@@ -10,7 +12,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-public sealed class SensorService
+// The sensor service manages everything related to sensors.
+// It keeps a state for all devices an sensors, as well as manage polling of all sensors that are currently being watched.
+// As such, it has to manage many background async tasks, which may make it a bit hard to understand.
+// The core idea behind the many components inside the service is that querying sensor is optional and should not have an active cost when sensors are not read.
+// Of courses, this implied that starting or stopping to watch sensors requires a specific setup, but the watch operations should be efficient once running.
+// Also of importance, it is built in a way so that slower or buggy drivers will not negatively impact the readings of other drivers.
+// NB: To reduce clutter, most subtypes are located in other SensorService.*.cs files.
+public sealed partial class SensorService
 {
 	[TypeId(0x7757FFB0, 0x6111, 0x4DB1, 0xBC, 0xFC, 0x70, 0x97, 0x38, 0xF3, 0xC6, 0x34)]
 	private readonly struct PersistedSensorInformation
@@ -23,38 +32,6 @@ public sealed class SensorService
 
 		public SensorDataType DataType { get; init; }
 		public bool IsPolled { get; init; }
-	}
-
-	private sealed class SensorState
-	{
-		public SensorState(ISensor sensor) => Sensor = sensor;
-
-		public ISensor Sensor { get; }
-	}
-
-	private sealed class DeviceState
-	{
-		public AsyncLock Lock { get; }
-		public IConfigurationContainer DeviceConfigurationContainer { get; }
-		public IConfigurationContainer<Guid> SensorsConfigurationContainer { get; }
-		public bool IsConnected { get; set; }
-		public SensorDeviceInformation Information { get; set; }
-		public Dictionary<Guid, SensorState>? SensorStates { get; set; }
-
-		public DeviceState
-		(
-			IConfigurationContainer deviceConfigurationContainer,
-			IConfigurationContainer<Guid> sensorsConfigurationContainer,
-			SensorDeviceInformation information,
-			Dictionary<Guid, SensorState>? sensorStates
-		)
-		{
-			Lock = new();
-			DeviceConfigurationContainer = deviceConfigurationContainer;
-			SensorsConfigurationContainer = sensorsConfigurationContainer;
-			Information = information;
-			SensorStates = sensorStates;
-		}
 	}
 
 	private static readonly Dictionary<Type, SensorDataType> SensorDataTypes = new()
@@ -124,6 +101,7 @@ public sealed class SensorService
 						deviceConfigurationContainer,
 						sensorsConfigurationConfigurationContainer,
 						new(deviceId, sensorInformations.DrainToImmutable()),
+						null,
 						null
 					)
 				);
@@ -135,19 +113,21 @@ public sealed class SensorService
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
-	private readonly ILogger<SensorService> _logger;
+	private readonly PollingScheduler _pollingScheduler;
+	private ChannelWriter<SensorDeviceInformation>[]? _changeListeners;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
+	private readonly ILogger<SensorService> _logger;
 	private readonly IDeviceWatcher _deviceWatcher;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _sensorDeviceWatchTask;
-	private ChannelWriter<SensorDeviceInformation>[]? _changeListeners;
 
 	private SensorService(ILogger<SensorService> logger, IConfigurationContainer<Guid> devicesConfigurationContainer, IDeviceWatcher deviceWatcher, ConcurrentDictionary<Guid, DeviceState> deviceStates)
 	{
 		_deviceStates = deviceStates;
 		_lock = new();
-		_logger = logger;
+		_pollingScheduler = new(100);
 		_devicesConfigurationContainer = devicesConfigurationContainer;
+		_logger = logger;
 		_deviceWatcher = deviceWatcher;
 		_cancellationTokenSource = new();
 		_sensorDeviceWatchTask = WatchSensorsDevicesAsync(_cancellationTokenSource.Token);
@@ -159,6 +139,22 @@ public sealed class SensorService
 		{
 			cts.Cancel();
 			await _sensorDeviceWatchTask.ConfigureAwait(false);
+			// It is important to stop any background process running as part of the device states here.
+			foreach (var state in _deviceStates.Values)
+			{
+				try
+				{
+					using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
+					{
+						await DetachDeviceStateAsync(state).ConfigureAwait(false);
+					}
+				}
+				catch (Exception ex)
+				{
+					// TODO: Log
+				}
+			}
+			_pollingScheduler.Dispose();
 			cts.Dispose();
 		}
 	}
@@ -187,7 +183,8 @@ public sealed class SensorService
 					case WatchNotificationKind.Removal:
 						using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 						{
-							await HandleRemovalAsync(notification, cancellationToken).ConfigureAwait(false);
+							// NB: Removal should not be cancelled. We need all the states to be cleared away.
+							await HandleRemovalAsync(notification).ConfigureAwait(false);
 						}
 						break;
 					}
@@ -208,6 +205,7 @@ public sealed class SensorService
 		ImmutableArray<ISensor> sensors;
 		var sensorFeatures = (IDeviceFeatureSet<ISensorDeviceFeature>)notification.FeatureSet!;
 		sensors = sensorFeatures.GetFeature<ISensorsFeature>() is { } sensorsFeature ? sensorsFeature.Sensors : [];
+		var groupedQueryState = sensorFeatures.GetFeature<ISensorsGroupedQueryFeature>() is { } groupedQueryFeature ? new GroupedQueryState(this, groupedQueryFeature, sensors.Length) : null;
 		var sensorInfos = new SensorInformation[sensors.Length];
 
 		var sensorStates = new Dictionary<Guid, SensorState>();
@@ -215,7 +213,7 @@ public sealed class SensorService
 		for (int i = 0; i < sensors.Length; i++)
 		{
 			var sensor = sensors[i];
-			if (!sensorStates.TryAdd(sensor.SensorId, new(sensor)))
+			if (!sensorStates.TryAdd(sensor.SensorId, SensorState.Create(this, groupedQueryState, sensor)))
 			{
 				// We ignore all sensors and discard the device if there is a duplicate ID.
 				// TODO: Log an error.
@@ -250,7 +248,7 @@ public sealed class SensorService
 					await sensorsContainer.WriteValueAsync(info.SensorId, new PersistedSensorInformation(info), cancellationToken);
 				}
 
-				state = new(deviceContainer, sensorsContainer, new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)), sensorStates);
+				state = new(deviceContainer, sensorsContainer, new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)), groupedQueryState, sensorStates);
 			}
 			else
 			{
@@ -281,6 +279,8 @@ public sealed class SensorService
 				using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					state.Information = new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos));
+					state.GroupedQueryState = groupedQueryState;
+					state.SensorStates = sensorStates;
 				}
 			}
 			_changeListeners.TryWrite(state.Information);
@@ -289,13 +289,30 @@ public sealed class SensorService
 
 	private static SensorInformation BuildSensorInformation(ISensor sensor) => new SensorInformation(sensor.SensorId, SensorDataTypes[sensor.ValueType], sensor.IsPolled);
 
-	private async ValueTask HandleRemovalAsync(DeviceWatchNotification notification, CancellationToken cancellationToken)
+	private async ValueTask HandleRemovalAsync(DeviceWatchNotification notification)
 	{
 		if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var state)) return;
 
-		using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		await DetachDeviceStateAsync(state).ConfigureAwait(false);
+	}
+
+	private async ValueTask DetachDeviceStateAsync(DeviceState state)
+	{
+		using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
 		{
 			state.IsConnected = false;
+			if (state.GroupedQueryState is { } groupedQueryState)
+			{
+				await groupedQueryState.DisposeAsync().ConfigureAwait(false);
+			}
+			state.GroupedQueryState = null;
+			if (state.SensorStates is { } sensorStates)
+			{
+				foreach (var sensorState in sensorStates.Values)
+				{
+					await sensorState.DisposeAsync().ConfigureAwait(false);
+				}
+			}
 			state.SensorStates = null;
 		}
 	}
