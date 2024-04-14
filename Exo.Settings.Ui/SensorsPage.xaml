@@ -23,7 +23,7 @@
                     <ItemsView ItemsSource="{Binding Sensors}">
                         <ItemsView.ItemTemplate>
                             <DataTemplate>
-                                <ItemContainer Width="200" Height="200" Background="{StaticResource CardBackgroundFillColorDefaultBrush}">
+                                <ItemContainer Width="150" Height="150" Background="{StaticResource CardBackgroundFillColorDefaultBrush}">
                                     <Grid Margin="6">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />

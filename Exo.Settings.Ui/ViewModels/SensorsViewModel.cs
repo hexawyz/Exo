@@ -2,8 +2,6 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
-using System.Threading;
-using CommunityToolkit.WinUI;
 using Exo.Contracts.Ui.Settings;
 using Exo.Ui;
 
@@ -234,8 +232,9 @@ internal sealed class SensorViewModel : BindableObject
 		_sensorInformation = sensorInformation;
 	}
 
-	public string DisplayName => SensorDatabase.GetSensorDisplayName(_sensorInformation.SensorId) ?? string.Create(CultureInfo.InvariantCulture, $"Effect {_sensorInformation.SensorId:B}.");
+	public string DisplayName => SensorDatabase.GetSensorDisplayName(_sensorInformation.SensorId) ?? string.Create(CultureInfo.InvariantCulture, $"Sensor {_sensorInformation.SensorId:B}.");
 	public SensorDataType DataType => _sensorInformation.DataType;
+	public string Unit => _sensorInformation.Unit;
 	public bool IsPolled => _sensorInformation.IsPolled;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
 
@@ -245,6 +244,7 @@ internal sealed class SensorViewModel : BindableObject
 		_sensorInformation = information;
 
 		if (oldInfo.DataType != _sensorInformation.DataType) NotifyPropertyChanged(ChangedProperty.DataType);
+		if (oldInfo.Unit != _sensorInformation.Unit) NotifyPropertyChanged(ChangedProperty.Unit);
 		if (oldInfo.IsPolled != _sensorInformation.IsPolled) NotifyPropertyChanged(ChangedProperty.IsPolled);
 
 		if (_liveDetails is null)
@@ -283,17 +283,27 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 		await _watchTask;
 	}
 
-	public double CurrentValue
-	{
-		get => _currentValue;
-		set => SetValue(ref _currentValue, value, ChangedProperty.CurrentValue);
-	}
+	public NumberWithUnit CurrentValue => new(_currentValue, _sensor.Unit);
 
 	private async Task WatchAsync(CancellationToken cancellationToken)
 	{
 		await foreach (var dataPoint in _sensor.Device.SensorsViewModel.WatchValuesAsync(_sensor.Device.Id, _sensor.Id, cancellationToken))
 		{
-			CurrentValue = dataPoint.Value;
+			SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
 		}
 	}
+}
+
+public readonly struct NumberWithUnit
+{
+	public NumberWithUnit(double value, string? symbol)
+	{
+		Value = value;
+		Symbol = symbol;
+	}
+
+	public double Value { get; }
+	public string? Symbol { get; }
+
+	public override string ToString() => Symbol is not null ? $"{Value:G}\xA0{Symbol}" : Value.ToString("G");
 }

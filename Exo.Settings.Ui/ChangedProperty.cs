@@ -25,6 +25,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs DeviceIds = new(nameof(DeviceIds));
 	public static readonly PropertyChangedEventArgs IsPolled = new(nameof(IsPolled));
 	public static readonly PropertyChangedEventArgs DataType = new(nameof(DataType));
+	public static readonly PropertyChangedEventArgs Unit = new(nameof(Unit));
 	public static readonly PropertyChangedEventArgs LiveDetails = new(nameof(LiveDetails));
 	public static readonly PropertyChangedEventArgs CurrentValue = new(nameof(CurrentValue));
 }

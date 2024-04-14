@@ -11,7 +11,11 @@ public interface ISensor
 	Guid SensorId { get; }
 
 	/// <summary>Gets the unit of this sensor.</summary>
-	Unit Unit { get; }
+	/// <remarks>
+	/// This is likely to evolve in the future, or to be removed from the interface itself.
+	/// The unit should be deductible from the metadata attached to <see cref="SensorId"/>, but until this is implemented, it is simpler to expose it here.
+	/// </remarks>
+	SensorUnit Unit { get; }
 
 	/// <summary>Gets the type of values of this sensor.</summary>
 	/// <remarks>
@@ -111,31 +115,26 @@ public interface IStreamedSensor<TValue> : ISensor<TValue>
 	IAsyncEnumerable<TValue> EnumerateValuesAsync(CancellationToken cancellationToken);
 }
 
-// TODO: This is 💩, but not very important initially. Maybe using the HID unit stuff or something similar would be better.
-public enum Unit : short
-{
-	// Basic units
-
-	Count = 0,
-	Probability = 1,
-	Percent = 2,
-
-	// Power units
-
-	Volt = 10,
-	Ampere = 11,
-	Watt = 12,
-
-	// Temperature units
-	
-	DegreesCelsius = 20,
-	DegreesKelvin = 21,
-	DegreesFahrenheit = 22,
-}
-
 public enum GroupedQueryMode : byte
 {
 	None = 0,
 	Supported = 1,
 	Enabled = 2,
+}
+
+public readonly struct SensorUnit
+{
+	public static readonly SensorUnit None = new("");
+	public static readonly SensorUnit Percent = new("%");
+	public static readonly SensorUnit Volts = new("V");
+	public static readonly SensorUnit Amperes = new("A");
+	public static readonly SensorUnit Watts = new("W");
+	public static readonly SensorUnit Joules = new("J");
+	public static readonly SensorUnit Celsius = new("°C");
+	public static readonly SensorUnit Fahrenheits = new("°F");
+	public static readonly SensorUnit RotationsPerMinute = new("RPM");
+
+	public string Symbol { get; }
+
+	private SensorUnit(string symbol) => Symbol = symbol;
 }

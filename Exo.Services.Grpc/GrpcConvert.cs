@@ -54,8 +54,9 @@ internal static class GrpcConvert
 		=> new()
 		{
 			SensorId = sensorInformation.SensorId,
+			DataType = sensorInformation.DataType.ToGrpc(),
+			Unit = sensorInformation.Unit,
 			IsPolled = sensorInformation.IsPolled,
-			DataType = sensorInformation.DataType.ToGrpc()
 		};
 
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)

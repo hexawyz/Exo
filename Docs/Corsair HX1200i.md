@@ -642,25 +642,27 @@ We can easily deduce that the first byte is a command ID.
 
 From the above, we can list the registers queried and if they are "banked".
 
-| Register | Banked | R | W | PMBUS | Description |
+| Register | Paged | R | W | PMBUS | Description |
 |---:|:--:|:-:|:-:|:------|:------------|
-| 00 | ❌ | ✔ | ✔ | PAGE | Bank register ? |
-| 8D | ❌? | ✔ | ? | READ_TEMPERATURE_1 |  |
-| 8E | ❌? | ✔ | ? | READ_TEMPERATURE_2 |  |
-| 8B | ✔ | ✔ | ? | READ_VOUT |  |
-| 88 | ❌? | ✔ | ? | READ_VIN |  |
-| 90 | ❌? | ✔ | ? | READ_FAN_SPEED_1 |  |
-| 8C | ✔ | ✔ | ? | READ_IOUT |  |
-| EE | ❌? | ✔ | ? | MFR_SPECIFIC_EE |  |
-| 3B | ❌ | ✔ | ✔ | FAN_COMMAND_1 | Fan speed percentage |
-| 4F | ❌? | ✔ | ? | OT_FAULT_LIMIT |  |
-| D8 | ❌ | ✔ | ✔ | MFR_SPECIFIC_D8 | OCP Mode: `01` = Single rail; `02` = Multi rail |
+| 00 | ❌ | ✔ | ✔ | PAGE | Used to indicate the power rail to query when applicable: `00` = 12V; `01` = 5V; `00` = 3.3V |
+| 3B | ❌ | ✔ | ✔ | FAN_COMMAND_1 | Set fan speed percentage |
 | 40 | ✔ | ✔ | ? | VOUT_OV_FAULT_LIMIT |  |
 | 44 | ✔ | ✔ | ? | VOUT_UV_FAULT_LIMIT |  |
 | 46 | ✔ | ✔ | ? | IOUT_OC_FAULT_LIMIT |  |
-| 96 | ✔ | ✔ | ? | READ_POUT |  |
-| 99 | ❌? | ✔ | ? | MFR_ID | Manufacturer name |
-| 9A | ❌? | ✔ | ? | MFR_MODEL | Product name |
+| 4F | ❌ | ✔ | ? | OT_FAULT_LIMIT | Seems to always return 70. Is it settable? |
+| 88 | ❌ | ✔ | ? | READ_VIN | Input voltage (Can this actually change?) |
+| 8B | ✔ | ✔ | ? | READ_VOUT | Voltage output for each rail |
+| 8C | ✔ | ✔ | ? | READ_IOUT | Current output for each rail |
+| 8D | ❌ | ✔ | ? | READ_TEMPERATURE_1 | Other PSU temperature. Queried but not displayed in iCUE. |
+| 8E | ❌ | ✔ | ? | READ_TEMPERATURE_2 | PSU temperature |
+| 90 | ❌ | ✔ | ? | READ_FAN_SPEED_1 | Fan speed in RPM |
+| EE | ❌ | ✔ | ? | MFR_SPECIFIC_EE | Power output? |
+| D8 | ❌ | ✔ | ✔ | MFR_SPECIFIC_D8 | OCP Mode: `01` = Single rail; `02` = Multi rail |
+| 96 | ✔ | ✔ | ? | READ_POUT | Power output for each rail (HWiNFO seems to not read this one, so I'm assuming they multiply `8B` and `8C`) |
+| 99 | ❌ | ✔ | ? | MFR_ID | Manufacturer name |
+| 9A | ❌ | ✔ | ? | MFR_MODEL | Product name |
 | D4 | ❌? | ✔ | ? | MFR_SPECIFIC_D4 |  |
 | F0 | ❌ | ? | ✔ | MFR_SPECIFIC_F0 | Fan mode: `00` = Default; `01` = Manual |
 
+The biggest mystery remaining is how to get the efficiency percentage. Both iCUE and HWiNFO64 display it. Is it computed by some kind of formula?
+Maybe a PSU-specific curve?

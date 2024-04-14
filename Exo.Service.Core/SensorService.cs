@@ -1,11 +1,8 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
@@ -18,7 +15,7 @@ namespace Exo.Service;
 // It keeps a state for all devices an sensors, as well as manage polling of all sensors that are currently being watched.
 // As such, it has to manage many background async tasks, which may make it a bit hard to understand.
 // The core idea behind the many components inside the service is that querying sensor is optional and should not have an active cost when sensors are not read.
-// Of courses, this implied that starting or stopping to watch sensors requires a specific setup, but the watch operations should be efficient once running.
+// Of course, this implied that starting or stopping to watch sensors requires a specific setup, but the watch operations should be efficient once running.
 // Also of importance, it is built in a way so that slower or buggy drivers will not negatively impact the readings of other drivers.
 // NB: To reduce clutter, most subtypes are located in other SensorService.*.cs files.
 public sealed partial class SensorService
@@ -29,10 +26,12 @@ public sealed partial class SensorService
 		public PersistedSensorInformation(SensorInformation info)
 		{
 			DataType = info.DataType;
+			UnitSymbol = info.Unit;
 			IsPolled = info.IsPolled;
 		}
 
 		public SensorDataType DataType { get; init; }
+		public string UnitSymbol { get; init; }
 		public bool IsPolled { get; init; }
 	}
 
@@ -90,7 +89,7 @@ public sealed partial class SensorService
 				var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorInformation>(sensorId, cancellationToken).ConfigureAwait(false);
 				if (!result.Found) continue;
 				var info = result.Value;
-				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.IsPolled));
+				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.UnitSymbol, info.IsPolled));
 			}
 
 			if (sensorInformations.Count > 0)
@@ -285,7 +284,7 @@ public sealed partial class SensorService
 		}
 	}
 
-	private static SensorInformation BuildSensorInformation(ISensor sensor) => new SensorInformation(sensor.SensorId, SensorDataTypes[sensor.ValueType], sensor.IsPolled);
+	private static SensorInformation BuildSensorInformation(ISensor sensor) => new SensorInformation(sensor.SensorId, SensorDataTypes[sensor.ValueType], sensor.Unit.Symbol, sensor.IsPolled);
 
 	private async ValueTask HandleRemovalAsync(DeviceWatchNotification notification)
 	{

@@ -751,12 +751,16 @@ public readonly struct HidUnit : IEquatable<HidUnit>
 	public static HidUnit Grams => FromRawValue(0x0_0_0_0_0_1_0_1, 0);
 	public static HidUnit Kilograms => FromRawValue(0x0_0_0_0_0_1_0_1, 3);
 	public static HidUnit Seconds => FromRawValue(0x0_0_0_0_1_0_0_1, 0);
+	public static HidUnit Hertz => FromRawValue(0x0_0_0_0_F_0_0_1, 0);
 	public static HidUnit Kelvins => FromRawValue(0x0_0_0_1_0_0_0_1, 0);
 	public static HidUnit Fahrenheits => FromRawValue(0x0_0_0_1_0_0_0_3, 0);
 	public static HidUnit CentimetersPerSecond => FromRawValue(0x0_0_0_0_F_0_1_1, 0);
 	public static HidUnit MetersPerSecond => FromRawValue(0x0_0_0_0_F_0_1_1, 2);
 	public static HidUnit KilometersPerSecond => FromRawValue(0x0_0_0_0_F_0_1_1, 5);
 	public static HidUnit Joules => FromRawValue(0x0_0_0_0_E_1_2_1, 7);
+	public static HidUnit Ampere => FromRawValue(0x0_0_1_0_0_0_0_1, 0);
+	public static HidUnit Volt => FromRawValue(0x0_0_F_0_D_1_2_1, 7);
+	public static HidUnit Watts => FromRawValue(0x0_0_0_0_D_1_2_1, 7);
 
 	// We split the 32 bit value into multiple parts here, because it is accessed by 4bit blocks anyway.
 	[FieldOffset(0)]
