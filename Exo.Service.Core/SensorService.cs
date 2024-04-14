@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -125,7 +127,7 @@ public sealed partial class SensorService
 	{
 		_deviceStates = deviceStates;
 		_lock = new();
-		_pollingScheduler = new(100);
+		_pollingScheduler = new(500);
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_logger = logger;
 		_deviceWatcher = deviceWatcher;
@@ -161,12 +163,8 @@ public sealed partial class SensorService
 
 	private async Task WatchSensorsDevicesAsync(CancellationToken cancellationToken)
 	{
-		// This method is used to automatically register and unregister the I2C implementations of display adapters that will be used by monitor drivers.
-		var busRegistrations = new Dictionary<Guid, IDisposable>();
 		try
 		{
-			var settings = new List<MonitorSetting>();
-
 			await foreach (var notification in _deviceWatcher.WatchAvailableAsync<ISensorDeviceFeature>(cancellationToken))
 			{
 				try
@@ -344,5 +342,41 @@ public sealed partial class SensorService
 		{
 			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
 		}
+	}
+
+	public async IAsyncEnumerable<SensorDataPoint<TValue>> WatchValuesAsync<TValue>(Guid deviceId, Guid sensorId, [EnumeratorCancellation] CancellationToken cancellationToken)
+		where TValue : struct, INumber<TValue>
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var state)) yield break;
+		IAsyncEnumerable<SensorDataPoint<TValue>> dataPointEnumerable;
+		using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (state.SensorStates is null) yield break;
+			if (!state.SensorStates.TryGetValue(sensorId, out var sensorState)) yield break;
+
+			// NB: This can throw InvalidCastException if TValue is not correct, which is intended behavior.
+			dataPointEnumerable = ((SensorState<TValue>)sensorState).WatchAsync(cancellationToken);
+		}
+		await foreach (var dataPoint in dataPointEnumerable.ConfigureAwait(false))
+		{
+			yield return dataPoint;
+		}
+	}
+
+	public bool TryGetSensorInformation(Guid deviceId, Guid sensorId, out SensorInformation info)
+	{
+		if (_deviceStates.TryGetValue(deviceId, out var state))
+		{
+			foreach (var sensor in state.Information.Sensors)
+			{
+				if (sensor.SensorId == sensorId)
+				{
+					info = sensor;
+					return true;
+				}
+			}
+		}
+		info = default;
+		return false;
 	}
 }

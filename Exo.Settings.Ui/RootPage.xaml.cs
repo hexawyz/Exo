@@ -1,23 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using CommunityToolkit.WinUI.UI.Controls;
-using CommunityToolkit.WinUI.UI;
+using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.UI.ViewManagement;
-using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui;
 
@@ -87,6 +72,9 @@ internal sealed partial class RootPage : Page
 			break;
 		case "Lighting":
 			type = typeof(LightingPage);
+			break;
+		case "Sensors":
+			type = typeof(SensorsPage);
 			break;
 		case "CustomMenu":
 			type = typeof(CustomMenuPage);

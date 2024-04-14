@@ -42,13 +42,6 @@ public interface ISensorService
 	//[OperationContract(Name = "DisableMonitoring")]
 	//ValueTask DisableMonitoringAsync(SensorReference sensor, CancellationToken cancellationToken);
 
-	/// <summary>Gets the last value of the specified sensor.</summary>
-	/// <param name="sensor"></param>
-	/// <param name="cancellationToken"></param>
-	/// <returns></returns>
-	[OperationContract(Name = "GetLastSensorValue")]
-	ValueTask<SensorDataPoint> GetLastSensorValueAsync(SensorReference sensor, CancellationToken cancellationToken);
-
 	/// <summary>Watches the live value updates of a sensor.</summary>
 	/// <remarks>
 	/// <para>This calls adds a dependency on the sensor, which will temporarily enable monitoring of the sensor if necessary.</para>
@@ -57,6 +50,6 @@ public interface ISensorService
 	/// <param name="sensor"></param>
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
-	[OperationContract(Name = "WatchSensorValue")]
-	IAsyncEnumerable<SensorDataPoint> WatchSensorValueAsync(SensorReference sensor, CancellationToken cancellationToken);
+	[OperationContract(Name = "WatchValues")]
+	IAsyncEnumerable<SensorDataPoint> WatchValuesAsync(SensorReference sensor, CancellationToken cancellationToken);
 }

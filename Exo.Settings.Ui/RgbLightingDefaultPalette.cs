@@ -1,5 +1,5 @@
 using System;
-using CommunityToolkit.WinUI.UI.Controls;
+using CommunityToolkit.WinUI.Controls;
 using Windows.UI;
 
 namespace Exo.Settings.Ui;

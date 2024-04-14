@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		exo-icon.ico = exo-icon.ico
 		global.json = global.json
 		LICENCE.txt = LICENCE.txt
+		NuGet.config = NuGet.config
 		Publish.ps1 = Publish.ps1
 		ReadMe.md = ReadMe.md
 		Useful Bits.md = Useful Bits.md
@@ -142,9 +143,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Service.Grpc", "Exo.Ser
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Corsair.PowerSupplies", "Exo.Devices.Corsair.PowerSupplies\Exo.Devices.Corsair.PowerSupplies.csproj", "{74A84FC5-6323-4F0C-B2FA-72731292F4C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Numerics", "DeviceTools.Numerics\DeviceTools.Numerics.csproj", "{7A710614-AEBF-4AC3-ADA2-7CED09FAE211}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Numerics", "DeviceTools.Numerics\DeviceTools.Numerics.csproj", "{7A710614-AEBF-4AC3-ADA2-7CED09FAE211}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Numerics.Tests", "DeviceTools.Numerics.Tests\DeviceTools.Numerics.Tests.csproj", "{2FEC262D-7BEA-4CCE-8FB4-98729385DF4F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceTools.Numerics.Tests", "DeviceTools.Numerics.Tests\DeviceTools.Numerics.Tests.csproj", "{2FEC262D-7BEA-4CCE-8FB4-98729385DF4F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

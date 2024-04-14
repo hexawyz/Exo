@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Exo.Settings.Ui</RootNamespace>
@@ -29,6 +29,7 @@
     <None Remove="MonitorSettingsControl.xaml" />
     <None Remove="ProgrammingPage.xaml" />
     <None Remove="RootPage.xaml" />
+    <None Remove="SensorsPage.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,7 +43,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.WinUI.UI.Controls" Version="7.1.2" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.1.240328-rc" />
+		<PackageReference Include="CommunityToolkit.WinUI.Extensions" Version="8.1.240328-rc" />
+		<PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.1.240328-rc" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240311000" />
@@ -63,6 +66,11 @@
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="SensorsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="EditionToolbar.xaml">

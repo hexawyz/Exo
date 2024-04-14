@@ -11,6 +11,7 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly IEditionService _editionService;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
+	private readonly SensorsViewModel _sensorsViewModel;
 	private readonly ProgrammingViewModel _programmingViewModel;
 	private readonly CustomMenuViewModel _customMenuViewModel;
 	private string? _icon;
@@ -27,6 +28,7 @@ internal sealed class SettingsViewModel : BindableObject
 			_connectionManager.Channel.CreateGrpcService<IMonitorService>()
 		);
 		_lightingViewModel = new(_connectionManager.Channel.CreateGrpcService<ILightingService>(), _devicesViewModel, _editionService);
+		_sensorsViewModel = new(_connectionManager.Channel.CreateGrpcService<ISensorService>(), _devicesViewModel);
 		_programmingViewModel = new(_connectionManager.Channel.CreateGrpcService<IProgrammingService>());
 		_customMenuViewModel = new();
 		_icon = string.Empty;
@@ -35,6 +37,7 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public DevicesViewModel Devices => _devicesViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
+	public SensorsViewModel Sensors => _sensorsViewModel;
 	public ProgrammingViewModel Programming => _programmingViewModel;
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;

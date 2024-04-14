@@ -1,5 +1,5 @@
-using CommunityToolkit.WinUI.UI;
-using CommunityToolkit.WinUI.UI.Controls;
+using CommunityToolkit.WinUI;
+using CommunityToolkit.WinUI.Controls;
 using Exo.Settings.Ui.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;

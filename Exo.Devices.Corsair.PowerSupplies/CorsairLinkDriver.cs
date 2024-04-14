@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
@@ -24,11 +25,14 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 			Driver = driver;
 			_sensorId = sensorId;
 			Command = command;
+			Page = page;
 		}
 
 		public Guid SensorId => _sensorId;
 
-		public GroupedQueryMode GroupedQueryMode { get; set; }
+		public bool IsGroupQueryEnabled { get; set; }
+
+		public GroupedQueryMode GroupedQueryMode => IsGroupQueryEnabled ? GroupedQueryMode.Enabled : GroupedQueryMode.Supported;
 
 		public virtual Unit Unit => Unit.Count;
 
@@ -63,6 +67,12 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 				}
 				return await QueryValueWithinPageAsync(cancellationToken);
 			}
+		}
+
+		public bool TryGetLastValue(out T lastValue)
+		{
+			lastValue = _lastValue;
+			return true;
 		}
 
 		public sealed override async ValueTask GroupedQueryValueAsync(CancellationToken cancellationToken)
@@ -150,7 +160,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 
 	private readonly CorsairLinkHidTransport _transport;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
-	private readonly Sensor[] _sensors;
+	private readonly ISensor[] _sensors;
 	private readonly AsyncGlobalMutex _corsairLinkGuardMutex;
 	private readonly ILogger<CorsairLinkDriver> _logger;
 	private int _groupQueriedSensorCount;
@@ -158,7 +168,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 	public override DeviceCategory DeviceCategory => DeviceCategory.PowerSupply;
 
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
-	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray((ISensor[])_sensors);
+	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
 
 	private CorsairLinkDriver
 	(
@@ -189,7 +199,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 		if (sensor is not Sensor s || s.Driver != this) throw new ArgumentException();
 		if (s.GroupedQueryMode != GroupedQueryMode.Enabled)
 		{
-			s.GroupedQueryMode = GroupedQueryMode.Enabled;
+			s.IsGroupQueryEnabled = true;
 			_groupQueriedSensorCount++;
 		}
 	}
@@ -199,7 +209,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 		if (sensor is not Sensor s || s.Driver != this) throw new ArgumentException();
 		if (s.GroupedQueryMode == GroupedQueryMode.Enabled)
 		{
-			s.GroupedQueryMode = GroupedQueryMode.Supported;
+			s.IsGroupQueryEnabled = false;
 			_groupQueriedSensorCount--;
 		}
 	}
@@ -213,18 +223,19 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 			sbyte currentSetPage = -1;
 			foreach (var sensor in _sensors)
 			{
-				if (sensor.GroupedQueryMode != GroupedQueryMode.Enabled) continue;
+				var s = Unsafe.As<Sensor>(sensor);
+				if (s.GroupedQueryMode != GroupedQueryMode.Enabled) continue;
 
-				if (currentSetPage != sensor.Page)
+				if (currentSetPage != s.Page)
 				{
-					currentSetPage = sensor.Page;
+					currentSetPage = s.Page;
 					if (currentSetPage >= 0)
 					{
 						await _transport.WriteByteAsync(0x00, (byte)currentSetPage, cancellationToken);
 					}
 				}
 
-				await sensor.GroupedQueryValueAsync(cancellationToken);
+				await s.GroupedQueryValueAsync(cancellationToken);
 			}
 		}
 	}

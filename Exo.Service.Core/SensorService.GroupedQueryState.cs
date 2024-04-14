@@ -1,4 +1,4 @@
-﻿using Exo.Features;
+using Exo.Features;
 
 namespace Exo.Service;
 
@@ -62,7 +62,17 @@ public sealed partial class SensorService
 			_groupedQueryFeature.RemoveSensor(state.Sensor);
 			lock (_lock)
 			{
-				if (--_referenceCount == 0)
+				int index = Array.IndexOf(_activeSensorStates, state, 0, _referenceCount);
+				--_referenceCount;
+				if ((uint)index < (uint)_referenceCount)
+				{
+					Array.Copy(_activeSensorStates, index + 1, _activeSensorStates, index, _referenceCount - index);
+				}
+				else
+				{
+					_activeSensorStates[_referenceCount] = null;
+				}
+				if (_referenceCount == 0)
 				{
 					_sensorService._pollingScheduler.Release();
 					if (Interlocked.Exchange(ref _disableCancellationTokenSource, null) is { } cts)
@@ -71,7 +81,6 @@ public sealed partial class SensorService
 						cts.Dispose();
 					}
 				}
-				_activeSensorStates[_referenceCount] = null;
 			}
 		}
 

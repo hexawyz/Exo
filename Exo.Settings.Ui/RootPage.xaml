@@ -86,6 +86,11 @@
                         <FontIcon Glyph="&#xE781;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Sensors" Tag="Sensors">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xEC49;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Custom Menu" Tag="CustomMenu">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xEDE3;" />

@@ -1,9 +1,9 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings;
 
 [DataContract]
-public readonly struct SensorDataPoint
+public sealed class SensorDataPoint
 {
 	[DataMember(Order = 1)]
 	public required DateTime DateTime { get; init; }
