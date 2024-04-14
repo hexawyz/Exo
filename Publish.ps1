@@ -16,7 +16,7 @@ Try
 	New-Item -ItemType Directory -Name publish | Out-Null
 	New-Item -ItemType Directory -Name publish\Exo.Service | Out-Null
 	Copy-Item -Path "Exo.Service\bin\Release\net8.0-windows\publish\*" -Destination "publish\Exo.Service" -Recurse -Exclude cfg,logs
-	Copy-Item -Path "Exo.Settings.Ui\bin\Release\net8.0-windows10.0.19041.0\win10-x64\publish" -Destination "publish\Exo.Settings.Ui" -Recurse
+	Copy-Item -Path "Exo.Settings.Ui\bin\Release\net8.0-windows10.0.22621.0\win10-x64\publish" -Destination "publish\Exo.Settings.Ui" -Recurse
 	Copy-Item -Path "Exo.Overlay\bin\Release\net8.0-windows\win-x64\publish" -Destination "publish\Exo.Overlay" -Recurse
 }
 Finally
