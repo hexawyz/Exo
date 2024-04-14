@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Globalization;
 using System.Threading;
+using CommunityToolkit.WinUI;
 using Exo.Contracts.Ui.Settings;
 using Exo.Ui;
 
@@ -232,6 +234,7 @@ internal sealed class SensorViewModel : BindableObject
 		_sensorInformation = sensorInformation;
 	}
 
+	public string DisplayName => SensorDatabase.GetSensorDisplayName(_sensorInformation.SensorId) ?? string.Create(CultureInfo.InvariantCulture, $"Effect {_sensorInformation.SensorId:B}.");
 	public SensorDataType DataType => _sensorInformation.DataType;
 	public bool IsPolled => _sensorInformation.IsPolled;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;

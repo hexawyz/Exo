@@ -23,26 +23,20 @@
                     <ItemsView ItemsSource="{Binding Sensors}">
                         <ItemsView.ItemTemplate>
                             <DataTemplate>
-                                <ItemContainer Width="200" Height="200">
+                                <ItemContainer Width="200" Height="200" Background="{StaticResource CardBackgroundFillColorDefaultBrush}">
                                     <Grid Margin="6">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="100" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Sensor" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="??" />
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Value" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LiveDetails.CurrentValue}" />
+                                        <TextBlock Grid.Row="0" Text="{Binding DisplayName}" />
+                                        <TextBlock Grid.Row="1" Text="{Binding LiveDetails.CurrentValue}" />
                                     </Grid>
                                 </ItemContainer>
                             </DataTemplate>
                         </ItemsView.ItemTemplate>
                         <ItemsView.Layout>
-                            <LinedFlowLayout />
+                            <UniformGridLayout MinColumnSpacing="6" MinRowSpacing="6" />
                         </ItemsView.Layout>
                     </ItemsView>
                 </Expander>
