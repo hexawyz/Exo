@@ -28,4 +28,5 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs Unit = new(nameof(Unit));
 	public static readonly PropertyChangedEventArgs LiveDetails = new(nameof(LiveDetails));
 	public static readonly PropertyChangedEventArgs CurrentValue = new(nameof(CurrentValue));
+	public static readonly PropertyChangedEventArgs History = new(nameof(History));
 }

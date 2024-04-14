@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Ui;
@@ -265,14 +266,49 @@ internal sealed class SensorViewModel : BindableObject
 
 internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposable
 {
+	// This is a public wrapper that is used to expose the data and allow it to be rendered into a chart.
+	public sealed class HistoryData
+	{
+		private readonly LiveSensorDetailsViewModel _viewModel;
+
+		public HistoryData(LiveSensorDetailsViewModel viewModel) => _viewModel = viewModel;
+
+		public DateTime StartTime => _viewModel._currentValueTime;
+
+		public int Length => _viewModel._dataPoints.Length;
+
+		public double this[int index]
+		{
+			get
+			{
+				var vm = _viewModel;
+				if ((uint)index >= (uint)vm._dataPoints.Length) throw new ArgumentOutOfRangeException(nameof(index));
+				index += vm._currentPointIndex + 1;
+				int roundTrippedIndex = index - vm._dataPoints.Length;
+				return vm._dataPoints[roundTrippedIndex < 0 ? index : roundTrippedIndex];
+			}
+		}
+	}
+
+	private const int WindowSizeInSeconds = 1 * 60;
+
 	private double _currentValue;
+	private DateTime _currentValueTime;
+	private ulong _currentTimestampInSeconds;
+	private int _currentPointIndex;
+	private readonly double[] _dataPoints;
 	private readonly SensorViewModel _sensor;
+	private readonly HistoryData _historyData;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
 
 	public LiveSensorDetailsViewModel(SensorViewModel sensor)
 	{
+		_currentValueTime = DateTime.UtcNow;
+		_currentTimestampInSeconds = GetTimestamp();
+		_dataPoints = new double[WindowSizeInSeconds];
 		_sensor = sensor;
+		_historyData = new(this);
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 	}
@@ -284,12 +320,57 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 	}
 
 	public NumberWithUnit CurrentValue => new(_currentValue, _sensor.Unit);
+	public HistoryData History => _historyData;
+
+	private static ulong GetTimestamp() => (ulong)Stopwatch.GetTimestamp() / (ulong)Stopwatch.Frequency;
 
 	private async Task WatchAsync(CancellationToken cancellationToken)
 	{
 		await foreach (var dataPoint in _sensor.Device.SensorsViewModel.WatchValuesAsync(_sensor.Device.Id, _sensor.Id, cancellationToken))
 		{
+			// Get the timestamp for the current data point.
+			var now = DateTime.UtcNow;
+			var currentTimestamp = GetTimestamp();
+			ulong delta = currentTimestamp - _currentTimestampInSeconds;
+			// Backfill any missing data points using the previous value.
+			if (delta > 1)
+			{
+				// If we are late for longer than the window size, we can just clear up the whole window and restart at index 0.
+				// NB: In the very unlikely occasion where the timer would wrap-around, it would be handled by this condition. We'd end up resetting the history, which is not that terrible.
+				if (delta > (ulong)_dataPoints.Length)
+				{
+					Array.Fill(_dataPoints, _currentValue, 0, _dataPoints.Length);
+					_currentPointIndex = 0;
+				}
+				else
+				{
+					// If we are late for less than the window size, the operation might need to be split in two.
+					int endIndex = _currentPointIndex + (int)delta;
+					if (++_currentPointIndex < _dataPoints.Length)
+					{
+						Array.Fill(_dataPoints, _currentValue, _currentPointIndex, Math.Min(_dataPoints.Length, endIndex) - _currentPointIndex);
+					}
+					if (endIndex >= _dataPoints.Length)
+					{
+						_currentPointIndex = endIndex - _dataPoints.Length;
+						Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
+					}
+					else
+					{
+						_currentPointIndex = endIndex;
+					}
+				}
+			}
+			else if (delta == 1)
+			{
+				// Increase the index
+				if (++_currentPointIndex == _dataPoints.Length) _currentPointIndex = 0;
+			}
+			_currentValueTime = now;
+			_currentTimestampInSeconds = currentTimestamp;
+			_dataPoints[_currentPointIndex] = dataPoint.Value;
 			SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
+			NotifyPropertyChanged(ChangedProperty.History);
 		}
 	}
 }

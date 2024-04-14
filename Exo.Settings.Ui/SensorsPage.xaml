@@ -28,9 +28,11 @@
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
                                         <TextBlock Grid.Row="0" Text="{Binding DisplayName}" />
                                         <TextBlock Grid.Row="1" Text="{Binding LiveDetails.CurrentValue}" />
+                                        <Path Grid.Row="2" Stroke="SteelBlue" StrokeThickness="1" Data="{Binding LiveDetails.History, Converter={StaticResource HistoryDataToPathGeometryConverter}}" />
                                     </Grid>
                                 </ItemContainer>
                             </DataTemplate>

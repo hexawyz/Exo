@@ -51,6 +51,7 @@
             <local:StringFormatConverter x:Key="StringFormatConverter" />
             <local:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
             <local:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
+            <local:HistoryDataToPathGeometryConverter x:Key="HistoryDataToPathGeometryConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 
