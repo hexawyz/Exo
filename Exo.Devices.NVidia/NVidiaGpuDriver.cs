@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using Exo.ColorFormats;
@@ -10,21 +10,185 @@ using Exo.Features;
 using Exo.Features.LightingFeatures;
 using Exo.I2C;
 using Exo.Lighting;
-using Exo.Lighting.Effects;
+using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.NVidia;
 
-public class NVidiaGpuDriver :
+public partial class NVidiaGpuDriver :
 	Driver,
 	IDeviceIdFeature,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IDisplayAdapterDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
+	IDeviceDriver<ISensorDeviceFeature>,
 	IDisplayAdapterI2CBusProviderFeature,
 	ILightingControllerFeature,
-	ILightingDeferredChangesFeature
+	ILightingDeferredChangesFeature,
+	ISensorsFeature
 {
+	private sealed class UtilizationWatcher : IAsyncDisposable
+	{
+		private readonly NvApi.PhysicalGpu _gpu;
+		private readonly UtilizationSensor _graphicsSensor;
+		private readonly UtilizationSensor _frameBufferSensor;
+		private readonly UtilizationSensor _videoSensor;
+		private int _referenceCount;
+		private readonly object _lock;
+		private TaskCompletionSource _enableSignal;
+		private CancellationTokenSource? _disableCancellationTokenSource;
+		private CancellationTokenSource? _disposeCancellationTokenSource;
+		private readonly Task _runTask;
+
+		public UtilizationSensor GraphicsSensor => _graphicsSensor;
+		public UtilizationSensor FrameBufferSensor => _frameBufferSensor;
+		public UtilizationSensor VideoSensor => _videoSensor;
+
+		public UtilizationWatcher(NvApi.PhysicalGpu gpu)
+		{
+			_gpu = gpu;
+			_graphicsSensor = new(this, GraphicsUtilizationSensorId);
+			_frameBufferSensor = new(this, FrameBufferUtilizationSensorId);
+			_videoSensor = new(this, VideoUtilizationSensorId);
+			_lock = new();
+			_enableSignal = new();
+			_disposeCancellationTokenSource = new();
+			_runTask = RunAsync(_disposeCancellationTokenSource.Token);
+		}
+
+		public async ValueTask DisposeAsync()
+		{
+			if (Interlocked.Exchange(ref _disposeCancellationTokenSource, null) is { } cts)
+			{
+				cts.Cancel();
+				Volatile.Read(ref _enableSignal).TrySetResult();
+				await _runTask.ConfigureAwait(false);
+				cts.Dispose();
+			}
+		}
+
+		public void Acquire()
+		{
+			lock (_lock)
+			{
+				if (_referenceCount++ == 0)
+				{
+					_enableSignal.TrySetResult();
+				}
+			}
+		}
+
+		// This function is called by a sensor state to cancel grouped querying for it.
+		// NB: The sensor state *WILL* ensure that this method is never called twice in succession for a given sensor.
+		public void Release()
+		{
+			lock (_lock)
+			{
+				if (--_referenceCount == 0)
+				{
+					if (Interlocked.Exchange(ref _disableCancellationTokenSource, null) is { } cts)
+					{
+						cts.Cancel();
+						cts.Dispose();
+					}
+				}
+			}
+		}
+
+		private async Task RunAsync(CancellationToken cancellationToken)
+		{
+			try
+			{
+				while (true)
+				{
+					await _enableSignal.Task.ConfigureAwait(false);
+					if (cancellationToken.IsCancellationRequested) return;
+					var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+					var queryCancellationToken = cts.Token;
+					Volatile.Write(ref _disableCancellationTokenSource, cts);
+					try
+					{
+						await WatchValuesAsync(queryCancellationToken).ConfigureAwait(false);
+					}
+					catch (OperationCanceledException) when (queryCancellationToken.IsCancellationRequested)
+					{
+					}
+					if (cancellationToken.IsCancellationRequested) return;
+					cts = Interlocked.Exchange(ref _disableCancellationTokenSource, null);
+					cts?.Dispose();
+					Volatile.Write(ref _enableSignal, new());
+				}
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+			catch (Exception ex)
+			{
+				// TODO: Log
+			}
+		}
+
+		private async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
+		{
+			await foreach (var utilizationValue in _gpu.WatchUtilizationAsync(500, cancellationToken).ConfigureAwait(false))
+			{
+				var sensor = utilizationValue.Domain switch
+				{
+					NvApi.Gpu.Client.UtilizationDomain.Graphics => _graphicsSensor,
+					NvApi.Gpu.Client.UtilizationDomain.FrameBuffer => _frameBufferSensor,
+					NvApi.Gpu.Client.UtilizationDomain.Video => _videoSensor,
+					_ => null,
+				};
+				sensor?.OnDataReceived(utilizationValue.DateTime, utilizationValue.PerTenThousandValue);
+			}
+		}
+	}
+
+	private sealed class UtilizationSensor : IStreamedSensor<float>
+	{
+		private ChannelWriter<SensorDataPoint<float>>? _listener;
+		private readonly UtilizationWatcher _watcher;
+
+		public Guid SensorId { get; }
+
+		public UtilizationSensor(UtilizationWatcher watcher, Guid sensorId)
+		{
+			_watcher = watcher;
+			SensorId = sensorId;
+		}
+
+		public float? ScaleMinimumValue => 0;
+		public float? ScaleMaximumValue => 100;
+		public SensorUnit Unit => SensorUnit.Percent;
+
+		public async IAsyncEnumerable<SensorDataPoint<float>> EnumerateValuesAsync(CancellationToken cancellationToken)
+		{
+			var channel = Channel.CreateUnbounded<SensorDataPoint<float>>(SharedOptions.ChannelOptions);
+			if (Interlocked.CompareExchange(ref _listener, channel, null) is not null) throw new InvalidOperationException("An enumeration is already running.");
+			try
+			{
+				_watcher.Acquire();
+				try
+				{
+					await foreach (var dataPoint in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+					{
+						yield return dataPoint;
+					}
+				}
+				finally
+				{
+					_watcher.Release();
+				}
+			}
+			finally
+			{
+				Volatile.Write(ref _listener, null);
+			}
+		}
+
+		public void OnDataReceived(DateTime dateTime, uint value) => Volatile.Read(ref _listener)?.TryWrite(new SensorDataPoint<float>(dateTime, value * 0.01f));
+	}
+
 	private const ushort NVidiaVendorId = 0x10DE;
 
 	private static readonly Guid[] GpuTopZoneIds =
@@ -58,6 +222,10 @@ public class NVidiaGpuDriver :
 		new(0xEEA7A9DC, 0xB811, 0x463F, 0xBA, 0xD5, 0x7D, 0x22, 0x43, 0xB1, 0x0A, 0x03),
 		new(0x82658966, 0x39CD, 0x40B7, 0xBA, 0x7C, 0x87, 0xB2, 0x7F, 0xE4, 0xAA, 0x99),
 	];
+
+	private static readonly Guid GraphicsUtilizationSensorId = new(0x005F94DD, 0x09F5, 0x46D3, 0x99, 0x02, 0xE1, 0x5D, 0x6A, 0x19, 0xD8, 0x24);
+	private static readonly Guid FrameBufferUtilizationSensorId = new(0xBF9AAD1D, 0xE013, 0x4178, 0x97, 0xB3, 0x42, 0x20, 0xD2, 0x6C, 0xBE, 0x71);
+	private static readonly Guid VideoUtilizationSensorId = new(0x147C8F52, 0x1402, 0x4515, 0xB9, 0xFB, 0x41, 0x48, 0xFD, 0x02, 0x12, 0xA4);
 
 	[DiscoverySubsystem<PciDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayAdapter)]
@@ -235,408 +403,32 @@ public class NVidiaGpuDriver :
 		);
 	}
 
-	private sealed class MonitorI2CBus : II2CBus
-	{
-		private readonly NvApi.PhysicalGpu _gpu;
-		private readonly uint _outputId;
-
-		public MonitorI2CBus(NvApi.PhysicalGpu gpu, uint outputId)
-		{
-			_gpu = gpu;
-			_outputId = outputId;
-		}
-
-		public ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
-		{
-			_gpu.I2CMonitorWrite(_outputId, (byte)(address << 1), bytes);
-			return ValueTask.CompletedTask;
-		}
-
-		public ValueTask WriteAsync(byte address, byte register, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
-		{
-			_gpu.I2CMonitorWrite(_outputId, (byte)(address << 1), register, bytes);
-			return ValueTask.CompletedTask;
-		}
-
-		public ValueTask ReadAsync(byte address, Memory<byte> bytes, CancellationToken cancellationToken)
-		{
-			_gpu.I2CMonitorRead(_outputId, (byte)(address << 1), bytes);
-			return ValueTask.CompletedTask;
-		}
-
-		public ValueTask ReadAsync(byte address, byte register, Memory<byte> bytes, CancellationToken cancellationToken)
-		{
-			_gpu.I2CMonitorRead(_outputId, (byte)(address << 1), register, bytes);
-			return ValueTask.CompletedTask;
-		}
-
-		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-	}
-
-	// GPUs that support "piecewise" effects could support more effects, but I don't have this on hand, so for now it is only disabled or static.
-	private enum LightingEffect : byte
-	{
-		Disabled = 0,
-		Static = 1,
-	}
-
-	private abstract class LightingZone : ILightingZone
-	{
-		protected object Lock { get; }
-		private readonly int _index;
-		protected LightingEffect Effect;
-
-		public Guid ZoneId { get; }
-
-		protected LightingZone(object @lock, int index, Guid zoneId)
-		{
-			Lock = @lock;
-			_index = index;
-			ZoneId = zoneId;
-		}
-
-		internal void UpdateControl(NvApi.Gpu.Client.IlluminationZoneControl[] controls)
-			=> UpdateControl(ref controls[_index]);
-
-		protected abstract void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control);
-
-		ILightingEffect ILightingZone.GetCurrentEffect() => GetCurrentEffect();
-
-		protected abstract ILightingEffect GetCurrentEffect();
-	}
-
-	private class RgbLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticColorEffect>
-	{
-		private RgbColor _color;
-
-		public RgbLightingZone(object @lock, int index, Guid zoneId, RgbColor initialColor) : base(@lock, index, zoneId)
-		{
-			if (initialColor != default)
-			{
-				_color = initialColor;
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		protected override ILightingEffect GetCurrentEffect()
-			=> Effect switch
-			{
-				LightingEffect.Disabled => DisabledEffect.SharedInstance,
-				LightingEffect.Static => new StaticColorEffect(_color),
-				_ => DisabledEffect.SharedInstance,
-			};
-
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
-		{
-			lock (Lock)
-			{
-				_color = effect.Color;
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect)
-		{
-			lock (Lock)
-			{
-				if (Effect == LightingEffect.Disabled)
-				{
-					effect = default;
-					return false;
-				}
-
-				effect = new(_color);
-				return true;
-			}
-		}
-
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				_color = default;
-				Effect = LightingEffect.Disabled;
-			}
-		}
-
-		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				effect = default;
-
-				if (Effect == LightingEffect.Disabled)
-				{
-					return true;
-				}
-
-				return false;
-			}
-		}
-
-		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
-		{
-			control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-			control.Data.Rgb.Manual = new() { R = _color.R, G = _color.G, B = _color.B, BrightnessPercentage = _color == default ? (byte)0 : (byte)100 };
-		}
-	}
-
-	// TODO: Implement a proper conversion from RGB to RGBW.
-	private class RgbwLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticColorEffect>
-	{
-		private RgbwColor _color;
-
-		public RgbwLightingZone(object @lock, int index, Guid zoneId, RgbwColor color) : base(@lock, index, zoneId)
-		{
-			if (color != default)
-			{
-				_color = color;
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		protected override ILightingEffect GetCurrentEffect()
-			=> Effect switch
-			{
-				LightingEffect.Disabled => DisabledEffect.SharedInstance,
-				LightingEffect.Static => new StaticColorEffect(_color.ToRgb()),
-				_ => DisabledEffect.SharedInstance,
-			};
-
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				_color = default;
-				Effect = LightingEffect.Disabled;
-			}
-		}
-
-		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				effect = default;
-
-				if (Effect == LightingEffect.Disabled)
-				{
-					return true;
-				}
-
-				return false;
-			}
-		}
-
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
-		{
-			lock (Lock)
-			{
-				_color = RgbwColor.FromRgb(effect.Color);
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect)
-		{
-			lock (Lock)
-			{
-				if (Effect == LightingEffect.Disabled)
-				{
-					effect = default;
-					return false;
-				}
-
-				effect = new(_color.ToRgb());
-				return true;
-			}
-		}
-
-		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
-		{
-			switch (Effect)
-			{
-			case LightingEffect.Disabled:
-				control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-				control.Data.Rgbw.Manual = default;
-				break;
-			case LightingEffect.Static:
-				byte brightness = _color == default ? (byte)0 : (byte)100;
-				control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-				control.Data.Rgbw.Manual = new() { R = _color.R, G = _color.G, B = _color.B, W = _color.W, BrightnessPercentage = brightness };
-				break;
-			}
-		}
-	}
-
-	private class FixedColorLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticBrightnessEffect>
-	{
-		private byte _brightness;
-
-		public FixedColorLightingZone(object @lock, int index, Guid zoneId, byte initialBrightness) : base(@lock, index, zoneId)
-		{
-			if (initialBrightness != 0)
-			{
-				_brightness = Math.Max(initialBrightness, (byte)100);
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		protected override ILightingEffect GetCurrentEffect()
-			=> Effect switch
-			{
-				LightingEffect.Disabled => DisabledEffect.SharedInstance,
-				LightingEffect.Static => new StaticBrightnessEffect(_brightness),
-				_ => DisabledEffect.SharedInstance,
-			};
-
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				_brightness = default;
-				Effect = LightingEffect.Disabled;
-			}
-		}
-
-		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				effect = default;
-
-				if (Effect == LightingEffect.Disabled)
-				{
-					return true;
-				}
-
-				return false;
-			}
-		}
-
-		void ILightingZoneEffect<StaticBrightnessEffect>.ApplyEffect(in StaticBrightnessEffect effect)
-		{
-			lock (Lock)
-			{
-				_brightness = effect.BrightnessLevel;
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		bool ILightingZoneEffect<StaticBrightnessEffect>.TryGetCurrentEffect(out StaticBrightnessEffect effect)
-		{
-			lock (Lock)
-			{
-				if (Effect == LightingEffect.Disabled)
-				{
-					effect = default;
-					return false;
-				}
-
-				effect = new(_brightness);
-				return true;
-			}
-		}
-
-		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
-		{
-			control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-			control.Data.SingleColor.Manual = new() { BrightnessPercentage = _brightness };
-		}
-	}
-
-	private class SingleColorLightingZone : LightingZone, ILightingZoneEffect<DisabledEffect>, ILightingZoneEffect<StaticBrightnessEffect>
-	{
-		private byte _brightness;
-
-		public SingleColorLightingZone(object @lock, int index, Guid zoneId, byte initialBrightness) : base(@lock, index, zoneId)
-		{
-			if (initialBrightness != 0)
-			{
-				_brightness = Math.Max(initialBrightness, (byte)100);
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		protected override ILightingEffect GetCurrentEffect()
-			=> Effect switch
-			{
-				LightingEffect.Disabled => DisabledEffect.SharedInstance,
-				LightingEffect.Static => new StaticBrightnessEffect(_brightness),
-				_ => DisabledEffect.SharedInstance,
-			};
-
-		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				_brightness = default;
-				Effect = LightingEffect.Disabled;
-			}
-		}
-
-		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
-		{
-			lock (Lock)
-			{
-				effect = default;
-
-				if (Effect == LightingEffect.Disabled)
-				{
-					return true;
-				}
-
-				return false;
-			}
-		}
-
-		void ILightingZoneEffect<StaticBrightnessEffect>.ApplyEffect(in StaticBrightnessEffect effect)
-		{
-			lock (Lock)
-			{
-				_brightness = effect.BrightnessLevel;
-				Effect = LightingEffect.Static;
-			}
-		}
-
-		bool ILightingZoneEffect<StaticBrightnessEffect>.TryGetCurrentEffect(out StaticBrightnessEffect effect)
-		{
-			lock (Lock)
-			{
-				if (Effect == LightingEffect.Disabled)
-				{
-					effect = default;
-					return false;
-				}
-
-				effect = new(_brightness);
-				return true;
-			}
-		}
-
-		protected override void UpdateControl(ref NvApi.Gpu.Client.IlluminationZoneControl control)
-		{
-			control.ControlMode = NvApi.Gpu.Client.IlluminationControlMode.Manual;
-			control.Data.SingleColor.Manual = new() { BrightnessPercentage = _brightness };
-		}
-	}
-
 	private readonly NvApi.Gpu.Client.IlluminationZoneControl[] _illuminationZoneControls;
 	private readonly IDeviceFeatureSet<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
 	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
+	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly ImmutableArray<LightingZone> _lightingZones;
+	private readonly ImmutableArray<ISensor> _sensors;
 	private readonly NvApi.PhysicalGpu _gpu;
 	private readonly object _lock;
 	private readonly IReadOnlyCollection<ILightingZone> _lightingZoneCollection;
+	private readonly ImmutableArray<FeatureSetDescription> _featureSets;
+	private readonly UtilizationWatcher _utilizationWatcher;
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
 
 	public DeviceId DeviceId { get; }
 	public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
+	ImmutableArray<ISensor> ISensorsFeature.Sensors => _sensors;
+
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
 	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
+	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
+
+	public override ImmutableArray<FeatureSetDescription> FeatureSets => _featureSets;
 
 	private NVidiaGpuDriver
 	(
@@ -654,13 +446,30 @@ public class NVidiaGpuDriver :
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
+		_utilizationWatcher = new(gpu);
+		_sensors = [_utilizationWatcher.GraphicsSensor, _utilizationWatcher.FrameBufferSensor, _utilizationWatcher.VideoSensor];
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
-		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
+		_lightingFeatures = lightingZones.Length > 0 ?
+			FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this) :
+			FeatureSet.Empty<ILightingDeviceFeature>();
+		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature>(this);
+		_featureSets = lightingZones.Length > 0 ?
+			[
+				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IDisplayAdapterDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ISensorDeviceFeature>()
+			] :
+			[
+				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<IDisplayAdapterDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ILightingDeviceFeature>(),
+				FeatureSetDescription.CreateStatic<ISensorDeviceFeature>()
+			];
 	}
 
-	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+	public override ValueTask DisposeAsync() => _utilizationWatcher.DisposeAsync();
 
 	public ValueTask ApplyChangesAsync()
 	{

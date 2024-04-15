@@ -14,8 +14,9 @@ internal sealed class HistoryDataToPathGeometryConverter : IValueConverter
 		// NB: This is very rough and WIP.
 		// It should probably be ported to a dedicated chart drawing component afterwards.
 
-		double minValue = double.PositiveInfinity;
-		double maxValue = double.NegativeInfinity;
+		// TODO: Min and max values should probably skip the computation done below.
+		double minValue = history.MinValue ?? double.PositiveInfinity;
+		double maxValue = history.MaxValue ?? double.NegativeInfinity;
 
 		for (int i = 0; i < history.Length; i++)
 		{

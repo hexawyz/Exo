@@ -110,10 +110,25 @@ public interface IStreamedSensor<TValue> : ISensor<TValue>
 	bool ISensor.IsPolled => false;
 
 	/// <summary>Enumerates values from the sensor.</summary>
+	/// <remarks>Implementations can assume that there will always be at most a single enumeration per sensor at a given time.</remarks>
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
-	IAsyncEnumerable<TValue> EnumerateValuesAsync(CancellationToken cancellationToken);
+	IAsyncEnumerable<SensorDataPoint<TValue>> EnumerateValuesAsync(CancellationToken cancellationToken);
 }
+
+public readonly struct SensorDataPoint<TValue>
+	where TValue : struct, INumber<TValue>
+{
+	public SensorDataPoint(DateTime dateTime, TValue value)
+	{
+		DateTime = dateTime;
+		Value = value;
+	}
+
+	public DateTime DateTime { get; }
+	public TValue Value { get; }
+}
+
 
 public enum GroupedQueryMode : byte
 {

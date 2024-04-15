@@ -288,6 +288,9 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 				return vm._dataPoints[roundTrippedIndex < 0 ? index : roundTrippedIndex];
 			}
 		}
+
+		public double? MinValue => _viewModel._sensor.Unit == "%" ? 0 : null;
+		public double? MaxValue => _viewModel._sensor.Unit == "%" ? 100 : null;
 	}
 
 	private const int WindowSizeInSeconds = 1 * 60;
@@ -386,5 +389,5 @@ public readonly struct NumberWithUnit
 	public double Value { get; }
 	public string? Symbol { get; }
 
-	public override string ToString() => Symbol is not null ? $"{Value:G}\xA0{Symbol}" : Value.ToString("G");
+	public override string ToString() => Symbol is not null ? $"{Value:G3}\xA0{Symbol}" : Value.ToString("G3");
 }

@@ -20,7 +20,8 @@
                             <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
                         </StackPanel>
                     </Expander.Header>
-                    <ItemsView ItemsSource="{Binding Sensors}">
+                    <!-- NB: The MinHeight compensates for a bug where the ItemsView would somehow not show for the second device (?) -->
+                    <ItemsView ItemsSource="{Binding Sensors}" MinHeight="1">
                         <ItemsView.ItemTemplate>
                             <DataTemplate>
                                 <ItemContainer Width="150" Height="150" Background="{StaticResource CardBackgroundFillColorDefaultBrush}">

@@ -148,8 +148,9 @@ public sealed partial class SensorService
 
 		protected void OnDataPointReceived(TValue value) => OnDataPointReceived(DateTime.UtcNow, value);
 
-		protected void OnDataPointReceived(DateTime dateTime, TValue value)
-			=> Volatile.Read(ref _valueListeners).TryWrite(new(dateTime, value));
+		protected void OnDataPointReceived(DateTime dateTime, TValue value) => OnDataPointReceived(new SensorDataPoint<TValue>(dateTime, value));
+
+		protected void OnDataPointReceived(SensorDataPoint<TValue> dataPoint) => Volatile.Read(ref _valueListeners).TryWrite(dataPoint);
 
 		private void AddListener(ChannelWriter<SensorDataPoint<TValue>> listener)
 		{
@@ -276,9 +277,9 @@ public sealed partial class SensorService
 
 		protected override async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{
-			await foreach (var value in Sensor.EnumerateValuesAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var dataPoint in Sensor.EnumerateValuesAsync(cancellationToken).ConfigureAwait(false))
 			{
-				OnDataPointReceived(value);
+				OnDataPointReceived(dataPoint);
 			}
 		}
 	}

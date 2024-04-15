@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
+using Exo.Sensors;
 
 namespace Exo.Service.Grpc;
 

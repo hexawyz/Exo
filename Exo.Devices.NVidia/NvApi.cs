@@ -1,29 +1,30 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Channels;
 
 namespace Exo.Devices.NVidia;
 
 #pragma warning disable IDE0044 // Add readonly modifier
 
-internal unsafe sealed class NvApi
+internal sealed class NvApi
 {
 	private static readonly NvApi Instance = new();
 
 	static NvApi() { }
 
-	private NvApi()
+	private unsafe NvApi()
 	{
 		Functions.Initialize();
 	}
 
-	~NvApi()
+	unsafe ~NvApi()
 	{
 		Functions.Unload();
 	}
 
 	// Define and load all the function pointers that we are gonna need.
-	private static class Functions
+	private static unsafe class Functions
 	{
 		public static readonly delegate* unmanaged[Cdecl]<uint> Initialize = (delegate* unmanaged[Cdecl]<uint>)QueryInterface(0x0150e828);
 		public static readonly delegate* unmanaged[Cdecl]<uint> Unload = (delegate* unmanaged[Cdecl]<uint>)QueryInterface(0xd22bdd7e);
@@ -60,6 +61,7 @@ internal unsafe sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneInfoQuery*, uint> ClientIllumZonesGetInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneInfoQuery*, uint>)QueryInterface(0x4b81241b);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x3dbf5764);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x197d065e);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint> ClientRegisterForUtilizationSampleUpdates = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint>)QueryInterface(0xadeeaf67);
 		}
 
 		public static class System
@@ -94,9 +96,15 @@ internal unsafe sealed class NvApi
 		}
 	}
 
-	private static uint StructVersion<T>(int version)
+	private static unsafe uint StructVersion<T>(int version)
 		where T : unmanaged
 		=> (uint)(sizeof(T) | version << 16);
+
+	[InlineArray(61)]
+	private struct ByteArray61
+	{
+		private byte _element0;
+	}
 
 	[InlineArray(64)]
 	private struct ByteArray64
@@ -625,13 +633,68 @@ internal unsafe sealed class NvApi
 					set => _flags = value ? _flags | 1 : _flags & ~1U;
 				}
 			}
+			internal struct CallbackSettings
+			{
+				public nint Parameter;
+				private ByteArray64 _reserved;
+			}
+
+			internal struct PeriodicCallbackSettings
+			{
+				public CallbackSettings Common;
+				public uint CallbackPeriodInMilliseconds;
+				private ByteArray64 _reserved;
+			}
+
+			internal struct CallbackData
+			{
+				public nint Parameter;
+				private ByteArray64 _reserved;
+			}
+
+			public enum UtilizationDomain
+			{
+				Graphics = 0,
+				FrameBuffer = 1,
+				Video = 2,
+			}
+
+			internal struct UtilizationData
+			{
+				public UtilizationDomain Domain;
+				public uint UtilizationPercent;
+				private ByteArray61 _reserved;
+			}
+
+			[InlineArray(4)]
+			internal struct UtilizationDataArray
+			{
+				private UtilizationData _element0;
+			}
+
+			internal struct CallbackUtilizationData
+			{
+				public CallbackData Common;
+				public uint UtilizationCount;
+				public ulong Timestamp;
+				private ByteArray64 _reserved;
+				public UtilizationDataArray Utilizations;
+			}
+
+			internal unsafe struct UtilizationPeriodicCallbackSettings
+			{
+				public uint Version;
+				public PeriodicCallbackSettings Settings;
+				public delegate* unmanaged[Cdecl]<nint, CallbackUtilizationData*, void> Callback;
+				private readonly ByteArray64 _reserved;
+			}
 		}
 	}
 
 	[DllImport("nvapi64", EntryPoint = "nvapi_QueryInterface", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-	public static extern void* QueryInterface(uint functionId);
+	public static extern unsafe void* QueryInterface(uint functionId);
 
-	public static string GetInterfaceVersionString()
+	public static unsafe string GetInterfaceVersionString()
 	{
 		ShortString str = default;
 		ValidateResult(Functions.GetInterfaceVersionString(&str));
@@ -645,14 +708,14 @@ internal unsafe sealed class NvApi
 
 	private static void ThrowExceptionForInvalidResult(uint status) => throw new NvApiException(status, GetErrorMessage(status));
 
-	public static string? GetErrorMessage(uint status)
+	public static unsafe string? GetErrorMessage(uint status)
 	{
 		ShortString str = default;
 		ValidateResult(Functions.GetErrorMessage(status, &str));
 		return str.ToString();
 	}
 
-	public static PhysicalGpu[] GetPhysicalGpus()
+	public static unsafe PhysicalGpu[] GetPhysicalGpus()
 	{
 		nint* array = stackalloc nint[64];
 		int count;
@@ -662,7 +725,7 @@ internal unsafe sealed class NvApi
 
 	public static class System
 	{
-		public static void GetGpuAndOutputIdFromDisplayId(uint displayId, out PhysicalGpu physicalGpu, out uint outputId)
+		public static unsafe void GetGpuAndOutputIdFromDisplayId(uint displayId, out PhysicalGpu physicalGpu, out uint outputId)
 		{
 			nint gpu = 0;
 			uint oid = 0;
@@ -678,28 +741,28 @@ internal unsafe sealed class NvApi
 
 		public bool IsValid => _handle != 0;
 
-		public string GetFullName()
+		public unsafe string GetFullName()
 		{
 			ShortString str = default;
 			ValidateResult(Functions.Gpu.GetFullName(_handle, &str));
 			return str.ToString();
 		}
 
-		public uint GetBusId()
+		public unsafe uint GetBusId()
 		{
 			uint busId;
 			ValidateResult(Functions.Gpu.GetBusId(_handle, &busId));
 			return busId;
 		}
 
-		public uint GetBusSlotId()
+		public unsafe uint GetBusSlotId()
 		{
 			uint busSlotId;
 			ValidateResult(Functions.Gpu.GetBusSlotId(_handle, &busSlotId));
 			return busSlotId;
 		}
 
-		public byte[] GetBoardNumber()
+		public unsafe byte[] GetBoardNumber()
 		{
 			var boardInfo = new Gpu.BoardInfo { Version = StructVersion<Gpu.BoardInfo>(1) };
 			ValidateResult(Functions.Gpu.GetBoardInfo(_handle, &boardInfo));
@@ -715,14 +778,14 @@ internal unsafe sealed class NvApi
 			return data[..endIndex].ToArray();
 		}
 
-		public byte[] GetSerialNumber()
+		public unsafe byte[] GetSerialNumber()
 		{
 			var data = new ByteArray64();
 			ValidateResult(Functions.Gpu.GetSerialNumber(_handle, &data));
 			return ReadSerialNumber(data);
 		}
 
-		public Gpu.DisplayIdInfo[] GetConnectedDisplays(Gpu.ConnectedIdFlags flags)
+		public unsafe Gpu.DisplayIdInfo[] GetConnectedDisplays(Gpu.ConnectedIdFlags flags)
 		{
 			uint version = StructVersion<Gpu.DisplayIdInfo>(3);
 			uint count = 0;
@@ -750,7 +813,7 @@ internal unsafe sealed class NvApi
 		}
 
 		// Actually assuming that I2C speed in KHz this is what the API returns, because I have limited information and that's what looks like the most realistic.
-		public uint[] GetI2cPortSpeeds()
+		public unsafe uint[] GetI2cPortSpeeds()
 		{
 			var infos = stackalloc Gpu.I2cPortInfo[16];
 			infos[0].Version = StructVersion<Gpu.I2cPortInfo>(1);
@@ -771,7 +834,7 @@ internal unsafe sealed class NvApi
 			return new ReadOnlySpan<uint>(speeds, i).ToArray();
 		}
 
-		public byte[] GetEdid(uint outputId)
+		public unsafe byte[] GetEdid(uint outputId)
 		{
 			var edid = new Edid() { Version = StructVersion<Edid>(3) };
 			ValidateResult(Functions.Gpu.GetEdid(_handle, outputId, &edid));
@@ -801,7 +864,7 @@ internal unsafe sealed class NvApi
 		// The value 1 seems relatively safe, and I haven't observed any obvious change in behavior by using it.
 		private const ulong I2cUnknownFlags = 0x0000000000000000;
 
-		public void I2CMonitorWrite(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
+		public unsafe void I2CMonitorWrite(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
 		{
 			using var handle = data.Pin();
 			var info = new I2CInfo
@@ -820,7 +883,7 @@ internal unsafe sealed class NvApi
 			ValidateResult(Functions.I2CWriteEx(_handle, &info, (uint*)&unknown));
 		}
 
-		public void I2CMonitorWrite(uint outputId, byte address, ReadOnlyMemory<byte> data)
+		public unsafe void I2CMonitorWrite(uint outputId, byte address, ReadOnlyMemory<byte> data)
 		{
 			using var handle = data.Pin();
 			var info = new I2CInfo
@@ -837,7 +900,7 @@ internal unsafe sealed class NvApi
 			ValidateResult(Functions.I2CWriteEx(_handle, &info, (uint*)&unknown));
 		}
 
-		public void I2CMonitorRead(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
+		public unsafe void I2CMonitorRead(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
 		{
 			using var handle = data.Pin();
 			var info = new I2CInfo
@@ -856,7 +919,7 @@ internal unsafe sealed class NvApi
 			ValidateResult(Functions.I2CReadEx(_handle, &info, (uint*)&unknown));
 		}
 
-		public void I2CMonitorRead(uint outputId, byte address, ReadOnlyMemory<byte> data)
+		public unsafe void I2CMonitorRead(uint outputId, byte address, ReadOnlyMemory<byte> data)
 		{
 			using var handle = data.Pin();
 			var info = new I2CInfo
@@ -873,28 +936,28 @@ internal unsafe sealed class NvApi
 			ValidateResult(Functions.I2CReadEx(_handle, &info, (uint*)&unknown));
 		}
 
-		public bool SupportsIllumination(Gpu.IlluminationZone zone)
+		public unsafe bool SupportsIllumination(Gpu.IlluminationZone zone)
 		{
 			var query = new Gpu.IlluminationQuery { Version = StructVersion<Gpu.IlluminationQuery>(1), PhysicalGpuHandle = _handle, Attribute = (Gpu.IlluminationAttribute)zone };
 			ValidateResult(Functions.Gpu.QueryIlluminationSupport(&query));
 			return query.Value != 0;
 		}
 
-		public Gpu.Client.IlluminationDeviceInfo[] GetIlluminationDevices()
+		public unsafe Gpu.Client.IlluminationDeviceInfo[] GetIlluminationDevices()
 		{
 			var query = new Gpu.Client.IlluminationDeviceInfoQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceInfoQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumDevicesGetInfo(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationDeviceInfo>)query.Devices)[..query.DeviceCount].ToArray();
 		}
 
-		public Gpu.Client.IlluminationDeviceControl[] GetIlluminationDeviceControls()
+		public unsafe Gpu.Client.IlluminationDeviceControl[] GetIlluminationDeviceControls()
 		{
 			var query = new Gpu.Client.IlluminationDeviceControlQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceControlQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumDevicesGetControl(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationDeviceControl>)query.Devices)[..query.DeviceCount].ToArray();
 		}
 
-		public void SetIlluminationDeviceControls(Gpu.Client.IlluminationDeviceControl[] controls)
+		public unsafe void SetIlluminationDeviceControls(Gpu.Client.IlluminationDeviceControl[] controls)
 		{
 			ArgumentNullException.ThrowIfNull(controls);
 			if (controls.Length > 32) throw new ArgumentException();
@@ -903,21 +966,21 @@ internal unsafe sealed class NvApi
 			ValidateResult(Functions.Gpu.ClientIllumDevicesSetControl(_handle, &query));
 		}
 
-		public Gpu.Client.IlluminationZoneInfo[] GetIlluminationZones()
+		public unsafe Gpu.Client.IlluminationZoneInfo[] GetIlluminationZones()
 		{
 			var query = new Gpu.Client.IlluminationZoneInfoQuery { Version = StructVersion<Gpu.Client.IlluminationZoneInfoQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumZonesGetInfo(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationZoneInfo>)query.Zones)[..query.ZoneCount].ToArray();
 		}
 
-		public Gpu.Client.IlluminationZoneControl[] GetIlluminationZoneControls(bool shouldReturnPersisted)
+		public unsafe Gpu.Client.IlluminationZoneControl[] GetIlluminationZoneControls(bool shouldReturnPersisted)
 		{
 			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1), DefaultValues = shouldReturnPersisted };
 			ValidateResult(Functions.Gpu.ClientIllumZonesGetControl(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationZoneControl>)query.Zones)[..query.ZoneCount].ToArray();
 		}
 
-		public void SetIlluminationZoneControls(Gpu.Client.IlluminationZoneControl[] controls, bool shouldPersist)
+		public unsafe void SetIlluminationZoneControls(Gpu.Client.IlluminationZoneControl[] controls, bool shouldPersist)
 		{
 			ArgumentNullException.ThrowIfNull(controls);
 			if (controls.Length > 32) throw new ArgumentException();
@@ -925,5 +988,88 @@ internal unsafe sealed class NvApi
 			controls.AsSpan().CopyTo(query.Zones);
 			ValidateResult(Functions.Gpu.ClientIllumZonesSetControl(_handle, &query));
 		}
+
+		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+		private static unsafe void OnUtilizationUpdate(nint physicalGpuHandle, Gpu.Client.CallbackUtilizationData* data)
+		{
+			try
+			{
+				var gcHandle = GCHandle.FromIntPtr(data->Common.Parameter);
+				if (gcHandle.Target is ChannelWriter<GpuClientUtilizationData> writer)
+				{
+					var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)(data->Timestamp / 1000)).UtcDateTime;
+					foreach (ref var utilization in ((Span<Gpu.Client.UtilizationData>)data->Utilizations)[..(int)data->UtilizationCount])
+					{
+						writer.TryWrite(new GpuClientUtilizationData(dateTime, utilization.UtilizationPercent, utilization.Domain));
+					}
+				}
+			}
+			catch
+			{
+			}
+		}
+
+		public IAsyncEnumerable<GpuClientUtilizationData> WatchUtilizationAsync(uint period, CancellationToken cancellationToken)
+			=> WatchUtilizationAsync(_handle, period, cancellationToken);
+
+		private static async IAsyncEnumerable<GpuClientUtilizationData> WatchUtilizationAsync(nint handle, uint period, [EnumeratorCancellation] CancellationToken cancellationToken)
+		{
+			var channel = Channel.CreateUnbounded<GpuClientUtilizationData>(SharedOptions.ChannelOptions);
+			var gcHandle = GCHandle.Alloc(channel.Writer);
+			try
+			{
+				RegisterForUtilizationSampleUpdates(handle, period, GCHandle.ToIntPtr(gcHandle));
+				try
+				{
+					await foreach (var utilization in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+					{
+						yield return utilization;
+					}
+				}
+				finally
+				{
+					ClientUnregisterForUtilizationSampleUpdates(handle);
+				}
+			}
+			finally
+			{
+				gcHandle.Free();
+			}
+		}
+
+		private static unsafe void ClientUnregisterForUtilizationSampleUpdates(nint handle)
+		{
+			var settings = new Gpu.Client.UtilizationPeriodicCallbackSettings { Version = StructVersion<Gpu.Client.UtilizationPeriodicCallbackSettings>(1) };
+			ValidateResult(Functions.Gpu.ClientRegisterForUtilizationSampleUpdates(handle, &settings));
+		}
+
+		private static unsafe void RegisterForUtilizationSampleUpdates(nint handle, uint period, nint parameter)
+		{
+			var settings = new Gpu.Client.UtilizationPeriodicCallbackSettings
+			{
+				Version = StructVersion<Gpu.Client.UtilizationPeriodicCallbackSettings>(1),
+				Settings =
+				{
+					Common = { Parameter = parameter },
+					CallbackPeriodInMilliseconds = period,
+				},
+				Callback = &OnUtilizationUpdate,
+			};
+			ValidateResult(Functions.Gpu.ClientRegisterForUtilizationSampleUpdates(handle, &settings));
+		}
+	}
+
+	public readonly struct GpuClientUtilizationData
+	{
+		public GpuClientUtilizationData(DateTime dateTime, uint perTenThousandValue, Gpu.Client.UtilizationDomain domain)
+		{
+			DateTime = dateTime;
+			PerTenThousandValue = perTenThousandValue;
+			Domain = domain;
+		}
+
+		public DateTime DateTime { get; }
+		public uint PerTenThousandValue { get; }
+		public Gpu.Client.UtilizationDomain Domain { get; }
 	}
 }
