@@ -62,6 +62,7 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x3dbf5764);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x197d065e);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint> ClientRegisterForUtilizationSampleUpdates = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint>)QueryInterface(0xadeeaf67);
+			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint> GetThermalSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint>)QueryInterface(0xe3640a56);
 		}
 
 		public static class System
@@ -283,6 +284,59 @@ internal sealed class NvApi
 			public nint PhysicalGpuHandle;
 			public IlluminationAttribute Attribute;
 			public uint Value;
+		}
+
+		public enum ThermalController
+		{
+			None = 0,
+			GpuInternal,
+			Adm1032,
+			Max6649,
+			Max1617,
+			Lm99,
+			Lm89,
+			Lm64,
+			Adt7473,
+			SBMAX6649,
+			VideoBiosEvent,
+			Os,
+			Unknown = -1,
+		}
+
+		public enum ThermalTarget
+		{
+			None = 0,
+			Gpu = 1,
+			Memory = 2,
+			PowerSupply = 4,
+			Board = 8,
+			VisualComputingDeviceBoard = 9,
+			VisualComputingDeviceInlet = 10,
+			VisualComputingDeviceOutlet = 11,
+			All = 15,
+			Unknown = -1,
+		}
+
+		internal struct ThermalSensor
+		{
+			public ThermalController Controller;
+			public int DefaultMinTemp;
+			public int DefaultMaxTemp;
+			public int CurrentTemp;
+			public ThermalTarget Target;
+		}
+
+		[InlineArray(3)]
+		internal struct ThermalSensorArray
+		{
+			private ThermalSensor _element0;
+		}
+
+		internal struct ThermalSettings
+		{
+			public uint Version;
+			public uint Count;
+			public ThermalSensorArray Sensors;
 		}
 
 		public static class Client
@@ -987,6 +1041,15 @@ internal sealed class NvApi
 			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1), DefaultValues = shouldPersist };
 			controls.AsSpan().CopyTo(query.Zones);
 			ValidateResult(Functions.Gpu.ClientIllumZonesSetControl(_handle, &query));
+		}
+
+		public unsafe int GetThermalSettings(Span<Gpu.ThermalSensor> thermalSensors)
+		{
+			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(2) };
+			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, 15, &thermalSettings));
+			if (thermalSettings.Count > 3) throw new InvalidOperationException("Invalid thermal reading count.");
+			((ReadOnlySpan<Gpu.ThermalSensor>)thermalSettings.Sensors).CopyTo(thermalSensors);
+			return (int)thermalSettings.Count;
 		}
 
 		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

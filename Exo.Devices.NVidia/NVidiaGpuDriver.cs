@@ -384,6 +384,9 @@ public partial class NVidiaGpuDriver :
 			}
 		}
 
+		var thermalSensors = new NvApi.Gpu.ThermalSensor[3];
+		int sensorCount = foundGpu.GetThermalSettings(thermalSensors);
+
 		return new
 		(
 			new DriverCreationResult<SystemDevicePath>
