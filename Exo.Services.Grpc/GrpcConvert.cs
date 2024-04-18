@@ -57,6 +57,8 @@ internal static class GrpcConvert
 			DataType = sensorInformation.DataType.ToGrpc(),
 			Unit = sensorInformation.Unit,
 			IsPolled = sensorInformation.IsPolled,
+			ScaleMinimumValue = sensorInformation.ScaleMinimumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMinimumValue) : null,
+			ScaleMaximumValue = sensorInformation.ScaleMaximumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMaximumValue) : null,
 		};
 
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)

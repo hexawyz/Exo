@@ -237,6 +237,8 @@ internal sealed class SensorViewModel : BindableObject
 	public SensorDataType DataType => _sensorInformation.DataType;
 	public string Unit => _sensorInformation.Unit;
 	public bool IsPolled => _sensorInformation.IsPolled;
+	public double? ScaleMinimumValue => _sensorInformation.ScaleMinimumValue;
+	public double? ScaleMaximumValue => _sensorInformation.ScaleMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
 
 	public void SetOnline(SensorInformation information)
@@ -289,8 +291,8 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 			}
 		}
 
-		public double? MinValue => _viewModel._sensor.Unit == "%" ? 0 : null;
-		public double? MaxValue => _viewModel._sensor.Unit == "%" ? 100 : null;
+		public double? MinValue => _viewModel._sensor.ScaleMinimumValue ?? (_viewModel._sensor.Unit == "%" ? 0 : null);
+		public double? MaxValue => _viewModel._sensor.ScaleMaximumValue ?? (_viewModel._sensor.Unit == "%" ? 100 : null);
 	}
 
 	private const int WindowSizeInSeconds = 1 * 60;

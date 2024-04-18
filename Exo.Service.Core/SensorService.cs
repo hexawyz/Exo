@@ -3,10 +3,13 @@ using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
 using Exo.Sensors;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -21,6 +24,7 @@ namespace Exo.Service;
 public sealed partial class SensorService
 {
 	[TypeId(0x7757FFB0, 0x6111, 0x4DB1, 0xBC, 0xFC, 0x70, 0x97, 0x38, 0xF3, 0xC6, 0x34)]
+	[JsonConverter(typeof(PersistedSensorInformationJsonConverter))]
 	private readonly struct PersistedSensorInformation
 	{
 		public PersistedSensorInformation(SensorInformation info)
@@ -28,11 +32,135 @@ public sealed partial class SensorService
 			DataType = info.DataType;
 			UnitSymbol = info.Unit;
 			IsPolled = info.IsPolled;
+			ScaleMinimumValue = info.ScaleMinimumValue;
+			ScaleMaximumValue = info.ScaleMaximumValue;
 		}
 
 		public SensorDataType DataType { get; init; }
 		public string UnitSymbol { get; init; }
 		public bool IsPolled { get; init; }
+		public object? ScaleMinimumValue { get; init; }
+		public object? ScaleMaximumValue { get; init; }
+	}
+
+	// Custom serializer to ensure that min/max values are serialized using the proper format.
+	// Perhaps another way is possible using generic types, however deserialization would always be somewhat of a problem.
+	private class PersistedSensorInformationJsonConverter : JsonConverter<PersistedSensorInformation>
+	{
+		public override PersistedSensorInformation Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+		{
+			if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
+
+			reader.Read();
+			if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.DataType)) throw new JsonException();
+
+			reader.Read();
+			var dataType = JsonSerializer.Deserialize<SensorDataType>(ref reader, options);
+
+			reader.Read();
+			if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.UnitSymbol)) throw new JsonException();
+
+			reader.Read();
+			string unitSymbol = reader.GetString() ?? throw new JsonException();
+
+			reader.Read();
+			if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.IsPolled)) throw new JsonException();
+
+			reader.Read();
+			bool isPolled = reader.GetBoolean();
+
+			object? maxValue = null;
+			object? minValue = null;
+			reader.Read();
+			if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
+			if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
+			switch (reader.GetString())
+			{
+			case nameof(PersistedSensorInformation.ScaleMinimumValue):
+				reader.Read();
+				minValue = ReadNumericValue(ref reader, dataType, options);
+				reader.Read();
+				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
+				if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.ScaleMaximumValue)) throw new JsonException();
+				goto case nameof(PersistedSensorInformation.ScaleMaximumValue);
+			case nameof(PersistedSensorInformation.ScaleMaximumValue):
+				reader.Read();
+				minValue = ReadNumericValue(ref reader, dataType, options);
+				reader.Read();
+				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
+				goto default;
+			default:
+				throw new JsonException();
+			}
+		Complete:;
+			return new()
+			{
+				DataType = dataType,
+				UnitSymbol = unitSymbol,
+				IsPolled = isPolled,
+				ScaleMinimumValue = minValue,
+				ScaleMaximumValue = maxValue,
+			};
+		}
+
+		private static object ReadNumericValue(ref Utf8JsonReader reader, SensorDataType dataType, JsonSerializerOptions options)
+			=> dataType switch
+			{
+				SensorDataType.UInt8 => reader.GetByte(),
+				SensorDataType.UInt16 => reader.GetUInt16(),
+				SensorDataType.UInt32 => reader.GetUInt32(),
+				SensorDataType.UInt64 => reader.GetUInt64(),
+				SensorDataType.UInt128 => JsonSerializer.Deserialize<UInt128>(ref reader, options),
+				SensorDataType.SInt8 => reader.GetSByte(),
+				SensorDataType.SInt16 => reader.GetInt16(),
+				SensorDataType.SInt32 => reader.GetInt32(),
+				SensorDataType.SInt64 => reader.GetInt64(),
+				SensorDataType.SInt128 => JsonSerializer.Deserialize<Int128>(ref reader, options),
+				SensorDataType.Float16 => JsonSerializer.Deserialize<Half>(ref reader, options),
+				SensorDataType.Float32 => reader.GetSingle(),
+				SensorDataType.Float64 => reader.GetDouble(),
+				_ => throw new InvalidOperationException(),
+			};
+
+		private static void WriteNumericProperty(Utf8JsonWriter writer, SensorDataType dataType, string propertyName, object value, JsonSerializerOptions options)
+		{
+			writer.WritePropertyName(propertyName);
+			switch (dataType)
+			{
+			case SensorDataType.UInt8: writer.WriteNumberValue((byte)value); break;
+			case SensorDataType.UInt16: writer.WriteNumberValue((ushort)value); break;
+			case SensorDataType.UInt32: writer.WriteNumberValue((uint)value); break;
+			case SensorDataType.UInt64: writer.WriteNumberValue((ulong)value); break;
+			case SensorDataType.UInt128: JsonSerializer.Serialize(writer, (UInt128)value, options); break;
+			case SensorDataType.SInt8: writer.WriteNumberValue((sbyte)value); break;
+			case SensorDataType.SInt16: writer.WriteNumberValue((short)value); break;
+			case SensorDataType.SInt32: writer.WriteNumberValue((int)value); break;
+			case SensorDataType.SInt64: writer.WriteNumberValue((long)value); break;
+			case SensorDataType.SInt128: JsonSerializer.Serialize(writer, (Int128)value, options); break;
+			case SensorDataType.Float16: JsonSerializer.Serialize(writer, (Half)value, options); break;
+			case SensorDataType.Float32: writer.WriteNumberValue((float)value); break;
+			case SensorDataType.Float64: writer.WriteNumberValue((double)value); break;
+			default: throw new InvalidOperationException();
+			};
+		}
+
+		public override void Write(Utf8JsonWriter writer, PersistedSensorInformation value, JsonSerializerOptions options)
+		{
+			writer.WriteStartObject();
+			writer.WritePropertyName(nameof(PersistedSensorInformation.DataType));
+			JsonSerializer.Serialize(writer, value.DataType, options);
+			writer.WriteString(nameof(PersistedSensorInformation.UnitSymbol), value.UnitSymbol);
+			writer.WriteBoolean(nameof(PersistedSensorInformation.IsPolled), value.IsPolled);
+			if (value.ScaleMinimumValue is not null)
+			{
+				WriteNumericProperty(writer, value.DataType, nameof(PersistedSensorInformation.ScaleMinimumValue), value.ScaleMinimumValue, options);
+			}
+			if (value.ScaleMaximumValue is not null)
+			{
+				WriteNumericProperty(writer, value.DataType, nameof(PersistedSensorInformation.ScaleMaximumValue), value.ScaleMaximumValue, options);
+			}
+			writer.WriteEndObject();
+		}
 	}
 
 	private static readonly Dictionary<Type, SensorDataType> SensorDataTypes = new()
@@ -89,7 +217,7 @@ public sealed partial class SensorService
 				var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorInformation>(sensorId, cancellationToken).ConfigureAwait(false);
 				if (!result.Found) continue;
 				var info = result.Value;
-				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.UnitSymbol, info.IsPolled));
+				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.UnitSymbol, info.IsPolled, info.ScaleMinimumValue, info.ScaleMaximumValue));
 			}
 
 			if (sensorInformations.Count > 0)
@@ -284,7 +412,36 @@ public sealed partial class SensorService
 		}
 	}
 
-	private static SensorInformation BuildSensorInformation(ISensor sensor) => new SensorInformation(sensor.SensorId, SensorDataTypes[sensor.ValueType], sensor.Unit.Symbol, sensor.IsPolled);
+	private static SensorInformation BuildSensorInformation(ISensor sensor)
+	{
+		var dataType = SensorDataTypes[sensor.ValueType];
+
+		return dataType switch
+		{
+			SensorDataType.UInt8 => BuildSensorInformation<byte>(sensor, dataType),
+			SensorDataType.UInt16 => BuildSensorInformation<ushort>(sensor, dataType),
+			SensorDataType.UInt32 => BuildSensorInformation<uint>(sensor, dataType),
+			SensorDataType.UInt64 => BuildSensorInformation<ulong>(sensor, dataType),
+			SensorDataType.UInt128 => BuildSensorInformation<UInt128>(sensor, dataType),
+			SensorDataType.SInt8 => BuildSensorInformation<sbyte>(sensor, dataType),
+			SensorDataType.SInt16 => BuildSensorInformation<short>(sensor, dataType),
+			SensorDataType.SInt32 => BuildSensorInformation<int>(sensor, dataType),
+			SensorDataType.SInt64 => BuildSensorInformation<long>(sensor, dataType),
+			SensorDataType.SInt128 => BuildSensorInformation<Int128>(sensor, dataType),
+			SensorDataType.Float16 => BuildSensorInformation<Half>(sensor, dataType),
+			SensorDataType.Float32 => BuildSensorInformation<float>(sensor, dataType),
+			SensorDataType.Float64 => BuildSensorInformation<double>(sensor, dataType),
+			_ => throw new InvalidOperationException(),
+		};
+	}
+
+	private static SensorInformation BuildSensorInformation<T>(ISensor sensor, SensorDataType dataType)
+		where T : struct, INumber<T>
+		=> BuildSensorInformation((ISensor<T>)sensor, dataType);
+
+	private static SensorInformation BuildSensorInformation<T>(ISensor<T> sensor, SensorDataType dataType)
+		where T : struct, INumber<T>
+		=> new SensorInformation(sensor.SensorId, dataType, sensor.Unit.Symbol, sensor.IsPolled, sensor.ScaleMinimumValue, sensor.ScaleMaximumValue);
 
 	private async ValueTask HandleRemovalAsync(DeviceWatchNotification notification)
 	{
