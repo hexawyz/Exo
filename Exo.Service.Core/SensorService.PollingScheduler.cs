@@ -1,4 +1,4 @@
-﻿using System.Runtime.ExceptionServices;
+using System.Runtime.ExceptionServices;
 
 namespace Exo.Service;
 
@@ -24,8 +24,21 @@ public sealed partial class SensorService
 
 		private void OnTick(object? state)
 		{
-			_tickSignal.TrySetResult();
-			Volatile.Write(ref _tickSignal, new());
+			bool lockTaken = false;
+			try
+			{
+				Monitor.TryEnter(_lock, ref lockTaken);
+				if (!lockTaken) return;
+				_tickSignal.TrySetResult();
+				Volatile.Write(ref _tickSignal, new(TaskCreationOptions.RunContinuationsAsynchronously));
+			}
+			finally
+			{
+				if (lockTaken)
+				{
+					Monitor.Exit(_lock);
+				}
+			}
 		}
 
 		public void Acquire()

@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
-using System.Threading.Channels;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using Exo.ColorFormats;
@@ -25,168 +25,18 @@ public partial class NVidiaGpuDriver :
 	IDisplayAdapterI2CBusProviderFeature,
 	ILightingControllerFeature,
 	ILightingDeferredChangesFeature,
-	ISensorsFeature
+	ISensorsFeature,
+	ISensorsGroupedQueryFeature
 {
-	private sealed class UtilizationWatcher : IAsyncDisposable
+	private abstract class GroupQueriedSensor
 	{
-		private readonly NvApi.PhysicalGpu _gpu;
-		private readonly UtilizationSensor _graphicsSensor;
-		private readonly UtilizationSensor _frameBufferSensor;
-		private readonly UtilizationSensor _videoSensor;
-		private int _referenceCount;
-		private readonly object _lock;
-		private TaskCompletionSource _enableSignal;
-		private CancellationTokenSource? _disableCancellationTokenSource;
-		private CancellationTokenSource? _disposeCancellationTokenSource;
-		private readonly Task _runTask;
+		protected GroupQueriedSensor(NvApi.PhysicalGpu gpu) => Gpu = gpu;
 
-		public UtilizationSensor GraphicsSensor => _graphicsSensor;
-		public UtilizationSensor FrameBufferSensor => _frameBufferSensor;
-		public UtilizationSensor VideoSensor => _videoSensor;
+		public NvApi.PhysicalGpu Gpu { get; }
 
-		public UtilizationWatcher(NvApi.PhysicalGpu gpu)
-		{
-			_gpu = gpu;
-			_graphicsSensor = new(this, GraphicsUtilizationSensorId);
-			_frameBufferSensor = new(this, FrameBufferUtilizationSensorId);
-			_videoSensor = new(this, VideoUtilizationSensorId);
-			_lock = new();
-			_enableSignal = new();
-			_disposeCancellationTokenSource = new();
-			_runTask = RunAsync(_disposeCancellationTokenSource.Token);
-		}
+		public bool IsGroupQueryEnabled { get; set; }
 
-		public async ValueTask DisposeAsync()
-		{
-			if (Interlocked.Exchange(ref _disposeCancellationTokenSource, null) is { } cts)
-			{
-				cts.Cancel();
-				Volatile.Read(ref _enableSignal).TrySetResult();
-				await _runTask.ConfigureAwait(false);
-				cts.Dispose();
-			}
-		}
-
-		public void Acquire()
-		{
-			lock (_lock)
-			{
-				if (_referenceCount++ == 0)
-				{
-					_enableSignal.TrySetResult();
-				}
-			}
-		}
-
-		// This function is called by a sensor state to cancel grouped querying for it.
-		// NB: The sensor state *WILL* ensure that this method is never called twice in succession for a given sensor.
-		public void Release()
-		{
-			lock (_lock)
-			{
-				if (--_referenceCount == 0)
-				{
-					if (Interlocked.Exchange(ref _disableCancellationTokenSource, null) is { } cts)
-					{
-						cts.Cancel();
-						cts.Dispose();
-					}
-				}
-			}
-		}
-
-		private async Task RunAsync(CancellationToken cancellationToken)
-		{
-			try
-			{
-				while (true)
-				{
-					await _enableSignal.Task.ConfigureAwait(false);
-					if (cancellationToken.IsCancellationRequested) return;
-					var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-					var queryCancellationToken = cts.Token;
-					Volatile.Write(ref _disableCancellationTokenSource, cts);
-					try
-					{
-						await WatchValuesAsync(queryCancellationToken).ConfigureAwait(false);
-					}
-					catch (OperationCanceledException) when (queryCancellationToken.IsCancellationRequested)
-					{
-					}
-					if (cancellationToken.IsCancellationRequested) return;
-					cts = Interlocked.Exchange(ref _disableCancellationTokenSource, null);
-					cts?.Dispose();
-					Volatile.Write(ref _enableSignal, new());
-				}
-			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-			{
-			}
-			catch (Exception ex)
-			{
-				// TODO: Log
-			}
-		}
-
-		private async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
-		{
-			await foreach (var utilizationValue in _gpu.WatchUtilizationAsync(500, cancellationToken).ConfigureAwait(false))
-			{
-				var sensor = utilizationValue.Domain switch
-				{
-					NvApi.Gpu.Client.UtilizationDomain.Graphics => _graphicsSensor,
-					NvApi.Gpu.Client.UtilizationDomain.FrameBuffer => _frameBufferSensor,
-					NvApi.Gpu.Client.UtilizationDomain.Video => _videoSensor,
-					_ => null,
-				};
-				sensor?.OnDataReceived(utilizationValue.DateTime, utilizationValue.PerTenThousandValue);
-			}
-		}
-	}
-
-	private sealed class UtilizationSensor : IStreamedSensor<float>
-	{
-		private ChannelWriter<SensorDataPoint<float>>? _listener;
-		private readonly UtilizationWatcher _watcher;
-
-		public Guid SensorId { get; }
-
-		public UtilizationSensor(UtilizationWatcher watcher, Guid sensorId)
-		{
-			_watcher = watcher;
-			SensorId = sensorId;
-		}
-
-		public float? ScaleMinimumValue => 0;
-		public float? ScaleMaximumValue => 100;
-		public SensorUnit Unit => SensorUnit.Percent;
-
-		public async IAsyncEnumerable<SensorDataPoint<float>> EnumerateValuesAsync(CancellationToken cancellationToken)
-		{
-			var channel = Channel.CreateUnbounded<SensorDataPoint<float>>(SharedOptions.ChannelOptions);
-			if (Interlocked.CompareExchange(ref _listener, channel, null) is not null) throw new InvalidOperationException("An enumeration is already running.");
-			try
-			{
-				_watcher.Acquire();
-				try
-				{
-					await foreach (var dataPoint in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-					{
-						yield return dataPoint;
-					}
-				}
-				finally
-				{
-					_watcher.Release();
-				}
-			}
-			finally
-			{
-				Volatile.Write(ref _listener, null);
-			}
-		}
-
-		public void OnDataReceived(DateTime dateTime, uint value) => Volatile.Read(ref _listener)?.TryWrite(new SensorDataPoint<float>(dateTime, value * 0.01f));
+		public GroupedQueryMode GroupedQueryMode => IsGroupQueryEnabled ? GroupedQueryMode.Enabled : GroupedQueryMode.Supported;
 	}
 
 	private const ushort NVidiaVendorId = 0x10DE;
@@ -227,16 +77,21 @@ public partial class NVidiaGpuDriver :
 	private static readonly Guid FrameBufferUtilizationSensorId = new(0xBF9AAD1D, 0xE013, 0x4178, 0x97, 0xB3, 0x42, 0x20, 0xD2, 0x6C, 0xBE, 0x71);
 	private static readonly Guid VideoUtilizationSensorId = new(0x147C8F52, 0x1402, 0x4515, 0xB9, 0xFB, 0x41, 0x48, 0xFD, 0x02, 0x12, 0xA4);
 
+	private static readonly Guid GpuThermalSensorId = new(0xB65044BE, 0xA3B0, 0x4EFB, 0x9E, 0xFB, 0x82, 0x6E, 0x3B, 0xD7, 0x60, 0xA0);
+	private static readonly Guid MemoryThermalSensorId = new(0x463292D7, 0x4C7F, 0x4848, 0xBA, 0x9E, 0x71, 0x28, 0x21, 0xDF, 0xD5, 0xE8);
+	private static readonly Guid PowerSupplyThermalSensorId = new(0x73356F82, 0x4194, 0x46DF, 0x9F, 0x9F, 0x25, 0x19, 0x21, 0x01, 0x5F, 0x81);
+	private static readonly Guid BoardThermalSensorId = new(0x359E57BE, 0x577D, 0x46ED, 0xA0, 0x9A, 0xD3, 0xA4, 0x4B, 0x95, 0xCA, 0xE8);
+
 	[DiscoverySubsystem<PciDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayAdapter)]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayDeviceArrival)]
 	[VendorId(VendorIdSource.Pci, NVidiaVendorId)]
 	public static ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
+		ILogger<NVidiaGpuDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		DeviceObjectInformation topLevelDevice,
-		DeviceId deviceId,
-		ILogger<NVidiaGpuDriver> logger
+		DeviceId deviceId
 	)
 	{
 		// First, we need identify the expected bus number and address.
@@ -394,13 +249,15 @@ public partial class NVidiaGpuDriver :
 				keys,
 				new NVidiaGpuDriver
 				(
+					logger,
 					deviceId,
 					friendlyName,
 					new("nv", topLevelDevice.Id, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", serialNumber.Length > 0 ? Convert.ToHexString(serialNumber) : null),
 					foundGpu,
 					@lock,
 					zoneControls,
-					lightingZones.DrainToImmutable()
+					lightingZones.DrainToImmutable(),
+					thermalSensors.AsSpan(0, sensorCount)
 				)
 			)
 		);
@@ -418,6 +275,9 @@ public partial class NVidiaGpuDriver :
 	private readonly IReadOnlyCollection<ILightingZone> _lightingZoneCollection;
 	private readonly ImmutableArray<FeatureSetDescription> _featureSets;
 	private readonly UtilizationWatcher _utilizationWatcher;
+	private readonly ThermalTargetSensor[] _thermalTargetSensors;
+	private int _thermalGroupQueriedSensorCount;
+	private readonly ILogger<NVidiaGpuDriver> _logger;
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
 
@@ -435,29 +295,44 @@ public partial class NVidiaGpuDriver :
 
 	private NVidiaGpuDriver
 	(
+		ILogger<NVidiaGpuDriver> logger,
 		DeviceId deviceId,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
 		NvApi.PhysicalGpu gpu,
 		object @lock,
 		NvApi.Gpu.Client.IlluminationZoneControl[] zoneControls,
-		ImmutableArray<LightingZone> lightingZones
+		ImmutableArray<LightingZone> lightingZones,
+		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors
 	) : base(friendlyName, configurationKey)
 	{
+		_logger = logger;
 		DeviceId = deviceId;
 		_illuminationZoneControls = zoneControls;
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
 		_utilizationWatcher = new(gpu);
-		_sensors = [_utilizationWatcher.GraphicsSensor, _utilizationWatcher.FrameBufferSensor, _utilizationWatcher.VideoSensor];
+		var sensors = ImmutableArray.CreateBuilder<ISensor>();
+		sensors.Add(_utilizationWatcher.GraphicsSensor);
+		sensors.Add(_utilizationWatcher.FrameBufferSensor);
+		sensors.Add(_utilizationWatcher.VideoSensor);
+		// Nowadays, only the GPU thermal target would be returned. Usage of yet another undocumented API will be required. (To be done later)
+		_thermalTargetSensors = new ThermalTargetSensor[thermalSensors.Length];
+		for (int i = 0; i < thermalSensors.Length; i++)
+		{
+			sensors.Add(_thermalTargetSensors[i] = new(_gpu, thermalSensors[i], (byte)i));
+		}
+		_sensors = sensors.DrainToImmutable();
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
 		_lightingFeatures = lightingZones.Length > 0 ?
 			FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this) :
 			FeatureSet.Empty<ILightingDeviceFeature>();
-		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature>(this);
+		_sensorFeatures = _thermalTargetSensors.Length > 0 ?
+			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this) :
+			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature>(this);
 		_featureSets = lightingZones.Length > 0 ?
 			[
 				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
@@ -516,5 +391,64 @@ public partial class NVidiaGpuDriver :
 			}
 		}
 		return ValueTask.FromException<II2CBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Could not find the monitor.")));
+	}
+
+	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
+	{
+		if (sensor is not GroupQueriedSensor s || s.Gpu != _gpu) throw new ArgumentException();
+		if (!s.IsGroupQueryEnabled)
+		{
+			s.IsGroupQueryEnabled = true;
+			if (s is ThermalTargetSensor)
+			{
+				_thermalGroupQueriedSensorCount++;
+			}
+		}
+	}
+
+	void ISensorsGroupedQueryFeature.RemoveSensor(IPolledSensor sensor)
+	{
+		if (sensor is not GroupQueriedSensor s || s.Gpu != _gpu) throw new ArgumentException();
+		if (s.IsGroupQueryEnabled)
+		{
+			s.IsGroupQueryEnabled = false;
+			if (s is ThermalTargetSensor)
+			{
+				_thermalGroupQueriedSensorCount--;
+			}
+		}
+	}
+
+	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
+	{
+		QueryThermalSensors();
+		return ValueTask.CompletedTask;
+	}
+
+	private void QueryThermalSensors()
+	{
+		if (_thermalGroupQueriedSensorCount == 0) return;
+
+		Span<NvApi.Gpu.ThermalSensor> sensors = stackalloc NvApi.Gpu.ThermalSensor[3];
+
+		int thermalSensorCount;
+		try
+		{
+			_logger.LogInformation("A");
+			thermalSensorCount = _gpu.GetThermalSettings(sensors);
+			_logger.LogInformation("B");
+
+			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
+			if (thermalSensorCount == _thermalTargetSensors.Length)
+			{
+				for (int i = 0; i < thermalSensorCount; i++)
+				{
+					_thermalTargetSensors[i].OnValueRead((short)sensors[i].CurrentTemp);
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+		}
 	}
 }

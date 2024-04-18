@@ -295,7 +295,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
 	{
 		if (sensor is not Sensor s || s.Driver != this) throw new ArgumentException();
-		if (s.GroupedQueryMode != GroupedQueryMode.Enabled)
+		if (!s.IsGroupQueryEnabled)
 		{
 			s.IsGroupQueryEnabled = true;
 			_groupQueriedSensorCount++;
@@ -305,7 +305,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 	void ISensorsGroupedQueryFeature.RemoveSensor(IPolledSensor sensor)
 	{
 		if (sensor is not Sensor s || s.Driver != this) throw new ArgumentException();
-		if (s.GroupedQueryMode == GroupedQueryMode.Enabled)
+		if (s.IsGroupQueryEnabled)
 		{
 			s.IsGroupQueryEnabled = false;
 			_groupQueriedSensorCount--;

@@ -789,7 +789,7 @@ internal sealed class NvApi
 		}
 	}
 
-	public readonly struct PhysicalGpu
+	public readonly struct PhysicalGpu : IEquatable<PhysicalGpu>
 	{
 		private readonly nint _handle;
 
@@ -1043,6 +1043,14 @@ internal sealed class NvApi
 			ValidateResult(Functions.Gpu.ClientIllumZonesSetControl(_handle, &query));
 		}
 
+		public unsafe Gpu.ThermalSensor GetThermalSettings(uint sensorIndex)
+		{
+			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(2) };
+			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, sensorIndex, &thermalSettings));
+			if (thermalSettings.Count != 1) throw new InvalidOperationException("Invalid thermal reading count.");
+			return thermalSettings.Sensors[0];
+		}
+
 		public unsafe int GetThermalSettings(Span<Gpu.ThermalSensor> thermalSensors)
 		{
 			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(2) };
@@ -1120,6 +1128,13 @@ internal sealed class NvApi
 			};
 			ValidateResult(Functions.Gpu.ClientRegisterForUtilizationSampleUpdates(handle, &settings));
 		}
+
+		public override bool Equals(object? obj) => obj is PhysicalGpu gpu && Equals(gpu);
+		public bool Equals(PhysicalGpu other) => _handle.Equals(other._handle);
+		public override int GetHashCode() => HashCode.Combine(_handle);
+
+		public static bool operator ==(PhysicalGpu left, PhysicalGpu right) => left.Equals(right);
+		public static bool operator !=(PhysicalGpu left, PhysicalGpu right) => !(left == right);
 	}
 
 	public readonly struct GpuClientUtilizationData
