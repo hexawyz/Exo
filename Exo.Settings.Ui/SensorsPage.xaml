@@ -38,12 +38,14 @@
                                             Background="{ThemeResource AccentAcrylicBackgroundFillColorBaseBrush}"
                                             HorizontalAlignment="Center"
                                             Stroke="{ThemeResource AccentFillColorDefaultBrush}"
+                                            StrokeThickness="1"
                                             StrokeLineJoin="Round"
                                             AreaFill="{ThemeResource AccentFillColorDefaultBrush}"
                                             AreaOpacity="0.5"
                                             Series="{Binding LiveDetails.History}"
                                             BorderBrush="{StaticResource TextFillColorSecondaryBrush}"
                                             BorderThickness="1"
+                                            HorizontalGridStroke="{ThemeResource AccentFillColorSelectedTextBackgroundBrush}"
                                             ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
                                             ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
                                         <TextBlock Grid.Row="1" Text="{Binding LiveDetails.CurrentValue}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,8,6" />

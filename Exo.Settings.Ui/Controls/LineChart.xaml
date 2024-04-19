@@ -4,6 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui.Controls">
     <Style TargetType="local:LineChart">
+        <Setter Property="BorderBrush" Value="Gray" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="HorizontalGridStroke" Value="LightGray" />
+        <Setter Property="Stroke" Value="Black" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeLineJoin" Value="Round" />
+        <Setter Property="AreaFill" Value="Black" />
+        <Setter Property="AreaOpacity" Value="0.75" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:LineChart">
@@ -14,8 +23,9 @@
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}">
                         <Grid x:Name="PART_LayoutGrid">
+                            <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
                             <Path x:Name="PART_FillPath" Fill="{TemplateBinding AreaFill}" Opacity="{TemplateBinding AreaOpacity}" />
-                            <Path x:Name="PART_StrokePath" Stroke="{TemplateBinding Stroke}" StrokeLineJoin="{TemplateBinding StrokeLineJoin}" />
+                            <Path x:Name="PART_StrokePath" Stroke="{TemplateBinding Stroke}" StrokeThickness="{TemplateBinding StrokeThickness}" StrokeLineJoin="{TemplateBinding StrokeLineJoin}" />
                         </Grid>
                     </Border>
                 </ControlTemplate>
