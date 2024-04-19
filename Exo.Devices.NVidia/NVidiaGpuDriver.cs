@@ -434,9 +434,7 @@ public partial class NVidiaGpuDriver :
 		int thermalSensorCount;
 		try
 		{
-			_logger.LogInformation("A");
 			thermalSensorCount = _gpu.GetThermalSettings(sensors);
-			_logger.LogInformation("B");
 
 			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
 			if (thermalSensorCount == _thermalTargetSensors.Length)
