@@ -12,6 +12,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <local:DataTemplates />
+                <ResourceDictionary Source="Controls\LineChart.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
@@ -51,7 +52,6 @@
             <local:StringFormatConverter x:Key="StringFormatConverter" />
             <local:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
             <local:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
-            <local:HistoryDataToPathGeometryConverter x:Key="HistoryDataToPathGeometryConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

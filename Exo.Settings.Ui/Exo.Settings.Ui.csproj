@@ -18,6 +18,7 @@
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Controls\LineChart.xaml" />
     <None Remove="CustomMenuPage.xaml" />
     <None Remove="DataTemplates.xaml" />
     <None Remove="DevicePage.xaml" />
@@ -66,6 +67,11 @@
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\LineChart.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="SensorsPage.xaml">

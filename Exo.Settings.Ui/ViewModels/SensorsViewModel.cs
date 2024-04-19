@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using Exo.Contracts.Ui.Settings;
+using Exo.Settings.Ui.Controls;
 using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -269,7 +270,7 @@ internal sealed class SensorViewModel : BindableObject
 internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposable
 {
 	// This is a public wrapper that is used to expose the data and allow it to be rendered into a chart.
-	public sealed class HistoryData
+	public sealed class HistoryData : ITimeSeries
 	{
 		private readonly LiveSensorDetailsViewModel _viewModel;
 
@@ -291,8 +292,11 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 			}
 		}
 
-		public double? MinValue => _viewModel._sensor.ScaleMinimumValue ?? (_viewModel._sensor.Unit == "%" ? 0 : null);
-		public double? MaxValue => _viewModel._sensor.ScaleMaximumValue ?? (_viewModel._sensor.Unit == "%" ? 100 : null);
+		public TimeSpan Interval => new(TimeSpan.TicksPerSecond);
+
+		public event EventHandler? Changed;
+
+		public void NotifyChange() => Changed?.Invoke(this, EventArgs.Empty);
 	}
 
 	private const int WindowSizeInSeconds = 1 * 60;
@@ -375,7 +379,7 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 			_currentTimestampInSeconds = currentTimestamp;
 			_dataPoints[_currentPointIndex] = dataPoint.Value;
 			SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
-			NotifyPropertyChanged(ChangedProperty.History);
+			History.NotifyChange();
 		}
 	}
 }
