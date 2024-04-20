@@ -359,7 +359,7 @@ public partial class NVidiaGpuDriver :
 		_sensorFeatures = _thermalTargetSensors.Length > 0 ?
 			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this) :
 			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature>(this);
-		_featureSets = lightingZones.Length > 0 ?
+		_featureSets = lightingZones.Length == 0 ?
 			[
 				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
 				FeatureSetDescription.CreateStatic<IDisplayAdapterDeviceFeature>(),
