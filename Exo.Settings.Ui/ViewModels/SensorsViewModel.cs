@@ -395,5 +395,50 @@ public readonly struct NumberWithUnit
 	public double Value { get; }
 	public string? Symbol { get; }
 
-	public override string ToString() => Symbol is not null ? $"{Value:G3}\xA0{Symbol}" : Value.ToString("G3");
+	public override string ToString()
+	{
+		if (Symbol is not { } symbol) return Value.ToString("G3");
+
+		var value = Value;
+		if (value > 1000)
+		{
+			if (symbol == "Hz")
+			{
+				if (Value > 1_000_000_000)
+				{
+					value *= 0.000000001;
+					symbol = "GHz";
+				}
+				else if (Value > 1_000_000)
+				{
+					value *= 0.000001;
+					symbol = "MHz";
+				}
+				else
+				{
+					value *= 0.001;
+					symbol = "kHz";
+				}
+			}
+			else if (symbol == "kHz")
+			{
+				if (Value > 1000_000)
+				{
+					value *= 0.000001;
+					symbol = "GHz";
+				}
+				else
+				{
+					value *= 0.001;
+					symbol = "MHz";
+				}
+			}
+			else if (symbol == "MHz")
+			{
+				value *= 0.001;
+				symbol = "GHz";
+			}
+		}
+		return $"{value:G3}\xA0{symbol}";
+	}
 }

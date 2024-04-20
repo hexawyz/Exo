@@ -63,6 +63,7 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint> ClientIllumZonesSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.IlluminationZoneControlQuery*, uint>)QueryInterface(0x197d065e);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint> ClientRegisterForUtilizationSampleUpdates = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint>)QueryInterface(0xadeeaf67);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint> GetThermalSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint>)QueryInterface(0xe3640a56);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint> GetAllClockFrequencies = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint>)QueryInterface(0xdcb616c3);
 		}
 
 		public static class System
@@ -284,6 +285,47 @@ internal sealed class NvApi
 			public nint PhysicalGpuHandle;
 			public IlluminationAttribute Attribute;
 			public uint Value;
+		}
+
+		public enum PublicClock
+		{
+			Graphics = 0,
+			Memory = 4,
+			Processor = 7,
+			Video = 8,
+		}
+
+		public enum ClockType
+		{
+			Current = 0,
+			Base = 1,
+			Boost = 2,
+		}
+
+		public struct ClockFrequency
+		{
+			private uint _flags;
+			public uint FrequencyInKiloHertz;
+
+			public bool IsPresent => (_flags & 1) != 0;
+		}
+
+		[InlineArray(32)]
+		internal struct ClockFrequencyArray
+		{
+			private ClockFrequency _element0;
+		}
+
+		public struct ClockFrequencies
+		{
+			public uint Version;
+			private uint _flags;
+			public ClockType ClockType
+			{
+				get => (ClockType)(_flags & 0xFU);
+				set => _flags = (_flags & ~0xFU) | ((uint)value & 0xFU);
+			}
+			public ClockFrequencyArray Domains;
 		}
 
 		public enum ThermalController
@@ -1060,6 +1102,22 @@ internal sealed class NvApi
 			return (int)thermalSettings.Count;
 		}
 
+		public unsafe int GetClockFrequencies(Gpu.ClockType clockType, Span<GpuClockFrequency> clockFrequencies)
+		{
+			var apiClockFrequencies = new Gpu.ClockFrequencies { Version = StructVersion<Gpu.ClockFrequencies>(3), ClockType = clockType };
+			ValidateResult(Functions.Gpu.GetAllClockFrequencies(_handle, &apiClockFrequencies));
+			int count = 0;
+			var domains = (ReadOnlySpan<Gpu.ClockFrequency>)apiClockFrequencies.Domains;
+			for (int i = 0; i < domains.Length; i++)
+			{
+				if (domains[i].IsPresent)
+				{
+					clockFrequencies[count++] = new GpuClockFrequency((Gpu.PublicClock)i, domains[i].FrequencyInKiloHertz);
+				}
+			}
+			return count;
+		}
+
 		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
 		private static unsafe void OnUtilizationUpdate(nint physicalGpuHandle, Gpu.Client.CallbackUtilizationData* data)
 		{
@@ -1149,5 +1207,17 @@ internal sealed class NvApi
 		public DateTime DateTime { get; }
 		public uint PerTenThousandValue { get; }
 		public Gpu.Client.UtilizationDomain Domain { get; }
+	}
+
+	public readonly struct GpuClockFrequency
+	{
+		public GpuClockFrequency(Gpu.PublicClock clock, uint frequencyInKiloHertz)
+		{
+			Clock = clock;
+			FrequencyInKiloHertz = frequencyInKiloHertz;
+		}
+
+		public Gpu.PublicClock Clock { get; }
+		public uint FrequencyInKiloHertz { get; }
 	}
 }

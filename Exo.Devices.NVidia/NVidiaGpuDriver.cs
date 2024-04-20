@@ -82,6 +82,11 @@ public partial class NVidiaGpuDriver :
 	private static readonly Guid PowerSupplyThermalSensorId = new(0x73356F82, 0x4194, 0x46DF, 0x9F, 0x9F, 0x25, 0x19, 0x21, 0x01, 0x5F, 0x81);
 	private static readonly Guid BoardThermalSensorId = new(0x359E57BE, 0x577D, 0x46ED, 0xA0, 0x9A, 0xD3, 0xA4, 0x4B, 0x95, 0xCA, 0xE8);
 
+	private static readonly Guid GraphicsFrequencySensorId = new(0xCD415440, 0xFB17, 0x441D, 0xA6, 0x4F, 0x6C, 0x62, 0x73, 0x34, 0x90, 0x00);
+	private static readonly Guid MemoryFrequencySensorId = new(0xDE435007, 0xCCD1, 0x414E, 0x8C, 0xF1, 0x22, 0x0F, 0xCC, 0xE4, 0xD0, 0x99);
+	private static readonly Guid ProcessorFrequencySensorId = new(0x6E1311E3, 0xD1FB, 0x4555, 0x8C, 0xD9, 0xD0, 0xF3, 0xF6, 0x43, 0x31, 0xEB);
+	private static readonly Guid VideoFrequencySensorId = new(0xD9272343, 0x5AC4, 0x4CD8, 0x9F, 0x7A, 0x02, 0xE1, 0x30, 0xC1, 0x5F, 0xD3);
+
 	[DiscoverySubsystem<PciDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayAdapter)]
 	[DeviceInterfaceClass(DeviceInterfaceClass.DisplayDeviceArrival)]
@@ -242,6 +247,9 @@ public partial class NVidiaGpuDriver :
 		var thermalSensors = new NvApi.Gpu.ThermalSensor[3];
 		int sensorCount = foundGpu.GetThermalSettings(thermalSensors);
 
+		var clockFrequencies = new NvApi.GpuClockFrequency[32];
+		int clockFrequencyCount = foundGpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
+
 		return new
 		(
 			new DriverCreationResult<SystemDevicePath>
@@ -257,7 +265,8 @@ public partial class NVidiaGpuDriver :
 					@lock,
 					zoneControls,
 					lightingZones.DrainToImmutable(),
-					thermalSensors.AsSpan(0, sensorCount)
+					thermalSensors.AsSpan(0, sensorCount),
+					clockFrequencies.AsSpan(0, clockFrequencyCount)
 				)
 			)
 		);
@@ -276,7 +285,9 @@ public partial class NVidiaGpuDriver :
 	private readonly ImmutableArray<FeatureSetDescription> _featureSets;
 	private readonly UtilizationWatcher _utilizationWatcher;
 	private readonly ThermalTargetSensor[] _thermalTargetSensors;
+	private readonly ClockSensor?[] _clockSensors;
 	private int _thermalGroupQueriedSensorCount;
+	private int _clockGroupQueriedSensorCount;
 	private readonly ILogger<NVidiaGpuDriver> _logger;
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
@@ -303,7 +314,8 @@ public partial class NVidiaGpuDriver :
 		object @lock,
 		NvApi.Gpu.Client.IlluminationZoneControl[] zoneControls,
 		ImmutableArray<LightingZone> lightingZones,
-		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors
+		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors,
+		ReadOnlySpan<NvApi.GpuClockFrequency> clockFrequencies
 	) : base(friendlyName, configurationKey)
 	{
 		_logger = logger;
@@ -313,7 +325,7 @@ public partial class NVidiaGpuDriver :
 		_gpu = gpu;
 		_lock = @lock;
 		_utilizationWatcher = new(gpu);
-		var sensors = ImmutableArray.CreateBuilder<ISensor>();
+		var sensors = ImmutableArray.CreateBuilder<ISensor>(3 + thermalSensors.Length + clockFrequencies.Length);
 		sensors.Add(_utilizationWatcher.GraphicsSensor);
 		sensors.Add(_utilizationWatcher.FrameBufferSensor);
 		sensors.Add(_utilizationWatcher.VideoSensor);
@@ -323,6 +335,20 @@ public partial class NVidiaGpuDriver :
 		{
 			sensors.Add(_thermalTargetSensors[i] = new(_gpu, thermalSensors[i], (byte)i));
 		}
+		// Process clocks while filtering out unsupported clocks.
+		var clockSensors = new ClockSensor?[clockFrequencies.Length];
+		for (int i = 0; i < clockFrequencies.Length; i++)
+		{
+			if (Enum.IsDefined(clockFrequencies[i].Clock))
+			{
+				sensors.Add(clockSensors[i] = new ClockSensor(_gpu, clockFrequencies[i]));
+			}
+			else
+			{
+				_logger.GpuClockNotSupported(clockFrequencies[i].Clock);
+			}
+		}
+		_clockSensors = clockSensors;
 		_sensors = sensors.DrainToImmutable();
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
@@ -403,6 +429,10 @@ public partial class NVidiaGpuDriver :
 			{
 				_thermalGroupQueriedSensorCount++;
 			}
+			else if (s is ClockSensor)
+			{
+				_clockGroupQueriedSensorCount++;
+			}
 		}
 	}
 
@@ -416,12 +446,17 @@ public partial class NVidiaGpuDriver :
 			{
 				_thermalGroupQueriedSensorCount--;
 			}
+			else if (s is ClockSensor)
+			{
+				_clockGroupQueriedSensorCount--;
+			}
 		}
 	}
 
 	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
 		QueryThermalSensors();
+		QueryClockSensors();
 		return ValueTask.CompletedTask;
 	}
 
@@ -431,10 +466,9 @@ public partial class NVidiaGpuDriver :
 
 		Span<NvApi.Gpu.ThermalSensor> sensors = stackalloc NvApi.Gpu.ThermalSensor[3];
 
-		int thermalSensorCount;
 		try
 		{
-			thermalSensorCount = _gpu.GetThermalSettings(sensors);
+			int thermalSensorCount = _gpu.GetThermalSettings(sensors);
 
 			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
 			if (thermalSensorCount == _thermalTargetSensors.Length)
@@ -442,6 +476,30 @@ public partial class NVidiaGpuDriver :
 				for (int i = 0; i < thermalSensorCount; i++)
 				{
 					_thermalTargetSensors[i].OnValueRead((short)sensors[i].CurrentTemp);
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+		}
+	}
+
+	private void QueryClockSensors()
+	{
+		if (_clockGroupQueriedSensorCount == 0) return;
+
+		Span<NvApi.GpuClockFrequency> clockFrequencies = stackalloc NvApi.GpuClockFrequency[32];
+
+		try
+		{
+			int clockFrequencyCount = _gpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
+
+			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
+			if (clockFrequencyCount == _clockSensors.Length)
+			{
+				for (int i = 0; i < _clockSensors.Length; i++)
+				{
+					_clockSensors[i]?.OnValueRead(clockFrequencies[i].FrequencyInKiloHertz);
 				}
 			}
 		}

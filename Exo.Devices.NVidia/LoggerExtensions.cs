@@ -39,4 +39,14 @@ internal static partial class LoggerExtensions
 		this ILogger logger,
 		byte illuminationZoneIndex
 	);
+
+	[LoggerMessage(EventId = 10201,
+		EventName = "GpuClockNotSupported",
+		Level = LogLevel.Warning,
+		Message = "Clock {Clock} is not supported. It will not be exposed as a sensor.")]
+	public static partial void GpuClockNotSupported
+	(
+		this ILogger logger,
+		NvApi.Gpu.PublicClock clock
+	);
 }

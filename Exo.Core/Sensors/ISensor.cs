@@ -148,6 +148,10 @@ public readonly struct SensorUnit
 	public static readonly SensorUnit Celsius = new("°C");
 	public static readonly SensorUnit Fahrenheits = new("°F");
 	public static readonly SensorUnit RotationsPerMinute = new("RPM");
+	public static readonly SensorUnit Hertz = new("Hz");
+	public static readonly SensorUnit KiloHertz = new("kHz");
+	public static readonly SensorUnit MegaHertz = new("MHz");
+	public static readonly SensorUnit GigaHertz = new("GHz");
 
 	public string Symbol { get; }
 
