@@ -210,15 +210,23 @@ public sealed partial class SensorService
 			_sensorService = sensorService;
 		}
 
-		//public async ValueTask PollAsync(CancellationToken cancellationToken)
-		//{
-		//	OnDataPointReceived(await Sensor.GetValueAsync(cancellationToken));
-		//}
-
-		protected override ValueTask WatchValuesAsync(CancellationToken cancellationToken)
+		protected override async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{
-			// TODO: Non-grouped sensors. (Would need to have a per-device state querying the sensors in order maybe? Or we assume that non-grouped queries can run in parallel and leave synchro to the driver… Which might actually be easier)
-			throw new NotSupportedException("Polled sensors that cannot be queried in a group are not supported yet.");
+			cancellationToken.ThrowIfCancellationRequested();
+			var scheduler = _sensorService._pollingScheduler;
+			scheduler.Acquire();
+			try
+			{
+				while (true)
+				{
+					await scheduler.WaitAsync(cancellationToken).ConfigureAwait(false);
+					OnDataPointReceived(await Sensor.GetValueAsync(cancellationToken).ConfigureAwait(false));
+				}
+			}
+			finally
+			{
+				scheduler.Release();
+			}
 		}
 	}
 
@@ -236,11 +244,6 @@ public sealed partial class SensorService
 			_sensorService = sensorService;
 			_groupedQueryState = groupedQueryState;
 		}
-
-		//public async ValueTask PollAsync(CancellationToken cancellationToken)
-		//{
-		//	OnDataPointReceived(await Sensor.GetValueAsync(cancellationToken));
-		//}
 
 		protected override async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{

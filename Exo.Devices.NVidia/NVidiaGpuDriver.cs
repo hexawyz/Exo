@@ -73,6 +73,8 @@ public partial class NVidiaGpuDriver :
 		new(0x82658966, 0x39CD, 0x40B7, 0xBA, 0x7C, 0x87, 0xB2, 0x7F, 0xE4, 0xAA, 0x99),
 	];
 
+	private static readonly Guid FanSpeedSensorId = new(0x3428225A, 0x6BE4, 0x44AF, 0xB1, 0xCD, 0x80, 0x0A, 0x55, 0xF9, 0x43, 0x2F);
+
 	private static readonly Guid GraphicsUtilizationSensorId = new(0x005F94DD, 0x09F5, 0x46D3, 0x99, 0x02, 0xE1, 0x5D, 0x6A, 0x19, 0xD8, 0x24);
 	private static readonly Guid FrameBufferUtilizationSensorId = new(0xBF9AAD1D, 0xE013, 0x4178, 0x97, 0xB3, 0x42, 0x20, 0xD2, 0x6C, 0xBE, 0x71);
 	private static readonly Guid VideoUtilizationSensorId = new(0x147C8F52, 0x1402, 0x4515, 0xB9, 0xFB, 0x41, 0x48, 0xFD, 0x02, 0x12, 0xA4);
@@ -244,6 +246,17 @@ public partial class NVidiaGpuDriver :
 			}
 		}
 
+		bool hasTachReading;
+		try
+		{
+			_ = foundGpu.GetTachReading();
+			hasTachReading = true;
+		}
+		catch
+		{
+			hasTachReading = false;
+		}
+
 		var thermalSensors = new NvApi.Gpu.ThermalSensor[3];
 		int sensorCount = foundGpu.GetThermalSettings(thermalSensors);
 
@@ -265,6 +278,7 @@ public partial class NVidiaGpuDriver :
 					@lock,
 					zoneControls,
 					lightingZones.DrainToImmutable(),
+					hasTachReading,
 					thermalSensors.AsSpan(0, sensorCount),
 					clockFrequencies.AsSpan(0, clockFrequencyCount)
 				)
@@ -314,6 +328,7 @@ public partial class NVidiaGpuDriver :
 		object @lock,
 		NvApi.Gpu.Client.IlluminationZoneControl[] zoneControls,
 		ImmutableArray<LightingZone> lightingZones,
+		bool hasTachReading,
 		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors,
 		ReadOnlySpan<NvApi.GpuClockFrequency> clockFrequencies
 	) : base(friendlyName, configurationKey)
@@ -329,6 +344,10 @@ public partial class NVidiaGpuDriver :
 		sensors.Add(_utilizationWatcher.GraphicsSensor);
 		sensors.Add(_utilizationWatcher.FrameBufferSensor);
 		sensors.Add(_utilizationWatcher.VideoSensor);
+		if (hasTachReading)
+		{
+			sensors.Add(new FanSensor(gpu));
+		}
 		// Nowadays, only the GPU thermal target would be returned. Usage of yet another undocumented API will be required. (To be done later)
 		_thermalTargetSensors = new ThermalTargetSensor[thermalSensors.Length];
 		for (int i = 0; i < thermalSensors.Length; i++)
