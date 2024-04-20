@@ -66,6 +66,8 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint> GetAllClockFrequencies = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint>)QueryInterface(0xdcb616c3);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetTachReading = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x5f608315);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> GetCoolerSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xda141340);
+			//public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> ClientFanCoolersGetInfo = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xfb85b01e);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersStatus*, uint> ClientFanCoolersGetStatus = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersStatus*, uint>)QueryInterface(0x35aed5e8);
 		}
 
 		public static class System
@@ -880,6 +882,46 @@ internal sealed class NvApi
 				public delegate* unmanaged[Cdecl]<nint, CallbackUtilizationData*, void> Callback;
 				private readonly ByteArray64 _reserved;
 			}
+
+			internal struct FanCoolerStatus
+			{
+				public uint FanId;
+				public uint SpeedInRotationsPerMinute;
+				public uint MinimumPower;
+				public uint MaximumPower;
+				public uint CurrentPower;
+				public uint Unknown05;
+				public uint Unknown06;
+				public uint Unknown07;
+				public uint Unknown08;
+				public uint Unknown09;
+				public uint Unknown10;
+				public uint Unknown11;
+				public uint Unknown12;
+			}
+
+			[InlineArray(32)]
+			internal struct FanCoolerStatusArray
+			{
+				private FanCoolerStatus _element0;
+			}
+
+			internal struct FanCoolersStatus
+			{
+				public uint Version;
+				public uint Count;
+
+				public uint Unknown0;
+				public uint Unknown1;
+				public uint Unknown2;
+				public uint Unknown3;
+				public uint Unknown4;
+				public uint Unknown5;
+				public uint Unknown6;
+				public uint Unknown7;
+
+				public FanCoolerStatusArray FanCoolers;
+			}
 		}
 	}
 
@@ -1194,7 +1236,7 @@ internal sealed class NvApi
 			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(Gpu.ThermalSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, 15, &thermalSettings));
 			if (thermalSettings.Count > 3) throw new InvalidOperationException("Invalid thermal reading count.");
-			((ReadOnlySpan<Gpu.ThermalSensor>)thermalSettings.Sensors).CopyTo(thermalSensors);
+			((ReadOnlySpan<Gpu.ThermalSensor>)thermalSettings.Sensors)[..(int)thermalSettings.Count].CopyTo(thermalSensors);
 			return (int)thermalSettings.Count;
 		}
 
@@ -1211,7 +1253,7 @@ internal sealed class NvApi
 			var coolerSettings = new Gpu.CoolerSettings { Version = StructVersion<Gpu.CoolerSettings>(Gpu.CoolerSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetCoolerSettings(_handle, (uint)Gpu.CoolerTarget.All, &coolerSettings));
 			if (coolerSettings.Count > 3) throw new InvalidOperationException("Invalid cooler count.");
-			((ReadOnlySpan<Gpu.CoolerInformation>)coolerSettings.Coolers).CopyTo(coolers);
+			((ReadOnlySpan<Gpu.CoolerInformation>)coolerSettings.Coolers)[..(int)coolerSettings.Count].CopyTo(coolers);
 			return (int)coolerSettings.Count;
 		}
 
@@ -1236,6 +1278,21 @@ internal sealed class NvApi
 			uint reading;
 			ValidateResult(Functions.Gpu.GetTachReading(_handle, &reading));
 			return reading;
+		}
+
+		public unsafe int GetFanCoolersStatus(Span<GpuFanStatus> fanCoolers)
+		{
+			var status = new Gpu.Client.FanCoolersStatus { Version = StructVersion<Gpu.Client.FanCoolersStatus>(1) };
+			ValidateResult(Functions.Gpu.ClientFanCoolersGetStatus(_handle, &status));
+			if (status.Count > 32) throw new InvalidOperationException("Invalid fan cooler count.");
+			if (fanCoolers.Length < status.Count) throw new ArgumentException("Provided storage is not large enough.");
+			var items = ((ReadOnlySpan<Gpu.Client.FanCoolerStatus>)status.FanCoolers)[..(int)status.Count];
+			for (int i = 0; i < status.Count; i++)
+			{
+				var item = items[i];
+				fanCoolers[i] = new GpuFanStatus(item.FanId, item.SpeedInRotationsPerMinute, item.MinimumPower, item.MaximumPower, item.CurrentPower);
+			}
+			return (int)status.Count;
 		}
 
 		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
@@ -1339,5 +1396,24 @@ internal sealed class NvApi
 
 		public Gpu.PublicClock Clock { get; }
 		public uint FrequencyInKiloHertz { get; }
+	}
+
+	public readonly struct GpuFanStatus
+	{
+		public GpuFanStatus(uint fanId, uint speedInRotationsPerMinute, uint minimumPower, uint maximumPower, uint currentPower)
+		{
+			FanId = fanId;
+			SpeedInRotationsPerMinute = speedInRotationsPerMinute;
+			MinimumPower = minimumPower;
+			MaximumPower = maximumPower;
+			CurrentPower = currentPower;
+		}
+
+		// Unsure whether this is an index or an enumeration like ThermalTarget, etc. Must be conservative when using that value.
+		public uint FanId { get; }
+		public uint SpeedInRotationsPerMinute { get; }
+		public uint MinimumPower { get; }
+		public uint MaximumPower { get; }
+		public uint CurrentPower { get; }
 	}
 }

@@ -73,7 +73,10 @@ public partial class NVidiaGpuDriver :
 		new(0x82658966, 0x39CD, 0x40B7, 0xBA, 0x7C, 0x87, 0xB2, 0x7F, 0xE4, 0xAA, 0x99),
 	];
 
-	private static readonly Guid FanSpeedSensorId = new(0x3428225A, 0x6BE4, 0x44AF, 0xB1, 0xCD, 0x80, 0x0A, 0x55, 0xF9, 0x43, 0x2F);
+	private static readonly Guid LegacyFanSpeedSensorId = new(0x3428225A, 0x6BE4, 0x44AF, 0xB1, 0xCD, 0x80, 0x0A, 0x55, 0xF9, 0x43, 0x2F);
+
+	private static readonly Guid Fan1SpeedSensorId = new(0xFCF6D2E1, 0x9048, 0x4E87, 0xAC, 0x9F, 0x91, 0xE2, 0x50, 0xE1, 0x21, 0x8B);
+	private static readonly Guid Fan2SpeedSensorId = new(0xBE0F57CB, 0xCD6D, 0x4422, 0xA0, 0x24, 0xB2, 0x8F, 0xF4, 0x25, 0xE9, 0x03);
 
 	private static readonly Guid GraphicsUtilizationSensorId = new(0x005F94DD, 0x09F5, 0x46D3, 0x99, 0x02, 0xE1, 0x5D, 0x6A, 0x19, 0xD8, 0x24);
 	private static readonly Guid FrameBufferUtilizationSensorId = new(0xBF9AAD1D, 0xE013, 0x4178, 0x97, 0xB3, 0x42, 0x20, 0xD2, 0x6C, 0xBE, 0x71);
@@ -246,7 +249,17 @@ public partial class NVidiaGpuDriver :
 			}
 		}
 
-		bool hasTachReading;
+		var fanStatuses = new NvApi.GpuFanStatus[32];
+		int fanStatusCount = 0;
+		try
+		{
+			fanStatusCount = foundGpu.GetFanCoolersStatus(fanStatuses);
+		}
+		catch
+		{
+		}
+
+		bool hasTachReading = false;
 		try
 		{
 			_ = foundGpu.GetTachReading();
@@ -254,7 +267,6 @@ public partial class NVidiaGpuDriver :
 		}
 		catch
 		{
-			hasTachReading = false;
 		}
 
 		var thermalSensors = new NvApi.Gpu.ThermalSensor[3];
@@ -279,6 +291,7 @@ public partial class NVidiaGpuDriver :
 					zoneControls,
 					lightingZones.DrainToImmutable(),
 					hasTachReading,
+					fanStatuses.AsSpan(0, fanStatusCount),
 					thermalSensors.AsSpan(0, sensorCount),
 					clockFrequencies.AsSpan(0, clockFrequencyCount)
 				)
@@ -298,8 +311,10 @@ public partial class NVidiaGpuDriver :
 	private readonly IReadOnlyCollection<ILightingZone> _lightingZoneCollection;
 	private readonly ImmutableArray<FeatureSetDescription> _featureSets;
 	private readonly UtilizationWatcher _utilizationWatcher;
+	private readonly FanCoolerSensor?[] _fanCoolerSensors;
 	private readonly ThermalTargetSensor[] _thermalTargetSensors;
 	private readonly ClockSensor?[] _clockSensors;
+	private int _fanCoolerGroupQueriedSensorCount;
 	private int _thermalGroupQueriedSensorCount;
 	private int _clockGroupQueriedSensorCount;
 	private readonly ILogger<NVidiaGpuDriver> _logger;
@@ -329,6 +344,7 @@ public partial class NVidiaGpuDriver :
 		NvApi.Gpu.Client.IlluminationZoneControl[] zoneControls,
 		ImmutableArray<LightingZone> lightingZones,
 		bool hasTachReading,
+		ReadOnlySpan<NvApi.GpuFanStatus> fanCoolerStatuses,
 		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors,
 		ReadOnlySpan<NvApi.GpuClockFrequency> clockFrequencies
 	) : base(friendlyName, configurationKey)
@@ -346,7 +362,7 @@ public partial class NVidiaGpuDriver :
 		sensors.Add(_utilizationWatcher.VideoSensor);
 		if (hasTachReading)
 		{
-			sensors.Add(new FanSensor(gpu));
+			sensors.Add(new LegacyFanSensor(gpu));
 		}
 		// Nowadays, only the GPU thermal target would be returned. Usage of yet another undocumented API will be required. (To be done later)
 		_thermalTargetSensors = new ThermalTargetSensor[thermalSensors.Length];
@@ -355,19 +371,28 @@ public partial class NVidiaGpuDriver :
 			sensors.Add(_thermalTargetSensors[i] = new(_gpu, thermalSensors[i], (byte)i));
 		}
 		// Process clocks while filtering out unsupported clocks.
-		var clockSensors = new ClockSensor?[clockFrequencies.Length];
+		_clockSensors = new ClockSensor?[clockFrequencies.Length];
 		for (int i = 0; i < clockFrequencies.Length; i++)
 		{
 			if (Enum.IsDefined(clockFrequencies[i].Clock))
 			{
-				sensors.Add(clockSensors[i] = new ClockSensor(_gpu, clockFrequencies[i]));
+				sensors.Add(_clockSensors[i] = new ClockSensor(_gpu, clockFrequencies[i]));
 			}
 			else
 			{
 				_logger.GpuClockNotSupported(clockFrequencies[i].Clock);
 			}
 		}
-		_clockSensors = clockSensors;
+		_fanCoolerSensors = new FanCoolerSensor?[fanCoolerStatuses.Length];
+		for (int i = 0; i < fanCoolerStatuses.Length; i++)
+		{
+			var fanCoolerStatus = fanCoolerStatuses[i];
+			// This API is not documented, so we don't really know all the details. Only fans with an ID that has been seen in the wild will be exposed as sensors. (Similar as for clocks above)
+			if (fanCoolerStatus.FanId is 1 or 2)
+			{
+				sensors.Add(_fanCoolerSensors[i] = new(_gpu, fanCoolerStatus));
+			}
+		}
 		_sensors = sensors.DrainToImmutable();
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
@@ -444,7 +469,11 @@ public partial class NVidiaGpuDriver :
 		if (!s.IsGroupQueryEnabled)
 		{
 			s.IsGroupQueryEnabled = true;
-			if (s is ThermalTargetSensor)
+			if (s is FanCoolerSensor)
+			{
+				_fanCoolerGroupQueriedSensorCount++;
+			}
+			else if (s is ThermalTargetSensor)
 			{
 				_thermalGroupQueriedSensorCount++;
 			}
@@ -461,7 +490,11 @@ public partial class NVidiaGpuDriver :
 		if (s.IsGroupQueryEnabled)
 		{
 			s.IsGroupQueryEnabled = false;
-			if (s is ThermalTargetSensor)
+			if (s is FanCoolerSensor)
+			{
+				_fanCoolerGroupQueriedSensorCount--;
+			}
+			else if (s is ThermalTargetSensor)
 			{
 				_thermalGroupQueriedSensorCount--;
 			}
@@ -474,9 +507,34 @@ public partial class NVidiaGpuDriver :
 
 	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
+		QueryFanCoolerSensors();
 		QueryThermalSensors();
 		QueryClockSensors();
 		return ValueTask.CompletedTask;
+	}
+
+	private void QueryFanCoolerSensors()
+	{
+		if (_fanCoolerGroupQueriedSensorCount == 0) return;
+
+		Span<NvApi.GpuFanStatus> fanStatuses = stackalloc NvApi.GpuFanStatus[32];
+
+		try
+		{
+			int fanStatusCount = _gpu.GetFanCoolersStatus(fanStatuses);
+
+			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
+			if (fanStatusCount == _fanCoolerSensors.Length)
+			{
+				for (int i = 0; i < fanStatusCount; i++)
+				{
+					_fanCoolerSensors[i]?.OnValueRead(fanStatuses[i].SpeedInRotationsPerMinute);
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+		}
 	}
 
 	private void QueryThermalSensors()

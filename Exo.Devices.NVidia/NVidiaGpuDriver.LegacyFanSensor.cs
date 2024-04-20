@@ -4,13 +4,13 @@ namespace Exo.Devices.NVidia;
 
 public partial class NVidiaGpuDriver
 {
-	private sealed class FanSensor : IPolledSensor<uint>
+	private sealed class LegacyFanSensor : IPolledSensor<uint>
 	{
 		private readonly NvApi.PhysicalGpu _gpu;
 
-		public Guid SensorId => FanSpeedSensorId;
+		public Guid SensorId => LegacyFanSpeedSensorId;
 
-		public FanSensor(NvApi.PhysicalGpu gpu)
+		public LegacyFanSensor(NvApi.PhysicalGpu gpu)
 		{
 			_gpu = gpu;
 		}
