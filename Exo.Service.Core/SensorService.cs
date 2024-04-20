@@ -85,7 +85,7 @@ public sealed partial class SensorService
 				goto case nameof(PersistedSensorInformation.ScaleMaximumValue);
 			case nameof(PersistedSensorInformation.ScaleMaximumValue):
 				reader.Read();
-				minValue = ReadNumericValue(ref reader, dataType, options);
+				maxValue = ReadNumericValue(ref reader, dataType, options);
 				reader.Read();
 				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
 				goto default;
