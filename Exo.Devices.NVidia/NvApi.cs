@@ -65,6 +65,7 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint> GetThermalSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint>)QueryInterface(0xe3640a56);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint> GetAllClockFrequencies = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint>)QueryInterface(0xdcb616c3);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetTachReading = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x5f608315);
+			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> GetCoolerSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xda141340);
 		}
 
 		public static class System
@@ -381,6 +382,100 @@ internal sealed class NvApi
 			public uint Count;
 			public ThermalSensorArray Sensors;
 		}
+
+		internal const int ThermalSettingsVersion = 2;
+
+		public enum CoolerType
+		{
+			None = 0,
+			Fan = 1,
+			Water = 2,
+			LiquidNo2 = 3,
+		}
+
+		public enum CoolerController
+		{
+			None = 0,
+			Adi = 1,
+			Internal = 2,
+		}
+
+		[Flags]
+		public enum CoolerPolicy
+		{
+			None = 0,
+			Manual = 1,
+			Performance = 2,
+			TemperatureDiscrete = 4,
+			TemperatureContinuous = 8,
+			Hybrid = 9,
+		}
+
+		[Flags]
+		public enum CoolerTarget
+		{
+			None = 0,
+			Gpu = 1,
+			Memory = 2,
+			PowerSupply = 4,
+			All = 7,
+		}
+
+		public enum CoolerControl
+		{
+			None = 0,
+			Toggle = 1,
+			Variable = 2,
+		}
+
+		public enum CoolerActivityLevel
+		{
+			Inactive = 0,
+			Active = 1,
+		}
+
+		internal struct CoolerTachometer
+		{
+			public uint CurrentSpeedInRotationsPerMinute;
+			private byte _isSupported;
+			public bool IsSupported => _isSupported != 0;
+			public uint MaximumSpeedInRotationsPerMinute;
+			public uint MinimumSpeedInRotationsPerMinute;
+		}
+
+		// See: https://www.autohotkey.com/boards/viewtopic.php?t=4469&p=32783
+		internal struct CoolerInformation
+		{
+			public CoolerType Type;
+			public CoolerController Controller;
+			public uint DefaultMinimumLevel;
+			public uint DefaultMaximumLevel;
+			public uint CurrentMinimumLevel;
+			public uint CurrentMaximumLevel;
+			public uint CurrentLevel;
+			public CoolerPolicy DefaultPolicy;
+			public CoolerPolicy CurrentPolicy;
+			public CoolerTarget Target;
+			public CoolerControl Control;
+			public CoolerActivityLevel ActivityLevel;
+			public CoolerTachometer Tachometer; // Added in V3 (Size 0x508)
+			public uint Unknown; // Added in V4 (Size 0x558)
+		}
+
+		[InlineArray(20)]
+		internal struct CoolerInfoArray
+		{
+			private CoolerInformation _element0;
+		}
+
+		internal struct CoolerSettings
+		{
+			public uint Version;
+			public uint Count;
+			public CoolerInfoArray Coolers;
+		}
+
+		internal const int CoolerSettingsVersion = 4;
 
 		public static class Client
 		{
@@ -1088,7 +1183,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.ThermalSensor GetThermalSettings(uint sensorIndex)
 		{
-			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(2) };
+			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(Gpu.ThermalSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, sensorIndex, &thermalSettings));
 			if (thermalSettings.Count != 1) throw new InvalidOperationException("Invalid thermal reading count.");
 			return thermalSettings.Sensors[0];
@@ -1096,11 +1191,28 @@ internal sealed class NvApi
 
 		public unsafe int GetThermalSettings(Span<Gpu.ThermalSensor> thermalSensors)
 		{
-			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(2) };
+			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(Gpu.ThermalSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, 15, &thermalSettings));
 			if (thermalSettings.Count > 3) throw new InvalidOperationException("Invalid thermal reading count.");
 			((ReadOnlySpan<Gpu.ThermalSensor>)thermalSettings.Sensors).CopyTo(thermalSensors);
 			return (int)thermalSettings.Count;
+		}
+
+		public unsafe Gpu.CoolerInformation GetCoolerSettings(Gpu.CoolerTarget coolerTarget)
+		{
+			var coolerSettings = new Gpu.CoolerSettings { Version = StructVersion<Gpu.CoolerSettings>(Gpu.CoolerSettingsVersion) };
+			ValidateResult(Functions.Gpu.GetCoolerSettings(_handle, (uint)coolerTarget, &coolerSettings));
+			if (coolerSettings.Count != 1) throw new InvalidOperationException("Invalid cooler count.");
+			return coolerSettings.Coolers[0];
+		}
+
+		public unsafe int GetCoolerSettings(Span<Gpu.CoolerInformation> coolers)
+		{
+			var coolerSettings = new Gpu.CoolerSettings { Version = StructVersion<Gpu.CoolerSettings>(Gpu.CoolerSettingsVersion) };
+			ValidateResult(Functions.Gpu.GetCoolerSettings(_handle, (uint)Gpu.CoolerTarget.All, &coolerSettings));
+			if (coolerSettings.Count > 3) throw new InvalidOperationException("Invalid cooler count.");
+			((ReadOnlySpan<Gpu.CoolerInformation>)coolerSettings.Coolers).CopyTo(coolers);
+			return (int)coolerSettings.Count;
 		}
 
 		public unsafe int GetClockFrequencies(Gpu.ClockType clockType, Span<GpuClockFrequency> clockFrequencies)
