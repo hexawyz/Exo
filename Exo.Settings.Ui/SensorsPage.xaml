@@ -40,15 +40,16 @@
                                             Stroke="{ThemeResource AccentFillColorDefaultBrush}"
                                             StrokeThickness="1"
                                             StrokeLineJoin="Round"
+                                            MinMaxLineStroke="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                             AreaFill="{ThemeResource AccentFillColorDefaultBrush}"
                                             AreaOpacity="0.5"
                                             Series="{Binding LiveDetails.History}"
-                                            BorderBrush="{StaticResource TextFillColorSecondaryBrush}"
+                                            BorderBrush="{StaticResource ControlStrongStrokeColorDefaultBrush}"
                                             BorderThickness="1"
-                                            HorizontalGridStroke="{ThemeResource AccentFillColorSelectedTextBackgroundBrush}"
+                                            HorizontalGridStroke="{ThemeResource AccentAcrylicBackgroundFillColorDefaultBrush}"
                                             ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
                                             ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
-                                        <TextBlock Grid.Row="1" Text="{Binding LiveDetails.CurrentValue}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,8,6" />
+                                        <TextBlock Grid.Row="1" Text="{Binding LiveDetails.CurrentValue}" Foreground="{ThemeResource TextOnAccentFillColorSelectedTextBrush}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,8,6" />
                                     </Grid>
                                 </ItemContainer>
                             </DataTemplate>

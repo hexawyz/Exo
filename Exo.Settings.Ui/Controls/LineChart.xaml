@@ -11,6 +11,7 @@
         <Setter Property="Stroke" Value="Black" />
         <Setter Property="StrokeThickness" Value="1" />
         <Setter Property="StrokeLineJoin" Value="Round" />
+        <Setter Property="MinMaxLineStroke" Value="Red" />
         <Setter Property="AreaFill" Value="Black" />
         <Setter Property="AreaOpacity" Value="0.75" />
         <Setter Property="Template">
@@ -26,6 +27,7 @@
                             <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
                             <Path x:Name="PART_FillPath" Fill="{TemplateBinding AreaFill}" Opacity="{TemplateBinding AreaOpacity}" />
                             <Path x:Name="PART_StrokePath" Stroke="{TemplateBinding Stroke}" StrokeThickness="{TemplateBinding StrokeThickness}" StrokeLineJoin="{TemplateBinding StrokeLineJoin}" />
+                            <Path x:Name="PART_MinMaxLinesPath" Stroke="{TemplateBinding MinMaxLineStroke}" />
                         </Grid>
                     </Border>
                 </ControlTemplate>

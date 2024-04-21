@@ -297,11 +297,16 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 		public event EventHandler? Changed;
 
 		public void NotifyChange() => Changed?.Invoke(this, EventArgs.Empty);
+
+		public double? MaximumReachedValue => _viewModel._maxValue;
+		public double? MinimumReachedValue => _viewModel._minValue;
 	}
 
 	private const int WindowSizeInSeconds = 1 * 60;
 
 	private double _currentValue;
+	private double _minValue;
+	private double _maxValue;
 	private DateTime _currentValueTime;
 	private ulong _currentTimestampInSeconds;
 	private int _currentPointIndex;
@@ -313,6 +318,9 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 
 	public LiveSensorDetailsViewModel(SensorViewModel sensor)
 	{
+		_currentValue = double.NaN;
+		_minValue = double.PositiveInfinity;
+		_maxValue = double.NegativeInfinity;
 		_currentValueTime = DateTime.UtcNow;
 		_currentTimestampInSeconds = GetTimestamp();
 		_dataPoints = new double[WindowSizeInSeconds];
@@ -378,6 +386,8 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 			_currentValueTime = now;
 			_currentTimestampInSeconds = currentTimestamp;
 			_dataPoints[_currentPointIndex] = dataPoint.Value;
+			if (dataPoint.Value < _minValue) _minValue = dataPoint.Value;
+			if (dataPoint.Value > _maxValue) _maxValue = dataPoint.Value;
 			SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
 			History.NotifyChange();
 		}

@@ -10,12 +10,14 @@ namespace Exo.Settings.Ui.Controls;
 [TemplatePart(Name = StrokePathPartName, Type = typeof(Path))]
 [TemplatePart(Name = FillPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = HorizontalGridLinesPathPartName, Type = typeof(Path))]
+[TemplatePart(Name = MinMaxPathPartName, Type = typeof(Path))]
 internal class LineChart : Control
 {
 	private const string LayoutGridPartName = "PART_LayoutGrid";
 	private const string StrokePathPartName = "PART_StrokePath";
 	private const string FillPathPartName = "PART_FillPath";
 	private const string HorizontalGridLinesPathPartName = "PART_HorizontalGridLinesPath";
+	private const string MinMaxPathPartName = "PART_MinMaxLinesPath";
 
 	public ITimeSeries? Series
 	{
@@ -91,9 +93,18 @@ internal class LineChart : Control
 
 	public static readonly DependencyProperty HorizontalGridStrokeProperty = DependencyProperty.Register(nameof(HorizontalGridStroke), typeof(Brush), typeof(LineChart), new PropertyMetadata(new SolidColorBrush()));
 
+	public Brush MinMaxLineStroke
+	{
+		get => (Brush)GetValue(MinMaxLineStrokeProperty);
+		set => SetValue(MinMaxLineStrokeProperty, value);
+	}
+
+	public static readonly DependencyProperty MinMaxLineStrokeProperty = DependencyProperty.Register(nameof(MinMaxLineStroke), typeof(Brush), typeof(LineChart), new PropertyMetadata(new SolidColorBrush()));
+
 	private Path? _strokePath;
 	private Path? _fillPath;
 	private Path? _horizontalGridLinesPath;
+	private Path? _minMaxLinesPath;
 	private Grid? _layoutGrid;
 	private readonly EventHandler _seriesDataChanged;
 
@@ -123,6 +134,7 @@ internal class LineChart : Control
 		_strokePath = GetTemplateChild(StrokePathPartName) as Path;
 		_fillPath = GetTemplateChild(FillPathPartName) as Path;
 		_horizontalGridLinesPath = GetTemplateChild(HorizontalGridLinesPathPartName) as Path;
+		_minMaxLinesPath = GetTemplateChild(MinMaxPathPartName) as Path;
 		_layoutGrid = GetTemplateChild(LayoutGridPartName) as Grid;
 		AttachParts();
 		RefreshChart();
@@ -133,6 +145,7 @@ internal class LineChart : Control
 		if (_strokePath is not null) _strokePath.Data = null;
 		if (_fillPath is not null) _fillPath.Data = null;
 		if (_horizontalGridLinesPath is not null) _horizontalGridLinesPath.Data = null;
+		if (_minMaxLinesPath is not null) _minMaxLinesPath.Data = null;
 	}
 
 	private void AttachParts()
@@ -148,7 +161,7 @@ internal class LineChart : Control
 		}
 		else
 		{
-			var (stroke, fill, horizontalGridLines) = GenerateCurves
+			var (stroke, fill, horizontalGridLines, minMaxLines) = GenerateCurves
 			(
 				Series,
 				ScaleYMinimum,
@@ -159,10 +172,11 @@ internal class LineChart : Control
 			if (_strokePath is { }) _strokePath.Data = stroke;
 			if (_fillPath is { }) _fillPath.Data = fill;
 			if (_horizontalGridLinesPath is { }) _horizontalGridLinesPath.Data = horizontalGridLines;
+			if (_minMaxLinesPath is { }) _minMaxLinesPath.Data = minMaxLines;
 		}
 	}
 
-	private (PathGeometry Stroke, PathGeometry Fill, GeometryGroup HorizontalGridLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
+	private (PathGeometry Stroke, PathGeometry Fill, GeometryGroup HorizontalGridLines, GeometryGroup MinMaxLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
 	{
 		// NB: This is very rough and WIP.
 		// It should probably be ported to a dedicated chart drawing component afterwards.
@@ -172,6 +186,11 @@ internal class LineChart : Control
 			double value = series[i];
 			minValue = Math.Min(value, minValue);
 			maxValue = Math.Max(value, maxValue);
+		}
+
+		{
+			if (series.MinimumReachedValue is double minReachedValue && minReachedValue < minValue) minValue = minReachedValue;
+			if (series.MaximumReachedValue is double maxReachedValue && maxReachedValue > maxValue) maxValue = maxReachedValue;
 		}
 
 		// Anchor the scale to zero if necessary.
@@ -185,6 +204,7 @@ internal class LineChart : Control
 
 		double scaleAmplitudeX = series.Length - 1;
 		double scaleAmplitudeY = scaleMax - scaleMin;
+		int tickCount = (int)(scaleAmplitudeY / tickSpacing) + 1;
 		double outputAmplitudeX = outputWidth;
 		double outputAmplitudeY = outputHeight;
 
@@ -210,13 +230,29 @@ internal class LineChart : Control
 
 		var horizontalGridLines = new GeometryGroup();
 
-		for (double lineY = scaleMin + tickSpacing; lineY < scaleMax; lineY += tickSpacing)
+		double lineY = scaleMin;
+		for (int i = 0; i < tickCount; i++, lineY += tickSpacing)
 		{
 			double y = outputAmplitudeY - lineY * outputAmplitudeY / scaleAmplitudeY;
 			horizontalGridLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
 		}
 
-		return (new PathGeometry() { Figures = { outlineFigure } }, new PathGeometry() { Figures = { fillFigure } }, horizontalGridLines);
+		var minMaxLines = new GeometryGroup();
+
+		{
+			if (series.MinimumReachedValue is double minReachedValue)
+			{
+				double y = outputAmplitudeY - (minReachedValue - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
+				minMaxLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
+			}
+			if (series.MaximumReachedValue is double maxReachedValue)
+			{
+				double y = outputAmplitudeY - (maxReachedValue - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
+				minMaxLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
+			}
+		}
+
+		return (new PathGeometry() { Figures = { outlineFigure } }, new PathGeometry() { Figures = { fillFigure } }, horizontalGridLines, minMaxLines);
 	}
 
 	protected override Size MeasureOverride(Size availableSize) => availableSize;
