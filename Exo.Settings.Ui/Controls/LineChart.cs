@@ -10,6 +10,7 @@ namespace Exo.Settings.Ui.Controls;
 [TemplatePart(Name = StrokePathPartName, Type = typeof(Path))]
 [TemplatePart(Name = FillPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = HorizontalGridLinesPathPartName, Type = typeof(Path))]
+[TemplatePart(Name = VerticalGridLinesPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = MinMaxPathPartName, Type = typeof(Path))]
 internal class LineChart : Control
 {
@@ -17,6 +18,7 @@ internal class LineChart : Control
 	private const string StrokePathPartName = "PART_StrokePath";
 	private const string FillPathPartName = "PART_FillPath";
 	private const string HorizontalGridLinesPathPartName = "PART_HorizontalGridLinesPath";
+	private const string VerticalGridLinesPathPartName = "PART_VerticalGridLinesPath";
 	private const string MinMaxPathPartName = "PART_MinMaxLinesPath";
 
 	public ITimeSeries? Series
@@ -93,6 +95,14 @@ internal class LineChart : Control
 
 	public static readonly DependencyProperty HorizontalGridStrokeProperty = DependencyProperty.Register(nameof(HorizontalGridStroke), typeof(Brush), typeof(LineChart), new PropertyMetadata(new SolidColorBrush()));
 
+	public Brush VerticalGridStroke
+	{
+		get => (Brush)GetValue(VerticalGridStrokeProperty);
+		set => SetValue(VerticalGridStrokeProperty, value);
+	}
+
+	public static readonly DependencyProperty VerticalGridStrokeProperty = DependencyProperty.Register(nameof(VerticalGridStroke), typeof(Brush), typeof(LineChart), new PropertyMetadata(new SolidColorBrush()));
+
 	public Brush MinMaxLineStroke
 	{
 		get => (Brush)GetValue(MinMaxLineStrokeProperty);
@@ -104,6 +114,7 @@ internal class LineChart : Control
 	private Path? _strokePath;
 	private Path? _fillPath;
 	private Path? _horizontalGridLinesPath;
+	private Path? _verticalGridLinesPath;
 	private Path? _minMaxLinesPath;
 	private Grid? _layoutGrid;
 	private readonly EventHandler _seriesDataChanged;
@@ -134,6 +145,7 @@ internal class LineChart : Control
 		_strokePath = GetTemplateChild(StrokePathPartName) as Path;
 		_fillPath = GetTemplateChild(FillPathPartName) as Path;
 		_horizontalGridLinesPath = GetTemplateChild(HorizontalGridLinesPathPartName) as Path;
+		_verticalGridLinesPath = GetTemplateChild(VerticalGridLinesPathPartName) as Path;
 		_minMaxLinesPath = GetTemplateChild(MinMaxPathPartName) as Path;
 		_layoutGrid = GetTemplateChild(LayoutGridPartName) as Grid;
 		AttachParts();
@@ -145,6 +157,7 @@ internal class LineChart : Control
 		if (_strokePath is not null) _strokePath.Data = null;
 		if (_fillPath is not null) _fillPath.Data = null;
 		if (_horizontalGridLinesPath is not null) _horizontalGridLinesPath.Data = null;
+		if (_verticalGridLinesPath is not null) _verticalGridLinesPath.Data = null;
 		if (_minMaxLinesPath is not null) _minMaxLinesPath.Data = null;
 	}
 
@@ -161,7 +174,7 @@ internal class LineChart : Control
 		}
 		else
 		{
-			var (stroke, fill, horizontalGridLines, minMaxLines) = GenerateCurves
+			var (stroke, fill, horizontalGridLines, verticalGridLines, minMaxLines) = GenerateCurves
 			(
 				Series,
 				ScaleYMinimum,
@@ -172,11 +185,12 @@ internal class LineChart : Control
 			if (_strokePath is { }) _strokePath.Data = stroke;
 			if (_fillPath is { }) _fillPath.Data = fill;
 			if (_horizontalGridLinesPath is { }) _horizontalGridLinesPath.Data = horizontalGridLines;
+			if (_verticalGridLinesPath is { }) _verticalGridLinesPath.Data = verticalGridLines;
 			if (_minMaxLinesPath is { }) _minMaxLinesPath.Data = minMaxLines;
 		}
 	}
 
-	private (PathGeometry Stroke, PathGeometry Fill, GeometryGroup HorizontalGridLines, GeometryGroup MinMaxLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
+	private (PathGeometry Stroke, PathGeometry Fill, GeometryGroup HorizontalGridLines, GeometryGroup VerticalGridLines, GeometryGroup MinMaxLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
 	{
 		// NB: This is very rough and WIP.
 		// It should probably be ported to a dedicated chart drawing component afterwards.
@@ -200,11 +214,11 @@ internal class LineChart : Control
 		// Force the chart to not be fully empty if the min and max are both zero. (result of previous adjustments)
 		if (minValue == maxValue) maxValue = 1;
 
-		var (scaleMin, scaleMax, tickSpacing) = NiceScale.Compute(minValue, maxValue);
+		var (scaleMin, scaleMax, tickSpacingY) = NiceScale.Compute(minValue, maxValue);
 
 		double scaleAmplitudeX = series.Length - 1;
 		double scaleAmplitudeY = scaleMax - scaleMin;
-		int tickCount = (int)(scaleAmplitudeY / tickSpacing) + 1;
+		int tickCount = (int)(scaleAmplitudeY / tickSpacingY) + 1;
 		double outputAmplitudeX = outputWidth;
 		double outputAmplitudeY = outputHeight;
 
@@ -229,12 +243,21 @@ internal class LineChart : Control
 		fillFigure.Segments.Add(new LineSegment() { Point = new(outputAmplitudeX, fillFigure.StartPoint.Y) });
 
 		var horizontalGridLines = new GeometryGroup();
+		var verticalGridLines = new GeometryGroup();
 
 		double lineY = scaleMin;
-		for (int i = 0; i < tickCount; i++, lineY += tickSpacing)
+		for (int i = 0; i < tickCount; i++, lineY += tickSpacingY)
 		{
 			double y = outputAmplitudeY - lineY * outputAmplitudeY / scaleAmplitudeY;
 			horizontalGridLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
+		}
+
+		// NB: Hardcode logic to display exactly 10 ticks, as we assume that datapoints are evenly spaced on a fixed time scale.
+		var (tickSpacingX, tickOffsetX) = Math.DivRem((uint)series.Length, 10);
+		for (int i = 0; i <= 10; i++)
+		{
+			double x = (int)(tickOffsetX + i * tickSpacingX) * outputAmplitudeX / scaleAmplitudeX;
+			verticalGridLines.Children.Add(new LineGeometry() { StartPoint = new(x, 0), EndPoint = new(x, outputAmplitudeY) });
 		}
 
 		var minMaxLines = new GeometryGroup();
@@ -252,7 +275,7 @@ internal class LineChart : Control
 			}
 		}
 
-		return (new PathGeometry() { Figures = { outlineFigure } }, new PathGeometry() { Figures = { fillFigure } }, horizontalGridLines, minMaxLines);
+		return (new PathGeometry() { Figures = { outlineFigure } }, new PathGeometry() { Figures = { fillFigure } }, horizontalGridLines, verticalGridLines, minMaxLines);
 	}
 
 	protected override Size MeasureOverride(Size availableSize) => availableSize;

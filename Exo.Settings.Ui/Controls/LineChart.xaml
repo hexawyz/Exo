@@ -3,17 +3,28 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui.Controls">
+    <Brush x:Key="LineChartBorderBrush">Gray</Brush>
+    <Thickness x:Key="LineChartBorderThickness">1</Thickness>
+    <Brush x:Key="LineChartBackground">White</Brush>
+    <Brush x:Key="LineChartGridStroke">LightGray</Brush>
+    <Brush x:Key="LineChartStroke">Black</Brush>
+    <Thickness x:Key="LineChartStrokeThickness">1</Thickness>
+    <PenLineJoin x:Key="LineChartStrokeLineJoin">Round</PenLineJoin>
+    <Brush x:Key="LineMinMaxLineStroke">Red</Brush>
+    <Brush x:Key="LineChartAreaFill">Black</Brush>
+    <x:Double x:Key="LineChartAreaOpacity">0.75</x:Double>
     <Style TargetType="local:LineChart">
-        <Setter Property="BorderBrush" Value="Gray" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Background" Value="White" />
-        <Setter Property="HorizontalGridStroke" Value="LightGray" />
-        <Setter Property="Stroke" Value="Black" />
-        <Setter Property="StrokeThickness" Value="1" />
-        <Setter Property="StrokeLineJoin" Value="Round" />
-        <Setter Property="MinMaxLineStroke" Value="Red" />
-        <Setter Property="AreaFill" Value="Black" />
-        <Setter Property="AreaOpacity" Value="0.75" />
+        <Setter Property="BorderBrush" Value="{ThemeResource LineChartBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{ThemeResource LineChartBorderThickness}" />
+        <Setter Property="Background" Value="{ThemeResource LineChartBackground}" />
+        <Setter Property="HorizontalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
+        <Setter Property="VerticalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
+        <Setter Property="Stroke" Value="{ThemeResource LineChartStroke}" />
+        <Setter Property="StrokeThickness" Value="{ThemeResource LineChartStrokeThickness}" />
+        <Setter Property="StrokeLineJoin" Value="{ThemeResource LineChartStrokeLineJoin}" />
+        <Setter Property="MinMaxLineStroke" Value="{ThemeResource LineMinMaxLineStroke}" />
+        <Setter Property="AreaFill" Value="{ThemeResource LineChartAreaFill}" />
+        <Setter Property="AreaOpacity" Value="{ThemeResource LineChartAreaOpacity}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:LineChart">
@@ -25,6 +36,7 @@
                         BorderThickness="{TemplateBinding BorderThickness}">
                         <Grid x:Name="PART_LayoutGrid">
                             <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
+                            <Path x:Name="PART_VerticalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
                             <Path x:Name="PART_FillPath" Fill="{TemplateBinding AreaFill}" Opacity="{TemplateBinding AreaOpacity}" />
                             <Path x:Name="PART_StrokePath" Stroke="{TemplateBinding Stroke}" StrokeThickness="{TemplateBinding StrokeThickness}" StrokeLineJoin="{TemplateBinding StrokeLineJoin}" />
                             <Path x:Name="PART_MinMaxLinesPath" Stroke="{TemplateBinding MinMaxLineStroke}" />
