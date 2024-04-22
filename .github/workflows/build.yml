@@ -1,4 +1,4 @@
-name: .NET Core Desktop
+name: Build and Publish
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Prepare artifact name
-      run: Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_NAME=$(Get-Date -Format yyyy-dd-MM)-$env:GITHUB_SHA"
+      run: Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_NAME=$(Get-Date -Format yyyy-MM-dd)-$env:GITHUB_SHA"
 
     - name: Checkout
       uses: actions/checkout@v4
