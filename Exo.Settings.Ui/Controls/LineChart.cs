@@ -122,6 +122,28 @@ internal class LineChart : Control
 	public LineChart()
 	{
 		_seriesDataChanged = OnSeriesDataChanged;
+
+		Loading += OnLoading;
+		Loaded += OnLoaded;
+		Unloaded += OnUnloaded;
+		SizeChanged += OnSizeChanged;
+	}
+
+	private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+	{
+		RefreshChart();
+	}
+
+	private void OnLoading(FrameworkElement sender, object args)
+	{
+		if (Series is { } series) series.Changed += _seriesDataChanged;
+	}
+
+	private void OnLoaded(object sender, RoutedEventArgs e) => RefreshChart();
+
+	private void OnUnloaded(object sender, RoutedEventArgs e)
+	{
+		if (Series is { } series) series.Changed -= _seriesDataChanged;
 	}
 
 	private static void OnSeriesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((LineChart)d).OnSeriesChanged(e);
@@ -129,8 +151,11 @@ internal class LineChart : Control
 	private void OnSeriesChanged(DependencyPropertyChangedEventArgs e)
 	{
 		if (e.OldValue is ITimeSeries old) old.Changed -= _seriesDataChanged;
-		if (e.NewValue is ITimeSeries @new) @new.Changed += _seriesDataChanged;
-		RefreshChart();
+		if (IsLoaded)
+		{
+			if (e.NewValue is ITimeSeries @new) @new.Changed += _seriesDataChanged;
+			RefreshChart();
+		}
 	}
 
 	private static void OnScaleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((LineChart)d).OnScaleChanged(e);
@@ -167,10 +192,13 @@ internal class LineChart : Control
 
 	private void RefreshChart()
 	{
-		if (Series is null)
+		if (Series is null || ActualHeight == 0 || ActualWidth == 0)
 		{
 			if (_strokePath is { }) _strokePath.Data = null;
 			if (_fillPath is { }) _fillPath.Data = null;
+			if (_horizontalGridLinesPath is { }) _horizontalGridLinesPath.Data = null;
+			if (_verticalGridLinesPath is { }) _verticalGridLinesPath.Data = null;
+			if (_minMaxLinesPath is { }) _minMaxLinesPath.Data = null;
 		}
 		else
 		{

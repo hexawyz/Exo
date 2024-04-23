@@ -47,6 +47,7 @@
                                             BorderBrush="{StaticResource ControlStrongStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             HorizontalGridStroke="{ThemeResource AccentAcrylicBackgroundFillColorDefaultBrush}"
+                                            VerticalGridStroke="{ThemeResource AccentAcrylicBackgroundFillColorDefaultBrush}"
                                             ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
                                             ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
                                         <TextBlock
