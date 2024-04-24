@@ -4,16 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui.Controls">
     <Brush x:Key="LineChartBorderBrush">Gray</Brush>
-    <Thickness x:Key="LineChartBorderThickness">1</Thickness>
+    <x:Double x:Key="LineChartBorderThickness">1</x:Double>
     <Brush x:Key="LineChartBackground">White</Brush>
     <Brush x:Key="LineChartGridStroke">LightGray</Brush>
     <Brush x:Key="LineChartStroke">Black</Brush>
-    <Thickness x:Key="LineChartStrokeThickness">1</Thickness>
+    <x:Double x:Key="LineChartStrokeThickness">1</x:Double>
     <PenLineJoin x:Key="LineChartStrokeLineJoin">Round</PenLineJoin>
     <Brush x:Key="LineMinMaxLineStroke">Red</Brush>
     <Brush x:Key="LineChartAreaFill">Black</Brush>
     <x:Double x:Key="LineChartAreaOpacity">0.75</x:Double>
-    <Style TargetType="local:LineChart">
+    <Style x:Key="DefaultLineChartStyle" TargetType="local:LineChart">
         <Setter Property="BorderBrush" Value="{ThemeResource LineChartBorderBrush}" />
         <Setter Property="BorderThickness" Value="{ThemeResource LineChartBorderThickness}" />
         <Setter Property="Background" Value="{ThemeResource LineChartBackground}" />
@@ -46,4 +46,5 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style TargetType="local:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}" />
 </ResourceDictionary>

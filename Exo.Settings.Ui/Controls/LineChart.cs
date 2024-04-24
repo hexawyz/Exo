@@ -192,13 +192,13 @@ internal class LineChart : Control
 
 	private void RefreshChart()
 	{
-		if (Series is null || ActualHeight == 0 || ActualWidth == 0)
+		if (Series is null || ActualHeight == 0 || ActualWidth == 0)
 		{
-			if (_strokePath is { }) _strokePath.Data = null;
-			if (_fillPath is { }) _fillPath.Data = null;
-			if (_horizontalGridLinesPath is { }) _horizontalGridLinesPath.Data = null;
-			if (_verticalGridLinesPath is { }) _verticalGridLinesPath.Data = null;
-			if (_minMaxLinesPath is { }) _minMaxLinesPath.Data = null;
+			SetData(_strokePath, null);
+			SetData(_fillPath, null);
+			SetData(_horizontalGridLinesPath, null);
+			SetData(_verticalGridLinesPath, null);
+			SetData(_minMaxLinesPath, null);
 		}
 		else
 		{
@@ -210,19 +210,22 @@ internal class LineChart : Control
 				_layoutGrid?.ActualWidth ?? ActualWidth,
 				_layoutGrid?.ActualHeight ?? ActualHeight
 			);
-			if (_strokePath is { }) _strokePath.Data = stroke;
-			if (_fillPath is { }) _fillPath.Data = fill;
-			if (_horizontalGridLinesPath is { }) _horizontalGridLinesPath.Data = horizontalGridLines;
-			if (_verticalGridLinesPath is { }) _verticalGridLinesPath.Data = verticalGridLines;
-			if (_minMaxLinesPath is { }) _minMaxLinesPath.Data = minMaxLines;
+			SetData(_strokePath, stroke);
+			SetData(_fillPath, fill);
+			SetData(_horizontalGridLinesPath, horizontalGridLines);
+			SetData(_verticalGridLinesPath, verticalGridLines);
+			SetData(_minMaxLinesPath, minMaxLines);
 		}
 	}
 
-	private (PathGeometry Stroke, PathGeometry Fill, GeometryGroup HorizontalGridLines, GeometryGroup VerticalGridLines, GeometryGroup MinMaxLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
+	private void SetData(Path? path, Geometry? data)
 	{
-		// NB: This is very rough and WIP.
-		// It should probably be ported to a dedicated chart drawing component afterwards.
+		if (path is null) return;
+		path.Data = data;
+	}
 
+	private static (PathGeometry Stroke, PathGeometry Fill, PathGeometry HorizontalGridLines, PathGeometry VerticalGridLines, PathGeometry MinMaxLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
+	{
 		for (int i = 0; i < series.Length; i++)
 		{
 			double value = series[i];
@@ -270,14 +273,19 @@ internal class LineChart : Control
 
 		fillFigure.Segments.Add(new LineSegment() { Point = new(outputAmplitudeX, fillFigure.StartPoint.Y) });
 
-		var horizontalGridLines = new GeometryGroup();
-		var verticalGridLines = new GeometryGroup();
+		var horizontalGridLines = new PathGeometry();
+		var verticalGridLines = new PathGeometry();
 
 		double lineY = scaleMin;
 		for (int i = 0; i < tickCount; i++, lineY += tickSpacingY)
 		{
 			double y = outputAmplitudeY - lineY * outputAmplitudeY / scaleAmplitudeY;
-			horizontalGridLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
+			var figure = new PathFigure
+			{
+				StartPoint = new(0, y),
+				Segments = { new LineSegment { Point = new(outputAmplitudeX, y) } }
+			};
+			horizontalGridLines.Figures.Add(figure);
 		}
 
 		// NB: Hardcode logic to display exactly 10 ticks, as we assume that datapoints are evenly spaced on a fixed time scale.
@@ -285,21 +293,36 @@ internal class LineChart : Control
 		for (int i = 0; i <= 10; i++)
 		{
 			double x = (int)(tickOffsetX + i * tickSpacingX) * outputAmplitudeX / scaleAmplitudeX;
-			verticalGridLines.Children.Add(new LineGeometry() { StartPoint = new(x, 0), EndPoint = new(x, outputAmplitudeY) });
+			var figure = new PathFigure
+			{
+				StartPoint = new(x, 0),
+				Segments = { new LineSegment { Point = new(x, outputAmplitudeY) } }
+			};
+			verticalGridLines.Figures.Add(figure);
 		}
 
-		var minMaxLines = new GeometryGroup();
+		var minMaxLines = new PathGeometry();
 
 		{
 			if (series.MinimumReachedValue is double minReachedValue)
 			{
 				double y = outputAmplitudeY - (minReachedValue - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
-				minMaxLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
+				var figure = new PathFigure
+				{
+					StartPoint = new(0, y),
+					Segments = { new LineSegment { Point = new(outputAmplitudeX, y) } }
+				};
+				minMaxLines.Figures.Add(figure);
 			}
 			if (series.MaximumReachedValue is double maxReachedValue)
 			{
 				double y = outputAmplitudeY - (maxReachedValue - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
-				minMaxLines.Children.Add(new LineGeometry() { StartPoint = new(0, y), EndPoint = new(outputAmplitudeX, y) });
+				var figure = new PathFigure
+				{
+					StartPoint = new(0, y),
+					Segments = { new LineSegment { Point = new(outputAmplitudeX, y) } }
+				};
+				minMaxLines.Figures.Add(figure);
 			}
 		}
 
