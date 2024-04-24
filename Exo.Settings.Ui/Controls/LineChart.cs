@@ -245,33 +245,30 @@ internal class LineChart : Control
 		// Force the chart to not be fully empty if the min and max are both zero. (result of previous adjustments)
 		if (minValue == maxValue) maxValue = 1;
 
-		var (scaleMin, scaleMax, tickSpacingY) = NiceScale.Compute(minValue, maxValue);
+		var (scaleMinY, scaleMaxY, tickSpacingY) = NiceScale.Compute(minValue, maxValue);
 
 		double scaleAmplitudeX = series.Length - 1;
-		double scaleAmplitudeY = scaleMax - scaleMin;
+		double scaleAmplitudeY = scaleMaxY - scaleMinY;
 		int tickCount = (int)(scaleAmplitudeY / tickSpacingY) + 1;
 		double outputAmplitudeX = outputWidth;
 		double outputAmplitudeY = outputHeight;
 
-		var outlineFigure = new PathFigure();
-		var fillFigure = new PathFigure();
+		var point = new Point(0, outputAmplitudeY - (series[0] - scaleMinY) * outputAmplitudeY / scaleAmplitudeY);
 
-		fillFigure.StartPoint = new(0, outputAmplitudeY - -scaleMin * outputAmplitudeY / scaleAmplitudeY);
-
-		var point = new Point(0, outputAmplitudeY - (series[0] - scaleMin) * outputAmplitudeY / scaleAmplitudeY);
-		outlineFigure.StartPoint = point;
-		fillFigure.Segments.Add(new LineSegment { Point = point });
+		var outlineSegment = new PolyLineSegment();
+		var outlineFigure = new PathFigure() { StartPoint = point, Segments = { outlineSegment } };
+		var fillSegment = new PolyLineSegment { Points = { point } };
+		var fillFigure = new PathFigure { StartPoint = new(0, outputAmplitudeY - -scaleMinY * outputAmplitudeY / scaleAmplitudeY), Segments = { fillSegment } };
 		for (int j = 1; j < series.Length; j++)
 		{
 			double value = series[j];
 			double x = j * outputAmplitudeX / scaleAmplitudeX;
-			double y = outputAmplitudeY - (value - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
+			double y = outputAmplitudeY - (value - scaleMinY) * outputAmplitudeY / scaleAmplitudeY;
 			point = new Point(x, y);
-			outlineFigure.Segments.Add(new LineSegment() { Point = point });
-			fillFigure.Segments.Add(new LineSegment() { Point = point });
+			outlineSegment.Points.Add(point);
+			fillSegment.Points.Add(point);
 		}
-
-		fillFigure.Segments.Add(new LineSegment() { Point = new(outputAmplitudeX, fillFigure.StartPoint.Y) });
+		fillSegment.Points.Add(new(outputAmplitudeX, fillFigure.StartPoint.Y));
 
 		var horizontalGridLines = new PathGeometry();
 		var verticalGridLines = new PathGeometry();
@@ -305,7 +302,7 @@ internal class LineChart : Control
 		{
 			if (series.MinimumReachedValue is double minReachedValue)
 			{
-				double y = outputAmplitudeY - (minReachedValue - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
+				double y = outputAmplitudeY - (minReachedValue - scaleMinY) * outputAmplitudeY / scaleAmplitudeY;
 				var figure = new PathFigure
 				{
 					StartPoint = new(0, y),
@@ -315,7 +312,7 @@ internal class LineChart : Control
 			}
 			if (series.MaximumReachedValue is double maxReachedValue)
 			{
-				double y = outputAmplitudeY - (maxReachedValue - scaleMin) * outputAmplitudeY / scaleAmplitudeY;
+				double y = outputAmplitudeY - (maxReachedValue - scaleMinY) * outputAmplitudeY / scaleAmplitudeY;
 				var figure = new PathFigure
 				{
 					StartPoint = new(0, y),
