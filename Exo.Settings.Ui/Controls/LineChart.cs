@@ -276,10 +276,9 @@ internal class LineChart : Control
 		var horizontalGridLines = new PathGeometry();
 		var verticalGridLines = new PathGeometry();
 
-		double lineY = scaleMin;
-		for (int i = 0; i < tickCount; i++, lineY += tickSpacingY)
+		for (int i = 0; i < tickCount; i++)
 		{
-			double y = outputAmplitudeY - lineY * outputAmplitudeY / scaleAmplitudeY;
+			double y = i * tickSpacingY * outputAmplitudeY / scaleAmplitudeY;
 			var figure = new PathFigure
 			{
 				StartPoint = new(0, y),
