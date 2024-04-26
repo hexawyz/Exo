@@ -241,6 +241,17 @@ internal sealed class SensorViewModel : BindableObject
 	public double? ScaleMinimumValue => _sensorInformation.ScaleMinimumValue;
 	public double? ScaleMaximumValue => _sensorInformation.ScaleMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
+	public SensorCategory Category => _sensorInformation.Unit switch
+	{
+		"%" => SensorCategory.Percent,
+		"Hz" or "kHz" or "MHz" or "GHz" => SensorCategory.Frequency,
+		"W" => SensorCategory.Power,
+		"V" => SensorCategory.Voltage,
+		"A" => SensorCategory.Current,
+		"°C" or "°F" or "°K" => SensorCategory.Temperature,
+		"RPM" => SensorCategory.Fan,
+		_ => SensorCategory.Other,
+	};
 
 	public void SetOnline(SensorInformation information)
 	{
@@ -451,4 +462,16 @@ public readonly struct NumberWithUnit
 		}
 		return $"{value:G3}\xA0{symbol}";
 	}
+}
+
+public enum SensorCategory
+{
+	Other = 0,
+	Percent,
+	Frequency,
+	Fan,
+	Temperature,
+	Power,
+	Voltage,
+	Current,
 }

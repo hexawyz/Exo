@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lc="using:Exo.Settings.Ui.Controls"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels">
     <Application.Resources>
@@ -256,6 +257,53 @@
                 <Setter Property="Width" Value="20" />
                 <Setter Property="Height" Value="20" />
             </Style>
+
+            <Style x:Key="PercentageSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#0f0" />
+                <Setter Property="AreaFill" Value="#0f0" />
+                <Setter Property="MinMaxLineStroke" Value="#0a0" />
+            </Style>
+            <Style x:Key="FrequencySensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#0cf" />
+                <Setter Property="AreaFill" Value="#0cf" />
+                <Setter Property="MinMaxLineStroke" Value="#06a" />
+            </Style>
+            <Style x:Key="FanSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#08f" />
+                <Setter Property="AreaFill" Value="#08f" />
+                <Setter Property="MinMaxLineStroke" Value="#04a" />
+            </Style>
+            <Style x:Key="TemperatureSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#f00" />
+                <Setter Property="AreaFill" Value="#f00" />
+                <Setter Property="MinMaxLineStroke" Value="#a00" />
+            </Style>
+            <Style x:Key="PowerSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#fc0" />
+                <Setter Property="AreaFill" Value="#fc0" />
+                <Setter Property="MinMaxLineStroke" Value="#a60" />
+            </Style>
+            <Style x:Key="VoltageSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#80f" />
+                <Setter Property="AreaFill" Value="#80f" />
+                <Setter Property="MinMaxLineStroke" Value="#40a" />
+            </Style>
+            <Style x:Key="CurrentSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+                <Setter Property="Stroke" Value="#04f" />
+                <Setter Property="AreaFill" Value="#04f" />
+                <Setter Property="MinMaxLineStroke" Value="#02a" />
+            </Style>
+            
+            <local:SensorCategoryToStyleConverter
+                x:Key="SensorCategoryToLineChartStyleConverter"
+                DefaultStyle="{ThemeResource DefaultLineChartStyle}"
+                PercentageStyle="{ThemeResource PercentageSensorLineChartStyle}"
+                FrequencyStyle="{ThemeResource FrequencySensorLineChartStyle}"
+                FanStyle="{ThemeResource FanSensorLineChartStyle}"
+                TemperatureStyle="{ThemeResource TemperatureSensorLineChartStyle}"
+                VoltageStyle="{ThemeResource VoltageSensorLineChartStyle}"
+                PowerStyle="{ThemeResource PowerSensorLineChartStyle}"
+                CurrentStyle="{ThemeResource CurrentSensorLineChartStyle}" />
 
         </ResourceDictionary>
     </Application.Resources>

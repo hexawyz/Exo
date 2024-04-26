@@ -3,15 +3,27 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui.Controls">
-    <Brush x:Key="LineChartBorderBrush">Gray</Brush>
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <Brush x:Key="LineChartBorderBrush">#888</Brush>
+            <Brush x:Key="LineChartBackground">#fff</Brush>
+            <Brush x:Key="LineChartGridStroke">#ccc</Brush>
+            <Brush x:Key="LineChartStroke">#000</Brush>
+            <Brush x:Key="LineMinMaxLineStroke">#444</Brush>
+            <Brush x:Key="LineChartAreaFill">Black</Brush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <Brush x:Key="LineChartBorderBrush">#888</Brush>
+            <Brush x:Key="LineChartBackground">#444</Brush>
+            <Brush x:Key="LineChartGridStroke">#888</Brush>
+            <Brush x:Key="LineChartStroke">#fff</Brush>
+            <Brush x:Key="LineMinMaxLineStroke">#ccc</Brush>
+            <Brush x:Key="LineChartAreaFill">#fff</Brush>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
     <x:Double x:Key="LineChartBorderThickness">1</x:Double>
-    <Brush x:Key="LineChartBackground">White</Brush>
-    <Brush x:Key="LineChartGridStroke">LightGray</Brush>
-    <Brush x:Key="LineChartStroke">Black</Brush>
     <x:Double x:Key="LineChartStrokeThickness">1</x:Double>
     <PenLineJoin x:Key="LineChartStrokeLineJoin">Round</PenLineJoin>
-    <Brush x:Key="LineMinMaxLineStroke">Red</Brush>
-    <Brush x:Key="LineChartAreaFill">Black</Brush>
     <x:Double x:Key="LineChartAreaOpacity">0.75</x:Double>
     <Style x:Key="DefaultLineChartStyle" TargetType="local:LineChart">
         <Setter Property="BorderBrush" Value="{ThemeResource LineChartBorderBrush}" />

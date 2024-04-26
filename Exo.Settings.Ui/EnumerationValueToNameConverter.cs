@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Threading;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
