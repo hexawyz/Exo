@@ -123,18 +123,16 @@ internal class LineChart : Control
 	{
 		_seriesDataChanged = OnSeriesDataChanged;
 
-		Loading += static (s, e) => ((LineChart)s).OnLoading(e);
 		Loaded += static (s, e) => ((LineChart)s).OnLoaded(e);
 		Unloaded += static (s, e) => ((LineChart)s).OnUnloaded(e);
 		SizeChanged += static (s, e) => ((LineChart)s).OnSizeChanged(e);
 	}
 
-	private void OnLoading(object args)
+	private void OnLoaded(RoutedEventArgs e)
 	{
 		if (Series is { } series) series.Changed += _seriesDataChanged;
+		RefreshChart();
 	}
-
-	private void OnLoaded(RoutedEventArgs e) => RefreshChart();
 
 	private void OnUnloaded(RoutedEventArgs e)
 	{
