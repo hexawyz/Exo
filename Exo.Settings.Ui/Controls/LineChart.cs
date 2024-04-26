@@ -123,28 +123,25 @@ internal class LineChart : Control
 	{
 		_seriesDataChanged = OnSeriesDataChanged;
 
-		Loading += OnLoading;
-		Loaded += OnLoaded;
-		Unloaded += OnUnloaded;
-		SizeChanged += OnSizeChanged;
+		Loading += static (s, e) => ((LineChart)s).OnLoading(e);
+		Loaded += static (s, e) => ((LineChart)s).OnLoaded(e);
+		Unloaded += static (s, e) => ((LineChart)s).OnUnloaded(e);
+		SizeChanged += static (s, e) => ((LineChart)s).OnSizeChanged(e);
 	}
 
-	private void OnSizeChanged(object sender, SizeChangedEventArgs e)
-	{
-		RefreshChart();
-	}
-
-	private void OnLoading(FrameworkElement sender, object args)
+	private void OnLoading(object args)
 	{
 		if (Series is { } series) series.Changed += _seriesDataChanged;
 	}
 
-	private void OnLoaded(object sender, RoutedEventArgs e) => RefreshChart();
+	private void OnLoaded(RoutedEventArgs e) => RefreshChart();
 
-	private void OnUnloaded(object sender, RoutedEventArgs e)
+	private void OnUnloaded(RoutedEventArgs e)
 	{
 		if (Series is { } series) series.Changed -= _seriesDataChanged;
 	}
+
+	private void OnSizeChanged(SizeChangedEventArgs e) => RefreshChart();
 
 	private static void OnSeriesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((LineChart)d).OnSeriesChanged(e);
 
