@@ -14,8 +14,8 @@
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
             <Brush x:Key="LineChartBorderBrush">#888</Brush>
-            <Brush x:Key="LineChartBackground">#444</Brush>
-            <Brush x:Key="LineChartGridStroke">#555</Brush>
+            <Brush x:Key="LineChartBackground">#222</Brush>
+            <Brush x:Key="LineChartGridStroke">#333</Brush>
             <Brush x:Key="LineChartStroke">#fff</Brush>
             <Brush x:Key="LineMinMaxLineStroke">#ccc</Brush>
             <Brush x:Key="LineChartAreaFill">#fff</Brush>
