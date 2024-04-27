@@ -7,7 +7,7 @@
         <ResourceDictionary x:Key="Light">
             <Brush x:Key="LineChartBorderBrush">#888</Brush>
             <Brush x:Key="LineChartBackground">#fff</Brush>
-            <Brush x:Key="LineChartGridStroke">#ccc</Brush>
+            <Brush x:Key="LineChartGridStroke">#eee</Brush>
             <Brush x:Key="LineChartStroke">#000</Brush>
             <Brush x:Key="LineMinMaxLineStroke">#444</Brush>
             <Brush x:Key="LineChartAreaFill">Black</Brush>
@@ -15,7 +15,7 @@
         <ResourceDictionary x:Key="Dark">
             <Brush x:Key="LineChartBorderBrush">#888</Brush>
             <Brush x:Key="LineChartBackground">#444</Brush>
-            <Brush x:Key="LineChartGridStroke">#888</Brush>
+            <Brush x:Key="LineChartGridStroke">#555</Brush>
             <Brush x:Key="LineChartStroke">#fff</Brush>
             <Brush x:Key="LineMinMaxLineStroke">#ccc</Brush>
             <Brush x:Key="LineChartAreaFill">#fff</Brush>
