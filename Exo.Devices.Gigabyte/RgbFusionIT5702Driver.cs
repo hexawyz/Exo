@@ -453,7 +453,7 @@ public sealed class RgbFusionIT5702Driver :
 				keys,
 				new RgbFusionIT5702Driver
 				(
-					new HidFullDuplexStream(ledDeviceInterfaceName),
+					hidStream,
 					smBusFeature,
 					productId,
 					version,
