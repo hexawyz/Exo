@@ -64,6 +64,8 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* SteamDeck XL (Protocol is implemented and mostly tested, but features are not exposed)
 * Corsair
 	* HX1200i: Sensors accessible via Corsair Link. (e.g. Temperature)
+* Eaton
+	* Various UPS Models: Power consumption and battery level.
 * Other
 	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
 

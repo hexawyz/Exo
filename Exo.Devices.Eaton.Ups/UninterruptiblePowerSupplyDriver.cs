@@ -100,18 +100,38 @@ public sealed class UninterruptiblePowerSupplyDriver :
 				await hidStream.ReceiveFeatureReportAsync(buffer.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
 				string? chemistry = await hidStream.GetStringAsync(buffer[1], cancellationToken).ConfigureAwait(false);
 				string? manufacturer = await hidStream.GetStringAsync(buffer[2], cancellationToken).ConfigureAwait(false);
-				string? capacity = await hidStream.GetStringAsync(buffer[3], cancellationToken).ConfigureAwait(false);
+				string? capacityName = await hidStream.GetStringAsync(buffer[3], cancellationToken).ConfigureAwait(false);
 				string? product = await hidStream.GetStringAsync(buffer[4], cancellationToken).ConfigureAwait(false);
 				string? unknown = await hidStream.GetStringAsync(buffer[5], cancellationToken).ConfigureAwait(false);
 				string? serialNumber = await hidStream.GetStringAsync(buffer[6], cancellationToken).ConfigureAwait(false);
 				string? firmwareVersion = await hidStream.GetStringAsync(buffer[7], cancellationToken).ConfigureAwait(false);
 				string? connectionType = await hidStream.GetStringAsync(buffer[8], cancellationToken).ConfigureAwait(false);
 
-				if (capacity is not null && product is not null)
+				if (capacityName is not null && product is not null)
 				{
-					friendlyName = product + " " + capacity;
+					friendlyName = product + " " + capacityName;
 				}
-				
+
+				// Read device capacity information.
+				buffer[0] = 0x0D;
+				await hidStream.ReceiveFeatureReportAsync(buffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
+
+				ushort capacity = LittleEndian.ReadUInt16(in buffer[1]);
+				byte frequency = buffer[3];
+
+				// TODO: This should provide some information on the device (Output ID, Flow ID, etc) but no idea how to interpret it yet.
+				buffer[0] = 0x0B;
+				await hidStream.ReceiveFeatureReportAsync(buffer.AsMemory(0, 11), cancellationToken).ConfigureAwait(false);
+
+				// Read device battery information.
+				buffer[0] = 0x0C;
+				await hidStream.ReceiveFeatureReportAsync(buffer.AsMemory(0, 8), cancellationToken).ConfigureAwait(false);
+
+				// Not sure reading this is very useful, as the battery is only exposed in % here.
+				bool isSwitchable = buffer[1] != 0;
+				byte designCapacity = buffer[5];
+				byte fullChargeCapacity = buffer[5];
+
 				// Do an initial battery capacity reading.
 				buffer[0] = 0x06;
 				await hidStream.ReceiveFeatureReportAsync(buffer.AsMemory(0, 6), cancellationToken).ConfigureAwait(false);
@@ -150,8 +170,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		}
 	}
 
-	public static readonly Guid OutputVoltageSensorId = new(0xD8C1E0F2, 0x1712, 0x4709, 0x8B, 0x81, 0x3C, 0x2D, 0x2F, 0x77, 0xD6, 0x34);
 	public static readonly Guid PercentLoadSensorId = new(0xD9CA6694, 0x7514, 0x429C, 0x86, 0x53, 0x66, 0x55, 0xC4, 0x30, 0x73, 0xB2);
+	public static readonly Guid OutputVoltageSensorId = new(0xD8C1E0F2, 0x1712, 0x4709, 0x8B, 0x81, 0x3C, 0x2D, 0x2F, 0x77, 0xD6, 0x34);
 
 	private readonly HidFullDuplexStream _stream;
 	private readonly byte[] _buffer;
@@ -193,8 +213,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		_batteryState = batteryState;
 		_sensors =
 		[
-			new SimpleSensor<ushort>(this, 0x0E, 7, OutputVoltageSensorId, SensorUnit.Volts, 0, null),
 			new GroupedSensor<byte>(this, 0x07, 8, 10, 6, PercentLoadSensorId, SensorUnit.Percent, 0, 100),
+			new SimpleSensor<ushort>(this, 0x0E, 7, OutputVoltageSensorId, SensorUnit.Volts, 0, null),
 		];
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, UninterruptiblePowerSupplyDriver, ISensorsFeature>(this);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, UninterruptiblePowerSupplyDriver, IBatteryStateDeviceFeature>(this);
