@@ -17,6 +17,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<ISensorDeviceFeature>,
 	ISensorsFeature,
+	//ISensorsGroupedQueryFeature,
 	IBatteryStateDeviceFeature
 {
 	private const ushort EatonVendorId = 0x0463;
@@ -97,6 +98,19 @@ public sealed class UninterruptiblePowerSupplyDriver :
 				// NB: When it was running the Eaton service was requesting reports 1, 7, 6, 9, 2 and 14 in a loop.
 				buffer[0] = 0x10;
 				await hidStream.ReceiveFeatureReportAsync(buffer.AsMemory(0, 9), cancellationToken).ConfigureAwait(false);
+				string? chemistry = await hidStream.GetStringAsync(buffer[1], cancellationToken).ConfigureAwait(false);
+				string? manufacturer = await hidStream.GetStringAsync(buffer[2], cancellationToken).ConfigureAwait(false);
+				string? capacity = await hidStream.GetStringAsync(buffer[3], cancellationToken).ConfigureAwait(false);
+				string? product = await hidStream.GetStringAsync(buffer[4], cancellationToken).ConfigureAwait(false);
+				string? unknown = await hidStream.GetStringAsync(buffer[5], cancellationToken).ConfigureAwait(false);
+				string? serialNumber = await hidStream.GetStringAsync(buffer[6], cancellationToken).ConfigureAwait(false);
+				string? firmwareVersion = await hidStream.GetStringAsync(buffer[7], cancellationToken).ConfigureAwait(false);
+				string? connectionType = await hidStream.GetStringAsync(buffer[8], cancellationToken).ConfigureAwait(false);
+
+				if (capacity is not null && product is not null)
+				{
+					friendlyName = product + " " + capacity;
+				}
 				
 				// Do an initial battery capacity reading.
 				buffer[0] = 0x06;
@@ -137,6 +151,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	}
 
 	public static readonly Guid OutputVoltageSensorId = new(0xD8C1E0F2, 0x1712, 0x4709, 0x8B, 0x81, 0x3C, 0x2D, 0x2F, 0x77, 0xD6, 0x34);
+	public static readonly Guid PercentLoadSensorId = new(0xD9CA6694, 0x7514, 0x429C, 0x86, 0x53, 0x66, 0x55, 0xC4, 0x30, 0x73, 0xB2);
 
 	private readonly HidFullDuplexStream _stream;
 	private readonly byte[] _buffer;
@@ -178,7 +193,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		_batteryState = batteryState;
 		_sensors =
 		[
-			new SimpleSensor<ushort>(this, 0x0E, 7, OutputVoltageSensorId, SensorUnit.Volts),
+			new SimpleSensor<ushort>(this, 0x0E, 7, OutputVoltageSensorId, SensorUnit.Volts, 0, null),
+			new GroupedSensor<byte>(this, 0x07, 8, 10, 6, PercentLoadSensorId, SensorUnit.Percent, 0, 100),
 		];
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, UninterruptiblePowerSupplyDriver, ISensorsFeature>(this);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, UninterruptiblePowerSupplyDriver, IBatteryStateDeviceFeature>(this);
@@ -293,6 +309,18 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		};
 	}
 
+	//void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
+	//{
+	//}
+
+	//void ISensorsGroupedQueryFeature.RemoveSensor(IPolledSensor sensor)
+	//{
+	//}
+
+	//ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
+	//{
+	//}
+
 	private sealed class SimpleSensor<T> : IPolledSensor<T>
 		where T : struct, INumber<T>
 	{
@@ -301,21 +329,25 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		private readonly byte _bufferOffset;
 		private readonly Guid _sensorId;
 		private readonly SensorUnit _sensorUnit;
+		private readonly T? _minimumValue;
+		private readonly T? _maximumValue;
 
-		public SimpleSensor(UninterruptiblePowerSupplyDriver driver, byte reportId, byte bufferOffset, Guid sensorId, SensorUnit sensorUnit)
+		public SimpleSensor(UninterruptiblePowerSupplyDriver driver, byte reportId, byte bufferOffset, Guid sensorId, SensorUnit sensorUnit, T? minimumValue, T? maximumValue)
 		{
 			_driver = driver;
 			_reportId = reportId;
 			_bufferOffset = bufferOffset;
 			_sensorId = sensorId;
 			_sensorUnit = sensorUnit;
+			_minimumValue = minimumValue;
+			_maximumValue = maximumValue;
 		}
 
 		public Guid SensorId => _sensorId;
 		public SensorUnit Unit => _sensorUnit;
 
-		public T? ScaleMinimumValue => null;
-		public T? ScaleMaximumValue => null;
+		public T? ScaleMinimumValue => _minimumValue;
+		public T? ScaleMaximumValue => _maximumValue;
 
 		public async ValueTask<T> GetValueAsync(CancellationToken cancellationToken)
 		{
@@ -323,6 +355,48 @@ public sealed class UninterruptiblePowerSupplyDriver :
 			buffer.Span[0] = _reportId;
 			await _driver._stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 			return Unsafe.ReadUnaligned<T>(ref buffer.Span[1]);
+		}
+	}
+
+	private sealed class GroupedSensor<T> : IPolledSensor<T>
+		where T : struct, INumber<T>
+	{
+		private readonly UninterruptiblePowerSupplyDriver _driver;
+		private readonly byte _reportId;
+		private readonly byte _reportLength;
+		private readonly byte _bufferOffset;
+		private readonly byte _dataOffset;
+		private readonly Guid _sensorId;
+		private readonly SensorUnit _sensorUnit;
+		private readonly T? _minimumValue;
+		private readonly T? _maximumValue;
+
+		public GroupedSensor(UninterruptiblePowerSupplyDriver driver, byte reportId, byte reportLength, byte bufferOffset, byte dataOffset, Guid sensorId, SensorUnit sensorUnit, T? minimumValue, T? maximumValue)
+		{
+			_driver = driver;
+			_reportId = reportId;
+			_reportLength = reportLength;
+			_bufferOffset = bufferOffset;
+			_dataOffset = dataOffset;
+			_sensorId = sensorId;
+			_sensorUnit = sensorUnit;
+			_minimumValue = minimumValue;
+			_maximumValue = maximumValue;
+		}
+
+		public Guid SensorId => _sensorId;
+		public SensorUnit Unit => _sensorUnit;
+		public byte ReportId => _reportId;
+
+		public T? ScaleMinimumValue => _minimumValue;
+		public T? ScaleMaximumValue => _maximumValue;
+
+		public async ValueTask<T> GetValueAsync(CancellationToken cancellationToken)
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_driver._buffer, _bufferOffset, _reportLength);
+			buffer.Span[0] = _reportId;
+			await _driver._stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+			return Unsafe.ReadUnaligned<T>(ref buffer.Span[_dataOffset]);
 		}
 	}
 }
