@@ -54,7 +54,7 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		HighVoltageTransfer = 0x54,
 		DelayBeforeReboot = 0x55,
 		DelayBeforeStartup = 0x56,
-		DelayBeforeSHutdown = 0x57,
+		DelayBeforeShutdown = 0x57,
 		Test = 0x58,
 		ModuleReset = 0x59,
 		AudibleAlarmControl = 0x5A,

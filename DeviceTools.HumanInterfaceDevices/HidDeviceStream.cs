@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -148,5 +149,20 @@ public class HidDeviceStream : DeviceStream
 		int count = await IoControlAsync(NativeMethods.IoCtlGetCollectionDescriptor, buffer, cancellationToken).ConfigureAwait(false);
 		if (count != buffer.Length) throw new InvalidOperationException("Unexpected data length.");
 		return buffer;
+	}
+
+	public async ValueTask<HidCollectionDescriptor> GetCollectionDescriptorAsync(CancellationToken cancellationToken)
+	{
+		await EnsureCollectionInformationAvailabilityAsync(cancellationToken).ConfigureAwait(false);
+		var buffer = ArrayPool<byte>.Shared.Rent(_hidCollectionInformation!.Value.DescriptorSize);
+		try
+		{
+			int count = await IoControlAsync(NativeMethods.IoCtlGetCollectionDescriptor, buffer.AsMemory(0, _hidCollectionInformation!.Value.DescriptorSize), cancellationToken).ConfigureAwait(false);
+			return HidCollectionDescriptor.Parse(buffer.AsSpan(0, _hidCollectionInformation!.Value.DescriptorSize));
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(buffer);
+		}
 	}
 }

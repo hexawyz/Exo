@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -129,4 +130,14 @@ public sealed class HidFullDuplexStream : Stream
 
 	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 	public override void SetLength(long value) => throw new NotSupportedException();
+
+	public ValueTask<string?> GetManufacturerNameAsync(CancellationToken cancellationToken) => _readStream.GetManufacturerNameAsync(cancellationToken);
+
+	public ValueTask<string?> GetProductNameAsync(CancellationToken cancellationToken) => _readStream.GetProductNameAsync(cancellationToken);
+
+	public ValueTask<string?> GetSerialNumberAsync(CancellationToken cancellationToken) => _readStream.GetSerialNumberAsync(cancellationToken);
+
+	public ValueTask<string?> GetStringAsync(int index, CancellationToken cancellationToken) => _readStream.GetStringAsync(index, cancellationToken);
+
+	public ValueTask<HidCollectionDescriptor> GetCollectionDescriptorAsync(CancellationToken cancellationToken) => _readStream.GetCollectionDescriptorAsync(cancellationToken);
 }
