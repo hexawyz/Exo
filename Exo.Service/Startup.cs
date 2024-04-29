@@ -171,6 +171,7 @@ public class Startup
 		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
 		services.AddSingleton<GrpcCustomMenuService>();
+		services.AddSingleton<GrpcServiceLifetimeService>();
 		services.AddSingleton<IOverlayCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddSingleton<ISettingsCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddCodeFirstGrpc();
@@ -196,6 +197,7 @@ public class Startup
 
 		var settingsEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Configuration");
 		var overlayEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Overlay");
+		var pipeEndpointFilter = new SettingsPipeFilter();
 
 		app.UseEndpoints(endpoints =>
 		{
@@ -208,6 +210,7 @@ public class Startup
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<IOverlayCustomMenuService>().AddEndpointFilter(overlayEndpointFilter);
+			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);
 			endpoints.MapRazorPages();
 		});
 	}

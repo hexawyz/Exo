@@ -6,15 +6,15 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class ProgrammingViewModel : BindableObject, IAsyncDisposable
 {
-	private readonly IProgrammingService _programmingService;
+	private readonly SettingsServiceConnectionManager _connectionManager;
 	private ReadOnlyCollection<ModuleViewModel> _modules;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _changeWatchTask;
 
-	public ProgrammingViewModel(IProgrammingService programmingService)
+	public ProgrammingViewModel(SettingsServiceConnectionManager connectionManager)
 	{
-		_programmingService = programmingService;
+		_connectionManager = connectionManager;
 		_modules = ReadOnlyCollection<ModuleViewModel>.Empty;
 		_cancellationTokenSource = new();
 		_changeWatchTask = WatchChangesAsync(_cancellationTokenSource.Token);
@@ -28,7 +28,8 @@ internal sealed class ProgrammingViewModel : BindableObject, IAsyncDisposable
 
 	private async Task WatchChangesAsync(CancellationToken cancellationToken)
 	{
-		var modules = (await _programmingService.GetModulesAsync(cancellationToken)).Select(m => new ModuleViewModel(m)).ToArray();
+		var programmingService = await _connectionManager.GetProgrammingServiceAsync(cancellationToken);
+		var modules = (await programmingService.GetModulesAsync(cancellationToken)).Select(m => new ModuleViewModel(m)).ToArray();
 
 		Modules = Array.AsReadOnly(modules);
 

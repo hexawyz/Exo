@@ -1,13 +1,13 @@
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
-using ProtoBuf.Grpc.Client;
+using System.Threading.Channels;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class SettingsViewModel : BindableObject
 {
-	private readonly ServiceConnectionManager _connectionManager;
+	public SettingsServiceConnectionManager ConnectionManager { get; }
 	private readonly IEditionService _editionService;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
@@ -19,17 +19,12 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public SettingsViewModel(IEditionService editionService)
 	{
-		_connectionManager = new("Local\\Exo.Service.Configuration");
+		ConnectionManager = new("Local\\Exo.Service.Configuration", 100);
 		_editionService = editionService;
-		_devicesViewModel = new
-		(
-			_connectionManager.Channel.CreateGrpcService<IDeviceService>(),
-			_connectionManager.Channel.CreateGrpcService<IMouseService>(),
-			_connectionManager.Channel.CreateGrpcService<IMonitorService>()
-		);
-		_lightingViewModel = new(_connectionManager.Channel.CreateGrpcService<ILightingService>(), _devicesViewModel, _editionService);
-		_sensorsViewModel = new(_connectionManager.Channel.CreateGrpcService<ISensorService>(), _devicesViewModel);
-		_programmingViewModel = new(_connectionManager.Channel.CreateGrpcService<IProgrammingService>());
+		_devicesViewModel = new(ConnectionManager);
+		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _editionService);
+		_sensorsViewModel = new(ConnectionManager, _devicesViewModel);
+		_programmingViewModel = new(ConnectionManager);
 		_customMenuViewModel = new();
 		_icon = string.Empty;
 		_title = string.Empty;

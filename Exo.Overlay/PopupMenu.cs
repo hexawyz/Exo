@@ -220,6 +220,10 @@ internal sealed class PopupMenu : NotificationControl
 		var item = _items[index]!;
 		item.Detach();
 		Array.Copy(_items, index + 1, _items, index, --_itemCount - index);
+		for (int i = index; i < _itemCount; i++)
+		{
+			_items[i]!.DecrementIndex();
+		}
 		_items[_itemCount] = null!;
 	}
 
@@ -269,7 +273,7 @@ internal abstract class MenuItem
 	{
 		if (_menu is null) throw new InvalidOperationException("MenuItem is not attached to any menu.");
 		if (index == _index) return;
-		if (RemoveMenu(_menu!.Handle, (uint)_index, 1) == 0)
+		if (RemoveMenu(_menu!.Handle, (uint)_index, RemoveMenuOptions.ByPosition) == 0)
 		{
 			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 		}
@@ -289,7 +293,7 @@ internal abstract class MenuItem
 	internal void Detach()
 	{
 		if (_menu is null) throw new InvalidOperationException("MenuItem is already detached from any menu.");
-		if (RemoveMenu(_menu!.Handle, (uint)_index, 1) == 0)
+		if (RemoveMenu(_menu!.Handle, (uint)_index, RemoveMenuOptions.ByPosition) == 0)
 		{
 			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 		}

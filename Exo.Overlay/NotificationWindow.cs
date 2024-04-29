@@ -214,7 +214,7 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 		}
 	}
 
-	private readonly Thread _messageThread = new(MessageLoopThreadProcedure);
+	private readonly Thread _messageThread;
 	private readonly ConcurrentQueue<RegisteredCallback> _pendingCallbacks;
 	private readonly Dictionary<ushort, WeakReference<NotifyIcon>> _registeredIcons;
 	private readonly Dictionary<nint, WeakReference<PopupMenu>> _registeredMenus;
@@ -227,7 +227,7 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 
 	private NotificationWindow()
 	{
-		_messageThread = new(MessageLoopThreadProcedure) { IsBackground = true };
+		_messageThread = new(MessageLoopThreadProcedure) { Name = "NotificationWindow", IsBackground = true };
 		_pendingCallbacks = new();
 		_registeredIcons = new();
 		_registeredMenus = new();

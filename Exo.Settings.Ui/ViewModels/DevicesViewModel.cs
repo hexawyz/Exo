@@ -14,9 +14,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	// If the same device is reconnected later, it will be considered a new device and get a new and device ID.
 	private readonly HashSet<Guid> _removedDeviceIds;
 
-	private readonly IDeviceService _deviceService;
-	private readonly IMouseService _mouseService;
-	internal IMonitorService MonitorService { get; }
+	private readonly SettingsServiceConnectionManager _connectionManager;
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
@@ -39,13 +37,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	private readonly Task _dpiWatchTask;
 	private readonly Task _monitorSettingWatchTask;
 
-	public DevicesViewModel(IDeviceService deviceService, IMouseService mouseService, IMonitorService monitorService)
+	public DevicesViewModel(SettingsServiceConnectionManager connectionManager)
 	{
-		_deviceService = deviceService;
-		_mouseService = mouseService;
-		MonitorService = monitorService;
 		_devices = new();
 		_removedDeviceIds = new();
+		_connectionManager = connectionManager;
 		_devicesById = new();
 		_pendingBatteryChanges = new();
 		_pendingDpiChanges = new();
@@ -61,7 +57,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in _deviceService.WatchDevicesAsync(cancellationToken))
+			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken);
+			await foreach (var notification in deviceService.WatchDevicesAsync(cancellationToken))
 			{
 				var id = notification.Details.Id;
 
@@ -81,7 +78,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 						//	// Disconnection from the service is not yet handled.
 						//	continue;
 						//}
-						var device = new DeviceViewModel(this, notification.Details);
+						var device = new DeviceViewModel(_connectionManager, notification.Details);
 						HandleDeviceArrival(device);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
@@ -173,7 +170,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in _deviceService.WatchBatteryChangesAsync(cancellationToken))
+			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken);
+			await foreach (var notification in deviceService.WatchBatteryChangesAsync(cancellationToken))
 			{
 				var status = new BatteryStateViewModel(notification);
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
@@ -199,7 +197,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in _mouseService.WatchDpiChangesAsync(cancellationToken))
+			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
+			await foreach (var notification in mouseService.WatchDpiChangesAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
 				{
@@ -223,7 +222,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in MonitorService.WatchSettingsAsync(cancellationToken))
+			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+			await foreach (var notification in monitorService.WatchSettingsAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
 				{

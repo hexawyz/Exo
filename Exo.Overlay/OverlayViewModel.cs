@@ -48,15 +48,15 @@ internal sealed class OverlayViewModel : BindableObject, IAsyncDisposable
 		return BatteryChargingGlyphs[level];
 	}
 
-	private readonly IOverlayNotificationService _overlayNotificationService;
+	private readonly ServiceConnectionManager _serviceConnectionManager;
 	private readonly Channel<OverlayContentViewModel> _overlayChannel;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _watchTask;
 	private readonly Task _updateTask;
 
-	public OverlayViewModel(IOverlayNotificationService overlayNotificationService)
+	public OverlayViewModel(ServiceConnectionManager serviceConnectionManager)
 	{
-		_overlayNotificationService = overlayNotificationService;
+		_serviceConnectionManager = serviceConnectionManager;
 		_overlayChannel = Channel.CreateUnbounded<OverlayContentViewModel>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = true });
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
@@ -77,81 +77,95 @@ internal sealed class OverlayViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var request in _overlayNotificationService.WatchOverlayRequestsAsync(cancellationToken))
+			while (!cancellationToken.IsCancellationRequested)
 			{
-				OverlayContentViewModel? content = null;
-				switch (request.NotificationKind)
+				var overlayNotificationService = await _serviceConnectionManager.CreateServiceAsync<IOverlayNotificationService>(cancellationToken);
+				try
 				{
-				case OverlayNotificationKind.Custom:
-					break;
-				case OverlayNotificationKind.CapsLockOff:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE975", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.CapsLockOn:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE974", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.NumLockOff:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB65", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.NumLockOn:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB64", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.ScrollLockOff:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BE", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.ScrollLockOn:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BC", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.FnLockOff:
-					content = new() { Glyph = "\uE785", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.FnLockOn:
-					content = new() { Glyph = "\uE72E", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.MonitorBrightnessDown:
-					content = new() { Glyph = "\uEC8A", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
-					break;
-				case OverlayNotificationKind.MonitorBrightnessUp:
-					content = new() { Glyph = "\uE706", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
-					break;
-				case OverlayNotificationKind.KeyboardBacklightDown:
-					content = new() { Glyph = "\uED3A", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
-					break;
-				case OverlayNotificationKind.KeyboardBacklightUp:
-					content = new() { Glyph = "\uED39", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
-					break;
-				case OverlayNotificationKind.BatteryLow:
-					content = new() { Glyph = GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.BatteryFullyCharged:
-					content = new() { Glyph = BatteryChargingGlyphs[10], Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.BatteryExternalPowerDisconnected:
-					// TODO: Better glyph when charge status is unknown.
-					content = new() { Glyph = request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.BatteryExternalPowerConnected:
-					content = new() { Glyph = request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", Description = request.DeviceName };
-					break;
-				case OverlayNotificationKind.MouseDpiDown:
-					content = new() { Glyph = "\uF08E", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel, Value = request.Value > 0 ? request.Value : null };
-					break;
-				case OverlayNotificationKind.MouseDpiUp:
-					content = new() { Glyph = "\uF090", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel, Value = request.Value > 0 ? request.Value : null };
-					break;
-				default:
-					continue;
+					await foreach (var request in overlayNotificationService.WatchOverlayRequestsAsync(cancellationToken))
+					{
+						OverlayContentViewModel? content = null;
+						switch (request.NotificationKind)
+						{
+						case OverlayNotificationKind.Custom:
+							break;
+						case OverlayNotificationKind.CapsLockOff:
+							content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE975", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.CapsLockOn:
+							content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE974", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.NumLockOff:
+							content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB65", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.NumLockOn:
+							content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB64", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.ScrollLockOff:
+							content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BE", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.ScrollLockOn:
+							content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BC", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.FnLockOff:
+							content = new() { Glyph = "\uE785", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.FnLockOn:
+							content = new() { Glyph = "\uE72E", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.MonitorBrightnessDown:
+							content = new() { Glyph = "\uEC8A", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
+							break;
+						case OverlayNotificationKind.MonitorBrightnessUp:
+							content = new() { Glyph = "\uE706", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
+							break;
+						case OverlayNotificationKind.KeyboardBacklightDown:
+							content = new() { Glyph = "\uED3A", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
+							break;
+						case OverlayNotificationKind.KeyboardBacklightUp:
+							content = new() { Glyph = "\uED39", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel };
+							break;
+						case OverlayNotificationKind.BatteryLow:
+							content = new() { Glyph = GetBatteryDischargingGlyph(request.MaxLevel == 10 ? request.Level : 1), Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.BatteryFullyCharged:
+							content = new() { Glyph = BatteryChargingGlyphs[10], Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.BatteryExternalPowerDisconnected:
+							// TODO: Better glyph when charge status is unknown.
+							content = new() { Glyph = request.MaxLevel == 10 ? GetBatteryDischargingGlyph(request.Level) : "\U0001F6C7\uFE0F", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.BatteryExternalPowerConnected:
+							content = new() { Glyph = request.MaxLevel == 10 ? GetBatteryChargingGlyph(request.Level) : "\uE945", Description = request.DeviceName };
+							break;
+						case OverlayNotificationKind.MouseDpiDown:
+							content = new() { Glyph = "\uF08E", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel, Value = request.Value > 0 ? request.Value : null };
+							break;
+						case OverlayNotificationKind.MouseDpiUp:
+							content = new() { Glyph = "\uF090", Description = request.DeviceName, CurrentLevel = (int)request.Level, LevelCount = (int)request.MaxLevel, Value = request.Value > 0 ? request.Value : null };
+							break;
+						default:
+							continue;
+						}
+						if (content is not null)
+						{
+							_overlayChannel.Writer.TryWrite(content);
+						}
+					}
 				}
-				if (content is not null)
+				catch (Exception)
 				{
-					_overlayChannel.Writer.TryWrite(content);
+					// TODO: See what exceptions can be thrown when the service is disconnected or the channel is shutdown.
 				}
 			}
 		}
+		catch (ObjectDisposedException)
+		{
+		}
 		catch (OperationCanceledException)
 		{
-			_overlayChannel.Writer.TryComplete();
 		}
+		_overlayChannel.Writer.TryComplete();
 	}
 
 	private async Task ProcessOverlayUpdatesAsync(CancellationToken cancellationToken)

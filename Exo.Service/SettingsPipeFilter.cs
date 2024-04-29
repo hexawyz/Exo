@@ -37,15 +37,16 @@ internal sealed class SettingsPipeFilter : IEndpointFilter
 		}
 	}
 
-	public string PipeName { get; }
+	public string? PipeName { get; }
 
+	public SettingsPipeFilter() { }
 	public SettingsPipeFilter(string pipeName) => PipeName = pipeName;
 
 	public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
 	{
 		if (context.HttpContext.Features.Get<IConnectionNamedPipeFeature>() is IConnectionNamedPipeFeature feature)
 		{
-			if (GetEndpointGetter(feature.GetType())(feature) is NamedPipeEndPoint endPoint && endPoint.PipeName == PipeName)
+			if (GetEndpointGetter(feature.GetType())(feature) is NamedPipeEndPoint endPoint && (PipeName is null || endPoint.PipeName == PipeName))
 			{
 				return next(context);
 			}

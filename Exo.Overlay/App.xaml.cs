@@ -17,7 +17,7 @@ internal partial class App : Application
 
 	public static readonly string? SettingsUiExecutablePath = LocateSettingsUi();
 
-	private readonly ServiceConnectionManager _connectionManager = new("Local\\Exo.Service.Overlay");
+	private readonly ServiceConnectionManager _connectionManager = new("Local\\Exo.Service.Overlay", 100);
 
 	private OverlayViewModel? _overlayViewModel;
 	private NotifyIconService? _notifyIconService;
@@ -31,9 +31,9 @@ internal partial class App : Application
 		// Use this undocumented uxtheme API (always… why!) to allow system dark mode for classical UI.
 		NativeMethods.SetPreferredAppMode(1);
 
-		_overlayViewModel = new(_connectionManager.Channel.CreateGrpcService<IOverlayNotificationService>());
+		_overlayViewModel = new(_connectionManager);
 
-		_notifyIconService = await NotifyIconService.CreateAsync(_connectionManager.Channel.CreateGrpcService<IOverlayCustomMenuService>()).ConfigureAwait(false);
+		_notifyIconService = await NotifyIconService.CreateAsync(_connectionManager).ConfigureAwait(false);
 	}
 
 	private static string? LocateSettingsUi()

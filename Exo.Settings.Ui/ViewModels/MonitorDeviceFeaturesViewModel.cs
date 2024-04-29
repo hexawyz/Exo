@@ -5,7 +5,7 @@ namespace Exo.Settings.Ui.ViewModels;
 internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 {
 	private readonly DeviceViewModel _device;
-	private readonly IMonitorService _monitorService;
+	private readonly SettingsServiceConnectionManager _connectionManager;
 	private MonitorDeviceSettingViewModel? _brightnessSetting;
 	private MonitorDeviceSettingViewModel? _contrastSetting;
 	private MonitorDeviceSettingViewModel? _audioVolumeSetting;
@@ -22,10 +22,10 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		private set => SetValue(ref _isReady, !value, ChangedProperty.IsNotBusy);
 	}
 
-	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, IMonitorService monitorService)
+	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, SettingsServiceConnectionManager connectionManager)
 	{
 		_device = device;
-		_monitorService = monitorService;
+		_connectionManager = connectionManager;
 	}
 
 	public void UpdateSetting(MonitorSettingValue settingValue)
@@ -79,7 +79,13 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 	}
 
 	private ValueTask ApplyChangeIfNeededAsync(MonitorDeviceSettingViewModel? setting, CancellationToken cancellationToken)
-		=> setting?.IsChanged == true ? setting.ApplyChange(_monitorService, _device.Id, cancellationToken) : ValueTask.CompletedTask;
+		=> setting?.IsChanged == true ? ApplyChangeAsync(setting, cancellationToken): ValueTask.CompletedTask;
+
+	private async ValueTask ApplyChangeAsync(MonitorDeviceSettingViewModel setting, CancellationToken cancellationToken)
+	{
+		var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+		await setting.ApplyChangeAsync(monitorService, _device.Id, cancellationToken);
+	}
 
 	public void Reset()
 	{
@@ -96,7 +102,7 @@ internal abstract class MonitorDeviceSettingViewModel : ChangeableBindableObject
 {
 	public abstract MonitorSetting Setting { get; }
 	internal abstract void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue);
-	internal abstract ValueTask ApplyChange(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken);
+	internal abstract ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken);
 	public abstract void Reset();
 }
 
@@ -180,7 +186,7 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 		MaximumValue = maximumValue;
 	}
 
-	internal override ValueTask ApplyChange(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
+	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
 		=> monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value }, cancellationToken);
 
 	public override void Reset() => Value = InitialValue;

@@ -157,7 +157,8 @@ internal sealed class LightingDeviceViewModel : BindableObject
 			}
 			if (zoneEffects.Count > 0)
 			{
-				await LightingViewModel.LightingService.ApplyDeviceLightingChangesAsync
+				var lightingService = await LightingViewModel.ConnectionManager.GetLightingServiceAsync(cancellationToken);
+				await lightingService.ApplyDeviceLightingChangesAsync
 				(
 					new()
 					{

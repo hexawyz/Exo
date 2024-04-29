@@ -11,4 +11,8 @@
 		<PackageReference Include="protobuf-net.Grpc" Version="1.1.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
+	</ItemGroup>
+
 </Project>

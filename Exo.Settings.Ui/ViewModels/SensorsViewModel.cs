@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Controls;
 using Exo.Ui;
@@ -11,7 +12,7 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class SensorsViewModel
 {
-	private readonly ISensorService _sensorService;
+	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
 	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDeviceById;
@@ -22,9 +23,9 @@ internal sealed class SensorsViewModel
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 
-	public SensorsViewModel(ISensorService sensorService, DevicesViewModel devicesViewModel)
+	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel)
 	{
-		_sensorService = sensorService;
+		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
 		_sensorDevices = new();
 		_sensorDeviceById = new();
@@ -45,7 +46,8 @@ internal sealed class SensorsViewModel
 	{
 		try
 		{
-			await foreach (var info in _sensorService.WatchSensorDevicesAsync(cancellationToken))
+			var sensorService = await _connectionManager.GetSensorServiceAsync(cancellationToken);
+			await foreach (var info in sensorService.WatchSensorDevicesAsync(cancellationToken))
 			{
 				if (_sensorDeviceById.TryGetValue(info.DeviceId, out var vm))
 				{
@@ -115,8 +117,8 @@ internal sealed class SensorsViewModel
 		}
 	}
 
-	public IAsyncEnumerable<SensorDataPoint> WatchValuesAsync(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
-		=> _sensorService.WatchValuesAsync(new() { DeviceId = deviceId, SensorId = sensorId }, cancellationToken);
+	public Task<ISensorService> GetSensorServiceAsync(CancellationToken cancellationToken)
+		=> _connectionManager.GetSensorServiceAsync(cancellationToken);
 }
 
 internal sealed class SensorDeviceViewModel
@@ -354,7 +356,8 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 
 	private async Task WatchAsync(CancellationToken cancellationToken)
 	{
-		await foreach (var dataPoint in _sensor.Device.SensorsViewModel.WatchValuesAsync(_sensor.Device.Id, _sensor.Id, cancellationToken))
+		var sensorService = await _sensor.Device.SensorsViewModel.GetSensorServiceAsync(cancellationToken);
+		await foreach (var dataPoint in sensorService.WatchValuesAsync(new() { DeviceId = _sensor.Device.Id, SensorId = _sensor.Id }, cancellationToken))
 		{
 			// Get the timestamp for the current data point.
 			var now = DateTime.UtcNow;

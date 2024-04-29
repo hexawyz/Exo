@@ -288,7 +288,7 @@ internal static class NativeMethods
 	public static extern unsafe int SetMenuItemInfo(nint menuHandle, uint item, int isByPosition, MenuItemInfo* menuItemInfo);
 
 	[DllImport("user32", ExactSpelling = true, CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true)]
-	public static extern unsafe int RemoveMenu(nint menuHandle, uint position, int isByPosition);
+	public static extern unsafe int RemoveMenu(nint menuHandle, uint position, RemoveMenuOptions options);
 
 	[DllImport("user32", ExactSpelling = true, CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true)]
 	public static extern unsafe int TrackPopupMenuEx(nint menuHandle, TrackPopupMenuOptions options, int x, int y, nint windowHandle, TrackPopupMenuParameters* parameters);
@@ -371,6 +371,13 @@ internal static class NativeMethods
 		public const nint PopupRestore = 9;
 		public const nint PopupMaximize = 10;
 		public const nint PopupMinimize = 11;
+	}
+
+	[Flags]
+	public enum RemoveMenuOptions : uint
+	{
+		ByCommand = 0x00000000,
+		ByPosition = 0x00000400,
 	}
 
 	[Flags]

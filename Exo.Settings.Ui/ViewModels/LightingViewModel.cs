@@ -2,13 +2,11 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Exo.Contracts;
+using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Exo.Contracts.Ui.Settings;
-using Windows.UI;
-using System.Runtime.InteropServices;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -43,7 +41,7 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		{ new(0xA3BBB8F5, 0x16E6, 0x4AF2, 0x9B, 0x46, 0x9C, 0xEC, 0x68, 0xC2, 0x4E, 0x95), "Memory Module 8" },
 	};
 
-	internal ILightingService LightingService { get; }
+	internal SettingsServiceConnectionManager ConnectionManager { get; }
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
@@ -59,10 +57,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 
-	public LightingViewModel(ILightingService lightingService, DevicesViewModel devicesViewModel, IEditionService editionService)
+	public LightingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, IEditionService editionService)
 	{
 		_devicesViewModel = devicesViewModel;
-		LightingService = lightingService;
+		ConnectionManager = connectionManager;
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
@@ -135,7 +133,8 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var info in LightingService.WatchLightingDevicesAsync(cancellationToken))
+			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
+			await foreach (var info in lightingService.WatchLightingDevicesAsync(cancellationToken))
 			{
 				if (_lightingDeviceById.TryGetValue(info.DeviceId, out var vm))
 				{
@@ -172,7 +171,8 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in LightingService.WatchEffectsAsync(cancellationToken))
+			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
+			await foreach (var notification in lightingService.WatchEffectsAsync(cancellationToken))
 			{
 				if (notification.Effect is not null)
 				{
@@ -200,7 +200,8 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			await foreach (var notification in LightingService.WatchBrightnessAsync(cancellationToken))
+			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken).ConfigureAwait(false);
+			await foreach (var notification in lightingService.WatchBrightnessAsync(cancellationToken))
 			{
 				_brightnessLevels[notification.DeviceId] = notification.BrightnessLevel;
 				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
@@ -221,18 +222,19 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		{
 			foreach (var zone in information.LightingZones)
 			{
-				await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken).ConfigureAwait(false);
+				await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken);
 			}
 		}
 	}
 
 	private async ValueTask CacheEffectInformationAsync(ImmutableArray<Guid> effectIds, CancellationToken cancellationToken)
-		=> await Parallel.ForEachAsync(ImmutableCollectionsMarshal.AsArray(effectIds)!, cancellationToken, CacheEffectInformationAsync).ConfigureAwait(false);
+		=> await Parallel.ForEachAsync(ImmutableCollectionsMarshal.AsArray(effectIds)!, cancellationToken, CacheEffectInformationAsync);
 
 	private async ValueTask CacheEffectInformationAsync(Guid effectId, CancellationToken cancellationToken)
 	{
+		var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
 		if (!_effectViewModelById.ContainsKey(effectId) &&
-			await LightingService.GetEffectInformationAsync(new EffectTypeReference { TypeId = effectId }, cancellationToken).ConfigureAwait(false) is { } effectInformation)
+			await lightingService.GetEffectInformationAsync(new EffectTypeReference { TypeId = effectId }, cancellationToken) is { } effectInformation)
 		{
 			_effectViewModelById.TryAdd(effectId, new(effectInformation));
 		}

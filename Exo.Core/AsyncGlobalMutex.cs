@@ -165,7 +165,7 @@ public sealed class AsyncGlobalMutex
 	private AsyncGlobalMutex(string mutexName)
 	{
 		_mutex = new(false, mutexName);
-		_thread = new(MutexThread) { IsBackground = true };
+		_thread = new(MutexThread) { Name = mutexName, IsBackground = true };
 		_pendingTaskList = new();
 		_waitQueue = new();
 		_manualResetEvent = new(false);
