@@ -15,7 +15,7 @@ public sealed partial class SensorsPage : Page
 
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
-		ViewModel.Icon = "\uEC49";
+		ViewModel.Icon = "\uE9D9";
 		ViewModel.Title = "Sensors";
 	}
 }

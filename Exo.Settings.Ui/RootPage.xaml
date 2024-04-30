@@ -4,8 +4,10 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
+    xmlns:converters="using:CommunityToolkit.WinUI.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    DataContext="{x:Bind ViewModel}"
     mc:Ignorable="d">
 
     <Grid>
@@ -52,14 +54,67 @@
             AutomationProperties.AutomationId="AppTitleBar"
             Canvas.ZIndex="1"
             IsHitTestVisible="True">
-            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+            <Grid VerticalAlignment="Center" Margin="0,0,146,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <TextBlock
                     x:Name="AppTitle"
                     Margin="12,0,0,0"
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}"
                     Text="{x:Bind AppTitleText}" />
-            </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                    <!--<Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF136;" Foreground="White" />
+                        <FontIcon Glyph="&#xF137;" Foreground="Red" />
+                        <FontIcon Glyph="&#xF13D;" Foreground="White" />
+                    </Grid>
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF136;" Foreground="White" />
+                        <FontIcon Glyph="&#xF137;" Foreground="Lime" />
+                        <FontIcon Glyph="&#xF13E;" Foreground="White" />
+                    </Grid>
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
+                        <FontIcon Glyph="&#xE871;" Foreground="Red" />
+                    </Grid>
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF385;" Foreground="White" />
+                        <FontIcon Glyph="&#xEB5B;" Foreground="Red" />
+                    </Grid>
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
+                        <FontIcon Glyph="&#xED2E;" Foreground="Red" />
+                    </Grid>
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
+                        <FontIcon Glyph="&#xF386;" Foreground="Lime" />
+                    </Grid>
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
+                        <FontIcon Glyph="&#xEA81;" Foreground="Lime" />
+                    </Grid>-->
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <Grid.Resources>
+                            <SolidColorBrush x:Key="DisconnectedColorBrush">Red</SolidColorBrush>
+                            <SolidColorBrush x:Key="ConnectedColorBrush">Lime</SolidColorBrush>
+                            <converters:BoolToObjectConverter x:Key="BooleanToColorConverter" TrueValue="{StaticResource ConnectedColorBrush}" FalseValue="{StaticResource DisconnectedColorBrush}" />
+                            <converters:BoolToObjectConverter x:Key="BooleanToConnectionStatusTextConverter">
+                                <converters:BoolToObjectConverter.FalseValue>Service Disconnected</converters:BoolToObjectConverter.FalseValue>
+                                <converters:BoolToObjectConverter.TrueValue>Service Connected</converters:BoolToObjectConverter.TrueValue>
+                            </converters:BoolToObjectConverter>
+                        </Grid.Resources>
+                        <ToolTipService.ToolTip>
+                            <ToolTip Content="{Binding IsConnected, Mode=OneWay, Converter={StaticResource BooleanToConnectionStatusTextConverter}}" />
+                        </ToolTipService.ToolTip>
+                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
+                        <FontIcon Glyph="&#xEA81;" Foreground="{Binding IsConnected, Mode=OneWay, Converter={StaticResource BooleanToColorConverter}}" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <NavigationView
@@ -73,8 +128,13 @@
             IsBackEnabled="{x:Bind ContentFrame.CanGoBack, Mode=OneWay}"
             DisplayModeChanged="OnPaneDisplayModeChanged"
             ItemInvoked="OnNavigationItemInvoked"
-            BackRequested="OnNavigationBackRequested"
-            DataContext="{x:Bind ViewModel}">
+            BackRequested="OnNavigationBackRequested">
+            <NavigationView.Resources>
+                <Thickness x:Key="NavigationViewContentMargin">0,48,0,0</Thickness>
+                <Thickness x:Key="NavigationViewMinimalContentMargin">0,48,0,0</Thickness>
+                <Thickness x:Key="NavigationViewContentGridBorderThickness">1,1,0,0</Thickness>
+                <CornerRadius x:Key="NavigationViewContentGridCornerRadius">8,0,0,0</CornerRadius>
+            </NavigationView.Resources>
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Devices" Tag="Devices">
                     <NavigationViewItem.Icon>
@@ -88,7 +148,7 @@
                 </NavigationViewItem>
                 <NavigationViewItem Content="Sensors" Tag="Sensors">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xEC49;" />
+                        <FontIcon Glyph="&#xE9D9;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Custom Menu" Tag="CustomMenu">
