@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
+using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui.ViewModels;
 

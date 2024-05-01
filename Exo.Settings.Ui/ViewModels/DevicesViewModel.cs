@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Exo.Contracts.Ui;
 using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
+using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui.ViewModels;
 

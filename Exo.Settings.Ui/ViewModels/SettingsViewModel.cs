@@ -4,10 +4,9 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class SettingsViewModel : BindableObject
+internal sealed class SettingsViewModel : BindableObject, IConnectedState
 {
 	public SettingsServiceConnectionManager ConnectionManager { get; }
-	private readonly SynchronizationContext? _synchronizationContext;
 	private readonly IEditionService _editionService;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
@@ -19,9 +18,7 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public SettingsViewModel(IEditionService editionService)
 	{
-		_synchronizationContext = SynchronizationContext.Current;
 		ConnectionManager = new("Local\\Exo.Service.Configuration", 100);
-		ConnectionManager.PropertyChanged += OnConnectionManagerPropertyChanged;
 		_editionService = editionService;
 		_devicesViewModel = new(ConnectionManager);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _editionService);
@@ -30,21 +27,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_customMenuViewModel = new();
 		_icon = string.Empty;
 		_title = string.Empty;
-	}
-
-	private void OnConnectionManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (e.PropertyName == nameof(SettingsServiceConnectionManager.IsConnected))
-		{
-			if (_synchronizationContext is null)
-			{
-				NotifyPropertyChanged(e);
-			}
-			else
-			{
-				_synchronizationContext.Post(state => ((SettingsViewModel)state!).NotifyPropertyChanged(ChangedProperty.IsConnected), this);
-			}
-		}
+		ConnectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;
@@ -67,4 +50,15 @@ internal sealed class SettingsViewModel : BindableObject
 	}
 
 	public bool IsConnected => ConnectionManager.IsConnected;
+
+	public Task RunAsync(CancellationToken cancellationToken)
+	{
+		NotifyPropertyChanged(ChangedProperty.IsConnected);
+		return Task.CompletedTask;
+	}
+
+	public void Reset()
+	{
+		NotifyPropertyChanged(ChangedProperty.IsConnected);
+	}
 }

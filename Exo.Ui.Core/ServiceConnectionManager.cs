@@ -55,21 +55,25 @@ public class ServiceConnectionManager : IAsyncDisposable
 						break;
 					}
 					_channelTaskCompletionSource.TrySetResult(channel);
-					try
+					using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 					{
-						OnConnected(channel);
-					}
-					catch (Exception)
-					{
-						// TODO: Propagate exceptions somehow ?
-					}
-					try
-					{
-						await lifetimeService.WaitForStopAsync(cancellationToken).ConfigureAwait(false);
-					}
-					finally
-					{
-						Volatile.Write(ref _channelTaskCompletionSource, new(TaskCreationOptions.RunContinuationsAsynchronously));
+						try
+						{
+							await OnConnectedAsync(channel, cts.Token).ConfigureAwait(false);
+						}
+						catch (Exception)
+						{
+							// TODO: Propagate exceptions somehow ?
+						}
+						try
+						{
+							await lifetimeService.WaitForStopAsync(cancellationToken).ConfigureAwait(false);
+						}
+						finally
+						{
+							Volatile.Write(ref _channelTaskCompletionSource, new(TaskCreationOptions.RunContinuationsAsynchronously));
+						}
+						cts.Cancel();
 					}
 				}
 				catch (Exception)
@@ -84,7 +88,7 @@ public class ServiceConnectionManager : IAsyncDisposable
 				}
 				try
 				{
-					OnDisconnected();
+					await OnDisconnectedAsync().ConfigureAwait(false);
 				}
 				catch (Exception)
 				{
@@ -105,9 +109,9 @@ public class ServiceConnectionManager : IAsyncDisposable
 		}
 	}
 
-	protected virtual void OnConnected(GrpcChannel channel) { }
+	protected virtual Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken) => Task.CompletedTask;
 
-	protected virtual void OnDisconnected() { }
+	protected virtual Task OnDisconnectedAsync() => Task.CompletedTask;
 
 	private ValueTask<Stream> ConnectToPipeAsync(CancellationToken cancellationToken) => ConnectToPipeAsync(_pipeName, cancellationToken);
 

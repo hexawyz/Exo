@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Controls;
+using Exo.Settings.Ui.Services;
 using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
