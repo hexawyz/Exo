@@ -10,7 +10,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
+internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyncDisposable
 {
 	// TODO: Migrate to external files.
 	private static readonly Dictionary<Guid, string> HardcodedGuidNames = new()
@@ -51,9 +51,7 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly Task _watchDevicesTask;
-	private readonly Task _watchEffectsTask;
-	private readonly Task _watchBrightnessTask;
+	private readonly IDisposable _stateRegistration;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 
@@ -68,18 +66,50 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		_brightnessLevels = new();
 		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new CancellationTokenSource();
-		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
-		_watchEffectsTask = WatchEffectsAsync(_cancellationTokenSource.Token);
-		_watchBrightnessTask = WatchBrightnessAsync(_cancellationTokenSource.Token);
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
+		_stateRegistration = ConnectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
-	public async ValueTask DisposeAsync()
+	public ValueTask DisposeAsync()
 	{
 		_cancellationTokenSource.Cancel();
-		await _watchDevicesTask.ConfigureAwait(false);
-		await _watchEffectsTask.ConfigureAwait(false);
-		await _watchBrightnessTask.ConfigureAwait(false);
+		_stateRegistration.Dispose();
+		return ValueTask.CompletedTask;
+	}
+
+	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	{
+		if (_cancellationTokenSource.IsCancellationRequested) return;
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
+		{
+			var watchDevicesTask = WatchDevicesAsync(cts.Token);
+			var watchEffectsTask = WatchEffectsAsync(cts.Token);
+			var watchBrightnessTask = WatchBrightnessAsync(cts.Token);
+
+			try
+			{
+				await Task.WhenAll([watchDevicesTask, watchEffectsTask, watchBrightnessTask]);
+			}
+			catch
+			{
+			}
+		}
+	}
+
+	void IConnectedState.Reset()
+	{
+		_lightingDeviceById.Clear();
+		_effectViewModelById.Clear();
+		_activeLightingEffects.Clear();
+		_brightnessLevels.Clear();
+		_pendingDeviceInformations.Clear();
+
+		foreach (var device in _lightingDevices)
+		{
+			device.Dispose();
+		}
+
+		_lightingDevices.Clear();
 	}
 
 	private void OnDevicesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -99,6 +129,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 			{
 				OnDeviceRemoved(vm.Id);
 			}
+		}
+		else if (e.Action == NotifyCollectionChangedAction.Reset)
+		{
+			// Reset will only be triggered when the service connection is reset. In that case, the change will be handled in the appropriate reset code for this component.
 		}
 		else
 		{

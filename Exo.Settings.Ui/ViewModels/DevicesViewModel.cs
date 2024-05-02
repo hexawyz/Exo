@@ -7,7 +7,7 @@ using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
+internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConnectedState
 {
 	private readonly ObservableCollection<DeviceViewModel> _devices;
 
@@ -33,10 +33,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	private DeviceViewModel? _selectedDevice; 
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly Task _deviceWatchTask;
-	private readonly Task _batteryWatchTask;
-	private readonly Task _dpiWatchTask;
-	private readonly Task _monitorSettingWatchTask;
+	private readonly IDisposable _stateRegistration;
 
 	public DevicesViewModel(SettingsServiceConnectionManager connectionManager)
 	{
@@ -48,10 +45,53 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		_pendingDpiChanges = new();
 		_pendingMonitorSettingChanges = new();
 		_cancellationTokenSource = new CancellationTokenSource();
-		_deviceWatchTask = WatchDevicesAsync(_cancellationTokenSource.Token);
-		_batteryWatchTask = WatchBatteryChangesAsync(_cancellationTokenSource.Token);
-		_dpiWatchTask = WatchDpiChangesAsync(_cancellationTokenSource.Token);
-		_monitorSettingWatchTask = WatchMonitorSettingChangesAsync(_cancellationTokenSource.Token);
+		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		_stateRegistration.Dispose();
+		_cancellationTokenSource.Cancel();
+		return ValueTask.CompletedTask;
+	}
+
+	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	{
+		if (_cancellationTokenSource.IsCancellationRequested) return;
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
+		{
+			var deviceWatchTask = WatchDevicesAsync(cts.Token);
+			var batteryWatchTask = WatchBatteryChangesAsync(cts.Token);
+			var dpiWatchTask = WatchDpiChangesAsync(cts.Token);
+			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
+
+			await WatchDevicesAsync(cts.Token).ConfigureAwait(false);
+			try
+			{
+				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorSettingWatchTask]).ConfigureAwait(false);
+			}
+			catch (Exception)
+			{
+			}
+		}
+	}
+
+	void IConnectedState.Reset()
+	{
+		_removedDeviceIds.Clear();
+		_devicesById.Clear();
+		_pendingBatteryChanges.Clear();
+		_pendingDpiChanges.Clear();
+		_pendingMonitorSettingChanges.Clear();
+
+		SelectedDevice = null;
+
+		foreach (var device in _devices)
+		{
+			device.IsAvailable = false;
+		}
+
+		_devices.Clear();
 	}
 
 	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
@@ -249,15 +289,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	}
 
 	public ObservableCollection<DeviceViewModel> Devices => _devices;
-
-	public async ValueTask DisposeAsync()
-	{
-		_cancellationTokenSource.Cancel();
-		await _deviceWatchTask.ConfigureAwait(false);
-		await _batteryWatchTask.ConfigureAwait(false);
-		await _dpiWatchTask.ConfigureAwait(false);
-		await _monitorSettingWatchTask.ConfigureAwait(false);
-	}
 
 	public DeviceViewModel? SelectedDevice
 	{

@@ -9,7 +9,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceViewModel : BindableObject
+internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 
@@ -84,6 +84,23 @@ internal sealed class LightingDeviceViewModel : BindableObject
 		}
 		OnBrightnessUpdated();
 		_deviceViewModel.PropertyChanged += OnDevicePropertyChanged;
+	}
+
+	public void Dispose()
+	{
+		_deviceViewModel.PropertyChanged -= OnDevicePropertyChanged;
+		if (UnifiedLightingZone is not null)
+		{
+			UnifiedLightingZone.PropertyChanged -= OnLightingZonePropertyChanged;
+		}
+		foreach (var zone in LightingZones)
+		{
+			zone.PropertyChanged -= OnLightingZonePropertyChanged;
+		}
+		if (Brightness is not null)
+		{
+			Brightness.PropertyChanged -= OnBrightnessPropertyChanged;
+		}
 	}
 
 	private static bool CompareProperty(PropertyChangedEventArgs a, PropertyChangedEventArgs b)

@@ -3,7 +3,6 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
@@ -11,7 +10,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class SensorsViewModel
+internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
@@ -20,7 +19,7 @@ internal sealed class SensorsViewModel
 	private readonly Dictionary<Guid, SensorDeviceInformation> _pendingDeviceInformations;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly Task _watchDevicesTask;
+	private readonly IDisposable _stateRegistration;
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 
@@ -32,14 +31,37 @@ internal sealed class SensorsViewModel
 		_sensorDeviceById = new();
 		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new();
-		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
+		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
-	public async ValueTask DisposeAsync()
+	public ValueTask DisposeAsync()
 	{
 		_cancellationTokenSource.Cancel();
-		await _watchDevicesTask.ConfigureAwait(false);
+		_stateRegistration.Dispose();
+		return ValueTask.CompletedTask;
+	}
+
+	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	{
+		if (_cancellationTokenSource.IsCancellationRequested) return;
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
+		{
+			await WatchDevicesAsync(cts.Token).ConfigureAwait(false);
+		}
+	}
+
+	void IConnectedState.Reset()
+	{
+		_sensorDeviceById.Clear();
+		_pendingDeviceInformations.Clear();
+
+		foreach (var device in _sensorDevices)
+		{
+			device.Dispose();
+		}
+
+		_sensorDevices.Clear();
 	}
 
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
@@ -90,6 +112,10 @@ internal sealed class SensorsViewModel
 				OnDeviceRemoved(vm.Id);
 			}
 		}
+		else if (e.Action == NotifyCollectionChangedAction.Reset)
+		{
+			// Reset will only be triggered when the service connection is reset. In that case, the change will be handled in the appropriate reset code for this component.
+		}
 		else
 		{
 			// As of writing this code, we don't require support for anything else, but if this change in the future, this exception will be triggered.
@@ -122,7 +148,7 @@ internal sealed class SensorsViewModel
 		=> _connectionManager.GetSensorServiceAsync(cancellationToken);
 }
 
-internal sealed class SensorDeviceViewModel
+internal sealed class SensorDeviceViewModel : IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceInformation _sensorDeviceInformation;
@@ -146,6 +172,12 @@ internal sealed class SensorDeviceViewModel
 		_sensorsById = new();
 		_deviceViewModel.PropertyChanged += OnDeviceViewModelPropertyChanged;
 		UpdateDeviceInformation(sensorDeviceInformation);
+	}
+
+	public void Dispose()
+	{
+		_deviceViewModel.PropertyChanged -= OnDeviceViewModelPropertyChanged;
+		OnDeviceOffline();
 	}
 
 	private void OnDeviceViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -357,54 +389,64 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 
 	private async Task WatchAsync(CancellationToken cancellationToken)
 	{
-		var sensorService = await _sensor.Device.SensorsViewModel.GetSensorServiceAsync(cancellationToken);
-		await foreach (var dataPoint in sensorService.WatchValuesAsync(new() { DeviceId = _sensor.Device.Id, SensorId = _sensor.Id }, cancellationToken))
+		try
 		{
-			// Get the timestamp for the current data point.
-			var now = DateTime.UtcNow;
-			var currentTimestamp = GetTimestamp();
-			ulong delta = currentTimestamp - _currentTimestampInSeconds;
-			// Backfill any missing data points using the previous value.
-			if (delta > 1)
+			var sensorService = await _sensor.Device.SensorsViewModel.GetSensorServiceAsync(cancellationToken);
+			await foreach (var dataPoint in sensorService.WatchValuesAsync(new() { DeviceId = _sensor.Device.Id, SensorId = _sensor.Id }, cancellationToken))
 			{
-				// If we are late for longer than the window size, we can just clear up the whole window and restart at index 0.
-				// NB: In the very unlikely occasion where the timer would wrap-around, it would be handled by this condition. We'd end up resetting the history, which is not that terrible.
-				if (delta > (ulong)_dataPoints.Length)
+				// Get the timestamp for the current data point.
+				var now = DateTime.UtcNow;
+				var currentTimestamp = GetTimestamp();
+				ulong delta = currentTimestamp - _currentTimestampInSeconds;
+				// Backfill any missing data points using the previous value.
+				if (delta > 1)
 				{
-					Array.Fill(_dataPoints, _currentValue, 0, _dataPoints.Length);
-					_currentPointIndex = 0;
-				}
-				else
-				{
-					// If we are late for less than the window size, the operation might need to be split in two.
-					int endIndex = _currentPointIndex + (int)delta;
-					if (++_currentPointIndex < _dataPoints.Length)
+					// If we are late for longer than the window size, we can just clear up the whole window and restart at index 0.
+					// NB: In the very unlikely occasion where the timer would wrap-around, it would be handled by this condition. We'd end up resetting the history, which is not that terrible.
+					if (delta > (ulong)_dataPoints.Length)
 					{
-						Array.Fill(_dataPoints, _currentValue, _currentPointIndex, Math.Min(_dataPoints.Length, endIndex) - _currentPointIndex);
-					}
-					if (endIndex >= _dataPoints.Length)
-					{
-						_currentPointIndex = endIndex - _dataPoints.Length;
-						Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
+						Array.Fill(_dataPoints, _currentValue, 0, _dataPoints.Length);
+						_currentPointIndex = 0;
 					}
 					else
 					{
-						_currentPointIndex = endIndex;
+						// If we are late for less than the window size, the operation might need to be split in two.
+						int endIndex = _currentPointIndex + (int)delta;
+						if (++_currentPointIndex < _dataPoints.Length)
+						{
+							Array.Fill(_dataPoints, _currentValue, _currentPointIndex, Math.Min(_dataPoints.Length, endIndex) - _currentPointIndex);
+						}
+						if (endIndex >= _dataPoints.Length)
+						{
+							_currentPointIndex = endIndex - _dataPoints.Length;
+							Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
+						}
+						else
+						{
+							_currentPointIndex = endIndex;
+						}
 					}
 				}
+				else if (delta == 1)
+				{
+					// Increase the index
+					if (++_currentPointIndex == _dataPoints.Length) _currentPointIndex = 0;
+				}
+				_currentValueTime = now;
+				_currentTimestampInSeconds = currentTimestamp;
+				_dataPoints[_currentPointIndex] = dataPoint.Value;
+				if (dataPoint.Value < _minValue) _minValue = dataPoint.Value;
+				if (dataPoint.Value > _maxValue) _maxValue = dataPoint.Value;
+				SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
+				History.NotifyChange();
 			}
-			else if (delta == 1)
-			{
-				// Increase the index
-				if (++_currentPointIndex == _dataPoints.Length) _currentPointIndex = 0;
-			}
-			_currentValueTime = now;
-			_currentTimestampInSeconds = currentTimestamp;
-			_dataPoints[_currentPointIndex] = dataPoint.Value;
-			if (dataPoint.Value < _minValue) _minValue = dataPoint.Value;
-			if (dataPoint.Value > _maxValue) _maxValue = dataPoint.Value;
-			SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
-			History.NotifyChange();
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+		catch (Exception)
+		{
+			// NB: Should generally be an RpcException or ObjectDisposedException.
 		}
 	}
 }

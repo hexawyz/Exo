@@ -1,30 +1,46 @@
 using System.Collections.ObjectModel;
-using Exo.Ui;
-using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ProgrammingViewModel : BindableObject, IAsyncDisposable
+internal sealed class ProgrammingViewModel : BindableObject, IConnectedState, IAsyncDisposable
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private ReadOnlyCollection<ModuleViewModel> _modules;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly Task _changeWatchTask;
+	private readonly IDisposable _stateRegistration;
 
 	public ProgrammingViewModel(SettingsServiceConnectionManager connectionManager)
 	{
 		_connectionManager = connectionManager;
 		_modules = ReadOnlyCollection<ModuleViewModel>.Empty;
 		_cancellationTokenSource = new();
-		_changeWatchTask = WatchChangesAsync(_cancellationTokenSource.Token);
+		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
-	public async ValueTask DisposeAsync()
+	public ValueTask DisposeAsync()
 	{
 		_cancellationTokenSource.Dispose();
-		await _changeWatchTask;
+		_cancellationTokenSource.Cancel();
+		return ValueTask.CompletedTask;
+	}
+
+	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	{
+		if (_cancellationTokenSource.IsCancellationRequested) return;
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
+		{
+			var changeWatchTask = WatchChangesAsync(cts.Token);
+
+			await changeWatchTask;
+		}
+	}
+
+	void IConnectedState.Reset()
+	{
+		Modules = ReadOnlyCollection<ModuleViewModel>.Empty;
 	}
 
 	private async Task WatchChangesAsync(CancellationToken cancellationToken)
