@@ -103,27 +103,27 @@
                 <CornerRadius x:Key="NavigationViewContentGridCornerRadius">8,0,0,0</CornerRadius>
             </NavigationView.Resources>
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Devices" Tag="Devices">
+                <NavigationViewItem x:Uid="NavigationDevices" Tag="Devices">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE772;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Lighting" Tag="Lighting">
+                <NavigationViewItem x:Uid="NavigationLighting" Tag="Lighting">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE781;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Sensors" Tag="Sensors">
+                <NavigationViewItem x:Uid="NavigationSensors" Tag="Sensors">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE9D9;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Custom Menu" Tag="CustomMenu">
+                <NavigationViewItem x:Uid="NavigationCustomMenu" Tag="CustomMenu">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xEDE3;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Programming" Tag="Programming">
+                <NavigationViewItem x:Uid="NavigationProgramming" Tag="Programming">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE943;" />
                     </NavigationViewItem.Icon>
