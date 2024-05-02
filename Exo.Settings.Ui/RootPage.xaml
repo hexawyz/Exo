@@ -12,14 +12,11 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <!--  TitleBar  -->
             <RowDefinition Height="*" />
-            <!--  NavView  -->
         </Grid.RowDefinitions>
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="TitleBarStates">
@@ -47,7 +44,7 @@
 
         <Border
             x:Name="AppTitleBar"
-            Grid.Column="1"
+            Grid.Column="0"
             Height="{Binding ElementName=Navigation, Path=CompactPaneLength}"
             Margin="48,0,0,0"
             VerticalAlignment="Stretch"
@@ -66,38 +63,8 @@
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}"
                     Text="{x:Bind AppTitleText}" />
-                <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
-                    <!--<Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF136;" Foreground="White" />
-                        <FontIcon Glyph="&#xF137;" Foreground="Red" />
-                        <FontIcon Glyph="&#xF13D;" Foreground="White" />
-                    </Grid>
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF136;" Foreground="White" />
-                        <FontIcon Glyph="&#xF137;" Foreground="Lime" />
-                        <FontIcon Glyph="&#xF13E;" Foreground="White" />
-                    </Grid>
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
-                        <FontIcon Glyph="&#xE871;" Foreground="Red" />
-                    </Grid>
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF385;" Foreground="White" />
-                        <FontIcon Glyph="&#xEB5B;" Foreground="Red" />
-                    </Grid>
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
-                        <FontIcon Glyph="&#xED2E;" Foreground="Red" />
-                    </Grid>
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
-                        <FontIcon Glyph="&#xF386;" Foreground="Lime" />
-                    </Grid>
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
-                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
-                        <FontIcon Glyph="&#xEA81;" Foreground="Lime" />
-                    </Grid>-->
-                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                <StackPanel x:Name="StatusIconArea" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                    <Grid Grid.Column="2">
                         <Grid.Resources>
                             <SolidColorBrush x:Key="DisconnectedColorBrush">Red</SolidColorBrush>
                             <SolidColorBrush x:Key="ConnectedColorBrush">Lime</SolidColorBrush>
@@ -119,7 +86,7 @@
 
         <NavigationView
             x:Name="Navigation"
-            Grid.Column="1"
+            Grid.Column="0"
             Grid.RowSpan="2"
             Canvas.ZIndex="0"
             IsTabStop="False"
