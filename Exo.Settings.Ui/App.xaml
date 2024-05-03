@@ -53,6 +53,7 @@
             <local:StringFormatConverter x:Key="StringFormatConverter" />
             <local:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
             <local:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
+            <local:StringResourceConverter x:Key="StringResourceConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

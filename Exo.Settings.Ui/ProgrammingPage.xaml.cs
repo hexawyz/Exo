@@ -29,10 +29,4 @@ public sealed partial class ProgrammingPage : Page
 	}
 
 	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
-
-	protected override void OnNavigatedTo(NavigationEventArgs e)
-	{
-		ViewModel.Icon = "\uE943";
-		ViewModel.Title = "Programming";
-	}
 }

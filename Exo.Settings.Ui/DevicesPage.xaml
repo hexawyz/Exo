@@ -11,9 +11,19 @@
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
     <ItemsControl ItemsSource="{Binding Devices.Devices}" HorizontalContentAlignment="Stretch">
+        <ItemsControl.Resources>
+            <XamlUICommand x:Key="NavigateCommand" Command="{Binding Devices.NavigateToDeviceCommand}" />
+        </ItemsControl.Resources>
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <Button Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12" Click="OnDeviceButtonClick" IsEnabled="{Binding IsAvailable}">
+                <Button
+                    Margin="{StaticResource VerticalItemSpacing}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Padding="12"
+                    Command="{StaticResource NavigateCommand}"
+                    CommandParameter="{Binding}"
+                    IsEnabled="{Binding IsAvailable}">
                     <Grid HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />

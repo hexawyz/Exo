@@ -1,4 +1,3 @@
-using System;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -32,17 +31,6 @@ public sealed partial class DevicePage : Page
 			}
 
 			devicesViewModel.SelectedDevice = selectedDevice;
-		}
-
-		if (selectedDevice is not null)
-		{
-			ViewModel.Icon = DeviceCategoryToGlyphConverter.GetGlyph(selectedDevice.Category);
-			ViewModel.Title = selectedDevice.FriendlyName;
-		}
-		else
-		{
-			ViewModel.Icon = null;
-			ViewModel.Title = "<Unknown Device>";
 		}
 	}
 

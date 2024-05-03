@@ -12,10 +12,4 @@ public sealed partial class SensorsPage : Page
 	}
 
 	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
-
-	protected override void OnNavigatedTo(NavigationEventArgs e)
-	{
-		ViewModel.Icon = "\uE9D9";
-		ViewModel.Title = "Sensors";
-	}
 }

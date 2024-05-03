@@ -117,19 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="NavigationCustomMenu.Content" xml:space="preserve">
-    <value>Custom Menu</value>
-  </data>
-  <data name="NavigationDevices.Content" xml:space="preserve">
-    <value>Devices</value>
-  </data>
-  <data name="NavigationLighting.Content" xml:space="preserve">
-    <value>Lighting</value>
-  </data>
-  <data name="NavigationProgramming.Content" xml:space="preserve">
-    <value>Programming</value>
-  </data>
-  <data name="NavigationSensors.Content" xml:space="preserve">
-    <value>Sensors</value>
+  <data name="Welcome.Text" xml:space="preserve">
+    <value>Welcome to Exo.</value>
   </data>
 </root>

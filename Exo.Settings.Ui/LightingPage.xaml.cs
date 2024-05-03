@@ -17,14 +17,11 @@ public sealed partial class LightingPage : Page
 
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
-		ViewModel.Icon = "\uE781";
-		ViewModel.Title = "Lighting";
 		App.Current.Services.GetRequiredService<IEditionService>().ShowToolbar = true;
 	}
 
 	protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
 	{
 		App.Current.Services.GetRequiredService<IEditionService>().ShowToolbar = false;
-		base.OnNavigatingFrom(e);
 	}
 }

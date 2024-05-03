@@ -4,11 +4,39 @@ using Exo.Contracts.Ui;
 using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
+using System.Windows.Input;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConnectedState
 {
+	private static class Commands
+	{
+		public class NavigateToDeviceCommand : ICommand
+		{
+			private readonly ICommand _rootNavigationCommand;
+
+			public NavigateToDeviceCommand(ICommand rootNavigationCommand) => _rootNavigationCommand = rootNavigationCommand;
+
+			public void Execute(object? parameter)
+			{
+				ArgumentNullException.ThrowIfNull(parameter);
+				if (parameter is DeviceViewModel device)
+				{
+					_rootNavigationCommand.Execute(new PageViewModel("Device", device.FriendlyName, DeviceCategoryToGlyphConverter.GetGlyph(device.Category), device.Id));
+				}
+			}
+
+			public bool CanExecute(object? parameter) => parameter is DeviceViewModel;
+
+			public event EventHandler? CanExecuteChanged
+			{
+				add { }
+				remove { }
+			}
+		}
+	}
+
 	private readonly ObservableCollection<DeviceViewModel> _devices;
 
 	// All removed device IDs are definitely removed. Device removal is a manual request from the user, and can only happen when the device is disconnected.
@@ -30,12 +58,14 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private readonly Dictionary<Guid, List<MonitorSettingValue>> _pendingMonitorSettingChanges;
 
 	// The selected device is the device currently being observed.
-	private DeviceViewModel? _selectedDevice; 
+	private DeviceViewModel? _selectedDevice;
+
+	private readonly Commands.NavigateToDeviceCommand _navigateToDeviceCommand;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly IDisposable _stateRegistration;
 
-	public DevicesViewModel(SettingsServiceConnectionManager connectionManager)
+	public DevicesViewModel(SettingsServiceConnectionManager connectionManager, ICommand navigateCommand)
 	{
 		_devices = new();
 		_removedDeviceIds = new();
@@ -44,6 +74,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingBatteryChanges = new();
 		_pendingDpiChanges = new();
 		_pendingMonitorSettingChanges = new();
+		_navigateToDeviceCommand = new(navigateCommand);
 		_cancellationTokenSource = new CancellationTokenSource();
 		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
@@ -54,6 +85,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_cancellationTokenSource.Cancel();
 		return ValueTask.CompletedTask;
 	}
+
+	public ICommand NavigateToDeviceCommand => _navigateToDeviceCommand;
 
 	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
 	{

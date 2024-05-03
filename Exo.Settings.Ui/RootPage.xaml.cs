@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using Windows.Graphics;
 
@@ -19,18 +18,22 @@ internal sealed partial class RootPage : Page
 
 	public string AppTitleText => "Exo";
 
-	public SettingsViewModel ViewModel { get; }
+	public SettingsViewModel? ViewModel => (SettingsViewModel)DataContext;
 
 	public RootPage(Window window)
 	{
 		_window = window;
 
-		ViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
-
 		InitializeComponent();
 
 		Loaded += delegate (object sender, RoutedEventArgs e)
 		{
+			var vm = App.Current.Services.GetRequiredService<SettingsViewModel>();
+
+			DataContext = vm;
+
+			vm.PropertyChanged += OnViewModelPropertyChanged;
+
 			window.Title = AppTitleText;
 			window.ExtendsContentIntoTitleBar = true;
 			window.SetTitleBar(AppTitleBar);
@@ -38,7 +41,17 @@ internal sealed partial class RootPage : Page
 			AppTitleBar.Loaded += OnAppTitleBarLoaded;
 			AppTitleBar.SizeChanged += OnAppTitleBarSizeChanged; ;
 			App.Current.Services.GetRequiredService<IEditionService>().ShowToolbar = false;
+
+			Navigate(vm.CurrentPage);
 		};
+	}
+
+	private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e == ChangedProperty.CurrentPage || e.PropertyName == ChangedProperty.CurrentPage.PropertyName)
+		{
+			Navigate(((SettingsViewModel?)sender)?.CurrentPage);
+		}
 	}
 
 	private void OnAppTitleBarSizeChanged(object sender, SizeChangedEventArgs e) => SetRegionsForCustomTitleBar();
@@ -78,37 +91,62 @@ internal sealed partial class RootPage : Page
 
 	private void OnNavigationItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
 	{
-		Type? type = null;
-		switch (args.InvokedItemContainer.Tag)
-		{
-		case "Devices":
-			type = typeof(DevicesPage);
-			break;
-		case "Lighting":
-			type = typeof(LightingPage);
-			break;
-		case "Sensors":
-			type = typeof(SensorsPage);
-			break;
-		case "CustomMenu":
-			type = typeof(CustomMenuPage);
-			break;
-		case "Programming":
-			type = typeof(ProgrammingPage);
-			break;
-		}
+		if (args.InvokedItemContainer.Tag is not PageViewModel page) return;
 
-		if (type is null) return;
-
-		if (ContentFrame.CurrentSourcePageType != type)
+		if (ViewModel is { } vm && vm.NavigateCommand.CanExecute(page))
 		{
-			ContentFrame.Navigate(type);
+			vm.NavigateCommand.Execute(page);
 		}
 	}
 
 	private void OnNavigationBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
 	{
-		ContentFrame.GoBack();
+		if (ViewModel is { } vm && vm.GoBackCommand.CanExecute(null))
+		{
+			vm.GoBackCommand.Execute(null);
+		}
+	}
+
+	private void Navigate(PageViewModel? page)
+	{
+		Type? type = null;
+
+		if (page is not null)
+		{
+			switch (page.Name)
+			{
+			case "Home":
+				type = typeof(HomePage);
+				break;
+			case "Devices":
+				type = typeof(DevicesPage);
+				break;
+			case "Device":
+				type = typeof(DevicePage);
+				break;
+			case "Lighting":
+				type = typeof(LightingPage);
+				break;
+			case "Sensors":
+				type = typeof(SensorsPage);
+				break;
+			case "CustomMenu":
+				type = typeof(CustomMenuPage);
+				break;
+			case "Programming":
+				type = typeof(ProgrammingPage);
+				break;
+			}
+		}
+		else
+		{
+			type = typeof(HomePage);
+		}
+
+		if (ContentFrame.CurrentSourcePageType != type)
+		{
+			ContentFrame.Navigate(type, page?.Parameter);
+		}
 	}
 
 	private void SetRegionsForCustomTitleBar()
@@ -117,7 +155,7 @@ internal sealed partial class RootPage : Page
 		double scaleAdjustment = AppTitleBar.XamlRoot.RasterizationScale;
 
 		var nonClientInputSrc = InputNonClientPointerSource.GetForWindowId(_window.AppWindow.Id);
-		nonClientInputSrc.SetRegionRects(NonClientRegionKind.Passthrough, new[] { GetRect(StatusIconArea, scaleAdjustment) });
+		nonClientInputSrc.SetRegionRects(NonClientRegionKind.Passthrough, [GetRect(StatusIconArea, scaleAdjustment)]);
 	}
 
 	private static RectInt32 GetRect(FrameworkElement element, double scale)
