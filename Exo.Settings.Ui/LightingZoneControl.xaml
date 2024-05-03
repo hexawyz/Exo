@@ -15,7 +15,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="Effect" />
+            <TextBlock Grid.Column="0" x:Uid="LightingEffectLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
             <ComboBox Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding SupportedEffects}" SelectedItem="{Binding CurrentEffect, Mode=TwoWay}" HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>

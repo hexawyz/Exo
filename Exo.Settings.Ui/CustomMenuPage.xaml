@@ -10,22 +10,22 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
     <Page.Resources>
-        <XamlUICommand x:Key="AddTextMenuItemCommand" Description="Add a clickable menu item." Label="Normal" Command="{Binding CustomMenu.AddTextItemCommand}">
+        <XamlUICommand x:Key="AddTextMenuItemCommand" x:Uid="CustomMenuAddNormalItemCommand" Command="{Binding CustomMenu.AddTextItemCommand}">
             <XamlUICommand.IconSource>
                 <FontIconSource Glyph="&#xE8AC;" />
             </XamlUICommand.IconSource>
         </XamlUICommand>
-        <XamlUICommand x:Key="AddSeparatorMenuItemCommand" Description="Add a separator menu item." Label="Separator" Command="{Binding CustomMenu.AddSeparatorItemCommand}">
+        <XamlUICommand x:Key="AddSeparatorMenuItemCommand" x:Uid="CustomMenuAddSeparatorItemCommand" Command="{Binding CustomMenu.AddSeparatorItemCommand}">
             <XamlUICommand.IconSource>
                 <FontIconSource Glyph="&#xE921;" />
             </XamlUICommand.IconSource>
         </XamlUICommand>
-        <XamlUICommand x:Key="AddSubMenuMenuItemCommand" Description="Add a submenu." Label="Submenu" Command="{Binding CustomMenu.AddSubMenuItemCommand}">
+        <XamlUICommand x:Key="AddSubMenuMenuItemCommand" x:Uid="CustomMenuAddSubMenuItemCommand" Command="{Binding CustomMenu.AddSubMenuItemCommand}">
             <XamlUICommand.IconSource>
                 <FontIconSource Glyph="&#xE8C4;" />
             </XamlUICommand.IconSource>
         </XamlUICommand>
-        <StandardUICommand x:Key="DeleteSelectedItemCommand" Kind="Delete" Command="{Binding CustomMenu.DeleteSelectedItemCommand}" />
+        <StandardUICommand x:Key="DeleteSelectedItemCommand" x:Uid="CustomMenuDeleteSelectedItemCommand" Kind="Delete" Command="{Binding CustomMenu.DeleteSelectedItemCommand}" />
     </Page.Resources>
 
     <Grid DataContext="{Binding CustomMenu}">
@@ -48,7 +48,7 @@
             </BreadcrumbBar.ItemTemplate>
         </BreadcrumbBar>
         <CommandBar Grid.Row="1" OverflowButtonVisibility="Collapsed" HorizontalAlignment="Left">
-            <AppBarButton Icon="Add" Label="Add" ToolTipService.ToolTip="Add a menu item." >
+            <AppBarButton Icon="Add" x:Uid="CustomMenuAddNewItemButton">
                 <AppBarButton.Flyout>
                     <MenuFlyout>
                         <MenuFlyoutItem Command="{StaticResource AddTextMenuItemCommand}" />

@@ -62,8 +62,8 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-                            <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Command="{Binding ResetChangesCommand}" />
-                            <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" />
+                            <Button x:Uid="LightingDeviceResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Command="{Binding ResetChangesCommand}" />
+                            <Button x:Uid="LightingDeviceApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </Expander>

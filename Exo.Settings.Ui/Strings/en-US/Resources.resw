@@ -117,6 +117,60 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CustomMenuAddNewItemButton.Label" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="CustomMenuAddNewItemButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Add a menu item.</value>
+  </data>
+  <data name="CustomMenuAddNormalItemCommand.Description" xml:space="preserve">
+    <value>Add a clickable menu item.</value>
+  </data>
+  <data name="CustomMenuAddNormalItemCommand.Label" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="CustomMenuAddSeparatorItemCommand.Description" xml:space="preserve">
+    <value>Add a separator menu item.</value>
+  </data>
+  <data name="CustomMenuAddSeparatorItemCommand.Label" xml:space="preserve">
+    <value>Separator</value>
+  </data>
+  <data name="CustomMenuAddSubMenuItemCommand.Description" xml:space="preserve">
+    <value>Add a submenu.</value>
+  </data>
+  <data name="CustomMenuAddSubMenuItemCommand.Label" xml:space="preserve">
+    <value>Submenu</value>
+  </data>
+  <data name="DeviceIdProductId.Text" xml:space="preserve">
+    <value>Product ID</value>
+  </data>
+  <data name="DeviceIdSectionHeader.Text" xml:space="preserve">
+    <value>Device ID</value>
+  </data>
+  <data name="DeviceIdSource.Text" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="DeviceIdVendorId.Text" xml:space="preserve">
+    <value>Vendor ID</value>
+  </data>
+  <data name="DeviceIdVendorIdSource.Text" xml:space="preserve">
+    <value>Vendor ID Source</value>
+  </data>
+  <data name="DeviceIdVersion.Text" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="LightingDeviceApplyButton.Content" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="LightingDeviceResetButton.Content" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="LightingEffectLabel.Text" xml:space="preserve">
+    <value>Effect</value>
+  </data>
+  <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Monitor settings</value>
+  </data>
   <data name="Welcome.Text" xml:space="preserve">
     <value>Welcome to Exo.</value>
   </data>
