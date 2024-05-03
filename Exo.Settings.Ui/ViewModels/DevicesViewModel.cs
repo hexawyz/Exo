@@ -98,7 +98,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var dpiWatchTask = WatchDpiChangesAsync(cts.Token);
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
 
-			await WatchDevicesAsync(cts.Token).ConfigureAwait(false);
 			try
 			{
 				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorSettingWatchTask]).ConfigureAwait(false);
