@@ -16,6 +16,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<ISensorDeviceFeature>,
+	IDeviceIdFeature,
 	ISensorsFeature,
 	//ISensorsGroupedQueryFeature,
 	IBatteryStateDeviceFeature
@@ -29,6 +30,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	(
 		ILogger<UninterruptiblePowerSupplyDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
+		ushort productId,
+		ushort version,
 		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
 		ImmutableArray<DeviceObjectInformation> devices,
 		string friendlyName,
@@ -157,6 +160,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 					logger,
 					hidStream,
 					batteryState,
+					productId,
+					version,
 					friendlyName,
 					new("EatonUPS", topLevelDeviceName, $"{EatonVendorId:X4}:FFFF", null)
 				),
@@ -183,6 +188,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _readTask;
+	private readonly ushort _productId;
+	private readonly ushort _versionNumber;
 
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => _sensors;
 
@@ -198,11 +205,15 @@ public sealed class UninterruptiblePowerSupplyDriver :
 
 	BatteryState IBatteryStateDeviceFeature.BatteryState => BuildBatteryState(Volatile.Read(ref _batteryState));
 
+	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(EatonVendorId, _productId, _versionNumber);
+
 	private UninterruptiblePowerSupplyDriver
 	(
 		ILogger<UninterruptiblePowerSupplyDriver> logger,
 		HidFullDuplexStream stream,
 		uint batteryState,
+		ushort productId,
+		ushort versionNumber,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
@@ -211,13 +222,15 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		_stream = stream;
 		_buffer = GC.AllocateUninitializedArray<byte>(256, true);
 		_batteryState = batteryState;
+		_productId = productId;
+		_versionNumber = versionNumber;
 		_sensors =
 		[
 			new GroupedSensor<byte>(this, 0x07, 8, 10, 6, PercentLoadSensorId, SensorUnit.Percent, 0, 100),
 			new SimpleSensor<ushort>(this, 0x0E, 7, OutputVoltageSensorId, SensorUnit.Volts, 0, null),
 		];
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, UninterruptiblePowerSupplyDriver, ISensorsFeature>(this);
-		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, UninterruptiblePowerSupplyDriver, IBatteryStateDeviceFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, UninterruptiblePowerSupplyDriver, IDeviceIdFeature, IBatteryStateDeviceFeature>(this);
 		_cancellationTokenSource = new();
 		_readTask = ReadAsync(_cancellationTokenSource.Token);
 	}
