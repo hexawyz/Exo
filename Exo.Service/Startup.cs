@@ -1,5 +1,4 @@
-using System;
-using System.Threading.Channels;
+using System.Reflection;
 using Exo.Configuration;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Contracts.Ui.Settings;
@@ -8,24 +7,14 @@ using Exo.I2C;
 using Exo.Service.Grpc;
 using Exo.Services;
 using Exo.SystemManagementBus;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Connections.Features;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
-using Microsoft.Extensions.Logging;
 using ProtoBuf.Grpc.Server;
 
 namespace Exo.Service;
 
 public class Startup
 {
-	private const string DevicesConfigurationContainerName = "dev";
+	private const string RootConfigurationContainerKey = "root";
 
 	public Startup(IHostEnvironment environment, IConfiguration configuration)
 	{
@@ -47,7 +36,21 @@ public class Startup
 				windowsService.GetDeviceNotificationService() :
 				new NotificationWindow()
 		);
-		services.AddSingleton(sp => new ConfigurationService(Path.Combine(Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!, "cfg")));
+		services.AddSingleton
+		(
+			sp =>
+			{
+				var configurationService = new ConfigurationService(Path.Combine(Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!, "cfg"));
+				ConfigurationMigrationService.InitializeAsync(configurationService, Program.GitCommitId, default).GetAwaiter().GetResult();
+				return configurationService;
+			}
+		);
+		services.AddKeyedSingleton(RootConfigurationContainerKey, (sp, _) => sp.GetRequiredService<ConfigurationService>().GetRootContainer());
+		services.AddKeyedSingleton(ConfigurationContainerNames.Devices, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, GuidNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Discovery, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
+		services.AddKeyedSingleton(ConfigurationContainerNames.DiscoveryFactory, (sp, name) => sp.GetRequiredKeyedService<IConfigurationContainer>(ConfigurationContainerNames.Discovery).GetContainer((string)name, GuidNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Assembly, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, AssemblyNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.CustomMenu, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
 		if (Environment.IsDevelopment())
 		{
 			services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
@@ -57,13 +60,12 @@ public class Startup
 			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
 		}
 		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
-		services.AddKeyedSingleton(DevicesConfigurationContainerName, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, GuidNameSerializer.Instance));
 		services.AddSingleton
 		(
 			sp => DeviceRegistry.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<DeviceRegistry>>(),
-				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(DevicesConfigurationContainerName),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
 				default
 			).GetAwaiter().GetResult()
 		);
@@ -92,7 +94,7 @@ public class Startup
 			sp => SensorService.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<SensorService>>(),
-				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(DevicesConfigurationContainerName),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
 				sp.GetRequiredService<IDeviceWatcher>(),
 				default
 			).GetAwaiter().GetResult()
@@ -103,7 +105,7 @@ public class Startup
 			sp => CustomMenuService.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<CustomMenuService>>(),
-				sp.GetRequiredService<ConfigurationService>().GetContainer("mnu"),
+				sp.GetRequiredKeyedService<IConfigurationContainer>(ConfigurationContainerNames.CustomMenu),
 				default
 			).GetAwaiter().GetResult()
 		);
@@ -117,7 +119,7 @@ public class Startup
 			sp => PersistedAssemblyParsedDataCache.CreateAsync<DiscoveredAssemblyDetails>
 			(
 				sp.GetRequiredService<IAssemblyLoader>(),
-				sp.GetRequiredService<ConfigurationService>().GetContainer("asm", AssemblyNameSerializer.Instance),
+				sp.GetRequiredKeyedService<IConfigurationContainer<AssemblyName>>(ConfigurationContainerNames.Assembly),
 				default
 			).GetAwaiter().GetResult()
 		);
@@ -132,7 +134,7 @@ public class Startup
 					sp.GetRequiredService<IDriverRegistry>(),
 					sp.GetRequiredService<IAssemblyParsedDataCache<DiscoveredAssemblyDetails>>(),
 					sp.GetRequiredService<IAssemblyLoader>(),
-					sp.GetRequiredService<ConfigurationService>().GetContainer("dcv").GetContainer("fac", GuidNameSerializer.Instance)
+					sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.DiscoveryFactory)
 				);
 			}
 		);

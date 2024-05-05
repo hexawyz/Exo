@@ -195,6 +195,9 @@ public class ConfigurationService : IConfigurationNode
 			new ConfigurationContainer<TKey>(this, childDirectory, nameSerializer) :
 			null;
 
+	public IConfigurationContainer GetRootContainer()
+		=> new ConfigurationContainer(this, _directory);
+
 	private async ValueTask<ConfigurationResult<T>> ReadValueAsync<T>(string directory, string? key, CancellationToken cancellationToken)
 	{
 		string typeId = TypeId.GetString<T>();
@@ -300,7 +303,7 @@ public class ConfigurationService : IConfigurationNode
 
 			foreach (string directoryName in directoryNames)
 			{
-				if (GuidNameSerializer.Instance.TryParse(Path.GetFileName(directoryName), out _))
+				if (nameSerializer.TryParse(Path.GetFileName(directoryName), out _))
 				{
 					Directory.Delete(directoryName, true);
 				}

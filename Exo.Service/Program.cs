@@ -2,8 +2,8 @@ using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Exo.Programming;
+using Exo.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using ProtoBuf;
 using ProtoBuf.Meta;
 using Serilog;
 
@@ -11,6 +11,8 @@ namespace Exo.Service;
 
 public class Program
 {
+	public static readonly string? GitCommitId = GitCommitHelper.GetCommitId(typeof(Program).Assembly);
+
 	public static void Main(string[] args)
 	{
 		// Ensure that logs are written in the right place.

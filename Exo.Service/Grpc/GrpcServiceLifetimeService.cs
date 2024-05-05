@@ -5,10 +5,6 @@ namespace Exo.Service.Grpc;
 
 internal sealed class GrpcServiceLifetimeService : IServiceLifetimeService
 {
-	private static readonly string Version = GetSha1Version();
-
-	private static string GetSha1Version() => GitCommitHelper.GetCommitId(typeof(GrpcServiceLifetimeService).Assembly) ?? "UNKNOWN";
-
 	private readonly TaskCompletionSource _taskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 	public GrpcServiceLifetimeService(IHostApplicationLifetime hostApplicationLifetime)
@@ -17,6 +13,6 @@ internal sealed class GrpcServiceLifetimeService : IServiceLifetimeService
 		hostApplicationLifetime.ApplicationStopping.Register(state => _taskCompletionSource.TrySetResult(), _taskCompletionSource, false);
 	}
 
-	ValueTask<string?> IServiceLifetimeService.TryGetVersionAsync(CancellationToken cancellationToken) => ValueTask.FromResult(_taskCompletionSource.Task.IsCompleted ? null : Version);
+	ValueTask<string?> IServiceLifetimeService.TryGetVersionAsync(CancellationToken cancellationToken) => ValueTask.FromResult(_taskCompletionSource.Task.IsCompleted ? null : Program.GitCommitId ?? "UNKNOWN");
 	Task IServiceLifetimeService.WaitForStopAsync(CancellationToken cancellationToken) => _taskCompletionSource.Task.WaitAsync(cancellationToken);
 }
