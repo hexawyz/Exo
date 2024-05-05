@@ -1,6 +1,5 @@
 using System.IO;
 using Exo.Ui;
-using Exo.Utils;
 using Application = System.Windows.Application;
 
 namespace Exo.Overlay;
@@ -15,7 +14,16 @@ internal partial class App : Application
 
 	public static readonly string? SettingsUiExecutablePath = LocateSettingsUi();
 
-	private readonly ServiceConnectionManager _connectionManager = new("Local\\Exo.Service.Overlay", 100, GitCommitHelper.GetCommitId(typeof(App).Assembly));
+	private readonly ServiceConnectionManager _connectionManager = new
+	(
+		"Local\\Exo.Service.Overlay",
+		100,
+#if DEBUG
+		null
+#else
+		Exo.Utils.GitCommitHelper.GetCommitId(typeof(App).Assembly)
+#endif
+	);
 
 	private OverlayViewModel? _overlayViewModel;
 	private NotifyIconService? _notifyIconService;

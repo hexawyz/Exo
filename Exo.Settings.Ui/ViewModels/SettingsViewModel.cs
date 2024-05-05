@@ -82,7 +82,17 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public SettingsViewModel(IEditionService editionService)
 	{
-		ConnectionManager = new("Local\\Exo.Service.Configuration", 100, GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly), OnConnectionStatusChanged);
+		ConnectionManager = new
+		(
+			"Local\\Exo.Service.Configuration", 
+			100,
+#if DEBUG
+			null,
+#else
+			GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
+#endif
+			OnConnectionStatusChanged
+		);
 		_editionService = editionService;
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);
