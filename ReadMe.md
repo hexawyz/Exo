@@ -106,20 +106,16 @@ e.g.:
 
 You can a binary release either from the [Releases page](https://github.com/hexawyz/Exo/releases) or a build artifact from a recent [GitHub actions build](https://github.com/hexawyz/Exo/actions).
 
-⚠️ Please note that as long as the product features are being worked on, the cached configuration can become incompatible between versions.
-
-After upgrading your installation, it is strongly recommended to manually delete the `Exo.Service/cfg/asm` and `Exo.Service/cfg/dcv` directories that were created by the service.
-In doubt, it can also be much simpler to delete the entire `Exo.Service/cfg` directory. For the time being, the only consequence is that your previously discovered devices will be rediscovered.
-Future versions will handle configuration migrations, but that is not the priority for now.
-
 ## Running Exo
 
 Extract the release somewhere of your choice. e.g. create a directory `c:\tools\exo` and put everything ere. It is up to you to decide.
 
+⚠️ It is important to not mix up executables from different releases. Newer versions will validate that the versions match before communicating with the service.
+
 ### As a command line application (Recommended for a first try)
 
 * Run `Exo.Service.exe` from where it was extracted, and watch the service start. There can be some error messages appearing during startup for some non supported devices, this is normal.
-* Run `Exo.Overlay.exe` from where it was extracted. This will start the overlay UI that can display some notifications.
+* Run `Exo.Overlay.exe` from where it was extracted. This will start the overlay UI that exposes a notification icon and can display some overlay notifications.
 * In order to access the settings UI, you can use the taskbar tray icon created by `Exo.Overlay.exe` or manually run `Exo.Settings.UI.exe` from where it was extracted.
   The UI windows will show up and present you with the supported devices that were detected on your system.
 
