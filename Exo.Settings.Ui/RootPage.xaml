@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:converters="using:CommunityToolkit.WinUI.Converters"
+    xmlns:converters="using:Exo.Settings.Ui.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -69,17 +69,23 @@
                         <Grid.Resources>
                             <SolidColorBrush x:Key="DisconnectedColorBrush">Red</SolidColorBrush>
                             <SolidColorBrush x:Key="ConnectedColorBrush">Lime</SolidColorBrush>
-                            <converters:BoolToObjectConverter x:Key="BooleanToColorConverter" TrueValue="{StaticResource ConnectedColorBrush}" FalseValue="{StaticResource DisconnectedColorBrush}" />
-                            <converters:BoolToObjectConverter x:Key="BooleanToConnectionStatusTextConverter">
-                                <converters:BoolToObjectConverter.FalseValue>Service Disconnected</converters:BoolToObjectConverter.FalseValue>
-                                <converters:BoolToObjectConverter.TrueValue>Service Connected</converters:BoolToObjectConverter.TrueValue>
-                            </converters:BoolToObjectConverter>
+                            <SolidColorBrush x:Key="VersionMismatchColorBrush">Yellow</SolidColorBrush>
+                            <converters:ConnectionStatusToObjectConverter
+                                x:Key="ConnectionStatusToColorConverter"
+                                DisconnectedValue="{StaticResource DisconnectedColorBrush}"
+                                ConnectedValue="{StaticResource ConnectedColorBrush}"
+                                VersionMismatchValue="{StaticResource VersionMismatchColorBrush}" />
+                            <converters:ConnectionStatusToObjectConverter
+                                x:Key="ConnectionStatusToTextConverter"
+                                DisconnectedValue="Service Disconnected"
+                                ConnectedValue="Service Connected"
+                                VersionMismatchValue="Service Version Mismatch" />
                         </Grid.Resources>
                         <ToolTipService.ToolTip>
-                            <ToolTip Content="{Binding IsConnected, Mode=OneWay, Converter={StaticResource BooleanToConnectionStatusTextConverter}}" />
+                            <ToolTip Content="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToTextConverter}}" />
                         </ToolTipService.ToolTip>
                         <FontIcon Glyph="&#xF385;" Foreground="Gray" />
-                        <FontIcon Glyph="&#xEA81;" Foreground="{Binding IsConnected, Mode=OneWay, Converter={StaticResource BooleanToColorConverter}}" />
+                        <FontIcon Glyph="&#xEA81;" Foreground="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToColorConverter}}" />
                     </Grid>
                 </StackPanel>
             </Grid>

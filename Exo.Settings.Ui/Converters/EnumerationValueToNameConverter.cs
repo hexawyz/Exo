@@ -3,7 +3,7 @@ using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.Converters;
 
 internal sealed class EnumerationValueToNameConverter : DependencyObject, IValueConverter
 {
@@ -32,21 +32,15 @@ internal sealed class EnumerationValueToNameConverter : DependencyObject, IValue
 	{
 		var dict = new Dictionary<ulong, EnumerationValueViewModel>();
 		if (values.Count != 0)
-		{
 			foreach (var ev in values)
-			{
 				dict.Add(System.Convert.ToUInt64(ev.Value), ev);
-			}
-		}
 		Interlocked.Exchange(ref _valueToModelMappings, dict);
 	}
 
 	public object? Convert(object value, Type targetType, object parameter, string language)
 	{
 		if (_valueToModelMappings?.TryGetValue(System.Convert.ToUInt64(value), out var result) == true)
-		{
 			return result.DisplayName;
-		}
 		return value.ToString();
 	}
 

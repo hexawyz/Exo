@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -36,7 +37,7 @@
                                 Minimum="{Binding MinimumLevel, Mode=OneTime}"
                                 Maximum="{Binding MaximumLevel, Mode=OneTime}">
                                 <Slider.ThumbToolTipValueConverter>
-                                    <local:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
+                                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
                                 </Slider.ThumbToolTipValueConverter>
                             </Slider>
                         </Grid>

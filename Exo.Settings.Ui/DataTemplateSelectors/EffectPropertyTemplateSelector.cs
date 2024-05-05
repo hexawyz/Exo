@@ -3,7 +3,7 @@ using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.DataTemplateSelectors;
 
 internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 {
@@ -29,7 +29,6 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 	protected override DataTemplate SelectTemplateCore(object item)
 	{
 		if (item is ScalarPropertyViewModel sp)
-		{
 			switch (sp.DataType)
 			{
 			case DataType.UInt8:
@@ -43,15 +42,11 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 				if (sp.EnumerationValues.Count > 0)
 				{
 					if (sp.MinimumValue is not null && sp.MaximumValue is not null)
-					{
 						return EnumRangeTemplate;
-					}
 					return EnumTemplate;
 				}
 				else if (sp.Name == "BrightnessLevel")
-				{
 					return BrightnessTemplate;
-				}
 				goto case DataType.Float16;
 			case DataType.Float16:
 			case DataType.Float32:
@@ -72,15 +67,12 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 			case DataType.ColorArgb32:
 				return ColorTemplate;
 			}
-		}
 		else if (item is FixedLengthArrayPropertyViewModel ap)
-		{
 			switch (ap.DataType)
 			{
 			case DataType.ArrayOfColorRgb24:
 				return ColorArrayTemplate;
 			}
-		}
 		return FallbackTemplate;
 	}
 }

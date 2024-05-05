@@ -1,7 +1,7 @@
 using System;
 using Microsoft.UI.Xaml.Data;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.Converters;
 
 internal sealed class ByteToDoubleConverter : IValueConverter
 {

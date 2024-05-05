@@ -5,7 +5,7 @@ using Exo.Utils;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class SettingsViewModel : BindableObject, IConnectedState
+internal sealed class SettingsViewModel : BindableObject
 {
 	private static class Commands
 	{
@@ -78,9 +78,11 @@ internal sealed class SettingsViewModel : BindableObject, IConnectedState
 	public ICommand GoBackCommand => _goBackCommand;
 	public ICommand NavigateCommand => _navigateCommand;
 
+	private ConnectionStatus _connectionStatus;
+
 	public SettingsViewModel(IEditionService editionService)
 	{
-		ConnectionManager = new("Local\\Exo.Service.Configuration", 100, GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly));
+		ConnectionManager = new("Local\\Exo.Service.Configuration", 100, GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly), OnConnectionStatusChanged);
 		_editionService = editionService;
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);
@@ -98,7 +100,6 @@ internal sealed class SettingsViewModel : BindableObject, IConnectedState
 		ProgrammingPage = new("Programming", "\uE943");
 		NavigationPages = [HomePage, DevicesPage, LightingPage, SensorsPage, CustomMenuPage, ProgrammingPage];
 		SelectedNavigationPage = HomePage;
-		ConnectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;
@@ -108,23 +109,25 @@ internal sealed class SettingsViewModel : BindableObject, IConnectedState
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;
 
-	public bool IsConnected => ConnectionManager.IsConnected;
+	public ConnectionStatus ConnectionStatus => _connectionStatus;
 	public bool CanNavigateBack => _navigationStack.Count > 0;
 
-	Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	private void OnConnectionStatusChanged(SettingsServiceConnectionManager connectionManager, ConnectionStatus connectionStatus)
 	{
-		NotifyPropertyChanged(ChangedProperty.IsConnected);
-		return Task.CompletedTask;
-	}
-
-	void IConnectedState.Reset()
-	{
-		bool wasStackEmpty = _navigationStack.Count == 0;
-		_navigationStack.Clear();
-		NotifyPropertyChanged(ChangedProperty.IsConnected);
-		NotifyPropertyChanged(ChangedProperty.CurrentPage);
-		if (!wasStackEmpty) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
-		SelectedNavigationPage = null;
+		_connectionStatus = connectionStatus;
+		if (connectionStatus == ConnectionStatus.Disconnected)
+		{
+			bool wasStackEmpty = _navigationStack.Count == 0;
+			_navigationStack.Clear();
+			NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
+			NotifyPropertyChanged(ChangedProperty.CurrentPage);
+			if (!wasStackEmpty) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+			SelectedNavigationPage = null;
+		}
+		else
+		{
+			NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
+		}
 	}
 
 	private void NavigateTo(PageViewModel pageViewModel)

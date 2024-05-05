@@ -4,9 +4,10 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:lc="using:Exo.Settings.Ui.Controls"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lcontrols="using:Exo.Settings.Ui.Controls"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels">
     <Application.Resources>
         <ResourceDictionary>
@@ -45,15 +46,15 @@
 
             <GridLength x:Key="PropertyLabelColumnWidth">200</GridLength>
 
-            <local:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
-            <local:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
-            <local:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
+            <lconverters:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
+            <lconverters:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
+            <lconverters:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
             <converters:CollectionVisibilityConverter x:Key="CollectionToVisibilityConverter" />
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-            <local:StringFormatConverter x:Key="StringFormatConverter" />
-            <local:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
-            <local:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
-            <local:StringResourceConverter x:Key="StringResourceConverter" />
+            <lconverters:StringFormatConverter x:Key="StringFormatConverter" />
+            <lconverters:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
+            <lconverters:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
+            <lconverters:StringResourceConverter x:Key="StringResourceConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 
@@ -259,43 +260,43 @@
                 <Setter Property="Height" Value="20" />
             </Style>
 
-            <Style x:Key="PercentageSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="PercentageSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#0f0" />
                 <Setter Property="AreaFill" Value="#0f0" />
                 <Setter Property="MinMaxLineStroke" Value="#0a0" />
             </Style>
-            <Style x:Key="FrequencySensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="FrequencySensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#0cf" />
                 <Setter Property="AreaFill" Value="#0cf" />
                 <Setter Property="MinMaxLineStroke" Value="#06a" />
             </Style>
-            <Style x:Key="FanSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="FanSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#08f" />
                 <Setter Property="AreaFill" Value="#08f" />
                 <Setter Property="MinMaxLineStroke" Value="#04a" />
             </Style>
-            <Style x:Key="TemperatureSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="TemperatureSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#f00" />
                 <Setter Property="AreaFill" Value="#f00" />
                 <Setter Property="MinMaxLineStroke" Value="#a00" />
             </Style>
-            <Style x:Key="PowerSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="PowerSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#fc0" />
                 <Setter Property="AreaFill" Value="#fc0" />
                 <Setter Property="MinMaxLineStroke" Value="#a60" />
             </Style>
-            <Style x:Key="VoltageSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="VoltageSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#80f" />
                 <Setter Property="AreaFill" Value="#80f" />
                 <Setter Property="MinMaxLineStroke" Value="#40a" />
             </Style>
-            <Style x:Key="CurrentSensorLineChartStyle" TargetType="lc:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
+            <Style x:Key="CurrentSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
                 <Setter Property="Stroke" Value="#04f" />
                 <Setter Property="AreaFill" Value="#04f" />
                 <Setter Property="MinMaxLineStroke" Value="#02a" />
             </Style>
             
-            <local:SensorCategoryToStyleConverter
+            <lconverters:SensorCategoryToStyleConverter
                 x:Key="SensorCategoryToLineChartStyleConverter"
                 DefaultStyle="{ThemeResource DefaultLineChartStyle}"
                 PercentageStyle="{ThemeResource PercentageSensorLineChartStyle}"

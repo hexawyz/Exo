@@ -15,7 +15,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs IsChanged = new(nameof(IsChanged));
 	public static readonly PropertyChangedEventArgs IsNotBusy = new(nameof(IsNotBusy));
 	public static readonly PropertyChangedEventArgs IsReady = new(nameof(IsReady));
-	public static readonly PropertyChangedEventArgs IsConnected = new(nameof(IsConnected));
+	public static readonly PropertyChangedEventArgs ConnectionStatus = new(nameof(ConnectionStatus));
 	public static readonly PropertyChangedEventArgs Properties = new(nameof(Properties));
 	public static readonly PropertyChangedEventArgs CurrentEffect = new(nameof(CurrentEffect));
 	public static readonly PropertyChangedEventArgs FriendlyName = new(nameof(FriendlyName));

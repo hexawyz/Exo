@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml.Data;
 using Microsoft.Windows.ApplicationModel.Resources;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.Converters;
 
 internal sealed class StringResourceConverter : IValueConverter
 {

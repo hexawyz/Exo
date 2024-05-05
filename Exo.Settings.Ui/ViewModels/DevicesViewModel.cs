@@ -5,6 +5,7 @@ using Exo.Ui;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using System.Windows.Input;
+using Exo.Settings.Ui.Converters;
 
 namespace Exo.Settings.Ui.ViewModels;
 

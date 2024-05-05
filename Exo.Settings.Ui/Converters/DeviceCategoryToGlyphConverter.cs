@@ -3,7 +3,7 @@ using Exo.Contracts.Ui.Settings;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml.Data;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.Converters;
 
 public class DeviceCategoryToGlyphConverter : IValueConverter
 {
@@ -44,9 +44,7 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 	public object Convert(object value, Type targetType, object parameter, string language)
 	{
 		if (value is not DeviceCategory category)
-		{
 			category = DeviceCategory.Other;
-		}
 
 		return GetGlyph(category);
 	}

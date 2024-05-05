@@ -2,7 +2,7 @@ using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.DataTemplateSelectors;
 
 internal sealed class MenuItemTemplateSelector : DataTemplateSelector
 {

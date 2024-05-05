@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Ui;
@@ -130,6 +131,20 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		}
 	}
 
+	private static readonly object ConnectionStatusDisconnected = ConnectionStatus.Disconnected;
+	private static readonly object ConnectionStatusConnected = ConnectionStatus.Connected;
+	private static readonly object ConnectionStatusVersionMismatch = ConnectionStatus.VersionMismatch;
+
+	// "Allocation-free" boxing of connection status enum values.
+	private static object Box(ConnectionStatus connectionStatus)
+		=> connectionStatus switch
+		{
+			ConnectionStatus.Disconnected => ConnectionStatusDisconnected,
+			ConnectionStatus.Connected => ConnectionStatusConnected,
+			ConnectionStatus.VersionMismatch => ConnectionStatusVersionMismatch,
+			_ => throw new InvalidOperationException(),
+		};
+
 	// NB: The proper implementation should be the usage of weak references and ConditionalWeakTable here.
 	// If we end up needing to dynamically register components at some point, the implementation should be upgraded.
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
@@ -140,11 +155,14 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private TaskCompletionSource<ISensorService> _sensorServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
 	private CancellationToken _disconnectionToken;
-	private bool _isConnected;
+	private ConnectionStatus _connectionStatus;
 
-	public bool IsConnected => _isConnected;
+	private readonly SynchronizationContext? _synchronizationContext;
+	private readonly Action<SettingsServiceConnectionManager, ConnectionStatus> _connectionStatusChangeHandler;
 
-	public SettingsServiceConnectionManager(string pipeName, int reconnectDelay, string? version)
+	private ConnectionStatus ConnectionStatus => (ConnectionStatus)Volatile.Read(ref Unsafe.As<ConnectionStatus, uint>(ref _connectionStatus));
+
+	public SettingsServiceConnectionManager(string pipeName, int reconnectDelay, string? version, Action<SettingsServiceConnectionManager, ConnectionStatus> connectionStatusChangeHandler)
 		: base(pipeName, reconnectDelay, version)
 	{
 		_connectedStates = new();
@@ -154,6 +172,8 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_lightingServiceTaskCompletionSource = new();
 		_sensorServiceTaskCompletionSource = new();
 		_programmingServiceTaskCompletionSource = new();
+		_synchronizationContext = SynchronizationContext.Current;
+		_connectionStatusChangeHandler = connectionStatusChangeHandler;
 	}
 
 	public Task<IDeviceService> GetDeviceServiceAsync(CancellationToken cancellationToken)
@@ -174,6 +194,31 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	public Task<IProgrammingService> GetProgrammingServiceAsync(CancellationToken cancellationToken)
 		=> _programmingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
+	private void NotifyConnectionStatusChanged(ConnectionStatus connectionStatus)
+	{
+		if (_connectionStatusChangeHandler is not null)
+		{
+			if (_synchronizationContext is not null)
+			{
+				_synchronizationContext.Post(state => _connectionStatusChangeHandler(this, (ConnectionStatus)state!), Box(connectionStatus));
+			}
+			else
+			{
+				_connectionStatusChangeHandler.Invoke(this, connectionStatus);
+			}
+		}
+	}
+
+	protected override void OnVersionMismatch()
+	{
+		lock (_connectedStates)
+		{
+			_connectionStatus = ConnectionStatus.VersionMismatch;
+		}
+
+		NotifyConnectionStatusChanged(ConnectionStatus.VersionMismatch);
+	}
+
 	protected override async Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken)
 	{
 		Connect(channel, _deviceServiceTaskCompletionSource);
@@ -186,10 +231,11 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Task startStatesTask;
 		lock (_connectedStates)
 		{
-			_isConnected = true;
+			_connectionStatus = ConnectionStatus.Connected;
 			_disconnectionToken = disconnectionToken;
 			startStatesTask = StartStatesAsync(disconnectionToken);
 		}
+		NotifyConnectionStatusChanged(ConnectionStatus.Connected);
 		await startStatesTask.ConfigureAwait(false);
 	}
 
@@ -219,9 +265,10 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Task resetStatesTask;
 		lock (_connectedStates)
 		{
-			_isConnected = false;
+			_connectionStatus = ConnectionStatus.Disconnected;
 			resetStatesTask = ResetStatesAsync();
 		}
+		NotifyConnectionStatusChanged(ConnectionStatus.Disconnected);
 		await resetStatesTask.ConfigureAwait(false);
 	}
 
@@ -245,7 +292,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 			stateWrapper = new ConnectedState(SynchronizationContext.Current, this, state);
 
 			_connectedStates.Add(state, stateWrapper);
-			if (_isConnected)
+			if (ConnectionStatus == ConnectionStatus.Connected)
 			{
 				startTask = stateWrapper.StartAsync(_disconnectionToken);
 			}

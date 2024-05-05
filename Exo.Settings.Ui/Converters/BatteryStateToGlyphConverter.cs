@@ -2,7 +2,7 @@ using System;
 using Microsoft.UI.Xaml.Data;
 using Exo.Contracts.Ui.Settings;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.Converters;
 
 internal sealed class BatteryStateToGlyphConverter : IValueConverter
 {
@@ -48,48 +48,30 @@ internal sealed class BatteryStateToGlyphConverter : IValueConverter
 		bool isChargingOrComplete = state.BatteryStatus is BatteryStatus.Charging or BatteryStatus.ChargingNearlyComplete or BatteryStatus.ChargingComplete;
 
 		if (state.BatteryStatus == BatteryStatus.ChargingComplete)
-		{
 			batteryLevel = 10;
-		}
 		else if (state.Level is null)
-		{
 			// If the device can't report battery level while charging, we'll still show up an icon, but we have to make conservative estimates.
 			if (state.BatteryStatus is BatteryStatus.ChargingNearlyComplete)
-			{
 				batteryLevel = 9;
-			}
 			else if (state.BatteryStatus is BatteryStatus.Charging)
-			{
 				// This is the smallest non-zero status that we can display.
 				// It may not be representative of the actual battery status, but it will indicate that it is charging.
 				batteryLevel = 1;
-			}
 			else
-			{
 				return UnknownGlyph;
-			}
-		}
 		else
 		{
 			float level = state.Level.GetValueOrDefault();
 
 			if (state.BatteryStatus == BatteryStatus.ChargingNearlyComplete)
-			{
 				// Adjust the batteryLevel to make sure we display something akin to a nearly charged battery.
 				batteryLevel = level < 0.95f ? 9 : 10;
-			}
 			else if (level is >= 0)
-			{
 				if (level >= 1)
-				{
 					batteryLevel = 10;
-				}
 				else
-				{
 					// Bias the glyphs by 5pt of value, so that e.g. 99% is displayed as 100%, and only < 5% is displayed at 0%.
 					batteryLevel = (int)(level * 10 + 0.5f);
-				}
-			}
 		}
 
 		return (isPowered && isChargingOrComplete ? ChargingGlyphs : DischargingGlyphs)[batteryLevel];

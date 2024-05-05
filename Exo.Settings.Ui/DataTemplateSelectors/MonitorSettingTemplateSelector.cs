@@ -3,7 +3,7 @@ using Exo.Contracts.Ui.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.DataTemplateSelectors;
 
 internal sealed class MonitorSettingTemplateSelector : DataTemplateSelector
 {
@@ -18,14 +18,12 @@ internal sealed class MonitorSettingTemplateSelector : DataTemplateSelector
 	protected override DataTemplate SelectTemplateCore(object item)
 	{
 		if (item is MonitorDeviceSettingViewModel s)
-		{
 			switch (s.Setting)
 			{
 			case MonitorSetting.Brightness: return BrightnessTemplate;
 			case MonitorSetting.Contrast: return ContrastTemplate;
 			case MonitorSetting.AudioVolume: return AudioVolumeTemplate;
 			}
-		}
 		return DefaultContinuousTemplate;
 	}
 }
