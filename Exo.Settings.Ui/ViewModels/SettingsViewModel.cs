@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Exo.Utils;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -79,7 +80,7 @@ internal sealed class SettingsViewModel : BindableObject, IConnectedState
 
 	public SettingsViewModel(IEditionService editionService)
 	{
-		ConnectionManager = new("Local\\Exo.Service.Configuration", 100);
+		ConnectionManager = new("Local\\Exo.Service.Configuration", 100, GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly));
 		_editionService = editionService;
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);

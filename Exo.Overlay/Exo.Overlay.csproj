@@ -26,6 +26,7 @@
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>

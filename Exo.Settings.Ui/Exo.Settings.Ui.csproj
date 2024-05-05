@@ -19,6 +19,7 @@
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
+	
   <ItemGroup>
     <None Remove="Controls\LineChart.xaml" />
     <None Remove="CustomMenuPage.xaml" />
@@ -66,11 +67,14 @@
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
   </ItemGroup>
+	
   <ItemGroup>
     <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
   </ItemGroup>
+	
   <ItemGroup>
     <Page Update="HomePage.xaml">
       <Generator>MSBuild:Compile</Generator>

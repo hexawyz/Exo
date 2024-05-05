@@ -144,8 +144,8 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public bool IsConnected => _isConnected;
 
-	public SettingsServiceConnectionManager(string pipeName, int reconnectDelay)
-		: base(pipeName, reconnectDelay)
+	public SettingsServiceConnectionManager(string pipeName, int reconnectDelay, string? version)
+		: base(pipeName, reconnectDelay, version)
 	{
 		_connectedStates = new();
 		_deviceServiceTaskCompletionSource = new();

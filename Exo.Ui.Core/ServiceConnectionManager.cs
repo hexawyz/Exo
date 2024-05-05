@@ -11,18 +11,20 @@ public class ServiceConnectionManager : IAsyncDisposable
 {
 	private readonly string _pipeName;
 	private readonly int _reconnectDelay;
+	private readonly string? _version;
 	private readonly SocketsHttpHandler _handler;
 	private TaskCompletionSource<GrpcChannel> _channelTaskCompletionSource;
 	private readonly GrpcChannelOptions _grpcChannelOptions;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _runTask;
 
-	public ServiceConnectionManager(string pipeName, int reconnectDelay)
+	public ServiceConnectionManager(string pipeName, int reconnectDelay, string? version)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pipeName);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(reconnectDelay);
 		_pipeName = pipeName;
 		_reconnectDelay = reconnectDelay;
+		_version = version;
 		_handler = new SocketsHttpHandler { ConnectCallback = (ctx, ct) => ConnectToPipeAsync(ct) };
 		_grpcChannelOptions = new() { HttpHandler = _handler };
 		_channelTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -45,6 +47,11 @@ public class ServiceConnectionManager : IAsyncDisposable
 		{
 			while (true)
 			{
+				// We can connect to any version of the service, and retrieve the service version through the IServiceLifetimeService interface.
+				// If the service version does not match the client version, the client must not consider the service to be connected, irrespective of the actual connection status.
+				// As such connection and disconnection events will not be triggered in case of version mismatch, while the lifecycle of the connected service will still be observed.
+				// However, clients can receive version mismatch notifications through the OnVersionMismatch method, in order to react to this status if needed.
+				bool isConnectedToValidVersion = false;
 				var channel = CreateChannel();
 				try
 				{
@@ -54,12 +61,36 @@ public class ServiceConnectionManager : IAsyncDisposable
 						cancellationToken.ThrowIfCancellationRequested();
 						break;
 					}
-					_channelTaskCompletionSource.TrySetResult(channel);
-					using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+					isConnectedToValidVersion = _version is null || version == _version;
+					if (isConnectedToValidVersion)
+					{
+						_channelTaskCompletionSource.TrySetResult(channel);
+						using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+						{
+							try
+							{
+								await OnConnectedAsync(channel, cts.Token).ConfigureAwait(false);
+							}
+							catch (Exception)
+							{
+								// TODO: Propagate exceptions somehow ?
+							}
+							try
+							{
+								await lifetimeService.WaitForStopAsync(cancellationToken).ConfigureAwait(false);
+							}
+							finally
+							{
+								Volatile.Write(ref _channelTaskCompletionSource, new(TaskCreationOptions.RunContinuationsAsynchronously));
+							}
+							cts.Cancel();
+						}
+					}
+					else
 					{
 						try
 						{
-							await OnConnectedAsync(channel, cts.Token).ConfigureAwait(false);
+							OnVersionMismatch();
 						}
 						catch (Exception)
 						{
@@ -71,9 +102,7 @@ public class ServiceConnectionManager : IAsyncDisposable
 						}
 						finally
 						{
-							Volatile.Write(ref _channelTaskCompletionSource, new(TaskCreationOptions.RunContinuationsAsynchronously));
 						}
-						cts.Cancel();
 					}
 				}
 				catch (Exception)
@@ -86,13 +115,16 @@ public class ServiceConnectionManager : IAsyncDisposable
 					catch { }
 					channel.Dispose();
 				}
-				try
+				if (isConnectedToValidVersion)
 				{
-					await OnDisconnectedAsync().ConfigureAwait(false);
-				}
-				catch (Exception)
-				{
-					// TODO: Propagate exceptions somehow ?
+					try
+					{
+						await OnDisconnectedAsync().ConfigureAwait(false);
+					}
+					catch (Exception)
+					{
+						// TODO: Propagate exceptions somehow ?
+					}
 				}
 				await Task.Delay(_reconnectDelay, cancellationToken).ConfigureAwait(false);
 			}
@@ -108,6 +140,8 @@ public class ServiceConnectionManager : IAsyncDisposable
 			}
 		}
 	}
+
+	protected virtual void OnVersionMismatch() { }
 
 	protected virtual Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken) => Task.CompletedTask;
 
