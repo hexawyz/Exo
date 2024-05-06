@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
 
@@ -7,11 +8,13 @@ internal sealed class GrpcMouseService : IMouseService
 {
 	private readonly DeviceRegistry _driverRegistry;
 	private readonly DpiWatcher _dpiWatcher;
+	private readonly ILogger<GrpcMouseService> _logger;
 
-	public GrpcMouseService(DeviceRegistry driverRegistry)
+	public GrpcMouseService(DeviceRegistry driverRegistry, ILogger<GrpcMouseService> logger)
 	{
 		_driverRegistry = driverRegistry;
 		_dpiWatcher = new DpiWatcher(driverRegistry);
+		_logger = logger;
 	}
 
 	//public async IAsyncEnumerable<WatchNotification<MouseDeviceInformation>> WatchMouseDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -42,15 +45,23 @@ internal sealed class GrpcMouseService : IMouseService
 
 	public async IAsyncEnumerable<DpiChangeNotification> WatchDpiChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _dpiWatcher.WatchAsync(cancellationToken).ConfigureAwait(false))
+		_logger.GrpcMouseServiceDpiWatchStart();
+		try
 		{
-			if (notification.NotificationKind == WatchNotificationKind.Removal) continue;
-
-			yield return new()
+			await foreach (var notification in _dpiWatcher.WatchAsync(cancellationToken).ConfigureAwait(false))
 			{
-				DeviceId = notification.DeviceId,
-				Dpi = new() { Horizontal = notification.NewValue.Dpi.Horizontal, Vertical = notification.NewValue.Dpi.Vertical }
-			};
+				if (notification.NotificationKind == WatchNotificationKind.Removal) continue;
+
+				yield return new()
+				{
+					DeviceId = notification.DeviceId,
+					Dpi = new() { Horizontal = notification.NewValue.Dpi.Horizontal, Vertical = notification.NewValue.Dpi.Vertical }
+				};
+			}
+		}
+		finally
+		{
+			_logger.GrpcMouseServiceDpiWatchStop();
 		}
 	}
 }

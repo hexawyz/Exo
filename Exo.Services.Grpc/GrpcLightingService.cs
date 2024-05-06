@@ -24,33 +24,41 @@ internal sealed class GrpcLightingService : ILightingService
 	// Maybe simply having a GetLightingDeviceCapabilities call would be enough. => Let's have a simpler watcher instead. Only push device capabilities.
 	public async IAsyncEnumerable<Contracts.Ui.Settings.LightingDeviceInformation> WatchLightingDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
+		_logger.GrpcLightingServiceDeviceWatchStart();
+		try
 		{
-			if (notification.Kind is WatchNotificationKind.Removal) continue;
-
-			// TODO: This should only send updates when stuff has changed.
-			// Rework still needs to be done on the base service to properly handle persistance.
-
-			LightingBrightnessCapabilities? brightnessCapabilities = null;
-			LightingPaletteCapabilities? paletteCapabilities = null;
-
-			RegisterEffectTypes(notification);
-
-			var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
-
-			if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
+			await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
 			{
-				brightnessCapabilities = new() { MinimumBrightness = brightnessFeature.MinimumBrightness, MaximumBrightness = brightnessFeature.MaximumBrightness };
+				if (notification.Kind is WatchNotificationKind.Removal) continue;
+
+				// TODO: This should only send updates when stuff has changed.
+				// Rework still needs to be done on the base service to properly handle persistance.
+
+				LightingBrightnessCapabilities? brightnessCapabilities = null;
+				LightingPaletteCapabilities? paletteCapabilities = null;
+
+				RegisterEffectTypes(notification);
+
+				var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
+
+				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
+				{
+					brightnessCapabilities = new() { MinimumBrightness = brightnessFeature.MinimumBrightness, MaximumBrightness = brightnessFeature.MaximumBrightness };
+				}
+
+				yield return new()
+				{
+					DeviceId = notification.DeviceInformation.Id,
+					BrightnessCapabilities = brightnessCapabilities,
+					PaletteCapabilities = paletteCapabilities,
+					UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
+					LightingZones = ImmutableArray.CreateRange(notification.LightingDeviceInformation.LightingZones, z => z.ToGrpc()),
+				};
 			}
-
-			yield return new()
-			{
-				DeviceId = notification.DeviceInformation.Id,
-				BrightnessCapabilities = brightnessCapabilities,
-				PaletteCapabilities = paletteCapabilities,
-				UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
-				LightingZones = ImmutableArray.CreateRange(notification.LightingDeviceInformation.LightingZones, z => z.ToGrpc()),
-			};
+		}
+		finally
+		{
+			_logger.GrpcLightingServiceDeviceWatchStop();
 		}
 	}
 
@@ -136,26 +144,42 @@ internal sealed class GrpcLightingService : ILightingService
 
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _lightingService.WatchEffectsAsync(cancellationToken).ConfigureAwait(false))
+		_logger.GrpcLightingServiceEffectWatchStart();
+		try
 		{
-			yield return new()
+			await foreach (var notification in _lightingService.WatchEffectsAsync(cancellationToken).ConfigureAwait(false))
 			{
-				DeviceId = notification.DeviceId,
-				ZoneId = notification.ZoneId,
-				Effect = notification.SerializeEffect(),
-			};
+				yield return new()
+				{
+					DeviceId = notification.DeviceId,
+					ZoneId = notification.ZoneId,
+					Effect = notification.SerializeEffect(),
+				};
+			}
+		}
+		finally
+		{
+			_logger.GrpcLightingServiceEffectWatchStop();
 		}
 	}
 
 	public async IAsyncEnumerable<DeviceBrightnessLevel> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _lightingService.WatchBrightnessAsync(cancellationToken).ConfigureAwait(false))
+		_logger.GrpcLightingServiceBrightnessWatchStart();
+		try
 		{
-			yield return new()
+			await foreach (var notification in _lightingService.WatchBrightnessAsync(cancellationToken).ConfigureAwait(false))
 			{
-				DeviceId = notification.DeviceId,
-				BrightnessLevel = notification.BrightnessLevel,
-			};
+				yield return new()
+				{
+					DeviceId = notification.DeviceId,
+					BrightnessLevel = notification.BrightnessLevel,
+				};
+			}
+		}
+		finally
+		{
+			_logger.GrpcLightingServiceBrightnessWatchStop();
 		}
 	}
 }

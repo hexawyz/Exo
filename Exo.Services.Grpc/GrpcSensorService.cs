@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Sensors;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
 
@@ -79,14 +80,27 @@ internal sealed class GrpcSensorService : ISensorService
 	}
 
 	private readonly SensorService _sensorService;
+	private readonly ILogger<GrpcSensorService> _logger;
 
-	public GrpcSensorService(SensorService sensorService) => _sensorService = sensorService;
+	public GrpcSensorService(SensorService sensorService, ILogger<GrpcSensorService> logger)
+	{
+		_sensorService = sensorService;
+		_logger = logger;
+	}
 
 	public async IAsyncEnumerable<Contracts.Ui.Settings.SensorDeviceInformation> WatchSensorDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var device in _sensorService.WatchDevicesAsync(cancellationToken))
+		_logger.GrpcSensorServiceDeviceWatchStart();
+		try
 		{
-			yield return device.ToGrpc();
+			await foreach (var device in _sensorService.WatchDevicesAsync(cancellationToken))
+			{
+				yield return device.ToGrpc();
+			}
+		}
+		finally
+		{
+			_logger.GrpcSensorServiceDeviceWatchStop();
 		}
 	}
 
@@ -117,9 +131,17 @@ internal sealed class GrpcSensorService : ISensorService
 		where TValue : struct, INumber<TValue>
 		where TConverter : ISensorDataPointConverter<TValue>
 	{
-		await foreach (var dataPoint in _sensorService.WatchValuesAsync<TValue>(sensor.DeviceId, sensor.SensorId, cancellationToken))
+		_logger.GrpcSensorServiceSensorWatchStart(sensor.DeviceId, sensor.SensorId);
+		try
 		{
-			yield return TConverter.ConvertDataPoint(dataPoint);
+			await foreach (var dataPoint in _sensorService.WatchValuesAsync<TValue>(sensor.DeviceId, sensor.SensorId, cancellationToken))
+			{
+				yield return TConverter.ConvertDataPoint(dataPoint);
+			}
+		}
+		finally
+		{
+			_logger.GrpcSensorServiceSensorWatchStop(sensor.DeviceId, sensor.SensorId);
 		}
 	}
 }
