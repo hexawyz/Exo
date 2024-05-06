@@ -1,3 +1,4 @@
+using Exo.Features;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -10,11 +11,17 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 10_102, EventName = "GrpcDeviceServiceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching devices.")]
 	public static partial void GrpcDeviceServiceWatchStop(this ILogger logger);
 
+	[LoggerMessage(EventId = 10_103, EventName = "GrpcDeviceServiceWatchNotification", Level = LogLevel.Trace, Message = "Device notification: {NotificationKind} for {DeviceId} ({DeviceFriendlyName}). Availability: {IsAvailable}.")]
+	public static partial void GrpcDeviceServiceWatchNotification(this ILogger logger, WatchNotificationKind notificationKind, Guid deviceId, string deviceFriendlyName, bool isAvailable);
+
 	[LoggerMessage(EventId = 10_201, EventName = "GrpcBatteryServiceWatchStart", Level = LogLevel.Debug, Message = "Started watching battery levels.")]
 	public static partial void GrpcBatteryServiceWatchStart(this ILogger logger);
 
 	[LoggerMessage(EventId = 10_202, EventName = "GrpcBatteryServiceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching battery levels.")]
 	public static partial void GrpcBatteryServiceWatchStop(this ILogger logger);
+
+	[LoggerMessage(EventId = 10_203, EventName = "GrpcBatteryServiceWatchNotification", Level = LogLevel.Trace, Message = "Battery notification: {NotificationKind} for {DeviceId}. From level {OldBatteryLevel} to {NewBatteryLevel}. From {OldBatteryStatus} to {NewBatteryStatus}. External power from {OldExternalPowerStatus} to {NewExternalPowerStatus}.")]
+	public static partial void GrpcBatteryServiceWatchNotification(this ILogger logger, WatchNotificationKind notificationKind, Guid deviceId, float? oldBatteryLevel, float? newBatteryLevel, BatteryStatus oldBatteryStatus, BatteryStatus newBatteryStatus, ExternalPowerStatus oldExternalPowerStatus, ExternalPowerStatus newExternalPowerStatus);
 
 	[LoggerMessage(EventId = 10_301, EventName = "GrpcSensorServiceDeviceWatchStart", Level = LogLevel.Debug, Message = "Started watching sensor devices.")]
 	public static partial void GrpcSensorServiceDeviceWatchStart(this ILogger logger);

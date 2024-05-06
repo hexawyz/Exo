@@ -28,6 +28,10 @@ internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
 		{
 			await foreach (var notification in _driverRegistry.WatchAllAsync(cancellationToken).ConfigureAwait(false))
 			{
+				if (_logger.IsEnabled(LogLevel.Trace))
+				{
+					_logger.GrpcDeviceServiceWatchNotification(notification.Kind, notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, notification.DeviceInformation.IsAvailable);
+				}
 				yield return new()
 				{
 					NotificationKind = notification.Kind.ToGrpc(),
@@ -48,6 +52,21 @@ internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
 		{
 			await foreach (var notification in _batteryWatcher.WatchAsync(cancellationToken))
 			{
+				if (_logger.IsEnabled(LogLevel.Trace))
+				{
+					_logger.GrpcBatteryServiceWatchNotification
+					(
+						notification.NotificationKind,
+						notification.Key,
+						notification.OldValue.Level,
+						notification.NewValue.Level,
+						notification.OldValue.BatteryStatus,
+						notification.NewValue.BatteryStatus,
+						notification.OldValue.ExternalPowerStatus,
+						notification.NewValue.ExternalPowerStatus
+					);
+				}
+
 				if (notification.NotificationKind == WatchNotificationKind.Removal) continue;
 
 				yield return new()
