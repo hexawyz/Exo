@@ -24,6 +24,7 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 	private int _changedZoneCount;
 	private int _busyZoneCount;
 	private bool _useUnifiedLighting;
+	private bool _isExpanded;
 
 	private readonly Commands.ApplyChangesCommand _applyChangesCommand;
 	private readonly Commands.ResetChangesCommand _resetChangesCommand;
@@ -43,6 +44,12 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 			if (value == UnifiedLightingZone is null) throw new InvalidOperationException(value ? "This device does not support unified lighting." : "This device only supports unified lighting.");
 			SetValue(ref _useUnifiedLighting, value);
 		}
+	}
+
+	public bool IsExpanded
+	{
+		get => _isExpanded;
+		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
 	}
 
 	public Guid Id => _deviceViewModel.Id;

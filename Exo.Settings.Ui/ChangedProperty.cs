@@ -21,6 +21,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs FriendlyName = new(nameof(FriendlyName));
 	public static readonly PropertyChangedEventArgs Category = new(nameof(Category));
 	public static readonly PropertyChangedEventArgs IsAvailable = new(nameof(IsAvailable));
+	public static readonly PropertyChangedEventArgs IsExpanded = new(nameof(IsExpanded));
 	public static readonly PropertyChangedEventArgs SerialNumber = new(nameof(SerialNumber));
 	public static readonly PropertyChangedEventArgs BatteryState = new(nameof(BatteryState));
 	public static readonly PropertyChangedEventArgs DeviceIds = new(nameof(DeviceIds));

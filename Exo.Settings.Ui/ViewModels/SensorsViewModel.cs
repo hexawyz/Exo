@@ -148,18 +148,25 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		=> _connectionManager.GetSensorServiceAsync(cancellationToken);
 }
 
-internal sealed class SensorDeviceViewModel : IDisposable
+internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceInformation _sensorDeviceInformation;
 	public SensorsViewModel SensorsViewModel { get; }
 	private readonly ObservableCollection<SensorViewModel> _sensors;
 	private readonly Dictionary<Guid, SensorViewModel> _sensorsById;
+	private bool _isExpanded;
 
 	public Guid Id => _sensorDeviceInformation.DeviceId;
 	public DeviceCategory Category => _deviceViewModel.Category;
 	public string FriendlyName => _deviceViewModel.FriendlyName;
 	public bool IsAvailable => _deviceViewModel.IsAvailable;
+
+	public bool IsExpanded
+	{
+		get => _isExpanded;
+		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
+	}
 
 	public ObservableCollection<SensorViewModel> Sensors => _sensors;
 

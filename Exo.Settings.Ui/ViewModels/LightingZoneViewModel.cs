@@ -38,6 +38,13 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		private set => SetValue(ref _isBusy, !value, ChangedProperty.IsNotBusy);
 	}
 
+	private bool _isExpanded;
+	public bool IsExpanded
+	{
+		get => _isExpanded;
+		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
+	}
+
 	private readonly Commands.ResetCommand _resetCommand;
 	public ICommand ResetCommand => _resetCommand;
 
