@@ -29,7 +29,29 @@ internal static class Program
 
 	private static void OnActivated(object? sender, AppActivationArguments args)
 	{
-		App.Current.MainWindow?.Activate();
+		if (App.Current.MainWindow is { } mainWindow)
+		{
+			if (mainWindow.DispatcherQueue.HasThreadAccess)
+			{
+				mainWindow.Activate();
+			}
+			else
+			{
+				mainWindow.DispatcherQueue.TryEnqueue
+				(
+					() =>
+					{
+						try
+						{
+							mainWindow.Activate();
+						}
+						catch
+						{
+						}
+					}
+				);
+			}
+		}
 	}
 
 	private static bool DecideRedirection()
