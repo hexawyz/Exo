@@ -163,7 +163,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 					productId,
 					version,
 					friendlyName,
-					new("EatonUPS", topLevelDeviceName, $"{EatonVendorId:X4}:FFFF", null)
+					new("EatonUPS", topLevelDeviceName, $"{EatonVendorId:X4}:{productId:X4}", null)
 				),
 				null
 			);

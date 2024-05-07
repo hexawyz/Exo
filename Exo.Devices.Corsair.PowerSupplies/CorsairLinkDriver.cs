@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Corsair.PowerSupplies;
 
-public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeature>, ISensorsFeature, ISensorsGroupedQueryFeature
+public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeature>, IDeviceDriver<ISensorDeviceFeature>, IDeviceIdFeature, ISensorsFeature, ISensorsGroupedQueryFeature
 {
 	private abstract class Sensor
 	{
@@ -186,6 +186,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 		ILoggerFactory loggerFactory,
 		ImmutableArray<SystemDevicePath> keys,
 		ushort productId,
+		ushort version,
 		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
 		ImmutableArray<DeviceObjectInformation> devices,
 		string topLevelDeviceName,
@@ -225,6 +226,8 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 					loggerFactory.CreateLogger<CorsairLinkDriver>(),
 					transport,
 					corsairLinkGuardMutex,
+					productId,
+					version,
 					friendlyName,
 					new DeviceConfigurationKey("Corsair", topLevelDeviceName, $"{CorsairVendorId:X4}{productId:X4}", null)
 				)
@@ -238,14 +241,21 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 	}
 
 	private readonly CorsairLinkHidTransport _transport;
+	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly ISensor[] _sensors;
 	private readonly AsyncGlobalMutex _corsairLinkGuardMutex;
 	private readonly ILogger<CorsairLinkDriver> _logger;
 	private int _groupQueriedSensorCount;
+	private readonly ushort _productId;
+	private readonly ushort _versionNumber;
+
+	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(CorsairVendorId, _productId, _versionNumber);
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.PowerSupply;
 
+
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
 
@@ -254,12 +264,17 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 		ILogger<CorsairLinkDriver> logger,
 		CorsairLinkHidTransport transport,
 		AsyncGlobalMutex corsairLinkGuardMutex,
+		ushort productId,
+		ushort versionNumber,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
 		_transport = transport;
 		_logger = logger;
+		_productId = productId;
+		_versionNumber = versionNumber;
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, CorsairLinkDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, CorsairLinkDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		byte order = 0;
 		_sensors =
@@ -285,6 +300,8 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<ISensorDeviceFeatu
 			new PowerSensor(this, PowerRail1PowerSensor, 0x96, 0, order++),
 		];
 		_corsairLinkGuardMutex = corsairLinkGuardMutex;
+		_productId = productId;
+		_versionNumber = versionNumber;
 	}
 
 	public override async ValueTask DisposeAsync()
