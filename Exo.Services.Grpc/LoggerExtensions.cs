@@ -29,11 +29,14 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 10_302, EventName = "GrpcSensorServiceDeviceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching sensor devices.")]
 	public static partial void GrpcSensorServiceDeviceWatchStop(this ILogger logger);
 
-	[LoggerMessage(EventId = 10_303, EventName = "GrpcSensorServiceSensorWatchStart", Level = LogLevel.Debug, Message = "Started watching sensor values for sensor {SensorId} of device {DeviceId}.")]
+	[LoggerMessage(EventId = 10_304, EventName = "GrpcSensorServiceSensorWatchStart", Level = LogLevel.Debug, Message = "Started watching sensor values for sensor {SensorId} of device {DeviceId}.")]
 	public static partial void GrpcSensorServiceSensorWatchStart(this ILogger logger, Guid deviceId, Guid sensorId);
 
-	[LoggerMessage(EventId = 10_304, EventName = "GrpcSensorServiceSensorWatchStop", Level = LogLevel.Debug, Message = "Stopped watching sensor values for sensor {SensorId} of device {DeviceId}.")]
+	[LoggerMessage(EventId = 10_305, EventName = "GrpcSensorServiceSensorWatchStop", Level = LogLevel.Debug, Message = "Stopped watching sensor values for sensor {SensorId} of device {DeviceId}.")]
 	public static partial void GrpcSensorServiceSensorWatchStop(this ILogger logger, Guid deviceId, Guid sensorId);
+
+	[LoggerMessage(EventId = 10_306, EventName = "GrpcSensorServiceSensorWatchNotification", Level = LogLevel.Trace, Message = "New data point for sensor {SensorId} of device {DeviceId}: {SensorDataPointValue} [{SensorDataPointDateTime}].")]
+	public static partial void GrpcSensorServiceSensorWatchNotification(this ILogger logger, Guid deviceId, Guid sensorId, DateTime sensorDataPointDateTime, object sensorDataPointValue);
 
 	[LoggerMessage(EventId = 10_401, EventName = "GrpcLightingServiceDeviceWatchStart", Level = LogLevel.Debug, Message = "Started watching lighting devices.")]
 	public static partial void GrpcLightingServiceDeviceWatchStart(this ILogger logger);

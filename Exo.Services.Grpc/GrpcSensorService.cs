@@ -136,6 +136,10 @@ internal sealed class GrpcSensorService : ISensorService
 		{
 			await foreach (var dataPoint in _sensorService.WatchValuesAsync<TValue>(sensor.DeviceId, sensor.SensorId, cancellationToken))
 			{
+				if (_logger.IsEnabled(LogLevel.Trace))
+				{
+					_logger.GrpcSensorServiceSensorWatchNotification(sensor.DeviceId, sensor.SensorId, dataPoint.DateTime, dataPoint.Value);
+				}
 				yield return TConverter.ConvertDataPoint(dataPoint);
 			}
 		}
