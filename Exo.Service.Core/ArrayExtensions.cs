@@ -43,7 +43,7 @@ internal static class ArrayExtensions
 
 	public static T[] Add<T>(this T[]? array, T item)
 	{
-		if (array is null) return new T[] { item };
+		if (array is null) return [item];
 
 		Array.Resize(ref array, array.Length + 1);
 		array[^1] = item;
@@ -58,13 +58,12 @@ internal static class ArrayExtensions
 		if (Array.IndexOf(array, item) is int index and >= 0)
 		{
 			int newLength = array.Length - 1;
+			var newArray = new T[newLength]; 
 
-			if (index < newLength)
-			{
-				Array.Copy(array, index + 1, array, index, newLength - index);
-			}
+			Array.Copy(array, 0, newArray, 0, index);
+			Array.Copy(array, index + 1, newArray, index, newLength - index);
 
-			Array.Resize(ref array, newLength);
+			array = newArray;
 		}
 
 		return array;
