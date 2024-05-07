@@ -1,11 +1,8 @@
-using System;
 using System.Buffers;
 using System.Collections;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using System.Threading;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using Microsoft.Extensions.Logging;
@@ -384,43 +381,43 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 	{
 		lock (_pendingOperations)
 		{
+			if (_pendingOperations.Count == 0) return;
+
 			long now = Stopwatch.GetTimestamp();
 
-			while (true)
+		Retry:;
+			// Move the expiration timestamp in the past, as all operations use the same timeout and they only indicate their start timestamp.
+			// NB: Otherwise, we'd need to pass the expiration timestamp in each operation, but we probably won't need that.
+			long expirationTimestamp = now - _requestTimeoutInStopwatchTicks;
+
+			int i = 0;
+			for (; i < _pendingOperations.Count; i++)
 			{
-				// Move the expiration timestamp in the past, as all operations use the same timeout and they only indicate their start timestamp.
-				// NB: Otherwise, we'd need to pass the expiration timestamp in each operation, but we probably won't need that.
-				long expirationTimestamp = now - _requestTimeoutInStopwatchTicks;
-
-				for (int i = 0; i < _pendingOperations.Count; i++)
+				var operation = _pendingOperations[i];
+				// If the operation has expired, clear it. Otherwise, update the next expiration timestamp if it is before than the current operation timestamp.
+				if (operation.Timestamp - expirationTimestamp <= 0)
 				{
-					var operation = _pendingOperations[i];
-					// If the operation has expired, clear it. Otherwise, update the next expiration timestamp if it is before than the current operation timestamp.
-					if (operation.Timestamp - expirationTimestamp <= 0)
-					{
-						ClearOperation(GetOrCreateDeviceState(operation.Header.DeviceIndex), operation);
-						operation.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new TimeoutException()));
-					}
-					else
-					{
-						_pendingOperations.RemoveRange(0, i);
-						break;
-					}
+					ClearOperation(GetOrCreateDeviceState(operation.Header.DeviceIndex), operation);
+					operation.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new TimeoutException()));
 				}
-
-				// If there are still some pending operations, the timer should be rescheduled.
-				if (_pendingOperations.Count > 0)
+				else
 				{
-					long delay = GetNextDelay(_pendingOperations[0].Timestamp + _requestTimeoutInStopwatchTicks, now = Stopwatch.GetTimestamp());
-
-					// It is possible that some operations are now expired. (The thread running this code can sleep at any time for any duration since we looked up the timestamp)
-					// If that is the case, we'll just do another iteration of the loop and process those operations.
-					if (delay > 0)
-					{
-						_timeoutTimer.Change(delay, Timeout.Infinite);
-						return;
-					}
+					break;
 				}
+			}
+
+			_pendingOperations.RemoveRange(0, i);
+
+			// If there are still some pending operations, the timer should be rescheduled.
+			if (_pendingOperations.Count > 0)
+			{
+				long delay = GetNextDelay(_pendingOperations[0].Timestamp + _requestTimeoutInStopwatchTicks, now = Stopwatch.GetTimestamp());
+
+				// It is possible that some operations are now expired. (The thread running this code can sleep at any time for any duration since we looked up the timestamp)
+				// If that is the case, we'll just do another iteration of the loop and process those operations.
+				if (delay <= 0) goto Retry;
+
+				_timeoutTimer.Change(delay, Timeout.Infinite);
 			}
 		}
 	}
