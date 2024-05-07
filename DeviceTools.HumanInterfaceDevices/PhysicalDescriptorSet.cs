@@ -97,15 +97,19 @@ namespace DeviceTools.HumanInterfaceDevices
         public override bool Equals(object? obj) => obj is PhysicalDescriptorSet set && Equals(set);
         public bool Equals(PhysicalDescriptorSet other) => _collection.Equals(other._collection) && _startIndex == other._startIndex;
 
-        public override int GetHashCode()
+#if !NETSTANDARD2_0
+		public override int GetHashCode() => HashCode.Combine(_collection, _startIndex);
+#else
+		public override int GetHashCode()
         {
             int hashCode = -2061011458;
             hashCode = hashCode * -1521134295 + _collection.GetHashCode();
             hashCode = hashCode * -1521134295 + _startIndex.GetHashCode();
             return hashCode;
         }
+#endif
 
-        void IList<PhysicalDescriptor>.Insert(int index, PhysicalDescriptor item) => throw new NotSupportedException();
+		void IList<PhysicalDescriptor>.Insert(int index, PhysicalDescriptor item) => throw new NotSupportedException();
         void IList<PhysicalDescriptor>.RemoveAt(int index) => throw new NotSupportedException();
         void ICollection<PhysicalDescriptor>.Add(PhysicalDescriptor item) => throw new NotSupportedException();
         bool ICollection<PhysicalDescriptor>.Remove(PhysicalDescriptor item) => throw new NotSupportedException();

@@ -9,10 +9,10 @@ internal static class ArrayExtensions
 	public static int Length<T>(this ImmutableArray<T> array)
 		=> !array.IsDefault ? array.Length : 0;
 
-	public static int GetHashCode<T>(this ImmutableArray<T> array)
-		=> GetHashCode(ImmutableCollectionsMarshal.AsArray(array)!);
+	public static int GetSequenceHashCode<T>(this ImmutableArray<T> array)
+		=> GetSequenceHashCode(ImmutableCollectionsMarshal.AsArray(array)!);
 
-	public static int GetHashCode<T>(this T[] array)
+	public static int GetSequenceHashCode<T>(this T[] array)
 	{
 		if (array is null) return 0;
 

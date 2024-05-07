@@ -135,9 +135,13 @@ namespace DeviceTools.HumanInterfaceDevices
 
         public override bool Equals(object? obj) => obj is PhysicalDescriptorSetCollection collection && Equals(collection);
         public bool Equals(PhysicalDescriptorSetCollection other) => _data == other._data;
-        public override int GetHashCode() => -301143667 + _data.GetHashCode();
+#if !NETSTANDARD2_0
+		public override int GetHashCode() => HashCode.Combine(_data.Length);
+#else
+		public override int GetHashCode() => -301143667 + _data.Length.GetHashCode();
+#endif
 
-        void IList<PhysicalDescriptorSet>.Insert(int index, PhysicalDescriptorSet item) => throw new NotSupportedException();
+		void IList<PhysicalDescriptorSet>.Insert(int index, PhysicalDescriptorSet item) => throw new NotSupportedException();
         void IList<PhysicalDescriptorSet>.RemoveAt(int index) => throw new NotSupportedException();
         void ICollection<PhysicalDescriptorSet>.Add(PhysicalDescriptorSet item) => throw new NotSupportedException();
         bool ICollection<PhysicalDescriptorSet>.Remove(PhysicalDescriptorSet item) => throw new NotSupportedException();
