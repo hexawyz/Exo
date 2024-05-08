@@ -19,7 +19,7 @@ This is fine, but those device require drivers and/or applications to provide th
 
 When these apps exist, they are more often than not presented as client-side application that will be a terrible Electron-based mess, and almost always as a bloated unoptimized suite with features you will never need.
 
-Other than being slow and consuming a huge chunk of your RAM for nothing (do you honestly believe you need 5 chrome processes to manage a mouse?), those applications are more often than not very stable, and can have undesired behavior such as random updates or invisible crashes.
+Other than being slow and consuming a huge chunk of your RAM for nothing, those applications are more often than not not very stable, and can have undesired behavior such as random updates or invisible crashes. (Do you really need 5 unstable chrome processes to manage a mouse?)
 
 As the author of Exo, I believe (and by now, have mostly proven 😄) that it is possible to do a much better job than this on all aspects.
 Exo is designed and architected with this in mind, and aims to provide a Windows service that will detect and operate on your device by being mindful of system resources. (Currently about 30 MB and mostly no CPU usage)
@@ -35,6 +35,7 @@ Exo currently support the following features, provided that there is a custom dr
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
 * Mouse: The service can observe and display DPI changes.
 * GPU: Provide support for accessing connected monitors in non-interactive (service) mode.
+* Sensors: For devices that provide data readings, expose 
 
 # Supported devices
 
@@ -66,6 +67,8 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* HX1200i: Sensors accessible via Corsair Link. (e.g. Temperature)
 * Eaton
 	* Various UPS Models: Power consumption and battery level.
+* NZXT
+	* Kraken Z devices: Liquid temperature, Pump speed and Fan speed sensors. (⚠️ In order to preserve system performance, the readings are currently captured from requests done by other software. It is assumed that you have NZXT CAM running in the background)
 * Other
 	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
 
@@ -167,9 +170,9 @@ If you decide to remove the service from your system for any reason, this can be
 Remove-Service -Name "Exo"
 ````
 
-## Developing and building Exo
+# Developing and building Exo
 
-### Prerequisites
+## Prerequisites
 
 * Visual Studio 2022 (Version Supporting .NET 8.0 at least) with the following workloads:
 	* ASP.NET development
@@ -177,11 +180,11 @@ Remove-Service -Name "Exo"
 	* .NET Desktop development
 	* UWP development
 
-### Within Visual Studio
+## Within Visual Studio
 
 From within Visual Studio, you can start `Exo.Service` to run the service, `Exo.Overlay` for the overlay UI, and `Exo.Settings.UI` for the Settings UI.
 
-### Generating a publish release
+## Generating a publish release
 
 From the VS developer command prompt, you can run the `Publish.ps1` script that is at the root of the repository:
 
@@ -203,7 +206,8 @@ The product is currently split in three executables:
   This executable is runnable as a Windows service or regular console application (useful for debugging).
   It centralizes the management of all devices and implements all the features.
 * Exo.Overlay:
-  A user-facing application that will display overlay notifications, and (in the future) provide means of interacting with the service, such as starting the settings UI.
+  A user-facing application that will display overlay notifications, and provide means of interacting with the service, such as starting the settings UI.
+  It displays a custom menu that will in the future, run command that are programmed by the user (you!) within the service.
 * Exo.Settings.UI:
   A modern WinUI 3 user interface that will communicate with the service and provide graphical view and controls over your devices.
 
@@ -216,7 +220,7 @@ The GRPC interfacing does indeed incur an overhead within the service itself, as
 
 At its core, Exo is written with, and on top of helper libraries named `DeviceTools`, which provide access to useful and necessary device APIs.
 
-The service itself is split in different layers (this is where the over-engineering might be 😉):
+The service itself is split in different layers:
 
 * Driver layer: In order to expose features, a driver needs to be implemented for each device (or group of devices), which will expose a mostly direct mapping of hardware features of the device.
 * High level service layer: For each group of features (e.g. RGB lighting), a service will collect the matching devices and expose the features in a centralized way.
@@ -230,15 +234,27 @@ The service itself is split in different layers (this is where the over-engineer
 
 Before even speaking of drivers, it is important to understand that devices can be discovered in multiple ways.
 We will generally on the Windows device APIs to enumerate devices and receive notifications, but there is some relatively heavy-lifting to do in order to consolidate the information in a useful way.
+This is where the discovery orchestrator and the various discovery subsystems step in…
 
-### The orchestrator
+### The discovery orchestrator
 
-This is where the discovery orchestrator and the various discovery subsystems step in.
-The discovery orchestrator will identify all discovery subsystems and all component or driver factories and wire everything together, making sure to only load the required assemblies in memory.
+The discovery orchestrator is responsible for orchestrating all the discovery and instanciation of the non-mandatory services within Exo, such as discovery subsystems and drivers.
 
-This likely is the most over-engineered-looking piece of the software, but it provides the critical features necessary to manage components and drivers without loading everything in memory and duplicating a lot of code.
+It will scan plugin assemblies to identify all discovery subsystems and all component or driver factories, then wire everything together as needed, making sure to only load the required assemblies in memory.
 
-### The discovery subsystems
+This key part of the software is quite complex and may look a bit over-engineered-looking, but it provides the critical features necessary to manage components and drivers without loading everything in memory and duplicating a lot of code.
+
+### Mandatory and optional components
+
+Exo is built in a way so that many components are optional loaded on-demand. These components are defined within assemblies in the `plugins` directory and loaded on-demand.
+There is only one component that is strictly mandatory, and that is, as such, not placed in the `plugins` directory. This special component is the root discovery subsystem.
+
+Among assemblies placed in the `plugins` directory, some may declare mandatory components by tying them to the root discovery subsystem.
+Components created in that way will never be unloaded. This is typically the case of all discovery subsystems.
+
+These components are optional in the sense that you *can* remove them from the service. But if the assemblies are present, they will be loaded automatically.
+
+### Discovery subsystems
 
 The discovery subsystems will listen for components using means appropriate for the kind of component they manage.
 
@@ -247,15 +263,17 @@ They will then provide a consolidated view of the device information to the driv
 
 Currently available discovery subsystems are:
 
-* Root in `Exo.Discovery.Root` (NB: Only for pulling in mandatory components)
-* HID in `Exo.Discovery.Hid`
-* PCI in `Exo.Discovery.Pci` (NB: currently only supports GPUs)
-* Monitor in `Exo.Discovery.Monitor`
+* Root in `Exo.Discovery.Root`, which is in charge of pulling in all the mandatory components.
+* HID in `Exo.Discovery.Hid`, which is in charge of instantiating drivers for HID devices.
+* PCI in `Exo.Discovery.Pci`, which is in charge of instantiating drivers for PCI devices. (NB: currently only supports GPUs)
+* SMBIOS in `Exo.Discovery.SmBios`, which is in charge of instantiating drivers for devices detected through the SMBIOS tables. (NB: currently only support RAM devices)
+* Monitor in `Exo.Discovery.Monitor`, which is in charge of instantiating drivers for monitor devices.
 
 NB: Except for the root discovery subsystem, which is used to pull all the other ones, all discovery subsystems are themselves implemented as discoverable components.
 This means that adding a discovery subsystem into the mix is very easy.
 
-Each discovery subsystem provides a set of parameters available to factory methods. Those parameters are defined as public properties of their Component/Driver creation context.
+Each discovery subsystem provides a set of parameters available to factory methods.
+Those parameters are defined as public properties of their Component/Driver creation context.
 
 ## Drivers
 
