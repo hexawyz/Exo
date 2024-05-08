@@ -1,15 +1,29 @@
+using System;
 using System.Collections.Immutable;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Nzxt.Kraken;
 
-public class KrakenDriver
-	: Driver, IDeviceDriver<IGenericDeviceFeature>, IDeviceIdFeature//, IDeviceDriver<ISensorDeviceFeature>
+public class KrakenDriver :
+	Driver,
+	IDeviceDriver<IGenericDeviceFeature>,
+	IDeviceIdFeature,
+	IDeviceDriver<ISensorDeviceFeature>,
+	ISensorsFeature,
+	ISensorsGroupedQueryFeature
 {
+	private static readonly Guid LiquidTemperatureSensorId = new(0x8E880DE1, 0x2A45, 0x400D, 0xA9, 0x0F, 0x42, 0xE8, 0x9B, 0xF9, 0x50, 0xDB);
+	private static readonly Guid PumpSpeedSensorId = new(0x3A2F0F14, 0x3957, 0x400E, 0x8B, 0x6C, 0xCB, 0x02, 0x5B, 0x89, 0x15, 0x06);
+	private static readonly Guid FanSpeedSensorId = new(0xFDC93D5B, 0xEDE3, 0x4774, 0x96, 0xEC, 0xC4, 0xFD, 0xB1, 0xC1, 0xDE, 0xBC);
+
 	private const int NzxtVendorId = 0x1E71;
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
@@ -69,7 +83,7 @@ public class KrakenDriver
 				new KrakenDriver
 				(
 					logger,
-					hidStream,
+					new KrakenHidTransport(hidStream),
 					productId,
 					version,
 					friendlyName,
@@ -85,23 +99,29 @@ public class KrakenDriver
 		}
 	}
 
-	private readonly HidFullDuplexStream _stream;
+	private readonly KrakenHidTransport _transport;
+	private readonly ISensor[] _sensors;
 	private readonly ILogger<KrakenDriver> _logger;
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 
+	private int _groupQueriedSensorCount;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Other;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
 
-	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
 
-	public KrakenDriver
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
+
+	private KrakenDriver
 	(
 		ILogger<KrakenDriver> logger,
-		HidFullDuplexStream stream,
+		KrakenHidTransport transport,
 		ushort productId,
 		ushort versionNumber,
 		string friendlyName,
@@ -110,12 +130,214 @@ public class KrakenDriver
 		: base(friendlyName, configurationKey)
 	{
 		_logger = logger;
-		_stream = stream;
+		_transport = transport;
 		_productId = productId;
 		_versionNumber = versionNumber;
+		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
+		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 	}
 
-	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
 
+	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
+	{
+		if (sensor is not Sensor s || s.Driver != this) throw new InvalidOperationException();
+
+		if (!s.IsGroupQueryEnabled)
+		{
+			s.IsGroupQueryEnabled = true;
+			_groupQueriedSensorCount++;
+		}
+	}
+
+	void ISensorsGroupedQueryFeature.RemoveSensor(IPolledSensor sensor)
+	{
+		if (sensor is not Sensor s || s.Driver != this) throw new InvalidOperationException();
+
+		if (s.IsGroupQueryEnabled)
+		{
+			s.IsGroupQueryEnabled = false;
+			_groupQueriedSensorCount--;
+		}
+	}
+
+	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
+	{
+		var readings = _transport.GetLastReadings();
+
+		foreach (var sensor in _sensors)
+		{
+			Unsafe.As<Sensor>(sensor).RefreshValue(readings);
+		}
+
+		return ValueTask.CompletedTask;
+	}
+
+	private abstract class Sensor
+	{
+		private readonly KrakenDriver _driver;
+
+		protected Sensor(KrakenDriver driver) => _driver = driver;
+
+		public KrakenDriver Driver => _driver;
+
+		public abstract bool IsGroupQueryEnabled { get; set; }
+
+		public abstract void RefreshValue(KrakenReadings readings);
+	}
+
+	private abstract class Sensor<T> : Sensor, IPolledSensor<T>
+		where T : struct, INumber<T>
+	{
+		private T _lastValue;
+		private bool _isGroupQueryEnabled;
+
+		protected Sensor(KrakenDriver driver) : base(driver) { }
+
+		public T? ScaleMinimumValue => default(T);
+		public virtual T? ScaleMaximumValue => null;
+		public abstract Guid SensorId { get; }
+		public abstract SensorUnit Unit { get; }
+		public sealed override bool IsGroupQueryEnabled { get => _isGroupQueryEnabled; set => _isGroupQueryEnabled = value; }
+		public GroupedQueryMode GroupedQueryMode => _isGroupQueryEnabled ? GroupedQueryMode.Enabled : GroupedQueryMode.Supported;
+
+		public sealed override void RefreshValue(KrakenReadings readings)
+			=> _lastValue = ReadValue(readings);
+
+		protected abstract T ReadValue(KrakenReadings readings);
+
+		public ValueTask<T> GetValueAsync(CancellationToken cancellationToken) => ValueTask.FromResult(_lastValue);
+
+		public bool TryGetLastValue(out T lastValue)
+		{
+			lastValue = _lastValue;
+			return true;
+		}
+	}
+
+	private sealed class LiquidTemperatureSensor : Sensor<byte>
+	{
+		public override Guid SensorId => LiquidTemperatureSensorId;
+		public override SensorUnit Unit => SensorUnit.Celsius;
+		public override byte? ScaleMaximumValue => 100;
+
+		public LiquidTemperatureSensor(KrakenDriver driver) : base(driver) { }
+
+		protected override byte ReadValue(KrakenReadings readings) => readings.LiquidTemperature;
+	}
+
+	private sealed class PumpSpeedSensor : Sensor<ushort>
+	{
+		public override Guid SensorId => PumpSpeedSensorId;
+		public override SensorUnit Unit => SensorUnit.RotationsPerMinute;
+
+		public PumpSpeedSensor(KrakenDriver driver) : base(driver) { }
+
+		protected override ushort ReadValue(KrakenReadings readings) => readings.PumpSpeed;
+	}
+
+	private sealed class FanSpeedSensor : Sensor<ushort>
+	{
+		public override Guid SensorId => FanSpeedSensorId;
+		public override SensorUnit Unit => SensorUnit.RotationsPerMinute;
+
+		public FanSpeedSensor(KrakenDriver driver) : base(driver) { }
+
+		protected override ushort ReadValue(KrakenReadings readings) => readings.FanSpeed;
+	}
+}
+
+internal readonly struct KrakenReadings
+{
+	private readonly ulong _rawValue;
+
+	public byte LiquidTemperature => (byte)(_rawValue >> 48);
+	public byte FanPower => (byte)(_rawValue >> 40);
+	public byte PumpPower => (byte)(_rawValue >> 32);
+	public ushort FanSpeed => (ushort)(_rawValue >> 16);
+	public ushort PumpSpeed => (ushort)_rawValue;
+
+	internal KrakenReadings(ushort pumpSpeed, ushort fanSpeed, byte pumpPower, byte fanPower, byte liquidTemperature)
+	{
+		_rawValue = pumpSpeed | (uint)fanSpeed << 16 | (ulong)pumpPower << 32 | (ulong)fanPower << 40 | (ulong)liquidTemperature << 48;
+	}
+}
+
+internal sealed class KrakenHidTransport : IAsyncDisposable
+{
+	// The message length is 64 bytes including the report ID, which indicates a specific command.
+	private const int MessageLength = 64;
+
+	private const byte CurrentDeviceStatusResponseMessageId = 0x75;
+
+	private readonly HidFullDuplexStream _stream;
+	private readonly byte[] _buffers;
+	private ulong _lastReadings;
+	private CancellationTokenSource? _cancellationTokenSource;
+	private readonly Task _task;
+
+	public KrakenHidTransport(HidFullDuplexStream stream)
+	{
+		_stream = stream;
+		_buffers = GC.AllocateUninitializedArray<byte>(2 * MessageLength, true);
+		_cancellationTokenSource = new();
+		_task = ReadAsync(_cancellationTokenSource.Token);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
+		cts.Cancel();
+		await _stream.DisposeAsync().ConfigureAwait(false);
+		await _task.ConfigureAwait(false);
+		cts.Dispose();
+	}
+
+	private async Task ReadAsync(CancellationToken cancellationToken)
+	{
+		// NB: In this initial version, we passively receive readings, because we let the external software handle everything.
+		// As far as readings are concerned, we may want to keep a decorrelation between request and response anyway. This would likely allow to work more gracefully with other software.
+		try
+		{
+			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, 0, MessageLength);
+			while (true)
+			{
+				try
+				{
+					// Data is received in fixed length packets, so we expect to always receive exactly the number of bytes that the buffer can hold.
+					int count = await _stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+					if (count == 0) return;
+					if (count != buffer.Length) throw new InvalidOperationException();
+				}
+				catch (OperationCanceledException)
+				{
+					return;
+				}
+
+				ProcessReadMessage(buffer.Span);
+			}
+		}
+		catch
+		{
+			// TODO: Log
+		}
+	}
+
+	private void ProcessReadMessage(ReadOnlySpan<byte> message)
+	{
+		if (message[0] == CurrentDeviceStatusResponseMessageId)
+		{
+			byte liquidTemperature = message[15];
+			ushort pumpSpeed = LittleEndian.ReadUInt16(in message[17]);
+			byte pumpSetPower = message[19];
+			ushort fanSpeed = LittleEndian.ReadUInt16(in message[23]);
+			byte fanSetPower = message[25];
+			var readings = new KrakenReadings(pumpSpeed, fanSpeed, pumpSetPower, fanSetPower, liquidTemperature);
+			Volatile.Write(ref _lastReadings, Unsafe.BitCast<KrakenReadings, ulong>(readings));
+		}
+	}
+
+	public KrakenReadings GetLastReadings()
+		=> Unsafe.BitCast<ulong, KrakenReadings>(Volatile.Read(ref _lastReadings));
 }
