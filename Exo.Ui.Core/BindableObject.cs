@@ -5,6 +5,9 @@ namespace Exo.Ui;
 
 public abstract class BindableObject : INotifyPropertyChanged
 {
+	public static bool Equals(PropertyChangedEventArgs a, PropertyChangedEventArgs b)
+		=> ReferenceEquals(a, b) || a is not null && b is not null && a.PropertyName == b.PropertyName;
+
 	public event PropertyChangedEventHandler? PropertyChanged;
 
 	protected void NotifyPropertyChanged(PropertyChangedEventArgs e) => PropertyChanged?.Invoke(this, e);

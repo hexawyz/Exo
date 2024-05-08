@@ -74,7 +74,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 			{
 				if (_sensorDeviceById.TryGetValue(info.DeviceId, out var vm))
 				{
-					// TODO: Update lighting zones ?
+					OnDeviceChanged(vm, info);
 				}
 				else
 				{
@@ -128,6 +128,11 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation);
 		_sensorDevices.Add(vm);
 		_sensorDeviceById[vm.Id] = vm;
+	}
+
+	private void OnDeviceChanged(SensorDeviceViewModel viewModel, SensorDeviceInformation sensorDeviceInformation)
+	{
+		viewModel.UpdateDeviceInformation(sensorDeviceInformation);
 	}
 
 	private void OnDeviceRemoved(Guid deviceId)
@@ -189,13 +194,18 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 
 	private void OnDeviceViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e == ChangedProperty.IsAvailable)
+		if (Equals(e, ChangedProperty.IsAvailable))
 		{
 			// Device going online is already handled by UpdateDeviceInformation, but we need to handle the device going offline too.
 			if (!((DeviceViewModel)sender!).IsAvailable)
 			{
 				OnDeviceOffline();
 			}
+			NotifyPropertyChanged(ChangedProperty.IsAvailable);
+		}
+		else if (Equals(e, ChangedProperty.Category) || Equals(e, ChangedProperty.FriendlyName))
+		{
+			NotifyPropertyChanged(e);
 		}
 	}
 
@@ -474,6 +484,10 @@ public readonly struct NumberWithUnit
 		if (Symbol is not { } symbol) return Value.ToString("G3");
 
 		var value = Value;
+		if (symbol == "RPM")
+		{
+			return $"{value:N0}\xA0{symbol}";
+		}
 		if (value > 1000)
 		{
 			if (symbol == "Hz")
