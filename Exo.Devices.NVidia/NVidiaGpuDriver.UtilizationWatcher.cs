@@ -1,4 +1,4 @@
-﻿namespace Exo.Devices.NVidia;
+namespace Exo.Devices.NVidia;
 
 public partial class NVidiaGpuDriver
 {
@@ -105,7 +105,7 @@ public partial class NVidiaGpuDriver
 
 		private async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{
-			await foreach (var utilizationValue in _gpu.WatchUtilizationAsync(500, cancellationToken).ConfigureAwait(false))
+			await foreach (var utilizationValue in _gpu.WatchUtilizationAsync(1_000, cancellationToken).ConfigureAwait(false))
 			{
 				var sensor = utilizationValue.Domain switch
 				{

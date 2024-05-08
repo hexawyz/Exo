@@ -23,6 +23,9 @@ namespace Exo.Service;
 // NB: To reduce clutter, most subtypes are located in other SensorService.*.cs files.
 public sealed partial class SensorService
 {
+	// Defaults to polling sensors once every second at most, as this seem to be a relatively standard way of doing.
+	public const int PollingIntervalInMilliseconds = 1_000;
+
 	[TypeId(0x7757FFB0, 0x6111, 0x4DB1, 0xBC, 0xFC, 0x70, 0x97, 0x38, 0xF3, 0xC6, 0x34)]
 	[JsonConverter(typeof(PersistedSensorInformationJsonConverter))]
 	private readonly struct PersistedSensorInformation
@@ -254,7 +257,7 @@ public sealed partial class SensorService
 	{
 		_deviceStates = deviceStates;
 		_lock = new();
-		_pollingScheduler = new(500);
+		_pollingScheduler = new(PollingIntervalInMilliseconds);
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_logger = logger;
 		_deviceWatcher = deviceWatcher;
