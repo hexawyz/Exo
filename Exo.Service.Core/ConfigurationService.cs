@@ -221,9 +221,16 @@ public class ConfigurationService : IConfigurationNode
 			if (File.Exists(fileName))
 			{
 				using var file = File.OpenRead(fileName);
-				var result = await JsonSerializer.DeserializeAsync<T>(file, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+				try
+				{
+					var result = await JsonSerializer.DeserializeAsync<T>(file, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 
-				return result is null ? new(ConfigurationStatus.InvalidValue) : new(result);
+					return result is null ? new(ConfigurationStatus.InvalidValue) : new(result);
+				}
+				catch
+				{
+					return new(ConfigurationStatus.MalformedData);
+				}
 			}
 			return new(ConfigurationStatus.MissingValue);
 		}

@@ -1,4 +1,4 @@
-﻿namespace Exo.Configuration;
+namespace Exo.Configuration;
 
 public enum ConfigurationStatus : sbyte
 {
@@ -6,4 +6,5 @@ public enum ConfigurationStatus : sbyte
 	MissingContainer = 1,
 	MissingValue = 2,
 	InvalidValue = 3,
+	MalformedData = 4,
 }
