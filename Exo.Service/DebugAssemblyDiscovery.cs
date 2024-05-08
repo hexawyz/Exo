@@ -44,6 +44,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			"Exo.Devices.NVidia",
 			"Exo.Devices.Asus.Aura",
 			"Exo.Devices.Corsair.PowerSupplies",
+			"Exo.Devices.Nzxt.Kraken",
 #if WITH_FAKE_DEVICES
 			"Exo.Debug",
 #endif
