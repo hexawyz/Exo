@@ -7,6 +7,15 @@ namespace Exo.Service;
 
 public sealed partial class SensorService
 {
+	// For sensor watching, we'll use bounded channels that drop the oldest datapoints, so that the service can avoid accumulating excessive amounts of data if a watcher is stuck.
+	private static readonly BoundedChannelOptions SensorWatchChannelOptions = new BoundedChannelOptions(10)
+	{
+		AllowSynchronousContinuations = false,
+		SingleReader = true,
+		SingleWriter = false,
+		FullMode = BoundedChannelFullMode.DropOldest,
+	};
+
 	private interface IPolledSensorState
 	{
 		//ValueTask PollAsync(CancellationToken cancellationToken);
@@ -182,7 +191,7 @@ public sealed partial class SensorService
 
 		public async IAsyncEnumerable<SensorDataPoint<TValue>> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 		{
-			var channel = Watcher.CreateSingleWriterChannel<SensorDataPoint<TValue>>();
+			var channel = Channel.CreateBounded<SensorDataPoint<TValue>>(SensorWatchChannelOptions);
 			AddListener(channel);
 			try
 			{
