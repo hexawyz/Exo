@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Sensors;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
@@ -29,61 +30,63 @@ public sealed partial class SensorService
 
 	private abstract class SensorState : IAsyncDisposable
 	{
-		public static SensorState Create(SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor sensor)
+		public static SensorState Create(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor sensor)
 			=> SensorDataTypes[sensor.ValueType] switch
 			{
-				SensorDataType.UInt8 => Create<byte>(sensorService, groupedQueryState, sensor),
-				SensorDataType.UInt16 => Create<ushort>(sensorService, groupedQueryState, sensor),
-				SensorDataType.UInt32 => Create<uint>(sensorService, groupedQueryState, sensor),
-				SensorDataType.UInt64 => Create<ulong>(sensorService, groupedQueryState, sensor),
-				SensorDataType.UInt128 => Create<UInt128>(sensorService, groupedQueryState, sensor),
-				SensorDataType.SInt8 => Create<sbyte>(sensorService, groupedQueryState, sensor),
-				SensorDataType.SInt16 => Create<short>(sensorService, groupedQueryState, sensor),
-				SensorDataType.SInt32 => Create<int>(sensorService, groupedQueryState, sensor),
-				SensorDataType.SInt64 => Create<long>(sensorService, groupedQueryState, sensor),
-				SensorDataType.SInt128 => Create<Int128>(sensorService, groupedQueryState, sensor),
-				SensorDataType.Float16 => Create<Half>(sensorService, groupedQueryState, sensor),
-				SensorDataType.Float32 => Create<float>(sensorService, groupedQueryState, sensor),
-				SensorDataType.Float64 => Create<double>(sensorService, groupedQueryState, sensor),
+				SensorDataType.UInt8 => Create<byte>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.UInt16 => Create<ushort>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.UInt32 => Create<uint>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.UInt64 => Create<ulong>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.UInt128 => Create<UInt128>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.SInt8 => Create<sbyte>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.SInt16 => Create<short>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.SInt32 => Create<int>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.SInt64 => Create<long>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.SInt128 => Create<Int128>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.Float16 => Create<Half>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.Float32 => Create<float>(logger, sensorService, groupedQueryState, sensor),
+				SensorDataType.Float64 => Create<double>(logger, sensorService, groupedQueryState, sensor),
 				_ => throw new InvalidOperationException()
 			};
 
-		public static SensorState<TValue> Create<TValue>(SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor sensor)
+		public static SensorState<TValue> Create<TValue>(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor sensor)
 			where TValue : struct, INumber<TValue>
-			=> Create(sensorService, groupedQueryState, (ISensor<TValue>)sensor);
+			=> Create(logger, sensorService, groupedQueryState, (ISensor<TValue>)sensor);
 
-		public static SensorState<TValue> Create<TValue>(SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor<TValue> sensor)
+		public static SensorState<TValue> Create<TValue>(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor<TValue> sensor)
 			where TValue : struct, INumber<TValue>
 			=> sensor.IsPolled ?
-				CreatePolledSensorState(sensorService, groupedQueryState, (IPolledSensor<TValue>)sensor) :
-				new StreamedSensorState<TValue>((IStreamedSensor<TValue>)sensor);
+				CreatePolledSensorState(logger, sensorService, groupedQueryState, (IPolledSensor<TValue>)sensor) :
+				new StreamedSensorState<TValue>(logger, (IStreamedSensor<TValue>)sensor);
 
-		private static SensorState<TValue> CreatePolledSensorState<TValue>(SensorService sensorService, GroupedQueryState? groupedQueryState, IPolledSensor<TValue> sensor)
+		private static SensorState<TValue> CreatePolledSensorState<TValue>(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, IPolledSensor<TValue> sensor)
 			where TValue : struct, INumber<TValue>
 			=> sensor.GroupedQueryMode != GroupedQueryMode.None ?
-				CreateGroupedPolledSensorState(sensorService, groupedQueryState, sensor) :
-				new PolledSensorState<TValue>(sensorService, sensor);
+				CreateGroupedPolledSensorState(logger, sensorService, groupedQueryState, sensor) :
+				new PolledSensorState<TValue>(logger, sensorService, sensor);
 
-		private static GroupedPolledSensorState<TValue> CreateGroupedPolledSensorState<TValue>(SensorService sensorService, GroupedQueryState? groupedQueryState, IPolledSensor<TValue> sensor)
+		private static GroupedPolledSensorState<TValue> CreateGroupedPolledSensorState<TValue>(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, IPolledSensor<TValue> sensor)
 			where TValue : struct, INumber<TValue>
 		{
 			ArgumentNullException.ThrowIfNull(groupedQueryState);
-			return new GroupedPolledSensorState<TValue>(sensorService, groupedQueryState, sensor);
+			return new GroupedPolledSensorState<TValue>(logger, sensorService, groupedQueryState, sensor);
 		}
 
 		private readonly ISensor _sensor;
 		private TaskCompletionSource _watchSignal;
 		private CancellationTokenSource? _watchCancellationTokenSource;
+		private readonly ILogger<SensorState> _logger;
 		private CancellationTokenSource? _cancellationTokenSource;
 		private readonly Task _watchAsyncTask;
 
 		public ISensor Sensor => _sensor;
 
-		protected SensorState(ISensor sensor)
+		protected SensorState(ILogger<SensorState> logger, ISensor sensor)
 		{
 			_sensor = sensor;
-			_watchSignal = new();
+			_watchSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 			_cancellationTokenSource = new();
+			_logger = logger;
 			_watchAsyncTask = RunAsync(_cancellationTokenSource.Token);
 		}
 
@@ -110,19 +113,18 @@ public sealed partial class SensorService
 					Volatile.Write(ref _watchCancellationTokenSource, cts);
 					try
 					{
-						await WatchValuesAsync(watchCancellationToken);
+						await WatchValuesAsync(watchCancellationToken).ConfigureAwait(false);
 					}
 					catch (OperationCanceledException) when (watchCancellationToken.IsCancellationRequested)
 					{
 					}
 					catch (Exception ex)
 					{
-						// TODO: Log.
+						_logger.SensorServiceSensorStateWatchError(ex);
 					}
+					ClearAndDisposeCancellationTokenSource(ref _watchCancellationTokenSource);
 					if (cancellationToken.IsCancellationRequested) return;
-					cts = Interlocked.Exchange(ref _watchCancellationTokenSource, null);
-					cts?.Dispose();
-					_watchSignal = new();
+					_watchSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 				}
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -132,14 +134,7 @@ public sealed partial class SensorService
 
 		protected void StartWatching() => _watchSignal.TrySetResult();
 
-		protected void StopWatching()
-		{
-			if (Interlocked.Exchange(ref _watchCancellationTokenSource, null) is { } cts)
-			{
-				cts.Cancel();
-				cts.Dispose();
-			}
-		}
+		protected void StopWatching() => ClearAndDisposeCancellationTokenSource(ref _watchCancellationTokenSource);
 
 		protected abstract ValueTask WatchValuesAsync(CancellationToken cancellationToken);
 	}
@@ -151,7 +146,7 @@ public sealed partial class SensorService
 
 		private ChannelWriter<SensorDataPoint<TValue>>[]? _valueListeners;
 
-		protected SensorState(ISensor<TValue> sensor) : base(sensor)
+		protected SensorState(ILogger<SensorState> logger, ISensor<TValue> sensor) : base(logger, sensor)
 		{
 		}
 
@@ -214,7 +209,7 @@ public sealed partial class SensorService
 
 		private readonly SensorService _sensorService;
 
-		public PolledSensorState(SensorService sensorService, IPolledSensor<TValue> sensor) : base(sensor)
+		public PolledSensorState(ILogger<SensorState> logger, SensorService sensorService, IPolledSensor<TValue> sensor) : base(logger, sensor)
 		{
 			_sensorService = sensorService;
 		}
@@ -248,7 +243,8 @@ public sealed partial class SensorService
 		private readonly SensorService _sensorService;
 		private readonly GroupedQueryState _groupedQueryState;
 
-		public GroupedPolledSensorState(SensorService sensorService, GroupedQueryState groupedQueryState, IPolledSensor<TValue> sensor) : base(sensor)
+		public GroupedPolledSensorState(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState groupedQueryState, IPolledSensor<TValue> sensor)
+			: base(logger, sensor)
 		{
 			_sensorService = sensorService;
 			_groupedQueryState = groupedQueryState;
@@ -258,7 +254,7 @@ public sealed partial class SensorService
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			// Sensors managed by grouped queries are polled from the GroupedQueryState.
-			// The code here is just setting things up for enabling the sensor t
+			// The code here is just setting things up for enabling the sensor to be refreshed by the grouped query.
 			var tcs = new TaskCompletionSource();
 			using (cancellationToken.Register(state => ((TaskCompletionSource)state!).TrySetResult(), tcs, false))
 			{
@@ -283,7 +279,7 @@ public sealed partial class SensorService
 	{
 		public new IStreamedSensor<TValue> Sensor => Unsafe.As<IStreamedSensor<TValue>>(base.Sensor);
 
-		public StreamedSensorState(IStreamedSensor<TValue> sensor) : base(sensor)
+		public StreamedSensorState(ILogger<SensorState> logger, IStreamedSensor<TValue> sensor) : base(logger, sensor)
 		{
 		}
 

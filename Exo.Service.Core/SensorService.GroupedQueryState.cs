@@ -23,7 +23,7 @@ public sealed partial class SensorService
 			_groupedQueryFeature = groupedQueryFeature;
 			_activeSensorStates = new IGroupedPolledSensorState?[capacity];
 			_lock = new();
-			_enableSignal = new();
+			_enableSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 			_disposeCancellationTokenSource = new();
 			_runTask = RunAsync(_disposeCancellationTokenSource.Token);
 		}
@@ -46,7 +46,8 @@ public sealed partial class SensorService
 			_groupedQueryFeature.AddSensor(state.Sensor);
 			lock (_lock)
 			{
-				_activeSensorStates[_referenceCount] = state;
+				int index = _referenceCount;
+				_activeSensorStates[index] = state;
 				if (_referenceCount++ == 0)
 				{
 					_sensorService._pollingScheduler.Acquire();
@@ -59,29 +60,22 @@ public sealed partial class SensorService
 		// NB: The sensor state *WILL* ensure that this method is never called twice in succession for a given sensor.
 		public void Release(IGroupedPolledSensorState state)
 		{
-			_groupedQueryFeature.RemoveSensor(state.Sensor);
 			lock (_lock)
 			{
 				int index = Array.IndexOf(_activeSensorStates, state, 0, _referenceCount);
-				--_referenceCount;
-				if ((uint)index < (uint)_referenceCount)
+				if (index < 0) throw new InvalidOperationException();
+				if (--_referenceCount == 0)
+				{
+					ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
+					_sensorService._pollingScheduler.Release();
+				}
+				else if ((uint)index < (uint)_referenceCount)
 				{
 					Array.Copy(_activeSensorStates, index + 1, _activeSensorStates, index, _referenceCount - index);
 				}
-				else
-				{
-					_activeSensorStates[_referenceCount] = null;
-				}
-				if (_referenceCount == 0)
-				{
-					_sensorService._pollingScheduler.Release();
-					if (Interlocked.Exchange(ref _disableCancellationTokenSource, null) is { } cts)
-					{
-						cts.Cancel();
-						cts.Dispose();
-					}
-				}
+				_activeSensorStates[_referenceCount] = null;
 			}
+			_groupedQueryFeature.RemoveSensor(state.Sensor);
 		}
 
 		private async Task RunAsync(CancellationToken cancellationToken)
@@ -102,10 +96,17 @@ public sealed partial class SensorService
 					catch (OperationCanceledException) when (queryCancellationToken.IsCancellationRequested)
 					{
 					}
+					catch (PollingSchedulerDisabledException) when (queryCancellationToken.IsCancellationRequested)
+					{
+						// NB: Generally, we should not see this exception.
+					}
+					catch (Exception ex)
+					{
+						_sensorService._groupedQueryStateLogger.SensorServiceGroupedQueryError(ex);
+					}
+					ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
 					if (cancellationToken.IsCancellationRequested) return;
-					cts = Interlocked.Exchange(ref _disableCancellationTokenSource, null);
-					cts?.Dispose();
-					Volatile.Write(ref _enableSignal, new());
+					Volatile.Write(ref _enableSignal, new(TaskCreationOptions.RunContinuationsAsynchronously));
 				}
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -119,17 +120,24 @@ public sealed partial class SensorService
 
 		private async ValueTask QueryValuesAsync(CancellationToken cancellationToken)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			while (true)
 			{
 				var now = DateTime.UtcNow;
-				foreach (var state in _activeSensorStates)
+				// TODO: Make it so that we don't require a lock here. For now it is simpler to have a lock ensure consistency (specifically for removal operations), but there are ways to avoid this.
+				lock (_activeSensorStates)
 				{
-					// If we encounter a null value, this is the end of the list.
-					// We could use the _referenceCount, but it would not avoid the need for a null check (race conditions), and would require bounds-checking as well as a volatile read on every loop.
-					if (state is null) break;
-					state.RefreshDataPoint(now);
+					foreach (var state in _activeSensorStates)
+					{
+						// If we encounter a null value, this is the end of the list.
+						// We could use the _referenceCount, but it would not avoid the need for a null check, and would require bounds-checking.
+						if (state is null) break;
+						state.RefreshDataPoint(now);
+					}
 				}
+				cancellationToken.ThrowIfCancellationRequested();
 				await _groupedQueryFeature.QueryValuesAsync(cancellationToken).ConfigureAwait(false);
+				cancellationToken.ThrowIfCancellationRequested();
 				await _sensorService._pollingScheduler.WaitAsync(cancellationToken).ConfigureAwait(false);
 			}
 		}

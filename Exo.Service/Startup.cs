@@ -93,7 +93,7 @@ public class Startup
 		(
 			sp => SensorService.CreateAsync
 			(
-				sp.GetRequiredService<ILogger<SensorService>>(),
+				sp.GetRequiredService<ILoggerFactory>(),
 				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
 				sp.GetRequiredService<IDeviceWatcher>(),
 				default

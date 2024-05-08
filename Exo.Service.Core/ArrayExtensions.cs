@@ -58,6 +58,9 @@ internal static class ArrayExtensions
 		if (Array.IndexOf(array, item) is int index and >= 0)
 		{
 			int newLength = array.Length - 1;
+
+			if (newLength == 0) return null;
+
 			var newArray = new T[newLength]; 
 
 			Array.Copy(array, 0, newArray, 0, index);

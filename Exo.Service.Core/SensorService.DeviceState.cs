@@ -18,6 +18,7 @@ public sealed partial class SensorService
 		(
 			IConfigurationContainer deviceConfigurationContainer,
 			IConfigurationContainer<Guid> sensorsConfigurationContainer,
+			bool isConnected,
 			SensorDeviceInformation information,
 			GroupedQueryState? groupedQueryState,
 			Dictionary<Guid, SensorState>? sensorStates
@@ -26,7 +27,9 @@ public sealed partial class SensorService
 			Lock = new();
 			DeviceConfigurationContainer = deviceConfigurationContainer;
 			SensorsConfigurationContainer = sensorsConfigurationContainer;
+			IsConnected = isConnected;
 			Information = information;
+			GroupedQueryState = groupedQueryState;
 			SensorStates = sensorStates;
 		}
 	}

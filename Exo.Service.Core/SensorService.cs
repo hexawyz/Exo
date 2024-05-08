@@ -183,11 +183,21 @@ public sealed partial class SensorService
 		{ typeof(double), SensorDataType.Float64 },
 	};
 
+	// Helper method that will ensure a cancellation token source is wiped out properly and exactly once. (Because the Dispose method can throw if called twice…)
+	private static void ClearAndDisposeCancellationTokenSource(ref CancellationTokenSource? cancellationTokenSource)
+	{
+		if (Interlocked.Exchange(ref cancellationTokenSource, null) is { } cts)
+		{
+			cts.Cancel();
+			cts.Dispose();
+		}
+	}
+
 	private const string SensorsConfigurationContainerName = "sen";
 
 	public static async ValueTask<SensorService> CreateAsync
 	(
-		ILogger<SensorService> logger,
+		ILoggerFactory loggerFactory,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
 		CancellationToken cancellationToken
@@ -232,6 +242,7 @@ public sealed partial class SensorService
 					(
 						deviceConfigurationContainer,
 						sensorsConfigurationConfigurationContainer,
+						false,
 						new(deviceId, sensorInformations.DrainToImmutable()),
 						null,
 						null
@@ -240,7 +251,7 @@ public sealed partial class SensorService
 			}
 		}
 
-		return new SensorService(logger, devicesConfigurationContainer, deviceWatcher, deviceStates);
+		return new SensorService(loggerFactory, devicesConfigurationContainer, deviceWatcher, deviceStates);
 	}
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
@@ -249,17 +260,21 @@ public sealed partial class SensorService
 	private ChannelWriter<SensorDeviceInformation>[]? _changeListeners;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly ILogger<SensorService> _logger;
+	private readonly ILogger<SensorState> _sensorStateLogger;
+	private readonly ILogger<GroupedQueryState> _groupedQueryStateLogger;
 	private readonly IDeviceWatcher _deviceWatcher;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _sensorDeviceWatchTask;
 
-	private SensorService(ILogger<SensorService> logger, IConfigurationContainer<Guid> devicesConfigurationContainer, IDeviceWatcher deviceWatcher, ConcurrentDictionary<Guid, DeviceState> deviceStates)
+	private SensorService(ILoggerFactory loggerFactory, IConfigurationContainer<Guid> devicesConfigurationContainer, IDeviceWatcher deviceWatcher, ConcurrentDictionary<Guid, DeviceState> deviceStates)
 	{
 		_deviceStates = deviceStates;
 		_lock = new();
-		_pollingScheduler = new(PollingIntervalInMilliseconds);
+		_pollingScheduler = new(loggerFactory.CreateLogger<PollingScheduler>(), PollingIntervalInMilliseconds);
 		_devicesConfigurationContainer = devicesConfigurationContainer;
-		_logger = logger;
+		_logger = loggerFactory.CreateLogger<SensorService>();
+		_sensorStateLogger = loggerFactory.CreateLogger<SensorState>();
+		_groupedQueryStateLogger = loggerFactory.CreateLogger<GroupedQueryState>();
 		_deviceWatcher = deviceWatcher;
 		_cancellationTokenSource = new();
 		_sensorDeviceWatchTask = WatchSensorsDevicesAsync(_cancellationTokenSource.Token);
@@ -341,7 +356,7 @@ public sealed partial class SensorService
 		for (int i = 0; i < sensors.Length; i++)
 		{
 			var sensor = sensors[i];
-			if (!sensorStates.TryAdd(sensor.SensorId, SensorState.Create(this, groupedQueryState, sensor)))
+			if (!sensorStates.TryAdd(sensor.SensorId, SensorState.Create(_sensorStateLogger, this, groupedQueryState, sensor)))
 			{
 				// We ignore all sensors and discard the device if there is a duplicate ID.
 				// TODO: Log an error.
@@ -376,7 +391,15 @@ public sealed partial class SensorService
 					await sensorsContainer.WriteValueAsync(info.SensorId, new PersistedSensorInformation(info), cancellationToken);
 				}
 
-				state = new(deviceContainer, sensorsContainer, new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)), groupedQueryState, sensorStates);
+				state = new
+				(
+					deviceContainer,
+					sensorsContainer,
+					notification.DeviceInformation.IsAvailable,
+					new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
+					groupedQueryState,
+					sensorStates
+				);
 			}
 			else
 			{
@@ -409,6 +432,7 @@ public sealed partial class SensorService
 					state.Information = new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos));
 					state.GroupedQueryState = groupedQueryState;
 					state.SensorStates = sensorStates;
+					state.IsConnected = notification.DeviceInformation.IsAvailable;
 				}
 			}
 			_changeListeners.TryWrite(state.Information);

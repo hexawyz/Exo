@@ -64,15 +64,30 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 2001, EventName = "DeviceRegistryDeviceSerialNumberRetrievalFailure", Level = LogLevel.Error, Message = "Failed to retrieve the serial number for device \"{DeviceFriendlyName}\".")]
 	public static partial void DeviceRegistryDeviceSerialNumberRetrievalFailure(this ILogger logger, string deviceFriendlyName, Exception exception);
 
-	[LoggerMessage(EventId = 3000, EventName = "DevicePropertiesRetrievalError", Level = LogLevel.Error, Message = "Failed to retrieve properties of device: \"{DeviceName}\".")]
-	public static partial void DevicePropertiesRetrievalError(this ILogger logger, string deviceName, Exception exception);
-
-	[LoggerMessage(EventId = 2000, Level = LogLevel.Critical, Message = "An exception occurred when applying changes for restoring the state of the device {DeviceId:B}.")]
+	[LoggerMessage(EventId = 3001, Level = LogLevel.Critical, Message = "An exception occurred when applying changes for restoring the state of the device {DeviceId:B}.")]
 	public static partial void LightingServiceRestoreStateApplyChangesError(this ILogger logger, Guid deviceId, Exception ex);
 
-	[LoggerMessage(EventId = 2001, Level = LogLevel.Error, Message = "An exception occurred when processing arrival for lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
+	[LoggerMessage(EventId = 3002, Level = LogLevel.Error, Message = "An exception occurred when processing arrival for lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
 	public static partial void LightingServiceDeviceArrivalError(this ILogger logger, Guid deviceId, string deviceFriendlyName, Exception ex);
 
-	[LoggerMessage(EventId = 2001, Level = LogLevel.Error, Message = "An exception occurred when processing removal of lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
+	[LoggerMessage(EventId = 3003, Level = LogLevel.Error, Message = "An exception occurred when processing removal of lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
 	public static partial void LightingServiceDeviceRemovalError(this ILogger logger, Guid deviceId, string deviceFriendlyName, Exception ex);
+
+	[LoggerMessage(EventId = 4101, Level = LogLevel.Trace, Message = "Acquiring the polling scheduler, with {ReferenceCount} current live references.")]
+	public static partial void SensorServicePollingSchedulerAcquire(this ILogger logger, int referenceCount);
+
+	[LoggerMessage(EventId = 4102, Level = LogLevel.Debug, Message = "Polling scheduler enabled.")]
+	public static partial void SensorServicePollingSchedulerEnabled(this ILogger logger);
+
+	[LoggerMessage(EventId = 4103, Level = LogLevel.Trace, Message = "Releasing the polling scheduler, with {ReferenceCount} current live references.")]
+	public static partial void SensorServicePollingSchedulerRelease(this ILogger logger, int referenceCount);
+
+	[LoggerMessage(EventId = 4104, Level = LogLevel.Debug, Message = "Polling scheduler disabled.")]
+	public static partial void SensorServicePollingSchedulerDisabled(this ILogger logger);
+
+	[LoggerMessage(EventId = 4301, Level = LogLevel.Debug, Message = "Sensor watch execution error.")]
+	public static partial void SensorServiceSensorStateWatchError(this ILogger logger, Exception ex);
+
+	[LoggerMessage(EventId = 4301, Level = LogLevel.Debug, Message = "Grouped query execution error.")]
+	public static partial void SensorServiceGroupedQueryError(this ILogger logger, Exception ex);
 }
