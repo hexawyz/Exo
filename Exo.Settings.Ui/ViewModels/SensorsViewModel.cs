@@ -197,16 +197,21 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		if (Equals(e, ChangedProperty.IsAvailable))
 		{
 			// Device going online is already handled by UpdateDeviceInformation, but we need to handle the device going offline too.
-			if (!((DeviceViewModel)sender!).IsAvailable)
+			if (((DeviceViewModel)sender!).IsAvailable)
+			{
+				OnDeviceOnline();
+			}
+			else
 			{
 				OnDeviceOffline();
 			}
-			NotifyPropertyChanged(ChangedProperty.IsAvailable);
 		}
-		else if (Equals(e, ChangedProperty.Category) || Equals(e, ChangedProperty.FriendlyName))
+		else if (!(Equals(e, ChangedProperty.Category) || Equals(e, ChangedProperty.FriendlyName)))
 		{
-			NotifyPropertyChanged(e);
+			return;
 		}
+
+		NotifyPropertyChanged(e);
 	}
 
 	public void UpdateDeviceInformation(SensorDeviceInformation information)
@@ -263,6 +268,14 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		}
 	}
 
+	private void OnDeviceOnline()
+	{
+		foreach (var sensor in _sensors)
+		{
+			sensor.SetOnline();
+		}
+	}
+
 	private void OnDeviceOffline()
 	{
 		foreach (var sensor in _sensors)
@@ -305,6 +318,8 @@ internal sealed class SensorViewModel : BindableObject
 		_ => SensorCategory.Other,
 	};
 
+	public void SetOnline() => StartWatching();
+
 	public void SetOnline(SensorInformation information)
 	{
 		var oldInfo = _sensorInformation;
@@ -314,6 +329,11 @@ internal sealed class SensorViewModel : BindableObject
 		if (oldInfo.Unit != _sensorInformation.Unit) NotifyPropertyChanged(ChangedProperty.Unit);
 		if (oldInfo.IsPolled != _sensorInformation.IsPolled) NotifyPropertyChanged(ChangedProperty.IsPolled);
 
+		StartWatching();
+	}
+
+	private void StartWatching()
+	{
 		if (_liveDetails is null)
 		{
 			_liveDetails = new(this);
@@ -325,8 +345,8 @@ internal sealed class SensorViewModel : BindableObject
 	{
 		if (_liveDetails is not { } liveDetails) return;
 		_liveDetails = null;
-		NotifyPropertyChanged(ChangedProperty.LiveDetails);
 		await liveDetails.DisposeAsync();
+		NotifyPropertyChanged(ChangedProperty.LiveDetails);
 	}
 }
 
