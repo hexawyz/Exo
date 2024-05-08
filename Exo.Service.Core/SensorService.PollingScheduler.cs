@@ -19,9 +19,12 @@ public sealed partial class SensorService
 		private static TaskCompletionSource ThrowIfNotAcquired()
 		{
 			var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-			tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new PollingSchedulerDisabledException()));
+			ThrowIfNotAcquired(tcs);
 			return tcs;
 		}
+
+		private static void ThrowIfNotAcquired(TaskCompletionSource tcs)
+			=> tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new PollingSchedulerDisabledException()));
 
 		private TaskCompletionSource _tickSignal;
 		private readonly object _lock;
@@ -46,9 +49,17 @@ public sealed partial class SensorService
 			{
 				Monitor.TryEnter(_lock, ref lockTaken);
 				if (!lockTaken) return;
-				if (_referenceCount == 0) return;
-				_tickSignal.TrySetResult();
+				if (_referenceCount == 0)
+				{
+					if (!_tickSignal.Task.IsCompleted)
+					{
+						ThrowIfNotAcquired(_tickSignal);
+					}
+					return;
+				}
+				var tickSignal = _tickSignal;
 				Volatile.Write(ref _tickSignal, new(TaskCreationOptions.RunContinuationsAsynchronously));
+				tickSignal.TrySetResult();
 			}
 			finally
 			{
@@ -84,8 +95,17 @@ public sealed partial class SensorService
 				if (--_referenceCount == 0)
 				{
 					_timer.Change(Timeout.Infinite, _period);
-					_tickSignal.TrySetCanceled();
-					Volatile.Write(ref _tickSignal, NonAcquiredTickSignal);
+					if (!_tickSignal.Task.IsFaulted)
+					{
+						if (!_tickSignal.Task.IsCompleted)
+						{
+							ThrowIfNotAcquired(_tickSignal);
+						}
+						else
+						{
+							Volatile.Write(ref _tickSignal, NonAcquiredTickSignal);
+						}
+					}
 					_logger.SensorServicePollingSchedulerDisabled();
 				}
 			}
