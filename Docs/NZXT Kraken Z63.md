@@ -181,7 +181,7 @@ OUT: 000000ff 000000ff 000000ff 000000ff 000000ff …
 The first command is slightly different from the one used for GIF, and it might indicate the format (that, or it is indicated in the previous commands)
 The image data seems to represent a 320x320 surface in RGBA format, for a total of 409600 bytes. (Sent in a single packet)
 
-(NB: 409600 is `64000` in hex; 102400 is `19000`. These values don't seem to appear in the captured packets)
+(NB: 409600 is `64000` in hex; 102400 is `19000`.)
 
 #### After
 
@@ -264,15 +264,29 @@ From Capture 2:
 32 01 04 05 800c 9001 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ````
 
+From Changing GIF images Capture:
+
+````
+32 01 08 09 e015 9001 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (RAW)
+32 01 0e 0f 4006 9001 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (RAW)
+32 01 00 01 d007 9001 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (RAW)
+32 01 0d 0e 5111 5302 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (GIF)
+32 01 01 02 2119 6c0d 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (GIF)
+32 01 0f 10 8d26 e506 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (GIF)
+32 01 02 03 722d b504 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (GIF)
+32 01 03 04 2732 e603 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 (GIF)
+````
+
 By analyzing the above data, we can identify that the second parameter is always the value of the first parameter + 1.
 First parameter is a value from `00` to `0f` , and second parameter is (as such) a value from `01` to `10`.
 
 We can also identify the repeated value of `9001` which is 400 in little endian, as the N-1 (fourth?) parameter.
+While it is constant (400) for raw images, it is, however, not, for GIF images. Could it be some kind of timing?
 
 The last parameter seems to always be `01`.
 
-The third parameter seems to be a value that is often incremented by 400 in the following batch (400 is the value of the next parameter: might be related)
-At the beginning of capture 2, the value is an odd number (3633), but it resets to `0000` reatively quickly. However, there are still some "irregular" values in the sequence.
+For raw images, the third parameter seems to be a value that is often incremented by 400 in the following batch (400 is the value of the next parameter: might be related)
+At the beginning of capture 2, the value is an odd number (3633), but it resets to `0000` relatively quickly. However, there are still some "irregular" values in the sequence.
 
 The values of parameters 1&2 do not seem to be correlated with the value of parameter 3:
 While the same values are reused over different commands, we can see different pairs of values.
@@ -315,3 +329,26 @@ It seems that GIF images are uploaded upon first change, which can take a long t
 But then, switching back to a previous image is almost instantaneous, which indicates that the device can remember multiple images.
 
 The parameter used in the commands `32`, `36` and `38` is likely the image index.
+
+### Samples of the pre-transfer packet on the raw USB interface
+
+From changing GIF images capture:
+
+````
+12fa01e8 abcdef9876543210 02 000000 00400600 (RAW; Followed by 409600 bytes transfer)
+12fa01e8 abcdef9876543210 01 000000 7d490900 (GIF; Followed by 608637 bytes transfer)
+12fa01e8 abcdef9876543210 01 000000 0ead3500 (GIF; Followed by 2097152 bytes transfer; Followed by 1420558 bytes transfer; Total of 3517710 bytes transfer.)
+12fa01e8 abcdef9876543210 01 000000 74931b00 (GIF; Followed by 1807220 bytes transfer)
+12fa01e8 abcdef9876543210 01 000000 93d11200 (GIF; Followed by 1233299 bytes transfer)
+12fa01e8 abcdef9876543210 01 000000 d7950f00 (GIF; Followed by 1021399 bytes transfer)
+````
+
+From the above examples (a single one of them is enough, though), we can deduce that the transfer length is encoded in the last 4 bytes, in little endian form.
+
+Some other parameters are less clear, but we can at least identify the parameter indicating the image format, with `01` for GIF and `02` for RGBA. (Are there other supported formats ?)
+
+The `abcdef9876543210` sequence seems oddly specific, so it is probably some kind of signature designated to tag these messages, e.g. in case of an interrupted transmission.
+
+The other values, however… No idea. They at least don't seem correlated with the image index.
+
+
