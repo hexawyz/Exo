@@ -1320,7 +1320,7 @@ internal sealed class NvApi
 
 		private static async IAsyncEnumerable<GpuClientUtilizationData> WatchUtilizationAsync(nint handle, uint period, [EnumeratorCancellation] CancellationToken cancellationToken)
 		{
-			var channel = Channel.CreateUnbounded<GpuClientUtilizationData>(SharedOptions.ChannelOptions);
+			var channel = Channel.CreateBounded<GpuClientUtilizationData>(SharedOptions.ChannelOptions);
 			var gcHandle = GCHandle.Alloc(channel.Writer);
 			try
 			{

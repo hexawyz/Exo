@@ -24,7 +24,7 @@ public partial class NVidiaGpuDriver
 
 		public async IAsyncEnumerable<SensorDataPoint<float>> EnumerateValuesAsync(CancellationToken cancellationToken)
 		{
-			var channel = Channel.CreateUnbounded<SensorDataPoint<float>>(SharedOptions.ChannelOptions);
+			var channel = Channel.CreateBounded<SensorDataPoint<float>>(SharedOptions.ChannelOptions);
 			if (Interlocked.CompareExchange(ref _listener, channel, null) is not null) throw new InvalidOperationException("An enumeration is already running.");
 			try
 			{
