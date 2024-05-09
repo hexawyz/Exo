@@ -14,7 +14,24 @@ However, as is relatively unusual, commands are split in their own reports, mean
 It seems that commands go by pair, with input reports having the bit 0 set, and output/feature reports having the bit 0 unset.
 This can be observed by the 74 / 75 (request/response) pair used by NZXT CAM. However, it does not seem to always be the case.
 
-A few messages are regularly observed:
+### Format of responses
+
+There seem to be two kinds of commands: Commands that have a dedicated response, and commands who don't.
+
+In both cases, the format is similar:
+
+````
+<CommandId> <SubId> 1a 00 41 00 0a "Q840512" <Result> <Zero Padding>
+````
+
+Commands with a dedicated response seem to return a result, while other seem to just return some kind of `ACK`.
+However, most commands with a dedicated response simply return the value `01`, which I'm assuming indicates success.
+
+In the case of a dedicated response, the command id for the response is `CommandId OR 0x01`, and the result data depends on the command.
+
+In the case of a generic ack response, the command id is always `FF`, and the sub-id is always `01` (?). The result data in that case contain two bytes identifying the original command id and sub-id.
+
+NB: Meaning of other fields in the response is unclear/unknown.
 
 ### Status
 
@@ -64,16 +81,44 @@ It is possible that the values sent here are the requested power of pump and fan
 
 As such, we can deduce that `01` is pump and `02` is fan. Following value unknown, and third value is `00` for pump and `01` for fan. (Meaning unknown yet)
 
-### ???
+### Set screen brightness (`30 02`)
 
-Also observed are commands `38`/`39`, which are likely related to the cooling mode change (from default to fixed and vice-versa) done in the UI.
+Minimum value:
+
+````
+REQ: 30 02 01 00 00 00 00 03 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+RES: ff 01 1a 00 41000a 51383430353132 30 02 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+````
+
+Maximum value:
+
+````
+REQ: 30 02 01 64 00 00 00 03 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+RES: ff 01 1a 00 41000a 51383430353132 30 02 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+````
+
+This seems pretty straightforward. Brightness goes from 0 to 100.
+
+NB: I observed another example of the `30 02` command when trying to rotate the screen:
+
+````
+REQ: 30 02 00 00 00 00 01 03 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+````
+
+I only saw that one once, so I'm unsure what it could be, but I wonder if it indicates some kind of native rotation support.
+However, the images seem to be software rotated, so I'm unsure about that.
+
+### Change image (`38 01`)
+
+This command will change the image displayed on the device.
 
 ````
 REQ: 38 01 04 0d 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 RES: 39 01 1a 00 41000a 51383430353132 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ````
 
-The response also include the "Q840512" string, which seems like a pattern for all responses.
+The command seems to take two parameters, the first one being always 4, and the second one being the stored image ID, from 0 to 15.
+I suspect that the first parameter might be another sub-id.
 
 ### ??? Before and after a change of image to GIF
 
@@ -260,3 +305,13 @@ As seen before, the value here is reused in other commands. Parameter is a byte 
 ````
 
 Not very useful as-is. The first parameter is always `04`, and the second parameter is the same as passed to other commands.
+
+### Changing between GIF images
+
+From NZXT CAM, we can change between multiple "recent" GIF images easily, which gave some interesting results.
+
+It seems that GIF images are uploaded upon first change, which can take a long time. And very big images even seem to be cut into multiple raw packets. (so there is a limit ?)
+
+But then, switching back to a previous image is almost instantaneous, which indicates that the device can remember multiple images.
+
+The parameter used in the commands `32`, `36` and `38` is likely the image index.
