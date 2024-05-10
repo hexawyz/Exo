@@ -16,6 +16,7 @@ public class KrakenDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceIdFeature,
+	IDeviceSerialNumberFeature,
 	IDeviceDriver<ISensorDeviceFeature>,
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature
@@ -77,6 +78,7 @@ public class KrakenDriver :
 		var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
 		try
 		{
+			string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 			return new DriverCreationResult<SystemDevicePath>
 			(
 				keys,
@@ -87,7 +89,7 @@ public class KrakenDriver :
 					productId,
 					version,
 					friendlyName,
-					new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", null)
+					new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", serialNumber)
 				),
 				null
 			);
@@ -112,6 +114,7 @@ public class KrakenDriver :
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Other;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
+	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
 
@@ -134,7 +137,9 @@ public class KrakenDriver :
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
-		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
+		_genericFeatures = ConfigurationKey.UniqueId is not null ?
+			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
+			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 	}
 
