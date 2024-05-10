@@ -35,9 +35,21 @@ public sealed class AsyncLock
 		}
 	}
 
+	// TODO: Investigate using IValueTaskSource<>.
 	private class QueueTaskCompletionSource : TaskCompletionSource<Registration>
 	{
+		public QueueTaskCompletionSource(CancellationToken cancellationToken)
+		{
+			if (cancellationToken.CanBeCanceled)
+			{
+				_cancellationTokenRegistration = cancellationToken.UnsafeRegister(static (state, ct) => ((QueueTaskCompletionSource)state!).TrySetCanceled(ct), this);
+			}
+		}
+
 		public QueueTaskCompletionSource? Next;
+		private readonly CancellationTokenRegistration _cancellationTokenRegistration;
+
+		public void UnregisterCancellationRegistration() => _cancellationTokenRegistration.Unregister();
 	}
 
 	private static readonly object LockSentinel = new();
@@ -64,7 +76,9 @@ public sealed class AsyncLock
 
 	private ValueTask<Registration> WaitSlowAsync(object? oldState, CancellationToken cancellationToken)
 	{
-		var tcs = new QueueTaskCompletionSource();
+		if (cancellationToken.IsCancellationRequested) return ValueTask.FromCanceled<Registration>(cancellationToken);
+
+		var tcs = new QueueTaskCompletionSource(cancellationToken);
 		object? newState;
 
 		while (true)
@@ -81,7 +95,7 @@ public sealed class AsyncLock
 			if (oldState == (oldState = Interlocked.CompareExchange(ref _state, newState, oldState)))
 			{
 				if (ReferenceEquals(newState, LockSentinel)) return new(new Registration(this, _version));
-				else return new(tcs.Task.WaitAsync(cancellationToken));
+				else return new(tcs.Task);
 			}
 		}
 	}
@@ -126,6 +140,7 @@ public sealed class AsyncLock
 				if (ReferenceEquals(head, head = Unsafe.As<QueueTaskCompletionSource>(Interlocked.CompareExchange(ref _state, LockSentinel, head)!)))
 				{
 					// If we were able to successfully complete the waiter, then we're done here. The waiter now has ownership of the lock.
+					head.UnregisterCancellationRegistration();
 					if (head.TrySetResult(new(this, version))) return;
 					// Otherwise, the task has been cancelled.
 					// Not a huge deal, we can still try to do a simple release of the lock…
