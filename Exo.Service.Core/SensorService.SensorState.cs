@@ -255,8 +255,8 @@ public sealed partial class SensorService
 			cancellationToken.ThrowIfCancellationRequested();
 			// Sensors managed by grouped queries are polled from the GroupedQueryState.
 			// The code here is just setting things up for enabling the sensor to be refreshed by the grouped query.
-			var tcs = new TaskCompletionSource();
-			using (cancellationToken.Register(state => ((TaskCompletionSource)state!).TrySetResult(), tcs, false))
+			var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+			await using (cancellationToken.UnsafeRegister(state => ((TaskCompletionSource)state!).TrySetResult(), tcs))
 			{
 				_groupedQueryState.Acquire(this);
 				await tcs.Task.ConfigureAwait(false);

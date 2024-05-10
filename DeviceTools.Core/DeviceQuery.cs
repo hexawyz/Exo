@@ -503,7 +503,11 @@ namespace DeviceTools
 		{
 			try
 			{
-				using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
+#if NET5_0_OR_GREATER
+				await using var registration = cancellationToken.UnsafeRegister(state => ((SafeDeviceQueryHandle)state!).Dispose(), queryHandle);
+#else
+				using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state!).Dispose(), queryHandle, false);
+#endif
 
 				await context.State.Task.ConfigureAwait(false);
 			}
@@ -773,7 +777,11 @@ namespace DeviceTools
 		{
 			try
 			{
-				using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state).Dispose(), queryHandle, false);
+#if NET5_0_OR_GREATER
+				await using var registration = cancellationToken.UnsafeRegister(state => ((SafeDeviceQueryHandle)state!).Dispose(), queryHandle);
+#else
+				using var registration = cancellationToken.Register(state => ((SafeDeviceQueryHandle)state!).Dispose(), queryHandle, false);
+#endif
 
 				await context.State.Task.ConfigureAwait(false);
 			}
