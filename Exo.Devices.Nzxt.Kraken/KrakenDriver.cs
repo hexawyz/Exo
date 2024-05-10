@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -7,6 +6,7 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.MonitorFeatures;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +19,9 @@ public class KrakenDriver :
 	IDeviceSerialNumberFeature,
 	IDeviceDriver<ISensorDeviceFeature>,
 	ISensorsFeature,
-	ISensorsGroupedQueryFeature
+	ISensorsGroupedQueryFeature,
+	IDeviceDriver<IMonitorDeviceFeature>,
+	IMonitorBrightnessFeature
 {
 	private static readonly Guid LiquidTemperatureSensorId = new(0x8E880DE1, 0x2A45, 0x400D, 0xA9, 0x0F, 0x42, 0xE8, 0x9B, 0xF9, 0x50, 0xDB);
 	private static readonly Guid PumpSpeedSensorId = new(0x3A2F0F14, 0x3957, 0x400E, 0x8B, 0x6C, 0xCB, 0x02, 0x5B, 0x89, 0x15, 0x06);
@@ -79,13 +81,14 @@ public class KrakenDriver :
 		try
 		{
 			string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
+			var transport = new KrakenHidTransport(hidStream);
 			return new DriverCreationResult<SystemDevicePath>
 			(
 				keys,
 				new KrakenDriver
 				(
 					logger,
-					new KrakenHidTransport(hidStream),
+					transport,
 					productId,
 					version,
 					friendlyName,
@@ -107,6 +110,7 @@ public class KrakenDriver :
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
+	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 
 	private int _groupQueriedSensorCount;
 	private readonly ushort _productId;
@@ -120,6 +124,7 @@ public class KrakenDriver :
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
+	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 
 	private KrakenDriver
 	(
@@ -141,9 +146,22 @@ public class KrakenDriver :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
+		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IMonitorBrightnessFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
+
+	async ValueTask<ContinuousValue> IMonitorBrightnessFeature.GetBrightnessAsync(CancellationToken cancellationToken)
+	{
+		byte brightness = await _transport.GetBrightnessAsync(cancellationToken).ConfigureAwait(false);
+		return new ContinuousValue(brightness, 0, 100);
+	}
+
+	async ValueTask IMonitorBrightnessFeature.SetBrightnessAsync(ushort value, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
+		await _transport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);
+	}
 
 	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
 	{
@@ -274,6 +292,9 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	// The message length is 64 bytes including the report ID, which indicates a specific command.
 	private const int MessageLength = 64;
 
+	private const byte ScreenSettingsRequestMessageId = 0x30;
+	private const byte ScreenSettingsResponseMessageId = 0x31;
+	private const byte DisplayChangeRequestMessageId = 0x38;
 	private const byte CurrentDeviceStatusResponseMessageId = 0x75;
 
 	private readonly HidFullDuplexStream _stream;
@@ -281,6 +302,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private ulong _lastReadings;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _task;
+	private TaskCompletionSource<byte>? _screenInfoRetrievalTaskCompletionSource;
 
 	public KrakenHidTransport(HidFullDuplexStream stream)
 	{
@@ -329,17 +351,87 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
+	public async ValueTask<byte> GetBrightnessAsync(CancellationToken cancellationToken)
+	{
+		var tcs = new TaskCompletionSource<byte>(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _screenInfoRetrievalTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer)
+		{
+			buffer.Clear();
+			buffer[0] = ScreenSettingsRequestMessageId;
+			buffer[1] = 0x01;
+		}
+
+		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+		PrepareRequest(buffer.Span);
+		await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+		try
+		{
+			return await tcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _screenInfoRetrievalTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+	{
+		static void PrepareRequest(Span<byte> buffer, byte brightness)
+		{
+			buffer.Clear();
+			buffer[0] = ScreenSettingsRequestMessageId;
+			buffer[1] = 0x02;
+			buffer[2] = 0x01;
+			buffer[3] = brightness;
+			buffer[7] = 0x03;
+		}
+
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+
+		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+		PrepareRequest(buffer.Span, brightness);
+		await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+	}
+
 	private void ProcessReadMessage(ReadOnlySpan<byte> message)
 	{
-		if (message[0] == CurrentDeviceStatusResponseMessageId)
+		switch (message[0])
 		{
-			byte liquidTemperature = message[15];
-			ushort pumpSpeed = LittleEndian.ReadUInt16(in message[17]);
-			byte pumpSetPower = message[19];
-			ushort fanSpeed = LittleEndian.ReadUInt16(in message[23]);
-			byte fanSetPower = message[25];
+		case CurrentDeviceStatusResponseMessageId:
+			ProcessDeviceStatusResponse(message[1], message[14..]);
+			break;
+		case ScreenSettingsResponseMessageId:
+			ProcessScreenInformationResponse(message[1], message[14..]);
+			break;
+		}
+	}
+
+	private void ProcessDeviceStatusResponse(byte functionId, ReadOnlySpan<byte> response)
+	{
+		if (functionId == 0x01)
+		{
+			byte liquidTemperature = response[1];
+			ushort pumpSpeed = LittleEndian.ReadUInt16(in response[3]);
+			byte pumpSetPower = response[19];
+			ushort fanSpeed = LittleEndian.ReadUInt16(in response[9]);
+			byte fanSetPower = response[11];
 			var readings = new KrakenReadings(pumpSpeed, fanSpeed, pumpSetPower, fanSetPower, liquidTemperature);
 			Volatile.Write(ref _lastReadings, Unsafe.BitCast<KrakenReadings, ulong>(readings));
+		}
+	}
+
+	private void ProcessScreenInformationResponse(byte functionId, ReadOnlySpan<byte> response)
+	{
+		if (functionId == 0x01)
+		{
+			byte imageCount = response[5];
+			ushort imageWidth = LittleEndian.ReadUInt16(in response[6]);
+			ushort imageHeight = LittleEndian.ReadUInt16(in response[8]);
+			byte brightness = response[10];
+
+			_screenInfoRetrievalTaskCompletionSource?.TrySetResult(brightness);
 		}
 	}
 

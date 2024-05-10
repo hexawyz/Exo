@@ -38,7 +38,7 @@
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BrightnessSetting}"
-                Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
@@ -66,13 +66,13 @@
                 ToolTipService.ToolTip="Contrast"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="1"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding ContrastSetting}"
-                Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay}"
@@ -106,7 +106,7 @@
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding AudioVolumeSetting}"
-                Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay}"
