@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
+using Exo.Images;
 
 namespace Exo.Features.MonitorFeatures;
 
@@ -71,4 +72,17 @@ public interface IMonitorSpeakerAudioVolumeFeature : IMonitorDeviceFeature
 	ValueTask SetVolumeAsync(ushort value, CancellationToken cancellationToken);
 	//ValueTask SetDefaultVolumeAsync(CancellationToken cancellationToken);
 	//ValueTask MuteAsync(CancellationToken cancellationToken);
+}
+
+public interface IEmbeddedMonitorInformationFeature : IMonitorDeviceFeature
+{
+	MonitorShape Shape { get; }
+	Size ImageSize { get; }
+}
+
+public enum MonitorShape : byte
+{
+	Rectangle = 0,
+	Square = 1,
+	Circle = 2,
 }
