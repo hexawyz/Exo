@@ -14,6 +14,10 @@ public enum DeviceCategory
 	[EnumMember]
 	MemoryModule,
 	[EnumMember]
+	Processor,
+	[EnumMember]
+	Cooler,
+	[EnumMember]
 	Usb,
 	[EnumMember]
 	Keyboard,

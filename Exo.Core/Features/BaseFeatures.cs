@@ -78,3 +78,10 @@ public interface IMotherboardDeviceFeature : IDeviceFeature
 public interface ISensorDeviceFeature : IDeviceFeature
 {
 }
+
+/// <summary>Defines features for cooling devices.</summary>
+/// <remarks>Cooling devices are expected to provide way to configure fans and pumps.</remarks>
+[TypeId(0x52F4D370, 0xCF98, 0x430D, 0xA1, 0x54, 0xF5, 0x6B, 0x89, 0x2C, 0xA8, 0xB3)]
+public interface ICoolingDeviceFeature : IDeviceFeature
+{
+}

@@ -12,6 +12,8 @@ public class DeviceCategoryToGlyphConverter : IValueConverter
 		{ DeviceCategory.Other, "\uEBDE" },
 		{ DeviceCategory.Motherboard, "\uF0B9" },
 		{ DeviceCategory.MemoryModule, "\uE950" },
+		{ DeviceCategory.Processor, "\uE950" },
+		{ DeviceCategory.Cooler, "\uE9CA" },
 		{ DeviceCategory.Usb, "\uE88E" },
 		{ DeviceCategory.Keyboard, "\uE92E" },
 		{ DeviceCategory.Numpad, "\uF261" },

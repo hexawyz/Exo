@@ -21,6 +21,7 @@ public class KrakenDriver :
 	IDeviceDriver<ISensorDeviceFeature>,
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature,
+	IDeviceDriver<ICoolingDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IEmbeddedMonitorInformationFeature,
 	IMonitorBrightnessFeature
@@ -115,6 +116,7 @@ public class KrakenDriver :
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
+	private readonly IDeviceFeatureSet<ICoolingDeviceFeature> _coolingFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 
 	private int _groupQueriedSensorCount;
@@ -123,7 +125,7 @@ public class KrakenDriver :
 	private readonly ushort _imageWidth;
 	private readonly ushort _imageHeight;
 
-	public override DeviceCategory DeviceCategory => DeviceCategory.Other;
+	public override DeviceCategory DeviceCategory => DeviceCategory.Cooler;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
@@ -135,6 +137,7 @@ public class KrakenDriver :
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
+	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 
 	private KrakenDriver
@@ -159,6 +162,7 @@ public class KrakenDriver :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
+		_coolingFeatures = FeatureSet.Empty<ICoolingDeviceFeature>();
 		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorInformationFeature, IMonitorBrightnessFeature>(this);
 	}
 

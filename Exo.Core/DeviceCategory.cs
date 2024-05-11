@@ -10,6 +10,8 @@ public enum DeviceCategory
 	Other = 0,
 	Motherboard,
 	MemoryModule,
+	Processor,
+	Cooler,
 	Usb,
 	Keyboard,
 	Numpad,
