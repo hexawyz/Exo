@@ -58,8 +58,15 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		cts.Cancel();
 		await _stream.DisposeAsync().ConfigureAwait(false);
 		await _task.ConfigureAwait(false);
+		var objectDisposedException = ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(KrakenHidTransport).FullName));
+		_setBrightnessTaskCompletionSource?.TrySetException(objectDisposedException);
+		_screenInfoRetrievalTaskCompletionSource?.TrySetException(objectDisposedException);
+		_setPumpPowerTaskCompletionSource?.TrySetException(objectDisposedException);
+		_setFanPowerTaskCompletionSource?.TrySetException(objectDisposedException);
 		cts.Dispose();
 	}
+
+	private void EnsureNotDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _cancellationTokenSource) is null, typeof(KrakenHidTransport));
 
 	private async Task ReadAsync(CancellationToken cancellationToken)
 	{
@@ -121,6 +128,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 	public async ValueTask<ScreenInformation> GetScreenInformationAsync(CancellationToken cancellationToken)
 	{
+		EnsureNotDisposed();
+
 		var tcs = new TaskCompletionSource<ScreenInformation>(TaskCreationOptions.RunContinuationsAsynchronously);
 		if (Interlocked.CompareExchange(ref _screenInfoRetrievalTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
@@ -150,6 +159,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	public async ValueTask SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+
+		EnsureNotDisposed();
 
 		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 		if (Interlocked.CompareExchange(ref _setBrightnessTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
@@ -196,6 +207,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private async ValueTask SetPowerAsync(byte functionId, byte parameter, byte power, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
+
+		EnsureNotDisposed();
 
 		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 		if (Interlocked.CompareExchange(ref functionId == CoolingPowerPumpFunctionId ? ref _setPumpPowerTaskCompletionSource : ref _setFanPowerTaskCompletionSource, tcs, null) is not null)

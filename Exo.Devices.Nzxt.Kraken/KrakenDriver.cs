@@ -133,6 +133,11 @@ public class KrakenDriver :
 	private readonly ushort _imageWidth;
 	private readonly ushort _imageHeight;
 
+	private byte _lastPumpSpeedTarget;
+	private byte _currentPumpSpeedTarget;
+	private byte _lastFanSpeedTarget;
+	private byte _currentFanSpeedTarget;
+
 	public override DeviceCategory DeviceCategory => DeviceCategory.Cooler;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
@@ -167,12 +172,12 @@ public class KrakenDriver :
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
-		_coolers = [new PumpCooler(), new FanCooler()];
+		_coolers = [new PumpCooler(this), new FanCooler(this)];
 		_genericFeatures = ConfigurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
-		_coolingFeatures = FeatureSet.Empty<ICoolingDeviceFeature>();
+		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, KrakenDriver, ICoolingControllerFeature>(this);
 		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorInformationFeature, IMonitorBrightnessFeature>(this);
 	}
 
@@ -224,7 +229,49 @@ public class KrakenDriver :
 		return ValueTask.CompletedTask;
 	}
 
-	ValueTask ICoolingControllerFeature.ApplyChangesAsync() => throw new NotImplementedException();
+	async ValueTask ICoolingControllerFeature.ApplyChangesAsync()
+	{
+		ValueTask pumpSetTask = ValueTask.CompletedTask;
+		ValueTask fanSetTask = ValueTask.CompletedTask;
+
+		if (_lastPumpSpeedTarget != _currentPumpSpeedTarget) pumpSetTask = UpdatePumpPowerAsync(_currentPumpSpeedTarget, default);
+		if (_lastFanSpeedTarget != _currentFanSpeedTarget) fanSetTask = UpdateFanPowerAsync(_currentFanSpeedTarget, default);
+
+		List<Exception>? exceptions = null;
+		try
+		{
+			await pumpSetTask.ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			exceptions = new(2) { ex };
+		}
+		try
+		{
+			await fanSetTask.ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			exceptions ??= new(1);
+			exceptions.Add(ex);
+		}
+		if (exceptions is { Count: > 0 })
+		{
+			throw new AggregateException([.. exceptions]);
+		}
+	}
+
+	private async ValueTask UpdatePumpPowerAsync(byte power, CancellationToken cancellationToken)
+	{
+		await _transport.SetPumpPowerAsync(power, cancellationToken).ConfigureAwait(false);
+		_lastPumpSpeedTarget = power;
+	}
+
+	private async ValueTask UpdateFanPowerAsync(byte power, CancellationToken cancellationToken)
+	{
+		await _transport.SetFanPowerAsync(power, cancellationToken).ConfigureAwait(false);
+		_lastFanSpeedTarget = power;
+	}
 
 	private abstract class Sensor
 	{
@@ -301,33 +348,59 @@ public class KrakenDriver :
 
 	private sealed class FanCooler : ICooler, IManualCooler
 	{
+		private readonly KrakenDriver _driver;
+
+		public FanCooler(KrakenDriver driver) => _driver = driver;
+
 		public Guid CoolerId => FanCoolerId;
 		public CoolerType Type => CoolerType.Fan;
 
 		public Guid? SpeedSensorId => FanSpeedSensorId;
 		public CoolingMode CoolingMode => CoolingMode.Manual;
 
-		public byte SetPower(byte power) => throw new NotImplementedException();
-		public bool TryGetPower(out byte power) => throw new NotImplementedException();
-
 		public byte MinimumPower => 0;
 		public byte MaximumPower => 100;
 		public bool CanSwitchOff => true;
+
+		public void SetPower(byte power)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
+			_driver._currentFanSpeedTarget = power;
+		}
+
+		public bool TryGetPower(out byte power)
+		{
+			power = _driver._currentFanSpeedTarget;
+			return true;
+		}
 	}
 
 	private sealed class PumpCooler : ICooler, IManualCooler
 	{
+		private readonly KrakenDriver _driver;
+
+		public PumpCooler(KrakenDriver driver) => _driver = driver;
+
 		public Guid CoolerId => PumpCoolerId;
 		public CoolerType Type => CoolerType.Pump;
 
 		public Guid? SpeedSensorId => PumpSpeedSensorId;
 		public CoolingMode CoolingMode => CoolingMode.Manual;
 
-		public byte SetPower(byte power) => throw new NotImplementedException();
-		public bool TryGetPower(out byte power) => throw new NotImplementedException();
-
 		public byte MinimumPower => 0;
 		public byte MaximumPower => 100;
 		public bool CanSwitchOff => true;
+
+		public void SetPower(byte power)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
+			_driver._currentPumpSpeedTarget = power;
+		}
+
+		public bool TryGetPower(out byte power)
+		{
+			power = _driver._currentPumpSpeedTarget;
+			return true;
+		}
 	}
 }

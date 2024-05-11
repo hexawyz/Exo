@@ -80,7 +80,7 @@ public interface IManualCooler : IConfigurableCooler
 	/// <remarks>A call to this method must change <see cref="ICooler.CoolingMode"/> to <see cref="CoolingMode.Manual"/>.</remarks>
 	/// <param name="power">The power target.</param>
 	/// <returns></returns>
-	byte SetPower(byte power);
+	void SetPower(byte power);
 	/// <summary>Tries to get the last power target configured for the cooler.</summary>
 	/// <remarks>When the device is not in <see cref="CoolingMode.Manual"/> cooling mode, this method must return <see langword="false"/>.</remarks>
 	/// <param name="power">Power target that was last configured.</param>
