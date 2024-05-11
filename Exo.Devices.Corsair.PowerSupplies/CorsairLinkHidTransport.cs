@@ -57,16 +57,21 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 			// e.g. What is returned if we send an inappropriate value?
 			if (buffer[0] == 2)
 			{
-				if (buffer[1] == _command)
+				byte command = buffer[1];
+				if (command == _command)
 				{
 					if (buffer[2] == _value)
 					{
 						TrySetResult();
 					}
 				}
-				else if (buffer[1] == 0)
+				else if (command == 0x00)
 				{
-					TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Invalid command.")));
+					// If a command is sent to an invalid endpoint, the response will have command ID 0, which can also be "PAGE".
+					// When running concurrently with other software, and even though we acquire a global lock,
+					// it is possible that we intercept a valid response from the PAGE command because our read buffer is late for some reason.
+					// Sadly, there isn't really a simple way to guarantee that the read buffer would be empty, but it is better to throw than leaving a task waiting eternally.
+					TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new CorsairLinkWriteErrorException()));
 				}
 			}
 		}
@@ -123,13 +128,18 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 		{
 			if (buffer[0] == 3)
 			{
-				if (buffer[1] == _command)
+				byte command = buffer[1];
+				if (command == _command)
 				{
 					TrySetResult(ParseResult(buffer[2..]));
 				}
-				else if (buffer[1] == 0)
+				else if (command == 0x00)
 				{
-					TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Invalid command.")));
+					// If a command is sent to an invalid endpoint, the response will have command ID 0, which can also be "PAGE".
+					// When running concurrently with other software, and even though we acquire a global lock,
+					// it is possible that we intercept a valid response from the PAGE command because our read buffer is late for some reason.
+					// Sadly, there isn't really a simple way to guarantee that the read buffer would be empty, but it is better to throw than leaving a task waiting eternally.
+					TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new CorsairLinkReadErrorException()));
 				}
 			}
 		}
@@ -218,6 +228,11 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 
 	private async Task ReadAsync(CancellationToken cancellationToken)
 	{
+		// TODO: See if it is easy/reasonable to add some synchronization between command writes and reads.
+		// We still have to continuously read the messages, but there could be a way to register a pending command with read-side cooperation?
+		// Something like: Always process reads immediately, but as soon as there is a pending operation, allow a write to be registered, and associate the next reads with it.
+		// Not even sure it such a thing would be enough, though. (And it might be overkill)
+		// It would be simpler if the protocol included request IDs.
 		try
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, 0, MessageLength);

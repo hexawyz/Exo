@@ -216,8 +216,8 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 			string friendlyName;
 			await using (await corsairLinkGuardMutex.AcquireAsync(false))
 			{
-				transport = await CorsairLinkHidTransport.CreateAsync(loggerFactory.CreateLogger<CorsairLinkHidTransport>(), stream, cancellationToken).ConfigureAwait(false);
-				friendlyName = await transport.ReadStringAsync(0x9A, cancellationToken).ConfigureAwait(false);
+				transport = await CorsairLinkHidTransport.CreateAsync(loggerFactory.CreateLogger<CorsairLinkHidTransport>(), stream, cancellationToken);
+				friendlyName = await transport.ReadStringAsync(0x9A, cancellationToken);
 			}
 			return new DriverCreationResult<SystemDevicePath>
 			(
@@ -347,11 +347,20 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 					currentSetPage = s.Page;
 					if (currentSetPage >= 0)
 					{
+						// NB: The write page command should generally have better synchronization purposes related to the protocol, but we could still read a stale response…
 						await _transport.WriteByteAsync(0x00, (byte)currentSetPage, cancellationToken);
 					}
 				}
 
-				await s.GroupedQueryValueAsync(cancellationToken);
+				try
+				{
+					await s.GroupedQueryValueAsync(cancellationToken);
+				}
+				catch (CorsairLinkReadErrorException)
+				{
+					// Retry once in case of a read error. (This could happen if HWiNFO64 is running in parallel)
+					await s.GroupedQueryValueAsync(cancellationToken);
+				}
 			}
 		}
 	}
