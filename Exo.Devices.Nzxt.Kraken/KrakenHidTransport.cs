@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools.HumanInterfaceDevices;
 
@@ -11,20 +12,42 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 	private const byte ScreenSettingsRequestMessageId = 0x30;
 	private const byte ScreenSettingsResponseMessageId = 0x31;
+	private const byte ImageMemoryManagementRequestMessageId = 0x32;
+	private const byte ImageMemoryManagementResponseMessageId = 0x33;
 	private const byte DisplayChangeRequestMessageId = 0x38;
-	private const byte CurrentDeviceStatusResponseMessageId = 0x75;
+	private const byte CoolingPowerRequestMessageId = 0x72;
+	private const byte DeviceStatusRequestMessageId = 0x74;
+	private const byte DeviceStatusResponseMessageId = 0x75;
+	private const byte GenericResponseMessageId = 0xFF;
+
+	private const byte ScreenSettingsGetScreenInfoFunctionId = 0x01;
+	private const byte ScreenSettingsSetBrightnessFunctionId = 0x02;
+
+	private const byte CoolingPowerPumpFunctionId = 0x01;
+	private const byte CoolingPowerFanFunctionId = 0x02;
+
+	private const byte CurrentDeviceStatusFunctionId = 0x01;
 
 	private readonly HidFullDuplexStream _stream;
 	private readonly byte[] _buffers;
 	private ulong _lastReadings;
+	// In this driver, we allow multiple in-flight requests, as long as they are on different functions.
+	// However, we don't want to waste memory by allocating more than one write buffer, so we want to serialize writes to the device.
+	// Anyway, operations will have low-to-no contention, and sending parallel writes would have no value, as the writes will end up being serialized by the HID stack anyway.
+	private readonly AsyncLock _writeLock;
+	// In order to support concurrent different operations, we need to have one specific TaskCompletionSource field for each operation.
+	private TaskCompletionSource? _setBrightnessTaskCompletionSource;
+	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
+	private TaskCompletionSource? _setPumpPowerTaskCompletionSource;
+	private TaskCompletionSource? _setFanPowerTaskCompletionSource;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _task;
-	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
 
 	public KrakenHidTransport(HidFullDuplexStream stream)
 	{
 		_stream = stream;
 		_buffers = GC.AllocateUninitializedArray<byte>(2 * MessageLength, true);
+		_writeLock = new();
 		_cancellationTokenSource = new();
 		_task = ReadAsync(_cancellationTokenSource.Token);
 	}
@@ -68,6 +91,34 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
+	private static Task WaitOrCancelAsync(TaskCompletionSource taskCompletionSource, CancellationToken cancellationToken)
+	{
+		return cancellationToken.CanBeCanceled ? WaitWithCancellationAsync(taskCompletionSource, cancellationToken) : taskCompletionSource.Task;
+
+		static async Task WaitWithCancellationAsync(TaskCompletionSource taskCompletionSource, CancellationToken cancellationToken)
+		{
+			await using (var registration = cancellationToken.UnsafeRegister((state, ct) => ((TaskCompletionSource)state!).TrySetCanceled(ct), taskCompletionSource).ConfigureAwait(false))
+			{
+				await taskCompletionSource.Task.ConfigureAwait(false);
+			}
+		}
+	}
+
+	private static Task<T> WaitOrCancelAsync<T>(TaskCompletionSource<T> taskCompletionSource, CancellationToken cancellationToken)
+	{
+		return cancellationToken.CanBeCanceled ? WaitWithCancellationAsync(taskCompletionSource, cancellationToken) : taskCompletionSource.Task;
+
+		static async Task<T> WaitWithCancellationAsync(TaskCompletionSource<T> taskCompletionSource, CancellationToken cancellationToken)
+		{
+			await using (var registration = cancellationToken.UnsafeRegister((state, ct) => ((TaskCompletionSource<T>)state!).TrySetCanceled(ct), taskCompletionSource).ConfigureAwait(false))
+			{
+				return await taskCompletionSource.Task.ConfigureAwait(false);
+			}
+		}
+	}
+
+	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+
 	public async ValueTask<ScreenInformation> GetScreenInformationAsync(CancellationToken cancellationToken)
 	{
 		var tcs = new TaskCompletionSource<ScreenInformation>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -75,17 +126,20 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 		static void PrepareRequest(Span<byte> buffer)
 		{
-			buffer.Clear();
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = ScreenSettingsRequestMessageId;
-			buffer[1] = 0x01;
+			buffer[1] = ScreenSettingsGetScreenInfoFunctionId;
 		}
 
-		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-		PrepareRequest(buffer.Span);
-		await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+		var buffer = WriteBuffer;
 		try
 		{
-			return await tcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				PrepareRequest(buffer.Span);
+				await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+			}
+			return await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{
@@ -95,39 +149,115 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 	public async ValueTask SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
 	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+
+		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _setBrightnessTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
 		static void PrepareRequest(Span<byte> buffer, byte brightness)
 		{
-			buffer.Clear();
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = ScreenSettingsRequestMessageId;
-			buffer[1] = 0x02;
+			buffer[1] = ScreenSettingsSetBrightnessFunctionId;
 			buffer[2] = 0x01;
 			buffer[3] = brightness;
 			buffer[7] = 0x03;
 		}
 
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, brightness);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..8].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _setBrightnessTaskCompletionSource, null);
+		}
+	}
 
-		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
-		PrepareRequest(buffer.Span, brightness);
-		await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+	public ValueTask SetPumpPowerAsync(byte power, CancellationToken cancellationToken)
+		=> SetPowerAsync(CoolingPowerPumpFunctionId, 0x00, power, cancellationToken);
+
+	public ValueTask SetFanPowerAsync(byte power, CancellationToken cancellationToken)
+		=> SetPowerAsync(CoolingPowerFanFunctionId, 0x01, power, cancellationToken);
+
+	private async ValueTask SetPowerAsync(byte functionId, byte parameter, byte power, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
+
+		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref functionId == CoolingPowerPumpFunctionId ? ref _setPumpPowerTaskCompletionSource : ref _setFanPowerTaskCompletionSource, tcs, null) is not null)
+		{
+			throw new InvalidOperationException();
+		}
+
+		static void PrepareRequest(Span<byte> buffer, byte functionId, byte parameter, byte power)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = CoolingPowerRequestMessageId;
+			buffer[1] = functionId;
+			buffer[2] = parameter;
+			buffer[3] = power;
+			buffer.Slice(4, 40).Fill(power);
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, functionId, parameter, power);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..44].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref functionId == CoolingPowerPumpFunctionId ? ref _setPumpPowerTaskCompletionSource : ref _setFanPowerTaskCompletionSource, null);
+		}
 	}
 
 	private void ProcessReadMessage(ReadOnlySpan<byte> message)
+		=> ProcessReadMessage(message[0], message[1], message[14..]);
+
+	private void ProcessReadMessage(byte messageId, byte functionId, ReadOnlySpan<byte> data)
 	{
-		switch (message[0])
+		switch (messageId)
 		{
-		case CurrentDeviceStatusResponseMessageId:
-			ProcessDeviceStatusResponse(message[1], message[14..]);
+		case DeviceStatusResponseMessageId:
+			ProcessDeviceStatusResponse(functionId, data);
 			break;
 		case ScreenSettingsResponseMessageId:
-			ProcessScreenInformationResponse(message[1], message[14..]);
+			ProcessScreenInformationResponse(functionId, data);
+			break;
+		case GenericResponseMessageId:
+			ProcessGenericResponse(data);
 			break;
 		}
 	}
 
 	private void ProcessDeviceStatusResponse(byte functionId, ReadOnlySpan<byte> response)
 	{
-		if (functionId == 0x01)
+		if (functionId == CurrentDeviceStatusFunctionId)
 		{
 			byte liquidTemperature = response[1];
 			ushort pumpSpeed = LittleEndian.ReadUInt16(in response[3]);
@@ -141,7 +271,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 	private void ProcessScreenInformationResponse(byte functionId, ReadOnlySpan<byte> response)
 	{
-		if (functionId == 0x01)
+		if (functionId == ScreenSettingsGetScreenInfoFunctionId)
 		{
 			byte imageCount = response[5];
 			ushort imageWidth = LittleEndian.ReadUInt16(in response[6]);
@@ -151,6 +281,29 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			_screenInfoRetrievalTaskCompletionSource?.TrySetResult(new(brightness, imageCount, imageWidth, imageHeight));
 		}
 	}
+
+	private void ProcessGenericResponse(ReadOnlySpan<byte> response)
+		=> ProcessGenericResponse(response[0], response[1]);
+
+	private void ProcessGenericResponse(byte messageId, byte functionId)
+		=>
+		(
+			messageId switch
+			{
+				ScreenSettingsRequestMessageId => functionId switch
+				{
+					ScreenSettingsSetBrightnessFunctionId => _setBrightnessTaskCompletionSource,
+					_ => null,
+				},
+				CoolingPowerRequestMessageId => functionId switch
+				{
+					CoolingPowerPumpFunctionId => _setPumpPowerTaskCompletionSource,
+					CoolingPowerFanFunctionId => _setFanPowerTaskCompletionSource,
+					_ => null,
+				},
+				_ => null,
+			}
+		)?.TrySetResult();
 
 	public KrakenReadings GetLastReadings()
 		=> Unsafe.BitCast<ulong, KrakenReadings>(Volatile.Read(ref _lastReadings));
