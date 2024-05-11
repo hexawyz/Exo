@@ -2,26 +2,37 @@ using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.Cooling;
 using Exo.Features.Sensors;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Corsair.PowerSupplies;
 
-public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeature>, IDeviceDriver<ISensorDeviceFeature>, IDeviceIdFeature, ISensorsFeature, ISensorsGroupedQueryFeature
+public sealed class CorsairLinkDriver :
+	Driver,
+	IDeviceDriver<IGenericDeviceFeature>,
+	IDeviceDriver<ICoolingDeviceFeature>,
+	ICoolingControllerFeature,
+	IDeviceDriver<ISensorDeviceFeature>,
+	IDeviceIdFeature,
+	ISensorsFeature,
+	ISensorsGroupedQueryFeature
 {
 	private abstract class Sensor
 	{
 		public CorsairLinkDriver Driver { get; }
 		private readonly Guid _sensorId;
-		public byte Command { get; }
+		public CorsairPmBusCommand Command { get; }
 		public sbyte Page { get; }
 
-		protected Sensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page)
+		protected Sensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page)
 		{
 			Driver = driver;
 			_sensorId = sensorId;
@@ -45,7 +56,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 	{
 		private T _lastValue;
 
-		protected Sensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page)
+		protected Sensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page)
 			: base(driver, sensorId, command, page)
 		{
 		}
@@ -84,7 +95,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private abstract class ByteSensor : Sensor<byte>
 	{
-		protected ByteSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page) : base(driver, sensorId, command, page)
+		protected ByteSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -94,7 +105,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private abstract class Linear11Sensor : Sensor<float>
 	{
-		protected Linear11Sensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page) : base(driver, sensorId, command, page)
+		protected Linear11Sensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -104,7 +115,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private sealed class TemperatureSensor : Linear11Sensor
 	{
-		public TemperatureSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
+		public TemperatureSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -113,7 +124,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private sealed class VoltageSensor : Linear11Sensor
 	{
-		public VoltageSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
+		public VoltageSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -122,7 +133,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private sealed class CurrentSensor : Linear11Sensor
 	{
-		public CurrentSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
+		public CurrentSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -131,7 +142,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private sealed class PowerSensor : Linear11Sensor
 	{
-		public PowerSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
+		public PowerSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -140,7 +151,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private sealed class PercentSensor : ByteSensor
 	{
-		public PercentSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
+		public PercentSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
@@ -149,11 +160,46 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	private sealed class RpmSensor : Linear11Sensor
 	{
-		public RpmSensor(CorsairLinkDriver driver, Guid sensorId, byte command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
+		public RpmSensor(CorsairLinkDriver driver, Guid sensorId, CorsairPmBusCommand command, sbyte page, byte queryOrder) : base(driver, sensorId, command, page)
 		{
 		}
 
 		public override SensorUnit Unit => SensorUnit.RotationsPerMinute;
+	}
+
+	private sealed class FanCooler : ICooler, IAutomaticCooler, IManualCooler
+	{
+		private readonly CorsairLinkDriver _driver;
+
+		public FanCooler(CorsairLinkDriver driver) => _driver = driver;
+
+		public Guid CoolerId => FanCoolerId;
+		public Guid? SpeedSensorId => FanSpeedSensor;
+		public CoolerType Type => CoolerType.Fan;
+		public CoolingMode CoolingMode => (_driver._currentFanStatus >>> 8) != 0 ? CoolingMode.Manual : CoolingMode.Automatic;
+
+		public byte MinimumPower => 0;
+		public byte MaximumPower => 100;
+		public bool CanSwitchOff => true;
+
+		public void SwitchToAutomaticCooling() => _driver._currentFanStatus &= 0x00FF;
+
+		public void SetPower(byte power) => _driver._currentFanStatus = (ushort)(0x0100 | power);
+
+		public bool TryGetPower(out byte power)
+		{
+			ushort status = _driver._currentFanStatus;
+			if ((status >>> 8) != 0)
+			{
+				power = (byte)status;
+				return true;
+			}
+			else
+			{
+				power = 0;
+				return false;
+			}
+		}
 	}
 
 	private const ushort CorsairVendorId = 0x1B1C;
@@ -179,6 +225,7 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 	private static readonly Guid PowerRail3CurrentSensor = new(0xDBAB37C2, 0x4D8F, 0x4EE2, 0xA9, 0xDB, 0xB0, 0xDD, 0x48, 0xB0, 0x30, 0xC0);
 	private static readonly Guid PowerRail3PowerSensor = new(0x582060CE, 0xE985, 0x41F0, 0x95, 0x2B, 0x36, 0x7F, 0xDD, 0x3A, 0x5B, 0x40);
 
+	private static readonly Guid FanCoolerId = new(0x4AE632C6, 0x5A28, 0x4722, 0xAE, 0xBE, 0x7D, 0x8F, 0x23, 0xE9, 0xF4, 0x2D);
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[ProductId(VendorIdSource.Usb, CorsairVendorId, 0x1C08)]
@@ -214,10 +261,14 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 		{
 			var corsairLinkGuardMutex = AsyncGlobalMutex.Get("Global\\CorsairLinkReadWriteGuardMutex");
 			string friendlyName;
+			bool isManualFanControlEnabled;
+			byte fanPower;
 			await using (await corsairLinkGuardMutex.AcquireAsync(false))
 			{
 				transport = await CorsairLinkHidTransport.CreateAsync(loggerFactory.CreateLogger<CorsairLinkHidTransport>(), stream, cancellationToken);
-				friendlyName = await transport.ReadStringAsync(0x9A, cancellationToken);
+				friendlyName = await transport.ReadStringAsync(CorsairPmBusCommand.ManufacturerModel, cancellationToken);
+				isManualFanControlEnabled = await transport.ReadByteAsync(CorsairPmBusCommand.FanMode, cancellationToken) != 0x00;
+				fanPower = await transport.ReadByteAsync(CorsairPmBusCommand.FanCommand1, cancellationToken);
 			}
 			return new DriverCreationResult<SystemDevicePath>
 			(
@@ -227,6 +278,8 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 					loggerFactory.CreateLogger<CorsairLinkDriver>(),
 					transport,
 					corsairLinkGuardMutex,
+					isManualFanControlEnabled,
+					fanPower,
 					productId,
 					version,
 					friendlyName,
@@ -244,10 +297,14 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 	private readonly CorsairLinkHidTransport _transport;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
+	private readonly IDeviceFeatureSet<ICoolingDeviceFeature> _coolingFeatures;
 	private readonly ISensor[] _sensors;
+	private readonly ICooler[] _coolers;
 	private readonly AsyncGlobalMutex _corsairLinkGuardMutex;
 	private readonly ILogger<CorsairLinkDriver> _logger;
 	private int _groupQueriedSensorCount;
+	private ushort _lastFanStatus;
+	private ushort _currentFanStatus;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 
@@ -255,16 +312,20 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.PowerSupply;
 
+	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
+	ImmutableArray<ICooler> ICoolingControllerFeature.Coolers => ImmutableCollectionsMarshal.AsImmutableArray(_coolers);
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
-	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
+	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 
 	private CorsairLinkDriver
 	(
 		ILogger<CorsairLinkDriver> logger,
 		CorsairLinkHidTransport transport,
 		AsyncGlobalMutex corsairLinkGuardMutex,
+		bool isManualFanControlEnabled,
+		byte fanPower,
 		ushort productId,
 		ushort versionNumber,
 		string friendlyName,
@@ -273,32 +334,38 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 	{
 		_transport = transport;
 		_logger = logger;
+		_currentFanStatus = _lastFanStatus = (ushort)((isManualFanControlEnabled ? 0x0100 : 0) | fanPower);
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, CorsairLinkDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, CorsairLinkDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
+		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, CorsairLinkDriver, ICoolingControllerFeature>(this);
 		byte order = 0;
 		_sensors =
 		[
-			new TemperatureSensor(this, TemperatureSensor1, 0x8D, -1, order++),
-			new TemperatureSensor(this, TemperatureSensor2, 0x8E, -1, order++),
+			new TemperatureSensor(this, TemperatureSensor1, CorsairPmBusCommand.Temperature1, -1, order++),
+			new TemperatureSensor(this, TemperatureSensor2, CorsairPmBusCommand.Temperature2, -1, order++),
 
-			new RpmSensor(this, FanSpeedSensor, 0x90, -1, order++),
+			new RpmSensor(this, FanSpeedSensor, CorsairPmBusCommand.ReadFanSpeed1, -1, order++),
 
-			new VoltageSensor(this, InputVoltageSensor, 0x88, -1, order++),
-			new PowerSensor(this, OutputPowerSensor, 0xEE, -1, order++),
+			new VoltageSensor(this, InputVoltageSensor, CorsairPmBusCommand.ReadVoltageIn, -1, order++),
+			new PowerSensor(this, OutputPowerSensor, CorsairPmBusCommand.ReadGlobalPowerOut, -1, order++),
 
-			new VoltageSensor(this, PowerRail3VoltageSensor, 0x8B, 2, order++),
-			new CurrentSensor(this, PowerRail3CurrentSensor, 0x8C, 2, order++),
-			new PowerSensor(this, PowerRail3PowerSensor, 0x96, 2, order++),
+			new VoltageSensor(this, PowerRail3VoltageSensor, CorsairPmBusCommand.ReadVoltageOut, 2, order++),
+			new CurrentSensor(this, PowerRail3CurrentSensor, CorsairPmBusCommand.ReadIntensityOut, 2, order++),
+			new PowerSensor(this, PowerRail3PowerSensor, CorsairPmBusCommand.ReadPowerOut, 2, order++),
 
-			new VoltageSensor(this, PowerRail2VoltageSensor, 0x8B, 1, order++),
-			new CurrentSensor(this, PowerRail2CurrentSensor, 0x8C, 1, order++),
-			new PowerSensor(this, PowerRail2PowerSensor, 0x96, 1, order++),
+			new VoltageSensor(this, PowerRail2VoltageSensor, CorsairPmBusCommand.ReadVoltageOut, 1, order++),
+			new CurrentSensor(this, PowerRail2CurrentSensor, CorsairPmBusCommand.ReadIntensityOut, 1, order++),
+			new PowerSensor(this, PowerRail2PowerSensor, CorsairPmBusCommand.ReadPowerOut, 1, order++),
 
-			new VoltageSensor(this, PowerRail1VoltageSensor, 0x8B, 0, order++),
-			new CurrentSensor(this, PowerRail1CurrentSensor, 0x8C, 0, order++),
-			new PowerSensor(this, PowerRail1PowerSensor, 0x96, 0, order++),
+			new VoltageSensor(this, PowerRail1VoltageSensor, CorsairPmBusCommand.ReadVoltageOut, 0, order++),
+			new CurrentSensor(this, PowerRail1CurrentSensor, CorsairPmBusCommand.ReadIntensityOut, 0, order++),
+			new PowerSensor(this, PowerRail1PowerSensor, CorsairPmBusCommand.ReadPowerOut, 0, order++),
+		];
+		_coolers =
+		[
+			new FanCooler(this),
 		];
 		_corsairLinkGuardMutex = corsairLinkGuardMutex;
 		_productId = productId;
@@ -363,5 +430,32 @@ public sealed class CorsairLinkDriver : Driver, IDeviceDriver<IGenericDeviceFeat
 				}
 			}
 		}
+	}
+
+	ValueTask ICoolingControllerFeature.ApplyChangesAsync() => ApplyFanStatusChangesAsync(default);
+
+	private async ValueTask ApplyFanStatusChangesAsync(CancellationToken cancellationToken)
+	{
+		ushort lastStatus = _lastFanStatus;
+		ushort currentStatus = _currentFanStatus;
+		ushort statusChanges = (ushort)(lastStatus ^ currentStatus);
+
+		if (statusChanges == 0) return;
+
+		await using (await _corsairLinkGuardMutex.AcquireAsync().ConfigureAwait(false))
+		{
+			bool modeChange = (statusChanges >> 8) != 0;
+			bool isManualFanControlEnabled = (currentStatus >>> 8) != 0;
+			if (isManualFanControlEnabled)
+			{
+				await _transport.WriteByteAsync(CorsairPmBusCommand.FanCommand1, (byte)currentStatus, cancellationToken);
+			}
+			if (modeChange)
+			{
+				await _transport.WriteByteAsync(CorsairPmBusCommand.FanMode, isManualFanControlEnabled ? (byte)1 : (byte)0, cancellationToken);
+			}
+		}
+
+		_lastFanStatus = currentStatus;
 	}
 }

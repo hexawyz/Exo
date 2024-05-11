@@ -35,10 +35,10 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 
 	private sealed class ByteWriteCommand : WriteCommand
 	{
-		private readonly byte _command;
+		private readonly CorsairPmBusCommand _command;
 		private readonly byte _value;
 
-		public ByteWriteCommand(byte command, byte value)
+		public ByteWriteCommand(CorsairPmBusCommand command, byte value)
 		{
 			_command = command;
 			_value = value;
@@ -47,7 +47,7 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 		public override void WriteRequest(Span<byte> buffer)
 		{
 			buffer[0] = 0x02;
-			buffer[1] = _command;
+			buffer[1] = (byte)_command;
 			buffer[2] = _value;
 		}
 
@@ -58,7 +58,7 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 			if (buffer[0] == 2)
 			{
 				byte command = buffer[1];
-				if (command == _command)
+				if (command == (byte)_command)
 				{
 					if (buffer[2] == _value)
 					{
@@ -114,14 +114,14 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 
 	private abstract class ReadCommand<T> : ResultCommand<T>
 	{
-		private readonly byte _command;
+		private readonly CorsairPmBusCommand _command;
 
-		public ReadCommand(byte command) => _command = command;
+		public ReadCommand(CorsairPmBusCommand command) => _command = command;
 
 		public sealed override void WriteRequest(Span<byte> buffer)
 		{
 			buffer[0] = 0x03;
-			buffer[1] = _command;
+			buffer[1] = (byte)_command;
 		}
 
 		public sealed override void ProcessResponse(ReadOnlySpan<byte> buffer)
@@ -129,7 +129,7 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 			if (buffer[0] == 3)
 			{
 				byte command = buffer[1];
-				if (command == _command)
+				if (command == (byte)_command)
 				{
 					TrySetResult(ParseResult(buffer[2..]));
 				}
@@ -149,7 +149,7 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 
 	private sealed class StringReadCommand : ReadCommand<string>
 	{
-		public StringReadCommand(byte command) : base(command) { }
+		public StringReadCommand(CorsairPmBusCommand command) : base(command) { }
 
 		protected override string ParseResult(ReadOnlySpan<byte> data)
 		{
@@ -161,14 +161,14 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 
 	private sealed class ByteReadCommand : ReadCommand<byte>
 	{
-		public ByteReadCommand(byte command) : base(command) { }
+		public ByteReadCommand(CorsairPmBusCommand command) : base(command) { }
 
 		protected override byte ParseResult(ReadOnlySpan<byte> data) => data[0];
 	}
 
 	private sealed class Linear11ReadCommand : ReadCommand<Linear11>
 	{
-		public Linear11ReadCommand(byte command) : base(command) { }
+		public Linear11ReadCommand(CorsairPmBusCommand command) : base(command) { }
 
 		protected override Linear11 ParseResult(ReadOnlySpan<byte> data) => Linear11.FromRawValue(LittleEndian.ReadUInt16(data[0]));
 	}
@@ -314,11 +314,11 @@ internal sealed class CorsairLinkHidTransport : IAsyncDisposable
 
 	private ValueTask<string> HandshakeAsync(CancellationToken cancellationToken) => ExecuteCommandAsync(new HandshakeCommand(), cancellationToken);
 
-	public ValueTask<byte> ReadByteAsync(byte command, CancellationToken cancellationToken) => ExecuteCommandAsync(new ByteReadCommand(command), cancellationToken);
+	public ValueTask<byte> ReadByteAsync(CorsairPmBusCommand command, CancellationToken cancellationToken) => ExecuteCommandAsync(new ByteReadCommand(command), cancellationToken);
 
-	public ValueTask<Linear11> ReadLinear11Async(byte command, CancellationToken cancellationToken) => ExecuteCommandAsync(new Linear11ReadCommand(command), cancellationToken);
+	public ValueTask<Linear11> ReadLinear11Async(CorsairPmBusCommand command, CancellationToken cancellationToken) => ExecuteCommandAsync(new Linear11ReadCommand(command), cancellationToken);
 
-	public ValueTask<string> ReadStringAsync(byte command, CancellationToken cancellationToken) => ExecuteCommandAsync(new StringReadCommand(command), cancellationToken);
+	public ValueTask<string> ReadStringAsync(CorsairPmBusCommand command, CancellationToken cancellationToken) => ExecuteCommandAsync(new StringReadCommand(command), cancellationToken);
 
-	public ValueTask WriteByteAsync(byte command, byte value, CancellationToken cancellationToken) => ExecuteCommandAsync(new ByteWriteCommand(command, value), cancellationToken);
+	public ValueTask WriteByteAsync(CorsairPmBusCommand command, byte value, CancellationToken cancellationToken) => ExecuteCommandAsync(new ByteWriteCommand(command, value), cancellationToken);
 }

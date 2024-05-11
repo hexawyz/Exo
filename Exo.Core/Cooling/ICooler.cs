@@ -46,11 +46,9 @@ public interface ICooler
 
 public interface IAutomaticCooler
 {
-	/// <summary>
-	/// 
-	/// </summary>
+	/// <summary>Sets the cooling mode to automatic.</summary>
 	/// <returns></returns>
-	bool SwitchToAutomaticCooling();
+	void SwitchToAutomaticCooling();
 }
 
 public interface IConfigurableCooler
