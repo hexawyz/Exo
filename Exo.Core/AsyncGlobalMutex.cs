@@ -220,7 +220,13 @@ public sealed class AsyncGlobalMutex
 			{
 				var (tcs, lifecycle, fallbackScheduler) = tuple;
 
-				_mutex.WaitOne();
+				try
+				{
+					_mutex.WaitOne();
+				}
+				catch (AbandonedMutexException)
+				{
+				}
 
 				var scheduler = new OwnedMutexTaskScheduler(this, fallbackScheduler);
 
