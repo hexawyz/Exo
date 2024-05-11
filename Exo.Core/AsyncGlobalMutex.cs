@@ -228,47 +228,54 @@ public sealed class AsyncGlobalMutex
 				{
 				}
 
-				var scheduler = new OwnedMutexTaskScheduler(this, fallbackScheduler);
-
 				try
 				{
-					lifecycle?.OnAfterAcquire();
-				}
-				catch (Exception ex)
-				{
-					tcs.TrySetException(ex);
+					var scheduler = new OwnedMutexTaskScheduler(this, fallbackScheduler);
+
+					try
+					{
+						lifecycle?.OnAfterAcquire();
+					}
+					catch (Exception ex)
+					{
+						tcs.TrySetException(ex);
+
+						_manualResetEvent.Reset();
+
+						continue;
+					}
+
+					tcs.TrySetResult(new(scheduler));
+
+					while (true)
+					{
+						_manualResetEvent.Reset();
+						while (_pendingTaskList.TryDequeue(out var task))
+						{
+							scheduler.ProcessQueuedTask(task);
+						}
+						if (scheduler.IsDisposed)
+						{
+							break;
+						}
+						_manualResetEvent.Wait();
+					}
+
+					try
+					{
+						lifecycle?.OnBeforeRelease();
+					}
+					catch
+					{
+						// There is no good way to propagate an exception here…
+					}
 
 					_manualResetEvent.Reset();
-
-					continue;
 				}
-
-				tcs.TrySetResult(new(scheduler));
-
-				while (true)
+				finally
 				{
-					_manualResetEvent.Reset();
-					while (_pendingTaskList.TryDequeue(out var task))
-					{
-						scheduler.ProcessQueuedTask(task);
-					}
-					if (scheduler.IsDisposed)
-					{
-						break;
-					}
-					_manualResetEvent.Wait();
+					_mutex.ReleaseMutex();
 				}
-
-				try
-				{
-					lifecycle?.OnBeforeRelease();
-				}
-				catch
-				{
-					// There is no good way to propagate an exception here…
-				}
-
-				_manualResetEvent.Reset();
 			}
 		}
 	}
