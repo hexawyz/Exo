@@ -1,7 +1,7 @@
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 
-namespace Exo.Features.LightingFeatures;
+namespace Exo.Features.Lighting;
 
 /// <summary>The feature exposed by a lighting controller supporting one or more light zones.</summary>
 /// <remarks>This is optional for devices supporting only a single light zone</remarks>

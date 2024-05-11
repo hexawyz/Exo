@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts;
 using Exo.Features;
-using Exo.Features.LightingFeatures;
+using Exo.Features.Lighting;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 using Exo.Programming.Annotations;

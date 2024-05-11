@@ -1,4 +1,4 @@
-namespace Exo.Features.KeyboardFeatures;
+namespace Exo.Features.Keyboards;
 
 public readonly record struct BacklightState
 {

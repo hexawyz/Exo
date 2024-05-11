@@ -11,8 +11,8 @@ using DeviceTools.DisplayDevices.Mccs;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Discovery;
 using Exo.Features;
-using Exo.Features.LightingFeatures;
-using Exo.Features.MonitorFeatures;
+using Exo.Features.Lighting;
+using Exo.Features.Monitors;
 using Exo.I2C;
 using Microsoft.Extensions.Logging;
 

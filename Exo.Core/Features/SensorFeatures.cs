@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Exo.Sensors;
 
-namespace Exo.Features;
+namespace Exo.Features.Sensors;
 
 /// <summary>Exposes the sensors of a sensors device.</summary>
 /// <remarks>Sensor features are assumed to not be assumed concurrently unless specified otherwise.</remarks>

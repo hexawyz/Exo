@@ -1,4 +1,4 @@
-namespace Exo.Features.KeyboardFeatures;
+namespace Exo.Features.Keyboards;
 
 public interface IKeyboardLockKeysFeature : IKeyboardDeviceFeature
 {

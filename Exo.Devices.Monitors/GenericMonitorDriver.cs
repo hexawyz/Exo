@@ -9,7 +9,7 @@ using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Discovery;
 using Exo.Features;
-using Exo.Features.MonitorFeatures;
+using Exo.Features.Monitors;
 using Exo.I2C;
 using Microsoft.Extensions.Logging;
 

@@ -5,9 +5,9 @@ using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
 using Exo.Discovery;
 using Exo.Features;
-using Exo.Features.KeyboardFeatures;
+using Exo.Features.Keyboards;
 using Microsoft.Extensions.Logging;
-using BacklightState = Exo.Features.KeyboardFeatures.BacklightState;
+using BacklightState = Exo.Features.Keyboards.BacklightState;
 using FeatureAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.DeviceType;
 using RegisterAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol.DeviceType;
 

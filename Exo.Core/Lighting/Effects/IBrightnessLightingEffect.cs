@@ -12,7 +12,7 @@
 /// Only devices that support a per-effect dynamic brightness setting should expose this feature.
 /// </para>
 /// <para>
-/// Devices that support a per-effect brightness setting should provide the <see cref="Exo.Features.LightingFeatures.ILightingBrightnessFeature" /> feature and use this brightness value as a default
+/// Devices that support a per-effect brightness setting should provide the <see cref="Exo.Features.Lighting.ILightingBrightnessFeature" /> feature and use this brightness value as a default
 /// value for all standard effects that are assigned without a brightness. (e.g. <see cref="StaticColorEffect"/>)
 /// Obviously, the brightness expressed in <see cref="BrightnessLevel"/> would be expressed in the same scale as the global brightness.
 /// </para>

@@ -4,7 +4,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Features;
-using Exo.Features.MonitorFeatures;
+using Exo.Features.Monitors;
 
 namespace Exo.Service;
 

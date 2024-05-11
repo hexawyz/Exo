@@ -1,4 +1,4 @@
-using Exo.Features;
+using Exo.Features.Sensors;
 
 namespace Exo.Service;
 

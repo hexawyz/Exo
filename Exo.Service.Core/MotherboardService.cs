@@ -1,6 +1,5 @@
-using System.Runtime.CompilerServices;
 using Exo.Features;
-using Exo.I2C;
+using Exo.Features.Motherboards;
 using Exo.SystemManagementBus;
 
 namespace Exo.Service;

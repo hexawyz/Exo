@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace Exo.Features.MouseFeatures;
+namespace Exo.Features.Mouses;
 
 /// <summary>Mouse devices can report their DPI here.</summary>
 /// <remarks>

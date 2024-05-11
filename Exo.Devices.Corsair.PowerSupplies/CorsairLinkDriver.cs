@@ -6,6 +6,7 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.Sensors;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 

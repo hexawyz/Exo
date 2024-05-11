@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
 using Exo.Features;
-using Exo.Features.LightingFeatures;
+using Exo.Features.Lighting;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;

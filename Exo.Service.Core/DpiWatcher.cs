@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Exo.Features;
-using Exo.Features.MouseFeatures;
+using Exo.Features.Mouses;
 
 namespace Exo.Service;
 

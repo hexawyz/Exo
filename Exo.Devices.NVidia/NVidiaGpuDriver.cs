@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
@@ -7,7 +6,8 @@ using DeviceTools.DisplayDevices;
 using Exo.ColorFormats;
 using Exo.Discovery;
 using Exo.Features;
-using Exo.Features.LightingFeatures;
+using Exo.Features.Lighting;
+using Exo.Features.Sensors;
 using Exo.I2C;
 using Exo.Lighting;
 using Exo.Sensors;

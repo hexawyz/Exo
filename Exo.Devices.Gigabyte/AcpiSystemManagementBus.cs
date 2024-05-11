@@ -2,7 +2,7 @@ using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Firmware.Uefi;
-using Exo.Features;
+using Exo.Features.Motherboards;
 using Exo.SystemManagementBus;
 using Microsoft.Management.Infrastructure;
 

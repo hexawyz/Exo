@@ -1,4 +1,4 @@
-using Exo.Features.LightingFeatures;
+using Exo.Features.Lighting;
 using Exo.Lighting;
 using Exo.Features;
 using Exo.Discovery;

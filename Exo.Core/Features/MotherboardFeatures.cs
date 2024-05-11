@@ -1,6 +1,6 @@
 using Exo.SystemManagementBus;
 
-namespace Exo.Features;
+namespace Exo.Features.Motherboards;
 
 /// <summary>A feature exposed by motherboard devices, allowing access to the main SMBus.</summary>
 /// <remarks>

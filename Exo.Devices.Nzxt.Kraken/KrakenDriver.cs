@@ -4,9 +4,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
-using Exo.Features.MonitorFeatures;
+using Exo.Features.Cooling;
+using Exo.Features.Monitors;
+using Exo.Features.Sensors;
 using Exo.Images;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
@@ -22,6 +25,7 @@ public class KrakenDriver :
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature,
 	IDeviceDriver<ICoolingDeviceFeature>,
+	ICoolingControllerFeature,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IEmbeddedMonitorInformationFeature,
 	IMonitorBrightnessFeature
@@ -29,6 +33,9 @@ public class KrakenDriver :
 	private static readonly Guid LiquidTemperatureSensorId = new(0x8E880DE1, 0x2A45, 0x400D, 0xA9, 0x0F, 0x42, 0xE8, 0x9B, 0xF9, 0x50, 0xDB);
 	private static readonly Guid PumpSpeedSensorId = new(0x3A2F0F14, 0x3957, 0x400E, 0x8B, 0x6C, 0xCB, 0x02, 0x5B, 0x89, 0x15, 0x06);
 	private static readonly Guid FanSpeedSensorId = new(0xFDC93D5B, 0xEDE3, 0x4774, 0x96, 0xEC, 0xC4, 0xFD, 0xB1, 0xC1, 0xDE, 0xBC);
+
+	private static readonly Guid FanCoolerId = new(0x5A0FE6F5, 0xB7D1, 0x46E4, 0xA5, 0x12, 0x82, 0x72, 0x6E, 0x95, 0x35, 0xC4);
+	private static readonly Guid PumpCoolerId = new(0x2A57C838, 0xCD58, 0x4D6C, 0xAF, 0x9E, 0xF5, 0xBD, 0xDD, 0x6F, 0xB9, 0x92);
 
 	private const int NzxtVendorId = 0x1E71;
 
@@ -112,6 +119,7 @@ public class KrakenDriver :
 
 	private readonly KrakenHidTransport _transport;
 	private readonly ISensor[] _sensors;
+	private readonly ICooler[] _coolers;
 	private readonly ILogger<KrakenDriver> _logger;
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
@@ -130,6 +138,7 @@ public class KrakenDriver :
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
+	ImmutableArray<ICooler> ICoolingControllerFeature.Coolers => ImmutableCollectionsMarshal.AsImmutableArray(_coolers);
 
 	MonitorShape IEmbeddedMonitorInformationFeature.Shape => MonitorShape.Circle;
 
@@ -158,6 +167,7 @@ public class KrakenDriver :
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
+		_coolers = [new PumpCooler(), new FanCooler()];
 		_genericFeatures = ConfigurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
@@ -213,6 +223,8 @@ public class KrakenDriver :
 
 		return ValueTask.CompletedTask;
 	}
+
+	ValueTask ICoolingControllerFeature.ApplyChangesAsync() => throw new NotImplementedException();
 
 	private abstract class Sensor
 	{
@@ -285,5 +297,37 @@ public class KrakenDriver :
 		public FanSpeedSensor(KrakenDriver driver) : base(driver) { }
 
 		protected override ushort ReadValue(KrakenReadings readings) => readings.FanSpeed;
+	}
+
+	private sealed class FanCooler : ICooler, IManualCooler
+	{
+		public Guid CoolerId => FanCoolerId;
+		public CoolerType Type => CoolerType.Fan;
+
+		public Guid? SpeedSensorId => FanSpeedSensorId;
+		public CoolingMode CoolingMode => CoolingMode.Manual;
+
+		public byte SetPower(byte power) => throw new NotImplementedException();
+		public bool TryGetPower(out byte power) => throw new NotImplementedException();
+
+		public byte MinimumPower => 0;
+		public byte MaximumPower => 100;
+		public bool CanSwitchOff => true;
+	}
+
+	private sealed class PumpCooler : ICooler, IManualCooler
+	{
+		public Guid CoolerId => PumpCoolerId;
+		public CoolerType Type => CoolerType.Pump;
+
+		public Guid? SpeedSensorId => PumpSpeedSensorId;
+		public CoolingMode CoolingMode => CoolingMode.Manual;
+
+		public byte SetPower(byte power) => throw new NotImplementedException();
+		public bool TryGetPower(out byte power) => throw new NotImplementedException();
+
+		public byte MinimumPower => 0;
+		public byte MaximumPower => 100;
+		public bool CanSwitchOff => true;
 	}
 }

@@ -8,8 +8,8 @@ using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
+using Exo.Features.Sensors;
 using Exo.Sensors;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;

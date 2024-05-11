@@ -1,5 +1,5 @@
 using Exo.Features;
-using Exo.Features.KeyboardFeatures;
+using Exo.Features.Keyboards;
 
 namespace Exo.Service;
 

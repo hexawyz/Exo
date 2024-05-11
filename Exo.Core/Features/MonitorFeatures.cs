@@ -3,7 +3,7 @@ using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Images;
 
-namespace Exo.Features.MonitorFeatures;
+namespace Exo.Features.Monitors;
 
 /// <summary>This feature allows to retrieve the raw capabilities of the monitor, as cached by the driver.</summary>
 public interface IMonitorRawCapabilitiesFeature : IMonitorDeviceFeature
