@@ -151,7 +151,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Eaton.Ups", "Ex
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Utils", "Exo.Utils\Exo.Utils.csproj", "{AF05C6AA-2C2B-4B46-BC2D-BB4436B432B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Nzxt.Kraken", "Exo.Devices.Nzxt.Kraken\Exo.Devices.Nzxt.Kraken.csproj", "{5C67F6F0-A3EF-4705-9641-B4449C1AA65B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Nzxt.Kraken", "Exo.Devices.Nzxt.Kraken\Exo.Devices.Nzxt.Kraken.csproj", "{5C67F6F0-A3EF-4705-9641-B4449C1AA65B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Core.Tests", "Exo.Core.Tests\Exo.Core.Tests.csproj", "{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1053,6 +1055,22 @@ Global
 		{5C67F6F0-A3EF-4705-9641-B4449C1AA65B}.Release|x64.Build.0 = Release|Any CPU
 		{5C67F6F0-A3EF-4705-9641-B4449C1AA65B}.Release|x86.ActiveCfg = Release|Any CPU
 		{5C67F6F0-A3EF-4705-9641-B4449C1AA65B}.Release|x86.Build.0 = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|arm64.Build.0 = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|x64.Build.0 = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Debug|x86.Build.0 = Debug|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|arm64.ActiveCfg = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|arm64.Build.0 = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|x64.ActiveCfg = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|x64.Build.0 = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|x86.ActiveCfg = Release|Any CPU
+		{34CB46DF-712C-4FAA-8352-CD097AC6AEAE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

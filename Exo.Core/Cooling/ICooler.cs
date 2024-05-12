@@ -64,9 +64,6 @@ public interface IConfigurableCooler
 	/// </para>
 	/// </remarks>
 	byte MinimumPower { get; }
-	/// <summary>Gets the maximum power that can be assigned to a cooler.</summary>
-	/// <remarks>This value will usually be 100.</remarks>
-	byte MaximumPower { get; }
 	/// <summary>Gets a value indicating if this cooler can be switched off.</summary>
 	/// <remarks>When this value is <see langword="true"/>, the cooler can be switched off by setting the power to <c>0</c>.</remarks>
 	bool CanSwitchOff { get; }

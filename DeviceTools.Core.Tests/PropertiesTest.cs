@@ -12,7 +12,7 @@ public class PropertiesTest
 				t => t.GetFields().Where(f => typeof(Property).IsAssignableFrom(f.FieldType)),
 				(t, f) =>
 				(
-					Name: t.FullName!.Substring(t.Namespace!.Length + 1).Replace("+", ".") + "." + f.Name,
+					Name: t.FullName!.Substring(t.Namespace!.Length + ".Properties.".Length).Replace("+", ".") + "." + f.Name,
 					Property: (Property)f.GetValue(null)!
 				)
 			);
@@ -24,9 +24,14 @@ public class PropertiesTest
 
 	[Theory]
 	[MemberData(nameof(AllPropertiesData))]
-	public void CanonicalNameShouldMatchTypeName(string name, Property property)
+	public void NameShouldMatchTypeName(string name, Property property)
 	{
-		Assert.Equal(property.Key.GetCanonicalName(), name);
+		if (property.Key.GetCanonicalName() is string canonicalName)
+		{
+			Assert.Equal(canonicalName, name);
+		}
+		Assert.True(property.Key.TryGetKnownName(out string? knownName));
+		Assert.Equal(knownName, name);
 	}
 
 	// Not really a test, but useful to generate an export of all properties.
