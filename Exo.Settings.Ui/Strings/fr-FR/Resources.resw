@@ -120,7 +120,7 @@
   <data name="CoolerCoolingMode.Text" xml:space="preserve">
     <value>Mode</value>
   </data>
-  <data name="CoolerCurrentSpeed.Text" xml:space="preserve">
+  <data name="CoolerCurrentSpeed.ToolTipService.ToolTip" xml:space="preserve">
     <value>Vitesse actuelle</value>
   </data>
   <data name="CustomMenuAddNewItemButton.Label" xml:space="preserve">

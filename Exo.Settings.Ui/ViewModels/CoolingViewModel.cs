@@ -444,6 +444,14 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		Device = device;
 		_coolerInformation = coolerInformation;
 		_coolingModes = GetCoolingModes(coolerInformation.SupportedCoolingModes);
+		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Automatic) != 0)
+		{
+			_currentCoolingMode = _initialCoolingMode = LogicalCoolingMode.Automatic;
+		}
+		else if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
+		{
+			_currentCoolingMode = _initialCoolingMode = LogicalCoolingMode.Fixed;
+		}
 		_speedSensor = speedSensor;
 		_resetCommand = new(this);
 	}
@@ -465,12 +473,32 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 	{
 		var oldInfo = _coolerInformation;
 		_coolerInformation = information;
-		// TODO: Synchronize cooling modes.
-		_initialCoolingMode = default;
 		if (oldInfo.SupportedCoolingModes != information.SupportedCoolingModes)
 		{
 			SetValue(ref _coolingModes, GetCoolingModes(information.SupportedCoolingModes), ChangedProperty.CoolingModes);
 		}
+		// TODO: Synchronize cooling modes.
+		bool wasChanged = IsChanged;
+		var oldInitialCoolingMode = _initialCoolingMode;
+		LogicalCoolingMode defaultInitialCoolingMode = 0;
+		if ((information.SupportedCoolingModes & RawCoolingModes.Automatic) != 0)
+		{
+			defaultInitialCoolingMode = LogicalCoolingMode.Automatic;
+		}
+		else if ((information.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
+		{
+			defaultInitialCoolingMode = LogicalCoolingMode.Fixed;
+		}
+		// TODO: Restrain the initial cooling mode to one of the supported ones instead of enforcing it to the minimum supported value.
+		if (oldInitialCoolingMode != defaultInitialCoolingMode)
+		{
+			_initialCoolingMode = defaultInitialCoolingMode;
+			if (_currentCoolingMode == oldInitialCoolingMode)
+			{
+				CurrentCoolingMode = _initialCoolingMode;
+			}
+		}
+		OnChangeStateChange(wasChanged);
 	}
 
 	public void SetOffline()
