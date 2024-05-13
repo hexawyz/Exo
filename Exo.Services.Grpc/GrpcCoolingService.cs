@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
+using Exo.Contracts.Ui.Settings.Cooling;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
@@ -30,4 +31,9 @@ internal sealed class GrpcCoolingService : ICoolingService
 			_logger.GrpcCoolingServiceDeviceWatchStop();
 		}
 	}
+
+	public IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public ValueTask SetAutomaticCoolingAsync(AutomaticCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public ValueTask SetFixedCoolingAsync(FixedCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public ValueTask SetSoftwareControlCurveCoolingAsync(SoftwareCurveCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
 }

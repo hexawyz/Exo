@@ -31,10 +31,39 @@
                                             <TextBlock Text="{Binding DisplayName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
                                         </StackPanel>
                                     </Expander.Header>
-                                    <StackPanel Orientation="Horizontal" Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}">
-                                        <TextBlock Text="Current Speed: " />
-                                        <TextBlock Margin="6,0,0,0" Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
-                                    </StackPanel>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            x:Uid="CoolerCurrentSpeed"
+                                            Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Margin="6,0,0,0"
+                                            Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                                            Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
+                                        <TextBlock Grid.Row="1" Grid.Column="0" x:Uid="CoolerCoolingMode" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
+                                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding CoolingModes}" SelectedItem="{Binding CurrentCoolingMode, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <Button Grid.Row="1" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+                                            <FontIcon Glyph="&#xE777;" />
+                                        </Button>
+                                    </Grid>
                                 </Expander>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

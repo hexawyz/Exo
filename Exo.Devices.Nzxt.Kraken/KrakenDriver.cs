@@ -400,9 +400,10 @@ public class KrakenDriver :
 		public Guid? SpeedSensorId => PumpSpeedSensorId;
 		public CoolingMode CoolingMode => CoolingMode.Manual;
 
-		public byte MinimumPower => 0;
+		// NB: From testing, the speed starts increasing at 32%, and the effective minimum speed seems to map to about 41% of the maximum. (~1150 RPM / ~2800 RPM)
+		public byte MinimumPower => 30;
 		public byte MaximumPower => 100;
-		public bool CanSwitchOff => true;
+		public bool CanSwitchOff => false;
 
 		public void SetPower(byte power)
 		{

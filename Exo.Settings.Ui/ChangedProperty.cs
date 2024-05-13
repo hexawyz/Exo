@@ -31,6 +31,8 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs LiveDetails = new(nameof(LiveDetails));
 	public static readonly PropertyChangedEventArgs CurrentValue = new(nameof(CurrentValue));
 	public static readonly PropertyChangedEventArgs SpeedSensor = new(nameof(SpeedSensor));
+	public static readonly PropertyChangedEventArgs CoolingModes = new(nameof(CoolingModes));
+	public static readonly PropertyChangedEventArgs CurrentCoolingMode = new(nameof(CurrentCoolingMode));
 	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
 	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
 	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));

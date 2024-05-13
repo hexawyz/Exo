@@ -2,9 +2,11 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using RawCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -370,22 +372,80 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 	}
 }
 
-internal sealed class CoolerViewModel : BindableObject
+internal sealed class CoolerViewModel : ChangeableBindableObject
 {
+	private static class Commands
+	{
+		public sealed class ResetCommand : ICommand
+		{
+			public event EventHandler? CanExecuteChanged;
+
+			public ResetCommand(CoolerViewModel cooler) { }
+
+			public bool CanExecute(object? parameter) => parameter is CoolerViewModel;
+			public void Execute(object? parameter) { }
+
+			internal void OnChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
+
+	// Preallocated cooling modes collections for the few possible scenarios. (NB: Manual mode always implies fixed and software curve)
+	private static readonly ReadOnlyCollection<LogicalCoolingMode> CoolingModesAutomaticOnly = Array.AsReadOnly([LogicalCoolingMode.Automatic]);
+	private static readonly ReadOnlyCollection<LogicalCoolingMode> CoolingModesManualOnly = Array.AsReadOnly([LogicalCoolingMode.Fixed, LogicalCoolingMode.SoftwareControlCurve]);
+	private static readonly ReadOnlyCollection<LogicalCoolingMode> CoolingModesAutomaticOrManual = Array.AsReadOnly([LogicalCoolingMode.Automatic, LogicalCoolingMode.Fixed, LogicalCoolingMode.SoftwareControlCurve]);
+
+	// This filters on supported modes. Obviously, the logic should be adapted to support logic modes, but we don't want to break the UI when a new unsupported mode is added.
+	private static ReadOnlyCollection<LogicalCoolingMode> GetCoolingModes(RawCoolingModes coolingModes)
+		=> (coolingModes & (RawCoolingModes.Automatic | RawCoolingModes.Manual)) switch
+		{
+			RawCoolingModes.Automatic => CoolingModesAutomaticOnly,
+			RawCoolingModes.Manual => CoolingModesManualOnly,
+			RawCoolingModes.Automatic | RawCoolingModes.Manual => CoolingModesAutomaticOrManual,
+			_ => ReadOnlyCollection<LogicalCoolingMode>.Empty,
+		};
+
 	public CoolingDeviceViewModel Device { get; }
+	private ReadOnlyCollection<LogicalCoolingMode> _coolingModes;
+
 	private CoolerInformation _coolerInformation;
 	private SensorViewModel? _speedSensor;
 	private bool _isExpanded;
+
+	private LogicalCoolingMode _initialCoolingMode;
+	private LogicalCoolingMode _currentCoolingMode;
+
+	private readonly Commands.ResetCommand _resetCommand;
+
+	public override bool IsChanged => _initialCoolingMode != _currentCoolingMode;
 
 	public Guid Id => _coolerInformation.CoolerId;
 	public Guid? SpeedSensorId => _coolerInformation.SpeedSensorId;
 	public SensorViewModel? SpeedSensor => _speedSensor;
 
+	public ReadOnlyCollection<LogicalCoolingMode> CoolingModes => _coolingModes;
+
+	public LogicalCoolingMode CurrentCoolingMode
+	{
+		get => _currentCoolingMode;
+		set
+		{
+			bool wasChanged = IsChanged;
+			if (SetValue(ref _currentCoolingMode, value, ChangedProperty.CoolingModes))
+			{
+				OnChangeStateChange(wasChanged);
+			}
+		}
+	}
+
+	public ICommand ResetCommand => _resetCommand;
+
 	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorViewModel? speedSensor)
 	{
 		Device = device;
 		_coolerInformation = coolerInformation;
+		_coolingModes = GetCoolingModes(coolerInformation.SupportedCoolingModes);
 		_speedSensor = speedSensor;
+		_resetCommand = new(this);
 	}
 
 	public string DisplayName => CoolerDatabase.GetCoolerDisplayName(_coolerInformation.CoolerId) ?? string.Create(CultureInfo.InvariantCulture, $"Cooler {_coolerInformation.CoolerId:B}.");
@@ -405,6 +465,12 @@ internal sealed class CoolerViewModel : BindableObject
 	{
 		var oldInfo = _coolerInformation;
 		_coolerInformation = information;
+		// TODO: Synchronize cooling modes.
+		_initialCoolingMode = default;
+		if (oldInfo.SupportedCoolingModes != information.SupportedCoolingModes)
+		{
+			SetValue(ref _coolingModes, GetCoolingModes(information.SupportedCoolingModes), ChangedProperty.CoolingModes);
+		}
 	}
 
 	public void SetOffline()
@@ -426,4 +492,18 @@ internal sealed class CoolerViewModel : BindableObject
 	{
 		SetValue(ref _speedSensor, null, ChangedProperty.SpeedSensor);
 	}
+
+	protected override void OnChanged()
+	{
+		_resetCommand.OnChanged();
+		base.OnChanged();
+	}
+}
+
+public enum LogicalCoolingMode
+{
+	Automatic = 0,
+	Fixed = 1,
+	SoftwareControlCurve = 2,
+	HardwareControlCurve = 3,
 }

@@ -11,6 +11,7 @@ internal sealed class StringResourceConverter : IValueConverter
 	{
 		try
 		{
+			if (value is Enum) value = value.ToString()!;
 			return value is string name ?
 				ResourceManager.MainResourceMap.GetValue(parameter is string directory ? $"{directory}/{name}" : name).ValueAsString :
 				null;
