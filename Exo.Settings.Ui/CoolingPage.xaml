@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Exo.Settings.Ui.CoolingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+
+    <ItemsControl ItemsSource="{Binding Cooling.Devices}">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsAvailable, Mode=OneWay}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
+                            <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <!-- NB: The MinHeight compensates for a bug where the ItemsView would somehow not show for the second device (?) -->
+                    <ItemsControl ItemsSource="{Binding Coolers}" MinHeight="1">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <FontIcon Glyph="&#xE9CA;" />
+                                            <TextBlock Text="{Binding DisplayName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}">
+                                        <TextBlock Text="Current Speed: " />
+                                        <TextBlock Margin="6,0,0,0" Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
+                                    </StackPanel>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Expander>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</Page>

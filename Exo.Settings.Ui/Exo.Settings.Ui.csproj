@@ -22,6 +22,7 @@
 	
   <ItemGroup>
     <None Remove="Controls\LineChart.xaml" />
+    <None Remove="CoolingPage.xaml" />
     <None Remove="CustomMenuPage.xaml" />
     <None Remove="DataTemplates.xaml" />
     <None Remove="DevicePage.xaml" />
@@ -75,6 +76,11 @@
 		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
   </ItemGroup>
 	
+  <ItemGroup>
+    <Page Update="CoolingPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
   <ItemGroup>
     <Page Update="HomePage.xaml">
       <Generator>MSBuild:Compile</Generator>

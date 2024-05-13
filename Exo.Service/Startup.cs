@@ -99,6 +99,17 @@ public class Startup
 				default
 			).GetAwaiter().GetResult()
 		);
+		services.AddSingleton
+		(
+			sp => CoolingService.CreateAsync
+			(
+				sp.GetRequiredService<ILoggerFactory>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
+				sp.GetRequiredService<SensorService>(),
+				sp.GetRequiredService<IDeviceWatcher>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<ImageService>();
 		services.AddSingleton
 		(
@@ -169,6 +180,7 @@ public class Startup
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcSensorService>();
+		services.AddSingleton<GrpcCoolingService>();
 		services.AddSingleton<GrpcMouseService>();
 		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
@@ -206,6 +218,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcSensorService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcCoolingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);

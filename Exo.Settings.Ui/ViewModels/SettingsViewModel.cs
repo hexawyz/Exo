@@ -49,6 +49,7 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
+	private readonly CoolingViewModel _coolingViewModel;
 	private readonly ProgrammingViewModel _programmingViewModel;
 	private readonly CustomMenuViewModel _customMenuViewModel;
 
@@ -67,6 +68,7 @@ internal sealed class SettingsViewModel : BindableObject
 	public PageViewModel DevicesPage { get; }
 	public PageViewModel LightingPage { get; }
 	public PageViewModel SensorsPage { get; }
+	public PageViewModel CoolingPage { get; }
 	public PageViewModel CustomMenuPage { get; }
 	public PageViewModel ProgrammingPage { get; }
 
@@ -99,6 +101,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_devicesViewModel = new(ConnectionManager, _navigateCommand);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _editionService);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel);
+		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel);
 		_programmingViewModel = new(ConnectionManager);
 		_customMenuViewModel = new();
 		_navigationStack = new();
@@ -106,15 +109,17 @@ internal sealed class SettingsViewModel : BindableObject
 		DevicesPage = new("Devices", "\uE772");
 		LightingPage = new("Lighting", "\uE781");
 		SensorsPage = new("Sensors", "\uE9D9");
+		CoolingPage = new("Cooling", "\uE9CA");
 		CustomMenuPage = new("CustomMenu", "\uEDE3");
 		ProgrammingPage = new("Programming", "\uE943");
-		NavigationPages = [HomePage, DevicesPage, LightingPage, SensorsPage, CustomMenuPage, ProgrammingPage];
+		NavigationPages = [HomePage, DevicesPage, LightingPage, SensorsPage, CoolingPage, CustomMenuPage, ProgrammingPage];
 		SelectedNavigationPage = HomePage;
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
 	public SensorsViewModel Sensors => _sensorsViewModel;
+	public CoolingViewModel Cooling => _coolingViewModel;
 	public ProgrammingViewModel Programming => _programmingViewModel;
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;

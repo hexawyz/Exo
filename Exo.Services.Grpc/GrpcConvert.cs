@@ -6,11 +6,16 @@ using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
+using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
+using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
+using GrpcCoolerType = Exo.Contracts.Ui.Settings.CoolerType;
+using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
+using Exo.Cooling;
 
 namespace Exo.Service.Grpc;
 
@@ -60,6 +65,33 @@ internal static class GrpcConvert
 			ScaleMinimumValue = sensorInformation.ScaleMinimumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMinimumValue) : null,
 			ScaleMaximumValue = sensorInformation.ScaleMaximumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMaximumValue) : null,
 		};
+
+	public static GrpcCoolingDeviceInformation ToGrpc(this CoolingDeviceInformation coolingDeviceInformation)
+		=> new()
+		{
+			DeviceId = coolingDeviceInformation.DeviceId,
+			Coolers = ImmutableArray.CreateRange(coolingDeviceInformation.Coolers, ToGrpc),
+		};
+
+	public static GrpcCoolerInformation ToGrpc(this CoolerInformation coolerInformation)
+		=> new()
+		{
+			CoolerId = coolerInformation.CoolerId,
+			SpeedSensorId = coolerInformation.SpeedSensorId,
+			Type = coolerInformation.Type.ToGrpc(),
+			SupportedCoolingModes = coolerInformation.SupportedCoolingModes.ToGrpc(),
+		};
+
+	public static GrpcCoolerType ToGrpc(this CoolerType coolerType)
+		=> coolerType switch
+		{
+			CoolerType.Other => GrpcCoolerType.Other,
+			CoolerType.Fan => GrpcCoolerType.Fan,
+			CoolerType.Pump => GrpcCoolerType.Pump,
+			_ => GrpcCoolerType.Other,
+		};
+
+	public static GrpcCoolingModes ToGrpc(this CoolingModes coolingModes) => (GrpcCoolingModes)(int)coolingModes;
 
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)
 		=> notificationKind switch

@@ -74,4 +74,10 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 10_602, EventName = "GrpcMonitorServiceSettingWatchStop", Level = LogLevel.Debug, Message = "Stopped watching monitor setting changes.")]
 	public static partial void GrpcMonitorServiceSettingWatchStop(this ILogger logger);
 
+	[LoggerMessage(EventId = 10_701, EventName = "GrpcCoolingServiceDeviceWatchStart", Level = LogLevel.Debug, Message = "Started watching cooling devices.")]
+	public static partial void GrpcCoolingServiceDeviceWatchStart(this ILogger logger);
+
+	[LoggerMessage(EventId = 10_702, EventName = "GrpcCoolingServiceDeviceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching cooling devices.")]
+	public static partial void GrpcCoolingServiceDeviceWatchStop(this ILogger logger);
+
 }

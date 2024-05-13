@@ -2,7 +2,7 @@ using Exo.Configuration;
 
 namespace Exo.Service;
 
-public sealed partial class SensorService
+internal sealed partial class SensorService
 {
 	private sealed class DeviceState
 	{

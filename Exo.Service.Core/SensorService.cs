@@ -21,7 +21,7 @@ namespace Exo.Service;
 // Of course, this implied that starting or stopping to watch sensors requires a specific setup, but the watch operations should be efficient once running.
 // Also of importance, it is built in a way so that slower or buggy drivers will not negatively impact the readings of other drivers.
 // NB: To reduce clutter, most subtypes are located in other SensorService.*.cs files.
-public sealed partial class SensorService
+internal sealed partial class SensorService
 {
 	// Defaults to polling sensors once every second at most, as this seem to be a relatively standard way of doing.
 	public const int PollingIntervalInMilliseconds = 1_000;
@@ -349,93 +349,106 @@ public sealed partial class SensorService
 		var sensorFeatures = (IDeviceFeatureSet<ISensorDeviceFeature>)notification.FeatureSet!;
 		sensors = sensorFeatures.GetFeature<ISensorsFeature>() is { } sensorsFeature ? sensorsFeature.Sensors : [];
 		var groupedQueryState = sensorFeatures.GetFeature<ISensorsGroupedQueryFeature>() is { } groupedQueryFeature ? new GroupedQueryState(this, groupedQueryFeature, sensors.Length) : null;
-		var sensorInfos = new SensorInformation[sensors.Length];
 
-		var sensorStates = new Dictionary<Guid, SensorState>();
-		var addedSensorInfosById = new Dictionary<Guid, SensorInformation>();
-		for (int i = 0; i < sensors.Length; i++)
+		try
 		{
-			var sensor = sensors[i];
-			if (!sensorStates.TryAdd(sensor.SensorId, SensorState.Create(_sensorStateLogger, this, groupedQueryState, sensor)))
+			var sensorInfos = new SensorInformation[sensors.Length];
+			var sensorStates = new Dictionary<Guid, SensorState>();
+			var addedSensorInfosById = new Dictionary<Guid, SensorInformation>();
+			for (int i = 0; i < sensors.Length; i++)
 			{
-				// We ignore all sensors and discard the device if there is a duplicate ID.
-				// TODO: Log an error.
-				sensorInfos = [];
-				sensorStates.Clear();
-				break;
-			}
-			var info = BuildSensorInformation(sensor);
-			addedSensorInfosById.Add(info.SensorId, info);
-			sensorInfos[i] = info;
-		}
-
-		if (sensorInfos.Length == 0)
-		{
-			if (_deviceStates.TryRemove(notification.DeviceInformation.Id, out var state))
-			{
-				await state.SensorsConfigurationContainer.DeleteAllContainersAsync().ConfigureAwait(false);
-			}
-		}
-		else
-		{
-			IConfigurationContainer<Guid> sensorsContainer;
-			if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var state))
-			{
-				var deviceContainer = _devicesConfigurationContainer.GetContainer(notification.DeviceInformation.Id);
-				sensorsContainer = deviceContainer.GetContainer(SensorsConfigurationContainerName, GuidNameSerializer.Instance);
-
-				// For sanity, remove the pre-existing sensor containers, although there should be none initially.
-				await sensorsContainer.DeleteAllContainersAsync().ConfigureAwait(false);
-				foreach (var info in sensorInfos)
+				var sensor = sensors[i];
+				if (!sensorStates.TryAdd(sensor.SensorId, SensorState.Create(_sensorStateLogger, this, groupedQueryState, sensor)))
 				{
-					await sensorsContainer.WriteValueAsync(info.SensorId, new PersistedSensorInformation(info), cancellationToken);
+					// We ignore all sensors and discard the device if there is a duplicate ID.
+					// TODO: Log an error.
+					sensorInfos = [];
+					sensorStates.Clear();
+					break;
 				}
+				var info = BuildSensorInformation(sensor);
+				addedSensorInfosById.Add(info.SensorId, info);
+				sensorInfos[i] = info;
+			}
 
-				state = new
-				(
-					deviceContainer,
-					sensorsContainer,
-					notification.DeviceInformation.IsAvailable,
-					new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
-					groupedQueryState,
-					sensorStates
-				);
+			if (sensorInfos.Length == 0)
+			{
+				if (_deviceStates.TryRemove(notification.DeviceInformation.Id, out var state))
+				{
+					await state.SensorsConfigurationContainer.DeleteAllContainersAsync().ConfigureAwait(false);
+				}
 			}
 			else
 			{
-				sensorsContainer = state.SensorsConfigurationContainer;
-
-				foreach (var previousInfo in state.Information.Sensors)
+				IConfigurationContainer<Guid> sensorsContainer;
+				if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var state))
 				{
-					// Remove all pre-existing sensor info from the dictionary that was build earlier so that only new entries remain in the end.
-					// Appropriate updates for previous sensors will be done depending on the result of that removal.
-					if (!addedSensorInfosById.Remove(previousInfo.SensorId, out var currentInfo))
+					var deviceContainer = _devicesConfigurationContainer.GetContainer(notification.DeviceInformation.Id);
+					sensorsContainer = deviceContainer.GetContainer(SensorsConfigurationContainerName, GuidNameSerializer.Instance);
+
+					// For sanity, remove the pre-existing sensor containers, although there should be none initially.
+					await sensorsContainer.DeleteAllContainersAsync().ConfigureAwait(false);
+					foreach (var info in sensorInfos)
 					{
-						// Remove existing sensor configuration if the sensor is not reported by the device anymore.
-						await sensorsContainer.DeleteValuesAsync(previousInfo.SensorId).ConfigureAwait(false);
+						await sensorsContainer.WriteValueAsync(info.SensorId, new PersistedSensorInformation(info), cancellationToken);
 					}
-					else if (currentInfo != previousInfo)
+
+					state = new
+					(
+						deviceContainer,
+						sensorsContainer,
+						notification.DeviceInformation.IsAvailable,
+						new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
+						groupedQueryState,
+						sensorStates
+					);
+
+					_deviceStates.TryAdd(notification.DeviceInformation.Id, state);
+				}
+				else
+				{
+					sensorsContainer = state.SensorsConfigurationContainer;
+
+					foreach (var previousInfo in state.Information.Sensors)
 					{
-						// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
+						// Remove all pre-existing sensor info from the dictionary that was build earlier so that only new entries remain in the end.
+						// Appropriate updates for previous sensors will be done depending on the result of that removal.
+						if (!addedSensorInfosById.Remove(previousInfo.SensorId, out var currentInfo))
+						{
+							// Remove existing sensor configuration if the sensor is not reported by the device anymore.
+							await sensorsContainer.DeleteValuesAsync(previousInfo.SensorId).ConfigureAwait(false);
+						}
+						else if (currentInfo != previousInfo)
+						{
+							// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
+							await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
+						}
+					}
+
+					// Finally, persist the information for the newly discovered sensors.
+					foreach (var currentInfo in addedSensorInfosById.Values)
+					{
 						await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
 					}
-				}
 
-				// Finally, persist the information for the newly discovered sensors.
-				foreach (var currentInfo in addedSensorInfosById.Values)
-				{
-					await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
+					using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+					{
+						state.Information = new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos));
+						state.GroupedQueryState = groupedQueryState;
+						state.SensorStates = sensorStates;
+						state.IsConnected = notification.DeviceInformation.IsAvailable;
+					}
 				}
-
-				using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-				{
-					state.Information = new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos));
-					state.GroupedQueryState = groupedQueryState;
-					state.SensorStates = sensorStates;
-					state.IsConnected = notification.DeviceInformation.IsAvailable;
-				}
+				_changeListeners.TryWrite(state.Information);
 			}
-			_changeListeners.TryWrite(state.Information);
+		}
+		catch (Exception)
+		{
+			if (groupedQueryState is not null)
+			{
+				await groupedQueryState.DisposeAsync().ConfigureAwait(false);
+			}
+			throw;
 		}
 	}
 

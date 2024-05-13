@@ -1,6 +1,6 @@
 namespace Exo.Service;
 
-public record struct SensorInformation
+internal record struct SensorInformation
 {
 	public SensorInformation(Guid sensorId, SensorDataType dataType, string unit, bool isPolled, object? scaleMinimumValue, object? scaleMaximumValue)
 	{

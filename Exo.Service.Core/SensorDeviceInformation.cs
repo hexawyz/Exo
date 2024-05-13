@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace Exo.Service;
 
-public readonly struct SensorDeviceInformation : IEquatable<SensorDeviceInformation>
+internal readonly struct SensorDeviceInformation : IEquatable<SensorDeviceInformation>
 {
 	public SensorDeviceInformation(Guid deviceId, ImmutableArray<SensorInformation> sensors)
 	{

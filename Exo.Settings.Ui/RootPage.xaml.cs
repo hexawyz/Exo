@@ -130,6 +130,9 @@ internal sealed partial class RootPage : Page
 			case "Sensors":
 				type = typeof(SensorsPage);
 				break;
+			case "Cooling":
+				type = typeof(CoolingPage);
+				break;
 			case "CustomMenu":
 				type = typeof(CustomMenuPage);
 				break;

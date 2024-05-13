@@ -432,9 +432,7 @@ public sealed class CorsairLinkDriver :
 		}
 	}
 
-	ValueTask ICoolingControllerFeature.ApplyChangesAsync() => ApplyFanStatusChangesAsync(default);
-
-	private async ValueTask ApplyFanStatusChangesAsync(CancellationToken cancellationToken)
+	async ValueTask ICoolingControllerFeature.ApplyChangesAsync(CancellationToken cancellationToken)
 	{
 		ushort lastStatus = _lastFanStatus;
 		ushort currentStatus = _currentFanStatus;

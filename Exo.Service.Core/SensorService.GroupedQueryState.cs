@@ -2,7 +2,7 @@ using Exo.Features.Sensors;
 
 namespace Exo.Service;
 
-public sealed partial class SensorService
+internal sealed partial class SensorService
 {
 	// Manages the grouped polling of sensors for a device, based on the scheduler tick.
 	private sealed class GroupedQueryState : IAsyncDisposable

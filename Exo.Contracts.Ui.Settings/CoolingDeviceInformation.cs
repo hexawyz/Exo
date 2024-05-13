@@ -4,10 +4,10 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts.Ui.Settings;
 
 [DataContract]
-public sealed class SensorDeviceInformation
+public sealed class CoolingDeviceInformation
 {
 	[DataMember(Order = 1)]
 	public required Guid DeviceId { get; init; }
 	[DataMember(Order = 2)]
-	public required ImmutableArray<SensorInformation> Sensors { get; init; }
+	public required ImmutableArray<CoolerInformation> Coolers { get; init; }
 }

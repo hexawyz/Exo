@@ -229,18 +229,23 @@ public class KrakenDriver :
 		return ValueTask.CompletedTask;
 	}
 
-	async ValueTask ICoolingControllerFeature.ApplyChangesAsync()
+	async ValueTask ICoolingControllerFeature.ApplyChangesAsync(CancellationToken cancellationToken)
 	{
 		ValueTask pumpSetTask = ValueTask.CompletedTask;
 		ValueTask fanSetTask = ValueTask.CompletedTask;
 
-		if (_lastPumpSpeedTarget != _currentPumpSpeedTarget) pumpSetTask = UpdatePumpPowerAsync(_currentPumpSpeedTarget, default);
-		if (_lastFanSpeedTarget != _currentFanSpeedTarget) fanSetTask = UpdateFanPowerAsync(_currentFanSpeedTarget, default);
+		if (_lastPumpSpeedTarget != _currentPumpSpeedTarget) pumpSetTask = UpdatePumpPowerAsync(_currentPumpSpeedTarget, cancellationToken);
+		if (_lastFanSpeedTarget != _currentFanSpeedTarget) fanSetTask = UpdateFanPowerAsync(_currentFanSpeedTarget, cancellationToken);
 
 		List<Exception>? exceptions = null;
+		bool operationCanceled = false;
 		try
 		{
 			await pumpSetTask.ConfigureAwait(false);
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			operationCanceled = true;
 		}
 		catch (Exception ex)
 		{
@@ -250,6 +255,10 @@ public class KrakenDriver :
 		{
 			await fanSetTask.ConfigureAwait(false);
 		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			operationCanceled = true;
+		}
 		catch (Exception ex)
 		{
 			exceptions ??= new(1);
@@ -258,6 +267,10 @@ public class KrakenDriver :
 		if (exceptions is { Count: > 0 })
 		{
 			throw new AggregateException([.. exceptions]);
+		}
+		if (operationCanceled)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
 		}
 	}
 
