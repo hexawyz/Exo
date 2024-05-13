@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Reflection.PortableExecutable;
 
 namespace Exo.Service;
 
@@ -13,7 +11,7 @@ public interface IAssemblyLoader
 	///// <summary>Triggered before an assembly is to be unloaded.</summary>
 	///// <remarks>
 	///// There is no definite point in time when the assembly will be actually unloaded, but this event allows services to cut their references to this assembly if they still has some.
-	///// This way, the assembly has more chances to be succesfully unloaded.
+	///// This way, the assembly has more chances to be successfully unloaded.
 	///// </remarks>
 	//event EventHandler<AssemblyLoadEventArgs>? BeforeAssemblyUnload;
 
