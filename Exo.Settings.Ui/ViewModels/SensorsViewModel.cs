@@ -15,7 +15,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
-	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDeviceById;
+	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDevicesById;
 	private readonly Dictionary<Guid, SensorDeviceInformation> _pendingDeviceInformations;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
@@ -28,7 +28,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
 		_sensorDevices = new();
-		_sensorDeviceById = new();
+		_sensorDevicesById = new();
 		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
@@ -53,7 +53,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	void IConnectedState.Reset()
 	{
-		_sensorDeviceById.Clear();
+		_sensorDevicesById.Clear();
 		_pendingDeviceInformations.Clear();
 
 		foreach (var device in _sensorDevices)
@@ -72,7 +72,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 			var sensorService = await _connectionManager.GetSensorServiceAsync(cancellationToken);
 			await foreach (var info in sensorService.WatchSensorDevicesAsync(cancellationToken))
 			{
-				if (_sensorDeviceById.TryGetValue(info.DeviceId, out var vm))
+				if (_sensorDevicesById.TryGetValue(info.DeviceId, out var vm))
 				{
 					OnDeviceChanged(vm, info);
 				}
@@ -127,7 +127,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 	{
 		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation);
 		_sensorDevices.Add(vm);
-		_sensorDeviceById[vm.Id] = vm;
+		_sensorDevicesById[vm.Id] = vm;
 	}
 
 	private void OnDeviceChanged(SensorDeviceViewModel viewModel, SensorDeviceInformation sensorDeviceInformation)
@@ -143,7 +143,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 			if (_sensorDevices[i].Id == deviceId)
 			{
 				_sensorDevices.RemoveAt(i);
-				_sensorDeviceById.Remove(vm.Id);
+				_sensorDevicesById.Remove(vm.Id);
 				break;
 			}
 		}
@@ -151,6 +151,12 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	public Task<ISensorService> GetSensorServiceAsync(CancellationToken cancellationToken)
 		=> _connectionManager.GetSensorServiceAsync(cancellationToken);
+
+	public SensorDeviceViewModel? GetDevice(Guid deviceId)
+	{
+		_sensorDevicesById.TryGetValue(deviceId, out var device);
+		return device;
+	}
 }
 
 internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
@@ -282,6 +288,12 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		{
 			sensor.SetOffline();
 		}
+	}
+
+	public SensorViewModel? GetSensor(Guid sensorId)
+	{
+		_sensorsById.TryGetValue(sensorId, out var sensor);
+		return sensor;
 	}
 }
 
@@ -456,7 +468,10 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 						if (endIndex >= _dataPoints.Length)
 						{
 							_currentPointIndex = endIndex - _dataPoints.Length;
-							Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
+							if (_currentPointIndex > 0)
+							{
+								Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
+							}
 						}
 						else
 						{

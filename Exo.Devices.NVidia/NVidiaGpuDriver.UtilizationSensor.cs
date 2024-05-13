@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Sensors;
 
@@ -22,7 +23,7 @@ public partial class NVidiaGpuDriver
 		public float? ScaleMaximumValue => 100;
 		public SensorUnit Unit => SensorUnit.Percent;
 
-		public async IAsyncEnumerable<SensorDataPoint<float>> EnumerateValuesAsync(CancellationToken cancellationToken)
+		public async IAsyncEnumerable<SensorDataPoint<float>> EnumerateValuesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 		{
 			var channel = Channel.CreateBounded<SensorDataPoint<float>>(SharedOptions.ChannelOptions);
 			if (Interlocked.CompareExchange(ref _listener, channel, null) is not null) throw new InvalidOperationException("An enumeration is already running.");
