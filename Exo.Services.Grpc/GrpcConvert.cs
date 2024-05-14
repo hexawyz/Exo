@@ -10,6 +10,7 @@ using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInfo
 using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
 using GrpcCoolerType = Exo.Contracts.Ui.Settings.CoolerType;
 using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
+using GrpcCoolerPowerLimits = Exo.Contracts.Ui.Settings.CoolerPowerLimits;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
@@ -80,6 +81,9 @@ internal static class GrpcConvert
 			SpeedSensorId = coolerInformation.SpeedSensorId,
 			Type = coolerInformation.Type.ToGrpc(),
 			SupportedCoolingModes = coolerInformation.SupportedCoolingModes.ToGrpc(),
+			PowerLimits = coolerInformation.PowerLimits is { } powerLimits ?
+				powerLimits.ToGrpc() :
+				null,
 		};
 
 	public static GrpcCoolerType ToGrpc(this CoolerType coolerType)
@@ -92,6 +96,13 @@ internal static class GrpcConvert
 		};
 
 	public static GrpcCoolingModes ToGrpc(this CoolingModes coolingModes) => (GrpcCoolingModes)(int)coolingModes;
+
+	public static GrpcCoolerPowerLimits ToGrpc(this CoolerPowerLimits powerLimits)
+		=> new()
+		{
+			MinimumPower = powerLimits.MinimumPower,
+			CanSwitchOff = powerLimits.CanSwitchOff,
+		};
 
 	public static GrpcWatchNotificationKind ToGrpc(this WatchNotificationKind notificationKind)
 		=> notificationKind switch

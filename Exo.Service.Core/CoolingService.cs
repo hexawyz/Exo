@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Cooling;
@@ -26,14 +28,42 @@ internal partial class CoolingService
 		public Guid? SensorId { get; }
 		public CoolerType Type { get; }
 		public CoolingModes SupportedCoolingModes { get; }
+		public CoolerPowerLimits? PowerLimits { get; }
 	}
 
-	// TODO: See if we want to persist the settings. This might conflict with plans for the programming service.
-	//[TypeId(0x55E60F25, 0x3544, 0x4E42, 0xA2, 0xE8, 0x8E, 0xCC, 0x5A, 0x0A, 0xE1, 0xE1)]
-	//private readonly struct PersistedCoolerConfiguration
-	//{
-	//	public CoolingMode CoolingMode { get; }
-	//}
+	// TODO: Write the persistance code.
+	// NB: After thinking about it, this shouldn't be an obstacle for the programming model to come later.
+	// The configuration that is set up at the service level will be considered as some kind of default non-programmable state that will be allowed to be reused within the programmation model.
+	[TypeId(0x55E60F25, 0x3544, 0x4E42, 0xA2, 0xE8, 0x8E, 0xCC, 0x5A, 0x0A, 0xE1, 0xE1)]
+	private abstract class PersistedCoolerConfiguration
+	{
+		public required ActiveCoolingMode CoolingMode { get; init; }
+	}
+
+	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "Name", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+	[JsonDerivedType(typeof(AutomaticCoolingMode), "Automatic")]
+	[JsonDerivedType(typeof(FixedCoolingMode), "Fixed")]
+	private abstract class ActiveCoolingMode
+	{
+	}
+
+	private sealed class AutomaticCoolingMode { }
+
+	private sealed class FixedCoolingMode
+	{
+		private readonly byte _power;
+
+		[Range(0, 100)]
+		public byte Power
+		{
+			get => _power;
+			init
+			{
+				ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
+				_power = value;
+			}
+		}
+	}
 
 	private static readonly BoundedChannelOptions CoolingChangeChannelOptions = new(20)
 	{
@@ -91,7 +121,7 @@ internal partial class CoolingService
 				var result = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerInformation>(coolerId, cancellationToken).ConfigureAwait(false);
 				if (!result.Found) continue;
 				var info = result.Value;
-				coolerInformations.Add(new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes));
+				coolerInformations.Add(new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits));
 			}
 
 			if (coolerInformations.Count > 0)
@@ -234,9 +264,12 @@ internal partial class CoolingService
 					break;
 				}
 				CoolingModes coolingModes = 0;
+				var powerLimits = cooler is IConfigurableCooler configurableCooler ?
+					new CoolerPowerLimits(configurableCooler.MinimumPower, configurableCooler.CanSwitchOff) :
+					null as CoolerPowerLimits?;
 				if (cooler is IAutomaticCooler) coolingModes |= CoolingModes.Automatic;
 				if (cooler is IManualCooler) coolingModes |= CoolingModes.Manual;
-				var info = new CoolerInformation(cooler.CoolerId, cooler.SpeedSensorId, cooler.Type, coolingModes);
+				var info = new CoolerInformation(cooler.CoolerId, cooler.SpeedSensorId, cooler.Type, coolingModes, powerLimits);
 				addedCoolerInfosById.Add(info.CoolerId, info);
 				coolerInfos[i] = info;
 			}

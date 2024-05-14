@@ -14,5 +14,5 @@ public sealed class CoolerInformation
 	[DataMember(Order = 4)]
 	public required CoolingModes SupportedCoolingModes { get; init; }
 	[DataMember(Order = 5)]
-	public ConfigurableCoolerInformation? ConfigurableInformation { get; init; }
+	public CoolerPowerLimits? PowerLimits { get; init; }
 }
