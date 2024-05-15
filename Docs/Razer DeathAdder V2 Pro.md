@@ -2258,7 +2258,8 @@ Is it possible that in this case we don't need the Razer driver to access the de
 Possibly everything is exposed through GATT services somehow. It is however weird how there is still a specific driver installed for the device.
 Need to read how all this BT stuff works 😩
 
-
+Looking a bit a the captured data again, and it seems that we do see the entire response number in one response packet with handle 003f. (Serial Number starting at offset 0)
+However, it is still unclear how the request is sent. (NB: Packet 1101 in my capture)
 
 
 
