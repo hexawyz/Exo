@@ -32,7 +32,11 @@ internal sealed class GrpcCoolingService : ICoolingService
 		}
 	}
 
-	public IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public async IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, [EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		yield break;
+	}
+
 	public ValueTask SetAutomaticCoolingAsync(AutomaticCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
 	public ValueTask SetFixedCoolingAsync(FixedCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();
 	public ValueTask SetSoftwareControlCurveCoolingAsync(SoftwareCurveCoolingParameters parameters, CancellationToken cancellationToken) => throw new NotImplementedException();

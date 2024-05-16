@@ -41,7 +41,7 @@ internal partial class CoolingService
 		private CancellationTokenSource? _cancellationTokenSource;
 		private readonly Task _runTask;
 
-		public LiveDeviceState(ICoolingControllerFeature coolingControllerFeature, ChannelReader<CoolerState> changeReader)
+		public LiveDeviceState(ICoolingControllerFeature coolingControllerFeature, ChannelReader<CoolerChange> changeReader)
 		{
 			_cancellationTokenSource = new();
 			_runTask = RunAsync(coolingControllerFeature, changeReader, _cancellationTokenSource.Token);
@@ -55,18 +55,31 @@ internal partial class CoolingService
 			cts.Dispose();
 		}
 
-		private async Task RunAsync(ICoolingControllerFeature coolingControllerFeature, ChannelReader<CoolerState> changeReader, CancellationToken cancellationToken)
+		private async Task RunAsync(ICoolingControllerFeature coolingControllerFeature, ChannelReader<CoolerChange> changeReader, CancellationToken cancellationToken)
 		{
 			try
 			{
 				while (true)
 				{
+					// NB: This is somewhat imperfect, but we rely on the thread activation delay to allow for processing more than one update in the same batch if necessary.
+					// The idea is that with the time it takes to activate the thread, plus dequeue and execute the (likely quick) code for the update, an associated update
+					// could have been published and be ready for processing immediately afterwards.
+					// We can't/don't want to introduce an artificial delay other than this for the processing of cooling updates, but that should still help with batching.
+					// Worst case, updates are not batched and we can live with it. Operations will still be serialized in the end, which is what is most important.
 					await changeReader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 
 					try
 					{
-						while (changeReader.TryRead(out var changedCooler))
+						while (changeReader.TryRead(out var change))
 						{
+							try
+							{
+								change.Execute();
+							}
+							catch (Exception ex)
+							{
+								// TODO: Log
+							}
 						}
 
 						await coolingControllerFeature.ApplyChangesAsync(cancellationToken).ConfigureAwait(false);

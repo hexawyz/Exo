@@ -5,11 +5,53 @@ using System.Runtime.CompilerServices;
 
 namespace Exo.Cooling;
 
+public delegate bool MonotonicityValidator<TValue>(TValue a, TValue b) where TValue : struct, INumber<TValue>;
+
+public sealed class MonotonicityValidators<TValue>
+	where TValue : struct, INumber<TValue>
+{
+	private static readonly TValue OneHundred = TValue.CreateChecked((byte)100);
+
+	private static readonly MonotonicityValidators<TValue> Instance = new();
+
+	public static readonly MonotonicityValidator<TValue> Any = Instance.ValidateAny;
+	public static readonly MonotonicityValidator<TValue> Increasing = Instance.ValidateIncreasing;
+	public static readonly MonotonicityValidator<TValue> Decreasing = Instance.ValidateDecreasing;
+	public static readonly MonotonicityValidator<TValue> StrictlyIncreasing = Instance.ValidateStrictlyIncreasing;
+	public static readonly MonotonicityValidator<TValue> StrictlyDecreasing = Instance.ValidateStrictlyDecreasing;
+
+	public static readonly MonotonicityValidator<TValue> IncreasingUpTo100 = Instance.ValidateStrictlyDecreasing;
+	public static readonly MonotonicityValidator<TValue> StrictlyIncreasingUpTo100 = Instance.ValidateStrictlyDecreasing;
+
+	private MonotonicityValidators() { }
+
+	private bool ValidateAny(TValue a, TValue b)
+		=> !(TValue.IsNaN(a) || TValue.IsNaN(b));
+
+	private bool ValidateIncreasing(TValue a, TValue b)
+		=> a <= b;
+
+	private bool ValidateDecreasing(TValue a, TValue b)
+		=> a >= b;
+
+	private bool ValidateStrictlyIncreasing(TValue a, TValue b)
+		=> a < b;
+
+	private bool ValidateStrictlyDecreasing(TValue a, TValue b)
+		=> a > b;
+
+	private static bool ValidateIncreasingUpTo100(TValue a, TValue b)
+		=> a <= b && b <= TValue.CreateChecked((byte)100);
+
+	private static bool ValidateStrictlyIncreasingUpTo100(TValue a, TValue b)
+		=> a < b && b <= TValue.CreateChecked((byte)100);
+}
+
 public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlCurve<TInput, TOutput>
 	where TInput : struct, INumber<TInput>
 	where TOutput : struct, INumber<TOutput>
 {
-	private static void ValidatePoints(ImmutableArray<DataPoint<TInput, TOutput>> points)
+	private static void ValidatePoints(ImmutableArray<DataPoint<TInput, TOutput>> points, MonotonicityValidator<TOutput> monotonicityValidator)
 	{
 		if (points.IsDefault) throw new ArgumentNullException(nameof(points));
 		if (points.IsEmpty) throw new ArgumentException(nameof(points));
@@ -20,6 +62,7 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 			var currentPoint = points[i];
 			if (TInput.IsNaN(lastPoint.X) || !TOutput.IsRealNumber(lastPoint.Y)) throw new ArgumentException("Points must have a valid value.", nameof(points));
 			if (currentPoint.X < lastPoint.X) throw new ArgumentException("Points must be ordered based on X coordinate.", nameof(points));
+			if (!monotonicityValidator(lastPoint.Y, currentPoint.Y)) throw new ArgumentException("Points must respect the required monotonicity.", nameof(points));
 			lastPoint = currentPoint;
 		}
 	}
@@ -27,17 +70,27 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 	private readonly ImmutableArray<DataPoint<TInput, TOutput>> _points;
 	private readonly TOutput _initialValue;
 
-	public InterpolatedSegmentControlCurve(ImmutableArray<DataPoint<TInput, TOutput>> points)
+	public InterpolatedSegmentControlCurve(ImmutableArray<DataPoint<TInput, TOutput>> points, MonotonicityValidator<TOutput> monotonicityValidator)
 	{
-		ValidatePoints(points);
+		ValidatePoints(points, monotonicityValidator);
 		_points = points;
 		_initialValue = points[0].Y;
 	}
 
-	public InterpolatedSegmentControlCurve(ImmutableArray<DataPoint<TInput, TOutput>> points, TOutput initialValue)
+	public InterpolatedSegmentControlCurve(ImmutableArray<DataPoint<TInput, TOutput>> points, TOutput initialValue, MonotonicityValidator<TOutput> monotonicityValidator)
 	{
-		ValidatePoints(points);
+		ValidatePoints(points, monotonicityValidator);
 		if (!TOutput.IsRealNumber(initialValue)) throw new ArgumentException("Initial value must be a real number.", nameof(initialValue));
+		var firstY = points[0].Y;
+		// NB: We intentionally allow the initial value setting to be the same as the first point even though the monotonicity check might be strict.
+		// This is in line with the default behavior of using the first point as a the initial value if not specified.
+		if (initialValue != firstY && !monotonicityValidator(initialValue, firstY)) throw new ArgumentException("Initial value must be equal to the first value, or be ordered with the required monotonicity.", nameof(points));
+		_points = points;
+		_initialValue = initialValue;
+	}
+
+	private InterpolatedSegmentControlCurve(ImmutableArray<DataPoint<TInput, TOutput>> points, TOutput initialValue)
+	{
 		_points = points;
 		_initialValue = initialValue;
 	}
@@ -61,6 +114,52 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 		Interpolate:;
 			return DataPointInterpolator.Get<TInput, TOutput>().Interpolate(value, previousPoint, nextPoint);
 		}
+	}
+
+	/// <summary>Remaps the curve to other compatible input and/or output types.</summary>
+	/// <remarks>
+	/// This operation will fail if any of the points of the current curve fail to be converted.
+	/// It should generally be quicker than trying to do the same manually, as this method will not revalidate the points.
+	/// </remarks>
+	/// <typeparam name="TOtherInput">Input number type for the new curve.</typeparam>
+	/// <typeparam name="TOtherOutput">Output number type for the new curve</typeparam>
+	/// <returns></returns>
+	public InterpolatedSegmentControlCurve<TOtherInput, TOtherOutput> Cast<TOtherInput, TOtherOutput>()
+		where TOtherInput : struct, INumber<TOtherInput>
+		where TOtherOutput : struct, INumber<TOtherOutput>
+	{
+		var initialValue = TOtherOutput.CreateChecked(_initialValue);
+		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TOtherInput, TOtherOutput>(TOtherInput.CreateChecked(p.X), TOtherOutput.CreateChecked(p.Y)));
+		return new(dataPoints, initialValue);
+	}
+
+	/// <summary>Remaps the curve to another compatible input type.</summary>
+	/// <remarks>
+	/// This operation will fail if any of the points of the current curve fail to be converted.
+	/// It should generally be quicker than trying to do the same manually, as this method will not revalidate the points.
+	/// </remarks>
+	/// <typeparam name="TOtherInput">Input number type for the new curve.</typeparam>
+	/// <returns></returns>
+	public InterpolatedSegmentControlCurve<TOtherInput, TOutput> CastInput<TOtherInput>()
+		where TOtherInput : struct, INumber<TOtherInput>
+	{
+		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TOtherInput, TOutput>(TOtherInput.CreateChecked(p.X), p.Y));
+		return new(dataPoints, _initialValue);
+	}
+
+	/// <summary>Remaps the curve to another compatible output type.</summary>
+	/// <remarks>
+	/// This operation will fail if any of the points of the current curve fail to be converted.
+	/// It should generally be quicker than trying to do the same manually, as this method will not revalidate the points.
+	/// </remarks>
+	/// <typeparam name="TOtherOutput">Output number type for the new curve</typeparam>
+	/// <returns></returns>
+	public InterpolatedSegmentControlCurve<TInput, TOtherOutput> CastOutput<TOtherOutput>()
+		where TOtherOutput : struct, INumber<TOtherOutput>
+	{
+		var initialValue = TOtherOutput.CreateChecked(_initialValue);
+		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TInput, TOtherOutput>(p.X, TOtherOutput.CreateChecked(p.Y)));
+		return new(dataPoints, initialValue);
 	}
 }
 

@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
@@ -9,6 +11,7 @@ using Exo.Configuration;
 using Exo.Cooling;
 using Exo.Features;
 using Exo.Features.Cooling;
+using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -233,11 +236,11 @@ internal partial class CoolingService
 		var coolingFeatures = (IDeviceFeatureSet<ICoolingDeviceFeature>)notification.FeatureSet!;
 		var coolingControllerFeature = coolingFeatures.GetFeature<ICoolingControllerFeature>();
 		LiveDeviceState? liveDeviceState;
-		Channel<CoolerState>? changeChannel;
+		Channel<CoolerChange>? changeChannel;
 		if (coolingControllerFeature is not null)
 		{
 			coolers = coolingControllerFeature.Coolers;
-			changeChannel = Channel.CreateBounded<CoolerState>(CoolingChangeChannelOptions);
+			changeChannel = Channel.CreateBounded<CoolerChange>(CoolingChangeChannelOptions);
 			liveDeviceState = new LiveDeviceState(coolingControllerFeature, changeChannel);
 		}
 		else
@@ -255,7 +258,7 @@ internal partial class CoolingService
 			for (int i = 0; i < coolers.Length; i++)
 			{
 				var cooler = coolers[i];
-				if (!coolerStates.TryAdd(cooler.CoolerId, new(cooler)))
+				if (!coolerStates.TryAdd(cooler.CoolerId, new(cooler, changeChannel!)))
 				{
 					// We ignore all sensors and discard the device if there is a duplicate ID.
 					// TODO: Log an error.
@@ -404,10 +407,153 @@ internal partial class CoolingService
 		}
 	}
 
-	private class CoolerState
+	private sealed class CoolerState
 	{
-		private readonly ICooler _cooler;
+		private static readonly object AutomaticPowerState = new();
 
-		public CoolerState(ICooler cooler) => _cooler = cooler;
+		private readonly ICooler _cooler;
+		private readonly ChannelWriter<CoolerChange> _changeWriter;
+		private readonly AsyncLock _lock;
+		private object? _activeState;
+		private readonly StrongBox<int>? _manualPowerState;
+
+		public CoolerState(ICooler cooler, ChannelWriter<CoolerChange> changeWriter)
+		{
+			_cooler = cooler;
+			_changeWriter = changeWriter;
+			_lock = new();
+			if (cooler is IManualCooler manualCooler)
+			{
+				if (!manualCooler.TryGetPower(out byte power))
+				{
+					power = manualCooler.MinimumPower;
+				}
+				_manualPowerState = new(power);
+			}
+		}
+
+		public async ValueTask SetAutomaticPowerAsync(CancellationToken cancellationToken)
+		{
+			if (_cooler is not IAutomaticCooler automaticCooler) throw new InvalidOperationException("Automatic cooling is not supported by this cooler.");
+
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				if (ReferenceEquals(_activeState, AutomaticPowerState)) return;
+				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
+				_changeWriter.TryWrite(CoolerChange.CreateAutomatic(automaticCooler));
+				_activeState = AutomaticPowerState;
+			}
+		}
+
+		public async ValueTask SetManualPowerAsync(byte power, CancellationToken cancellationToken)
+		{
+			if (_manualPowerState is null) throw new InvalidOperationException("Manual cooling is not supported by this cooler.");
+
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				if (_manualPowerState.Value != power) _manualPowerState.Value = power;
+				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
+				else if (!ReferenceEquals(_activeState, _manualPowerState)) _activeState = AutomaticPowerState;
+				_changeWriter.TryWrite(CoolerChange.CreateManual(Unsafe.As<IManualCooler>(_cooler), power));
+			}
+		}
+
+		public async ValueTask SetDynamicPowerAsyncAsync<TInput>(Guid sensorDeviceId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+			where TInput : struct, INumber<TInput>
+		{
+			if (_manualPowerState is null) throw new InvalidOperationException("Manual cooling is not supported by this cooler.");
+
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
+			}
+		}
+	}
+
+	private abstract class DynamicCoolerState : IAsyncDisposable
+	{
+		private readonly CoolerState _coolerState;
+		private CancellationTokenSource? _cancellationTokenSource;
+		private readonly Task _runTask;
+
+		protected CoolerState CoolerState => _coolerState;
+
+		protected DynamicCoolerState(CoolerState coolerState)
+		{
+			_coolerState = coolerState;
+			_cancellationTokenSource = new();
+			_runTask = RunAsync(_cancellationTokenSource.Token);
+		}
+
+		public async ValueTask DisposeAsync()
+		{
+			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
+			cts.Cancel();
+			await _runTask.ConfigureAwait(false);
+			cts.Dispose();
+		}
+
+		protected abstract Task RunAsync(CancellationToken cancellationToken);
+	}
+
+	private sealed class DynamicCoolerState<TInput> : DynamicCoolerState
+		where TInput : struct, INumber<TInput>
+	{
+		public DynamicCoolerState(CoolerState coolerState) : base(coolerState)
+		{
+		}
+
+		protected override async Task RunAsync(CancellationToken cancellationToken)
+		{
+			try
+			{
+				throw new NotImplementedException();
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+			catch
+			{
+				// TODO: Log
+			}
+		}
+	}
+
+	public async ValueTask SetAutomaticPowerAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
+	{
+		if (TryGetCoolerState(deviceId, coolerId, out var state))
+		{
+			await state.SetAutomaticPowerAsync(cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	public async ValueTask SetFixedPowerAsync(Guid deviceId, Guid coolerId, byte power, CancellationToken cancellationToken)
+	{
+		if (TryGetCoolerState(deviceId, coolerId, out var state))
+		{
+			await state.SetManualPowerAsync(power, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	public async ValueTask SetSoftwareControlCurveAsync<TInput>(Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+		where TInput : struct, INumber<TInput>
+	{
+		if (TryGetCoolerState(coolingDeviceId, coolerId, out var state))
+		{
+			await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private bool TryGetCoolerState(Guid deviceId, Guid coolerId, [NotNullWhen(true)] out CoolerState? state)
+	{
+		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			if (deviceState.CoolerStates is { } coolerStates)
+			{
+				return coolerStates.TryGetValue(coolerId, out state);
+			}
+		}
+		state = null;
+		return false;
 	}
 }
