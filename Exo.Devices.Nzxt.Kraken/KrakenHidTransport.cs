@@ -104,7 +104,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 		static async Task WaitWithCancellationAsync(TaskCompletionSource taskCompletionSource, CancellationToken cancellationToken)
 		{
-			await using (var registration = cancellationToken.UnsafeRegister((state, ct) => ((TaskCompletionSource)state!).TrySetCanceled(ct), taskCompletionSource).ConfigureAwait(false))
+			await using (var registration = cancellationToken.UnsafeRegister(taskCompletionSource).ConfigureAwait(false))
 			{
 				await taskCompletionSource.Task.ConfigureAwait(false);
 			}
@@ -117,7 +117,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 		static async Task<T> WaitWithCancellationAsync(TaskCompletionSource<T> taskCompletionSource, CancellationToken cancellationToken)
 		{
-			await using (var registration = cancellationToken.UnsafeRegister((state, ct) => ((TaskCompletionSource<T>)state!).TrySetCanceled(ct), taskCompletionSource).ConfigureAwait(false))
+			await using (var registration = cancellationToken.UnsafeRegister(taskCompletionSource).ConfigureAwait(false))
 			{
 				return await taskCompletionSource.Task.ConfigureAwait(false);
 			}

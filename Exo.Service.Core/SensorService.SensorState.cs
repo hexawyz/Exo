@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,7 @@ internal sealed partial class SensorService
 	{
 		AllowSynchronousContinuations = false,
 		SingleReader = true,
-		SingleWriter = false,
+		SingleWriter = true,
 		FullMode = BoundedChannelFullMode.DropOldest,
 	};
 
@@ -31,7 +32,7 @@ internal sealed partial class SensorService
 	private abstract class SensorState : IAsyncDisposable
 	{
 		public static SensorState Create(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor sensor)
-			=> SensorDataTypes[sensor.ValueType] switch
+			=> TypeToSensorDataTypeMapping[sensor.ValueType] switch
 			{
 				SensorDataType.UInt8 => Create<byte>(logger, sensorService, groupedQueryState, sensor),
 				SensorDataType.UInt16 => Create<ushort>(logger, sensorService, groupedQueryState, sensor),
@@ -95,10 +96,13 @@ internal sealed partial class SensorService
 			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 			{
 				cts.Cancel();
+				_watchSignal.TrySetCanceled(cts.Token);
 				await _watchAsyncTask.ConfigureAwait(false);
 				cts.Dispose();
 			}
 		}
+
+		protected bool IsDisposed => Volatile.Read(ref _cancellationTokenSource) is null;
 
 		private async Task RunAsync(CancellationToken cancellationToken)
 		{
@@ -130,12 +134,24 @@ internal sealed partial class SensorService
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 			{
 			}
+			finally
+			{
+				OnStateCompletion();
+			}
 		}
 
 		protected void StartWatching() => _watchSignal.TrySetResult();
 
 		protected void StopWatching() => ClearAndDisposeCancellationTokenSource(ref _watchCancellationTokenSource);
 
+		// This method will be called once at the very end of the lifetime in order to propagate completion to the watchers and allow them to end.
+		// Because it is called at the end, we can be sure that any potential channel write done in this method will be isolated and will not conflict with the single-writer policy.
+		protected abstract void OnStateCompletion();
+
+		// This method is the inner loop for watching device, and provides the specialized watching mechanism for different sensor types.
+		// It is executed as part of RunAsync, and its execution will be controlled by matched calls to StartWatching and StopWatching, as well as DisposeAsync.
+		// Once the instance is disposed, this method can never execute.
+		// Execution of this method will always be completed before CleanupValueListeners is called.
 		protected abstract ValueTask WatchValuesAsync(CancellationToken cancellationToken);
 	}
 
@@ -155,6 +171,19 @@ internal sealed partial class SensorService
 		protected void OnDataPointReceived(DateTime dateTime, TValue value) => OnDataPointReceived(new SensorDataPoint<TValue>(dateTime, value));
 
 		protected void OnDataPointReceived(SensorDataPoint<TValue> dataPoint) => Volatile.Read(ref _valueListeners).TryWrite(dataPoint);
+
+		// NB: This method must be exclusive with the OnDataPointReceived methods.
+		protected sealed override void OnStateCompletion()
+		{
+			if (Interlocked.Exchange(ref _valueListeners, null) is { Length: > 0 } listeners)
+			{
+				var exception = ExceptionDispatchInfo.SetCurrentStackTrace(new DeviceDisconnectedException());
+				foreach (var listener in listeners)
+				{
+					listener.TryComplete(exception);
+				}
+			}
+		}
 
 		private void AddListener(ChannelWriter<SensorDataPoint<TValue>> listener)
 		{
@@ -190,6 +219,9 @@ internal sealed partial class SensorService
 			AddListener(channel);
 			try
 			{
+				// When the state is disposed, the channel will be completed with an exception, so that watchers are made aware of the operation completion.
+				// Generally, if a sensor is watched from the UI, the UI would cancel watching anyway, so there would never be a call to WatchAsync hanging.
+				// However, if a sensor is watched internally, such as for cooling curves, we absolutely need a deterministic way to detect that the sensor has become (temporarily) unavailable.
 				await foreach (var dataPoint in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 				{
 					yield return dataPoint;
@@ -256,7 +288,7 @@ internal sealed partial class SensorService
 			// Sensors managed by grouped queries are polled from the GroupedQueryState.
 			// The code here is just setting things up for enabling the sensor to be refreshed by the grouped query.
 			var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-			await using (cancellationToken.UnsafeRegister(state => ((TaskCompletionSource)state!).TrySetResult(), tcs))
+			await using (cancellationToken.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), tcs).ConfigureAwait(false))
 			{
 				_groupedQueryState.Acquire(this);
 				await tcs.Task.ConfigureAwait(false);

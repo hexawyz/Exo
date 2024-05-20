@@ -166,7 +166,7 @@ internal sealed partial class SensorService
 		}
 	}
 
-	private static readonly Dictionary<Type, SensorDataType> SensorDataTypes = new()
+	private static readonly Dictionary<Type, SensorDataType> TypeToSensorDataTypeMapping = new()
 	{
 		{ typeof(byte), SensorDataType.UInt8 },
 		{ typeof(ushort), SensorDataType.UInt16 },
@@ -182,6 +182,14 @@ internal sealed partial class SensorService
 		{ typeof(float), SensorDataType.Float32 },
 		{ typeof(double), SensorDataType.Float64 },
 	};
+
+	private static class SensorDataTypes<T>
+		where T : INumber<T>
+	{
+		public static readonly SensorDataType DataType = TypeToSensorDataTypeMapping[typeof(T)];
+	}
+
+	public static SensorDataType GetSensorDataType<T>() where T : INumber<T> => SensorDataTypes<T>.DataType;
 
 	// Helper method that will ensure a cancellation token source is wiped out properly and exactly once. (Because the Dispose method can throw if called twice…)
 	private static void ClearAndDisposeCancellationTokenSource(ref CancellationTokenSource? cancellationTokenSource)
@@ -431,13 +439,14 @@ internal sealed partial class SensorService
 						await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
 					}
 
-					using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-					{
-						state.Information = new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos));
-						state.GroupedQueryState = groupedQueryState;
-						state.SensorStates = sensorStates;
-						state.IsConnected = notification.DeviceInformation.IsAvailable;
-					}
+					await state.OnDeviceArrivalAsync
+					(
+						notification.DeviceInformation.IsAvailable,
+						new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
+						groupedQueryState,
+						sensorStates,
+						cancellationToken
+					).ConfigureAwait(false);
 				}
 				_changeListeners.TryWrite(state.Information);
 			}
@@ -454,7 +463,7 @@ internal sealed partial class SensorService
 
 	private static SensorInformation BuildSensorInformation(ISensor sensor)
 	{
-		var dataType = SensorDataTypes[sensor.ValueType];
+		var dataType = TypeToSensorDataTypeMapping[sensor.ValueType];
 
 		return dataType switch
 		{
@@ -574,5 +583,29 @@ internal sealed partial class SensorService
 		}
 		info = default;
 		return false;
+	}
+
+	// Waits for arrival of a sensor.
+	// This method will throw an exception if the sensor has become unavailable, so that we can detect problems with the setup.
+	public async ValueTask WaitForSensorAsync(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+
+		await deviceState.WaitSensorArrivalAsync(sensorId, cancellationToken).ConfigureAwait(false);
+	}
+
+	public async ValueTask<SensorInformation> GetSensorInformationAsync(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+
+		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			foreach (var sensor in deviceState.Information.Sensors)
+			{
+				if (sensor.SensorId == sensorId) return sensor;
+			}
+		}
+
+		throw new SensorNotAvailableException();
 	}
 }

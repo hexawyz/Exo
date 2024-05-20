@@ -15,7 +15,7 @@ public sealed class InterpolatedSegmentControlCurveTests
 	[InlineData(int.MaxValue, (byte)3, 1, (byte)3)]
 	public void ShouldSupportFixedCurve(int x, byte y, int sampleX, byte sampleY)
 	{
-		var curve = new InterpolatedSegmentControlCurve<int, byte>([new(x, y)]);
+		var curve = new InterpolatedSegmentControlCurve<int, byte>([new(x, y)], MonotonicityValidators<byte>.Increasing);
 
 		Assert.Equal(sampleY, curve[sampleX]);
 	}
@@ -36,7 +36,7 @@ public sealed class InterpolatedSegmentControlCurveTests
 	[InlineData(91, (byte)55, (byte)3, 777, (byte)55)]
 	public void ShouldSupportFixedCurveWithInitialValue(int x, byte y, byte initialY, int sampleX, byte sampleY)
 	{
-		var curve = new InterpolatedSegmentControlCurve<int, byte>([new(x, y)], initialY);
+		var curve = new InterpolatedSegmentControlCurve<int, byte>([new(x, y)], initialY, MonotonicityValidators<byte>.Increasing);
 
 		Assert.Equal(sampleY, curve[sampleX]);
 	}
@@ -44,7 +44,7 @@ public sealed class InterpolatedSegmentControlCurveTests
 	[Fact]
 	public void ShouldSupportIdentityLinearInterpolation()
 	{
-		var curve = new InterpolatedSegmentControlCurve<byte, byte>([new(0, 0), new(255, 255)]);
+		var curve = new InterpolatedSegmentControlCurve<byte, byte>([new(0, 0), new(255, 255)], MonotonicityValidators<byte>.StrictlyIncreasing);
 
 		for (int i = 0; i < 256; i++)
 		{
@@ -55,7 +55,7 @@ public sealed class InterpolatedSegmentControlCurveTests
 	[Fact]
 	public void ShouldSupportDecreasingLinearInterpolation()
 	{
-		var curve = new InterpolatedSegmentControlCurve<byte, byte>([new(0, 255), new(255, 0)]);
+		var curve = new InterpolatedSegmentControlCurve<byte, byte>([new(0, 255), new(255, 0)], MonotonicityValidators<byte>.StrictlyDecreasing);
 
 		for (int i = 0; i < 256; i++)
 		{
@@ -86,7 +86,7 @@ public sealed class InterpolatedSegmentControlCurveTests
 	[InlineData((byte)255, (byte)100)]
 	public void ShouldInterpolateOnSampleAnchoredMonotonicCurve(byte x, byte y)
 	{
-		var curve = new InterpolatedSegmentControlCurve<byte, byte>([new(0, 0), new(10, 10), new(15, 20), new(20, 35), new(30, 60), new(40, 80), new(45, 100)]);
+		var curve = new InterpolatedSegmentControlCurve<byte, byte>([new(0, 0), new(10, 10), new(15, 20), new(20, 35), new(30, 60), new(40, 80), new(45, 100)], MonotonicityValidators<byte>.StrictlyIncreasingUpTo100);
 		Assert.Equal(y, curve[x]);
 	}
 }

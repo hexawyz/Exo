@@ -42,7 +42,7 @@ public sealed class AsyncLock
 		{
 			if (cancellationToken.CanBeCanceled)
 			{
-				_cancellationTokenRegistration = cancellationToken.UnsafeRegister(static (state, ct) => ((QueueTaskCompletionSource)state!).TrySetCanceled(ct), this);
+				_cancellationTokenRegistration = cancellationToken.UnsafeRegister(this);
 			}
 		}
 

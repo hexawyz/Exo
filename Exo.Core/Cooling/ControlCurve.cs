@@ -128,6 +128,10 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 		where TOtherInput : struct, INumber<TOtherInput>
 		where TOtherOutput : struct, INumber<TOtherOutput>
 	{
+		if (typeof(TOtherInput) == typeof(TInput) && typeof(TOtherOutput) == typeof(TOutput)) return Unsafe.As<InterpolatedSegmentControlCurve<TOtherInput, TOtherOutput>>(this);
+		else if (typeof(TOtherInput) == typeof(TInput)) return Unsafe.As<InterpolatedSegmentControlCurve<TOtherInput, TOtherOutput>>(CastOutput<TOtherOutput>());
+		else if (typeof(TOtherOutput) == typeof(TOutput)) return Unsafe.As<InterpolatedSegmentControlCurve<TOtherInput, TOtherOutput>>(CastInput<TOtherOutput>());
+
 		var initialValue = TOtherOutput.CreateChecked(_initialValue);
 		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TOtherInput, TOtherOutput>(TOtherInput.CreateChecked(p.X), TOtherOutput.CreateChecked(p.Y)));
 		return new(dataPoints, initialValue);
@@ -143,6 +147,8 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 	public InterpolatedSegmentControlCurve<TOtherInput, TOutput> CastInput<TOtherInput>()
 		where TOtherInput : struct, INumber<TOtherInput>
 	{
+		if (typeof(TOtherInput) == typeof(TInput)) return Unsafe.As<InterpolatedSegmentControlCurve<TOtherInput, TOutput>>(this);
+
 		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TOtherInput, TOutput>(TOtherInput.CreateChecked(p.X), p.Y));
 		return new(dataPoints, _initialValue);
 	}
@@ -157,6 +163,8 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 	public InterpolatedSegmentControlCurve<TInput, TOtherOutput> CastOutput<TOtherOutput>()
 		where TOtherOutput : struct, INumber<TOtherOutput>
 	{
+		if (typeof(TOtherOutput) == typeof(TOutput)) return Unsafe.As<InterpolatedSegmentControlCurve<TInput, TOtherOutput>>(this);
+
 		var initialValue = TOtherOutput.CreateChecked(_initialValue);
 		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TInput, TOtherOutput>(p.X, TOtherOutput.CreateChecked(p.Y)));
 		return new(dataPoints, initialValue);
