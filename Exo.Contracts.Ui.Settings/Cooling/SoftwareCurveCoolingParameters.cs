@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings.Cooling;
 
@@ -14,6 +14,10 @@ public sealed class SoftwareCurveCoolingParameters
 	[DataMember(Order = 4)]
 	public required Guid SensorId { get; init; }
 
+	/// <summary>Value to use when the sensor data is unavailable.</summary>
 	[DataMember(Order = 5)]
+	public required byte FallbackValue { get; init; }
+
+	[DataMember(Order = 6)]
 	public required CoolingControlCurve ControlCurve { get; init; }
 }

@@ -464,7 +464,14 @@ internal partial class CoolingService
 			}
 		}
 
-		public async ValueTask SetDynamicPowerAsyncAsync<TInput>(Guid sensorDeviceId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+		public async ValueTask SetDynamicPowerAsyncAsync<TInput>
+		(
+			Guid sensorDeviceId,
+			Guid sensorId,
+			byte fallbackValue,
+			InterpolatedSegmentControlCurve<TInput, byte> controlCurve,
+			CancellationToken cancellationToken
+		)
 			where TInput : struct, INumber<TInput>
 		{
 			if (_manualPowerState is null) throw new InvalidOperationException("Manual cooling is not supported by this cooler.");
@@ -472,7 +479,7 @@ internal partial class CoolingService
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				_activeState = new DynamicCoolerState<TInput>(this, sensorDeviceId, sensorId, controlCurve);
+				_activeState = new DynamicCoolerState<TInput>(this, sensorDeviceId, sensorId, fallbackValue, controlCurve);
 			}
 		}
 
@@ -508,14 +515,16 @@ internal partial class CoolingService
 	private sealed class DynamicCoolerState<TInput> : DynamicCoolerState
 		where TInput : struct, INumber<TInput>
 	{
+		private readonly InterpolatedSegmentControlCurve<TInput, byte> _controlCurve;
 		private readonly Guid _sensorDeviceId;
 		private readonly Guid _sensorId;
-		private readonly InterpolatedSegmentControlCurve<TInput, byte> _controlCurve;
+		private readonly byte _fallbackValue;
 
-		public DynamicCoolerState(CoolerState coolerState, Guid sensorDeviceId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve) : base(coolerState)
+		public DynamicCoolerState(CoolerState coolerState, Guid sensorDeviceId, Guid sensorId, byte fallbackValue, InterpolatedSegmentControlCurve<TInput, byte> controlCurve) : base(coolerState)
 		{
 			_sensorDeviceId = sensorDeviceId;
 			_sensorId = sensorId;
+			_fallbackValue = fallbackValue;
 			_controlCurve = controlCurve;
 		}
 
@@ -525,6 +534,9 @@ internal partial class CoolingService
 			{
 				while (true)
 				{
+					// Always reset the power to the fallback value when the sensor value is unknown.
+					// This can have downsides, but if well configured, it can also avoid catastrophic failures when the sensor has become unavailable for some reason.
+					CoolerState.SendManualPowerUpdate(_fallbackValue);
 					await CoolerState.SensorService.WaitForSensorAsync(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false);
 					try
 					{
@@ -546,8 +558,10 @@ internal partial class CoolingService
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 			{
 			}
-			catch
+			catch (Exception ex)
 			{
+				// Reset the power to the fallback value in case of error, as the sensor value is now technically unknown.
+				CoolerState.SendManualPowerUpdate(_fallbackValue);
 				// TODO: Log (Error)
 			}
 		}
@@ -569,7 +583,7 @@ internal partial class CoolingService
 		}
 	}
 
-	public async ValueTask SetSoftwareControlCurveAsync<TInput>(Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+	public async ValueTask SetSoftwareControlCurveAsync<TInput>(Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, byte fallbackValue, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
 		where TInput : struct, INumber<TInput>
 	{
 		var sensorInformation = await _sensorService.GetSensorInformationAsync(sensorDeviceId, sensorId, cancellationToken).ConfigureAwait(false);
@@ -579,43 +593,43 @@ internal partial class CoolingService
 			switch (sensorInformation.DataType)
 			{
 			case SensorDataType.UInt8:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<byte>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<byte>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt16:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<ushort>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<ushort>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt32:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<uint>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<uint>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt64:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<ulong>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<ulong>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt128:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<UInt128>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<UInt128>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt8:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<sbyte>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<sbyte>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt16:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<short>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<short>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt32:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<int>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<int>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt64:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<long>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<long>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt128:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<Int128>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<Int128>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.Float16:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<Half>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<Half>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.Float32:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<float>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<float>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.Float64:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, controlCurve.CastInput<double>(), cancellationToken).ConfigureAwait(false);
+				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<double>(), cancellationToken).ConfigureAwait(false);
 				break;
 			default:
 				throw new InvalidOperationException("Unsupported sensor data type.");
