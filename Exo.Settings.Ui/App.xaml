@@ -15,6 +15,7 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <local:DataTemplates />
                 <ResourceDictionary Source="Controls\LineChart.xaml" />
+                <ResourceDictionary Source="Controls\PowerControlCurveEditor.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
@@ -46,6 +47,7 @@
 
             <GridLength x:Key="PropertyLabelColumnWidth">200</GridLength>
 
+            <lconverters:IntegerPercentValueConverter x:Key="IntegerPercentValueConverter" />
             <lconverters:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
             <lconverters:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
             <lconverters:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />

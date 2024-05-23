@@ -2,7 +2,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal abstract class ChangeableBindableObject : BindableObject
+internal abstract class ChangeableBindableObject : BindableObject, IChangeable
 {
 	public abstract bool IsChanged { get; }
 

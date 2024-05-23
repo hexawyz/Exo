@@ -43,24 +43,31 @@
                                                 Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
                                         </Grid>
                                     </Expander.Header>
-                                    <Grid HorizontalAlignment="Stretch">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolerCoolingMode" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
-                                        <ComboBox Grid.Row="0" Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding CoolingModes}" SelectedItem="{Binding CurrentCoolingMode, Mode=TwoWay}" HorizontalAlignment="Stretch">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes}" />
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                        <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
-                                            <FontIcon Glyph="&#xE777;" />
-                                        </Button>
-                                    </Grid>
+                                    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolerCoolingModeLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
+                                            <ComboBox Grid.Row="0" Grid.Column="1" Margin="6,6,6,6" ItemsSource="{Binding CoolingModes}" SelectedItem="{Binding CurrentCoolingMode, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+                                                <FontIcon Glyph="&#xE777;" />
+                                            </Button>
+                                        </Grid>
+                                        <ContentControl
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Content="{Binding CoolingParameters, Mode=OneWay}"
+                                            ContentTemplateSelector="{StaticResource CoolingParametersTemplateSelector}" />
+                                    </StackPanel>
                                 </Expander>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

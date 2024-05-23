@@ -414,6 +414,8 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 	private LogicalCoolingMode _initialCoolingMode;
 	private LogicalCoolingMode _currentCoolingMode;
 
+	private IResettable? _coolingParameters;
+
 	private readonly Commands.ResetCommand _resetCommand;
 
 	public override bool IsChanged => _initialCoolingMode != _currentCoolingMode;
@@ -432,10 +434,20 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 			bool wasChanged = IsChanged;
 			if (SetValue(ref _currentCoolingMode, value, ChangedProperty.CoolingModes))
 			{
+				_coolingParameters = value switch
+				{
+					LogicalCoolingMode.Automatic => AutomaticCoolingModeViewModel.Instance,
+					LogicalCoolingMode.Fixed => new FixedCoolingModeViewModel(_coolerInformation.PowerLimits!.MinimumPower, _coolerInformation.PowerLimits.CanSwitchOff),
+					LogicalCoolingMode.SoftwareControlCurve => new ControlCurveCoolingModeViewModel(),
+					_ => throw new InvalidOperationException(),
+				};
+				NotifyPropertyChanged(ChangedProperty.CoolingParameters);
 				OnChangeStateChange(wasChanged);
 			}
 		}
 	}
+
+	public IResettable? CoolingParameters => _coolingParameters;
 
 	public ICommand ResetCommand => _resetCommand;
 
@@ -444,13 +456,20 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		Device = device;
 		_coolerInformation = coolerInformation;
 		_coolingModes = GetCoolingModes(coolerInformation.SupportedCoolingModes);
+		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
+		{
+			if (coolerInformation.PowerLimits is null) throw new InvalidOperationException("Power limits must not be null.");
+		}
+
 		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Automatic) != 0)
 		{
 			_currentCoolingMode = _initialCoolingMode = LogicalCoolingMode.Automatic;
+			_coolingParameters = AutomaticCoolingModeViewModel.Instance;
 		}
 		else if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			_currentCoolingMode = _initialCoolingMode = LogicalCoolingMode.Fixed;
+			_coolingParameters = new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff);
 		}
 		_speedSensor = speedSensor;
 		_resetCommand = new(this);
@@ -528,10 +547,110 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 	}
 }
 
-public enum LogicalCoolingMode
+internal enum LogicalCoolingMode
 {
 	Automatic = 0,
 	Fixed = 1,
 	SoftwareControlCurve = 2,
 	HardwareControlCurve = 3,
+}
+
+internal sealed class AutomaticCoolingModeViewModel : IResettable
+{
+	public static readonly AutomaticCoolingModeViewModel Instance = new();
+
+	private AutomaticCoolingModeViewModel() { }
+
+	public bool IsChanged => false;
+	public event PropertyChangedEventHandler? PropertyChanged { add { } remove { } }
+	void IResettable.Reset() { }
+}
+
+internal sealed class FixedCoolingModeViewModel : ResettableBindableObject
+{
+	private static class Commands
+	{
+		public sealed class ResetPowerCommand : ICommand
+		{
+			public static readonly ResetPowerCommand Instance = new();
+
+			private ResetPowerCommand() { }
+
+			public void Execute(object? parameter) => ((FixedCoolingModeViewModel)parameter!).ResetPower();
+			public bool CanExecute(object? parameter) => (parameter as FixedCoolingModeViewModel)?.IsChanged ?? false;
+
+			public event EventHandler? CanExecuteChanged;
+
+			public static void NotifyCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
+		}
+	}
+
+	private byte _initialPower;
+	private byte _currentPower;
+	private readonly byte _minimumPower;
+	private readonly bool _canSwitchOff;
+
+	public FixedCoolingModeViewModel(byte minimumPower, bool canSwitchOff)
+	{
+		_currentPower = _initialPower = canSwitchOff ? (byte)0 : minimumPower;
+		_minimumPower = minimumPower;
+		_canSwitchOff = canSwitchOff;
+	}
+
+	public byte MinimumPower => _canSwitchOff ? (byte)0 : _minimumPower;
+	public bool CanSwitchOff => _canSwitchOff;
+
+	public override bool IsChanged => _currentPower != _initialPower;
+
+	public ICommand ResetPowerCommand => Commands.ResetPowerCommand.Instance;
+
+	public byte Power
+	{
+		get => _currentPower;
+		set
+		{
+			if (value >= _minimumPower && value < 100 || _canSwitchOff && value == 0)
+			{
+				bool wasChanged = IsChanged;
+				if (SetValue(ref _currentPower, value, ChangedProperty.Power))
+				{
+					OnChangeStateChange(wasChanged);
+				}
+			}
+		}
+	}
+
+	internal void SetInitialPower(byte value)
+	{
+		if (_initialPower != value)
+		{
+			byte oldValue = _initialPower;
+			_initialPower = value;
+			if (_currentPower == _initialPower)
+			{
+				_currentPower = value;
+				NotifyPropertyChanged(ChangedProperty.Power);
+			}
+			else if (_currentPower == value)
+			{
+				OnChanged();
+			}
+		}
+	}
+
+	internal void ResetPower() => Power = _initialPower;
+
+	protected override void Reset() => ResetPower();
+
+	protected override void OnChanged()
+	{
+		Commands.ResetPowerCommand.NotifyCanExecuteChanged();
+		base.OnChanged();
+	}
+}
+
+internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObject
+{
+	public override bool IsChanged => false;
+	protected override void Reset() { }
 }

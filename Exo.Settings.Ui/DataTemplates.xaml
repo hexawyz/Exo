@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lcontrols="using:Exo.Settings.Ui.Controls"
     xmlns:lconverters="using:Exo.Settings.Ui.Converters"
     xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
@@ -12,8 +13,8 @@
     <!-- Monitor setting UI templates -->
     <DataTemplate x:Key="MonitorBrightnessSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
         <Slider
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
             Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
             Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
             HorizontalAlignment="Stretch"
             Style="{StaticResource BrightnessSliderStyle}">
@@ -24,8 +25,8 @@
     </DataTemplate>
     <DataTemplate x:Key="MonitorContrastSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
         <Slider
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
             Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
             Value="{Binding Value, Mode=TwoWay}"
             HorizontalContentAlignment="Stretch"
             HorizontalAlignment="Stretch">
@@ -36,8 +37,8 @@
     </DataTemplate>
     <DataTemplate x:Key="MonitorDefaultContinuousSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
         <Slider
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
             Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
             Value="{Binding Value, Mode=TwoWay}"
             HorizontalContentAlignment="Stretch"
             HorizontalAlignment="Stretch">
@@ -55,18 +56,23 @@
     <DataTemplate x:Key="MonitorDefaultLabelSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
         <TextBlock Text="{Binding DisplayName}" />
     </DataTemplate>
-    <lts:MonitorSettingTemplateSelector x:Key="MonitorSettingContentTemplate"
+    <lts:MonitorSettingTemplateSelector x:Key="MonitorSettingContentTemplateSelector"
         BrightnessTemplate="{StaticResource MonitorBrightnessSettingTemplate}"
         ContrastTemplate="{StaticResource MonitorContrastSettingTemplate}"
         DefaultContinuousTemplate="{StaticResource MonitorDefaultContinuousSettingTemplate}" />
-    <lts:MonitorSettingTemplateSelector x:Key="MonitorSettingLabelTemplate"
+    <lts:MonitorSettingTemplateSelector x:Key="MonitorSettingLabelTemplateSelector"
         BrightnessTemplate="{StaticResource MonitorBrightnessLabelTemplate}"
         ContrastTemplate="{StaticResource MonitorContrastLabelTemplate}"
         DefaultContinuousTemplate="{StaticResource MonitorDefaultLabelSettingTemplate}" />
 
     <!-- Lighting property templates -->
     <DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
-        <Slider Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+        <Slider
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
+            Value="{Binding Value, Mode=TwoWay}" />
     </DataTemplate>
     <DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
         <NumberBox Value="{Binding Value, Mode=TwoWay}" />
@@ -84,7 +90,14 @@
         </ComboBox>
     </DataTemplate>
     <DataTemplate x:Key="EnumRangePropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
-        <Slider SnapsTo="StepValues" TickFrequency="1" Minimum="{Binding MinimumValue, Mode=OneTime}" Maximum="{Binding MaximumValue, Mode=OneTime}" Value="{Binding Value, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Slider
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            SnapsTo="StepValues"
+            TickFrequency="1"
+            Maximum="{Binding MaximumValue, Mode=OneTime}"
+            Minimum="{Binding MinimumValue, Mode=OneTime}"
+            Value="{Binding Value, Mode=TwoWay}">
             <Slider.ThumbToolTipValueConverter>
                 <lconverters:EnumerationValueToNameConverter Values="{Binding EnumerationValues, Mode=OneTime}" />
             </Slider.ThumbToolTipValueConverter>
@@ -93,8 +106,8 @@
     <DataTemplate x:Key="FallbackPropertyTemplate" />
     <DataTemplate x:Key="BrightnessTemplate">
         <Slider
-                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
                 HorizontalAlignment="Stretch"
                 Style="{StaticResource BrightnessSliderStyle}">
@@ -246,5 +259,41 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <DataTemplate x:Key="AutomaticCoolingParametersStyle" />
+
+    <DataTemplate x:Key="FixedCoolingParametersStyle" x:DataType="vm:FixedCoolingModeViewModel">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolingPowerLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
+            <Slider
+                Grid.Row="0"
+                Grid.Column="1"
+                Margin="6,6,6,6"
+                Maximum="100"
+                Minimum="{Binding MinimumPower, Mode=OneTime}"
+                Value="{Binding Power, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                ThumbToolTipValueConverter="{StaticResource IntegerPercentValueConverter}" />
+            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetPowerCommand}" CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ControlCurveCoolingParametersStyle" x:DataType="vm:ControlCurveCoolingModeViewModel">
+        <lcontrols:PowerControlCurveEditor MinimumValue="0" MaximumValue="2000" />
+    </DataTemplate>
+
+    <lts:CoolingParametersTemplateSelector
+        x:Key="CoolingParametersTemplateSelector"
+        AutomaticTemplate="{StaticResource AutomaticCoolingParametersStyle}"
+        FixedTemplate="{StaticResource FixedCoolingParametersStyle}"
+        ControlCurveTemplate="{StaticResource ControlCurveCoolingParametersStyle}" />
 
 </ResourceDictionary>

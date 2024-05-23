@@ -9,7 +9,7 @@
             <Brush x:Key="LineChartBackground">#fff</Brush>
             <Brush x:Key="LineChartGridStroke">#eee</Brush>
             <Brush x:Key="LineChartStroke">#000</Brush>
-            <Brush x:Key="LineMinMaxLineStroke">#444</Brush>
+            <Brush x:Key="LineChartLineMinMaxLineStroke">#444</Brush>
             <Brush x:Key="LineChartAreaFill">Black</Brush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
@@ -17,7 +17,7 @@
             <Brush x:Key="LineChartBackground">#222</Brush>
             <Brush x:Key="LineChartGridStroke">#333</Brush>
             <Brush x:Key="LineChartStroke">#fff</Brush>
-            <Brush x:Key="LineMinMaxLineStroke">#ccc</Brush>
+            <Brush x:Key="LineChartLineMinMaxLineStroke">#ccc</Brush>
             <Brush x:Key="LineChartAreaFill">#fff</Brush>
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
@@ -34,7 +34,7 @@
         <Setter Property="Stroke" Value="{ThemeResource LineChartStroke}" />
         <Setter Property="StrokeThickness" Value="{ThemeResource LineChartStrokeThickness}" />
         <Setter Property="StrokeLineJoin" Value="{ThemeResource LineChartStrokeLineJoin}" />
-        <Setter Property="MinMaxLineStroke" Value="{ThemeResource LineMinMaxLineStroke}" />
+        <Setter Property="MinMaxLineStroke" Value="{ThemeResource LineChartLineMinMaxLineStroke}" />
         <Setter Property="AreaFill" Value="{ThemeResource LineChartAreaFill}" />
         <Setter Property="AreaOpacity" Value="{ThemeResource LineChartAreaOpacity}" />
         <Setter Property="Template">
@@ -43,6 +43,7 @@
                     <Border
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
+                        Margin="{TemplateBinding Padding}"
                         Background="{TemplateBinding Background}"
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}">

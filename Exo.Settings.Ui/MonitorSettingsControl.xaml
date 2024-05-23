@@ -39,8 +39,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BrightnessSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
                 HorizontalAlignment="Stretch"
                 Style="{StaticResource BrightnessSliderStyle}">
@@ -73,8 +73,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding ContrastSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay}"
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch">
@@ -107,8 +107,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding AudioVolumeSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
                 Value="{Binding Value, Mode=TwoWay}"
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch">

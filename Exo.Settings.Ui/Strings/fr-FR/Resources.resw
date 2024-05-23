@@ -117,11 +117,14 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CoolerCoolingMode.Text" xml:space="preserve">
+  <data name="CoolerCoolingModeLabel.Text" xml:space="preserve">
     <value>Mode</value>
   </data>
   <data name="CoolerCurrentSpeed.ToolTipService.ToolTip" xml:space="preserve">
     <value>Vitesse actuelle</value>
+  </data>
+  <data name="CoolingPowerLabel.Text" xml:space="preserve">
+    <value>Puissance</value>
   </data>
   <data name="CustomMenuAddNewItemButton.Label" xml:space="preserve">
     <value>Ajouter</value>

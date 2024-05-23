@@ -7,8 +7,8 @@ internal sealed class CappedValueToPercentConverter : DependencyObject, IValueCo
 {
 	public int MaximumValue
 	{
-		get { return System.Convert.ToInt32(GetValue(MaximumValueProperty)); }
-		set { SetValue(MaximumValueProperty, System.Convert.ToInt32(value)); }
+		get => System.Convert.ToInt32(GetValue(MaximumValueProperty));
+		set => SetValue(MaximumValueProperty, System.Convert.ToInt32(value));
 	}
 
 	public static readonly DependencyProperty MaximumValueProperty =

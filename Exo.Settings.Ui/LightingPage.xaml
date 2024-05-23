@@ -34,8 +34,8 @@
                                 DataContext="{Binding Brightness}"
                                 Margin="{StaticResource RowContentMargin}"
                                 Value="{Binding Level, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
-                                Minimum="{Binding MinimumLevel, Mode=OneTime}"
-                                Maximum="{Binding MaximumLevel, Mode=OneTime}">
+                                Maximum="{Binding MaximumLevel, Mode=OneTime}"
+                                Minimum="{Binding MinimumLevel, Mode=OneTime}">
                                 <Slider.ThumbToolTipValueConverter>
                                     <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
                                 </Slider.ThumbToolTipValueConverter>

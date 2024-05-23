@@ -23,7 +23,7 @@
             Content="{Binding Mode=OneWay}"
             HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
-            ContentTemplateSelector="{StaticResource MonitorSettingLabelTemplate}" />
+            ContentTemplateSelector="{StaticResource MonitorSettingLabelTemplateSelector}" />
         <ContentControl
             Grid.Column="1"
             VerticalAlignment="Center"
@@ -31,7 +31,7 @@
             Content="{Binding Mode=OneWay}"
             HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
-            ContentTemplateSelector="{StaticResource MonitorSettingContentTemplate}" />
+            ContentTemplateSelector="{StaticResource MonitorSettingContentTemplateSelector}" />
         <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnResetButtonClick">
             <FontIcon Glyph="&#xE777;" />
         </Button>

@@ -371,7 +371,8 @@ public class KrakenDriver :
 		public Guid? SpeedSensorId => FanSpeedSensorId;
 		public CoolingMode CoolingMode => CoolingMode.Manual;
 
-		public byte MinimumPower => 0;
+		// NB: From testing, the speed starts increasing at 21%, for about 500 RPM.
+		public byte MinimumPower => 20;
 		public byte MaximumPower => 100;
 		public bool CanSwitchOff => true;
 

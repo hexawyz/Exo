@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui.Controls">
+    <Style x:Key="DefaultPowerControlCurveEditorStyle" TargetType="local:PowerControlCurveEditor">
+        <Setter Property="BorderBrush" Value="{ThemeResource LineChartBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{ThemeResource LineChartBorderThickness}" />
+        <Setter Property="Background" Value="{ThemeResource LineChartBackground}" />
+        <Setter Property="HorizontalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
+        <Setter Property="VerticalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
+        <Setter Property="CurveStroke" Value="{ThemeResource LineChartStroke}" />
+        <Setter Property="CurveStrokeThickness" Value="{ThemeResource LineChartStrokeThickness}" />
+        <Setter Property="CurveStrokeLineJoin" Value="{ThemeResource LineChartStrokeLineJoin}" />
+        <Setter Property="SymbolFill" Value="{ThemeResource LineChartStroke}" />
+        <Setter Property="SymbolStroke" Value="Transparent" />
+        <Setter Property="SymbolStrokeThickness" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:PowerControlCurveEditor">
+                    <Grid Padding="{TemplateBinding Padding}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <ItemsRepeater x:Name="PART_VerticalTicksItemsRepeater" Grid.Row="0" Grid.Column="0">
+                            <ItemsRepeater.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="HorizontalTextAlignment" Value="Right" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </ItemsRepeater.Resources>
+                            <ItemsRepeater.Layout>
+                                <local:TickLayout Orientation="Vertical" />
+                            </ItemsRepeater.Layout>
+                        </ItemsRepeater>
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Margin="8"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                            <Grid x:Name="PART_LayoutGrid">
+                                <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
+                                <Path x:Name="PART_VerticalGridLinesPath" Stroke="{TemplateBinding VerticalGridStroke}" />
+                                <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" />
+                                <Path x:Name="PART_SymbolsPath" Stroke="{TemplateBinding SymbolStroke}" StrokeThickness="{TemplateBinding SymbolStrokeThickness}" Fill="{TemplateBinding SymbolFill}" />
+                            </Grid>
+                        </Border>
+                        <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Row="1" Grid.Column="0">
+                            <ItemsRepeater.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Margin" Value="0" />
+                                </Style>
+                            </ItemsRepeater.Resources>
+                            <ItemsRepeater.Layout>
+                                <local:TickLayout Orientation="Horizontal" />
+                            </ItemsRepeater.Layout>
+                        </ItemsRepeater>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="local:PowerControlCurveEditor" BasedOn="{StaticResource DefaultPowerControlCurveEditorStyle}" />
+</ResourceDictionary>
