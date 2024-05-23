@@ -389,32 +389,15 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		}
 	}
 
-	// Preallocated cooling modes collections for the few possible scenarios. (NB: Manual mode always implies fixed and software curve)
-	private static readonly ReadOnlyCollection<LogicalCoolingMode> CoolingModesAutomaticOnly = Array.AsReadOnly([LogicalCoolingMode.Automatic]);
-	private static readonly ReadOnlyCollection<LogicalCoolingMode> CoolingModesManualOnly = Array.AsReadOnly([LogicalCoolingMode.Fixed, LogicalCoolingMode.SoftwareControlCurve]);
-	private static readonly ReadOnlyCollection<LogicalCoolingMode> CoolingModesAutomaticOrManual = Array.AsReadOnly([LogicalCoolingMode.Automatic, LogicalCoolingMode.Fixed, LogicalCoolingMode.SoftwareControlCurve]);
-
-	// This filters on supported modes. Obviously, the logic should be adapted to support logic modes, but we don't want to break the UI when a new unsupported mode is added.
-	private static ReadOnlyCollection<LogicalCoolingMode> GetCoolingModes(RawCoolingModes coolingModes)
-		=> (coolingModes & (RawCoolingModes.Automatic | RawCoolingModes.Manual)) switch
-		{
-			RawCoolingModes.Automatic => CoolingModesAutomaticOnly,
-			RawCoolingModes.Manual => CoolingModesManualOnly,
-			RawCoolingModes.Automatic | RawCoolingModes.Manual => CoolingModesAutomaticOrManual,
-			_ => ReadOnlyCollection<LogicalCoolingMode>.Empty,
-		};
-
 	public CoolingDeviceViewModel Device { get; }
-	private ReadOnlyCollection<LogicalCoolingMode> _coolingModes;
+	private ReadOnlyCollection<ICoolingModeViewModel> _coolingModes;
 
 	private CoolerInformation _coolerInformation;
 	private SensorViewModel? _speedSensor;
 	private bool _isExpanded;
 
-	private LogicalCoolingMode _initialCoolingMode;
-	private LogicalCoolingMode _currentCoolingMode;
-
-	private IResettable? _coolingParameters;
+	private ICoolingModeViewModel? _initialCoolingMode;
+	private ICoolingModeViewModel? _currentCoolingMode;
 
 	private readonly Commands.ResetCommand _resetCommand;
 
@@ -424,30 +407,20 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 	public Guid? SpeedSensorId => _coolerInformation.SpeedSensorId;
 	public SensorViewModel? SpeedSensor => _speedSensor;
 
-	public ReadOnlyCollection<LogicalCoolingMode> CoolingModes => _coolingModes;
+	public ReadOnlyCollection<ICoolingModeViewModel> CoolingModes => _coolingModes;
 
-	public LogicalCoolingMode CurrentCoolingMode
+	public ICoolingModeViewModel? CurrentCoolingMode
 	{
 		get => _currentCoolingMode;
 		set
 		{
 			bool wasChanged = IsChanged;
-			if (SetValue(ref _currentCoolingMode, value, ChangedProperty.CoolingModes))
+			if (SetValue(ref _currentCoolingMode, value, ChangedProperty.CurrentCoolingMode))
 			{
-				_coolingParameters = value switch
-				{
-					LogicalCoolingMode.Automatic => AutomaticCoolingModeViewModel.Instance,
-					LogicalCoolingMode.Fixed => new FixedCoolingModeViewModel(_coolerInformation.PowerLimits!.MinimumPower, _coolerInformation.PowerLimits.CanSwitchOff),
-					LogicalCoolingMode.SoftwareControlCurve => new ControlCurveCoolingModeViewModel(),
-					_ => throw new InvalidOperationException(),
-				};
-				NotifyPropertyChanged(ChangedProperty.CoolingParameters);
 				OnChangeStateChange(wasChanged);
 			}
 		}
 	}
-
-	public IResettable? CoolingParameters => _coolingParameters;
 
 	public ICommand ResetCommand => _resetCommand;
 
@@ -455,22 +428,32 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 	{
 		Device = device;
 		_coolerInformation = coolerInformation;
-		_coolingModes = GetCoolingModes(coolerInformation.SupportedCoolingModes);
 		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			if (coolerInformation.PowerLimits is null) throw new InvalidOperationException("Power limits must not be null.");
 		}
 
+		var coolingModes = new List<ICoolingModeViewModel>();
 		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Automatic) != 0)
 		{
-			_currentCoolingMode = _initialCoolingMode = LogicalCoolingMode.Automatic;
-			_coolingParameters = AutomaticCoolingModeViewModel.Instance;
+			coolingModes.Add(AutomaticCoolingModeViewModel.Instance);
 		}
 		else if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
-			_currentCoolingMode = _initialCoolingMode = LogicalCoolingMode.Fixed;
-			_coolingParameters = new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff);
+			coolingModes.Add(new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
+			coolingModes.Add(new ControlCurveCoolingModeViewModel());
 		}
+
+		if (coolingModes.Count > 0)
+		{
+			_coolingModes = Array.AsReadOnly(coolingModes.ToArray());
+			_currentCoolingMode = _initialCoolingMode = coolingModes[0];
+		}
+		else
+		{
+			_coolingModes = ReadOnlyCollection<ICoolingModeViewModel>.Empty;
+		}
+
 		_speedSensor = speedSensor;
 		_resetCommand = new(this);
 	}
@@ -494,28 +477,49 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		_coolerInformation = information;
 		if (oldInfo.SupportedCoolingModes != information.SupportedCoolingModes)
 		{
-			SetValue(ref _coolingModes, GetCoolingModes(information.SupportedCoolingModes), ChangedProperty.CoolingModes);
+			// Take a snapshot of the pre-existing cooling modes in order to not allocate new instances.
+			// This will be useful for updating the current and initial cooling modes later.
+			ICoolingModeViewModel? automaticCoolingModeViewModel = null;
+			ICoolingModeViewModel? fixedCoolingModeViewModel = null;
+			ICoolingModeViewModel? controlCurveCoolingModeViewModel = null;
+
+			foreach (var coolingMode in _coolingModes)
+			{
+				switch (coolingMode)
+				{
+				case AutomaticCoolingModeViewModel: automaticCoolingModeViewModel = coolingMode; break;
+				case FixedCoolingModeViewModel: fixedCoolingModeViewModel = coolingMode; break;
+				case ControlCurveCoolingModeViewModel: controlCurveCoolingModeViewModel = coolingMode; break;
+				}
+			}
+
+			var coolingModes = new List<ICoolingModeViewModel>();
+			if ((information.SupportedCoolingModes & RawCoolingModes.Automatic) != 0)
+			{
+				coolingModes.Add(automaticCoolingModeViewModel ?? AutomaticCoolingModeViewModel.Instance);
+			}
+			else if ((information.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
+			{
+				coolingModes.Add(fixedCoolingModeViewModel ?? new FixedCoolingModeViewModel(information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
+				coolingModes.Add(controlCurveCoolingModeViewModel ?? new ControlCurveCoolingModeViewModel());
+			}
+			_coolingModes = coolingModes.Count > 0 ? Array.AsReadOnly(coolingModes.ToArray()) : ReadOnlyCollection<ICoolingModeViewModel>.Empty;
+			NotifyPropertyChanged(ChangedProperty.CoolingModes);
 		}
-		// TODO: Synchronize cooling modes.
 		bool wasChanged = IsChanged;
 		var oldInitialCoolingMode = _initialCoolingMode;
-		LogicalCoolingMode defaultInitialCoolingMode = 0;
-		if ((information.SupportedCoolingModes & RawCoolingModes.Automatic) != 0)
+		var newInitialCoolingMode = _coolingModes.Count > 0 ? _coolingModes[0] : null;
+		if (oldInitialCoolingMode != newInitialCoolingMode)
 		{
-			defaultInitialCoolingMode = LogicalCoolingMode.Automatic;
-		}
-		else if ((information.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
-		{
-			defaultInitialCoolingMode = LogicalCoolingMode.Fixed;
-		}
-		// TODO: Restrain the initial cooling mode to one of the supported ones instead of enforcing it to the minimum supported value.
-		if (oldInitialCoolingMode != defaultInitialCoolingMode)
-		{
-			_initialCoolingMode = defaultInitialCoolingMode;
+			_initialCoolingMode = newInitialCoolingMode;
 			if (_currentCoolingMode == oldInitialCoolingMode)
 			{
 				CurrentCoolingMode = _initialCoolingMode;
 			}
+		}
+		if (_currentCoolingMode is not null ? !_coolingModes.Contains(_currentCoolingMode) : _initialCoolingMode is not null)
+		{
+			CurrentCoolingMode = _initialCoolingMode;
 		}
 		OnChangeStateChange(wasChanged);
 	}
@@ -555,18 +559,25 @@ internal enum LogicalCoolingMode
 	HardwareControlCurve = 3,
 }
 
-internal sealed class AutomaticCoolingModeViewModel : IResettable
+internal interface ICoolingModeViewModel : IResettable
+{
+	LogicalCoolingMode CoolingMode { get; }
+}
+
+internal sealed class AutomaticCoolingModeViewModel : ICoolingModeViewModel
 {
 	public static readonly AutomaticCoolingModeViewModel Instance = new();
 
 	private AutomaticCoolingModeViewModel() { }
 
+	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.Automatic;
 	public bool IsChanged => false;
 	public event PropertyChangedEventHandler? PropertyChanged { add { } remove { } }
 	void IResettable.Reset() { }
+
 }
 
-internal sealed class FixedCoolingModeViewModel : ResettableBindableObject
+internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
 {
 	private static class Commands
 	{
@@ -601,6 +612,8 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject
 	public bool CanSwitchOff => _canSwitchOff;
 
 	public override bool IsChanged => _currentPower != _initialPower;
+
+	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.Fixed;
 
 	public ICommand ResetPowerCommand => Commands.ResetPowerCommand.Instance;
 
@@ -649,8 +662,9 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject
 	}
 }
 
-internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObject
+internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
 {
+	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.SoftwareControlCurve;
 	public override bool IsChanged => false;
 	protected override void Reset() { }
 }
