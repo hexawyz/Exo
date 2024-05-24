@@ -19,29 +19,46 @@ internal partial class PowerControlCurveEditor
 
 	public static readonly DependencyProperty SelectedIndexProperty = RegisterPropertyWithChangeHandler<int?>(nameof(SelectedIndex), null);
 
+	public byte MinimumPower
+	{
+		get => (byte)GetValue(MinimumPowerProperty);
+		set => SetValue(MinimumPowerProperty, value);
+	}
+
+	// TODO: Should be byte and not int, but obviously WinUI is broken. We can store a byte inside of an int property, but a byte into a byte property wouldn't work.
+	public static readonly DependencyProperty MinimumPowerProperty = RegisterPropertyWithChangeHandler(nameof(MinimumPower), 0);
+
+	public bool CanSwitchOff
+	{
+		get => (bool)GetValue(CanSwitchOffProperty);
+		set => SetValue(CanSwitchOffProperty, value);
+	}
+
+	public static readonly DependencyProperty CanSwitchOffProperty = RegisterPropertyWithChangeHandler(nameof(CanSwitchOff), true);
+
 	public bool IsFloatingPoint
 	{
 		get => (bool)GetValue(IsFloatingPointProperty);
 		set => SetValue(IsFloatingPointProperty, value);
 	}
 
-	public static readonly DependencyProperty IsFloatingPointProperty = RegisterPropertyWithChangeHandler<bool>(nameof(IsFloatingPoint), false);
+	public static readonly DependencyProperty IsFloatingPointProperty = RegisterPropertyWithChangeHandler(nameof(IsFloatingPoint), false);
 
-	public object? MinimumValue
+	public object? MinimumInputValue
 	{
-		get => GetValue(MinimumValueProperty);
-		set => SetValue(MinimumValueProperty, value);
+		get => GetValue(MinimumInputValueProperty);
+		set => SetValue(MinimumInputValueProperty, value);
 	}
 
-	public static readonly DependencyProperty MinimumValueProperty = RegisterPropertyWithChangeHandler<object?>(nameof(MinimumValue), null);
+	public static readonly DependencyProperty MinimumInputValueProperty = RegisterPropertyWithChangeHandler<object?>(nameof(MinimumInputValue), null);
 
-	public object? MaximumValue
+	public object? MaximumInputValue
 	{
-		get => GetValue(MaximumValueProperty);
-		set => SetValue(MaximumValueProperty, value);
+		get => GetValue(MaximumInputValueProperty);
+		set => SetValue(MaximumInputValueProperty, value);
 	}
 
-	public static readonly DependencyProperty MaximumValueProperty = RegisterPropertyWithChangeHandler<object?>(nameof(MaximumValue), null);
+	public static readonly DependencyProperty MaximumInputValueProperty = RegisterPropertyWithChangeHandler<object?>(nameof(MaximumInputValue), null);
 
 	public object? Points
 	{
@@ -98,6 +115,14 @@ internal partial class PowerControlCurveEditor
 	}
 
 	public static readonly DependencyProperty SymbolStrokeThicknessProperty = RegisterProperty(nameof(SymbolStrokeThickness), 1d);
+
+	public double SymbolRadius
+	{
+		get => (double)GetValue(SymbolRadiusProperty);
+		set => SetValue(SymbolRadiusProperty, value);
+	}
+
+	public static readonly DependencyProperty SymbolRadiusProperty = RegisterPropertyWithChangeHandler(nameof(SymbolRadius), 2d);
 
 	public Brush HorizontalGridStroke
 	{

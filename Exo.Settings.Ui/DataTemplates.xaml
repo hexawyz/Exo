@@ -287,7 +287,42 @@
     </DataTemplate>
 
     <DataTemplate x:Key="ControlCurveCoolingParametersStyle" x:DataType="vm:ControlCurveCoolingModeViewModel">
-        <lcontrols:PowerControlCurveEditor MinimumValue="0" MaximumValue="2000" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolingFallbackPowerLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
+            <Slider
+                Grid.Row="0"
+                Grid.Column="1"
+                Margin="6,6,6,6"
+                Maximum="100"
+                Minimum="{Binding MinimumPower, Mode=OneTime}"
+                Value="{Binding FallbackPower, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                ThumbToolTipValueConverter="{StaticResource IntegerPercentValueConverter}" />
+            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetFallbackPowerCommand}" CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+            <lcontrols:PowerControlCurveEditor
+                Grid.Row="1"
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                CurveStrokeThickness="2"
+                SymbolRadius="4"
+                MinimumInputValue="0"
+                MaximumInputValue="300"
+                MinimumPower="{Binding MinimumOnPower}"
+                CanSwitchOff="{Binding CanSwitchOff}"
+                Points="{Binding Points}" />
+        </Grid>
     </DataTemplate>
 
     <lts:CoolingParametersTemplateSelector

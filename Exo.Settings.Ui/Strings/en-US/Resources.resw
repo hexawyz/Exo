@@ -123,6 +123,12 @@
   <data name="CoolerCurrentSpeed.ToolTipService.ToolTip" xml:space="preserve">
     <value>Current Speed</value>
   </data>
+  <data name="CoolingFallbackPowerLabel.Text" xml:space="preserve">
+    <value>Fallback Power</value>
+  </data>
+  <data name="CoolingFallbackPowerLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>This value will be used as a fallback if the sensor value is not available.</value>
+  </data>
   <data name="CoolingPowerLabel.Text" xml:space="preserve">
     <value>Power</value>
   </data>

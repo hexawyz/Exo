@@ -123,6 +123,12 @@
   <data name="CoolerCurrentSpeed.ToolTipService.ToolTip" xml:space="preserve">
     <value>Vitesse actuelle</value>
   </data>
+  <data name="CoolingFallbackPowerLabel.Text" xml:space="preserve">
+    <value>Puissance de secours</value>
+  </data>
+  <data name="CoolingFallbackPowerLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Cette valeur sera utilisée si la valeur du capteur n'est pas disponible.</value>
+  </data>
   <data name="CoolingPowerLabel.Text" xml:space="preserve">
     <value>Puissance</value>
   </data>

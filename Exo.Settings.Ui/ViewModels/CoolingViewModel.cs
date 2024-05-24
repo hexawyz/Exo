@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.Numerics;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
+using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using RawCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
@@ -441,7 +443,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		else if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			coolingModes.Add(new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
-			coolingModes.Add(new ControlCurveCoolingModeViewModel());
+			coolingModes.Add(new ControlCurveCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
 		}
 
 		if (coolingModes.Count > 0)
@@ -501,7 +503,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 			else if ((information.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 			{
 				coolingModes.Add(fixedCoolingModeViewModel ?? new FixedCoolingModeViewModel(information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
-				coolingModes.Add(controlCurveCoolingModeViewModel ?? new ControlCurveCoolingModeViewModel());
+				coolingModes.Add(controlCurveCoolingModeViewModel ?? new ControlCurveCoolingModeViewModel(information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
 			}
 			_coolingModes = coolingModes.Count > 0 ? Array.AsReadOnly(coolingModes.ToArray()) : ReadOnlyCollection<ICoolingModeViewModel>.Empty;
 			NotifyPropertyChanged(ChangedProperty.CoolingModes);
@@ -664,7 +666,133 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 
 internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
 {
+	private static class Commands
+	{
+		public sealed class ResetFallbackPowerCommand : ICommand
+		{
+			public static readonly ResetFallbackPowerCommand Instance = new();
+
+			private ResetFallbackPowerCommand() { }
+
+			public void Execute(object? parameter) => ((ControlCurveCoolingModeViewModel)parameter!).ResetFallbackPower();
+			public bool CanExecute(object? parameter) => (parameter as ControlCurveCoolingModeViewModel)?.IsChanged ?? false;
+
+			public event EventHandler? CanExecuteChanged;
+
+			public static void NotifyCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
+		}
+	}
+
+	private readonly object _points;
+
+	private byte _initialFallbackPower;
+	private byte _currentFallbackPower;
+	private readonly byte _minimumPower;
+	private readonly bool _canSwitchOff;
+
+	public override bool IsChanged => _initialFallbackPower != _currentFallbackPower;
+
+	public object Points => _points;
+
 	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.SoftwareControlCurve;
-	public override bool IsChanged => false;
-	protected override void Reset() { }
+
+	public ICommand ResetFallbackPowerCommand => Commands.ResetFallbackPowerCommand.Instance;
+
+	public byte MinimumOnPower => _minimumPower;
+	public byte MinimumPower => _canSwitchOff ? (byte)0 : _minimumPower;
+	public bool CanSwitchOff => _canSwitchOff;
+
+	public byte FallbackPower
+	{
+		get => _currentFallbackPower;
+		set
+		{
+			if (value >= _minimumPower && value < 100 || _canSwitchOff && value == 0)
+			{
+				bool wasChanged = IsChanged;
+				if (SetValue(ref _currentFallbackPower, value, ChangedProperty.FallbackPower))
+				{
+					OnChangeStateChange(wasChanged);
+				}
+			}
+		}
+	}
+
+	public ControlCurveCoolingModeViewModel(byte minimumPower, bool canSwitchOff)
+	{
+		_currentFallbackPower = _initialFallbackPower = canSwitchOff ? (byte)0 : minimumPower;
+		_minimumPower = minimumPower;
+		_canSwitchOff = canSwitchOff;
+
+		var points = new ObservableCollection<IDataPoint<int, byte>>()
+		{
+			new PowerDataPointViewModel<int>(10, 20),
+			new PowerDataPointViewModel<int>(20, 20),
+			new PowerDataPointViewModel<int>(30, 40),
+			new PowerDataPointViewModel<int>(40, 80),
+			new PowerDataPointViewModel<int>(50, 100),
+			new PowerDataPointViewModel<int>(60, 100),
+			new PowerDataPointViewModel<int>(200, 100),
+		};
+
+		_points = points;
+	}
+
+	internal void SetInitialPower(byte value)
+	{
+		if (_initialFallbackPower != value)
+		{
+			byte oldValue = _initialFallbackPower;
+			_initialFallbackPower = value;
+			if (_currentFallbackPower == _initialFallbackPower)
+			{
+				_currentFallbackPower = value;
+				NotifyPropertyChanged(ChangedProperty.FallbackPower);
+			}
+			else if (_currentFallbackPower == value)
+			{
+				OnChanged();
+			}
+		}
+	}
+
+	internal void ResetFallbackPower() => FallbackPower = _initialFallbackPower;
+
+	protected override void Reset()
+	{
+		ResetFallbackPower();
+	}
+
+	protected override void OnChanged()
+	{
+		Commands.ResetFallbackPowerCommand.NotifyCanExecuteChanged();
+		base.OnChanged();
+	}
+}
+
+internal sealed class PowerDataPointViewModel<T> : BindableObject, IDataPoint<T, byte>
+	where T : struct, INumber<T>
+{
+	private T _x;
+	private byte _y;
+
+	public T X
+	{
+		get => _x;
+		set => SetValue(ref _x, value);
+	}
+
+	public byte Y
+	{
+		get => _y;
+		set => SetValue(ref _y, value);
+	}
+
+	public PowerDataPointViewModel() { }
+
+	public PowerDataPointViewModel(T x, byte y)
+	{
+		_x = x;
+		_y = y;
+	}
 }

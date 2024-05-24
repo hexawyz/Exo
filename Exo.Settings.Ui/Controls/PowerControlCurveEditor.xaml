@@ -51,14 +51,16 @@
                             <Grid x:Name="PART_LayoutGrid">
                                 <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
                                 <Path x:Name="PART_VerticalGridLinesPath" Stroke="{TemplateBinding VerticalGridStroke}" />
-                                <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" />
+                                <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                                 <Path x:Name="PART_SymbolsPath" Stroke="{TemplateBinding SymbolStroke}" StrokeThickness="{TemplateBinding SymbolStrokeThickness}" Fill="{TemplateBinding SymbolFill}" />
                             </Grid>
                         </Border>
-                        <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Row="1" Grid.Column="0">
+                        <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Row="1" Grid.Column="1">
                             <ItemsRepeater.Resources>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Margin" Value="0" />
+                                    <Setter Property="HorizontalTextAlignment" Value="Center" />
+                                    <Setter Property="VerticalAlignment" Value="Top" />
                                 </Style>
                             </ItemsRepeater.Resources>
                             <ItemsRepeater.Layout>
