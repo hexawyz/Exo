@@ -4,6 +4,7 @@ using System.Numerics;
 using Microsoft.UI.Content;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using WinRT;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
@@ -41,15 +42,29 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private readonly PathGeometry _horizontalGridLinesPathGeometry;
 	private readonly PathGeometry _curvePathGeometry;
 	private readonly GeometryGroup _symbolsGeometryGroup;
-	private readonly NotifyCollectionChangedEventHandler _pointsCollectionChanged;
 	private LinearScale? _horizontalScale;
 	private LinearScale? _verticalScale;
 	private double[] _horizontalTicks;
 	private readonly double[] _verticalTicks;
 
+	//private int _draggedPointIndex;
+	//private double _draggedPointRelativePower;
+
+	private readonly NotifyCollectionChangedEventHandler _pointsCollectionChanged;
+	private readonly PointerEventHandler _symbolsPathPointerPressed;
+	private readonly PointerEventHandler _symbolsPathPointerMoved;
+	private readonly PointerEventHandler _symbolsPathPointerReleased;
+	private readonly PointerEventHandler _symbolsPathPointerCanceled;
+	private readonly PointerEventHandler _symbolsPathPointerCaptureLost;
+
 	public PowerControlCurveEditor()
 	{
 		_pointsCollectionChanged = OnPointsCollectionChanged;
+		_symbolsPathPointerPressed = OnSymbolsPathPointerPressed;
+		_symbolsPathPointerMoved = OnSymbolsPathPointerMoved;
+		_symbolsPathPointerReleased = OnSymbolsPathPointerReleased;
+		_symbolsPathPointerCanceled = OnSymbolsPathPointerCanceled;
+		_symbolsPathPointerCaptureLost = OnSymbolsPathPointerCaptureLost;
 		_horizontalTicks = [];
 		_verticalTicks = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
 
@@ -124,6 +139,14 @@ internal sealed partial class PowerControlCurveEditor : Control
 		_horizontalTicks = [];
 		SetData(_curvePath, null);
 		SetData(_symbolsPath, null);
+		if (_symbolsPath is not null)
+		{
+			_symbolsPath.PointerPressed -= _symbolsPathPointerPressed;
+			_symbolsPath.PointerMoved -= _symbolsPathPointerMoved;
+			_symbolsPath.PointerReleased -= _symbolsPathPointerReleased;
+			_symbolsPath.PointerCanceled -= _symbolsPathPointerCanceled;
+			_symbolsPath.PointerCaptureLost -= _symbolsPathPointerCaptureLost;
+		}
 		SetData(_verticalGridLinesPath, null);
 		SetData(_horizontalGridLinesPath, null);
 		if (_verticalTickItemsRepeater is not null) _verticalTickItemsRepeater.ItemsSource = null;
@@ -136,6 +159,14 @@ internal sealed partial class PowerControlCurveEditor : Control
 		SetData(_verticalGridLinesPath, _verticalGridLinesPathGeometry);
 		SetData(_curvePath, _curvePathGeometry);
 		SetData(_symbolsPath, _symbolsGeometryGroup);
+		if (_symbolsPath is not null)
+		{
+			_symbolsPath.PointerPressed += _symbolsPathPointerPressed;
+			_symbolsPath.PointerMoved += _symbolsPathPointerMoved;
+			_symbolsPath.PointerReleased += _symbolsPathPointerReleased;
+			_symbolsPath.PointerCanceled += _symbolsPathPointerCanceled;
+			_symbolsPath.PointerCaptureLost += _symbolsPathPointerCaptureLost;
+		}
 		if (_verticalTickItemsRepeater is not null) _verticalTickItemsRepeater.ItemsSource = _verticalTicks;
 		if (_horizontalTickItemsRepeater is not null) _horizontalTickItemsRepeater.ItemsSource = _horizontalTicks;
 	}
@@ -325,40 +356,25 @@ internal sealed partial class PowerControlCurveEditor : Control
 			curveFigure.Segments.Add(new LineSegment() { Point = new() { X = horizontalScale.OutputMaximum, Y = y } });
 		}
 	}
-}
 
-internal sealed class LinearScale
-{
-	private readonly double _inputMinimum;
-	private readonly double _inputAmplitude;
-
-	private readonly double _outputMinimum;
-	private readonly double _outputAmplitude;
-
-	private readonly double _inputMaximum;
-	private readonly double _outputMaximum;
-
-	public double InputMinimum => _inputMinimum;
-	public double InputMaximum => _inputMaximum;
-
-	public double OutputMinimum => _outputMinimum;
-	public double OutputMaximum => _outputMaximum;
-
-	public double InputAmplitude => _inputAmplitude;
-	public double OutputAmplitude => _outputAmplitude;
-
-	public LinearScale(double inputMinimum, double inputMaximum, double outputMinimum, double outputMaximum)
+	private void OnSymbolsPathPointerPressed(object sender, PointerRoutedEventArgs e)
 	{
-		_inputMinimum = inputMinimum;
-		_inputAmplitude = inputMaximum - inputMinimum;
-		_outputMinimum = outputMinimum;
-		_outputAmplitude = outputMaximum - outputMinimum;
-		_inputMaximum = inputMaximum;
-		_outputMaximum = outputMaximum;
 	}
 
-	public double this[double value] => _outputMinimum + (value - _inputMinimum) * _outputAmplitude / _inputAmplitude;
+	private void OnSymbolsPathPointerMoved(object sender, PointerRoutedEventArgs e)
+	{
+	}
 
-	public double Inverse(double value) => _inputMinimum + (value - _outputMinimum) * _inputAmplitude / _outputAmplitude;
+	private void OnSymbolsPathPointerReleased(object sender, PointerRoutedEventArgs e)
+	{
+	}
+
+	private void OnSymbolsPathPointerCanceled(object sender, PointerRoutedEventArgs e)
+	{
+	}
+
+	private void OnSymbolsPathPointerCaptureLost(object sender, PointerRoutedEventArgs e)
+	{
+	}
 }
 
