@@ -345,26 +345,32 @@ internal sealed partial class PowerControlCurveEditor : Control
 		IDataPoint<T, byte> point = points[0];
 		double x = horizontalScale[double.CreateChecked(point.X)];
 		double y = verticalScale[point.Y];
+		// A hard step needs to be drawn if the curve starts at 0 and goes to its minimum value that is not zero afterwards.
+		bool isStepRequired = canSwitchOff && minimumPower > 0;
+		// The first point gets a special treatment, as we always want the curve to be anchored to the left side.
+		// The default value in that case depends on the settings. It will be zero if switchable to off, or 
 		if (double.CreateChecked(point.X) > horizontalScale.InputMinimum)
 		{
-			double startY = verticalScale[canSwitchOff ? (byte)0 : minimumPower];
-			curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = startY };
-			if (canSwitchOff)
+			if (isStepRequired)
 			{
-				curveFigure.Segments.Add(new LineSegment() { Point = new() { X = x, Y = startY } });
+				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = verticalScale.OutputMinimum };
+				curveFigure.Segments.Add(new LineSegment() { Point = new() { X = x, Y = verticalScale.OutputMinimum } });
 				if (point.Y != 0)
 				{
 					curveFigure.Segments.Add(new LineSegment() { Point = new() { X = x, Y = y } });
+					isStepRequired = false;
 				}
 			}
 			else
 			{
+				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = verticalScale[minimumPower] };
 				curveFigure.Segments.Add(new LineSegment() { Point = new() { X = x, Y = y } });
 			}
 		}
 		else
 		{
 			curveFigure.StartPoint = new() { X = x, Y = y };
+			isStepRequired &= point.Y == 0;
 		}
 
 		symbolsGeometryGroup.Children.Add(new EllipseGeometry() { Center = new() { X = x, Y = y }, RadiusX = symbolRadius, RadiusY = symbolRadius });
@@ -373,6 +379,11 @@ internal sealed partial class PowerControlCurveEditor : Control
 		{
 			point = points[i];
 			x = horizontalScale[double.CreateChecked(point.X)];
+			if (isStepRequired && point.Y != 0)
+			{
+				curveFigure.Segments.Add(new LineSegment() { Point = new() { X = x, Y = y } });
+				isStepRequired = false;
+			}
 			y = verticalScale[point.Y];
 			curveFigure.Segments.Add(new LineSegment() { Point = new() { X = x, Y = y } });
 			symbolsGeometryGroup.Children.Add(new EllipseGeometry() { Center = new() { X = x, Y = y }, RadiusX = symbolRadius, RadiusY = symbolRadius });
@@ -433,98 +444,71 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 		if (points.Count == 0) return;
 
+		// Helper method to update an existing line segment or add a new one.
+		// We assume that index is always ≤ Count.
+		static void SetLineSegment(PathFigure figure, int index, Point p)
+		{
+			if (figure.Segments.Count > index)
+			{
+				((LineSegment)figure.Segments[index]).Point = p;
+			}
+			else
+			{
+				figure.Segments.Add(new LineSegment { Point = p });
+			}
+		}
+
 		IDataPoint<T, byte> point = points[0];
 		T px;
 		byte py;
-		int firstSegmentIndex = -1;
-		int lastPointIndex = points.Count - 1;
-		int expectedSegmentCount = double.CreateChecked(draggedPointIndex < lastPointIndex ? points[lastPointIndex].X : draggedPointInputValue) < horizontalScale.InputMaximum ?
-			points.Count :
-			lastPointIndex;
+		bool isStepRequired = canSwitchOff && minimumPower > 0;
+		int segmentCount = 0;
 		double x;
 		double y;
 		Point p;
+
 		if (draggedPointIndex == 0)
 		{
 			px = draggedPointInputValue;
 			py = draggedPointPower;
-			x = horizontalScale[double.CreateChecked(px)];
-			y = verticalScale[py];
-
-			if (double.CreateChecked(px) > horizontalScale.InputMinimum)
-			{
-				firstSegmentIndex = canSwitchOff && py != 0 ? 1 : 0;
-				expectedSegmentCount += 1 + firstSegmentIndex;
-
-				double startY = verticalScale[canSwitchOff ? (byte)0 : minimumPower];
-				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = startY };
-				if (canSwitchOff)
-				{
-					p = new() { X = x, Y = startY };
-					if (curveFigure.Segments.Count < expectedSegmentCount)
-					{
-						curveFigure.Segments.Insert(0, new LineSegment() { Point = p });
-					}
-					else
-					{
-						((LineSegment)curveFigure.Segments[0]).Point = p;
-					}
-					if (point.Y != 0)
-					{
-						p = new() { X = x, Y = y };
-						if (curveFigure.Segments.Count < expectedSegmentCount)
-						{
-							curveFigure.Segments.Insert(1, new LineSegment() { Point = p });
-						}
-						else
-						{
-							((LineSegment)curveFigure.Segments[1]).Point = p;
-						}
-					}
-				}
-				else
-				{
-					p = new() { X = x, Y = y };
-					if (curveFigure.Segments.Count < expectedSegmentCount)
-					{
-						curveFigure.Segments.Insert(0, new LineSegment() { Point = p });
-					}
-					else
-					{
-						((LineSegment)curveFigure.Segments[0]).Point = p;
-					}
-				}
-			}
-			else
-			{
-				while (curveFigure.Segments.Count > expectedSegmentCount)
-				{
-					curveFigure.Segments.RemoveAt(0);
-				}
-			}
 		}
 		else
 		{
 			px = point.X;
 			py = Math.Min(point.Y, draggedPointPower);
-			x = horizontalScale[double.CreateChecked(px)];
-			y = verticalScale[py];
-
-			if (double.CreateChecked(px) > horizontalScale.InputMinimum)
-			{
-				firstSegmentIndex = canSwitchOff && point.Y != 0 ? 1 : 0;
-			}
 		}
 
-		p = new() { X = x, Y = y };
-		if (firstSegmentIndex >= 0)
+		x = horizontalScale[double.CreateChecked(px)];
+		y = verticalScale[py];
+
+		if (double.CreateChecked(px) > horizontalScale.InputMinimum)
 		{
-			((LineSegment)curveFigure.Segments[firstSegmentIndex]).Point = p;
+			if (isStepRequired)
+			{
+				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = verticalScale.OutputMinimum };
+				p = new() { X = x, Y = verticalScale.OutputMinimum };
+				SetLineSegment(curveFigure, segmentCount++, p);
+				if (py != 0)
+				{
+					p.Y = y;
+					SetLineSegment(curveFigure, segmentCount++, p);
+					isStepRequired = false;
+				}
+			}
+			else
+			{
+				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = verticalScale[minimumPower] };
+				p = new() { X = x, Y = y };
+				SetLineSegment(curveFigure, segmentCount++, p);
+			}
 		}
 		else
 		{
+			p = new() { X = x, Y = y };
 			curveFigure.StartPoint = p;
+			isStepRequired &= py == 0;
 		}
+
 		((EllipseGeometry)symbolsGeometryGroup.Children[0]).Center = p;
 
 		for (int i = 1; i < draggedPointIndex; i++)
@@ -534,8 +518,16 @@ internal sealed partial class PowerControlCurveEditor : Control
 			py = Math.Min(point.Y, draggedPointPower);
 			x = horizontalScale[double.CreateChecked(px)];
 			y = verticalScale[py];
-			p = new Point() { X = x, Y = y };
-			((LineSegment)curveFigure.Segments[firstSegmentIndex + i]).Point = p;
+
+			p.X = x;
+			if (isStepRequired && py != 0)
+			{
+				SetLineSegment(curveFigure, segmentCount++, p);
+				isStepRequired = false;
+			}
+
+			p.Y = y;
+			SetLineSegment(curveFigure, segmentCount++, p);
 			((EllipseGeometry)symbolsGeometryGroup.Children[i]).Center = p;
 		}
 
@@ -545,8 +537,16 @@ internal sealed partial class PowerControlCurveEditor : Control
 			py = draggedPointPower;
 			x = horizontalScale[double.CreateChecked(px)];
 			y = verticalScale[py];
-			p = new Point() { X = x, Y = y };
-			((LineSegment)curveFigure.Segments[firstSegmentIndex + draggedPointIndex]).Point = p;
+
+			p.X = x;
+			if (isStepRequired && py != 0)
+			{
+				SetLineSegment(curveFigure, segmentCount++, p);
+				isStepRequired = false;
+			}
+
+			p.Y = y;
+			SetLineSegment(curveFigure, segmentCount++, p);
 			((EllipseGeometry)symbolsGeometryGroup.Children[draggedPointIndex]).Center = p;
 		}
 
@@ -557,24 +557,27 @@ internal sealed partial class PowerControlCurveEditor : Control
 			py = Math.Max(point.Y, draggedPointPower);
 			x = horizontalScale[double.CreateChecked(px)];
 			y = verticalScale[py];
-			p = new Point() { X = x, Y = y };
-			((LineSegment)curveFigure.Segments[firstSegmentIndex + i]).Point = p;
+
+			p.X = x;
+			if (isStepRequired && py != 0)
+			{
+				SetLineSegment(curveFigure, segmentCount++, p);
+				isStepRequired = false;
+			}
+
+			p.Y = y;
+			SetLineSegment(curveFigure, segmentCount++, p);
 			((EllipseGeometry)symbolsGeometryGroup.Children[i]).Center = p;
 		}
 
 		if (double.CreateChecked(px) < horizontalScale.InputMaximum)
 		{
 			p = new() { X = horizontalScale.OutputMaximum, Y = y };
-			if (curveFigure.Segments.Count < expectedSegmentCount)
-			{
-				curveFigure.Segments.Add(new LineSegment() { Point = p });
-			}
-			else
-			{
-				((LineSegment)curveFigure.Segments[^1]).Point = p;
-			}
+			SetLineSegment(curveFigure, segmentCount++, p);
 		}
-		else if (curveFigure.Segments.Count > expectedSegmentCount)
+
+		// At the end of the processing, remove any extra line segments that might not be required anymore.
+		while (curveFigure.Segments.Count > segmentCount)
 		{
 			curveFigure.Segments.RemoveAt(curveFigure.Segments.Count - 1);
 		}
