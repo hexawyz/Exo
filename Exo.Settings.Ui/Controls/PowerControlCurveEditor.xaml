@@ -4,8 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui.Controls">
     <Style x:Key="DefaultPowerControlCurveEditorStyle" TargetType="local:PowerControlCurveEditor">
-        <Setter Property="BorderBrush" Value="{ThemeResource LineChartBorderBrush}" />
-        <Setter Property="BorderThickness" Value="{ThemeResource LineChartBorderThickness}" />
         <Setter Property="Background" Value="{ThemeResource LineChartBackground}" />
         <Setter Property="HorizontalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
         <Setter Property="VerticalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
@@ -15,6 +13,7 @@
         <Setter Property="SymbolFill" Value="{ThemeResource LineChartStroke}" />
         <Setter Property="SymbolStroke" Value="Transparent" />
         <Setter Property="SymbolStrokeThickness" Value="0" />
+        <Setter Property="SymbolRadius" Value="2" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:PowerControlCurveEditor">
@@ -39,22 +38,20 @@
                                 <local:TickLayout Orientation="Vertical" />
                             </ItemsRepeater.Layout>
                         </ItemsRepeater>
-                        <Border
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Margin="8"
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}">
-                            <Grid x:Name="PART_LayoutGrid">
-                                <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
-                                <Path x:Name="PART_VerticalGridLinesPath" Stroke="{TemplateBinding VerticalGridStroke}" />
-                                <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                <Path x:Name="PART_SymbolsPath" Stroke="{TemplateBinding SymbolStroke}" StrokeThickness="{TemplateBinding SymbolStrokeThickness}" Fill="{TemplateBinding SymbolFill}" />
+                        <Grid Grid.Row="0" Grid.Column="1" Margin="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid
+                                Margin="{Binding SymbolRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource RadiusToThicknessConverter}}"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch">
+                                <Rectangle Fill="{TemplateBinding Background}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                <Grid x:Name="PART_LayoutGrid">
+                                    <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
+                                    <Path x:Name="PART_VerticalGridLinesPath" Stroke="{TemplateBinding VerticalGridStroke}" />
+                                    <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                </Grid>
                             </Grid>
-                        </Border>
+                            <Path x:Name="PART_SymbolsPath" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Stroke="{TemplateBinding SymbolStroke}" StrokeThickness="{TemplateBinding SymbolStrokeThickness}" Fill="{TemplateBinding SymbolFill}" />
+                        </Grid>
                         <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Row="1" Grid.Column="1">
                             <ItemsRepeater.Resources>
                                 <Style TargetType="TextBlock">

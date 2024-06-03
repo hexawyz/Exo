@@ -2,10 +2,12 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Numerics;
 using Microsoft.UI.Content;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 using WinRT;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -42,13 +44,17 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private readonly PathGeometry _horizontalGridLinesPathGeometry;
 	private readonly PathGeometry _curvePathGeometry;
 	private readonly GeometryGroup _symbolsGeometryGroup;
+	private readonly TranslateTransform _symbolsTranslateTransform;
 	private LinearScale? _horizontalScale;
 	private LinearScale? _verticalScale;
 	private double[] _horizontalTicks;
 	private readonly double[] _verticalTicks;
 
-	//private int _draggedPointIndex;
-	//private double _draggedPointRelativePower;
+	private Pointer? _capturedPointer;
+	private int _draggedPointIndex;
+	private object? _draggedPointCurrentInputValue;
+	private double _draggedPointRelativePower;
+	private byte _draggedPointCurrentPower;
 
 	private readonly NotifyCollectionChangedEventHandler _pointsCollectionChanged;
 	private readonly PointerEventHandler _symbolsPathPointerPressed;
@@ -59,6 +65,8 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 	public PowerControlCurveEditor()
 	{
+		_draggedPointIndex = -1;
+
 		_pointsCollectionChanged = OnPointsCollectionChanged;
 		_symbolsPathPointerPressed = OnSymbolsPathPointerPressed;
 		_symbolsPathPointerMoved = OnSymbolsPathPointerMoved;
@@ -72,6 +80,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		_horizontalGridLinesPathGeometry = new();
 		_curvePathGeometry = new();
 		_symbolsGeometryGroup = new();
+		_symbolsTranslateTransform = new();
 
 		Loaded += static (s, e) => ((PowerControlCurveEditor)s).OnLoaded(e);
 		Unloaded += static (s, e) => ((PowerControlCurveEditor)s).OnUnloaded(e);
@@ -81,6 +90,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
 	{
 		if (e.Property == PointsProperty) OnPointsChanged(e);
+		if (e.Property == SymbolRadiusProperty) UpdateSymbolsTranslation();
 		RefreshCurve();
 	}
 
@@ -93,6 +103,12 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 	private void OnPointsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
 	{
+		if (_capturedPointer is not null && _symbolsPath is not null)
+		{
+			_symbolsPath.ReleasePointerCapture(_capturedPointer);
+			_capturedPointer = null;
+			_draggedPointIndex = -1;
+		}
 	}
 
 	private void OnUnloaded(RoutedEventArgs e)
@@ -141,6 +157,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		SetData(_symbolsPath, null);
 		if (_symbolsPath is not null)
 		{
+			_symbolsPath.RenderTransform = null;
 			_symbolsPath.PointerPressed -= _symbolsPathPointerPressed;
 			_symbolsPath.PointerMoved -= _symbolsPathPointerMoved;
 			_symbolsPath.PointerReleased -= _symbolsPathPointerReleased;
@@ -161,6 +178,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		SetData(_symbolsPath, _symbolsGeometryGroup);
 		if (_symbolsPath is not null)
 		{
+			_symbolsPath.RenderTransform = _symbolsTranslateTransform;
 			_symbolsPath.PointerPressed += _symbolsPathPointerPressed;
 			_symbolsPath.PointerMoved += _symbolsPathPointerMoved;
 			_symbolsPath.PointerReleased += _symbolsPathPointerReleased;
@@ -171,25 +189,33 @@ internal sealed partial class PowerControlCurveEditor : Control
 		if (_horizontalTickItemsRepeater is not null) _horizontalTickItemsRepeater.ItemsSource = _horizontalTicks;
 	}
 
+	private void UpdateSymbolsTranslation()
+	{
+		double radius = SymbolRadius;
+		_symbolsTranslateTransform.X = radius;
+		_symbolsTranslateTransform.Y = radius;
+	}
+
 	private void RefreshScales(bool isResize)
 	{
 		double width = _layoutGrid?.ActualWidth ?? 1;
 		double height = _layoutGrid?.ActualHeight ?? 1;
 		double minX = GetOrDefault(MinimumInputValue, double.PositiveInfinity);
 		double maxX = GetOrDefault(MaximumInputValue, double.NegativeInfinity);
+		double curveThickness = CurveStrokeThickness;
 		LinearScale horizontalScale;
 		LinearScale verticalScale;
 		double[] horizontalTicks;
 
 		switch (Points)
 		{
-		case IList<IDataPoint<int, byte>> pointsInt32: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsInt32, minX, maxX, width, height); break;
-		case IList<IDataPoint<uint, byte>> pointsUInt32: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsUInt32, minX, maxX, width, height); break;
-		case IList<IDataPoint<long, byte>> pointsInt64: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsInt64, minX, maxX, width, height); break;
-		case IList<IDataPoint<ulong, byte>> pointsUInt64: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsUInt64, minX, maxX, width, height); break;
-		case IList<IDataPoint<float, byte>> pointsSingle: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsSingle, minX, maxX, width, height); break;
-		case IList<IDataPoint<double, byte>> pointsDouble: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsDouble, minX, maxX, width, height); break;
-		default: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(minX, maxX, width, height); break;
+		case IList<IDataPoint<int, byte>> pointsInt32: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsInt32, minX, maxX, width, height, curveThickness); break;
+		case IList<IDataPoint<uint, byte>> pointsUInt32: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsUInt32, minX, maxX, width, height, curveThickness); break;
+		case IList<IDataPoint<long, byte>> pointsInt64: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsInt64, minX, maxX, width, height, curveThickness); break;
+		case IList<IDataPoint<ulong, byte>> pointsUInt64: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsUInt64, minX, maxX, width, height, curveThickness); break;
+		case IList<IDataPoint<float, byte>> pointsSingle: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsSingle, minX, maxX, width, height, curveThickness); break;
+		case IList<IDataPoint<double, byte>> pointsDouble: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsDouble, minX, maxX, width, height, curveThickness); break;
+		default: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(minX, maxX, width, height, curveThickness); break;
 		}
 
 		_horizontalScale = horizontalScale;
@@ -221,19 +247,16 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		if (_horizontalScale is null || _verticalScale is null) return;
 
-		byte minimumPower = (byte)MinimumPower;
+		byte minimumPower = MinimumPower;
 		bool canSwitchOff = CanSwitchOff;
 		double symbolRadius = SymbolRadius;
-
-		switch (Points)
+		if (_capturedPointer is null)
 		{
-		case IList<IDataPoint<int, byte>> pointsInt32: RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, pointsInt32, minimumPower, canSwitchOff, symbolRadius); break;
-		case IList<IDataPoint<uint, byte>> pointsUInt32: RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, pointsUInt32, minimumPower, canSwitchOff, symbolRadius); break;
-		case IList<IDataPoint<long, byte>> pointsInt64: RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, pointsInt64, minimumPower, canSwitchOff, symbolRadius); break;
-		case IList<IDataPoint<ulong, byte>> pointsUInt64: RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, pointsUInt64, minimumPower, canSwitchOff, symbolRadius); break;
-		case IList<IDataPoint<float, byte>> pointsSingle: RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, pointsSingle, minimumPower, canSwitchOff, symbolRadius); break;
-		case IList<IDataPoint<double, byte>> pointsDouble: RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, pointsDouble, minimumPower, canSwitchOff, symbolRadius); break;
-		default: return;
+			RedrawChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, Points, minimumPower, canSwitchOff, symbolRadius);
+		}
+		else
+		{
+			UpdateChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, Points, _draggedPointIndex, _draggedPointCurrentInputValue, _draggedPointCurrentPower, minimumPower, canSwitchOff, symbolRadius);
 		}
 	}
 
@@ -246,7 +269,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private static double GetOrDefault(object? value, double defaultValue)
 		=> value is not null ? Convert.ToDouble(value) : default;
 
-	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales<T>(IList<IDataPoint<T, byte>> points, double minX, double maxX, double outputWidth, double outputHeight)
+	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales<T>(IList<IDataPoint<T, byte>> points, double minX, double maxX, double outputWidth, double outputHeight, double lineThickness)
 		where T : struct, INumber<T>
 	{
 		if (points is not null)
@@ -260,10 +283,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 			}
 		}
 
-		return GenerateScales(minX, maxX, outputWidth, outputHeight);
+		return GenerateScales(minX, maxX, outputWidth, outputHeight, lineThickness);
 	}
 
-	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales(double minX, double maxX, double outputWidth, double outputHeight)
+	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales(double minX, double maxX, double outputWidth, double outputHeight, double lineThickness)
 	{
 		// Anchor the scale to zero if necessary.
 		if (maxX < 0) maxX = 0;
@@ -274,8 +297,9 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 		var (scaleMinX, scaleMaxX, tickSpacingX) = NiceScale.Compute(minX, maxX);
 
-		var horizontalScale = new LinearScale(scaleMinX, scaleMaxX, 0.5, outputWidth - 0.5);
-		var verticalScale = new LinearScale(0, 100, outputHeight - 0.5, 0.5);
+		double t = 0.5 * lineThickness;
+		var horizontalScale = new LinearScale(scaleMinX, scaleMaxX, t, outputWidth - t);
+		var verticalScale = new LinearScale(0, 100, outputHeight - t, t);
 
 		int tickCount = (int)(horizontalScale.InputAmplitude / tickSpacingX) + 1;
 
@@ -357,24 +381,462 @@ internal sealed partial class PowerControlCurveEditor : Control
 		}
 	}
 
+	private static void RedrawChart
+	(
+		LinearScale horizontalScale,
+		LinearScale verticalScale,
+		PathGeometry curvePathGeometry,
+		GeometryGroup symbolsGeometryGroup,
+		object? points,
+		byte minimumPower,
+		bool canSwitchOff,
+		double symbolRadius
+	)
+	{
+		switch (points)
+		{
+		case IList<IDataPoint<int, byte>> pointsInt32: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt32, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<uint, byte>> pointsUInt32: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt32, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<long, byte>> pointsInt64: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt64, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<ulong, byte>> pointsUInt64: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt64, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<float, byte>> pointsSingle: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsSingle, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<double, byte>> pointsDouble: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsDouble, minimumPower, canSwitchOff, symbolRadius); break;
+		default: return;
+		}
+	}
+
+	// This function similar to RedrawChart will update the chart graphics based on the current change.
+	// Hopefully, updating the already existing graphics should be less costly than recreating everything (which we would otherwise do in RedrawChart)
+	// But more importantly, we only want to update the actual data points once the change is committed.
+	private static void UpdateChart<T>
+	(
+		LinearScale horizontalScale,
+		LinearScale verticalScale,
+		PathGeometry curvePathGeometry,
+		GeometryGroup symbolsGeometryGroup,
+		IList<IDataPoint<T, byte>> points,
+		int draggedPointIndex,
+		T draggedPointInputValue,
+		byte draggedPointPower,
+		byte minimumPower,
+		bool canSwitchOff,
+		double symbolRadius
+	)
+		where T : INumber<T>
+	{
+		if (curvePathGeometry.Figures.Count == 0 || symbolsGeometryGroup.Children.Count != points.Count) return;
+
+		var curveFigure = curvePathGeometry.Figures[0];
+
+		if (points.Count == 0) return;
+
+		IDataPoint<T, byte> point = points[0];
+		T px;
+		byte py;
+		int firstSegmentIndex = -1;
+		int expectedSegmentCount = points.Count + (double.CreateChecked(points[^1].X) < horizontalScale.InputMaximum ? 1 : 0);
+		double x;
+		double y;
+		Point p;
+		if (draggedPointIndex == 0)
+		{
+			px = draggedPointInputValue;
+			py = draggedPointPower;
+			x = horizontalScale[double.CreateChecked(px)];
+			y = verticalScale[py];
+
+			if (double.CreateChecked(px) > horizontalScale.InputMinimum)
+			{
+				if (canSwitchOff && point.Y != 0)
+				{
+					firstSegmentIndex = 1;
+					expectedSegmentCount += 2;
+				}
+				else
+				{
+					firstSegmentIndex = 0;
+					expectedSegmentCount += 1;
+				}
+
+				double startY = verticalScale[canSwitchOff ? (byte)0 : minimumPower];
+				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = startY };
+				if (canSwitchOff)
+				{
+					p = new() { X = x, Y = startY };
+					if (curveFigure.Segments.Count < expectedSegmentCount)
+					{
+						curveFigure.Segments.Insert(0, new LineSegment() { Point = p });
+					}
+					else
+					{
+						((LineSegment)curveFigure.Segments[0]).Point = p;
+					}
+					if (point.Y != 0)
+					{
+						p = new() { X = x, Y = y };
+						if (curveFigure.Segments.Count < expectedSegmentCount)
+						{
+							curveFigure.Segments.Insert(1, new LineSegment() { Point = p });
+						}
+						else
+						{
+							((LineSegment)curveFigure.Segments[1]).Point = p;
+						}
+					}
+				}
+				else
+				{
+					p = new() { X = x, Y = y };
+					if (curveFigure.Segments.Count < expectedSegmentCount)
+					{
+						curveFigure.Segments.Insert(0, new LineSegment() { Point = p });
+					}
+					else
+					{
+						((LineSegment)curveFigure.Segments[0]).Point = p;
+					}
+				}
+			}
+			else
+			{
+				while (curveFigure.Segments.Count > expectedSegmentCount)
+				{
+					curveFigure.Segments.RemoveAt(0);
+				}
+			}
+		}
+		else
+		{
+			px = point.X;
+			py = Math.Min(point.Y, draggedPointPower);
+			x = horizontalScale[double.CreateChecked(px)];
+			y = verticalScale[py];
+
+			if (double.CreateChecked(px) > horizontalScale.InputMinimum)
+			{
+				firstSegmentIndex = canSwitchOff && point.Y != 0 ? 1 : 0;
+			}
+		}
+
+		p = new() { X = x, Y = y };
+		if (firstSegmentIndex >= 0)
+		{
+			((LineSegment)curveFigure.Segments[firstSegmentIndex]).Point = p;
+		}
+		else
+		{
+			curveFigure.StartPoint = p;
+		}
+		((EllipseGeometry)symbolsGeometryGroup.Children[0]).Center = p;
+
+		for (int i = 1; i < draggedPointIndex; i++)
+		{
+			point = points[i];
+			px = point.X;
+			py = Math.Min(point.Y, draggedPointPower);
+			x = horizontalScale[double.CreateChecked(px)];
+			y = verticalScale[py];
+			p = new Point() { X = x, Y = y };
+			((LineSegment)curveFigure.Segments[firstSegmentIndex + i]).Point = p;
+			((EllipseGeometry)symbolsGeometryGroup.Children[i]).Center = p;
+		}
+
+		if (draggedPointIndex > 0)
+		{
+			px = draggedPointInputValue;
+			py = draggedPointPower;
+			x = horizontalScale[double.CreateChecked(px)];
+			y = verticalScale[py];
+			p = new Point() { X = x, Y = y };
+			((LineSegment)curveFigure.Segments[firstSegmentIndex + draggedPointIndex]).Point = p;
+			((EllipseGeometry)symbolsGeometryGroup.Children[draggedPointIndex]).Center = p;
+		}
+
+		for (int i = draggedPointIndex + 1; i < points.Count; i++)
+		{
+			point = points[i];
+			px = point.X;
+			py = Math.Max(point.Y, draggedPointPower);
+			x = horizontalScale[double.CreateChecked(px)];
+			y = verticalScale[py];
+			p = new Point() { X = x, Y = y };
+			((LineSegment)curveFigure.Segments[firstSegmentIndex + i]).Point = p;
+			((EllipseGeometry)symbolsGeometryGroup.Children[i]).Center = p;
+		}
+
+		if (double.CreateChecked(px) < horizontalScale.InputMaximum)
+		{
+			p = new() { X = horizontalScale.OutputMaximum, Y = y };
+			if (curveFigure.Segments.Count < expectedSegmentCount)
+			{
+				curveFigure.Segments.Add(new LineSegment() { Point = p });
+			}
+			else
+			{
+				((LineSegment)curveFigure.Segments[^1]).Point = p;
+			}
+		}
+		else if (curveFigure.Segments.Count > expectedSegmentCount)
+		{
+			curveFigure.Segments.RemoveAt(curveFigure.Segments.Count - 1);
+		}
+	}
+
+	private static void UpdateChart
+	(
+		LinearScale horizontalScale,
+		LinearScale verticalScale,
+		PathGeometry curvePathGeometry,
+		GeometryGroup symbolsGeometryGroup,
+		object? points,
+		int draggedPointIndex,
+		object? draggedPointInputValue,
+		byte draggedPointPower,
+		byte minimumPower,
+		bool canSwitchOff,
+		double symbolRadius
+	)
+	{
+		switch (points)
+		{
+		case IList<IDataPoint<int, byte>> pointsInt32: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt32, draggedPointIndex, Convert.ToInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<uint, byte>> pointsUInt32: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt32, draggedPointIndex, Convert.ToUInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<long, byte>> pointsInt64: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt64, draggedPointIndex, Convert.ToInt64(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<ulong, byte>> pointsUInt64: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt64, draggedPointIndex, Convert.ToUInt64(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<float, byte>> pointsSingle: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsSingle, draggedPointIndex, Convert.ToSingle(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<double, byte>> pointsDouble: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsDouble, draggedPointIndex, Convert.ToDouble(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		default: return;
+		}
+	}
+
+	// This is a very simplified algorithm to handle the task based on the following assumptions:
+	// - There will never be a large amount of points
+	// - Points are always reasonably spaced
+	// - Perfect geometric hit test is already performed by the UI framework, but across all points
+	// As such, the algorithm
+	// - Performs a linear O(N) search instead of a binary search
+	// - It does not actually check the radius, which could be a problem if symbols overlap
+	// This should be improved if necessary (But be careful, a binary search algorithm must take into account points that overlap so that the result for two matching points is deterministic)
+	private static int FindPoint<T>(LinearScale horizontalScale, IList<IDataPoint<T, byte>> points, double x, double symbolRadius)
+		where T : INumber<T>
+	{
+		for (int i = 0; i < points.Count; i++)
+		{
+			var point = points[i];
+			var px = horizontalScale[double.CreateChecked(point.X)];
+
+			if (x <= px + symbolRadius && x >= px - symbolRadius) return i;
+		}
+
+		return -1;
+	}
+
+	private static int FindPoint(LinearScale horizontalScale, object? points, double x, double symbolRadius)
+		=> points switch
+		{
+			IList<IDataPoint<int, byte>> pointsInt32 => FindPoint(horizontalScale, pointsInt32, x, symbolRadius),
+			IList<IDataPoint<uint, byte>> pointsUInt32 => FindPoint(horizontalScale, pointsUInt32, x, symbolRadius),
+			IList<IDataPoint<long, byte>> pointsInt64 => FindPoint(horizontalScale, pointsInt64, x, symbolRadius),
+			IList<IDataPoint<ulong, byte>> pointsUInt64 => FindPoint(horizontalScale, pointsUInt64, x, symbolRadius),
+			IList<IDataPoint<float, byte>> pointsSingle => FindPoint(horizontalScale, pointsSingle, x, symbolRadius),
+			IList<IDataPoint<double, byte>> pointsDouble => FindPoint(horizontalScale, pointsDouble, x, symbolRadius),
+			_ => -1,
+		};
+
+	private static (object, byte) GetPoint<T>(IList<IDataPoint<T, byte>> points, int index)
+		where T : INumber<T>
+	{
+		var point = points[index];
+		return (point.X, point.Y);
+	}
+
+	private static (object, byte) GetPoint(object? points, int index)
+		=> points switch
+		{
+			IList<IDataPoint<int, byte>> pointsInt32 => GetPoint(pointsInt32, index),
+			IList<IDataPoint<uint, byte>> pointsUInt32 => GetPoint(pointsUInt32, index),
+			IList<IDataPoint<long, byte>> pointsInt64 => GetPoint(pointsInt64, index),
+			IList<IDataPoint<ulong, byte>> pointsUInt64 => GetPoint(pointsUInt64, index),
+			IList<IDataPoint<float, byte>> pointsSingle => GetPoint(pointsSingle, index),
+			IList<IDataPoint<double, byte>> pointsDouble => GetPoint(pointsDouble, index),
+			_ => throw new InvalidOperationException(),
+		};
+
+	private static void SetPoint<T>(IList<IDataPoint<T, byte>> points, int index, T x, byte y)
+		where T : INumber<T>
+	{
+		var point = points[index];
+		point.X = x;
+		point.Y = y;
+	}
+
+	private static void SetPoint(object? points, int index, object? x, byte y)
+	{
+		switch (points)
+		{
+		case IList<IDataPoint<int, byte>> pointsInt32: SetPoint(pointsInt32, index, Convert.ToInt32(x), y); break;
+		case IList<IDataPoint<uint, byte>> pointsUInt32: SetPoint(pointsUInt32, index, Convert.ToUInt32(x), y); break;
+		case IList<IDataPoint<long, byte>> pointsInt64: SetPoint(pointsInt64, index, Convert.ToInt64(x), y); break;
+		case IList<IDataPoint<ulong, byte>> pointsUInt64: SetPoint(pointsUInt64, index, Convert.ToUInt64(x), y); break;
+		case IList<IDataPoint<float, byte>> pointsSingle: SetPoint(pointsSingle, index, Convert.ToSingle(x), y); break;
+		case IList<IDataPoint<double, byte>> pointsDouble: SetPoint(pointsDouble, index, Convert.ToDouble(x), y); break;
+		default: throw new InvalidOperationException();
+		}
+	}
+
+	private static void SetAtLeastY<T>(IList<IDataPoint<T, byte>> points, int index, byte y)
+		where T : INumber<T>
+	{
+		var point = points[index];
+		point.Y = Math.Max(point.Y, y);
+	}
+
+	private static void SetAtLeastY(object? points, int index, byte y)
+	{
+		switch (points)
+		{
+		case IList<IDataPoint<int, byte>> pointsInt32: SetAtLeastY(pointsInt32, index, y); break;
+		case IList<IDataPoint<uint, byte>> pointsUInt32: SetAtLeastY(pointsUInt32, index, y); break;
+		case IList<IDataPoint<long, byte>> pointsInt64: SetAtLeastY(pointsInt64, index, y); break;
+		case IList<IDataPoint<ulong, byte>> pointsUInt64: SetAtLeastY(pointsUInt64, index, y); break;
+		case IList<IDataPoint<float, byte>> pointsSingle: SetAtLeastY(pointsSingle, index, y); break;
+		case IList<IDataPoint<double, byte>> pointsDouble: SetAtLeastY(pointsDouble, index, y); break;
+		default: throw new InvalidOperationException();
+		}
+	}
+
+	private static void SetAtMostY<T>(IList<IDataPoint<T, byte>> points, int index, byte y)
+		where T : INumber<T>
+	{
+		var point = points[index];
+		point.Y = Math.Min(point.Y, y);
+	}
+
+	private static void SetAtMostY(object? points, int index, byte y)
+	{
+		switch (points)
+		{
+		case IList<IDataPoint<int, byte>> pointsInt32: SetAtMostY(pointsInt32, index, y); break;
+		case IList<IDataPoint<uint, byte>> pointsUInt32: SetAtMostY(pointsUInt32, index, y); break;
+		case IList<IDataPoint<long, byte>> pointsInt64: SetAtMostY(pointsInt64, index, y); break;
+		case IList<IDataPoint<ulong, byte>> pointsUInt64: SetAtMostY(pointsUInt64, index, y); break;
+		case IList<IDataPoint<float, byte>> pointsSingle: SetAtMostY(pointsSingle, index, y); break;
+		case IList<IDataPoint<double, byte>> pointsDouble: SetAtMostY(pointsDouble, index, y); break;
+		default: throw new InvalidOperationException();
+		}
+	}
+
 	private void OnSymbolsPathPointerPressed(object sender, PointerRoutedEventArgs e)
 	{
+		if (_capturedPointer is not null || _symbolsPath is null || _layoutGrid is null || _horizontalScale is null || _verticalScale is null) return;
+
+		var point = e.GetCurrentPoint(_layoutGrid);
+		if (point.Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
+
+		var points = Points;
+		if (FindPoint(_horizontalScale, points, point.Position.X, SymbolRadius) is int index and >= 0 && ((UIElement)sender).CapturePointer(e.Pointer))
+		{
+			_capturedPointer = e.Pointer;
+			_draggedPointIndex = index;
+			(_draggedPointCurrentInputValue, _draggedPointCurrentPower) = GetPoint(points, index);
+			_draggedPointRelativePower = _verticalScale.Inverse(point.Position.Y) - _draggedPointCurrentPower;
+		}
 	}
 
 	private void OnSymbolsPathPointerMoved(object sender, PointerRoutedEventArgs e)
 	{
+		if (_capturedPointer is null || _capturedPointer.PointerId != e.Pointer.PointerId || _symbolsPath is null || _layoutGrid is null || _horizontalScale is null || _verticalScale is null) return;
+
+		var point = e.GetCurrentPoint(_layoutGrid);
+		if (!point.Properties.IsLeftButtonPressed) return;
+
+		byte minimumPower = MinimumPower;
+		byte power = (byte)Math.Clamp(_verticalScale.Inverse(point.Position.Y) - _draggedPointRelativePower, 0, 100);
+
+		if (power < minimumPower)
+		{
+			power = CanSwitchOff ?
+				power > minimumPower / 2 ?
+					minimumPower :
+					(byte)0 :
+				minimumPower;
+		}
+
+		if (power != _draggedPointCurrentPower)
+		{
+			_draggedPointCurrentPower = power;
+			RefreshCurve();
+		}
 	}
 
 	private void OnSymbolsPathPointerReleased(object sender, PointerRoutedEventArgs e)
 	{
+		if (_capturedPointer is null || _capturedPointer.PointerId != e.Pointer.PointerId) return;
+
+		if (_symbolsPath is not null && _layoutGrid is not null && _horizontalScale is not null && _verticalScale is not null)
+		{
+			var point = e.GetCurrentPoint(_layoutGrid);
+			if (point.Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonReleased)
+			{
+				int pointCount = ((System.Collections.ICollection)Points!).Count;
+
+				byte minimumPower = MinimumPower;
+				byte power = (byte)Math.Clamp(_verticalScale.Inverse(point.Position.Y) - _draggedPointRelativePower, 0, 100);
+
+				if (power < minimumPower)
+				{
+					power = CanSwitchOff ?
+						power > minimumPower / 2 ?
+							minimumPower :
+							(byte)0 :
+						minimumPower;
+				}
+
+				for (int i = 0; i < _draggedPointIndex; i++)
+				{
+					SetAtMostY(Points, i, power);
+				}
+
+				_draggedPointCurrentPower = power;
+				SetPoint(Points, _draggedPointIndex, _draggedPointCurrentInputValue, _draggedPointCurrentPower);
+
+				for (int i = _draggedPointIndex + 1; i < pointCount; i++)
+				{
+					SetAtLeastY(Points, i, power);
+				}
+			}
+		}
+
+		_capturedPointer = null;
+		_draggedPointIndex = -1;
+
+		RefreshCurve();
 	}
 
 	private void OnSymbolsPathPointerCanceled(object sender, PointerRoutedEventArgs e)
 	{
+		if (_capturedPointer is null || _capturedPointer.PointerId != e.Pointer.PointerId) return;
+
+		if (_layoutGrid is null || _horizontalScale is null || _verticalScale is null)
+		{
+			_capturedPointer = null;
+			_draggedPointIndex = -1;
+			RefreshCurve();
+			return;
+		}
 	}
 
 	private void OnSymbolsPathPointerCaptureLost(object sender, PointerRoutedEventArgs e)
 	{
+		if (_capturedPointer is null || _capturedPointer.PointerId != e.Pointer.PointerId) return;
+
+		if (_layoutGrid is null || _horizontalScale is null || _verticalScale is null)
+		{
+			_capturedPointer = null;
+			_draggedPointIndex = -1;
+			RefreshCurve();
+			return;
+		}
 	}
 }
 

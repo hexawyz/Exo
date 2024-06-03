@@ -57,6 +57,7 @@
             <lconverters:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
             <lconverters:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
             <lconverters:StringResourceConverter x:Key="StringResourceConverter" />
+            <lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

@@ -726,6 +726,7 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 
 		var points = new ObservableCollection<IDataPoint<int, byte>>()
 		{
+			new PowerDataPointViewModel<int>(5, 0),
 			new PowerDataPointViewModel<int>(10, 20),
 			new PowerDataPointViewModel<int>(20, 20),
 			new PowerDataPointViewModel<int>(30, 40),
