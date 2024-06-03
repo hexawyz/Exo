@@ -207,16 +207,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		LinearScale verticalScale;
 		double[] horizontalTicks;
 
-		switch (Points)
-		{
-		case IList<IDataPoint<int, byte>> pointsInt32: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsInt32, minX, maxX, width, height, curveThickness); break;
-		case IList<IDataPoint<uint, byte>> pointsUInt32: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsUInt32, minX, maxX, width, height, curveThickness); break;
-		case IList<IDataPoint<long, byte>> pointsInt64: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsInt64, minX, maxX, width, height, curveThickness); break;
-		case IList<IDataPoint<ulong, byte>> pointsUInt64: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsUInt64, minX, maxX, width, height, curveThickness); break;
-		case IList<IDataPoint<float, byte>> pointsSingle: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsSingle, minX, maxX, width, height, curveThickness); break;
-		case IList<IDataPoint<double, byte>> pointsDouble: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(pointsDouble, minX, maxX, width, height, curveThickness); break;
-		default: (horizontalScale, verticalScale, horizontalTicks) = GenerateScales(minX, maxX, width, height, curveThickness); break;
-		}
+		(horizontalScale, verticalScale, horizontalTicks) = GenerateScales(Points, minX, maxX, width, height, curveThickness);
 
 		_horizontalScale = horizontalScale;
 		_verticalScale = verticalScale;
@@ -285,6 +276,18 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 		return GenerateScales(minX, maxX, outputWidth, outputHeight, lineThickness);
 	}
+
+	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales(object? points, double minX, double maxX, double outputWidth, double outputHeight, double lineThickness)
+		=> points switch
+		{
+			IList<IDataPoint<int, byte>> pointsInt32 => GenerateScales(pointsInt32, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<uint, byte>> pointsUInt32 => GenerateScales(pointsUInt32, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<long, byte>> pointsInt64 => GenerateScales(pointsInt64, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<ulong, byte>> pointsUInt64 => GenerateScales(pointsUInt64, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<float, byte>> pointsSingle => GenerateScales(pointsSingle, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<double, byte>> pointsDouble => GenerateScales(pointsDouble, minX, maxX, outputWidth, outputHeight, lineThickness),
+			_ => GenerateScales(minX, maxX, outputWidth, outputHeight, lineThickness),
+		};
 
 	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales(double minX, double maxX, double outputWidth, double outputHeight, double lineThickness)
 	{
@@ -434,7 +437,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 		T px;
 		byte py;
 		int firstSegmentIndex = -1;
-		int expectedSegmentCount = points.Count + (double.CreateChecked(points[^1].X) < horizontalScale.InputMaximum ? 1 : 0);
+		int lastPointIndex = points.Count - 1;
+		int expectedSegmentCount = double.CreateChecked(draggedPointIndex < lastPointIndex ? points[lastPointIndex].X : draggedPointInputValue) < horizontalScale.InputMaximum ?
+			points.Count :
+			lastPointIndex;
 		double x;
 		double y;
 		Point p;
@@ -447,16 +453,8 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 			if (double.CreateChecked(px) > horizontalScale.InputMinimum)
 			{
-				if (canSwitchOff && point.Y != 0)
-				{
-					firstSegmentIndex = 1;
-					expectedSegmentCount += 2;
-				}
-				else
-				{
-					firstSegmentIndex = 0;
-					expectedSegmentCount += 1;
-				}
+				firstSegmentIndex = canSwitchOff && py != 0 ? 1 : 0;
+				expectedSegmentCount += 1 + firstSegmentIndex;
 
 				double startY = verticalScale[canSwitchOff ? (byte)0 : minimumPower];
 				curveFigure.StartPoint = new() { X = horizontalScale.OutputMinimum, Y = startY };
