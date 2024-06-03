@@ -20,6 +20,7 @@ namespace Exo.Settings.Ui.Controls;
 [TemplatePart(Name = SymbolsPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = HorizontalTicksItemsRepeaterPartName, Type = typeof(ItemsRepeater))]
 [TemplatePart(Name = VerticalTicksItemsRepeaterPartName, Type = typeof(ItemsRepeater))]
+[TemplatePart(Name = PowerValueToolTipPartName, Type = typeof(ToolTip))]
 internal sealed partial class PowerControlCurveEditor : Control
 {
 	private const string LayoutGridPartName = "PART_LayoutGrid";
@@ -29,6 +30,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private const string SymbolsPathPartName = "PART_SymbolsPath";
 	private const string HorizontalTicksItemsRepeaterPartName = "PART_HorizontalTicksItemsRepeater";
 	private const string VerticalTicksItemsRepeaterPartName = "PART_VerticalTicksItemsRepeater";
+	private const string PowerValueToolTipPartName = "PART_PowerValueToolTip";
 
 	private static void OnPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
 		=> ((PowerControlCurveEditor)d).OnPropertyChanged(e);
@@ -37,6 +39,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private Path? _symbolsPath;
 	private Path? _horizontalGridLinesPath;
 	private Path? _verticalGridLinesPath;
+	private ToolTip? _powerValueToolTip;
 	private ItemsRepeater? _horizontalTickItemsRepeater;
 	private ItemsRepeater? _verticalTickItemsRepeater;
 	private Grid? _layoutGrid;
@@ -143,6 +146,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		_symbolsPath = GetTemplateChild(SymbolsPathPartName) as Path;
 		_horizontalTickItemsRepeater = GetTemplateChild(HorizontalTicksItemsRepeaterPartName) as ItemsRepeater;
 		_verticalTickItemsRepeater = GetTemplateChild(VerticalTicksItemsRepeaterPartName) as ItemsRepeater;
+		_powerValueToolTip = GetTemplateChild(PowerValueToolTipPartName) as ToolTip;
 		AttachParts();
 		RefreshScales(true);
 		RefreshCurve();
@@ -153,6 +157,12 @@ internal sealed partial class PowerControlCurveEditor : Control
 		_horizontalScale = null;
 		_verticalScale = null;
 		_horizontalTicks = [];
+		if (_powerValueToolTip is not null)
+		{
+			_powerValueToolTip.ClearValue(ToolTip.IsOpenProperty);
+			_powerValueToolTip.ClearValue(IsEnabledProperty);
+			_powerValueToolTip.ClearValue(ContentControl.ContentProperty);
+		}
 		SetData(_curvePath, null);
 		SetData(_symbolsPath, null);
 		if (_symbolsPath is not null)
@@ -172,6 +182,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 	private void AttachParts()
 	{
+		if (_powerValueToolTip is not null)
+		{
+			_powerValueToolTip.IsEnabled = false;
+		}
 		SetData(_horizontalGridLinesPath, _horizontalGridLinesPathGeometry);
 		SetData(_verticalGridLinesPath, _verticalGridLinesPathGeometry);
 		SetData(_curvePath, _curvePathGeometry);
@@ -741,6 +755,12 @@ internal sealed partial class PowerControlCurveEditor : Control
 			_draggedPointIndex = index;
 			(_draggedPointCurrentInputValue, _draggedPointCurrentPower) = GetPoint(points, index);
 			_draggedPointRelativePower = _verticalScale.Inverse(point.Position.Y) - _draggedPointCurrentPower;
+			if (_powerValueToolTip is not null)
+			{
+				_powerValueToolTip.Content = $"{_draggedPointCurrentPower} %";
+				_powerValueToolTip.IsEnabled = true;
+				_powerValueToolTip.IsOpen = true;
+			}
 		}
 	}
 
@@ -767,6 +787,13 @@ internal sealed partial class PowerControlCurveEditor : Control
 		{
 			_draggedPointCurrentPower = power;
 			RefreshCurve();
+			if (_powerValueToolTip is not null)
+			{
+				_powerValueToolTip.Content = $"{power} %";
+				// Disabling then enabling the tooltip is the trick that is used by ColorSpectrum to move the tooltip to the current mouse position.
+				_powerValueToolTip.IsEnabled = false;
+				_powerValueToolTip.IsEnabled = true;
+			}
 		}
 	}
 
@@ -808,6 +835,13 @@ internal sealed partial class PowerControlCurveEditor : Control
 			}
 		}
 
+		if (_powerValueToolTip is not null)
+		{
+			_powerValueToolTip.IsOpen = false;
+			_powerValueToolTip.IsEnabled = false;
+			_powerValueToolTip.Content = null;
+		}
+
 		_capturedPointer = null;
 		_draggedPointIndex = -1;
 
@@ -820,6 +854,13 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 		if (_layoutGrid is null || _horizontalScale is null || _verticalScale is null)
 		{
+			if (_powerValueToolTip is not null)
+			{
+				_powerValueToolTip.IsEnabled = false;
+				_powerValueToolTip.IsOpen = false;
+				_powerValueToolTip.Content = null;
+			}
+
 			_capturedPointer = null;
 			_draggedPointIndex = -1;
 			RefreshCurve();
@@ -833,6 +874,13 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 		if (_layoutGrid is null || _horizontalScale is null || _verticalScale is null)
 		{
+			if (_powerValueToolTip is not null)
+			{
+				_powerValueToolTip.IsEnabled = false;
+				_powerValueToolTip.IsOpen = false;
+				_powerValueToolTip.Content = null;
+			}
+
 			_capturedPointer = null;
 			_draggedPointIndex = -1;
 			RefreshCurve();

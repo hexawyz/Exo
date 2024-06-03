@@ -50,7 +50,11 @@
                                     <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                                 </Grid>
                             </Grid>
-                            <Path x:Name="PART_SymbolsPath" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Stroke="{TemplateBinding SymbolStroke}" StrokeThickness="{TemplateBinding SymbolStrokeThickness}" Fill="{TemplateBinding SymbolFill}" />
+                            <Path x:Name="PART_SymbolsPath" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Stroke="{TemplateBinding SymbolStroke}" StrokeThickness="{TemplateBinding SymbolStrokeThickness}" Fill="{TemplateBinding SymbolFill}" ToolTipService.PlacementTarget="{Binding ElementName=PART_LayoutGrid}" ToolTipService.Placement="Top">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Name="PART_PowerValueToolTip" VerticalOffset="20" PlacementTarget="{Binding ElementName=PART_LayoutGrid}" Placement="Top"/>
+                                </ToolTipService.ToolTip>
+                            </Path>
                         </Grid>
                         <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Row="1" Grid.Column="1">
                             <ItemsRepeater.Resources>
