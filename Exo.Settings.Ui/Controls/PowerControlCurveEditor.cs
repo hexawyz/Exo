@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Numerics;
@@ -182,10 +183,6 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 	private void AttachParts()
 	{
-		if (_powerValueToolTip is not null)
-		{
-			_powerValueToolTip.IsEnabled = false;
-		}
 		SetData(_horizontalGridLinesPath, _horizontalGridLinesPathGeometry);
 		SetData(_verticalGridLinesPath, _verticalGridLinesPathGeometry);
 		SetData(_curvePath, _curvePathGeometry);
@@ -758,7 +755,6 @@ internal sealed partial class PowerControlCurveEditor : Control
 			if (_powerValueToolTip is not null)
 			{
 				_powerValueToolTip.Content = $"{_draggedPointCurrentPower} %";
-				_powerValueToolTip.IsEnabled = true;
 				_powerValueToolTip.IsOpen = true;
 			}
 		}
@@ -766,10 +762,25 @@ internal sealed partial class PowerControlCurveEditor : Control
 
 	private void OnSymbolsPathPointerMoved(object sender, PointerRoutedEventArgs e)
 	{
-		if (_capturedPointer is null || _capturedPointer.PointerId != e.Pointer.PointerId || _symbolsPath is null || _layoutGrid is null || _horizontalScale is null || _verticalScale is null) return;
+		if (_capturedPointer is not null && _capturedPointer.PointerId != e.Pointer.PointerId || _horizontalScale is null) return;
 
 		var point = e.GetCurrentPoint(_layoutGrid);
-		if (!point.Properties.IsLeftButtonPressed) return;
+
+		var points = Points;
+		if (_capturedPointer is null)
+		{
+			if (_powerValueToolTip is not null && FindPoint(_horizontalScale, points, point.Position.X, SymbolRadius) is int index and >= 0)
+			{
+				var (_, y) = GetPoint(Points, index);
+				_powerValueToolTip.Content = $"{y} %";
+				// Disabling then enabling the tooltip is the trick that is used by ColorSpectrum to move the tooltip to the current mouse position.
+				_powerValueToolTip.IsEnabled = false;
+				_powerValueToolTip.IsEnabled = true;
+			}
+			return;
+		}
+
+		if (!point.Properties.IsLeftButtonPressed || _verticalScale is null) return;
 
 		byte minimumPower = MinimumPower;
 		byte power = (byte)Math.Clamp(_verticalScale.Inverse(point.Position.Y) - _draggedPointRelativePower, 0, 100);
@@ -838,8 +849,6 @@ internal sealed partial class PowerControlCurveEditor : Control
 		if (_powerValueToolTip is not null)
 		{
 			_powerValueToolTip.IsOpen = false;
-			_powerValueToolTip.IsEnabled = false;
-			_powerValueToolTip.Content = null;
 		}
 
 		_capturedPointer = null;
@@ -856,9 +865,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		{
 			if (_powerValueToolTip is not null)
 			{
-				_powerValueToolTip.IsEnabled = false;
 				_powerValueToolTip.IsOpen = false;
-				_powerValueToolTip.Content = null;
 			}
 
 			_capturedPointer = null;
@@ -876,9 +883,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		{
 			if (_powerValueToolTip is not null)
 			{
-				_powerValueToolTip.IsEnabled = false;
 				_powerValueToolTip.IsOpen = false;
-				_powerValueToolTip.Content = null;
 			}
 
 			_capturedPointer = null;
