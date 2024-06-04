@@ -58,6 +58,7 @@
             <lconverters:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
             <lconverters:StringResourceConverter x:Key="StringResourceConverter" />
             <lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
+            <lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

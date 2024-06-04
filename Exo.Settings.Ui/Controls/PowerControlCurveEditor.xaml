@@ -2,7 +2,8 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui.Controls">
+    xmlns:local="using:Exo.Settings.Ui.Controls"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters">
     <Style x:Key="DefaultPowerControlCurveEditorStyle" TargetType="local:PowerControlCurveEditor">
         <Setter Property="Background" Value="{ThemeResource LineChartBackground}" />
         <Setter Property="HorizontalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
@@ -18,6 +19,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="local:PowerControlCurveEditor">
                     <Grid Padding="{TemplateBinding Padding}">
+                        <Grid.Resources>
+                            <lconverters:NumberWithUnitConverter x:Key="InputValueConverter" Unit="{Binding Path=Unit,RelativeSource={RelativeSource TemplatedParent}}" NumberFormat="N0" />
+                        </Grid.Resources>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -37,6 +41,11 @@
                             <ItemsRepeater.Layout>
                                 <local:TickLayout Orientation="Vertical" />
                             </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource PercentConverter}}" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
                         </ItemsRepeater>
                         <Grid Grid.Row="0" Grid.Column="1" Margin="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                             <Grid
@@ -67,6 +76,11 @@
                             <ItemsRepeater.Layout>
                                 <local:TickLayout Orientation="Horizontal" />
                             </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource InputValueConverter}}" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
                         </ItemsRepeater>
                     </Grid>
                 </ControlTemplate>

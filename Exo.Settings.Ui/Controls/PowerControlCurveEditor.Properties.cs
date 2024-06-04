@@ -19,6 +19,14 @@ internal partial class PowerControlCurveEditor
 
 	public static readonly DependencyProperty SelectedIndexProperty = RegisterPropertyWithChangeHandler<int?>(nameof(SelectedIndex), null);
 
+	public string? Unit
+	{
+		get => (string)GetValue(UnitProperty);
+		set => SetValue(UnitProperty, value);
+	}
+
+	public static readonly DependencyProperty UnitProperty = RegisterPropertyWithChangeHandler<string?>(nameof(Unit), null);
+
 	public byte MinimumPower
 	{
 		get => (byte)GetValue(MinimumPowerProperty);
