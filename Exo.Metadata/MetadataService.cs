@@ -8,27 +8,81 @@ namespace Exo.Archive;
 
 public abstract class MetadataResolver
 {
+	private ExoArchive? _overrideArchive;
 	private readonly ExoArchive _mainArchive;
-	private readonly ExoArchive[] _additionalArchives;
-	private readonly ExoArchive? _overrideArchive;
+	private ExoArchive[] _additionalArchives;
+	private readonly Dictionary<string, ExoArchive> _additionalArchivesByName;
+	private readonly object _lock;
 
-	public MetadataResolver(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive)
+	public MetadataResolver(string mainArchiveFileName)
 	{
-		_mainArchive = mainArchive;
-		_additionalArchives = additionalArchives;
-		_overrideArchive = overrideArchive;
+		_mainArchive = new(mainArchiveFileName);
+		_additionalArchives = [];
+		_additionalArchivesByName = new();
+		_lock = new();
+	}
+
+	public void AddArchive(string fileName)
+	{
+		lock (_lock)
+		{
+			if (_additionalArchivesByName.ContainsKey(fileName)) return;
+			_additionalArchivesByName.Add(fileName, new(fileName));
+		}
+	}
+
+	public void RemoveArchive(string fileName)
+	{
+		lock (_lock)
+		{
+			if (!_additionalArchivesByName.Remove(fileName, out var archive)) return;
+			if (_additionalArchives is not null && Array.IndexOf(_additionalArchives, archive) is int index and >= 0)
+			{
+				if (_additionalArchives.Length == 1)
+				{
+					_additionalArchives = [];
+				}
+				else
+				{
+					var newArchives = new ExoArchive[_additionalArchives.Length - 1];
+					Array.Copy(_additionalArchives, 0, newArchives, 0, index);
+					Array.Copy(_additionalArchives, index + 1, newArchives, index, newArchives.Length - index);
+					_additionalArchives = newArchives;
+				}
+			}
+			archive.Dispose();
+		}
+	}
+
+	public void SetOverrideArchive(string? fileName)
+	{
+		lock (_lock)
+		{
+			if (_overrideArchive is not null)
+			{
+				_overrideArchive.Dispose();
+				_overrideArchive = null;
+			}
+			if (fileName is not null)
+			{
+				_overrideArchive = new(fileName);
+			}
+		}
 	}
 
 	protected bool FindFile(ReadOnlySpan<byte> key, out ExoArchiveFile file)
 	{
-		if (_overrideArchive is not null && _overrideArchive.TryGetFileEntry(key, out file) || _mainArchive.TryGetFileEntry(key, out file))
+		lock (_lock)
 		{
-			return true;
-		}
+			if (_overrideArchive is not null && _overrideArchive.TryGetFileEntry(key, out file) || _mainArchive.TryGetFileEntry(key, out file))
+			{
+				return true;
+			}
 
-		foreach (var archive in _additionalArchives)
-		{
-			if (archive.TryGetFileEntry(key, out file)) return true;
+			foreach (var archive in _additionalArchives)
+			{
+				if (archive.TryGetFileEntry(key, out file)) return true;
+			}
 		}
 
 		file = default;
