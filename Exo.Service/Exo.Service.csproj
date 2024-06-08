@@ -44,13 +44,6 @@
 		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
   </ItemGroup>
 
-	<ItemGroup>
-		<Content Remove="Strings.json" />
-		<Content Remove="LightingEffects.json" />
-		<StringMetadata Include="Strings.json" />
-		<LightingEffectMetadata Include="LightingEffects.json" />
-	</ItemGroup>
-
 	<!-- Detect plugin project names. -->
 	<ItemGroup>
 		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Devices.*'))" />

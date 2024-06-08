@@ -16,6 +16,18 @@
 		<AvailableItemName Include="SensorMetadata" />
 		<AvailableItemName Include="CoolerMetadata" />
 	</ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Strings.json" />
+		<Compile Remove="LightingEffects.json" />
+		<Compile Remove="LightingZones.json" />
+		<Compile Remove="Sensors.json" />
+		<Compile Remove="Coolers.json" />
+		<StringMetadata Include="Strings.json" Condition="Exists('Strings.json')" />
+		<LightingEffectMetadata Include="LightingEffects.json" Condition="Exists('LightingEffects.json')" />
+		<LightingZoneMetadata Include="LightingZones.json" Condition="Exists('LightingZones.json')" />
+		<SensorMetadata Include="Sensors.json" Condition="Exists('Sensors.json')" />
+		<CoolerMetadata Include="Coolers.json" Condition="Exists('Coolers.json')" />
+	</ItemGroup>
 	<Target Name="BuildMetadata" DependsOnTargets="BuildStringsMetadata;BuildLightingEffectsMetadata;BuildLightingZonesMetadata;BuildSensorsMetadata;BuildCoolersMetadata" BeforeTargets="AssignTargetPaths"></Target>
 	<Target Name="PrepareMetadata">
 		<ItemGroup>

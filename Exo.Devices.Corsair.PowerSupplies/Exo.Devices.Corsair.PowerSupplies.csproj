@@ -11,11 +11,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="Sensors.json" />
-	  <SensorMetadata Include="Sensors.json" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
 		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
 		<ProjectReference Include="..\DeviceTools.Numerics\DeviceTools.Numerics.csproj" />
