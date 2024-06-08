@@ -9,12 +9,24 @@ namespace Exo.Service;
 
 internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 {
+	[Flags]
+	private enum MetadataArchiveCategories
+	{
+		None = 0,
+		Strings = 1,
+		LightingEffects = 2,
+		LightingZones = 4,
+		Sensors = 8,
+		Coolers = 16,
+	}
+
 	private sealed class AssemblyCacheEntry : IDisposable
 	{
-		public AssemblyCacheEntry(AssemblyName assemblyName, string path)
+		public AssemblyCacheEntry(AssemblyName assemblyName, string path, MetadataArchiveCategories availableMetadataArchives)
 		{
 			AssemblyName = assemblyName;
 			Path = path;
+			AvailableMetadataArchives = availableMetadataArchives;
 			Lock = new();
 		}
 
@@ -33,6 +45,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		public string Path { get; }
 		public object Lock { get; }
 		private DependentHandle _dependentHandle;
+		public MetadataArchiveCategories AvailableMetadataArchives { get; }
 
 		public Assembly? TryGetAssembly() => _dependentHandle.IsAllocated ? _dependentHandle.Target as Assembly : null;
 
@@ -49,6 +62,24 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 			}
 		}
 	}
+
+	private static MetadataArchiveCategories DetectAvailableMetadataArchives(string path)
+	{
+		var pathWithoutExtension = path.AsMemory(0, path.Length - Path.GetExtension(path.AsSpan()).Length);
+
+		MetadataArchiveCategories categories = 0;
+
+		if (DoesFileExist(pathWithoutExtension, ".Strings.xoa")) categories |= MetadataArchiveCategories.Strings;
+		if (DoesFileExist(pathWithoutExtension, ".LightingEffects.xoa")) categories |= MetadataArchiveCategories.LightingEffects;
+		if (DoesFileExist(pathWithoutExtension, ".LightingZones.xoa")) categories |= MetadataArchiveCategories.LightingZones;
+		if (DoesFileExist(pathWithoutExtension, ".Sensors.xoa")) categories |= MetadataArchiveCategories.Sensors;
+		if (DoesFileExist(pathWithoutExtension, ".Coolers.xoa")) categories |= MetadataArchiveCategories.Coolers;
+
+		return categories;
+	}
+
+	private static bool DoesFileExist(ReadOnlyMemory<char> pathWithoutExtension, string suffix)
+		=> File.Exists($"{pathWithoutExtension.Span}{suffix}");
 
 	private readonly ILogger<AssemblyLoader> _logger;
 	private readonly IAssemblyDiscovery _assemblyDiscovery;
@@ -101,7 +132,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 
 			foreach (var kvp in assemblyNameDictionary)
 			{
-				_availableAssemblyDetails.TryAdd(kvp.Key.FullName, new AssemblyCacheEntry(kvp.Key, kvp.Value));
+				_availableAssemblyDetails.TryAdd(kvp.Key.FullName, new AssemblyCacheEntry(kvp.Key, kvp.Value, DetectAvailableMetadataArchives(kvp.Value)));
 			}
 
 			Volatile.Write(ref _availableAssemblies, assemblyNames);
