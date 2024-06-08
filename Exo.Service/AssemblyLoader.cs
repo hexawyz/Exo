@@ -4,10 +4,11 @@ using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using System.Threading.Channels;
 
 namespace Exo.Service;
 
-internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
+internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider, IDisposable
 {
 	[Flags]
 	private enum MetadataArchiveCategories
@@ -86,6 +87,8 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 	private readonly ConcurrentDictionary<string, AssemblyCacheEntry> _availableAssemblyDetails = new(1, 20);
 	private AssemblyName[] _availableAssemblies = [];
 	private readonly object _updateLock = new();
+	private readonly HashSet<AssemblyCacheEntry> _loadedAssemblies = new();
+	private ChannelWriter<(string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives, bool IsLoaded)>[]? _metadataChangeListeners;
 
 	public event EventHandler<AssemblyLoadEventArgs>? AfterAssemblyLoad;
 	public event EventHandler? AvailableAssembliesChanged;
@@ -111,28 +114,36 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		{
 			var assemblyPaths = _assemblyDiscovery.AssemblyPaths;
 			var assemblyNames = new AssemblyName[assemblyPaths.Length];
-			var assemblyNameDictionary = new Dictionary<AssemblyName, string>(assemblyPaths.Length);
+			var assemblyNameDictionary = new Dictionary<string, (AssemblyName AssemblyName, string Path)>(assemblyPaths.Length);
 
 			for (int i = 0; i < assemblyPaths.Length; i++)
 			{
 				var path = assemblyPaths[i];
-				assemblyNameDictionary.Add(assemblyNames[i] = AssemblyLoadContext.GetAssemblyName(path), path);
+				var assemblyName = AssemblyLoadContext.GetAssemblyName(path);
+				assemblyNames[i] = assemblyName;
+				assemblyNameDictionary.Add(assemblyName.FullName, (assemblyName, path));
 			}
 
 			foreach (var assemblyName in _availableAssemblies)
 			{
-				if (!assemblyNameDictionary.Remove(assemblyName))
+				if (!assemblyNameDictionary.Remove(assemblyName.FullName))
 				{
 					if (_availableAssemblyDetails.TryRemove(assemblyName.FullName, out var entry))
 					{
 						entry.Dispose();
+						if (_loadedAssemblies.Remove(entry))
+						{
+							_metadataChangeListeners.TryWrite((entry.Path, entry.AvailableMetadataArchives, false));
+						}
 					}
 				}
 			}
 
 			foreach (var kvp in assemblyNameDictionary)
 			{
-				_availableAssemblyDetails.TryAdd(kvp.Key.FullName, new AssemblyCacheEntry(kvp.Key, kvp.Value, DetectAvailableMetadataArchives(kvp.Value)));
+				if (_availableAssemblyDetails.ContainsKey(kvp.Key)) continue;
+
+				_availableAssemblyDetails.TryAdd(kvp.Key, new AssemblyCacheEntry(kvp.Value.AssemblyName, kvp.Value.Path, DetectAvailableMetadataArchives(kvp.Value.Path)));
 			}
 
 			Volatile.Write(ref _availableAssemblies, assemblyNames);
@@ -166,14 +177,19 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		lock (entry.Lock)
 		{
 			assembly = entry.TryGetAssembly();
-			if (assembly is null)
-			{
-				var context = new PluginLoadContext(this, entry.AssemblyName, entry.Path);
-				context.Unloading += OnContextUnloading;
-				_logger.AssemblyLoadContextCreated(context.Name!);
-				entry.SetContext(context);
-				assembly = context.MainAssembly;
-			}
+			if (assembly is not null) return assembly;
+
+			var context = new PluginLoadContext(this, entry.AssemblyName, entry.Path);
+			context.Unloading += OnContextUnloading;
+			_logger.AssemblyLoadContextCreated(context.Name!);
+			entry.SetContext(context);
+			assembly = context.MainAssembly;
+		}
+
+		lock (_updateLock)
+		{
+			_loadedAssemblies.Add(entry);
+			_metadataChangeListeners.TryWrite((entry.Path, entry.AvailableMetadataArchives, true));
 		}
 
 		try
@@ -191,6 +207,16 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 	private void OnContextUnloading(AssemblyLoadContext obj)
 	{
 		_logger.AssemblyLoadContextUnloading(obj.Name!);
+		if (_availableAssemblyDetails.TryGetValue(obj.Name!, out var entry))
+		{
+			lock (_updateLock)
+			{
+				if (_loadedAssemblies.Remove(entry))
+				{
+					_metadataChangeListeners.TryWrite((entry.Path, entry.AvailableMetadataArchives, false));
+				}
+			}
+		}
 	}
 
 	public MetadataLoadContext CreateMetadataLoadContext(AssemblyName assemblyName)
@@ -212,5 +238,62 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		}
 
 		return entry;
+	}
+
+	private static string GetCategorySuffix(MetadataArchiveCategory category)
+		=> category switch
+		{
+			MetadataArchiveCategory.Strings => ".Strings.xoa",
+			MetadataArchiveCategory.LightingEffects => ".LightingEffects.xoa",
+			MetadataArchiveCategory.LightingZones => ".LightingZones.xoa",
+			MetadataArchiveCategory.Sensors => ".Sensors.xoa",
+			MetadataArchiveCategory.Coolers => ".Coolers.xoa",
+			_ => throw new InvalidOperationException(),
+		};
+
+	private static MetadataSourceChangeNotification CreateNotification(bool isLoaded, string assemblyPath, MetadataArchiveCategory category, int extensionLength)
+		=> new(isLoaded ? WatchNotificationKind.Addition : WatchNotificationKind.Removal, category, $"{assemblyPath.AsSpan(0, assemblyPath.Length - extensionLength)}{GetCategorySuffix(category)}");
+
+	public async IAsyncEnumerable<MetadataSourceChangeNotification> WatchMetadataSourceChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateSingleWriterChannel<(string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives, bool IsLoaded)>();
+
+		AssemblyCacheEntry[] loadedAssemblies;
+		lock (_updateLock)
+		{
+			loadedAssemblies = [.. _loadedAssemblies];
+			ArrayExtensions.InterlockedAdd(ref _metadataChangeListeners, channel);
+		}
+
+		try
+		{
+			foreach (var entry in loadedAssemblies)
+			{
+				if (entry.AvailableMetadataArchives == 0) continue;
+
+				int extensionLength = Path.GetExtension(entry.Path.AsSpan()).Length;
+
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.Strings, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.LightingEffects, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.LightingZones, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.Sensors, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.Coolers, extensionLength);
+			}
+
+			await foreach (var (assemblyPath, availableMetadataArchives, isLoaded) in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+			{
+				int extensionLength = Path.GetExtension(assemblyPath.AsSpan()).Length;
+
+				if ((availableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.Strings, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.LightingEffects, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.LightingZones, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.Sensors, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.Coolers, extensionLength);
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _metadataChangeListeners, channel);
+		}
 	}
 }

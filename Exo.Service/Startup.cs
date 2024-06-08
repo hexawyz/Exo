@@ -59,7 +59,9 @@ public class Startup
 		{
 			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
 		}
-		services.AddSingleton<IAssemblyLoader, AssemblyLoader>();
+		services.AddSingleton<AssemblyLoader>();
+		services.AddSingleton<IAssemblyLoader>(sp => sp.GetRequiredService<AssemblyLoader>());
+		services.AddSingleton<IMetadataSourceProvider>(sp => sp.GetRequiredService<AssemblyLoader>());
 		services.AddSingleton
 		(
 			sp => DeviceRegistry.CreateAsync
@@ -185,6 +187,7 @@ public class Startup
 		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
 		services.AddSingleton<GrpcCustomMenuService>();
+		services.AddSingleton(sp => new GrpcMetadataService(typeof(Startup).Assembly.Location, sp.GetRequiredService<IMetadataSourceProvider>()));
 		services.AddSingleton<GrpcServiceLifetimeService>();
 		services.AddSingleton<IOverlayCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddSingleton<ISettingsCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
@@ -223,6 +226,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcMetadataService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<IOverlayCustomMenuService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);

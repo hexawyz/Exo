@@ -2,32 +2,72 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Exo.Metadata;
 
-namespace Exo.Archive;
+namespace Exo.Metadata;
 
-public abstract class MetadataResolver
+public abstract class MetadataResolver : IDisposable
 {
 	private ExoArchive? _overrideArchive;
-	private readonly ExoArchive _mainArchive;
-	private ExoArchive[] _additionalArchives;
+	private ExoArchive? _mainArchive;
+	private ExoArchive[]? _additionalArchives;
 	private readonly Dictionary<string, ExoArchive> _additionalArchivesByName;
 	private readonly object _lock;
 
+	public MetadataResolver()
+	{
+		_additionalArchives = [];
+		_additionalArchivesByName = new();
+		_lock = new();
+	}
+
 	public MetadataResolver(string mainArchiveFileName)
 	{
+		ArgumentNullException.ThrowIfNull(mainArchiveFileName);
+
 		_mainArchive = new(mainArchiveFileName);
 		_additionalArchives = [];
 		_additionalArchivesByName = new();
 		_lock = new();
 	}
 
+	public void Dispose()
+	{
+		lock (_lock)
+		{
+			if (_mainArchive is not null)
+			{
+				_mainArchive.Dispose();
+				_mainArchive = null;
+			}
+			if (_overrideArchive is not null)
+			{
+				_overrideArchive.Dispose();
+				_overrideArchive = null;
+			}
+			if (_additionalArchives is not null)
+			{
+				foreach (var archive in _additionalArchives)
+				{
+					archive.Dispose();
+				}
+				_additionalArchives = null;
+			}
+			_additionalArchivesByName.Clear();
+		}
+	}
+
 	public void AddArchive(string fileName)
 	{
 		lock (_lock)
 		{
+			if (_additionalArchives is null) return;
 			if (_additionalArchivesByName.ContainsKey(fileName)) return;
 			_additionalArchivesByName.Add(fileName, new(fileName));
+
+			var newArchives = new ExoArchive[_additionalArchives.Length + 1];
+			Array.Copy(_additionalArchives, 0, newArchives, 0, _additionalArchives.Length);
+			newArchives[^1] = new ExoArchive(fileName);
+			_additionalArchives = newArchives;
 		}
 	}
 
@@ -74,14 +114,17 @@ public abstract class MetadataResolver
 	{
 		lock (_lock)
 		{
-			if (_overrideArchive is not null && _overrideArchive.TryGetFileEntry(key, out file) || _mainArchive.TryGetFileEntry(key, out file))
+			if (_overrideArchive is not null && _overrideArchive.TryGetFileEntry(key, out file) || _mainArchive is not null && _mainArchive.TryGetFileEntry(key, out file))
 			{
 				return true;
 			}
 
-			foreach (var archive in _additionalArchives)
+			if (_additionalArchives is not null)
 			{
-				if (archive.TryGetFileEntry(key, out file)) return true;
+				foreach (var archive in _additionalArchives)
+				{
+					if (archive.TryGetFileEntry(key, out file)) return true;
+				}
 			}
 		}
 
@@ -90,9 +133,9 @@ public abstract class MetadataResolver
 	}
 }
 
-public abstract class StringMetadataResolver : MetadataResolver
+public sealed class StringMetadataResolver : MetadataResolver
 {
-	protected StringMetadataResolver(string mainArchiveFileName) : base(mainArchiveFileName)
+	public StringMetadataResolver(string mainArchiveFileName) : base(mainArchiveFileName)
 	{
 	}
 
@@ -140,7 +183,7 @@ public abstract class StringMetadataResolver : MetadataResolver
 public sealed class DeviceMetadataResolver<T> : MetadataResolver
 	where T : struct, IExoMetadata
 {
-	public DeviceMetadataResolver(string mainArchiveFileName) : base(mainArchiveFileName)
+	public DeviceMetadataResolver() : base()
 	{
 	}
 
@@ -179,7 +222,7 @@ public sealed class DeviceMetadataResolver<T> : MetadataResolver
 	}
 }
 
-public sealed class MetadataService
+public sealed class MetadataService : IMetadataService, IDisposable
 {
 	private readonly StringMetadataResolver _stringMetadataResolver;
 	private readonly DeviceMetadataResolver<LightingEffectMetadata> _lightingEffectMetadataResolver;
@@ -203,11 +246,20 @@ public sealed class MetadataService
 		_coolerMetadataResolver = coolerMetadataResolver;
 	}
 
+	public void Dispose()
+	{
+		_stringMetadataResolver.Dispose();
+		_lightingEffectMetadataResolver.Dispose();
+		_lightingZoneMetadataResolver.Dispose();
+		_sensorMetadataResolver.Dispose();
+		_coolerMetadataResolver.Dispose();
+	}
+
 	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
 		=> _stringMetadataResolver.GetStringAsync(culture, stringId);
 
-	public bool TryGetLightingEffectMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingEffectMetadata value)
-		=> _lightingEffectMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
+	public bool TryGetLightingEffectMetadata(string driverKey, string compatibleId, Guid lightingEffectId, out LightingEffectMetadata value)
+		=> _lightingEffectMetadataResolver.TryGetData(driverKey, compatibleId, lightingEffectId, out value);
 
 	public bool TryGetLightingZoneMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingZoneMetadata value)
 		=> _lightingZoneMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);

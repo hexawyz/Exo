@@ -8,12 +8,29 @@
 		<IsExoPluginAssembly>true</IsExoPluginAssembly>
 	</PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="LightingEffects.json" />
+    <None Remove="Strings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="LightingEffects.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <StringMetadata Include="Strings.json" />
 	</ItemGroup>
 
 </Project>

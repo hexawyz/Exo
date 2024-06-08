@@ -14,5 +14,9 @@
     // Exo.Lighting.Effects.ColorDoubleFlashEffect
     "2c497719-8477-4fe2-8045-488939d4c913": {
         "nameStringId": "597bbd76-be6e-4c8f-8e48-cc45cd1c5a30"
+    },
+    // Exo.Lighting.Effects.ReactiveEffect
+    "a175e0ad-f649-4f10-99e2-c3c94d1c9bc7": {
+        "nameStringId": "60e315f9-c41c-4d3e-a813-5031dd0b39ef"
     }
 }

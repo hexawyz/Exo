@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Exo.Archive;
+using Exo.Metadata;
 using Exo.Metadata;
 
 if (args.Length < 3)

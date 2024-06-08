@@ -16,6 +16,7 @@ using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
+using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
 using Exo.Cooling;
 
 namespace Exo.Service.Grpc;
@@ -185,6 +186,17 @@ internal static class GrpcConvert
 			GrpcMonitorSetting.Brightness => MonitorSetting.Brightness,
 			GrpcMonitorSetting.Contrast => MonitorSetting.Contrast,
 			GrpcMonitorSetting.AudioVolume => MonitorSetting.AudioVolume,
+			_ => throw new NotImplementedException()
+		};
+
+	public static GrpcMetadataArchiveCategory ToGrpc(this MetadataArchiveCategory category)
+		=> category switch
+		{
+			MetadataArchiveCategory.Strings => GrpcMetadataArchiveCategory.Strings,
+			MetadataArchiveCategory.LightingEffects => GrpcMetadataArchiveCategory.LightingEffects,
+			MetadataArchiveCategory.LightingZones => GrpcMetadataArchiveCategory.LightingZones,
+			MetadataArchiveCategory.Sensors => GrpcMetadataArchiveCategory.Sensors,
+			MetadataArchiveCategory.Coolers => GrpcMetadataArchiveCategory.Coolers,
 			_ => throw new NotImplementedException()
 		};
 }
