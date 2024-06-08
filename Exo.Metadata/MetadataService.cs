@@ -6,20 +6,20 @@ using Exo.Metadata;
 
 namespace Exo.Archive;
 
-public class MetadataService
+public abstract class MetadataResolver
 {
 	private readonly ExoArchive _mainArchive;
 	private readonly ExoArchive[] _additionalArchives;
 	private readonly ExoArchive? _overrideArchive;
 
-	public MetadataService(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive)
+	public MetadataResolver(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive)
 	{
 		_mainArchive = mainArchive;
 		_additionalArchives = additionalArchives;
 		_overrideArchive = overrideArchive;
 	}
 
-	private bool FindFile(ReadOnlySpan<byte> key, out ExoArchiveFile file)
+	protected bool FindFile(ReadOnlySpan<byte> key, out ExoArchiveFile file)
 	{
 		if (_overrideArchive is not null && _overrideArchive.TryGetFileEntry(key, out file) || _mainArchive.TryGetFileEntry(key, out file))
 		{
@@ -33,6 +33,13 @@ public class MetadataService
 
 		file = default;
 		return false;
+	}
+}
+
+public abstract class StringMetadataResolver : MetadataResolver
+{
+	protected StringMetadataResolver(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive) : base(mainArchive, additionalArchives, overrideArchive)
+	{
 	}
 
 	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
@@ -74,20 +81,24 @@ public class MetadataService
 
 		return null;
 	}
+}
 
-	private bool FindFile(ReadOnlySpan<byte> categoryId, string driverKey, string compatibleId, Guid itemId, out ExoArchiveFile file)
+public sealed class DeviceMetadataResolver<T> : MetadataResolver
+	where T : struct, IExoMetadata
+{
+	public DeviceMetadataResolver(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive) : base(mainArchive, additionalArchives, overrideArchive)
 	{
-		Span<byte> key = stackalloc byte[categoryId.Length + 18 + Encoding.UTF8.GetByteCount(driverKey) + 1 + Encoding.UTF8.GetByteCount(compatibleId)];
+	}
+
+	private bool FindFile(string driverKey, string compatibleId, Guid itemId, out ExoArchiveFile file)
+	{
+		Span<byte> key = stackalloc byte[17 + Encoding.UTF8.GetByteCount(driverKey) + 1 + Encoding.UTF8.GetByteCount(compatibleId)];
 
 		// First try to locate the most specific data for a key, then move out to the less specific version.
 
-		categoryId.CopyTo(key);
-		key[categoryId.Length] = (byte)'/';
-		int keyLength = categoryId.Length + 1;
-		itemId.TryWriteBytes(key[keyLength..]);
-		keyLength += 16;
-		key[categoryId.Length] = (byte)'/';
-		keyLength++;
+		itemId.TryWriteBytes(key);
+		key[16] = (byte)'/';
+		int keyLength = 17;
 		int driverKeyLength = Encoding.UTF8.GetBytes(driverKey, key[keyLength..]);
 		keyLength += driverKeyLength;
 		key[keyLength] = (byte)'/';
@@ -102,10 +113,9 @@ public class MetadataService
 		return FindFile(key, out file);
 	}
 
-	private bool TryGetData<T>(ReadOnlySpan<byte> categoryId, string driverKey, string compatibleId, Guid itemId, out T value)
-		where T : struct, IExoMetadata
+	public bool TryGetData(string driverKey, string compatibleId, Guid itemId, out T value)
 	{
-		if (FindFile(categoryId, driverKey, compatibleId, itemId, out var file))
+		if (FindFile(driverKey, compatibleId, itemId, out var file))
 		{
 			value = MetadataSerializer.Deserialize<T>(file.DangerousGetSpan());
 			return true;
@@ -113,15 +123,46 @@ public class MetadataService
 		value = default;
 		return false;
 	}
+}
+
+public sealed class MetadataService
+{
+	private readonly StringMetadataResolver _stringMetadataResolver;
+	private readonly DeviceMetadataResolver<LightingEffectMetadata> _lightingEffectMetadataResolver;
+	private readonly DeviceMetadataResolver<LightingZoneMetadata> _lightingZoneMetadataResolver;
+	private readonly DeviceMetadataResolver<SensorMetadata> _sensorMetadataResolver;
+	private readonly DeviceMetadataResolver<CoolerMetadata> _coolerMetadataResolver;
+
+	public MetadataService
+	(
+		StringMetadataResolver stringMetadataResolver,
+		DeviceMetadataResolver<LightingEffectMetadata> lightingEffectMetadataResolver,
+		DeviceMetadataResolver<LightingZoneMetadata> lightingZoneMetadataResolver,
+		DeviceMetadataResolver<SensorMetadata> sensorMetadataResolver,
+		DeviceMetadataResolver<CoolerMetadata> coolerMetadataResolver
+	)
+	{
+		_stringMetadataResolver = stringMetadataResolver;
+		_lightingEffectMetadataResolver = lightingEffectMetadataResolver;
+		_lightingZoneMetadataResolver = lightingZoneMetadataResolver;
+		_sensorMetadataResolver = sensorMetadataResolver;
+		_coolerMetadataResolver = coolerMetadataResolver;
+	}
+
+	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
+		=> _stringMetadataResolver.GetStringAsync(culture, stringId);
+
+	public bool TryGetLightingEffectMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingEffectMetadata value)
+		=> _lightingEffectMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
 
 	public bool TryGetLightingZoneMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingZoneMetadata value)
-		=> TryGetData("lighting-zones"u8, driverKey, compatibleId, lightingZoneId, out value);
+		=> _lightingZoneMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
 
 	public bool TryGetSensorMetadataAsync(string driverKey, string compatibleId, Guid sensorId, out SensorMetadata value)
-		=> TryGetData("sensors"u8, driverKey, compatibleId, sensorId, out value);
+		=> _sensorMetadataResolver.TryGetData(driverKey, compatibleId, sensorId, out value);
 
 	public bool TryGetCoolerMetadataAsync(string driverKey, string compatibleId, Guid coolerId, out CoolerMetadata value)
-		=> TryGetData("coolers"u8, driverKey, compatibleId, coolerId, out value);
+		=> _coolerMetadataResolver.TryGetData(driverKey, compatibleId, coolerId, out value);
 }
 
 /// <summary>The serializer used for metadata types.</summary>
@@ -131,14 +172,14 @@ public static class MetadataSerializer
 	public static byte[] Serialize<T>(T value)
 		where T : struct, IExoMetadata
 	{
-		if (typeof(T) == typeof(EffectMetadata)) return Serialize(in Unsafe.As<T, EffectMetadata>(ref value));
+		if (typeof(T) == typeof(LightingEffectMetadata)) return Serialize(in Unsafe.As<T, LightingEffectMetadata>(ref value));
 		if (typeof(T) == typeof(LightingZoneMetadata)) return Serialize(in Unsafe.As<T, LightingZoneMetadata>(ref value));
 		if (typeof(T) == typeof(CoolerMetadata)) return Serialize(in Unsafe.As<T, CoolerMetadata>(ref value));
 		if (typeof(T) == typeof(SensorMetadata)) return Serialize(in Unsafe.As<T, SensorMetadata>(ref value));
 		throw new InvalidOperationException();
 	}
 
-	private static byte[] Serialize(in EffectMetadata value)
+	private static byte[] Serialize(in LightingEffectMetadata value)
 	{
 		var array = new byte[16];
 		value.NameStringId.TryWriteBytes(array);
@@ -173,15 +214,15 @@ public static class MetadataSerializer
 	public static T Deserialize<T>(ReadOnlySpan<byte> data)
 		where T : struct, IExoMetadata
 	{
-		if (typeof(T) == typeof(EffectMetadata)) return Unsafe.BitCast<EffectMetadata, T>(DeserializeEffectMetadata(data));
+		if (typeof(T) == typeof(LightingEffectMetadata)) return Unsafe.BitCast<LightingEffectMetadata, T>(DeserializeEffectMetadata(data));
 		if (typeof(T) == typeof(LightingZoneMetadata)) return Unsafe.BitCast<LightingZoneMetadata, T>(DeserializeLightingZoneMetadata(data));
 		if (typeof(T) == typeof(CoolerMetadata)) return Unsafe.BitCast<CoolerMetadata, T>(DeserializeCoolerMetadata(data));
 		if (typeof(T) == typeof(SensorMetadata)) return Unsafe.BitCast<SensorMetadata, T>(DeserializeSensorMetadata(data));
 		throw new InvalidOperationException();
 	}
 
-	private static EffectMetadata DeserializeEffectMetadata(ReadOnlySpan<byte> data)
-		=> new EffectMetadata
+	private static LightingEffectMetadata DeserializeEffectMetadata(ReadOnlySpan<byte> data)
+		=> new LightingEffectMetadata
 		{
 			NameStringId = new Guid(data[..16]),
 		};
@@ -249,7 +290,7 @@ public interface IExoMetadata
 {
 }
 
-public readonly struct EffectMetadata : IExoMetadata
+public readonly struct LightingEffectMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
 }

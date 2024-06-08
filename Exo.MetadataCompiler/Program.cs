@@ -86,7 +86,7 @@ case "coolers":
 	break;
 case "effects":
 	{
-		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, EffectMetadata>>(sourceFile, jsonSerializerOptions) is not { } sensorMetadata)
+		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, LightingEffectMetadata>>(sourceFile, jsonSerializerOptions) is not { } sensorMetadata)
 		{
 			throw new InvalidDataException();
 		}
