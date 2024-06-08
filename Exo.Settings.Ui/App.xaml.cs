@@ -90,6 +90,25 @@ public partial class App : Application
 
 		services.AddSingleton<IEditionService, EditionService>();
 
+		services.AddSingleton<ConnectionViewModel>();
+
+		services.AddSingleton<Metadata.IMetadataService, MetadataService>();
+
+		services.AddSingleton
+		(
+			sp => new SettingsServiceConnectionManager
+			(
+				"Local\\Exo.Service.Configuration",
+				100,
+	#if DEBUG
+				null,
+	#else
+				GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
+	#endif
+				sp.GetRequiredService<ConnectionViewModel>().OnConnectionStatusChanged
+			)
+		);
+
 		services.AddSingleton<SettingsViewModel>();
 
 		return services.BuildServiceProvider();

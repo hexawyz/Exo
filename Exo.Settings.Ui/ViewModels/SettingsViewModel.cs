@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using Exo.Metadata;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Exo.Utils;
@@ -45,7 +46,9 @@ internal sealed class SettingsViewModel : BindableObject
 	}
 
 	public SettingsServiceConnectionManager ConnectionManager { get; }
+	private readonly ConnectionViewModel _connectionViewModel;
 	private readonly IEditionService _editionService;
+	private readonly IMetadataService _metadataService;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
@@ -80,22 +83,16 @@ internal sealed class SettingsViewModel : BindableObject
 	public ICommand GoBackCommand => _goBackCommand;
 	public ICommand NavigateCommand => _navigateCommand;
 
-	private ConnectionStatus _connectionStatus;
+	public ConnectionStatus ConnectionStatus => _connectionViewModel.ConnectionStatus;
 
-	public SettingsViewModel(IEditionService editionService)
+	public IMetadataService MetadataService => _metadataService;
+
+	public SettingsViewModel(SettingsServiceConnectionManager connectionManager, ConnectionViewModel connectionViewModel, IEditionService editionService, IMetadataService metadataService)
 	{
-		ConnectionManager = new
-		(
-			"Local\\Exo.Service.Configuration", 
-			100,
-#if DEBUG
-			null,
-#else
-			GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
-#endif
-			OnConnectionStatusChanged
-		);
+		ConnectionManager = connectionManager;
+		_connectionViewModel = connectionViewModel;
 		_editionService = editionService;
+		_metadataService = metadataService;
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);
 		_devicesViewModel = new(ConnectionManager, _navigateCommand);
@@ -114,6 +111,28 @@ internal sealed class SettingsViewModel : BindableObject
 		ProgrammingPage = new("Programming", "\uE943");
 		NavigationPages = [HomePage, DevicesPage, LightingPage, SensorsPage, CoolingPage, CustomMenuPage, ProgrammingPage];
 		SelectedNavigationPage = HomePage;
+
+		connectionViewModel.PropertyChanged += OnConnectionViewModelPropertyChanged;
+	}
+
+	private void OnConnectionViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (Equals(e, ChangedProperty.ConnectionStatus))
+		{
+			if (ConnectionStatus == ConnectionStatus.Disconnected)
+			{
+				bool wasStackEmpty = _navigationStack.Count == 0;
+				_navigationStack.Clear();
+				NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
+				NotifyPropertyChanged(ChangedProperty.CurrentPage);
+				if (!wasStackEmpty) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+				SelectedNavigationPage = null;
+			}
+			else
+			{
+				NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
+			}
+		}
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;
@@ -124,26 +143,7 @@ internal sealed class SettingsViewModel : BindableObject
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;
 
-	public ConnectionStatus ConnectionStatus => _connectionStatus;
 	public bool CanNavigateBack => _navigationStack.Count > 0;
-
-	private void OnConnectionStatusChanged(SettingsServiceConnectionManager connectionManager, ConnectionStatus connectionStatus)
-	{
-		_connectionStatus = connectionStatus;
-		if (connectionStatus == ConnectionStatus.Disconnected)
-		{
-			bool wasStackEmpty = _navigationStack.Count == 0;
-			_navigationStack.Clear();
-			NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
-			NotifyPropertyChanged(ChangedProperty.CurrentPage);
-			if (!wasStackEmpty) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
-			SelectedNavigationPage = null;
-		}
-		else
-		{
-			NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
-		}
-	}
 
 	private void NavigateTo(PageViewModel pageViewModel)
 	{

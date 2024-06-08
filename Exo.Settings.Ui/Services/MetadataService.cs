@@ -1,57 +1,114 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Exo.Archive;
+using System.Globalization;
+using Exo.Contracts.Ui;
+using Exo.Contracts.Ui.Settings;
+using Exo.Metadata;
+using IMetadataService = Exo.Metadata.IMetadataService;
 
 namespace Exo.Settings.Ui.Services;
 
-internal sealed class MetadataService : IMetadataService, IDisposable
+internal sealed class MetadataService : IMetadataService, IConnectedState, IDisposable
 {
-	private readonly StringMetadataResolver _stringMetadataResolver;
-	private readonly DeviceMetadataResolver<LightingEffectMetadata> _lightingEffectMetadataResolver;
-	private readonly DeviceMetadataResolver<LightingZoneMetadata> _lightingZoneMetadataResolver;
-	private readonly DeviceMetadataResolver<SensorMetadata> _sensorMetadataResolver;
-	private readonly DeviceMetadataResolver<CoolerMetadata> _coolerMetadataResolver;
+	private StringMetadataResolver? _stringMetadataResolver;
+	private DeviceMetadataResolver<LightingEffectMetadata>? _lightingEffectMetadataResolver;
+	private DeviceMetadataResolver<LightingZoneMetadata>? _lightingZoneMetadataResolver;
+	private DeviceMetadataResolver<SensorMetadata>? _sensorMetadataResolver;
+	private DeviceMetadataResolver<CoolerMetadata>? _coolerMetadataResolver;
 
-	public MetadataService
-	(
-		StringMetadataResolver stringMetadataResolver,
-		DeviceMetadataResolver<LightingEffectMetadata> lightingEffectMetadataResolver,
-		DeviceMetadataResolver<LightingZoneMetadata> lightingZoneMetadataResolver,
-		DeviceMetadataResolver<SensorMetadata> sensorMetadataResolver,
-		DeviceMetadataResolver<CoolerMetadata> coolerMetadataResolver
-	)
+	private readonly SettingsServiceConnectionManager _connectionManager;
+	private readonly CancellationTokenSource _cancellationTokenSource;
+	private readonly IDisposable _stateRegistration;
+
+	public MetadataService(SettingsServiceConnectionManager connectionManager)
 	{
-		_stringMetadataResolver = stringMetadataResolver;
-		_lightingEffectMetadataResolver = lightingEffectMetadataResolver;
-		_lightingZoneMetadataResolver = lightingZoneMetadataResolver;
-		_sensorMetadataResolver = sensorMetadataResolver;
-		_coolerMetadataResolver = coolerMetadataResolver;
+		_cancellationTokenSource = new CancellationTokenSource();
+		_stateRegistration = connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
+		_connectionManager = connectionManager;
 	}
 
 	public void Dispose()
 	{
-		_stringMetadataResolver.Dispose();
-		_lightingEffectMetadataResolver.Dispose();
-		_lightingZoneMetadataResolver.Dispose();
-		_sensorMetadataResolver.Dispose();
-		_coolerMetadataResolver.Dispose();
+		_cancellationTokenSource.Cancel();
+		_stateRegistration.Dispose();
+		Reset();
 	}
 
-	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
-		=> _stringMetadataResolver.GetStringAsync(culture, stringId);
+	private void Reset()
+	{
+		Dispose(ref _stringMetadataResolver);
+		Dispose(ref _lightingEffectMetadataResolver);
+		Dispose(ref _lightingZoneMetadataResolver);
+		Dispose(ref _sensorMetadataResolver);
+		Dispose(ref _coolerMetadataResolver);
+	}
 
-	public bool TryGetLightingEffectMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingEffectMetadata value)
-		=> _lightingEffectMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
+	private static void Dispose<T>(ref T? resolver)
+		where T : class, IDisposable
+		=> Interlocked.Exchange(ref resolver, null)?.Dispose();
+
+	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	{
+		if (_cancellationTokenSource.IsCancellationRequested) return;
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
+		{
+			await WatchChangesAsync(cancellationToken);
+		}
+	}
+
+	private async Task WatchChangesAsync(CancellationToken cancellationToken)
+	{
+		var metadataService = await _connectionManager.GetMetadataServiceAsync(cancellationToken);
+		_stringMetadataResolver = new(await metadataService.GetMainStringsArchivePathAsync(cancellationToken));
+		_lightingEffectMetadataResolver = new();
+		_lightingZoneMetadataResolver = new();
+		_sensorMetadataResolver = new();
+		_coolerMetadataResolver = new();
+		await foreach (var notification in metadataService.WatchMetadataSourceChangesAsync(cancellationToken))
+		{
+			MetadataResolver resolver = notification.Category switch
+			{
+				MetadataArchiveCategory.Strings => _stringMetadataResolver,
+				MetadataArchiveCategory.LightingEffects => _lightingEffectMetadataResolver,
+				MetadataArchiveCategory.LightingZones => _lightingZoneMetadataResolver,
+				MetadataArchiveCategory.Sensors => _sensorMetadataResolver,
+				MetadataArchiveCategory.Coolers => _coolerMetadataResolver,
+				_ => throw new InvalidOperationException(),
+			};
+
+			switch (notification.NotificationKind)
+			{
+			case WatchNotificationKind.Addition:
+				resolver.AddArchive(notification.ArchivePath);
+				break;
+			case WatchNotificationKind.Removal:
+				resolver.RemoveArchive(notification.ArchivePath);
+				break;
+			}
+		}
+	}
+
+	void IConnectedState.Reset() => Reset();
+
+	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
+		=> _stringMetadataResolver?.GetStringAsync(culture, stringId);
+
+	private static bool TryGetMetadata<T>(DeviceMetadataResolver<T>? resolver, string driverKey, string compatibleId, Guid lightingZoneId, out T value)
+		where T : struct, IExoMetadata
+	{
+		if (resolver is not null) return resolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
+
+		value = default;
+		return false;
+
+	}
+	public bool TryGetLightingEffectMetadata(string driverKey, string compatibleId, Guid lightingEffectId, out LightingEffectMetadata value)
+		=> TryGetMetadata(_lightingEffectMetadataResolver, driverKey, compatibleId, lightingEffectId, out value);
 
 	public bool TryGetLightingZoneMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingZoneMetadata value)
-		=> _lightingZoneMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
+		=> TryGetMetadata(_lightingZoneMetadataResolver, driverKey, compatibleId, lightingZoneId, out value);
 
 	public bool TryGetSensorMetadataAsync(string driverKey, string compatibleId, Guid sensorId, out SensorMetadata value)
-		=> _sensorMetadataResolver.TryGetData(driverKey, compatibleId, sensorId, out value);
+		=> TryGetMetadata(_sensorMetadataResolver, driverKey, compatibleId, sensorId, out value);
 
 	public bool TryGetCoolerMetadataAsync(string driverKey, string compatibleId, Guid coolerId, out CoolerMetadata value)
-		=> _coolerMetadataResolver.TryGetData(driverKey, compatibleId, coolerId, out value);
+		=> TryGetMetadata(_coolerMetadataResolver, driverKey, compatibleId, coolerId, out value);
 }
