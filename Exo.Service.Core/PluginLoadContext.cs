@@ -14,13 +14,17 @@ public sealed class PluginLoadContext : AssemblyLoadContext
 	private readonly AssemblyDependencyResolver _resolver;
 	private readonly AssemblyName _mainAssemblyName;
 	private readonly IAssemblyLoader _assemblyLoader;
+	private readonly Assembly _mainAssembly;
+
+	public Assembly MainAssembly => _mainAssembly;
 
 	public PluginLoadContext(IAssemblyLoader assemblyLoader, AssemblyName mainAssemblyName, string pluginPath)
-		: base(true)
+		: base(mainAssemblyName.FullName, true)
 	{
 		_assemblyLoader = assemblyLoader;
 		_mainAssemblyName = mainAssemblyName;
 		_resolver = new AssemblyDependencyResolver(pluginPath);
+		_mainAssembly = LoadFromAssemblyName(mainAssemblyName);
 	}
 
 	protected override Assembly? Load(AssemblyName assemblyName)
