@@ -30,5 +30,22 @@
 	"7a074c26-621c-4539-9c45-d1e7050f7bfb": {
 		"en": "Power Load",
 		"fr": "% d'utilisation"
+	},
+	// Lighting Effect Names
+	"bfa5b721-db96-47a5-9e69-5dd0ae943275": {
+		"en": "Static",
+		"fr": "Statique"
+	},
+	"f49c1855-5583-4a4f-8272-7f0326a23197": {
+		"en": "Pulse",
+		"fr": "Pulsation"
+	},
+	"419e70ee-8355-4cf5-9d18-54835008cdb0": {
+		"en": "Flash",
+		"fr": "Flashs"
+	},
+	"597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
+		"en": "Double Flash",
+		"fr": "Double flashs"
 	}
 }

@@ -19,6 +19,7 @@ var jsonSerializerOptions = new JsonSerializerOptions()
 		new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false),
 	},
 	DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+	ReadCommentHandling = JsonCommentHandling.Skip,
 };
 
 using var sourceFile = File.OpenRead(args[1]);
@@ -84,7 +85,7 @@ case "coolers":
 		}
 	}
 	break;
-case "effects":
+case "lighting-effects":
 	{
 		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, LightingEffectMetadata>>(sourceFile, jsonSerializerOptions) is not { } sensorMetadata)
 		{

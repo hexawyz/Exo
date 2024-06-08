@@ -46,7 +46,9 @@
 
 	<ItemGroup>
 		<Content Remove="Strings.json" />
+		<Content Remove="LightingEffects.json" />
 		<StringMetadata Include="Strings.json" />
+		<LightingEffectMetadata Include="LightingEffects.json" />
 	</ItemGroup>
 
 	<!-- Detect plugin project names. -->
