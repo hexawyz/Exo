@@ -1,0 +1,34 @@
+{
+	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
+		"en": "Fan Speed",
+		"fr": "Vitesse du ventialteur"
+	},
+	"80acb355-040e-4789-96c9-8ed249964b08": {
+		"en": "Pump Speed",
+		"fr": "Vitesse de la pompe"
+	},
+	"a16abea5-5e05-40a0-861e-b948f3bc7084": {
+		"en": "Temperature",
+		"fr": "Température"
+	},
+	"5553c264-35bf-44ba-bd23-5a1bf611f5e1": {
+		"en": "Liquid Temperature",
+		"fr": "Température du liquide"
+	},
+	"4458560b-d509-4368-9181-9f66faaa65bf": {
+		"en": "Input Voltage",
+		"fr": "Tension d'entrée"
+	},
+	"d29d5844-6fc3-4e76-bd70-b158b584c5de": {
+		"en": "Output Voltage",
+		"fr": "Tension de sortie"
+	},
+	"c5f09e52-98c0-48ec-ab4a-19766755fb78": {
+		"en": "Pump Speed",
+		"fr": "Vitesse de la pompe"
+	},
+	"7a074c26-621c-4539-9c45-d1e7050f7bfb": {
+		"en": "Power Load",
+		"fr": "% d'utilisation"
+	}
+}

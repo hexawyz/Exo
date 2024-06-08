@@ -1,0 +1,46 @@
+<Project>
+	<ItemGroup>
+		<ProjectReference
+			Include="Exo.MetadataCompiler/Exo.MetadataCompiler.csproj"
+			Private="false"
+			ExcludeAssets="all"
+			ReferenceOutputAssembly="false"
+			DisableTransitiveProjectReferences="true"
+			SkipGetTargetFrameworkProperties="true"
+			GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
+	</ItemGroup>
+	<ItemGroup>
+		<AvailableItemName Include="StringMetadata" />
+		<AvailableItemName Include="SensorMetadata" />
+	</ItemGroup>
+	<Target Name="BuildMetadata" DependsOnTargets="BuildStringsMetadata;BuildSensorsMetadata" BeforeTargets="BeforeBuild"></Target>
+	<Target Name="PrepareMetadata">
+		<ItemGroup>
+			<_CollectedStringMetadata Include="@(StringMetadata-&gt;ClearMetadata())">
+				<OutputName>$(MSBuildProjectName).%(StringMetadata.Filename).xoa</OutputName>
+			</_CollectedStringMetadata>
+			<_CollectedSensorMetadata Include="@(SensorMetadata-&gt;ClearMetadata())">
+				<OutputName>$(MSBuildProjectName).%(SensorMetadata.Filename).xoa</OutputName>
+			</_CollectedSensorMetadata>
+		</ItemGroup>
+	</Target>
+	<Target Name="LocateExoMetadataCompiler">
+		<PropertyGroup>
+			<_ExoMetadataCompilerPath>$(MSBuildThisFileDirectory)Exo.MetadataCompiler\bin\$(Configuration)\net8.0\Exo.MetadataCompiler.dll</_ExoMetadataCompilerPath>
+		</PropertyGroup>
+	</Target>
+	<Target Name="BuildStringsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedStringMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)">
+		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; strings &quot;%(_CollectedStringMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)&quot;" />
+		<ItemGroup>
+			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" />
+			<None Include="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" Link="%(_CollectedStringMetadata.OutputName)" CopyToOutputDirectory="PreserveNewest" />
+		</ItemGroup>
+	</Target>
+	<Target Name="BuildSensorsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedSensorMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)">
+		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; sensors &quot;%(_CollectedSensorMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)&quot;" />
+		<ItemGroup>
+			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)" />
+			<None Include="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)" Link="%(_CollectedSensorMetadata.OutputName)" CopyToOutputDirectory="PreserveNewest" />
+		</ItemGroup>
+	</Target>
+</Project>

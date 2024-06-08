@@ -103,7 +103,7 @@ public class MetadataService
 	}
 
 	private bool TryGetData<T>(ReadOnlySpan<byte> categoryId, string driverKey, string compatibleId, Guid itemId, out T value)
-		where T : struct
+		where T : struct, IExoMetadata
 	{
 		if (FindFile(categoryId, driverKey, compatibleId, itemId, out var file))
 		{
@@ -129,12 +129,20 @@ public class MetadataService
 public static class MetadataSerializer
 {
 	public static byte[] Serialize<T>(T value)
-		where T : struct
+		where T : struct, IExoMetadata
 	{
+		if (typeof(T) == typeof(EffectMetadata)) return Serialize(in Unsafe.As<T, EffectMetadata>(ref value));
 		if (typeof(T) == typeof(LightingZoneMetadata)) return Serialize(in Unsafe.As<T, LightingZoneMetadata>(ref value));
 		if (typeof(T) == typeof(CoolerMetadata)) return Serialize(in Unsafe.As<T, CoolerMetadata>(ref value));
 		if (typeof(T) == typeof(SensorMetadata)) return Serialize(in Unsafe.As<T, SensorMetadata>(ref value));
 		throw new InvalidOperationException();
+	}
+
+	private static byte[] Serialize(in EffectMetadata value)
+	{
+		var array = new byte[16];
+		value.NameStringId.TryWriteBytes(array);
+		return array;
 	}
 
 	private static byte[] Serialize(in LightingZoneMetadata value)
@@ -153,19 +161,30 @@ public static class MetadataSerializer
 
 	private static byte[] Serialize(in SensorMetadata value)
 	{
-		var array = new byte[Unsafe.SizeOf<SensorMetadata>()];
+		var array = new byte[48 + (value.PresetControlCurveSteps is not null ? value.PresetControlCurveSteps.Length << 3 : 0)];
 		value.NameStringId.TryWriteBytes(array);
+		array[16] = (byte)value.Category;
+		LittleEndian.Write(ref array[24], value.MinimumValue);
+		LittleEndian.Write(ref array[32], value.MaximumValue);
+		WriteDoubleArray(array[40..], value.PresetControlCurveSteps);
 		return array;
 	}
 
 	public static T Deserialize<T>(ReadOnlySpan<byte> data)
-		where T : struct
+		where T : struct, IExoMetadata
 	{
+		if (typeof(T) == typeof(EffectMetadata)) return Unsafe.BitCast<EffectMetadata, T>(DeserializeEffectMetadata(data));
 		if (typeof(T) == typeof(LightingZoneMetadata)) return Unsafe.BitCast<LightingZoneMetadata, T>(DeserializeLightingZoneMetadata(data));
 		if (typeof(T) == typeof(CoolerMetadata)) return Unsafe.BitCast<CoolerMetadata, T>(DeserializeCoolerMetadata(data));
 		if (typeof(T) == typeof(SensorMetadata)) return Unsafe.BitCast<SensorMetadata, T>(DeserializeSensorMetadata(data));
 		throw new InvalidOperationException();
 	}
+
+	private static EffectMetadata DeserializeEffectMetadata(ReadOnlySpan<byte> data)
+		=> new EffectMetadata
+		{
+			NameStringId = new Guid(data[..16]),
+		};
 
 	private static LightingZoneMetadata DeserializeLightingZoneMetadata(ReadOnlySpan<byte> data)
 		=> new LightingZoneMetadata
@@ -203,20 +222,50 @@ public static class MetadataSerializer
 		}
 		return array;
 	}
+
+	private static int WriteDoubleArray(Span<byte> buffer, double[]? array)
+	{
+		LittleEndian.Write(ref buffer[0], array is null ? 0 : (uint)array.Length);
+		int length = 8;
+		if (array is not null)
+		{
+			for (int i = 0; i < array.Length; i++)
+			{
+				LittleEndian.Write(ref buffer[length], array[i]);
+				length += 8;
+			}
+		}
+		return length;
+	}
 }
 
-public readonly struct LightingZoneMetadata
+/// <summary>Interface used internally to support metadata parsing.</summary>
+/// <remarks>
+/// The sole purpose of this interface is to provide better generic constraints for metadata-related classes.
+/// The goal is to avoid code errors and catch them at build time.
+/// It is public because it has to, but you should not implement this interface in any custom type.
+/// </remarks>
+public interface IExoMetadata
+{
+}
+
+public readonly struct EffectMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
 }
 
-public readonly struct CoolerMetadata
+public readonly struct LightingZoneMetadata : IExoMetadata
+{
+	public required Guid NameStringId { get; init; }
+}
+
+public readonly struct CoolerMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
 }
 
 /// <summary>Represents sensor metadata.</summary>
-public readonly struct SensorMetadata
+public readonly struct SensorMetadata : IExoMetadata
 {
 	/// <summary>Gets a string ID that indicates the name of the sensor.</summary>
 	public required Guid NameStringId { get; init; }
@@ -231,7 +280,7 @@ public readonly struct SensorMetadata
 	/// If <see langword="null"/>, this will indicate that the sensor should not be used as a control curve input.
 	/// While in general, we don't want to forbid anything, there really are some sensors for which it doesn't make any sense to have 
 	/// </remarks>
-	public required double[]? PresetControlCurveSteps { get; init; }
+	public double[]? PresetControlCurveSteps { get; init; }
 }
 
 public enum SensorCategory : byte
@@ -240,10 +289,12 @@ public enum SensorCategory : byte
 	Load = 1,
 	Memory = 2,
 	Battery = 3,
-	Temperature = 4,
-	RotationSpeed = 5,
-	LinearSpeed = 6,
-	Power = 7,
-	Voltage = 8,
-	Intensity = 9,
+	Fan = 4,
+	Pump = 5,
+	Temperature = 6,
+	RotationSpeed = 7,
+	LinearSpeed = 8,
+	Power = 9,
+	Voltage = 10,
+	Intensity = 11,
 }

@@ -44,6 +44,11 @@
 		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
   </ItemGroup>
 
+	<ItemGroup>
+		<Content Remove="strings.json" />
+		<StringMetadata Include="strings.json" />
+	</ItemGroup>
+
 	<!-- Detect plugin project names. -->
 	<ItemGroup>
 		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Devices.*'))" />
@@ -91,5 +96,7 @@
 			</ResolvedFileToPublish>
 		</ItemGroup>
 	</Target>
+
+	<Import Project="../ExoMetadata.targets" />
 
 </Project>
