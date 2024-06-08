@@ -45,8 +45,8 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<Content Remove="strings.json" />
-		<StringMetadata Include="strings.json" />
+		<Content Remove="Strings.json" />
+		<StringMetadata Include="Strings.json" />
 	</ItemGroup>
 
 	<!-- Detect plugin project names. -->
@@ -89,7 +89,17 @@
 			<Output TaskParameter="TargetOutputs" ItemName="PluginPrimaryAssembly" />
 		</MSBuild>
 
+		<PropertyGroup>
+			<_PluginMetadataArchives>@(PluginPrimaryAssembly->'%(RootDir)%(Directory)%(Filename).*.xoa')</_PluginMetadataArchives>
+		</PropertyGroup>
+
 		<ItemGroup>
+			<_PluginMetadataArchives Include="$(_PluginMetadataArchives)" />
+			<ResolvedFileToPublish Include="@(_PluginMetadataArchives)">
+				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</ResolvedFileToPublish>
+			<_PluginMetadataArchives Remove="$(_PluginMetadataArchives)" />
 			<ResolvedFileToPublish Include="@(PluginPrimaryAssembly-&gt;ClearMetadata())">
 				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
 				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

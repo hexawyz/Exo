@@ -11,8 +11,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="sensors.json" />
-	  <SensorMetadata Include="sensors.json" />
+	  <None Remove="Sensors.json" />
+	  <SensorMetadata Include="Sensors.json" />
 	</ItemGroup>
 
 	<ItemGroup>
