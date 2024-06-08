@@ -1,8 +1,23 @@
 {
+    // Fan Speed
     "4ae632c6-5a28-4722-aebe-7d8f23e9f42d": {
         "nameStringId": "d5db037c-caa7-4a40-937f-ec2ec64b1b96",
-        "category": "Fan",
+        "category": "fan",
         "minimumValue": 0,
         "maximumValue": 5000
+    },
+    // Input Voltage
+    "d68e3b11-d6ef-44bf-8146-01993a939b08": {
+        "nameStringId": "4458560b-d509-4368-9181-9f66faaa65bf",
+        "category": "voltage",
+        "minimumValue": 0,
+        "maximumValue": 400
+    },
+    // Output Power
+    "5a094a6b-f036-4bf8-9258-5ba714627c19": {
+        "nameStringId": "c5f09e52-98c0-48ec-ab4a-19766755fb78",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 1200
     }
 }

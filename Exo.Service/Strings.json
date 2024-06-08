@@ -24,12 +24,21 @@
 		"fr": "Tension de sortie"
 	},
 	"c5f09e52-98c0-48ec-ab4a-19766755fb78": {
-		"en": "Pump Speed",
-		"fr": "Vitesse de la pompe"
+		"en": "Output Power",
+		"fr": "Puissance de sortie"
 	},
 	"7a074c26-621c-4539-9c45-d1e7050f7bfb": {
 		"en": "Power Load",
 		"fr": "% d'utilisation"
+	},
+	// Coolers
+	"58dbe372-3c18-4059-8f53-0bc56ded725c": {
+		"en": "Fan",
+		"fr": "Ventialteur"
+	},
+	"78986262-eeb6-4d90-88b2-cc2ce44f1874": {
+		"en": "Pump",
+		"fr": "Pompe"
 	},
 	// Lighting Effect Names
 	"bfa5b721-db96-47a5-9e69-5dd0ae943275": {
