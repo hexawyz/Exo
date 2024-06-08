@@ -92,7 +92,7 @@ public abstract class MetadataResolver
 
 public abstract class StringMetadataResolver : MetadataResolver
 {
-	protected StringMetadataResolver(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive) : base(mainArchive, additionalArchives, overrideArchive)
+	protected StringMetadataResolver(string mainArchiveFileName) : base(mainArchiveFileName)
 	{
 	}
 
@@ -140,7 +140,7 @@ public abstract class StringMetadataResolver : MetadataResolver
 public sealed class DeviceMetadataResolver<T> : MetadataResolver
 	where T : struct, IExoMetadata
 {
-	public DeviceMetadataResolver(ExoArchive mainArchive, ExoArchive[] additionalArchives, ExoArchive? overrideArchive) : base(mainArchive, additionalArchives, overrideArchive)
+	public DeviceMetadataResolver(string mainArchiveFileName) : base(mainArchiveFileName)
 	{
 	}
 

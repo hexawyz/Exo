@@ -1,7 +1,7 @@
 <Project>
 	<ItemGroup>
 		<ProjectReference
-			Include="Exo.MetadataCompiler/Exo.MetadataCompiler.csproj"
+			Include="$(MSBuildThisFileDirectory)Exo.MetadataCompiler/Exo.MetadataCompiler.csproj"
 			Private="false"
 			ExcludeAssets="all"
 			ReferenceOutputAssembly="false"
@@ -13,7 +13,7 @@
 		<AvailableItemName Include="StringMetadata" />
 		<AvailableItemName Include="SensorMetadata" />
 	</ItemGroup>
-	<Target Name="BuildMetadata" DependsOnTargets="BuildStringsMetadata;BuildSensorsMetadata" BeforeTargets="BeforeBuild"></Target>
+	<Target Name="BuildMetadata" DependsOnTargets="BuildStringsMetadata;BuildSensorsMetadata" BeforeTargets="AssignTargetPaths"></Target>
 	<Target Name="PrepareMetadata">
 		<ItemGroup>
 			<_CollectedStringMetadata Include="@(StringMetadata-&gt;ClearMetadata())">
