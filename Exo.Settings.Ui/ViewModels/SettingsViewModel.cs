@@ -97,7 +97,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_navigateCommand = new(this);
 		_devicesViewModel = new(ConnectionManager, _navigateCommand);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _editionService);
-		_sensorsViewModel = new(ConnectionManager, _devicesViewModel);
+		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);
 		_customMenuViewModel = new();

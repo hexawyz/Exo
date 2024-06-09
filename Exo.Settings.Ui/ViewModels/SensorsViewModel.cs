@@ -7,6 +7,7 @@ using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using IMetadataService = Exo.Metadata.IMetadataService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -14,6 +15,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
+	private readonly IMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
 	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDevicesById;
 	private readonly Dictionary<Guid, SensorDeviceInformation> _pendingDeviceInformations;
@@ -23,10 +25,11 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 
-	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel)
+	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, IMetadataService metadataService)
 	{
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
+		_metadataService = metadataService;
 		_sensorDevices = new();
 		_sensorDevicesById = new();
 		_pendingDeviceInformations = new();
@@ -125,7 +128,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	private void OnDeviceAdded(DeviceViewModel device, SensorDeviceInformation sensorDeviceInformation)
 	{
-		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation);
+		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation, _metadataService);
 		_sensorDevices.Add(vm);
 		_sensorDevicesById[vm.Id] = vm;
 	}
@@ -163,6 +166,8 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceInformation _sensorDeviceInformation;
+	private readonly IMetadataService _metadataService;
+
 	public SensorsViewModel SensorsViewModel { get; }
 	private readonly ObservableCollection<SensorViewModel> _sensors;
 	private readonly Dictionary<Guid, SensorViewModel> _sensorsById;
@@ -181,10 +186,11 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 
 	public ObservableCollection<SensorViewModel> Sensors => _sensors;
 
-	public SensorDeviceViewModel(SensorsViewModel sensorsViewModel, DeviceViewModel deviceViewModel, SensorDeviceInformation sensorDeviceInformation)
+	public SensorDeviceViewModel(SensorsViewModel sensorsViewModel, DeviceViewModel deviceViewModel, SensorDeviceInformation sensorDeviceInformation, IMetadataService metadataService)
 	{
 		_deviceViewModel = deviceViewModel;
 		_sensorDeviceInformation = sensorDeviceInformation;
+		_metadataService = metadataService;
 		SensorsViewModel = sensorsViewModel;
 		_sensors = new();
 		_sensorsById = new();
@@ -252,7 +258,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		{
 			if (!_sensorsById.TryGetValue(sensorInfo.SensorId, out var vm))
 			{
-				vm = new SensorViewModel(this, sensorInfo);
+				vm = new SensorViewModel(this, sensorInfo, _metadataService);
 				if (isOnline)
 				{
 					vm.SetOnline(sensorInfo);
@@ -302,21 +308,32 @@ internal sealed class SensorViewModel : BindableObject
 	public SensorDeviceViewModel Device { get; }
 	private SensorInformation _sensorInformation;
 	private LiveSensorDetailsViewModel? _liveDetails;
+	private readonly string _displayName;
+	private readonly double? _metadataMinimumValue;
+	private readonly double? _metadataMaximumValue;
 
 	public Guid Id => _sensorInformation.SensorId;
 
-	public SensorViewModel(SensorDeviceViewModel device, SensorInformation sensorInformation)
+	public SensorViewModel(SensorDeviceViewModel device, SensorInformation sensorInformation, IMetadataService metadataService)
 	{
 		Device = device;
 		_sensorInformation = sensorInformation;
+		string? displayName = null;
+		if (metadataService.TryGetSensorMetadata("", "", sensorInformation.SensorId, out var metadata))
+		{
+			displayName = metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
+			_metadataMinimumValue = metadata.MinimumValue;
+			_metadataMaximumValue = metadata.MaximumValue;
+		}
+		_displayName = displayName ?? string.Create(CultureInfo.InvariantCulture, $"Sensor {_sensorInformation.SensorId:B}.");
 	}
 
-	public string DisplayName => SensorDatabase.GetSensorDisplayName(_sensorInformation.SensorId) ?? string.Create(CultureInfo.InvariantCulture, $"Sensor {_sensorInformation.SensorId:B}.");
+	public string DisplayName => _displayName;
 	public SensorDataType DataType => _sensorInformation.DataType;
 	public string Unit => _sensorInformation.Unit;
 	public bool IsPolled => _sensorInformation.IsPolled;
-	public double? ScaleMinimumValue => _sensorInformation.ScaleMinimumValue;
-	public double? ScaleMaximumValue => _sensorInformation.ScaleMaximumValue;
+	public double? ScaleMinimumValue => _metadataMinimumValue ?? _sensorInformation.ScaleMinimumValue;
+	public double? ScaleMaximumValue => _metadataMaximumValue ?? _sensorInformation.ScaleMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
 	public SensorCategory Category => _sensorInformation.Unit switch
 	{

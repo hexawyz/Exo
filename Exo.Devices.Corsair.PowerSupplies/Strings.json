@@ -1,0 +1,42 @@
+{
+    "7f598cbf-f3b9-4bcc-80f5-fb171a18bef4": {
+        "en": "Temperature",
+        "fr": "Température (Autre)"
+    },
+    "104c0471-690b-4721-b0ad-7e1cf94ad583": {
+        "en": "12V Voltage",
+        "fr": "12V - Voltage"
+    },
+    "b5cda245-788f-40c4-96b0-e4befb7daffc": {
+        "en": "12V Current",
+        "fr": "12V - Courant"
+    },
+    "1a852b88-e7ac-4144-83ca-de0db877fcb1": {
+        "en": "12V Power",
+        "fr": "12V - Puissance"
+    },
+    "4ef794ca-722e-48a5-be84-0a0dcf0a66e8": {
+        "en": "5V Voltage",
+        "fr": "5V - Voltage"
+    },
+    "ac0d8433-b640-472b-a72d-37e6e209b0f6": {
+        "en": "5V Current",
+        "fr": "5V - Courant"
+    },
+    "e0a9b4ab-056a-4b11-ab46-c3c0a035a9f2": {
+        "en": "5V Power",
+        "fr": "5V - Puissance"
+    },
+    "8d3c9527-4bfd-42b7-ad3d-2a1b99d9adcd": {
+        "en": "3.3V Voltage",
+        "fr": "3.3V - Voltage"
+    },
+    "041c3c20-b747-4385-a83e-50ed430eb122": {
+        "en": "3.3V Current",
+        "fr": "3.3V - Courant"
+    },
+    "4343c889-6b8a-42c3-8a85-8ef70c403626": {
+        "en": "3.3V Power",
+        "fr": "3.3V - Puissance"
+    }
+}

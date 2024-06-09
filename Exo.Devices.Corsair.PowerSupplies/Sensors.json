@@ -1,6 +1,20 @@
 {
+    // Temperature 1
+    "d8d74a16-020b-4add-b861-7b6404375865": {
+        "nameStringId": "7f598cbf-f3b9-4bcc-80f5-fb171a18bef4",
+        "category": "temperature",
+        "minimumValue": 0,
+        "maximumValue": 150
+    },
+    // Temperature 2
+    "ae5a078c-e473-4d0d-8138-ca7dd885384f": {
+        "nameStringId": "a16abea5-5e05-40a0-861e-b948f3bc7084",
+        "category": "temperature",
+        "minimumValue": 0,
+        "maximumValue": 150
+    },
     // Fan Speed
-    "4ae632c6-5a28-4722-aebe-7d8f23e9f42d": {
+    "18156d37-73c7-4388-9a13-c59d788c0b33": {
         "nameStringId": "d5db037c-caa7-4a40-937f-ec2ec64b1b96",
         "category": "fan",
         "minimumValue": 0,
@@ -19,5 +33,68 @@
         "category": "power",
         "minimumValue": 0,
         "maximumValue": 1200
+    },
+    // 12V Voltage
+    "b9b10bbf-2bf1-424a-8f03-9932d3346064": {
+        "nameStringId": "104c0471-690b-4721-b0ad-7e1cf94ad583",
+        "category": "voltage",
+        "minimumValue": 0,
+        "maximumValue": 15
+    },
+    // 12V Current
+    "9b6d76e4-f770-40ab-8853-6b15b9e8fef7": {
+        "nameStringId": "b5cda245-788f-40c4-96b0-e4befb7daffc",
+        "category": "current",
+        "minimumValue": 0,
+        "maximumValue": 100
+    },
+    // 12V Power
+    "590fd05f-29e6-4e57-82d3-c93a59b9ceb5": {
+        "nameStringId": "1a852b88-e7ac-4144-83ca-de0db877fcb1",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 1200
+    },
+    // 5V Voltage
+    "b5e2b134-1e8e-464e-aaa2-0489dc13cff7": {
+        "nameStringId": "4ef794ca-722e-48a5-be84-0a0dcf0a66e8",
+        "category": "voltage",
+        "minimumValue": 0,
+        "maximumValue": 10
+    },
+    // 5V Current
+    "3fb507d5-f982-4ca6-bdf8-4261f5028f9c": {
+        "nameStringId": "ac0d8433-b640-472b-a72d-37e6e209b0f6",
+        "category": "current",
+        "minimumValue": 0,
+        "maximumValue": 50
+    },
+    // 5V Power
+    "d7fa6a2b-0296-46b5-93a3-21c7be1b5c42": {
+        "nameStringId": "e0a9b4ab-056a-4b11-ab46-c3c0a035a9f2",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 250
+    },
+    // 3.3V Voltage
+    "7f3ef7d1-a881-43e4-8ef5-fa6e20f4913d": {
+        "nameStringId": "8d3c9527-4bfd-42b7-ad3d-2a1b99d9adcd",
+        "category": "voltage",
+        "minimumValue": 0,
+        "maximumValue": 5
+    },
+    // 3.3V Current
+    "dbab37c2-4d8f-4ee2-a9db-b0dd48b030c0": {
+        "nameStringId": "041c3c20-b747-4385-a83e-50ed430eb122",
+        "category": "current",
+        "minimumValue": 0,
+        "maximumValue": 30
+    },
+    // 3.3V Power
+    "582060ce-e985-41f0-952b-367fdd3a5b40": {
+        "nameStringId": "4343c889-6b8a-42c3-8a85-8ef70c403626",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 100
     }
 }

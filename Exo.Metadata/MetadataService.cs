@@ -442,5 +442,5 @@ public enum SensorCategory : byte
 	LinearSpeed = 8,
 	Power = 9,
 	Voltage = 10,
-	Intensity = 11,
+	Current = 11,
 }
