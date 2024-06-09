@@ -28,7 +28,7 @@
 		<SensorMetadata Include="Sensors.json" Condition="Exists('Sensors.json')" />
 		<CoolerMetadata Include="Coolers.json" Condition="Exists('Coolers.json')" />
 	</ItemGroup>
-	<Target Name="BuildMetadata" DependsOnTargets="BuildStringsMetadata;BuildLightingEffectsMetadata;BuildLightingZonesMetadata;BuildSensorsMetadata;BuildCoolersMetadata" BeforeTargets="AssignTargetPaths"></Target>
+	<Target Name="BuildMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata;BuildStringsMetadata;BuildLightingEffectsMetadata;BuildLightingZonesMetadata;BuildSensorsMetadata;BuildCoolersMetadata" BeforeTargets="AssignTargetPaths"></Target>
 	<Target Name="PrepareMetadata">
 		<ItemGroup>
 			<_CollectedStringMetadata Include="@(StringMetadata-&gt;ClearMetadata())">
@@ -53,35 +53,35 @@
 			<_ExoMetadataCompilerPath>$(MSBuildThisFileDirectory)Exo.MetadataCompiler\bin\$(Configuration)\net8.0\Exo.MetadataCompiler.dll</_ExoMetadataCompilerPath>
 		</PropertyGroup>
 	</Target>
-	<Target Name="BuildStringsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedStringMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)">
+	<Target Name="BuildStringsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedStringMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" Condition="'@(_CollectedStringMetadata)' != ''">
 		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; strings &quot;%(_CollectedStringMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)&quot;" />
 		<ItemGroup>
 			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" />
 			<None Include="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" Link="%(_CollectedStringMetadata.OutputName)" CopyToOutputDirectory="PreserveNewest" />
 		</ItemGroup>
 	</Target>
-	<Target Name="BuildLightingEffectsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedLightingEffectMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedLightingEffectMetadata.OutputName)">
+	<Target Name="BuildLightingEffectsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedLightingEffectMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedLightingEffectMetadata.OutputName)" Condition="'@(_CollectedLightingEffectMetadata)' != ''">
 		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; lighting-effects &quot;%(_CollectedLightingEffectMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedLightingEffectMetadata.OutputName)&quot;" />
 		<ItemGroup>
 			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedLightingEffectMetadata.OutputName)" />
 			<None Include="$(IntermediateOutputPath)%(_CollectedLightingEffectMetadata.OutputName)" Link="%(_CollectedLightingEffectMetadata.OutputName)" CopyToOutputDirectory="PreserveNewest" />
 		</ItemGroup>
 	</Target>
-	<Target Name="BuildLightingZonesMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedLightingZoneMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedLightingZoneMetadata.OutputName)">
+	<Target Name="BuildLightingZonesMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedLightingZoneMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedLightingZoneMetadata.OutputName)" Condition="'@(_CollectedLightingZoneMetadata)' != ''">
 		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; lighting-zones &quot;%(_CollectedLightingZoneMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedLightingZoneMetadata.OutputName)&quot;" />
 		<ItemGroup>
 			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedLightingZoneMetadata.OutputName)" />
 			<None Include="$(IntermediateOutputPath)%(_CollectedLightingZoneMetadata.OutputName)" Link="%(_CollectedLightingZoneMetadata.OutputName)" CopyToOutputDirectory="PreserveNewest" />
 		</ItemGroup>
 	</Target>
-	<Target Name="BuildSensorsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedSensorMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)">
+	<Target Name="BuildSensorsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedSensorMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)" Condition="'@(_CollectedSensorMetadata)' != ''">
 		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; sensors &quot;%(_CollectedSensorMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)&quot;" />
 		<ItemGroup>
 			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)" />
 			<None Include="$(IntermediateOutputPath)%(_CollectedSensorMetadata.OutputName)" Link="%(_CollectedSensorMetadata.OutputName)" CopyToOutputDirectory="PreserveNewest" />
 		</ItemGroup>
 	</Target>
-	<Target Name="BuildCoolersMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="%(_CollectedCoolerMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedCoolerMetadata.OutputName)">
+	<Target Name="BuildCoolersMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedCoolerMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedCoolerMetadata.OutputName)" Condition="'@(_CollectedCoolerMetadata)' != ''">
 		<Exec Command="dotnet &quot;$(_ExoMetadataCompilerPath)&quot; coolers &quot;%(_CollectedCoolerMetadata.Identity)&quot; &quot;$(IntermediateOutputPath)%(_CollectedCoolerMetadata.OutputName)&quot;" />
 		<ItemGroup>
 			<FileWrites Include="$(IntermediateOutputPath)%(_CollectedCoolerMetadata.OutputName)" />

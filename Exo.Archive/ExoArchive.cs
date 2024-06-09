@@ -306,7 +306,7 @@ public sealed class InMemoryExoArchiveBuilder
 			}
 
 			// We can always change this heuristic to change when the hash table is rebuilt larger.
-			if (collisionCount > 1 && (4 * (ulong)collisionCount > hashTableLength && maxRetryCount > 1 || totalRetryCount / collisionCount > 10 && collisionCount > 1))
+			if (collisionCount > 1 && (3 * (ulong)collisionCount >= hashTableLength && maxRetryCount > 1 || totalRetryCount / collisionCount > 10))
 			{
 				hashTableLength <<= 1;
 				goto FillHashTable;
