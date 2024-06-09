@@ -2,7 +2,6 @@ using System.Windows.Input;
 using Exo.Metadata;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Exo.Utils;
 
 namespace Exo.Settings.Ui.ViewModels;
 

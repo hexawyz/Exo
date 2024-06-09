@@ -22,6 +22,7 @@ using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI;
 using System.Runtime.InteropServices;
+using Exo.Utils;
 
 namespace Exo.Settings.Ui;
 
@@ -102,9 +103,9 @@ public partial class App : Application
 				100,
 	#if DEBUG
 				null,
-	#else
+#else
 				GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
-	#endif
+#endif
 				sp.GetRequiredService<ConnectionViewModel>().OnConnectionStatusChanged
 			)
 		);
