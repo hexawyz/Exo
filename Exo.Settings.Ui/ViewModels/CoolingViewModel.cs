@@ -192,7 +192,6 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 
 internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 {
-	private readonly CoolingViewModel _coolingViewModel;
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceViewModel? _sensorDeviceViewModel;
 	private CoolingDeviceInformation _coolingDeviceInformation;

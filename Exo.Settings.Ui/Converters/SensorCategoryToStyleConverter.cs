@@ -1,3 +1,4 @@
+using Exo.Metadata;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
@@ -38,6 +39,14 @@ internal sealed class SensorCategoryToStyleConverter : DependencyObject, IValueC
 
 	public static readonly DependencyProperty FanStyleProperty = DependencyProperty.Register(nameof(FanStyle), typeof(Style), typeof(SensorCategoryToStyleConverter), new PropertyMetadata(null));
 
+	public Style? PumpStyle
+	{
+		get => (Style?)GetValue(PumpStyleProperty);
+		set => SetValue(PumpStyleProperty, value);
+	}
+
+	public static readonly DependencyProperty PumpStyleProperty = DependencyProperty.Register(nameof(PumpStyle), typeof(Style), typeof(SensorCategoryToStyleConverter), new PropertyMetadata(null));
+
 	public Style? TemperatureStyle
 	{
 		get => (Style?)GetValue(TemperatureStyleProperty);
@@ -77,9 +86,10 @@ internal sealed class SensorCategoryToStyleConverter : DependencyObject, IValueC
 		return category switch
 		{
 			SensorCategory.Other => DefaultStyle,
-			SensorCategory.Percent => PercentageStyle,
+			SensorCategory.Load => PercentageStyle,
 			SensorCategory.Frequency => FrequencyStyle,
 			SensorCategory.Fan => FanStyle,
+			SensorCategory.Pump => PumpStyle,
 			SensorCategory.Temperature => TemperatureStyle,
 			SensorCategory.Power => PowerStyle,
 			SensorCategory.Voltage => VoltageStyle,

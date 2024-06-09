@@ -1,9 +1,12 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Exo.Contracts.Ui.Settings;
+using Exo.Metadata;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
@@ -309,8 +312,10 @@ internal sealed class SensorViewModel : BindableObject
 	private SensorInformation _sensorInformation;
 	private LiveSensorDetailsViewModel? _liveDetails;
 	private readonly string _displayName;
+	private readonly SensorCategory _sensorCategory;
 	private readonly double? _metadataMinimumValue;
 	private readonly double? _metadataMaximumValue;
+	private readonly double[] _presetControlCurveSteps;
 
 	public Guid Id => _sensorInformation.SensorId;
 
@@ -322,8 +327,25 @@ internal sealed class SensorViewModel : BindableObject
 		if (metadataService.TryGetSensorMetadata("", "", sensorInformation.SensorId, out var metadata))
 		{
 			displayName = metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
+			_sensorCategory = metadata.Category;
 			_metadataMinimumValue = metadata.MinimumValue;
 			_metadataMaximumValue = metadata.MaximumValue;
+			_presetControlCurveSteps = metadata.PresetControlCurveSteps ?? [];
+		}
+		else
+		{
+			_sensorCategory = _sensorInformation.Unit switch
+			{
+				"%" => SensorCategory.Load,
+				"Hz" or "kHz" or "MHz" or "GHz" => SensorCategory.Frequency,
+				"W" => SensorCategory.Power,
+				"V" => SensorCategory.Voltage,
+				"A" => SensorCategory.Current,
+				"°C" or "°F" or "°K" => SensorCategory.Temperature,
+				"RPM" => SensorCategory.Fan,
+				_ => SensorCategory.Other,
+			};
+			_presetControlCurveSteps = [];
 		}
 		_displayName = displayName ?? string.Create(CultureInfo.InvariantCulture, $"Sensor {_sensorInformation.SensorId:B}.");
 	}
@@ -335,17 +357,8 @@ internal sealed class SensorViewModel : BindableObject
 	public double? ScaleMinimumValue => _metadataMinimumValue ?? _sensorInformation.ScaleMinimumValue;
 	public double? ScaleMaximumValue => _metadataMaximumValue ?? _sensorInformation.ScaleMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
-	public SensorCategory Category => _sensorInformation.Unit switch
-	{
-		"%" => SensorCategory.Percent,
-		"Hz" or "kHz" or "MHz" or "GHz" => SensorCategory.Frequency,
-		"W" => SensorCategory.Power,
-		"V" => SensorCategory.Voltage,
-		"A" => SensorCategory.Current,
-		"°C" or "°F" or "°K" => SensorCategory.Temperature,
-		"RPM" => SensorCategory.Fan,
-		_ => SensorCategory.Other,
-	};
+	public SensorCategory Category => _sensorCategory;
+	public ImmutableArray<double> PresetControlCurveSteps => ImmutableCollectionsMarshal.AsImmutableArray(_presetControlCurveSteps);
 
 	public void SetOnline() => StartWatching();
 
@@ -581,16 +594,4 @@ public readonly struct NumberWithUnit
 		}
 		return $"{value:G3}\xA0{symbol}";
 	}
-}
-
-public enum SensorCategory
-{
-	Other = 0,
-	Percent,
-	Frequency,
-	Fan,
-	Temperature,
-	Power,
-	Voltage,
-	Current,
 }

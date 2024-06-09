@@ -85,7 +85,7 @@
         "nameStringId": "775c66e1-a4af-492d-a1fd-fa0d4601a121",
         "category": "frequency",
         "minimumValue": 0,
-        "maximumValue": 6000000
+        "maximumValue": 10000000
     },
     // Processor Frequency
     "6e1311e3-d1fb-4555-8cd9-d0f3f64331eb": {

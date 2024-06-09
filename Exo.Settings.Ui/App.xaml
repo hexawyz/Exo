@@ -306,6 +306,7 @@
                 PercentageStyle="{ThemeResource PercentageSensorLineChartStyle}"
                 FrequencyStyle="{ThemeResource FrequencySensorLineChartStyle}"
                 FanStyle="{ThemeResource FanSensorLineChartStyle}"
+                PumpStyle="{ThemeResource FanSensorLineChartStyle}"
                 TemperatureStyle="{ThemeResource TemperatureSensorLineChartStyle}"
                 VoltageStyle="{ThemeResource VoltageSensorLineChartStyle}"
                 PowerStyle="{ThemeResource PowerSensorLineChartStyle}"
