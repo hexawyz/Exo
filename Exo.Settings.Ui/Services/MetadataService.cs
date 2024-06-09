@@ -76,8 +76,8 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 	private async Task WatchChangesAsync(CancellationToken cancellationToken)
 	{
 		var metadataService = await _connectionManager.GetMetadataServiceAsync(cancellationToken);
-		_stringMetadataResolver = new(await metadataService.GetMainStringsArchivePathAsync(cancellationToken));
-		_lightingEffectMetadataResolver = new();
+		_stringMetadataResolver = new(await metadataService.GetMainStringArchivePathAsync(cancellationToken));
+		_lightingEffectMetadataResolver = new(await metadataService.GetMainLightingEffectArchivePathAsync(cancellationToken));
 		_lightingZoneMetadataResolver = new();
 		_sensorMetadataResolver = new();
 		_coolerMetadataResolver = new();

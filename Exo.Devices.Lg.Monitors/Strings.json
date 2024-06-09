@@ -1,4 +1,21 @@
 {
+	// Lighting Effect Names
+	"3b82b788-7d41-46d5-ab3d-73234cdb6a19": {
+		"en": "Static Color 1",
+		"fr": "Couleur statique 1"
+	},
+	"4fb0c3e9-e883-4a00-ac81-58595331c664": {
+		"en": "Static Color 2",
+		"fr": "Couleur statique 2"
+	},
+	"1df7475a-ea63-4327-96f7-fc116b648c27": {
+		"en": "Static Color 3",
+		"fr": "Couleur statique 3"
+	},
+	"735a35ba-8249-47cd-bb2f-0f470cd35562": {
+		"en": "Static Color 4",
+		"fr": "Couleur statique 4"
+	},
 	// Lighting Zone Names
 	"e1ff5a67-a651-4532-ba22-3c52fb058dd6": {
 		"en": "LG Monitor",

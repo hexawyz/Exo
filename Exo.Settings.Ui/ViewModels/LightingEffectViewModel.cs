@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using Exo.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -8,15 +7,17 @@ namespace Exo.Settings.Ui.ViewModels;
 internal sealed class LightingEffectViewModel
 {
 	private readonly LightingEffectInformation _effectInformation;
+	private readonly string _displayName;
 
-	public LightingEffectViewModel(LightingEffectInformation effectInformation)
+	public LightingEffectViewModel(LightingEffectInformation effectInformation, string displayName)
 	{
 		_effectInformation = effectInformation;
+		_displayName = displayName;
 	}
 
 	public Guid EffectId => _effectInformation.EffectId;
 
-	public string DisplayName => EffectDatabase.GetEffectDisplayName(EffectId) ?? string.Create(CultureInfo.InvariantCulture, $"Effect {EffectId:B}.");
+	public string DisplayName => _displayName;
 
 	public ReadOnlyCollection<PropertyViewModel> CreatePropertyViewModels(LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
 	{

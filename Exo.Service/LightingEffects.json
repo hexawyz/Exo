@@ -1,19 +1,99 @@
 {
+    // Exo.Lighting.Effects.NotApplicableEffect
+    "c771a454-cae5-41cf-9121-bef8adc380ed": {
+        "nameStringId": "72324394-b58d-41e3-a4fe-aa17342b0036"
+    },
+    // Exo.Lighting.Effects.DisabledEffect
+    "6b972c66-0987-4a0f-a20f-cbfc1b0f3d4b": {
+        "nameStringId": "36218033-ff96-41f1-b01c-f9fbefa4bcc3"
+    },
     // Exo.Lighting.Effects.StaticColorEffect
     "2a30cb46-8bf2-4f0e-9835-774eb02d248d": {
+        "nameStringId": "bfa5b721-db96-47a5-9e69-5dd0ae943275"
+    },
+    // Exo.Lighting.Effects.Static5ColorEffect
+    "2c64145e-84e2-42ab-a5ac-c63e4b403edc": {
+        "nameStringId": "bfa5b721-db96-47a5-9e69-5dd0ae943275"
+    },
+    // Exo.Lighting.Effects.Static8ColorEffect
+    "476f95eb-1d55-46d6-a097-9f9cc34b56e5": {
+        "nameStringId": "bfa5b721-db96-47a5-9e69-5dd0ae943275"
+    },
+    // Exo.Lighting.Effects.StaticBrightnessEffect
+    "ed8d205b-e693-48c0-8ec3-7203f767202f": {
         "nameStringId": "bfa5b721-db96-47a5-9e69-5dd0ae943275"
     },
     // Exo.Lighting.Effects.ColorPulseEffect
     "c2738c37-e2e3-4686-b16b-307a683ba1a6": {
         "nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
     },
+    // Exo.Lighting.Effects.VariableColorPulseEffect
+    "433fc57b-6486-48ea-8fa1-1d2a93e192cb": {
+        "nameStringId": "d30ddfeb-9337-4fde-a303-b63db3a64c2b"
+    },
+    // Exo.Lighting.Effects.ColorPulse5Effect
+    "a0e2051c-ab8b-4d8c-a950-fc01ba6c312a": {
+        "nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
+    },
+    // Exo.Lighting.Effects.ColorPulse8Effect
+    "d575547b-f8b0-4f80-98df-e1a9112c7270": {
+        "nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
+    },
     // Exo.Lighting.Effects.ColorFlashEffect
     "a3f80010-5663-4ecf-9c22-036e28478b7e": {
         "nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0"
     },
+    // Exo.Lighting.Effects.ColorFlash5Effect
+    "2fc31dbb-1974-4859-90a3-ce11c9244bb1": {
+        "nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0"
+    },
+    // Exo.Lighting.Effects.ColorFlash8Effect
+    "1d3b40f9-ab2a-43f4-8a81-c4bc9033b4a5": {
+        "nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0"
+    },
+    // Exo.Lighting.Effects.VariableColorFlashEffect
+    "f786dd5a-83a7-4b07-9166-d231ef2dde11": {
+        "nameStringId": "ad36bbab-eb53-4610-957a-07ff72d5fc94"
+    },
     // Exo.Lighting.Effects.ColorDoubleFlashEffect
     "2c497719-8477-4fe2-8045-488939d4c913": {
         "nameStringId": "597bbd76-be6e-4c8f-8e48-cc45cd1c5a30"
+    },
+    // Exo.Lighting.Effects.ColorChaseEffect
+    "9fd48d3c-9bd5-403e-8ffd-8ff66f47b232": {
+        "nameStringId": "5a22c2a6-ff28-4a99-985c-f027cefc305b"
+    },
+    // Exo.Lighting.Effects.VariableColorChaseEffect
+    "a4fbc975-3cbf-48aa-9bfb-1f1289e7c3a0": {
+        "nameStringId": "8f32de3a-b7c5-459c-9678-5e247af86056"
+    },
+    // Exo.Lighting.Effects.ColorWaveEffect
+    "f64133df-043a-4e9f-82ca-6489b8f786a7": {
+        "nameStringId": "c1dc1388-3864-4db9-bffb-40bc78b34442"
+    },
+    // Exo.Lighting.Effects.VariableColorWaveEffect
+    "3798fd63-6b69-4167-ad09-b0062082178c": {
+        "nameStringId": "2c0f5ddb-f374-497b-a873-e8fd7bf6db77"
+    },
+    // Exo.Lighting.Effects.SpectrumCycleEffect
+    "2818d561-15fb-43b0-9c2e-9ff508822b7a": {
+        "nameStringId": "5ba5b8c5-3fd9-40c5-830a-68f775a9f27b"
+    },
+    // Exo.Lighting.Effects.VariableSpectrumCycleEffect
+    "712094b5-c5b9-4a2b-9619-e33fb049ee9f": {
+        "nameStringId": "a1c25516-29ca-4e76-9210-6c9afadde4da"
+    },
+    // Exo.Lighting.Effects.SpectrumCycleWithBrightnessEffect
+    "7cdbce50-63fa-42a4-92e1-de7d91521f4d": {
+        "nameStringId": "1dbeeeb3-5738-4503-b3a4-c25a4c519de1"
+    },
+    // Exo.Lighting.Effects.SpectrumWaveEffect
+    "b93254e0-d39c-40df-bf1f-89d6ceb61615": {
+        "nameStringId": "454153c6-7231-4677-9007-d0f75f4432b6"
+    },
+    // Exo.Lighting.Effects.VariableSpectrumWaveEffect
+    "d11b8022-2c92-467a-b863-9b703d265a70": {
+        "nameStringId": "621e5d5b-7eb5-4953-b338-3a00a65ea350"
     },
     // Exo.Lighting.Effects.ReactiveEffect
     "a175e0ad-f649-4f10-99e2-c3c94d1c9bc7": {

@@ -127,6 +127,14 @@
 		"fr": "Module mémoire 8"
 	},
 	// Lighting Effect Names
+	"72324394-b58d-41e3-a4fe-aa17342b0036": {
+		"en": "(Not Applicable)",
+		"fr": "(Non applicable)"
+	},
+	"36218033-ff96-41f1-b01c-f9fbefa4bcc3": {
+		"en": "Disabled",
+		"fr": "Désactivé"
+	},
 	"bfa5b721-db96-47a5-9e69-5dd0ae943275": {
 		"en": "Static",
 		"fr": "Statique"
@@ -135,13 +143,57 @@
 		"en": "Pulse",
 		"fr": "Pulsation"
 	},
+	"d30ddfeb-9337-4fde-a303-b63db3a64c2b": {
+		"en": "Pulse (Speed)",
+		"fr": "Pulsation (Vitesse)"
+	},
 	"419e70ee-8355-4cf5-9d18-54835008cdb0": {
 		"en": "Flash",
 		"fr": "Flashs"
 	},
+	"ad36bbab-eb53-4610-957a-07ff72d5fc94": {
+		"en": "Flash (Speed)",
+		"fr": "Flashs (Vitesse)"
+	},
 	"597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
 		"en": "Double Flash",
 		"fr": "Double flashs"
+	},
+	"5a22c2a6-ff28-4a99-985c-f027cefc305b": {
+		"en": "Chase",
+		"fr": "Chasse"
+	},
+	"8f32de3a-b7c5-459c-9678-5e247af86056": {
+		"en": "Chase (Speed)",
+		"fr": "Chasse (Vitesse)"
+	},
+	"c1dc1388-3864-4db9-bffb-40bc78b34442": {
+		"en": "Wave",
+		"fr": "Vague"
+	},
+	"2c0f5ddb-f374-497b-a873-e8fd7bf6db77": {
+		"en": "Wave (Speed)",
+		"fr": "Vague (Vitesse)"
+	},
+	"5ba5b8c5-3fd9-40c5-830a-68f775a9f27b": {
+		"en": "Spectrum Cycle",
+		"fr": "Cycle spectral"
+	},
+	"a1c25516-29ca-4e76-9210-6c9afadde4da": {
+		"en": "Spectrum Cycle (Speed)",
+		"fr": "Cycle spectral (Vitesse)"
+	},
+	"1dbeeeb3-5738-4503-b3a4-c25a4c519de1": {
+		"en": "Spectrum Cycle (Brightness)",
+		"fr": "Cycle spectral (Luminosité)"
+	},
+	"454153c6-7231-4677-9007-d0f75f4432b6": {
+		"en": "Spectrum Wave",
+		"fr": "Vague spectrale"
+	},
+	"621e5d5b-7eb5-4953-b338-3a00a65ea350": {
+		"en": "Spectrum Wave (Speed)",
+		"fr": "Vague spectrale (Vitesse)"
 	},
 	"60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
 		"en": "Reactive",

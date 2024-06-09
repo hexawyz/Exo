@@ -186,6 +186,10 @@ public sealed class DeviceMetadataResolver<T> : MetadataResolver
 	{
 	}
 
+	public DeviceMetadataResolver(string mainArchiveFileName) : base(mainArchiveFileName)
+	{
+	}
+
 	private bool FindFile(string driverKey, string compatibleId, Guid itemId, out ExoArchiveFile file)
 	{
 		Span<byte> key = stackalloc byte[17 + Encoding.UTF8.GetByteCount(driverKey) + 1 + Encoding.UTF8.GetByteCount(compatibleId)];

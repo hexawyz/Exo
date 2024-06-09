@@ -246,7 +246,14 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		if (!_effectViewModelById.ContainsKey(effectId) &&
 			await lightingService.GetEffectInformationAsync(new EffectTypeReference { TypeId = effectId }, cancellationToken) is { } effectInformation)
 		{
-			_effectViewModelById.TryAdd(effectId, new(effectInformation));
+			string? displayName = null;
+			if (_metadataService.TryGetLightingEffectMetadata("", "", effectInformation.EffectId, out var metadata))
+			{
+				displayName = _metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
+			}
+			displayName ??= string.Create(CultureInfo.InvariantCulture, $"Effect {effectInformation.EffectId:B}.");
+
+			_effectViewModelById.TryAdd(effectId, new(effectInformation, displayName));
 		}
 	}
 
