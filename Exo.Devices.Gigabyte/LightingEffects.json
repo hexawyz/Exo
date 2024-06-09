@@ -1,0 +1,14 @@
+{
+	// Exo.Devices.Gigabyte.LightingEffects.AdvancedColorFlashEffect
+	"99d1cfc4-b25d-4eef-ab17-052df3d4932d": {
+		"nameStringId": "eb061f38-1a32-49f1-a838-2a64c49ca835"
+	},
+	// Exo.Devices.Gigabyte.LightingEffects.AdvancedColorPulseEffect
+	"02531b0c-f13d-4f0f-acfd-c3f08871a27f": {
+		"nameStringId": "e5ad40ae-0e63-4006-9d5f-5987072963ce"
+	},
+	// Exo.Devices.Gigabyte.LightingEffects.VariableColorDoubleFlashEffect
+	"08b2116e-cd5c-4990-a873-0914d6391737": {
+		"nameStringId": "b0a328e2-c980-4707-833a-27c5eeee450a"
+	}
+}

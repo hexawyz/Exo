@@ -1,4 +1,17 @@
 {
+	// Lighting Effect Names
+	"eb061f38-1a32-49f1-a838-2a64c49ca835": {
+		"en": "Flash (Advanced)",
+		"fr": "Flashs (Avancé)"
+	},
+	"e5ad40ae-0e63-4006-9d5f-5987072963ce": {
+		"en": "Pulse (Advanced)",
+		"fr": "Pulsation (Avancé)"
+	},
+	"b0a328e2-c980-4707-833a-27c5eeee450a": {
+		"en": "Double Flash (Speed)",
+		"fr": "Double flashs (Vitesse)"
+	},
 	// Lighting Zone Names
 	"ff891ecb-9f49-456d-a005-87ff39c08805": {
 		"en": "Z490 Motherboard Lighting",
