@@ -22,7 +22,6 @@ using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI;
 using System.Runtime.InteropServices;
-using Exo.Utils;
 
 namespace Exo.Settings.Ui;
 
@@ -93,7 +92,7 @@ public partial class App : Application
 
 		services.AddSingleton<ConnectionViewModel>();
 
-		services.AddSingleton<Metadata.IMetadataService, MetadataService>();
+		services.AddSingleton<ISettingsMetadataService, MetadataService>();
 
 		services.AddSingleton
 		(
@@ -104,7 +103,7 @@ public partial class App : Application
 #if DEBUG
 				null,
 #else
-				GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
+				Exo.Utils.GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
 #endif
 				sp.GetRequiredService<ConnectionViewModel>().OnConnectionStatusChanged
 			)

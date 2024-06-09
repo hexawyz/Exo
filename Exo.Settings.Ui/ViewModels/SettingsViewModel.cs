@@ -47,7 +47,7 @@ internal sealed class SettingsViewModel : BindableObject
 	public SettingsServiceConnectionManager ConnectionManager { get; }
 	private readonly ConnectionViewModel _connectionViewModel;
 	private readonly IEditionService _editionService;
-	private readonly IMetadataService _metadataService;
+	private readonly ISettingsMetadataService _metadataService;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
@@ -84,9 +84,9 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public ConnectionStatus ConnectionStatus => _connectionViewModel.ConnectionStatus;
 
-	public IMetadataService MetadataService => _metadataService;
+	public ISettingsMetadataService MetadataService => _metadataService;
 
-	public SettingsViewModel(SettingsServiceConnectionManager connectionManager, ConnectionViewModel connectionViewModel, IEditionService editionService, IMetadataService metadataService)
+	public SettingsViewModel(SettingsServiceConnectionManager connectionManager, ConnectionViewModel connectionViewModel, IEditionService editionService, ISettingsMetadataService metadataService)
 	{
 		ConnectionManager = connectionManager;
 		_connectionViewModel = connectionViewModel;

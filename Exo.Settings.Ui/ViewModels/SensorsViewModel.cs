@@ -7,7 +7,6 @@ using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using IMetadataService = Exo.Metadata.IMetadataService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -15,7 +14,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
-	private readonly IMetadataService _metadataService;
+	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
 	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDevicesById;
 	private readonly Dictionary<Guid, SensorDeviceInformation> _pendingDeviceInformations;
@@ -25,7 +24,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 
-	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, IMetadataService metadataService)
+	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
 	{
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
@@ -50,7 +49,8 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		if (_cancellationTokenSource.IsCancellationRequested) return;
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
-			await WatchDevicesAsync(cts.Token).ConfigureAwait(false);
+			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
+			await WatchDevicesAsync(cts.Token);
 		}
 	}
 
@@ -166,7 +166,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceInformation _sensorDeviceInformation;
-	private readonly IMetadataService _metadataService;
+	private readonly ISettingsMetadataService _metadataService;
 
 	public SensorsViewModel SensorsViewModel { get; }
 	private readonly ObservableCollection<SensorViewModel> _sensors;
@@ -186,7 +186,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 
 	public ObservableCollection<SensorViewModel> Sensors => _sensors;
 
-	public SensorDeviceViewModel(SensorsViewModel sensorsViewModel, DeviceViewModel deviceViewModel, SensorDeviceInformation sensorDeviceInformation, IMetadataService metadataService)
+	public SensorDeviceViewModel(SensorsViewModel sensorsViewModel, DeviceViewModel deviceViewModel, SensorDeviceInformation sensorDeviceInformation, ISettingsMetadataService metadataService)
 	{
 		_deviceViewModel = deviceViewModel;
 		_sensorDeviceInformation = sensorDeviceInformation;
@@ -314,7 +314,7 @@ internal sealed class SensorViewModel : BindableObject
 
 	public Guid Id => _sensorInformation.SensorId;
 
-	public SensorViewModel(SensorDeviceViewModel device, SensorInformation sensorInformation, IMetadataService metadataService)
+	public SensorViewModel(SensorDeviceViewModel device, SensorInformation sensorInformation, ISettingsMetadataService metadataService)
 	{
 		Device = device;
 		_sensorInformation = sensorInformation;

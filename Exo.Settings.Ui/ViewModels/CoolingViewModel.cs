@@ -5,11 +5,9 @@ using System.Globalization;
 using System.Numerics;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
-using Exo.Metadata;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using IMetadataService = Exo.Metadata.IMetadataService;
 using RawCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -19,7 +17,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
-	private readonly IMetadataService _metadataService;
+	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<CoolingDeviceViewModel> _coolingDevices;
 	private readonly Dictionary<Guid, CoolingDeviceViewModel> _coolingDevicesById;
 	private readonly Dictionary<Guid, CoolingDeviceInformation> _pendingDeviceInformations;
@@ -29,7 +27,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 
 	public ObservableCollection<CoolingDeviceViewModel> Devices => _coolingDevices;
 
-	public CoolingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, SensorsViewModel sensorsViewModel, IMetadataService metadataService)
+	public CoolingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, SensorsViewModel sensorsViewModel, ISettingsMetadataService metadataService)
 	{
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
@@ -56,7 +54,8 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 		if (_cancellationTokenSource.IsCancellationRequested) return;
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
-			await WatchDevicesAsync(cts.Token).ConfigureAwait(false);
+			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
+			await WatchDevicesAsync(cts.Token);
 		}
 	}
 
@@ -197,7 +196,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceViewModel? _sensorDeviceViewModel;
 	private CoolingDeviceInformation _coolingDeviceInformation;
-	private readonly IMetadataService _metadataService;
+	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<CoolerViewModel> _coolers;
 	private readonly Dictionary<Guid, CoolerViewModel> _coolersById;
 	private readonly Dictionary<Guid, CoolerViewModel> _coolersBySensorId;
@@ -216,7 +215,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 
 	public ObservableCollection<CoolerViewModel> Coolers => _coolers;
 
-	public CoolingDeviceViewModel(DeviceViewModel deviceViewModel, SensorDeviceViewModel? sensorDeviceViewModel, CoolingDeviceInformation coolingDeviceInformation, IMetadataService metadataService)
+	public CoolingDeviceViewModel(DeviceViewModel deviceViewModel, SensorDeviceViewModel? sensorDeviceViewModel, CoolingDeviceInformation coolingDeviceInformation, ISettingsMetadataService metadataService)
 	{
 		_deviceViewModel = deviceViewModel;
 		_sensorDeviceViewModel = sensorDeviceViewModel;
@@ -434,7 +433,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 
 	public ICommand ResetCommand => _resetCommand;
 
-	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorViewModel? speedSensor, IMetadataService metadataService)
+	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorViewModel? speedSensor, ISettingsMetadataService metadataService)
 	{
 		Device = device;
 		_coolerInformation = coolerInformation;
