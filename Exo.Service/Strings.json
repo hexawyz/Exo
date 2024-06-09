@@ -1,7 +1,16 @@
 {
+	// Sensors
 	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
 		"en": "Fan Speed",
 		"fr": "Vitesse du ventilateur"
+	},
+	"d9608d42-6ba3-4ffd-a4a9-905ba063b445": {
+		"en": "Fan 1 Speed",
+		"fr": "Vitesse ventilateur 1"
+	},
+	"8b280e41-5c23-4c45-9088-65dd4b67fccc": {
+		"en": "Fan 2 Speed",
+		"fr": "Vitesse ventilateur 2"
 	},
 	"80acb355-040e-4789-96c9-8ed249964b08": {
 		"en": "Pump Speed",
@@ -30,6 +39,50 @@
 	"7a074c26-621c-4539-9c45-d1e7050f7bfb": {
 		"en": "Power Load",
 		"fr": "% de puissance"
+	},
+	"ff58ccbd-f377-481a-94eb-57e8aabb3fb7": {
+		"en": "Graphics Load",
+		"fr": "% Graphismes"
+	},
+	"d25c1838-3959-4e29-8aec-b99347a66b3f": {
+		"en": "Frame Buffer Load",
+		"fr": "% Frame buffer"
+	},
+	"33b3eec9-a302-47ab-abb9-007ec068830a": {
+		"en": "Video Load",
+		"fr": "% Vidéo"
+	},
+	"830f4e78-71b0-459c-9ade-a001d6f1ae10": {
+		"en": "GPU Temperature",
+		"fr": "Température GPU"
+	},
+	"304c3571-9070-4aad-b9ac-36d3e16008de": {
+		"en": "Memory Temperature",
+		"fr": "Température mémoire"
+	},
+	"80a6a818-b3bf-498a-a9dc-e91e0eeb9287": {
+		"en": "Power Supply Temperature",
+		"fr": "Température de l'alimentation"
+	},
+	"b143636c-58cc-4e08-9a1e-c13eb9457f7e": {
+		"en": "Board Temperature",
+		"fr": "Température carte"
+	},
+	"4dc9d432-8be8-4358-b08f-c1c6b2810692": {
+		"en": "Graphics Frequency",
+		"fr": "Fréquence graphismes"
+	},
+	"775c66e1-a4af-492d-a1fd-fa0d4601a121": {
+		"en": "Memory Frequency",
+		"fr": "Fréquence mémoire"
+	},
+	"dfc64831-9fd0-4f41-a91e-00fd7476aff7": {
+		"en": "Processor Frequency",
+		"fr": "Fréquence processeur"
+	},
+	"451592a3-c6b4-407f-826f-dda5bd9eead7": {
+		"en": "Video Frequency",
+		"fr": "Fréquence vidéo"
 	},
 	// Coolers
 	"58dbe372-3c18-4059-8f53-0bc56ded725c": {

@@ -1,0 +1,100 @@
+{
+    // Fan Speed (Legacy)
+    "3428225a-6be4-44af-b1cd-800a55f9432f": {
+        "nameStringId": "d5db037c-caa7-4a40-937f-ec2ec64b1b96",
+        "category": "fan",
+        "minimumValue": 0,
+        "maximumValue": 5000
+    },
+    // Fan 1 Speed
+    "fcf6d2e1-9048-4e87-ac9f-91e250e1218b": {
+        "nameStringId": "d9608d42-6ba3-4ffd-a4a9-905ba063b445",
+        "category": "fan",
+        "minimumValue": 0,
+        "maximumValue": 5000
+    },
+    // Fan 2 Speed
+    "be0f57cb-cd6d-4422-a024-b28ff425e903": {
+        "nameStringId": "8b280e41-5c23-4c45-9088-65dd4b67fccc",
+        "category": "fan",
+        "minimumValue": 0,
+        "maximumValue": 5000
+    },
+    // Graphics
+    "005f94dd-09f5-46d3-9902-e15d6a19d824": {
+        "nameStringId": "ff58ccbd-f377-481a-94eb-57e8aabb3fb7",
+        "category": "load",
+        "minimumValue": 0,
+        "maximumValue": 100
+    },
+    // Frame Buffer
+    "bf9aad1d-e013-4178-97b3-4220d26cbe71": {
+        "nameStringId": "d25c1838-3959-4e29-8aec-b99347a66b3f",
+        "category": "load",
+        "minimumValue": 0,
+        "maximumValue": 100
+    },
+    // Video
+    "147c8f52-1402-4515-b9fb-4148fd0212a4": {
+        "nameStringId": "33b3eec9-a302-47ab-abb9-007ec068830a",
+        "category": "load",
+        "minimumValue": 0,
+        "maximumValue": 100
+    },
+    // GPU Temperature
+    "b65044be-a3b0-4efb-9efb-826e3bd760a0": {
+        "nameStringId": "830f4e78-71b0-459c-9ade-a001d6f1ae10",
+        "category": "temperature",
+        "minimumValue": 0,
+        "maximumValue": 150
+    },
+    // Memory Temperature
+    "463292d7-4c7f-4848-ba9e-712821dfd5e8": {
+        "nameStringId": "304c3571-9070-4aad-b9ac-36d3e16008de",
+        "category": "temperature",
+        "minimumValue": 0,
+        "maximumValue": 150
+    },
+    // Power Supply Temperature
+    "73356f82-4194-46df-9f9f-251921015f81": {
+        "nameStringId": "80a6a818-b3bf-498a-a9dc-e91e0eeb9287",
+        "category": "temperature",
+        "minimumValue": 0,
+        "maximumValue": 150
+    },
+    // Board Temperature
+    "359e57be-577d-46ed-a09a-d3a44b95cae8": {
+        "nameStringId": "b143636c-58cc-4e08-9a1e-c13eb9457f7e",
+        "category": "temperature",
+        "minimumValue": 0,
+        "maximumValue": 150
+    },
+    // Graphics Frequency
+    "cd415440-fb17-441d-a64f-6c6273349000": {
+        "nameStringId": "4dc9d432-8be8-4358-b08f-c1c6b2810692",
+        "category": "frequency",
+        "minimumValue": 0,
+        "maximumValue": 2500
+    },
+    // Memory Frequency
+    "de435007-ccd1-414e-8cf1-220fcce4d099": {
+        "nameStringId": "775c66e1-a4af-492d-a1fd-fa0d4601a121",
+        "category": "frequency",
+        "minimumValue": 0,
+        "maximumValue": 6000
+    },
+    // Processor Frequency
+    "6e1311e3-d1fb-4555-8cd9-d0f3f64331eb": {
+        "nameStringId": "dfc64831-9fd0-4f41-a91e-00fd7476aff7",
+        "category": "frequency",
+        "minimumValue": 0,
+        "maximumValue": 2500
+    },
+    // Video Frequency
+    "d9272343-5ac4-4cd8-9f7a-02e130c15fd3": {
+        "nameStringId": "451592a3-c6b4-407f-826f-dda5bd9eead7",
+        "category": "frequency",
+        "minimumValue": 0,
+        "maximumValue": 2500
+    }
+}

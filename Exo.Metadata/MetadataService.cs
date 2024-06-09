@@ -443,4 +443,5 @@ public enum SensorCategory : byte
 	Power = 9,
 	Voltage = 10,
 	Current = 11,
+	Frequency = 12,
 }

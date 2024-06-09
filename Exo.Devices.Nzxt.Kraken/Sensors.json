@@ -1,0 +1,23 @@
+{
+	// Liquid Temperature
+	"8e880de1-2a45-400d-a90f-42e89bf950db": {
+		"nameStringId": "5553c264-35bf-44ba-bd23-5a1bf611f5e1",
+		"category": "temperature",
+		"minimumValue": 0,
+		"maximumValue": 150
+	},
+	// Pump Speed
+	"3a2f0f14-3957-400e-8b6c-cb025b891506": {
+		"nameStringId": "80acb355-040e-4789-96c9-8ed249964b08",
+		"category": "pump",
+		"minimumValue": 0,
+		"maximumValue": 3000
+	},
+	// Fan Speed
+	"fdc93d5b-ede3-4774-96ec-c4fdb1c1debc": {
+		"nameStringId": "d5db037c-caa7-4a40-937f-ec2ec64b1b96",
+		"category": "fan",
+		"minimumValue": 0,
+		"maximumValue": 2000
+	}
+}

@@ -101,7 +101,7 @@ public partial class App : Application
 			(
 				"Local\\Exo.Service.Configuration",
 				100,
-	#if DEBUG
+#if DEBUG
 				null,
 #else
 				GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
