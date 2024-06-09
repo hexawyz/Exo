@@ -46,55 +46,59 @@
         "nameStringId": "830f4e78-71b0-459c-9ade-a001d6f1ae10",
         "category": "temperature",
         "minimumValue": 0,
-        "maximumValue": 150
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
     // Memory Temperature
     "463292d7-4c7f-4848-ba9e-712821dfd5e8": {
         "nameStringId": "304c3571-9070-4aad-b9ac-36d3e16008de",
         "category": "temperature",
         "minimumValue": 0,
-        "maximumValue": 150
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
     // Power Supply Temperature
     "73356f82-4194-46df-9f9f-251921015f81": {
         "nameStringId": "80a6a818-b3bf-498a-a9dc-e91e0eeb9287",
         "category": "temperature",
         "minimumValue": 0,
-        "maximumValue": 150
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
     // Board Temperature
     "359e57be-577d-46ed-a09a-d3a44b95cae8": {
         "nameStringId": "b143636c-58cc-4e08-9a1e-c13eb9457f7e",
         "category": "temperature",
         "minimumValue": 0,
-        "maximumValue": 150
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
     // Graphics Frequency
     "cd415440-fb17-441d-a64f-6c6273349000": {
         "nameStringId": "4dc9d432-8be8-4358-b08f-c1c6b2810692",
         "category": "frequency",
         "minimumValue": 0,
-        "maximumValue": 2500
+        "maximumValue": 2500000
     },
     // Memory Frequency
     "de435007-ccd1-414e-8cf1-220fcce4d099": {
         "nameStringId": "775c66e1-a4af-492d-a1fd-fa0d4601a121",
         "category": "frequency",
         "minimumValue": 0,
-        "maximumValue": 6000
+        "maximumValue": 6000000
     },
     // Processor Frequency
     "6e1311e3-d1fb-4555-8cd9-d0f3f64331eb": {
         "nameStringId": "dfc64831-9fd0-4f41-a91e-00fd7476aff7",
         "category": "frequency",
         "minimumValue": 0,
-        "maximumValue": 2500
+        "maximumValue": 2500000
     },
     // Video Frequency
     "d9272343-5ac4-4cd8-9f7a-02e130c15fd3": {
         "nameStringId": "451592a3-c6b4-407f-826f-dda5bd9eead7",
         "category": "frequency",
         "minimumValue": 0,
-        "maximumValue": 2500
+        "maximumValue": 2500000
     }
 }

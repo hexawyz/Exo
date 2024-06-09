@@ -4,14 +4,16 @@
         "nameStringId": "7f598cbf-f3b9-4bcc-80f5-fb171a18bef4",
         "category": "temperature",
         "minimumValue": 0,
-        "maximumValue": 150
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
     // Temperature 2
     "ae5a078c-e473-4d0d-8138-ca7dd885384f": {
         "nameStringId": "a16abea5-5e05-40a0-861e-b948f3bc7084",
         "category": "temperature",
         "minimumValue": 0,
-        "maximumValue": 150
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
     // Fan Speed
     "18156d37-73c7-4388-9a13-c59d788c0b33": {
@@ -32,7 +34,8 @@
         "nameStringId": "c5f09e52-98c0-48ec-ab4a-19766755fb78",
         "category": "power",
         "minimumValue": 0,
-        "maximumValue": 1200
+        "maximumValue": 1200,
+        "presetControlCurveSteps": [ 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200 ]
     },
     // 12V Voltage
     "b9b10bbf-2bf1-424a-8f03-9932d3346064": {

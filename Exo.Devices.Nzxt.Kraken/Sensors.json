@@ -4,7 +4,8 @@
 		"nameStringId": "5553c264-35bf-44ba-bd23-5a1bf611f5e1",
 		"category": "temperature",
 		"minimumValue": 0,
-		"maximumValue": 150
+		"maximumValue": 150,
+		"presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
 	},
 	// Pump Speed
 	"3a2f0f14-3957-400e-8b6c-cb025b891506": {
