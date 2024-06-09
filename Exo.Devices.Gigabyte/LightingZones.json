@@ -1,0 +1,34 @@
+{
+    // Z490 Motherboard Lighting
+    "34d2462c-e510-4a44-a70e-1491328725f9": {
+        "nameStringId": "ff891ecb-9f49-456d-a005-87ff39c08805"
+    },
+    // IO Shield
+    "d57413d5-5ea2-49dd-a50a-2583bb1bca2a": {
+        "nameStringId": "373fe80b-63ea-4288-a0d0-83026313935d"
+    },
+    // PCH
+    "7d5c9b9f-96a0-472b-a34e-fb10a8407422": {
+        "nameStringId": "2a99423c-ec46-4f33-bb5d-496ddd7b2bad"
+    },
+    // PCI
+    "b4913c2d-ef7f-49a0-8ae6-b3392fd09fa1": {
+        "nameStringId": "1da59dd6-4bf9-4c5a-b05f-51e6eece39bd"
+    },
+    // LED 1
+    "bec225cd-72f7-43e6-b7c2-2db36f09f2aa": {
+        "nameStringId": "416ef135-b98e-4664-9567-470479705f2f"
+    },
+    // LED 2
+    "1d012fd6-a097-4ea8-b02c-bd31b4b4c9c6": {
+        "nameStringId": "d903d21f-52ed-4270-96ac-a732dd628224"
+    },
+    // Addressable LED 1
+    "435444b9-2ea9-4f2b-85da-c3da052166e5": {
+        "nameStringId": "a7481cf8-d3fd-47bb-9ce0-fcd54ff31d95"
+    },
+    // Addressable LED 2
+    "db94a671-b844-4002-a096-474e9d1e4a49": {
+        "nameStringId": "95d8b6d4-b556-412d-800f-81af0ddd60e6"
+    }
+}

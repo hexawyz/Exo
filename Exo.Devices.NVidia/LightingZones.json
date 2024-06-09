@@ -1,0 +1,18 @@
+{
+    // GPU Top 0
+    "22c9ecbe-d047-4e26-b0f4-730e5b3e407e": {
+        "nameStringId": "43e202d9-1322-4508-aeb3-ebfa7c3cbf93"
+    },
+    // GPU Front 0
+    "95a687ef-6cbb-4c22-aadb-79186744adda": {
+        "nameStringId": "f13178da-3309-4992-bea9-70a02da3afc9"
+    },
+    // GPU Back 0
+    "93505342-3bee-4c22-a51e-dd29ccf655ed": {
+        "nameStringId": "8ff13cab-b313-4bc6-83b7-60932ff1b0bf"
+    },
+    // SLI Top 0
+    "211da55c-dfcc-4a4d-a94e-7f3cfa00c722": {
+        "nameStringId": "90c74ed6-fe35-450e-960e-951100998fd2"
+    }
+}

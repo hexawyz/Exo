@@ -1,0 +1,35 @@
+{
+	// Lighting Zone Names
+	"ff891ecb-9f49-456d-a005-87ff39c08805": {
+		"en": "Z490 Motherboard Lighting",
+		"fr": "Éclairage carte-mère Z490"
+	},
+	"373fe80b-63ea-4288-a0d0-83026313935d": {
+		"en": "IO Shield",
+		"fr": "Plaque arrière E/S"
+	},
+	"2a99423c-ec46-4f33-bb5d-496ddd7b2bad": {
+		"en": "PCH",
+		"fr": "PCH"
+	},
+	"1da59dd6-4bf9-4c5a-b05f-51e6eece39bd": {
+		"en": "PCI",
+		"fr": "PCI"
+	},
+	"416ef135-b98e-4664-9567-470479705f2f": {
+		"en": "LED 1",
+		"fr": "DEL 1"
+	},
+	"d903d21f-52ed-4270-96ac-a732dd628224": {
+		"en": "LED 2",
+		"fr": "DEL 2"
+	},
+	"a7481cf8-d3fd-47bb-9ce0-fcd54ff31d95": {
+		"en": "Addressable LED 1",
+		"fr": "DEL adressable 1"
+	},
+	"95d8b6d4-b556-412d-800f-81af0ddd60e6": {
+		"en": "Addressable LED 2",
+		"fr": "DEL adressable 2"
+	}
+}

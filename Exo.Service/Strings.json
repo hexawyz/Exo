@@ -93,6 +93,39 @@
 		"en": "Pump",
 		"fr": "Pompe"
 	},
+	// Lighting Zone Names
+	"43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
+		"en": "Memory Module 1",
+		"fr": "Module mémoire 1"
+	},
+	"f13178da-3309-4992-bea9-70a02da3afc9": {
+		"en": "Memory Module 2",
+		"fr": "Module mémoire 2"
+	},
+	"8ff13cab-b313-4bc6-83b7-60932ff1b0bf": {
+		"en": "Memory Module 3",
+		"fr": "Module mémoire 3"
+	},
+	"90c74ed6-fe35-450e-960e-951100998fd2": {
+		"en": "Memory Module 4",
+		"fr": "Module mémoire 4"
+	},
+	"76f1ab82-757c-4e83-8e70-6ce2ff970352": {
+		"en": "Memory Module 5",
+		"fr": "Module mémoire 5"
+	},
+	"09779d85-985f-4a1b-a3d0-3fd666d01841": {
+		"en": "Memory Module 6",
+		"fr": "Module mémoire 6"
+	},
+	"3d29c33f-f5bc-4a54-80aa-1d4111b21694": {
+		"en": "Memory Module 7",
+		"fr": "Module mémoire 7"
+	},
+	"76ffbca1-8fa9-4d79-9e07-af863a006b02": {
+		"en": "Memory Module 8",
+		"fr": "Module mémoire 8"
+	},
 	// Lighting Effect Names
 	"bfa5b721-db96-47a5-9e69-5dd0ae943275": {
 		"en": "Static",

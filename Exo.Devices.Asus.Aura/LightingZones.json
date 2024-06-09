@@ -1,0 +1,34 @@
+{
+    // Memory Module 1
+    "b2bed1d4-81ae-48ae-9a05-09e55c77aeba": {
+        "nameStringId": "43e202d9-1322-4508-aeb3-ebfa7c3cbf93"
+    },
+    // Memory Module 2
+    "cb8a8acc-94da-4d7f-89e4-7a3ca42c3050": {
+        "nameStringId": "f13178da-3309-4992-bea9-70a02da3afc9"
+    },
+    // Memory Module 3
+    "0d4237bb-02cc-4ba3-b848-671980b1b9f8": {
+        "nameStringId": "8ff13cab-b313-4bc6-83b7-60932ff1b0bf"
+    },
+    // Memory Module 4
+    "3a782612-f492-4817-a9d1-852ad9628b09": {
+        "nameStringId": "90c74ed6-fe35-450e-960e-951100998fd2"
+    },
+    // Memory Module 5
+    "477eacee-bde8-45d3-9e39-81da03523672": {
+        "nameStringId": "76f1ab82-757c-4e83-8e70-6ce2ff970352"
+    },
+    // Memory Module 6
+    "d2cc4954-868f-4f9f-ad11-94ee25d215a9": {
+        "nameStringId": "09779d85-985f-4a1b-a3d0-3fd666d01841"
+    },
+    // Memory Module 7
+    "bde005c1-8bc6-4126-bef0-b8840271d6d5": {
+        "nameStringId": "3d29c33f-f5bc-4a54-80aa-1d4111b21694"
+    },
+    // Memory Module 8
+    "a3bbb8f5-16e6-4af2-9b46-9cec68c24e95": {
+        "nameStringId": "76ffbca1-8fa9-4d79-9e07-af863a006b02"
+    }
+}

@@ -1,0 +1,19 @@
+{
+	// Lighting Zone Names
+	"43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
+		"en": "GPU Top 0",
+		"fr": "GPU Haut 0"
+	},
+	"f13178da-3309-4992-bea9-70a02da3afc9": {
+		"en": "GPU Front 0",
+		"fr": "GPU Avant 0"
+	},
+	"8ff13cab-b313-4bc6-83b7-60932ff1b0bf": {
+		"en": "GPU Back 0",
+		"fr": "GPU Arrière 0"
+	},
+	"90c74ed6-fe35-450e-960e-951100998fd2": {
+		"en": "SLI Top 0",
+		"fr": "SLI Haut 0"
+	}
+}
