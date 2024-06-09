@@ -112,18 +112,3 @@ internal static class SensorDatabase
 	public static string? GetSensorDisplayName(Guid sensorId)
 		=> SensorNames.TryGetValue(sensorId, out string? name) ? name : null;
 }
-
-internal static class CoolerDatabase
-{
-	// TODO: Migrate to external files.
-	private static readonly Dictionary<Guid, string> CoolerNames = new()
-	{
-		{ new(0x4AE632C6, 0x5A28, 0x4722, 0xAE, 0xBE, 0x7D, 0x8F, 0x23, 0xE9, 0xF4, 0x2D), "Fan" },
-
-		{ new(0x2A57C838, 0xCD58, 0x4D6C, 0xAF, 0x9E, 0xF5, 0xBD, 0xDD, 0x6F, 0xB9, 0x92), "Pump" },
-		{ new(0x5A0FE6F5, 0xB7D1, 0x46E4, 0xA5, 0x12, 0x82, 0x72, 0x6E, 0x95, 0x35, 0xC4), "Fan" },
-	};
-
-	public static string? GetCoolerDisplayName(Guid sensorId)
-		=> CoolerNames.TryGetValue(sensorId, out string? name) ? name : null;
-}
