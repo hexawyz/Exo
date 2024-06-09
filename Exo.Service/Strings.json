@@ -1,7 +1,7 @@
 {
 	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
 		"en": "Fan Speed",
-		"fr": "Vitesse du ventialteur"
+		"fr": "Vitesse du ventilateur"
 	},
 	"80acb355-040e-4789-96c9-8ed249964b08": {
 		"en": "Pump Speed",
@@ -34,7 +34,7 @@
 	// Coolers
 	"58dbe372-3c18-4059-8f53-0bc56ded725c": {
 		"en": "Fan",
-		"fr": "Ventialteur"
+		"fr": "Ventilateur"
 	},
 	"78986262-eeb6-4d90-88b2-cc2ce44f1874": {
 		"en": "Pump",

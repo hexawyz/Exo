@@ -5,9 +5,11 @@ using System.Globalization;
 using System.Numerics;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
+using Exo.Metadata;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using IMetadataService = Exo.Metadata.IMetadataService;
 using RawCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -17,6 +19,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
+	private readonly IMetadataService _metadataService;
 	private readonly ObservableCollection<CoolingDeviceViewModel> _coolingDevices;
 	private readonly Dictionary<Guid, CoolingDeviceViewModel> _coolingDevicesById;
 	private readonly Dictionary<Guid, CoolingDeviceInformation> _pendingDeviceInformations;
@@ -26,11 +29,12 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 
 	public ObservableCollection<CoolingDeviceViewModel> Devices => _coolingDevices;
 
-	public CoolingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, SensorsViewModel sensorsViewModel)
+	public CoolingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, SensorsViewModel sensorsViewModel, IMetadataService metadataService)
 	{
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
 		_sensorsViewModel = sensorsViewModel;
+		_metadataService = metadataService;
 		_coolingDevices = new();
 		_coolingDevicesById = new();
 		_pendingDeviceInformations = new();
@@ -130,7 +134,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 
 	private void OnDeviceAdded(DeviceViewModel device, CoolingDeviceInformation coolingDeviceInformation)
 	{
-		var vm = new CoolingDeviceViewModel(this, device, _sensorsViewModel.GetDevice(device.Id), coolingDeviceInformation);
+		var vm = new CoolingDeviceViewModel(device, _sensorsViewModel.GetDevice(device.Id), coolingDeviceInformation, _metadataService);
 		_coolingDevices.Add(vm);
 		_coolingDevicesById[vm.Id] = vm;
 	}
@@ -189,9 +193,11 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 
 internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 {
+	private readonly CoolingViewModel _coolingViewModel;
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceViewModel? _sensorDeviceViewModel;
 	private CoolingDeviceInformation _coolingDeviceInformation;
+	private readonly IMetadataService _metadataService;
 	private readonly ObservableCollection<CoolerViewModel> _coolers;
 	private readonly Dictionary<Guid, CoolerViewModel> _coolersById;
 	private readonly Dictionary<Guid, CoolerViewModel> _coolersBySensorId;
@@ -210,11 +216,12 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 
 	public ObservableCollection<CoolerViewModel> Coolers => _coolers;
 
-	public CoolingDeviceViewModel(CoolingViewModel coolingViewModel, DeviceViewModel deviceViewModel, SensorDeviceViewModel? sensorDeviceViewModel, CoolingDeviceInformation coolingDeviceInformation)
+	public CoolingDeviceViewModel(DeviceViewModel deviceViewModel, SensorDeviceViewModel? sensorDeviceViewModel, CoolingDeviceInformation coolingDeviceInformation, IMetadataService metadataService)
 	{
 		_deviceViewModel = deviceViewModel;
 		_sensorDeviceViewModel = sensorDeviceViewModel;
 		_coolingDeviceInformation = coolingDeviceInformation;
+		_metadataService = metadataService;
 		_coolers = new();
 		_coolersById = new();
 		_coolersBySensorId = new();
@@ -292,7 +299,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 
 			if (!_coolersById.TryGetValue(coolerInfo.CoolerId, out var vm))
 			{
-				vm = new CoolerViewModel(this, coolerInfo, speedSensor);
+				vm = new CoolerViewModel(this, coolerInfo, speedSensor, _metadataService);
 				if (isOnline)
 				{
 					vm.SetOnline(coolerInfo);
@@ -396,6 +403,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 
 	private CoolerInformation _coolerInformation;
 	private SensorViewModel? _speedSensor;
+	private readonly string _coolerDisplayName;
 	private bool _isExpanded;
 
 	private ICoolingModeViewModel? _initialCoolingMode;
@@ -426,7 +434,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 
 	public ICommand ResetCommand => _resetCommand;
 
-	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorViewModel? speedSensor)
+	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorViewModel? speedSensor, IMetadataService metadataService)
 	{
 		Device = device;
 		_coolerInformation = coolerInformation;
@@ -457,10 +465,16 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		}
 
 		_speedSensor = speedSensor;
+		string? displayName = null;
+		if (metadataService.TryGetCoolerMetadata("", "", coolerInformation.CoolerId, out var metadata))
+		{
+			displayName = metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
+		}
+		_coolerDisplayName = displayName ?? string.Create(CultureInfo.InvariantCulture, $"Cooler {_coolerInformation.CoolerId:B}.");
 		_resetCommand = new(this);
 	}
 
-	public string DisplayName => CoolerDatabase.GetCoolerDisplayName(_coolerInformation.CoolerId) ?? string.Create(CultureInfo.InvariantCulture, $"Cooler {_coolerInformation.CoolerId:B}.");
+	public string DisplayName => _coolerDisplayName;
 	public CoolerType Type => _coolerInformation.Type;
 
 	public bool IsExpanded

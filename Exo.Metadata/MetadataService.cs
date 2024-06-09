@@ -153,25 +153,24 @@ public sealed class StringMetadataResolver : MetadataResolver
 		// - What would be the lookup priority in that case ? Should the culture-less string be searched first or not ? (Depends if the no-culture string is in addition to the others or exclusive)
 		// - Should there be an explicit control over what we should return here? And how would we chose?
 
-		Span<byte> key = stackalloc byte[8 + 16 + 11];
-		"strings/"u8.CopyTo(key);
-		stringId.TryWriteBytes(key[8..]);
-		key[24] = (byte)'/';
+		Span<byte> key = stackalloc byte[16 + 12];
+		stringId.TryWriteBytes(key);
+		key[16] = (byte)'/';
 
 		var currentCulture = culture;
 		ExoArchiveFile file;
 		while (currentCulture?.Name is { Length: > 0 } and not "en")
 		{
-			int count = Encoding.UTF8.GetBytes(currentCulture.Name, key[25..]);
-			if (FindFile(key[..(25 + count)], out file))
+			int count = Encoding.UTF8.GetBytes(currentCulture.Name, key[17..]);
+			if (FindFile(key[..(17 + count)], out file))
 			{
 				return Encoding.UTF8.GetString(file.DangerousGetSpan());
 			}
 			currentCulture = currentCulture.Parent;
 		}
 
-		"en"u8.CopyTo(key[25..]);
-		if (FindFile(key[..27], out file))
+		"en"u8.CopyTo(key[17..]);
+		if (FindFile(key[..19], out file))
 		{
 			return Encoding.UTF8.GetString(file.DangerousGetSpan());
 		}
@@ -203,11 +202,11 @@ public sealed class DeviceMetadataResolver<T> : MetadataResolver
 		int compatibleIdLength = Encoding.UTF8.GetBytes(compatibleId, key[keyLength..]);
 		keyLength += compatibleIdLength;
 
-		if (FindFile(key, out file)) return true;
+		if (FindFile(key[..keyLength], out file)) return true;
 		keyLength = keyLength - compatibleIdLength - 1;
-		if (FindFile(key, out file)) return true;
+		if (FindFile(key[..keyLength], out file)) return true;
 		keyLength = keyLength - driverKeyLength - 1;
-		return FindFile(key, out file);
+		return FindFile(key[..keyLength], out file);
 	}
 
 	public bool TryGetData(string driverKey, string compatibleId, Guid itemId, out T value)
@@ -255,7 +254,7 @@ public sealed class MetadataService : IMetadataService, IDisposable
 		_coolerMetadataResolver.Dispose();
 	}
 
-	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
+	public string? GetString(CultureInfo? culture, Guid stringId)
 		=> _stringMetadataResolver.GetStringAsync(culture, stringId);
 
 	public bool TryGetLightingEffectMetadata(string driverKey, string compatibleId, Guid lightingEffectId, out LightingEffectMetadata value)
@@ -264,10 +263,10 @@ public sealed class MetadataService : IMetadataService, IDisposable
 	public bool TryGetLightingZoneMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingZoneMetadata value)
 		=> _lightingZoneMetadataResolver.TryGetData(driverKey, compatibleId, lightingZoneId, out value);
 
-	public bool TryGetSensorMetadataAsync(string driverKey, string compatibleId, Guid sensorId, out SensorMetadata value)
+	public bool TryGetSensorMetadata(string driverKey, string compatibleId, Guid sensorId, out SensorMetadata value)
 		=> _sensorMetadataResolver.TryGetData(driverKey, compatibleId, sensorId, out value);
 
-	public bool TryGetCoolerMetadataAsync(string driverKey, string compatibleId, Guid coolerId, out CoolerMetadata value)
+	public bool TryGetCoolerMetadata(string driverKey, string compatibleId, Guid coolerId, out CoolerMetadata value)
 		=> _coolerMetadataResolver.TryGetData(driverKey, compatibleId, coolerId, out value);
 }
 

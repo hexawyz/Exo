@@ -88,7 +88,7 @@ internal sealed class MetadataService : IMetadataService, IConnectedState, IDisp
 
 	void IConnectedState.Reset() => Reset();
 
-	public string? GetStringAsync(CultureInfo? culture, Guid stringId)
+	public string? GetString(CultureInfo? culture, Guid stringId)
 		=> _stringMetadataResolver?.GetStringAsync(culture, stringId);
 
 	private static bool TryGetMetadata<T>(DeviceMetadataResolver<T>? resolver, string driverKey, string compatibleId, Guid lightingZoneId, out T value)
@@ -106,9 +106,9 @@ internal sealed class MetadataService : IMetadataService, IConnectedState, IDisp
 	public bool TryGetLightingZoneMetadata(string driverKey, string compatibleId, Guid lightingZoneId, out LightingZoneMetadata value)
 		=> TryGetMetadata(_lightingZoneMetadataResolver, driverKey, compatibleId, lightingZoneId, out value);
 
-	public bool TryGetSensorMetadataAsync(string driverKey, string compatibleId, Guid sensorId, out SensorMetadata value)
+	public bool TryGetSensorMetadata(string driverKey, string compatibleId, Guid sensorId, out SensorMetadata value)
 		=> TryGetMetadata(_sensorMetadataResolver, driverKey, compatibleId, sensorId, out value);
 
-	public bool TryGetCoolerMetadataAsync(string driverKey, string compatibleId, Guid coolerId, out CoolerMetadata value)
+	public bool TryGetCoolerMetadata(string driverKey, string compatibleId, Guid coolerId, out CoolerMetadata value)
 		=> TryGetMetadata(_coolerMetadataResolver, driverKey, compatibleId, coolerId, out value);
 }
