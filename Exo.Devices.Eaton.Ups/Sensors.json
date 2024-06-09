@@ -1,0 +1,16 @@
+{
+	// Power Load
+	"d9ca6694-7514-429c-8653-6655c43073b2": {
+		"nameStringId": "7a074c26-621c-4539-9c45-d1e7050f7bfb",
+		"category": "power",
+		"minimumValue": 0,
+		"maximumValue": 100
+	},
+	// Output Voltage
+	"d8c1e0f2-1712-4709-8b81-3c2d2f77d634": {
+		"nameStringId": "d29d5844-6fc3-4e76-bd70-b158b584c5de",
+		"category": "voltage",
+		"minimumValue": 0,
+		"maximumValue": 400
+	}
+}
