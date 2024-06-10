@@ -19,6 +19,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
+	private readonly ObservableCollection<SensorViewModel> _sensorsAvailableForCoolingControlCurves;
 	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDevicesById;
 	private readonly Dictionary<Guid, SensorDeviceInformation> _pendingDeviceInformations;
 
@@ -26,6 +27,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 	private readonly IDisposable _stateRegistration;
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
+	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsAvailableForCoolingControlCurves;
 
 	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
 	{
@@ -33,6 +35,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		_devicesViewModel = devicesViewModel;
 		_metadataService = metadataService;
 		_sensorDevices = new();
+		_sensorsAvailableForCoolingControlCurves = new();
 		_sensorDevicesById = new();
 		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new();
@@ -68,6 +71,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		}
 
 		_sensorDevices.Clear();
+		_sensorsAvailableForCoolingControlCurves.Clear();
 	}
 
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
@@ -131,14 +135,14 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	private void OnDeviceAdded(DeviceViewModel device, SensorDeviceInformation sensorDeviceInformation)
 	{
-		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation, _metadataService);
+		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation, _metadataService, _sensorsAvailableForCoolingControlCurves);
 		_sensorDevices.Add(vm);
 		_sensorDevicesById[vm.Id] = vm;
 	}
 
 	private void OnDeviceChanged(SensorDeviceViewModel viewModel, SensorDeviceInformation sensorDeviceInformation)
 	{
-		viewModel.UpdateDeviceInformation(sensorDeviceInformation);
+		viewModel.UpdateDeviceInformation(sensorDeviceInformation, _sensorsAvailableForCoolingControlCurves);
 	}
 
 	private void OnDeviceRemoved(Guid deviceId)
@@ -189,7 +193,14 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 
 	public ObservableCollection<SensorViewModel> Sensors => _sensors;
 
-	public SensorDeviceViewModel(SensorsViewModel sensorsViewModel, DeviceViewModel deviceViewModel, SensorDeviceInformation sensorDeviceInformation, ISettingsMetadataService metadataService)
+	public SensorDeviceViewModel
+	(
+		SensorsViewModel sensorsViewModel,
+		DeviceViewModel deviceViewModel,
+		SensorDeviceInformation sensorDeviceInformation,
+		ISettingsMetadataService metadataService,
+		ObservableCollection<SensorViewModel> sensorsAvailableForCoolingControlCurves
+	)
 	{
 		_deviceViewModel = deviceViewModel;
 		_sensorDeviceInformation = sensorDeviceInformation;
@@ -198,7 +209,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		_sensors = new();
 		_sensorsById = new();
 		_deviceViewModel.PropertyChanged += OnDeviceViewModelPropertyChanged;
-		UpdateDeviceInformation(sensorDeviceInformation);
+		UpdateDeviceInformation(sensorDeviceInformation, sensorsAvailableForCoolingControlCurves);
 	}
 
 	public void Dispose()
@@ -229,7 +240,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		NotifyPropertyChanged(e);
 	}
 
-	public void UpdateDeviceInformation(SensorDeviceInformation information)
+	public void UpdateDeviceInformation(SensorDeviceInformation information, ObservableCollection<SensorViewModel> sensorsAvailableForCoolingControlCurves)
 	{
 		// Currently, the only info contained here is the list of sensors.
 		_sensorDeviceInformation = information;
@@ -250,6 +261,10 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 		{
 			if (_sensorsById.Remove(sensorId, out var vm))
 			{
+				if (vm.PresetControlCurveSteps.Length > 0)
+				{
+					sensorsAvailableForCoolingControlCurves.Remove(vm);
+				}
 				_sensors.Remove(vm);
 			}
 		}
@@ -268,6 +283,10 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 				}
 				_sensorsById.Add(sensorInfo.SensorId, vm);
 				_sensors.Add(vm);
+				if (vm.PresetControlCurveSteps.Length > 0)
+				{
+					sensorsAvailableForCoolingControlCurves.Add(vm);
+				}
 			}
 			else
 			{
@@ -359,6 +378,7 @@ internal sealed class SensorViewModel : BindableObject
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
 	public SensorCategory Category => _sensorCategory;
 	public ImmutableArray<double> PresetControlCurveSteps => ImmutableCollectionsMarshal.AsImmutableArray(_presetControlCurveSteps);
+	public string FullDisplayName => $"{Device.FriendlyName} - {_displayName}";
 
 	public void SetOnline() => StartWatching();
 

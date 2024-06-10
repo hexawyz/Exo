@@ -133,7 +133,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 
 	private void OnDeviceAdded(DeviceViewModel device, CoolingDeviceInformation coolingDeviceInformation)
 	{
-		var vm = new CoolingDeviceViewModel(device, _sensorsViewModel.GetDevice(device.Id), coolingDeviceInformation, _metadataService);
+		var vm = new CoolingDeviceViewModel(device, _sensorsViewModel.GetDevice(device.Id), coolingDeviceInformation, _sensorsViewModel, _metadataService);
 		_coolingDevices.Add(vm);
 		_coolingDevicesById[vm.Id] = vm;
 	}
@@ -201,6 +201,8 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 	private readonly Dictionary<Guid, CoolerViewModel> _coolersBySensorId;
 	private bool _isExpanded;
 
+	private readonly SensorsViewModel _sensorsViewModel;
+
 	public Guid Id => _coolingDeviceInformation.DeviceId;
 	public DeviceCategory Category => _deviceViewModel.Category;
 	public string FriendlyName => _deviceViewModel.FriendlyName;
@@ -214,7 +216,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 
 	public ObservableCollection<CoolerViewModel> Coolers => _coolers;
 
-	public CoolingDeviceViewModel(DeviceViewModel deviceViewModel, SensorDeviceViewModel? sensorDeviceViewModel, CoolingDeviceInformation coolingDeviceInformation, ISettingsMetadataService metadataService)
+	public CoolingDeviceViewModel(DeviceViewModel deviceViewModel, SensorDeviceViewModel? sensorDeviceViewModel, CoolingDeviceInformation coolingDeviceInformation, SensorsViewModel sensorsViewModel, ISettingsMetadataService metadataService)
 	{
 		_deviceViewModel = deviceViewModel;
 		_sensorDeviceViewModel = sensorDeviceViewModel;
@@ -223,6 +225,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 		_coolers = new();
 		_coolersById = new();
 		_coolersBySensorId = new();
+		_sensorsViewModel = sensorsViewModel;
 		_deviceViewModel.PropertyChanged += OnDeviceViewModelPropertyChanged;
 		if (sensorDeviceViewModel is not null)
 		{
@@ -297,7 +300,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 
 			if (!_coolersById.TryGetValue(coolerInfo.CoolerId, out var vm))
 			{
-				vm = new CoolerViewModel(this, coolerInfo, speedSensor, _metadataService);
+				vm = new CoolerViewModel(this, coolerInfo, _sensorsViewModel, speedSensor, _metadataService);
 				if (isOnline)
 				{
 					vm.SetOnline(coolerInfo);
@@ -407,6 +410,8 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 	private ICoolingModeViewModel? _initialCoolingMode;
 	private ICoolingModeViewModel? _currentCoolingMode;
 
+	private readonly SensorsViewModel _sensorsViewModel;
+
 	private readonly Commands.ResetCommand _resetCommand;
 
 	public override bool IsChanged => _initialCoolingMode != _currentCoolingMode;
@@ -432,10 +437,11 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 
 	public ICommand ResetCommand => _resetCommand;
 
-	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorViewModel? speedSensor, ISettingsMetadataService metadataService)
+	public CoolerViewModel(CoolingDeviceViewModel device, CoolerInformation coolerInformation, SensorsViewModel sensorsViewModel, SensorViewModel? speedSensor, ISettingsMetadataService metadataService)
 	{
 		Device = device;
 		_coolerInformation = coolerInformation;
+		_sensorsViewModel = sensorsViewModel;
 		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			if (coolerInformation.PowerLimits is null) throw new InvalidOperationException("Power limits must not be null.");
@@ -449,7 +455,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 		else if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			coolingModes.Add(new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
-			coolingModes.Add(new ControlCurveCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
+			coolingModes.Add(new ControlCurveCoolingModeViewModel(sensorsViewModel, coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
 		}
 
 		if (coolingModes.Count > 0)
@@ -515,7 +521,7 @@ internal sealed class CoolerViewModel : ChangeableBindableObject
 			else if ((information.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 			{
 				coolingModes.Add(fixedCoolingModeViewModel ?? new FixedCoolingModeViewModel(information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
-				coolingModes.Add(controlCurveCoolingModeViewModel ?? new ControlCurveCoolingModeViewModel(information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
+				coolingModes.Add(controlCurveCoolingModeViewModel ?? new ControlCurveCoolingModeViewModel(_sensorsViewModel, information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
 			}
 			_coolingModes = coolingModes.Count > 0 ? Array.AsReadOnly(coolingModes.ToArray()) : ReadOnlyCollection<ICoolingModeViewModel>.Empty;
 			NotifyPropertyChanged(ChangedProperty.CoolingModes);
@@ -706,6 +712,8 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 
 	public object Points => _points;
 
+	private readonly SensorsViewModel _sensorsViewModel;
+
 	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.SoftwareControlCurve;
 
 	public ICommand ResetFallbackPowerCommand => Commands.ResetFallbackPowerCommand.Instance;
@@ -730,8 +738,12 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 		}
 	}
 
-	public ControlCurveCoolingModeViewModel(byte minimumPower, bool canSwitchOff)
+	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsViewModel.SensorsAvailableForCoolingControlCurves;
+
+	public ControlCurveCoolingModeViewModel(SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
 	{
+		_sensorsViewModel = sensorsViewModel;
+
 		_currentFallbackPower = _initialFallbackPower = canSwitchOff ? (byte)0 : minimumPower;
 		_minimumPower = minimumPower;
 		_canSwitchOff = canSwitchOff;

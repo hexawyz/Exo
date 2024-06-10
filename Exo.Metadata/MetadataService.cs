@@ -312,12 +312,17 @@ public static class MetadataSerializer
 	private static byte[] Serialize(in SensorMetadata value)
 	{
 		var array = new byte[48 + (value.PresetControlCurveSteps is not null ? value.PresetControlCurveSteps.Length << 3 : 0)];
-		value.NameStringId.TryWriteBytes(array);
-		array[16] = (byte)value.Category;
-		LittleEndian.Write(ref array[24], value.MinimumValue);
-		LittleEndian.Write(ref array[32], value.MaximumValue);
-		WriteDoubleArray(array[40..], value.PresetControlCurveSteps);
+		Serialize(in value, array);
 		return array;
+	}
+
+	private static void Serialize(in SensorMetadata value, Span<byte> buffer)
+	{
+		value.NameStringId.TryWriteBytes(buffer);
+		buffer[16] = (byte)value.Category;
+		LittleEndian.Write(ref buffer[24], value.MinimumValue);
+		LittleEndian.Write(ref buffer[32], value.MaximumValue);
+		WriteDoubleArray(buffer[40..], value.PresetControlCurveSteps);
 	}
 
 	public static T Deserialize<T>(ReadOnlySpan<byte> data)
@@ -360,12 +365,12 @@ public static class MetadataSerializer
 
 	private static double[]? ReadDoubleArray(ReadOnlySpan<byte> data)
 	{
-		uint count = LittleEndian.ReadUInt32(in data[0]);
+		uint count = LittleEndian.ReadUInt32(in MemoryMarshal.GetReference(data));
 		if (count == 0) return null;
 		data = data[8..];
 		if (data.Length >>> 3 < count) throw new InvalidDataException("There are not enough bytes for the specified count.");
 		var array = new double[count];
-		for (int i = 0; i < count++; i++)
+		for (int i = 0; i < count; i++)
 		{
 			array[i] = LittleEndian.ReadDouble(in MemoryMarshal.GetReference(data));
 			data = data[8..];
@@ -375,7 +380,7 @@ public static class MetadataSerializer
 
 	private static int WriteDoubleArray(Span<byte> buffer, double[]? array)
 	{
-		LittleEndian.Write(ref buffer[0], array is null ? 0 : (uint)array.Length);
+		LittleEndian.Write(ref MemoryMarshal.GetReference(buffer), array is null ? 0 : (uint)array.Length);
 		int length = 8;
 		if (array is not null)
 		{

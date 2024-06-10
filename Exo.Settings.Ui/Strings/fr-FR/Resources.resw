@@ -129,6 +129,9 @@
   <data name="CoolingFallbackPowerLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Cette valeur sera utilisée si la valeur du capteur n'est pas disponible.</value>
   </data>
+  <data name="CoolingInputSensorLabel.Text" xml:space="preserve">
+    <value>Capteur source</value>
+  </data>
   <data name="CoolingPowerLabel.Text" xml:space="preserve">
     <value>Puissance</value>
   </data>
