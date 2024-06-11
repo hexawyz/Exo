@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -699,9 +700,23 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 
 			public static void NotifyCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
 		}
+
+		public sealed class ResetInputSensorCommand : ICommand
+		{
+			public static readonly ResetInputSensorCommand Instance = new();
+
+			private ResetInputSensorCommand() { }
+
+			public void Execute(object? parameter) => ((ControlCurveCoolingModeViewModel)parameter!).ResetInputSensor();
+			public bool CanExecute(object? parameter) => (parameter as ControlCurveCoolingModeViewModel)?.IsChanged ?? false;
+
+			public event EventHandler? CanExecuteChanged;
+
+			public static void NotifyCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
+		}
 	}
 
-	private readonly object _points;
+	private object? _points;
 
 	private byte _initialFallbackPower;
 	private byte _currentFallbackPower;
@@ -710,13 +725,15 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 
 	public override bool IsChanged => _initialFallbackPower != _currentFallbackPower;
 
-	public object Points => _points;
+	public object? Points => _points;
 
 	private readonly SensorsViewModel _sensorsViewModel;
+	private SensorViewModel? _inputSensor;
 
 	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.SoftwareControlCurve;
 
 	public ICommand ResetFallbackPowerCommand => Commands.ResetFallbackPowerCommand.Instance;
+	public ICommand ResetInputSensorCommand => Commands.ResetInputSensorCommand.Instance;
 
 	public byte MinimumOnPower => _minimumPower;
 	public byte MinimumPower => _canSwitchOff ? (byte)0 : _minimumPower;
@@ -740,6 +757,49 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 
 	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsViewModel.SensorsAvailableForCoolingControlCurves;
 
+	public SensorViewModel? InputSensor
+	{
+		get => _inputSensor;
+		set
+		{
+			if (SetValue(ref _inputSensor, value, ChangedProperty.InputSensor))
+			{
+				_points = value is not null ? CreateNewDataPoints(value.DataType, value.PresetControlCurveSteps) : null;
+				NotifyPropertyChanged(ChangedProperty.Points);
+			}
+		}
+	}
+
+	private static object CreateNewDataPoints(SensorDataType dataType, ImmutableArray<double> points)
+		=> dataType switch
+		{
+			SensorDataType.UInt8 => CreateNewDataPoints<byte>(dataType, points),
+			SensorDataType.UInt16 => CreateNewDataPoints<ushort>(dataType, points),
+			SensorDataType.UInt32 => CreateNewDataPoints<uint>(dataType, points),
+			SensorDataType.UInt64 => CreateNewDataPoints<ulong>(dataType, points),
+			SensorDataType.UInt128 => CreateNewDataPoints<UInt128>(dataType, points),
+			SensorDataType.SInt8 => CreateNewDataPoints<sbyte>(dataType, points),
+			SensorDataType.SInt16 => CreateNewDataPoints<short>(dataType, points),
+			SensorDataType.SInt32 => CreateNewDataPoints<int>(dataType, points),
+			SensorDataType.SInt64 => CreateNewDataPoints<long>(dataType, points),
+			SensorDataType.SInt128 => CreateNewDataPoints<Int128>(dataType, points),
+			SensorDataType.Float16 => CreateNewDataPoints<Half>(dataType, points),
+			SensorDataType.Float32 => CreateNewDataPoints<float>(dataType, points),
+			SensorDataType.Float64 => CreateNewDataPoints<double>(dataType, points),
+			_ => throw new InvalidOperationException(),
+		};
+
+	private static ObservableCollection<IDataPoint<T, byte>> CreateNewDataPoints<T>(SensorDataType dataType, ImmutableArray<double> points)
+		where T : struct, INumber<T>
+	{
+		var collection = new ObservableCollection<IDataPoint<T, byte>>();
+		foreach (double value in points)
+		{
+			collection.Add(new PowerDataPointViewModel<T>(T.CreateChecked(value), 100));
+		}
+		return collection;
+	}
+
 	public ControlCurveCoolingModeViewModel(SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
 	{
 		_sensorsViewModel = sensorsViewModel;
@@ -748,19 +808,11 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 		_minimumPower = minimumPower;
 		_canSwitchOff = canSwitchOff;
 
-		var points = new ObservableCollection<IDataPoint<int, byte>>()
+		if (_sensorsViewModel.SensorsAvailableForCoolingControlCurves.Count > 0)
 		{
-			new PowerDataPointViewModel<int>(5, 0),
-			new PowerDataPointViewModel<int>(10, 20),
-			new PowerDataPointViewModel<int>(20, 20),
-			new PowerDataPointViewModel<int>(30, 40),
-			new PowerDataPointViewModel<int>(40, 80),
-			new PowerDataPointViewModel<int>(50, 100),
-			new PowerDataPointViewModel<int>(60, 100),
-			new PowerDataPointViewModel<int>(200, 100),
-		};
-
-		_points = points;
+			_inputSensor = _sensorsViewModel.SensorsAvailableForCoolingControlCurves[0];
+			_points = CreateNewDataPoints(_inputSensor.DataType, _inputSensor.PresetControlCurveSteps);
+		}
 	}
 
 	internal void SetInitialPower(byte value)
@@ -782,6 +834,7 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 	}
 
 	internal void ResetFallbackPower() => FallbackPower = _initialFallbackPower;
+	internal void ResetInputSensor() => InputSensor = _sensorsViewModel.SensorsAvailableForCoolingControlCurves.Count > 0 ? _sensorsViewModel.SensorsAvailableForCoolingControlCurves[0] : null;
 
 	protected override void Reset()
 	{

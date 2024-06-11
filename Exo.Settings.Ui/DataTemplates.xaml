@@ -318,6 +318,7 @@
                 Grid.Column="1"
                 Margin="6,6,6,6"
                 ItemsSource="{Binding SensorsAvailableForCoolingControlCurves, Mode=OneTime}"
+                SelectedItem="{Binding InputSensor, Mode=TwoWay}"
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
@@ -326,7 +327,7 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Grid.Row="1" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetFallbackPowerCommand}" CommandParameter="{Binding}">
+            <Button Grid.Row="1" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetInputSensorCommand}" CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
             <lcontrols:PowerControlCurveEditor
@@ -335,8 +336,8 @@
                 Grid.ColumnSpan="2"
                 CurveStrokeThickness="2"
                 SymbolRadius="4"
-                MinimumInputValue="0"
-                MaximumInputValue="300"
+                MinimumInputValue="{Binding InputSensor.ScaleMinimumValue}"
+                MaximumInputValue="{Binding InputSensor.ScaleMaximumValue}"
                 MinimumPower="{Binding MinimumOnPower}"
                 CanSwitchOff="{Binding CanSwitchOff}"
                 Points="{Binding Points}" />

@@ -291,6 +291,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private static (LinearScale HorizontalScale, LinearScale VerticalScale, double[] HorizontalTicks) GenerateScales(object? points, double minX, double maxX, double outputWidth, double outputHeight, double lineThickness)
 		=> points switch
 		{
+			IList<IDataPoint<sbyte, byte>> pointsSByte => GenerateScales(pointsSByte, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<byte, byte>> pointsByte => GenerateScales(pointsByte, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<short, byte>> pointsInt16 => GenerateScales(pointsInt16, minX, maxX, outputWidth, outputHeight, lineThickness),
+			IList<IDataPoint<ushort, byte>> pointsUInt16 => GenerateScales(pointsUInt16, minX, maxX, outputWidth, outputHeight, lineThickness),
 			IList<IDataPoint<int, byte>> pointsInt32 => GenerateScales(pointsInt32, minX, maxX, outputWidth, outputHeight, lineThickness),
 			IList<IDataPoint<uint, byte>> pointsUInt32 => GenerateScales(pointsUInt32, minX, maxX, outputWidth, outputHeight, lineThickness),
 			IList<IDataPoint<long, byte>> pointsInt64 => GenerateScales(pointsInt64, minX, maxX, outputWidth, outputHeight, lineThickness),
@@ -420,6 +424,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		switch (points)
 		{
+		case IList<IDataPoint<sbyte, byte>> pointsSByte: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsSByte, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<byte, byte>> pointsByte: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsByte, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<short, byte>> pointsInt16: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt16, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<ushort, byte>> pointsUInt16: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt16, minimumPower, canSwitchOff, symbolRadius); break;
 		case IList<IDataPoint<int, byte>> pointsInt32: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt32, minimumPower, canSwitchOff, symbolRadius); break;
 		case IList<IDataPoint<uint, byte>> pointsUInt32: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt32, minimumPower, canSwitchOff, symbolRadius); break;
 		case IList<IDataPoint<long, byte>> pointsInt64: RedrawChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt64, minimumPower, canSwitchOff, symbolRadius); break;
@@ -611,6 +619,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		switch (points)
 		{
+		case IList<IDataPoint<sbyte, byte>> pointsSByte: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsSByte, draggedPointIndex, Convert.ToInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<byte, byte>> pointsByte: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsByte, draggedPointIndex, Convert.ToUInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<short, byte>> pointsInt16: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt16, draggedPointIndex, Convert.ToInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
+		case IList<IDataPoint<ushort, byte>> pointsUInt16: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt16, draggedPointIndex, Convert.ToUInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
 		case IList<IDataPoint<int, byte>> pointsInt32: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt32, draggedPointIndex, Convert.ToInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
 		case IList<IDataPoint<uint, byte>> pointsUInt32: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsUInt32, draggedPointIndex, Convert.ToUInt32(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
 		case IList<IDataPoint<long, byte>> pointsInt64: UpdateChart(horizontalScale, verticalScale, curvePathGeometry, symbolsGeometryGroup, pointsInt64, draggedPointIndex, Convert.ToInt64(draggedPointInputValue), draggedPointPower, minimumPower, canSwitchOff, symbolRadius); break;
@@ -646,6 +658,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private static int FindPoint(LinearScale horizontalScale, object? points, double x, double symbolRadius)
 		=> points switch
 		{
+			IList<IDataPoint<sbyte, byte>> pointsSByte => FindPoint(horizontalScale, pointsSByte, x, symbolRadius),
+			IList<IDataPoint<byte, byte>> pointsByte => FindPoint(horizontalScale, pointsByte, x, symbolRadius),
+			IList<IDataPoint<short, byte>> pointsInt16 => FindPoint(horizontalScale, pointsInt16, x, symbolRadius),
+			IList<IDataPoint<ushort, byte>> pointsUInt16 => FindPoint(horizontalScale, pointsUInt16, x, symbolRadius),
 			IList<IDataPoint<int, byte>> pointsInt32 => FindPoint(horizontalScale, pointsInt32, x, symbolRadius),
 			IList<IDataPoint<uint, byte>> pointsUInt32 => FindPoint(horizontalScale, pointsUInt32, x, symbolRadius),
 			IList<IDataPoint<long, byte>> pointsInt64 => FindPoint(horizontalScale, pointsInt64, x, symbolRadius),
@@ -665,6 +681,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private static (object, byte) GetPoint(object? points, int index)
 		=> points switch
 		{
+			IList<IDataPoint<sbyte, byte>> pointsSByte => GetPoint(pointsSByte, index),
+			IList<IDataPoint<byte, byte>> pointsByte => GetPoint(pointsByte, index),
+			IList<IDataPoint<short, byte>> pointsInt16 => GetPoint(pointsInt16, index),
+			IList<IDataPoint<ushort, byte>> pointsUInt16 => GetPoint(pointsUInt16, index),
 			IList<IDataPoint<int, byte>> pointsInt32 => GetPoint(pointsInt32, index),
 			IList<IDataPoint<uint, byte>> pointsUInt32 => GetPoint(pointsUInt32, index),
 			IList<IDataPoint<long, byte>> pointsInt64 => GetPoint(pointsInt64, index),
@@ -686,6 +706,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		switch (points)
 		{
+		case IList<IDataPoint<sbyte, byte>> pointsSByte: SetPoint(pointsSByte, index, Convert.ToInt32(x), y); break;
+		case IList<IDataPoint<byte, byte>> pointsByte: SetPoint(pointsByte, index, Convert.ToUInt32(x), y); break;
+		case IList<IDataPoint<short, byte>> pointsInt16: SetPoint(pointsInt16, index, Convert.ToInt32(x), y); break;
+		case IList<IDataPoint<ushort, byte>> pointsUInt16: SetPoint(pointsUInt16, index, Convert.ToUInt32(x), y); break;
 		case IList<IDataPoint<int, byte>> pointsInt32: SetPoint(pointsInt32, index, Convert.ToInt32(x), y); break;
 		case IList<IDataPoint<uint, byte>> pointsUInt32: SetPoint(pointsUInt32, index, Convert.ToUInt32(x), y); break;
 		case IList<IDataPoint<long, byte>> pointsInt64: SetPoint(pointsInt64, index, Convert.ToInt64(x), y); break;
@@ -707,6 +731,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		switch (points)
 		{
+		case IList<IDataPoint<sbyte, byte>> pointsSByte: SetAtLeastY(pointsSByte, index, y); break;
+		case IList<IDataPoint<byte, byte>> pointsByte: SetAtLeastY(pointsByte, index, y); break;
+		case IList<IDataPoint<short, byte>> pointsInt16: SetAtLeastY(pointsInt16, index, y); break;
+		case IList<IDataPoint<ushort, byte>> pointsUInt16: SetAtLeastY(pointsUInt16, index, y); break;
 		case IList<IDataPoint<int, byte>> pointsInt32: SetAtLeastY(pointsInt32, index, y); break;
 		case IList<IDataPoint<uint, byte>> pointsUInt32: SetAtLeastY(pointsUInt32, index, y); break;
 		case IList<IDataPoint<long, byte>> pointsInt64: SetAtLeastY(pointsInt64, index, y); break;
@@ -728,6 +756,10 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		switch (points)
 		{
+		case IList<IDataPoint<sbyte, byte>> pointsSByte: SetAtMostY(pointsSByte, index, y); break;
+		case IList<IDataPoint<byte, byte>> pointsByte: SetAtMostY(pointsByte, index, y); break;
+		case IList<IDataPoint<short, byte>> pointsInt16: SetAtMostY(pointsInt16, index, y); break;
+		case IList<IDataPoint<ushort, byte>> pointsUInt16: SetAtMostY(pointsUInt16, index, y); break;
 		case IList<IDataPoint<int, byte>> pointsInt32: SetAtMostY(pointsInt32, index, y); break;
 		case IList<IDataPoint<uint, byte>> pointsUInt32: SetAtMostY(pointsUInt32, index, y); break;
 		case IList<IDataPoint<long, byte>> pointsInt64: SetAtMostY(pointsInt64, index, y); break;
