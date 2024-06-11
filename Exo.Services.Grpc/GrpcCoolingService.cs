@@ -63,7 +63,7 @@ internal sealed class GrpcCoolingService : ICoolingService
 					(
 						ImmutableArray.CreateRange(unsignedIntegerCurve.SegmentPoints, dp => new DataPoint<ulong, byte>(dp.X, checked((byte)dp.Y))),
 						unsignedIntegerCurve.InitialValue,
-						MonotonicityValidators<byte>.StrictlyIncreasingUpTo100
+						MonotonicityValidators<byte>.IncreasingUpTo100
 					),
 					cancellationToken
 				),
@@ -79,7 +79,7 @@ internal sealed class GrpcCoolingService : ICoolingService
 					(
 						ImmutableArray.CreateRange(signedIntegerCurve.SegmentPoints, dp => new DataPoint<long, byte>(dp.X, checked((byte)dp.Y))),
 						signedIntegerCurve.InitialValue,
-						MonotonicityValidators<byte>.StrictlyIncreasingUpTo100
+						MonotonicityValidators<byte>.IncreasingUpTo100
 					),
 					cancellationToken
 				),
@@ -95,7 +95,7 @@ internal sealed class GrpcCoolingService : ICoolingService
 					(
 						ImmutableArray.CreateRange(singleFloatCurve.SegmentPoints, dp => new DataPoint<float, byte>(dp.X, checked((byte)dp.Y))),
 						singleFloatCurve.InitialValue,
-						MonotonicityValidators<byte>.StrictlyIncreasingUpTo100
+						MonotonicityValidators<byte>.IncreasingUpTo100
 					),
 					cancellationToken
 				),
@@ -111,7 +111,7 @@ internal sealed class GrpcCoolingService : ICoolingService
 					(
 						ImmutableArray.CreateRange(doubleFloatCurve.SegmentPoints, dp => new DataPoint<double, byte>(dp.X, checked((byte)dp.Y))),
 						doubleFloatCurve.InitialValue,
-						MonotonicityValidators<byte>.StrictlyIncreasingUpTo100
+						MonotonicityValidators<byte>.IncreasingUpTo100
 					),
 					cancellationToken
 				),

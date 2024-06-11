@@ -20,8 +20,8 @@ public sealed class MonotonicityValidators<TValue>
 	public static readonly MonotonicityValidator<TValue> StrictlyIncreasing = Instance.ValidateStrictlyIncreasing;
 	public static readonly MonotonicityValidator<TValue> StrictlyDecreasing = Instance.ValidateStrictlyDecreasing;
 
-	public static readonly MonotonicityValidator<TValue> IncreasingUpTo100 = Instance.ValidateStrictlyDecreasing;
-	public static readonly MonotonicityValidator<TValue> StrictlyIncreasingUpTo100 = Instance.ValidateStrictlyDecreasing;
+	public static readonly MonotonicityValidator<TValue> IncreasingUpTo100 = Instance.ValidateIncreasingUpTo100;
+	public static readonly MonotonicityValidator<TValue> StrictlyIncreasingUpTo100 = Instance.ValidateStrictlyIncreasingUpTo100;
 
 	private MonotonicityValidators() { }
 
@@ -40,10 +40,10 @@ public sealed class MonotonicityValidators<TValue>
 	private bool ValidateStrictlyDecreasing(TValue a, TValue b)
 		=> a > b;
 
-	private static bool ValidateIncreasingUpTo100(TValue a, TValue b)
+	private bool ValidateIncreasingUpTo100(TValue a, TValue b)
 		=> a <= b && b <= TValue.CreateChecked((byte)100);
 
-	private static bool ValidateStrictlyIncreasingUpTo100(TValue a, TValue b)
+	private bool ValidateStrictlyIncreasingUpTo100(TValue a, TValue b)
 		=> a < b && b <= TValue.CreateChecked((byte)100);
 }
 

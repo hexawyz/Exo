@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ApplyButton.Content" xml:space="preserve">
+    <value>Apply</value>
+  </data>
   <data name="CoolerCoolingModeLabel.Text" xml:space="preserve">
     <value>Mode</value>
   </data>
@@ -177,17 +180,14 @@
   <data name="DeviceIdVersion.Text" xml:space="preserve">
     <value>Version</value>
   </data>
-  <data name="LightingDeviceApplyButton.Content" xml:space="preserve">
-    <value>Apply</value>
-  </data>
-  <data name="LightingDeviceResetButton.Content" xml:space="preserve">
-    <value>Reset</value>
-  </data>
   <data name="LightingEffectLabel.Text" xml:space="preserve">
     <value>Effect</value>
   </data>
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Monitor settings</value>
+  </data>
+  <data name="ResetButton.Content" xml:space="preserve">
+    <value>Reset</value>
   </data>
   <data name="Welcome.Text" xml:space="preserve">
     <value>Welcome to Exo.</value>

@@ -67,6 +67,10 @@
                                             HorizontalContentAlignment="Stretch"
                                             Content="{Binding CurrentCoolingMode, Mode=OneWay}"
                                             ContentTemplateSelector="{StaticResource CoolingParametersTemplateSelector}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                                            <Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
+                                            <Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" CommandParameter="{Binding}" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Expander>
                             </DataTemplate>

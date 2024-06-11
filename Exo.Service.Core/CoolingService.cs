@@ -479,7 +479,9 @@ internal partial class CoolingService
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				_activeState = new DynamicCoolerState<TInput>(this, sensorDeviceId, sensorId, fallbackValue, controlCurve);
+				var dynamicCoolerState = new DynamicCoolerState<TInput>(this, sensorDeviceId, sensorId, fallbackValue, controlCurve);
+				dynamicCoolerState.Start();
+				_activeState = dynamicCoolerState;
 			}
 		}
 
@@ -490,7 +492,7 @@ internal partial class CoolingService
 	{
 		private readonly CoolerState _coolerState;
 		private CancellationTokenSource? _cancellationTokenSource;
-		private readonly Task _runTask;
+		private Task? _runTask;
 
 		protected CoolerState CoolerState => _coolerState;
 
@@ -498,14 +500,23 @@ internal partial class CoolingService
 		{
 			_coolerState = coolerState;
 			_cancellationTokenSource = new();
-			_runTask = RunAsync(_cancellationTokenSource.Token);
+		}
+
+		internal void Start()
+		{
+			ObjectDisposedException.ThrowIf(_cancellationTokenSource is null, typeof(DynamicCoolerState));
+			if (_runTask is not null) throw new InvalidOperationException();
+			_runTask = RunAsync(_cancellationTokenSource!.Token);
 		}
 
 		public async ValueTask DisposeAsync()
 		{
 			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
 			cts.Cancel();
-			await _runTask.ConfigureAwait(false);
+			if (_runTask is not null)
+			{
+				await _runTask.ConfigureAwait(false);
+			}
 			cts.Dispose();
 		}
 
