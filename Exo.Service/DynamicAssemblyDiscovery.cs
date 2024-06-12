@@ -16,6 +16,6 @@ internal sealed class DynamicAssemblyDiscovery : IAssemblyDiscovery
 		var assemblyDirectory = Path.GetDirectoryName(assembly.Location)!;
 		var pluginDirectory = Path.GetFullPath(Path.Combine(assemblyDirectory, "plugins"));
 
-		AssemblyPaths = ImmutableCollectionsMarshal.AsImmutableArray(Directory.GetFiles(pluginDirectory));
+		AssemblyPaths = ImmutableCollectionsMarshal.AsImmutableArray(Directory.GetFiles(pluginDirectory, "*.dll"));
 	}
 }
