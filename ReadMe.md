@@ -35,7 +35,8 @@ Exo currently support the following features, provided that there is a custom dr
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
 * Mouse: The service can observe and display DPI changes.
 * GPU: Provide support for accessing connected monitors in non-interactive (service) mode.
-* Sensors: For devices that provide data readings, expose 
+* Sensors: For devices that provide data readings, expose sensors that can be read periodically and displayed in the UI.
+* Coolers: For cooling devices, or devices equipped with a fan, expose controllable coolers and allow setting custom software cooling curves based on sensors.
 
 # Supported devices
 
@@ -68,7 +69,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Eaton
 	* Various UPS Models: Power consumption and battery level.
 * NZXT
-	* Kraken Z devices: Liquid temperature, Pump speed and Fan speed sensors. (⚠️ In order to preserve system performance, the readings are currently captured from requests done by other software. It is assumed that you have NZXT CAM running in the background)
+	* Kraken Z devices: Screen brightness, Cooling control, Sensors for Liquid temperature, Pump speed and Fan speed.
 * Other
 	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
 
@@ -303,3 +304,47 @@ public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsy
 ````
 
 You can take a look at any of the drivers to get more specific examples of how things are done.
+
+### Supported feature categories
+
+Each driver must implement one or more features of one or more features category, through which the device features will be exposed.
+
+#### `IGenericDeviceFeature`: Generic features
+
+Features that are not specific to any device types will be in this category.
+
+#### `IKeyboardDeviceFeature`: Keyboard features
+
+Most keyboards would expose one or more features of this category.
+
+#### `IMouseDeviceFeature`: Mouse features
+
+Most mouses would expose one or more features of this category.
+
+#### `IMonitorDeviceFeature`: Monitor features
+
+Features in this category are used to expose features specific to monitor devices.
+
+#### `IDisplayAdapterDeviceFeature`: Display adapter features
+
+Currently only provides `IDisplayAdapterI2CBusProviderFeature`, which is used for a display adapter to give access to DDC/CI monitors.
+
+#### `ILightingDeviceFeature`: Lighting features
+
+Drivers for devices providing lighting zones would implement features in this category, starting with `ILightingControllerFeature`.
+
+#### `IMotherboardDeviceFeature`: Motherboard features
+
+Currently only provides `IMotherboardSystemManagementBusFeature`, which is used to provide access to the SMBus device on the motherboard.
+
+This feature will be used to access RGB RAM that is controlled through SMBus.
+
+#### `ISensorDeviceFeature`: Sensors features
+
+Drivers for devices exposing sensors would generally implement features in this category, starting with `ISensorsFeature`.
+
+Most drivers would also provide `ISensorsGroupedQueryFeature` as a means to efficiently query multiple sensors at once, depending on the usefulness.
+
+#### `ICoolingDeviceFeature`: Cooling features
+
+All devices having a controllable cooler would usually expose it through the `ICoolingControllerFeature` interface.
