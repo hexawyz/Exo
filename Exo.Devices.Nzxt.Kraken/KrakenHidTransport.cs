@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -31,6 +32,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private readonly HidFullDuplexStream _stream;
 	private readonly byte[] _buffers;
 	private ulong _lastReadings;
+	private ulong _lastReadingsTimestamp;
 	// In this driver, we allow multiple in-flight requests, as long as they are on different functions.
 	// However, we don't want to waste memory by allocating more than one write buffer, so we want to serialize writes to the device.
 	// Anyway, operations will have low-to-no contention, and sending parallel writes would have no value, as the writes will end up being serialized by the HID stack anyway.
@@ -40,6 +42,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
 	private TaskCompletionSource? _setPumpPowerTaskCompletionSource;
 	private TaskCompletionSource? _setFanPowerTaskCompletionSource;
+	private TaskCompletionSource? _statusRetrievalTaskCompletionSource;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _task;
 
@@ -249,6 +252,56 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
+	/// <summary>Gets the readings from a recent read result or a new query./summary>
+	/// <remarks>
+	/// Another software could already be querying the hardware, and we will see the results of these query, so we can avoid multiplying status queries on the hardware.
+	/// To do this, we keep track of the time at which the last query results were received, and only do a new query if the results are too old.
+	/// The only downside of this approach is that there will be a semi-random latency on read values, up to the 1s max delay that we allow.
+	/// </remarks>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	public ValueTask<KrakenReadings> GetRecentReadingsAsync(CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+
+		// If another software is running and already querying the hardware, we avoid generating a new query and reuse the result of a recent read.
+		if ((ulong)Stopwatch.GetTimestamp() - _lastReadingsTimestamp < (ulong)Stopwatch.Frequency)
+		{
+			return new(GetLastReadings());
+		}
+
+		return new(GetCurrentReadingsAsync(cancellationToken));
+	}
+
+	public async Task<KrakenReadings> GetCurrentReadingsAsync(CancellationToken cancellationToken)
+	{
+		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _statusRetrievalTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = DeviceStatusRequestMessageId;
+			buffer[1] = 01;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				PrepareRequest(buffer.Span);
+				await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+			return GetLastReadings();
+		}
+		finally
+		{
+			Volatile.Write(ref _statusRetrievalTaskCompletionSource, null);
+		}
+	}
+
 	private void ProcessReadMessage(ReadOnlySpan<byte> message)
 		=> ProcessReadMessage(message[0], message[1], message[14..]);
 
@@ -279,6 +332,9 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			byte fanSetPower = response[11];
 			var readings = new KrakenReadings(pumpSpeed, fanSpeed, pumpSetPower, fanSetPower, liquidTemperature);
 			Volatile.Write(ref _lastReadings, Unsafe.BitCast<KrakenReadings, ulong>(readings));
+			Volatile.Write(ref _lastReadingsTimestamp, (ulong)Stopwatch.GetTimestamp());
+
+			_statusRetrievalTaskCompletionSource?.TrySetResult();
 		}
 	}
 

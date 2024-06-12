@@ -217,16 +217,14 @@ public class KrakenDriver :
 		}
 	}
 
-	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
+	async ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
-		var readings = _transport.GetLastReadings();
+		var readings = await _transport.GetRecentReadingsAsync(cancellationToken).ConfigureAwait(false);
 
 		foreach (var sensor in _sensors)
 		{
 			Unsafe.As<Sensor>(sensor).RefreshValue(readings);
 		}
-
-		return ValueTask.CompletedTask;
 	}
 
 	async ValueTask ICoolingControllerFeature.ApplyChangesAsync(CancellationToken cancellationToken)
