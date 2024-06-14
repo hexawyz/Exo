@@ -88,7 +88,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	private AssemblyName[] _availableAssemblies = [];
 	private readonly object _updateLock = new();
 	private readonly HashSet<AssemblyCacheEntry> _loadedAssemblies = new();
-	private ChannelWriter<(string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives, bool IsLoaded)>[]? _metadataChangeListeners;
+	private ChannelWriter<(WatchNotificationKind Kind, string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives)>[]? _metadataChangeListeners;
 
 	public event EventHandler<AssemblyLoadEventArgs>? AfterAssemblyLoad;
 	public event EventHandler? AvailableAssembliesChanged;
@@ -133,7 +133,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 						entry.Dispose();
 						if (_loadedAssemblies.Remove(entry))
 						{
-							_metadataChangeListeners.TryWrite((entry.Path, entry.AvailableMetadataArchives, false));
+							_metadataChangeListeners.TryWrite((WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
 						}
 					}
 				}
@@ -189,7 +189,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		lock (_updateLock)
 		{
 			_loadedAssemblies.Add(entry);
-			_metadataChangeListeners.TryWrite((entry.Path, entry.AvailableMetadataArchives, true));
+			_metadataChangeListeners.TryWrite((WatchNotificationKind.Addition, entry.Path, entry.AvailableMetadataArchives));
 		}
 
 		try
@@ -213,7 +213,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 			{
 				if (_loadedAssemblies.Remove(entry))
 				{
-					_metadataChangeListeners.TryWrite((entry.Path, entry.AvailableMetadataArchives, false));
+					_metadataChangeListeners.TryWrite((WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
 				}
 			}
 		}
@@ -251,12 +251,12 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 			_ => throw new InvalidOperationException(),
 		};
 
-	private static MetadataSourceChangeNotification CreateNotification(bool isLoaded, string assemblyPath, MetadataArchiveCategory category, int extensionLength)
-		=> new(isLoaded ? WatchNotificationKind.Addition : WatchNotificationKind.Removal, category, $"{assemblyPath.AsSpan(0, assemblyPath.Length - extensionLength)}{GetCategorySuffix(category)}");
+	private static MetadataSourceChangeNotification CreateNotification(WatchNotificationKind kind, string assemblyPath, MetadataArchiveCategory category, int extensionLength)
+		=> new(kind, category, $"{assemblyPath.AsSpan(0, assemblyPath.Length - extensionLength)}{GetCategorySuffix(category)}");
 
 	public async IAsyncEnumerable<MetadataSourceChangeNotification> WatchMetadataSourceChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<(string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives, bool IsLoaded)>();
+		var channel = Watcher.CreateSingleWriterChannel<(WatchNotificationKind Kind, string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives)>();
 
 		AssemblyCacheEntry[] loadedAssemblies;
 		lock (_updateLock)
@@ -273,22 +273,22 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 
 				int extensionLength = Path.GetExtension(entry.Path.AsSpan()).Length;
 
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.Strings, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.LightingEffects, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.LightingZones, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.Sensors, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(true, entry.Path, MetadataArchiveCategory.Coolers, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.Strings, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.LightingEffects, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.LightingZones, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.Sensors, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.Coolers, extensionLength);
 			}
 
-			await foreach (var (assemblyPath, availableMetadataArchives, isLoaded) in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var (kind, assemblyPath, availableMetadataArchives) in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 			{
 				int extensionLength = Path.GetExtension(assemblyPath.AsSpan()).Length;
 
-				if ((availableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.Strings, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.LightingEffects, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.LightingZones, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.Sensors, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(true, assemblyPath, MetadataArchiveCategory.Coolers, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.Strings, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.LightingEffects, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.LightingZones, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.Sensors, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.Coolers, extensionLength);
 			}
 		}
 		finally

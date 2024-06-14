@@ -100,6 +100,7 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 
 			switch (notification.NotificationKind)
 			{
+			case WatchNotificationKind.Enumeration:
 			case WatchNotificationKind.Addition:
 				resolver.AddArchive(notification.ArchivePath);
 				break;
