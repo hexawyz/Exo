@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace Exo.Discovery;
 
-public readonly struct ComponentCreationParameters<TKey, TCreationContext>
+public readonly struct ComponentCreationParameters<TKey, TCreationContext> : IAsyncDisposable
 	where TKey : IEquatable<TKey>
 	where TCreationContext : class, IComponentCreationContext
 {
@@ -16,4 +16,6 @@ public readonly struct ComponentCreationParameters<TKey, TCreationContext>
 		CreationContext = creationContext;
 		FactoryIds = factoryIds;
 	}
+
+	public ValueTask DisposeAsync() => CreationContext.DisposeAsync();
 }

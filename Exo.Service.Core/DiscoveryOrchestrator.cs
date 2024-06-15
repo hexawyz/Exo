@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Exo.Configuration;
 using Exo.Discovery;
 using Microsoft.Extensions.Hosting;
@@ -235,8 +236,9 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 					if (keys.Count > 0)
 					{
-						_states.Remove(context.DiscoveredKeys, state);
 						// TODO: Log error with mismatched keys.
+						_states.Remove(context.DiscoveredKeys, state);
+						await creationParameters.DisposeAsync().ConfigureAwait(false);
 						return;
 					}
 
@@ -249,128 +251,170 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 						{
 							// TODO: Log duplicate keys.
 							_states.Remove(creationParameters.AssociatedKeys, state);
+							await creationParameters.DisposeAsync().ConfigureAwait(false);
 							return;
 						}
 						if (!ReferenceEquals(_states.GetOrAdd(key, state), state))
 						{
 							// TODO: Log ?
 							_states.Remove(creationParameters.AssociatedKeys, state);
+							await creationParameters.DisposeAsync().ConfigureAwait(false);
 							return;
 						}
 					}
 				}
 
-				// Now run through the factories to find one that will successfully create the result.
-				TResult? result = null;
-				ExclusionLock? exclusionLock;
-				foreach (var factoryId in creationParameters.FactoryIds)
+				try
 				{
-					if (KnownFactoryMethods.TryGetValue(factoryId, out var details))
+					// Now run through the factories to find one that will successfully create the result.
+					TResult? result = null;
+					ExclusionLock? exclusionLock;
+					foreach (var factoryId in creationParameters.FactoryIds)
 					{
-						try
+						if (KnownFactoryMethods.TryGetValue(factoryId, out var details))
 						{
-							var liveFactoryDetails = details.GetLiveDetails<TFactory, TCreationContext, TResult>(Orchestrator.AssemblyLoader, Orchestrator.ExclusionLocks);
-							exclusionLock = liveFactoryDetails.ExclusionLock;
-
-							if (exclusionLock is not null)
+							try
 							{
-								using (await exclusionLock.AcquireForCreationAsync(factoryId, cancellationToken).ConfigureAwait(false))
+								var liveFactoryDetails = details.GetLiveDetails<TFactory, TCreationContext, TResult>(Orchestrator.AssemblyLoader, Orchestrator.ExclusionLocks);
+								exclusionLock = liveFactoryDetails.ExclusionLock;
+
+								if (exclusionLock is not null)
+								{
+									using (await exclusionLock.AcquireForCreationAsync(factoryId, cancellationToken).ConfigureAwait(false))
+									{
+										result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
+									}
+								}
+								else
 								{
 									result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
 								}
+								if (result is not null) break;
 							}
-							else
+							catch (Exception ex)
 							{
-								result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
+								if (typeof(TComponent) == typeof(Driver))
+								{
+									Orchestrator.Logger.DiscoveryDriverCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+								}
+								else
+								{
+									Orchestrator.Logger.DiscoveryComponentCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+								}
+								_states.Remove(creationParameters.AssociatedKeys, state);
+								return;
 							}
-							if (result is not null) break;
 						}
-						catch (Exception ex)
+					}
+
+					// If no valid result was produced, rollback the state and exit.
+					if (result is null)
+					{
+						// TODO: Log some information. NB: It could be important to know if some factories were called.
+						_states.Remove(creationParameters.AssociatedKeys, state);
+						return;
+					}
+
+					// The shared reference handles the additional disposables managed by the creation context.
+					// Drivers are supposed to properly dispose of what they use, but we need to have a strong guarantee that objects will be disposed when needed.
+					// These disposables need to be tied up to the lifetime rather than the state, as we can't know when the driver will stop using the objects.
+					// This is especially important for the nested driver registries, that will generally be tied to the lifetime of a driver and not to that of the registration.
+
+					var sharedReference = Orchestrator.ComponentReferences.GetOrCreateValue(result.Component);
+
+					var disposableDependencies = creationParameters.CreationContext.CollectDisposableDependencies();
+					try
+					{
+						await sharedReference.AddReferenceAsync(result.Component, disposableDependencies, cancellationToken).ConfigureAwait(false);
+					}
+					catch (Exception ex)
+					{
+						Orchestrator.Logger.DiscoveryComponentAddSharedReferenceFailure(ex);
+						foreach (var dependency in disposableDependencies)
 						{
-							if (typeof(TComponent) == typeof(Driver))
+							try
 							{
-								Orchestrator.Logger.DiscoveryDriverCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+								await dependency.DisposeAsync().ConfigureAwait(false);
 							}
-							else
+							catch (Exception ex2)
 							{
-								Orchestrator.Logger.DiscoveryComponentCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+								Orchestrator.Logger.DiscoveryComponentDependencyDisposalFailure(ex2);
 							}
-							_states.Remove(creationParameters.AssociatedKeys, state);
+						}
+						return;
+					}
+
+					state.AssociatedKeys = result.RegistrationKeys;
+					state.Registration = result.DisposableResult;
+					state.SharedComponentReference = sharedReference;
+
+					if (typeof(TComponent) == typeof(Driver))
+					{
+						var driver = Unsafe.As<Driver>(result.Component);
+						Orchestrator.Logger.DiscoveryDriverCreationSuccess(driver.FriendlyName, driver.ConfigurationKey.DeviceMainId);
+					}
+					else
+					{
+						var component = result.Component as Component;
+						if (component is not null)
+						{
+							Orchestrator.Logger.DiscoveryComponentCreationSuccess(component.FriendlyName);
+						}
+					}
+
+					// Determine which keys need to be removed.
+					// The factory is allowed to register itself on only a subset of the keys.
+					// It is generally not advised, but it might be necessary in very specific scenarios.
+					foreach (var key in result.RegistrationKeys)
+					{
+						keys.Remove(key);
+					}
+
+					// Unregister the state from all remaining keys.
+					_states.Remove(keys, state);
+
+					// And finally register with all the final keys.
+					foreach (var key in result.RegistrationKeys)
+					{
+						if (!keys.Add(key))
+						{
+							// TODO: Log duplicate keys.
+							_states.Remove(result.RegistrationKeys, state);
+							await DisposeStateAsync(state, false, default).ConfigureAwait(false);
+							return;
+						}
+						if (!ReferenceEquals(_states.GetOrAdd(key, state), state))
+						{
+							// TODO: Log ?
+							_states.Remove(result.RegistrationKeys, state);
+							await DisposeStateAsync(state, false, default).ConfigureAwait(false);
 							return;
 						}
 					}
-				}
 
-				// If no valid result was produced, rollback the state and exit.
-				if (result is null)
-				{
-					// TODO: Log some information. NB: It could be important to know if some factories were called.
-					_states.Remove(creationParameters.AssociatedKeys, state);
-					return;
-				}
-
-				// TODO: Still need to handle the additional disposables managed by the creation context.
-				// Drivers are supposed to properly dispose of what they use, so it is not a huge problem, but it would be better to guarantee cleanup.
-				// Only caveat is that these disposables need to be tied up to the lifetime rather than the state, as we can't know when the driver will stop using the objects.
-				// This is especially important for the nested driver registries, that will generally be tied to the lifetime of a driver and not to that of the registration.
-
-				state.AssociatedKeys = result.RegistrationKeys;
-				state.Component = result.Component;
-				state.Registration = result.DisposableResult;
-				state.ComponentReferenceCounter = Orchestrator.ReferenceCounters.GetOrCreateValue(result.Component);
-
-				using (await state.ComponentReferenceCounter.Lock.WaitAsync(default).ConfigureAwait(false))
-				{
-					state.ComponentReferenceCounter.ReferenceCount++;
-				}
-
-				if (typeof(TComponent) == typeof(Driver))
-				{
-					var driver = Unsafe.As<Driver>(result.Component);
-					Orchestrator.Logger.DiscoveryDriverCreationSuccess(driver.FriendlyName, driver.ConfigurationKey.DeviceMainId);
-				}
-				else
-				{
-					var component = result.Component as Component;
-					if (component is not null)
+					if (typeof(TComponent) == typeof(Driver))
 					{
-						Orchestrator.Logger.DiscoveryComponentCreationSuccess(component.FriendlyName);
+						try
+						{
+							await Orchestrator.DriverRegistry.AddDriverAsync(Unsafe.As<Driver>(result.Component)).ConfigureAwait(false);
+						}
+						catch (Exception ex)
+						{
+							// NB: This should generally not happen, but it seems that there is a problem in case some devices changing their serial number.
+							// This case should be handled properly, and then we can remove the catch clause.
+							// The specific problem was noticed with the LIGHTSPEED receiver (some time after a driver and/or firmware update, it might be related)
+							// The device sometimes changes its "serial number" between two successive connections to the computer, which is weird.
+							// One way to address this is to remove the serial number from the device key, but it would be better to avoid this if possible.
+							// Whatever happens after, the DriverRegistry.AddDriverAsync should not crash in that case.
+							// (Exception is "The same main device name was found for devices")
+							Orchestrator.Logger.LogError(ex, "Problem when adding the driver to the registry.");
+							await DisposeStateAsync(state, false, cancellationToken);
+						}
 					}
 				}
-
-				// Determine which keys need to be removed.
-				// The factory is allowed to register itself on only a subset of the keys.
-				// It is generally not advised, but it might be necessary in very specific scenarios.
-				foreach (var key in result.RegistrationKeys)
+				finally
 				{
-					keys.Remove(key);
-				}
-
-				// Unregister the state from all remaining keys.
-				_states.Remove(keys, state);
-
-				// And finally register with all the final keys.
-				foreach (var key in result.RegistrationKeys)
-				{
-					if (!keys.Add(key))
-					{
-						// TODO: Log duplicate keys.
-						_states.Remove(result.RegistrationKeys, state);
-						await DisposeStateAsync(state, false, default).ConfigureAwait(false);
-						return;
-					}
-					if (!ReferenceEquals(_states.GetOrAdd(key, state), state))
-					{
-						// TODO: Log ?
-						_states.Remove(result.RegistrationKeys, state);
-						await DisposeStateAsync(state, false, default).ConfigureAwait(false);
-						return;
-					}
-				}
-
-				if (typeof(TComponent) == typeof(Driver))
-				{
-					await Orchestrator.DriverRegistry.AddDriverAsync(Unsafe.As<Driver>(state.Component)).ConfigureAwait(false);
+					await creationParameters.DisposeAsync().ConfigureAwait(false);
 				}
 			}
 		}
@@ -389,24 +433,45 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 		public async ValueTask DisposeStateAsync(ComponentState<TKey> state, bool shouldUnregisterDriver, CancellationToken cancellationToken)
 		{
-			if (state.ComponentReferenceCounter is not null)
+			if (state.SharedComponentReference is { } sharedReference)
 			{
-				using (await state.ComponentReferenceCounter.Lock.WaitAsync(default).ConfigureAwait(false))
+				if (state.Registration is not null)
 				{
-					if (state.Registration is not null)
-					{
-						await state.Registration.DisposeAsync().ConfigureAwait(false);
-					}
+					await state.Registration.DisposeAsync().ConfigureAwait(false);
+				}
 
-					if (--state.ComponentReferenceCounter.ReferenceCount == 0)
+				var (component, dependencies) = await sharedReference.RemoveReferenceAsync(cancellationToken).ConfigureAwait(false);
+				if (component is not null)
+				{
+					if (typeof(TComponent) == typeof(Driver) && shouldUnregisterDriver)
 					{
-						if (state.Component is { } component)
+						await Orchestrator.DriverRegistry.RemoveDriverAsync(Unsafe.As<Driver>(component)).ConfigureAwait(false);
+					}
+					try
+					{
+						await component.DisposeAsync().ConfigureAwait(false);
+					}
+					catch (Exception ex)
+					{
+						var type = component.GetType();
+						if (typeof(TComponent) == typeof(Driver))
 						{
-							if (typeof(TComponent) == typeof(Driver) && shouldUnregisterDriver)
-							{
-								await Orchestrator.DriverRegistry.RemoveDriverAsync(Unsafe.As<Driver>(component)).ConfigureAwait(false);
-							}
-							await state.Component.DisposeAsync();
+							Orchestrator.Logger.DiscoveryDriverDisposalFailure(type.FullName!, type.Assembly.FullName!, ex);
+						}
+						else
+						{
+							Orchestrator.Logger.DiscoveryComponentDisposalFailure(type.FullName!, type.Assembly.FullName!, ex);
+						}
+					}
+					foreach (var dependency in dependencies)
+					{
+						try
+						{
+							await dependency.DisposeAsync().ConfigureAwait(false);
+						}
+						catch (Exception ex)
+						{
+							Orchestrator.Logger.DiscoveryComponentDependencyDisposalFailure(ex);
 						}
 					}
 				}
@@ -419,9 +484,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 	{
 		public AsyncLock Lock { get; }
 		public ImmutableArray<TKey> AssociatedKeys { get; set; }
-		public IAsyncDisposable? Component { get; set; }
 		public IAsyncDisposable? Registration { get; set; }
-		public ComponentReferenceCounter? ComponentReferenceCounter { get; set; }
+		public ComponentSharedReference? SharedComponentReference { get; set; }
 
 		public ComponentState(ImmutableArray<TKey> associatedKeys)
 		{
@@ -529,10 +593,56 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			=> _mainLock.WaitAsync(cancellationToken);
 	}
 
-	private sealed class ComponentReferenceCounter
+	private sealed class ComponentSharedReference
 	{
-		public AsyncLock Lock { get; } = new();
-		public int ReferenceCount { get; set; }
+		private readonly AsyncLock _lock = new();
+		private IAsyncDisposable? _component;
+		private ImmutableArray<IAsyncDisposable> _disposableDependencies = [];
+		private int _referenceCount;
+		public IAsyncDisposable? Component => _component;
+
+		public async ValueTask AddReferenceAsync(IAsyncDisposable component, ImmutableArray<IAsyncDisposable> dependencies, CancellationToken cancellationToken)
+		{
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				if (_component is null)
+				{
+					_component = component;
+				}
+				else if (!ReferenceEquals(_component, component))
+				{
+					throw new InvalidOperationException("The component reference does not match.");
+				}
+				_referenceCount++;
+			}
+		}
+
+		public async ValueTask<(IAsyncDisposable? Component, ImmutableArray<IAsyncDisposable> Dependencies)> RemoveReferenceAsync(CancellationToken cancellationToken)
+		{
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				if (--_referenceCount == 0)
+				{
+					return (Interlocked.Exchange(ref _component, null), ImmutableInterlocked.InterlockedExchange(ref _disposableDependencies, []));
+				}
+				return default;
+			}
+		}
+
+		private void AddDependencies(ImmutableArray<IAsyncDisposable> dependencies)
+		{
+			if (dependencies.IsDefaultOrEmpty) return;
+
+			var disposableDependencies = _disposableDependencies;
+			if (disposableDependencies.IsEmpty)
+			{
+				disposableDependencies = dependencies;
+			}
+			else
+			{
+				_disposableDependencies = disposableDependencies.AddRange(dependencies);
+			}
+		}
 	}
 
 	private ILogger<DiscoveryOrchestrator> Logger { get; }
@@ -542,7 +652,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 	private readonly IAssemblyParsedDataCache<DiscoveredAssemblyDetails> _parsedDataCache;
 	private readonly ConditionalWeakTable<Type, object> _componentStates;
 	private ConditionalWeakTable<Type, ExclusionLock> ExclusionLocks { get; }
-	private ConditionalWeakTable<object, ComponentReferenceCounter> ReferenceCounters { get; }
+	private ConditionalWeakTable<object, ComponentSharedReference> ComponentReferences { get; }
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private List<DiscoveryServiceState>? _pendingInitializations;
 	private readonly IConfigurationContainer<Guid> _factoryConfigurationContainer;
@@ -563,7 +673,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		_parsedDataCache = parsedDataCache;
 		_componentStates = new();
 		ExclusionLocks = new();
-		ReferenceCounters = new();
+		ComponentReferences = new();
 		_cancellationTokenSource = new();
 		_pendingInitializations = new();
 		_factoryConfigurationContainer = factoryConfigurationContainer;

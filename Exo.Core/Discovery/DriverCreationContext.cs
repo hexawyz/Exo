@@ -15,24 +15,27 @@ public abstract class DriverCreationContext : IComponentCreationContext
 	{
 	}
 
-	public ValueTask<ImmutableArray<IAsyncDisposable>> CompleteAndResetAfterSuccessAsync(IAsyncDisposable? disposableResult)
+	public ImmutableArray<IAsyncDisposable> CollectDisposableDependencies()
+	{
+		var builder = new DisposableDependencyBuilder();
+		CollectDisposableDependencies(ref builder);
+		return builder.ToImmutableArray();
+	}
+
+	protected virtual void CollectDisposableDependencies(ref DisposableDependencyBuilder builder)
 	{
 		var nestedDriverRegistry = _nestedDriverRegistry;
 		if (nestedDriverRegistry is not null)
 		{
 			_nestedDriverRegistry = null;
-			if (nestedDriverRegistry.IsDisposed)
-				nestedDriverRegistry = null;
+			if (!nestedDriverRegistry.IsDisposed)
+			{
+				builder.Add(nestedDriverRegistry);
+			}
 		}
-		return new
-		(
-			nestedDriverRegistry is not null ?
-				disposableResult is not null ? [disposableResult, nestedDriverRegistry] : [nestedDriverRegistry] :
-				disposableResult is not null ? [disposableResult] : []
-		);
 	}
 
-	public virtual ValueTask DisposeAndResetAsync()
+	public virtual ValueTask DisposeAsync()
 	{
 		var nestedDriverRegistry = _nestedDriverRegistry;
 		if (nestedDriverRegistry is not null)
