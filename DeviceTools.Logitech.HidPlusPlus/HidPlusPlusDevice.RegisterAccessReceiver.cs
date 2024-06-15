@@ -12,7 +12,7 @@ public abstract partial class HidPlusPlusDevice
 	public class RegisterAccessReceiver : RegisterAccess, IUsbReceiver
 	{
 		private LightweightSingleProducerSingleConsumerQueue<Task> _deviceOperationTaskQueue;
-		private LightweightSingleProducerSingleConsumerQueue<(DeviceEventKind kind, HidPlusPlusDevice device, int Version)> _eventQueue;
+		private LightweightSingleProducerSingleConsumerQueue<(DeviceEventKind Kind, HidPlusPlusDevice Device, int Version)> _eventQueue;
 		private readonly ILoggerFactory _loggerFactory;
 		private readonly Task _deviceWatcherTask;
 		private readonly Task _eventProcessingTask;
@@ -73,7 +73,17 @@ public abstract partial class HidPlusPlusDevice
 		{
 			while (true)
 			{
-				var (kind, device, version) = await _eventQueue.DequeueAsync().ConfigureAwait(false);
+				DeviceEventKind kind;
+				HidPlusPlusDevice device;
+				int version;
+				try
+				{
+					(kind, device, version) = await _eventQueue.DequeueAsync().ConfigureAwait(false);
+				}
+				catch (ObjectDisposedException)
+				{
+					return;
+				}
 
 				try
 				{
