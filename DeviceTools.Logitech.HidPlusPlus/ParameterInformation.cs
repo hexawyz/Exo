@@ -84,27 +84,27 @@ internal static class ParameterInformation<T>
 	}
 
 	public static Span<byte> GetNativeSpan(ref T parameters)
-		=> MemoryMarshal.CreateSpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(parameters)), Unsafe.SizeOf<T>());
+		=> MemoryMarshal.CreateSpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(ref parameters)), Unsafe.SizeOf<T>());
 
 	public static ReadOnlySpan<byte> GetNativeReadOnlySpan(in T parameters)
-		=> MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(parameters)), Unsafe.SizeOf<T>());
+		=> MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in parameters)), Unsafe.SizeOf<T>());
 
 	public static ReadOnlySpan<byte> GetShortReadOnlySpan(in T parameters)
 	{
 		ThrowIfNoShortSupport();
-		return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(parameters)), 3);
+		return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in parameters)), 3);
 	}
 
 	public static ReadOnlySpan<byte> GetLongReadOnlySpan(in T parameters)
 	{
 		ThrowIfNoLongSupport();
-		return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(parameters)), 16);
+		return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in parameters)), 16);
 	}
 
 	public static ReadOnlySpan<byte> GetVeryLongReadOnlySpan(in T parameters)
 	{
 		ThrowIfNoVeryLongSupport();
-		return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(parameters)), 60);
+		return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in parameters)), 60);
 	}
 
 	// This should force triggering the static constructor.

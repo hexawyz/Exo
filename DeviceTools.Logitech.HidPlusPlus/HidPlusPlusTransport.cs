@@ -3,6 +3,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus.RegisterAccessProtocol;
 using Microsoft.Extensions.Logging;
@@ -669,7 +670,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 	private void ProcessReadMessage(ReadOnlySpan<byte> message)
 	{
 		// Interpret the message header in a more accessible format.
-		ref readonly var header = ref Unsafe.As<byte, RawMessageHeader>(ref Unsafe.AsRef(message[0]));
+		ref readonly var header = ref Unsafe.As<byte, RawMessageHeader>(ref MemoryMarshal.GetReference(message));
 
 		var deviceState = TryGetDeviceState(header.DeviceIndex);
 		// Cache the protocol flavor, as it could change from Unknown to a defined value, but we need to operate on a contant.
