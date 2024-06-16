@@ -801,7 +801,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 		byte subIdOrFeatureIndex,
 		byte addressOrFunctionIdAndSoftwareId,
 		ReadOnlySpan<byte> parameters,
-		Func<RawMessageHeader, PendingOperation> operationFactory,
+		OperationFactory operationFactory,
 		CancellationToken cancellationToken
 	)
 	{
@@ -842,7 +842,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 		}
 
 		header = new RawMessageHeader(reportId, deviceIndex, subIdOrFeatureIndex, addressOrFunctionIdAndSoftwareId);
-		operation = operationFactory(header);
+		operation = operationFactory(header, parameters);
 		buffer = bufferPool.Rent();
 
 		var remaining = buffer.Memory.Span;

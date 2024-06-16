@@ -46,18 +46,41 @@ public static class NonVolatileAndPairingInformation
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
-	public struct Request : IMessageGetParameters, IShortMessageParameters
+	public struct Request : IMessageGetParametersWithOneExtraParameter, IShortMessageParameters
 	{
 		private byte _parameter;
-		public byte Index;
 
 		public Request(Parameter parameter) => _parameter = (byte)parameter;
 
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
+
+		readonly byte IMessageGetParametersWithOneExtraParameter.Parameter => _parameter;
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
+	public struct RequestWithIndex : IMessageGetParametersWithTwoExtraParameters, IShortMessageParameters
+	{
+		private byte _parameter;
+		public byte Index;
+
+		public RequestWithIndex(Parameter parameter, byte index)
+		{
+			_parameter = (byte)parameter;
+			Index = index;
+		}
+
+		public Parameter Parameter
+		{
+			readonly get => (Parameter)_parameter;
+			set => _parameter = (byte)value;
+		}
+
+		readonly byte IMessageGetParametersWithTwoExtraParameters.Parameter1 => _parameter;
+		readonly byte IMessageGetParametersWithTwoExtraParameters.Parameter2 => Index;
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
@@ -66,7 +89,7 @@ public static class NonVolatileAndPairingInformation
 		private byte _parameter;
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
 
@@ -79,7 +102,7 @@ public static class NonVolatileAndPairingInformation
 
 		public uint SerialNumber
 		{
-			get => BigEndian.ReadUInt32(_serialNumber0);
+			readonly get => BigEndian.ReadUInt32(_serialNumber0);
 			set => BigEndian.Write(ref _serialNumber0, value);
 		}
 	}
@@ -90,7 +113,7 @@ public static class NonVolatileAndPairingInformation
 		private byte _parameter;
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
 		public byte DestinationId;
@@ -102,7 +125,7 @@ public static class NonVolatileAndPairingInformation
 
 		public ushort WirelessProductId
 		{
-			get => BigEndian.ReadUInt16(_wirelessProductId0);
+			readonly get => BigEndian.ReadUInt16(_wirelessProductId0);
 			set => BigEndian.Write(ref _wirelessProductId0, value);
 		}
 
@@ -126,7 +149,7 @@ public static class NonVolatileAndPairingInformation
 		private byte _parameter;
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
 
@@ -139,7 +162,7 @@ public static class NonVolatileAndPairingInformation
 
 		public uint SerialNumber
 		{
-			get => BigEndian.ReadUInt32(_serialNumber0);
+			readonly get => BigEndian.ReadUInt32(_serialNumber0);
 			set => BigEndian.Write(ref _serialNumber0, value);
 		}
 
@@ -152,7 +175,7 @@ public static class NonVolatileAndPairingInformation
 
 		public uint ReportTypes
 		{
-			get => BigEndian.ReadUInt32(_reportTypes0);
+			readonly get => BigEndian.ReadUInt32(_reportTypes0);
 			set => BigEndian.Write(ref _reportTypes0, value);
 		}
 
@@ -160,7 +183,7 @@ public static class NonVolatileAndPairingInformation
 
 		public PowerSwitchLocation PowerSwitchLocation
 		{
-			get => (PowerSwitchLocation)(_usabilityInfo & 0x0F);
+			readonly get => (PowerSwitchLocation)(_usabilityInfo & 0x0F);
 			set
 			{
 				if ((byte)value >= 0xD) throw new ArgumentOutOfRangeException(nameof(value));
@@ -176,7 +199,7 @@ public static class NonVolatileAndPairingInformation
 		private byte _parameter;
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
 		public byte Length;
@@ -226,7 +249,7 @@ public static class NonVolatileAndPairingInformation
 		private byte _parameter;
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
 		public byte DeviceInformation;
@@ -237,7 +260,7 @@ public static class NonVolatileAndPairingInformation
 
 		public ushort WirelessProductId
 		{
-			get => LittleEndian.ReadUInt16(_wirelessProductId0);
+			readonly get => LittleEndian.ReadUInt16(_wirelessProductId0);
 			set => LittleEndian.Write(ref _wirelessProductId0, value);
 		}
 #pragma warning restore IDE0044 // Add readonly modifier
@@ -249,7 +272,7 @@ public static class NonVolatileAndPairingInformation
 		private byte _parameter;
 		public Parameter Parameter
 		{
-			get => (Parameter)_parameter;
+			readonly get => (Parameter)_parameter;
 			set => _parameter = (byte)value;
 		}
 

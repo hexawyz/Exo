@@ -367,7 +367,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		{
 			// Unifying receivers and some other should answer to this relatively undocumented call that will provide the "serial number" among other things.
 			// We can find trace of this in the logitech Unifying chrome extension, where the serial number is also called base address. (A radio thing?)
-			var receiverInformation = await transport.RegisterAccessGetLongRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ReceiverInformationResponse>
+			var receiverInformation = await transport.RegisterAccessGetLongRegisterWithOneExtraParameterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ReceiverInformationResponse>
 			(
 				deviceIndex,
 				Address.NonVolatileAndPairingInformation,

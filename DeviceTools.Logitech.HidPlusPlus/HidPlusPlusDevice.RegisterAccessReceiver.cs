@@ -242,7 +242,7 @@ public abstract partial class HidPlusPlusDevice
 
 			try
 			{
-				var pairingInformationResponse = await Transport.RegisterAccessGetRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.PairingInformationResponse>
+				var pairingInformationResponse = await Transport.RegisterAccessGetRegisterWithOneExtraParameterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.PairingInformationResponse>
 				(
 					255,
 					Address.NonVolatileAndPairingInformation,
@@ -259,7 +259,7 @@ public abstract partial class HidPlusPlusDevice
 
 			try
 			{
-				var extendedPairingInformationResponse = await Transport.RegisterAccessGetRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ExtendedPairingInformationResponse>
+				var extendedPairingInformationResponse = await Transport.RegisterAccessGetRegisterWithOneExtraParameterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.ExtendedPairingInformationResponse>
 				(
 					255,
 					Address.NonVolatileAndPairingInformation,
@@ -276,7 +276,7 @@ public abstract partial class HidPlusPlusDevice
 
 			try
 			{
-				var deviceNameResponse = await Transport.RegisterAccessGetRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.DeviceNameResponse>
+				var deviceNameResponse = await Transport.RegisterAccessGetRegisterWithOneExtraParameterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.DeviceNameResponse>
 				(
 					255,
 					Address.NonVolatileAndPairingInformation,

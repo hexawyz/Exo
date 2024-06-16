@@ -43,7 +43,7 @@ public abstract partial class HidPlusPlusDevice
 		)
 		{
 			// The serial number should probably be somewhere in there, but apart from the WPID (which seems to be the BT/USB PID in this case), nothing appears obvious.
-			var boltPairingInformation = await Transport.RegisterAccessGetLongRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.BoltPairingInformationResponse>
+			var boltPairingInformation = await Transport.RegisterAccessGetLongRegisterWithOneExtraParameterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.BoltPairingInformationResponse>
 			(
 				DeviceIndex,
 				Address.NonVolatileAndPairingInformation,
@@ -53,11 +53,11 @@ public abstract partial class HidPlusPlusDevice
 			).ConfigureAwait(false);
 
 			// Seems like this could be a multipart query, but I don't have any device with a name longer than 13 characters to verify this.
-			var deviceNameResponse = await Transport.RegisterAccessGetLongRegisterWithRetryAsync<NonVolatileAndPairingInformation.Request, NonVolatileAndPairingInformation.BoltDeviceNameResponse>
+			var deviceNameResponse = await Transport.RegisterAccessGetLongRegisterWithTwoExtraParametersWithRetryAsync<NonVolatileAndPairingInformation.RequestWithIndex, NonVolatileAndPairingInformation.BoltDeviceNameResponse>
 			(
 				DeviceIndex,
 				Address.NonVolatileAndPairingInformation,
-				new NonVolatileAndPairingInformation.Request { Parameter = NonVolatileAndPairingInformation.Parameter.BoltDeviceName1 - 1 + deviceIndex, Index = 1 },
+				new NonVolatileAndPairingInformation.RequestWithIndex(NonVolatileAndPairingInformation.Parameter.BoltDeviceName1 - 1 + deviceIndex, 1),
 				retryCount,
 				cancellationToken
 			).ConfigureAwait(false);

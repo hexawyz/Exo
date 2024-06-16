@@ -100,6 +100,54 @@ public static class HidPlusPlusTransportExtensions
 			)
 		);
 
+	private static Task<TResponseParameters> RegisterAccessGetRegisterWithOneExtraParameterAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		SubId subId,
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithOneExtraParameter, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+		=> Unsafe.As<Task<TResponseParameters>>
+		(
+			transport.SendAsync
+			(
+				deviceIndex,
+				(byte)subId,
+				(byte)address,
+				ParameterInformation<TRequestParameters>.GetShortReadOnlySpan(parameters),
+				PendingOperationFactory.ForOneExtraParameter<TResponseParameters>(),
+				cancellationToken
+			)
+		);
+
+	private static Task<TResponseParameters> RegisterAccessGetRegisterWithTwoExtraParametersAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		SubId subId,
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithTwoExtraParameters, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+		=> Unsafe.As<Task<TResponseParameters>>
+		(
+			transport.SendAsync
+			(
+				deviceIndex,
+				(byte)subId,
+				(byte)address,
+				ParameterInformation<TRequestParameters>.GetShortReadOnlySpan(parameters),
+				PendingOperationFactory.ForTwoExtraParameters<TResponseParameters>(),
+				cancellationToken
+			)
+		);
+
 	private static async Task<TResponseParameters> RegisterAccessGetRegisterWithRetryAsync<TRequestParameters, TResponseParameters>
 	(
 		this HidPlusPlusTransport transport,
@@ -118,6 +166,82 @@ public static class HidPlusPlusTransportExtensions
 			try
 			{
 				return await transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>
+				(
+					deviceIndex,
+					subId,
+					address,
+					parameters,
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+			catch (TimeoutException) when (retryCount > 0)
+			{
+				retryCount--;
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.Busy && retryCount > 0)
+			{
+				await Task.Delay(DefaultDeviceBusyRetryDelayInMilliseconds, cancellationToken).ConfigureAwait(false);
+				retryCount--;
+			}
+		}
+	}
+
+	private static async Task<TResponseParameters> RegisterAccessGetRegisterWithOneExtraParameterWithRetryAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		SubId subId,
+		Address address,
+		TRequestParameters parameters,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithOneExtraParameter, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+	{
+		while (true)
+		{
+			try
+			{
+				return await transport.RegisterAccessGetRegisterWithOneExtraParameterAsync<TRequestParameters, TResponseParameters>
+				(
+					deviceIndex,
+					subId,
+					address,
+					parameters,
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+			catch (TimeoutException) when (retryCount > 0)
+			{
+				retryCount--;
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.Busy && retryCount > 0)
+			{
+				await Task.Delay(DefaultDeviceBusyRetryDelayInMilliseconds, cancellationToken).ConfigureAwait(false);
+				retryCount--;
+			}
+		}
+	}
+
+	private static async Task<TResponseParameters> RegisterAccessGetRegisterWithTwoExtraParametersWithRetryAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		SubId subId,
+		Address address,
+		TRequestParameters parameters,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithTwoExtraParameters, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+	{
+		while (true)
+		{
+			try
+			{
+				return await transport.RegisterAccessGetRegisterWithTwoExtraParametersAsync<TRequestParameters, TResponseParameters>
 				(
 					deviceIndex,
 					subId,
@@ -218,6 +342,56 @@ public static class HidPlusPlusTransportExtensions
 			cancellationToken
 		);
 
+	public static Task<TResponseParameters> RegisterAccessGetRegisterWithOneExtraParameterAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithOneExtraParameter, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+		=> transport.RegisterAccessGetRegisterWithOneExtraParameterAsync<TRequestParameters, TResponseParameters>
+		(
+			deviceIndex,
+			ParameterInformation<TResponseParameters>.NativeSupportedReport switch
+			{
+				SupportedReports.Short => SubId.GetShortRegister,
+				SupportedReports.Long => SubId.GetLongRegister,
+				SupportedReports.VeryLong => SubId.GetVeryLongRegister,
+				_ => throw new NotSupportedException()
+			},
+			address,
+			parameters,
+			cancellationToken
+		);
+
+	public static Task<TResponseParameters> RegisterAccessGetRegisterWithTwoExtraParametersAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		in TRequestParameters parameters,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithTwoExtraParameters, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+		=> transport.RegisterAccessGetRegisterWithTwoExtraParametersAsync<TRequestParameters, TResponseParameters>
+		(
+			deviceIndex,
+			ParameterInformation<TResponseParameters>.NativeSupportedReport switch
+			{
+				SupportedReports.Short => SubId.GetShortRegister,
+				SupportedReports.Long => SubId.GetLongRegister,
+				SupportedReports.VeryLong => SubId.GetVeryLongRegister,
+				_ => throw new NotSupportedException()
+			},
+			address,
+			parameters,
+			cancellationToken
+		);
+
 	public static async Task<TResponseParameters> RegisterAccessGetRegisterWithRetryAsync<TRequestParameters, TResponseParameters>
 	(
 		this HidPlusPlusTransport transport,
@@ -235,6 +409,78 @@ public static class HidPlusPlusTransportExtensions
 			try
 			{
 				return await transport.RegisterAccessGetRegisterAsync<TRequestParameters, TResponseParameters>
+				(
+					deviceIndex,
+					address,
+					parameters,
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+			catch (TimeoutException) when (retryCount > 0)
+			{
+				retryCount--;
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.Busy && retryCount > 0)
+			{
+				await Task.Delay(DefaultDeviceBusyRetryDelayInMilliseconds, cancellationToken).ConfigureAwait(false);
+				retryCount--;
+			}
+		}
+	}
+
+	public static async Task<TResponseParameters> RegisterAccessGetRegisterWithOneExtraParameterWithRetryAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		TRequestParameters parameters,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithOneExtraParameter, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+	{
+		while (true)
+		{
+			try
+			{
+				return await transport.RegisterAccessGetRegisterWithOneExtraParameterAsync<TRequestParameters, TResponseParameters>
+				(
+					deviceIndex,
+					address,
+					parameters,
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+			catch (TimeoutException) when (retryCount > 0)
+			{
+				retryCount--;
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.Busy && retryCount > 0)
+			{
+				await Task.Delay(DefaultDeviceBusyRetryDelayInMilliseconds, cancellationToken).ConfigureAwait(false);
+				retryCount--;
+			}
+		}
+	}
+
+	public static async Task<TResponseParameters> RegisterAccessGetRegisterWithTwoExtraParametersWithRetryAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		TRequestParameters parameters,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithTwoExtraParameters, IShortMessageParameters
+		where TResponseParameters : struct, IMessageParameters
+	{
+		while (true)
+		{
+			try
+			{
+				return await transport.RegisterAccessGetRegisterWithTwoExtraParametersAsync<TRequestParameters, TResponseParameters>
 				(
 					deviceIndex,
 					address,
@@ -345,6 +591,32 @@ public static class HidPlusPlusTransportExtensions
 		where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 		where TResponseParameters : struct, ILongMessageParameters
 		=> transport.RegisterAccessGetRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(deviceIndex, SubId.GetLongRegister, address, parameters, retryCount, cancellationToken);
+
+	public static Task<TResponseParameters> RegisterAccessGetLongRegisterWithOneExtraParameterWithRetryAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		in TRequestParameters parameters,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithOneExtraParameter, IShortMessageParameters
+		where TResponseParameters : struct, ILongMessageParameters
+		=> transport.RegisterAccessGetRegisterWithOneExtraParameterWithRetryAsync<TRequestParameters, TResponseParameters>(deviceIndex, SubId.GetLongRegister, address, parameters, retryCount, cancellationToken);
+
+	public static Task<TResponseParameters> RegisterAccessGetLongRegisterWithTwoExtraParametersWithRetryAsync<TRequestParameters, TResponseParameters>
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		Address address,
+		in TRequestParameters parameters,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+		where TRequestParameters : struct, IMessageGetParametersWithTwoExtraParameters, IShortMessageParameters
+		where TResponseParameters : struct, ILongMessageParameters
+		=> transport.RegisterAccessGetRegisterWithTwoExtraParametersWithRetryAsync<TRequestParameters, TResponseParameters>(deviceIndex, SubId.GetLongRegister, address, parameters, retryCount, cancellationToken);
 
 	public static Task<TResponseParameters> RegisterAccessGetVeryLongRegisterAsync<TResponseParameters>
 	(

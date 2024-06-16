@@ -21,6 +21,8 @@ internal abstract class PendingOperation
 		Timestamp = Stopwatch.GetTimestamp();
 	}
 
+	public virtual bool ValidateExtraParameters(ReadOnlySpan<byte> buffer) => true;
+
 	// Allows to await the Task exposed by the TaskCompletionSource object.
 	// We may use this method to serialize requests in the case of an USB receiver with multiple devices.
 	public abstract Task WaitAsync();
@@ -51,7 +53,7 @@ internal sealed class EmptyPendingOperation : PendingOperation
 	public override bool TrySetResult(ReadOnlySpan<byte> buffer) => TaskCompletionSource.TrySetResult();
 }
 
-internal sealed class MessagePendingOperation<T> : PendingOperation
+internal class MessagePendingOperation<T> : PendingOperation
 	where T : struct, IMessageParameters
 {
 	private new TaskCompletionSource<T> TaskCompletionSource => Unsafe.As<TaskCompletionSource<T>>(base.TaskCompletionSource);
@@ -73,7 +75,7 @@ internal sealed class MessagePendingOperation<T> : PendingOperation
 		// Hopefully, most of the time, we'll set results of the exact length.
 		if (buffer.Length == Unsafe.SizeOf<T>() + 4)
 		{
-			return TaskCompletionSource.TrySetResult(Unsafe.ReadUnaligned<T>(ref Unsafe.AsRef(buffer[4])));
+			return TaskCompletionSource.TrySetResult(Unsafe.ReadUnaligned<T>(ref Unsafe.AsRef(in buffer[4])));
 		}
 
 		// But we also allow truncating data that is too large, or returning smaller data at the beginning of a zeroed buffer.
@@ -121,4 +123,32 @@ internal sealed class MessagePendingOperation<T> : PendingOperation
 
 		return TaskCompletionSource.TrySetResult(parameters);
 	}
+}
+
+internal sealed class MessagePendingOperationWithOneExtraParameter<T> : MessagePendingOperation<T>
+	where T : struct, IMessageParameters
+{
+	private readonly byte _parameter;
+
+	public MessagePendingOperationWithOneExtraParameter(RawMessageHeader header, byte parameter) : base(header)
+	{
+		_parameter = parameter;
+	}
+
+	public override bool ValidateExtraParameters(ReadOnlySpan<byte> buffer) => buffer[0] == _parameter;
+}
+
+internal sealed class MessagePendingOperationWithTwoExtraParameters<T> : MessagePendingOperation<T>
+	where T : struct, IMessageParameters
+{
+	private readonly byte _parameter1;
+	private readonly byte _parameter2;
+
+	public MessagePendingOperationWithTwoExtraParameters(RawMessageHeader header, byte parameter1, byte parameter2) : base(header)
+	{
+		_parameter1 = parameter1;
+		_parameter2 = parameter2;
+	}
+
+	public override bool ValidateExtraParameters(ReadOnlySpan<byte> buffer) => buffer[0] == _parameter1 && buffer[1] == _parameter2;
 }

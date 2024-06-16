@@ -9,18 +9,40 @@ internal sealed class PendingOperationFactory
 	private static class AnyLength<T>
 		where T : struct, IMessageParameters
 	{
-		public static readonly Func<RawMessageHeader, MessagePendingOperation<T>> Factory = CreateFactory();
+		public static readonly OperationFactory Factory = CreateFactory();
+		public static readonly OperationFactory OneExtraParameterFactory = CreateFactory();
+		public static readonly OperationFactory TwoExtraParametersFactory = CreateFactory();
 
-		private static Func<RawMessageHeader, MessagePendingOperation<T>> CreateFactory()
+		private static OperationFactory CreateFactory()
+		{
+			ParameterInformation<T>.ThrowIfInvalid();
+			return new(Instance.CreateParameterOperation<T>);
+		}
+
+		private static OperationFactory CreateParameterOperationWithOneExtraParameter()
+		{
+			ParameterInformation<T>.ThrowIfInvalid();
+			return new(Instance.CreateParameterOperation<T>);
+		}
+
+		private static OperationFactory CreateParameterOperationWithTwoExtraParameters()
 		{
 			ParameterInformation<T>.ThrowIfInvalid();
 			return new(Instance.CreateParameterOperation<T>);
 		}
 	}
 
-	public static readonly Func<RawMessageHeader, EmptyPendingOperation> Empty = new(Instance.CreateEmptyParameterOperation);
+	public static readonly OperationFactory Empty = new(Instance.CreateEmptyParameterOperation);
 
-	public static Func<RawMessageHeader, MessagePendingOperation<T>> For<T>()
+	public static OperationFactory For<T>()
+		where T : struct, IMessageParameters
+		=> AnyLength<T>.Factory;
+
+	public static OperationFactory ForOneExtraParameter<T>()
+		where T : struct, IMessageParameters
+		=> AnyLength<T>.Factory;
+
+	public static OperationFactory ForTwoExtraParameters<T>()
 		where T : struct, IMessageParameters
 		=> AnyLength<T>.Factory;
 
@@ -30,10 +52,20 @@ internal sealed class PendingOperationFactory
 // We have to deal with all of this to create non static delegates, and the class needs to be top-level because extension methods in nested classes are not allowed.
 internal static class PendingOperationFactoryExtensions
 {
-	internal static EmptyPendingOperation CreateEmptyParameterOperation(this PendingOperationFactory _, RawMessageHeader header)
+	internal static EmptyPendingOperation CreateEmptyParameterOperation(this PendingOperationFactory _, in RawMessageHeader header, ReadOnlySpan<byte> message)
 		=> new EmptyPendingOperation(header);
 
-	internal static MessagePendingOperation<T> CreateParameterOperation<T>(this PendingOperationFactory _, RawMessageHeader header)
+	internal static MessagePendingOperation<T> CreateParameterOperation<T>(this PendingOperationFactory _, in RawMessageHeader header, ReadOnlySpan<byte> message)
 		where T : struct, IMessageParameters
 		=> new MessagePendingOperation<T>(header);
+
+	internal static MessagePendingOperation<T> CreateParameterOperationWithOneExtraParameter<T>(this PendingOperationFactory _, in RawMessageHeader header, ReadOnlySpan<byte> message)
+		where T : struct, IMessageParameters
+		=> new MessagePendingOperationWithOneExtraParameter<T>(header, message[0]);
+
+	internal static MessagePendingOperation<T> CreateParameterOperationWithTwoExtraParameters<T>(this PendingOperationFactory _, in RawMessageHeader header, ReadOnlySpan<byte> message)
+		where T : struct, IMessageParameters
+		=> new MessagePendingOperationWithTwoExtraParameters<T>(header, message[0], message[1]);
 }
+
+internal delegate PendingOperation OperationFactory(in RawMessageHeader header, ReadOnlySpan<byte> message);
