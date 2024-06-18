@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
@@ -21,7 +22,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		Coolers = 16,
 	}
 
-	private sealed class AssemblyCacheEntry : IDisposable
+	private sealed class AssemblyCacheEntry
 	{
 		public AssemblyCacheEntry(AssemblyName assemblyName, string path, MetadataArchiveCategories availableMetadataArchives)
 		{
@@ -31,36 +32,28 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 			Lock = new();
 		}
 
-		public void Dispose()
-		{
-			lock (Lock)
-			{
-				if (_dependentHandle.IsAllocated)
-				{
-					_dependentHandle.Dispose();
-				}
-			}
-		}
-
 		public AssemblyName AssemblyName { get; }
 		public string Path { get; }
 		public object Lock { get; }
-		private DependentHandle _dependentHandle;
+		private WeakReference<LoadedAssemblyReference>? _assemblyReference;
 		public MetadataArchiveCategories AvailableMetadataArchives { get; }
 
-		public Assembly? TryGetAssembly() => _dependentHandle.IsAllocated ? _dependentHandle.Target as Assembly : null;
+		public LoadedAssemblyReference? TryGetAssemblyReference() => Volatile.Read(ref _assemblyReference) is { } assemblyReference && assemblyReference.TryGetTarget(out var reference) ?
+			reference :
+			null;
 
-		public void SetContext(PluginLoadContext context)
+		public LoadedAssemblyReference SetContext(PluginLoadContext context)
 		{
-			if (_dependentHandle.IsAllocated)
+			var reference = new LoadedAssemblyReference(context, context.LoadFromAssemblyName(AssemblyName));
+			if (_assemblyReference is null)
 			{
-				_dependentHandle.Target = context.MainAssembly;
-				_dependentHandle.Dependent = context;
+				_assemblyReference = new(reference, false);
 			}
 			else
 			{
-				_dependentHandle = new(context.MainAssembly, context);
+				_assemblyReference.SetTarget(reference);
 			}
+			return reference;
 		}
 	}
 
@@ -93,6 +86,8 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	public event EventHandler<AssemblyLoadEventArgs>? AfterAssemblyLoad;
 	public event EventHandler? AvailableAssembliesChanged;
 
+	private readonly Action<AssemblyLoadContext> _onContextUnloading;
+
 	public ImmutableArray<AssemblyName> AvailableAssemblies => Unsafe.As<AssemblyName[], ImmutableArray<AssemblyName>>(ref _availableAssemblies);
 
 	public AssemblyLoader(ILogger<AssemblyLoader> logger, IAssemblyDiscovery assemblyDiscovery)
@@ -100,6 +95,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		_logger = logger;
 		_assemblyDiscovery = assemblyDiscovery;
 		_assemblyDiscovery.AssemblyPathsChanged += OnAvailableAssembliesChanged;
+		_onContextUnloading = OnContextUnloading;
 		OnAvailableAssembliesChanged(_assemblyDiscovery, EventArgs.Empty);
 	}
 
@@ -130,7 +126,6 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 				{
 					if (_availableAssemblyDetails.TryRemove(assemblyName.FullName, out var entry))
 					{
-						entry.Dispose();
 						if (_loadedAssemblies.Remove(entry))
 						{
 							_metadataChangeListeners.TryWrite((WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
@@ -152,38 +147,37 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		}
 	}
 
-	public Assembly LoadAssembly(AssemblyName assemblyName)
+	public LoadedAssemblyReference LoadAssembly(AssemblyName assemblyName)
 	{
 		var entry = GetAssemblyCacheEntry(assemblyName);
 
-		return entry.TryGetAssembly() is { } assembly ?
-			assembly :
+		return entry.TryGetAssemblyReference() is { } reference ?
+			reference :
 			LoadAssemblySlow(entry);
 	}
 
-	public Assembly? TryLoadAssembly(AssemblyName assemblyName)
+	public LoadedAssemblyReference? TryLoadAssembly(AssemblyName assemblyName)
 	{
 		if (!_availableAssemblyDetails.TryGetValue(assemblyName.FullName, out var entry)) return null;
 
-		return entry.TryGetAssembly() is { } assembly ?
-			assembly :
+		return entry.TryGetAssemblyReference() is { } reference ?
+			reference :
 			LoadAssemblySlow(entry);
 	}
 
-	private Assembly LoadAssemblySlow(AssemblyCacheEntry entry)
+	private LoadedAssemblyReference LoadAssemblySlow(AssemblyCacheEntry entry)
 	{
-		Assembly? assembly;
+		LoadedAssemblyReference? reference;
 
 		lock (entry.Lock)
 		{
-			assembly = entry.TryGetAssembly();
-			if (assembly is not null) return assembly;
+			reference = entry.TryGetAssemblyReference();
+			if (reference is not null) return reference;
 
 			var context = new PluginLoadContext(this, entry.AssemblyName, entry.Path);
-			context.Unloading += OnContextUnloading;
+			context.Unloading += _onContextUnloading;
 			_logger.AssemblyLoadContextCreated(context.Name!);
-			entry.SetContext(context);
-			assembly = context.MainAssembly;
+			reference = entry.SetContext(context);
 		}
 
 		lock (_updateLock)
@@ -194,14 +188,14 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 
 		try
 		{
-			AfterAssemblyLoad?.Invoke(this, new AssemblyLoadEventArgs(assembly));
+			AfterAssemblyLoad?.Invoke(this, new AssemblyLoadEventArgs(reference));
 		}
 		catch (Exception ex)
 		{
 			_logger.AssemblyLoaderAfterAssemblyLoadError(entry.AssemblyName.FullName, ex);
 		}
 
-		return assembly;
+		return reference;
 	}
 
 	private void OnContextUnloading(AssemblyLoadContext obj)

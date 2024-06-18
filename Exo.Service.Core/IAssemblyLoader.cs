@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime.Loader;
 
 namespace Exo.Service;
 
@@ -31,7 +32,7 @@ public interface IAssemblyLoader
 	/// </remarks>
 	/// <param name="assemblyName"></param>
 	/// <returns></returns>
-	Assembly LoadAssembly(AssemblyName assemblyName);
+	LoadedAssemblyReference LoadAssembly(AssemblyName assemblyName);
 
 	/// <summary>Tries to load an assembly within its own context.</summary>
 	/// <remarks>
@@ -42,7 +43,7 @@ public interface IAssemblyLoader
 	/// </remarks>
 	/// <param name="assemblyName"></param>
 	/// <returns></returns>
-	Assembly? TryLoadAssembly(AssemblyName assemblyName);
+	LoadedAssemblyReference? TryLoadAssembly(AssemblyName assemblyName);
 
 	/// <summary>Creates a context to be used for reflection on the specified assembly.</summary>
 	/// <remarks>
@@ -60,4 +61,28 @@ public interface IAssemblyLoader
 	/// <param name="assemblyName"></param>
 	/// <returns></returns>
 	MetadataLoadContext CreateMetadataLoadContext(AssemblyName assemblyName);
+}
+
+/// <summary>Represents a reference to a dynamically loaded assembly.</summary>
+/// <remarks>This reference should be held by consumers of <see cref="IAssemblyLoader"/> so that the load context associated with the assembly is not unloaded.</remarks>
+public sealed class LoadedAssemblyReference
+{
+	private readonly AssemblyLoadContext? _loadContext;
+	private readonly Assembly _assembly;
+
+	public LoadedAssemblyReference(AssemblyLoadContext loadContext, Assembly assembly)
+	{
+		_loadContext = loadContext;
+		_assembly = assembly;
+	}
+
+	public Assembly Assembly => _assembly;
+}
+
+
+public sealed class AssemblyLoadEventArgs : EventArgs
+{
+	public LoadedAssemblyReference AssemblyReference { get; }
+
+	public AssemblyLoadEventArgs(LoadedAssemblyReference assemblyReference) => AssemblyReference = assemblyReference;
 }

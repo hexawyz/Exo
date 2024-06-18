@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
 namespace Exo.Service;
@@ -14,9 +15,7 @@ public sealed class PluginLoadContext : AssemblyLoadContext
 	private readonly AssemblyDependencyResolver _resolver;
 	private readonly AssemblyName _mainAssemblyName;
 	private readonly IAssemblyLoader _assemblyLoader;
-	private readonly Assembly _mainAssembly;
-
-	public Assembly MainAssembly => _mainAssembly;
+	private object? _externalAssemblyReferences;
 
 	public PluginLoadContext(IAssemblyLoader assemblyLoader, AssemblyName mainAssemblyName, string pluginPath)
 		: base(mainAssemblyName.FullName, true)
@@ -24,14 +23,14 @@ public sealed class PluginLoadContext : AssemblyLoadContext
 		_assemblyLoader = assemblyLoader;
 		_mainAssemblyName = mainAssemblyName;
 		_resolver = new AssemblyDependencyResolver(pluginPath);
-		_mainAssembly = LoadFromAssemblyName(mainAssemblyName);
 	}
 
 	protected override Assembly? Load(AssemblyName assemblyName)
 	{
-		if (assemblyName.FullName != _mainAssemblyName.FullName && _assemblyLoader.TryLoadAssembly(assemblyName) is { } assembly)
+		if (assemblyName.FullName != _mainAssemblyName.FullName && _assemblyLoader.TryLoadAssembly(assemblyName) is { } assemblyReference)
 		{
-			return assembly;
+			AddReference(ref _externalAssemblyReferences, assemblyReference);
+			return assemblyReference.Assembly;
 		}
 		if (_resolver.ResolveAssemblyToPath(assemblyName) is string assemblyPath)
 		{
@@ -48,5 +47,25 @@ public sealed class PluginLoadContext : AssemblyLoadContext
 		}
 
 		return IntPtr.Zero;
+	}
+
+	private static void AddReference(ref object? storage, LoadedAssemblyReference reference)
+	{
+		object newValue = reference;
+		object? oldValue = null;
+
+		while (oldValue != (oldValue = Interlocked.CompareExchange(ref storage, reference, null)))
+		{
+			if (oldValue is null) continue;
+
+			if (oldValue is LoadedAssemblyReference)
+			{
+				newValue = (LoadedAssemblyReference[])[Unsafe.As<LoadedAssemblyReference>(oldValue), reference];
+			}
+			else
+			{
+				newValue = (LoadedAssemblyReference[])[.. Unsafe.As<LoadedAssemblyReference[]>(oldValue), reference];
+			}
+		}
 	}
 }

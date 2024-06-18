@@ -269,6 +269,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					// Now run through the factories to find one that will successfully create the result.
 					TResult? result = null;
 					ExclusionLock? exclusionLock;
+					LoadedAssemblyReference? assemblyReference = null;
 					foreach (var factoryId in creationParameters.FactoryIds)
 					{
 						if (KnownFactoryMethods.TryGetValue(factoryId, out var details))
@@ -289,7 +290,11 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 								{
 									result = await Service.InvokeFactoryAsync(liveFactoryDetails.Factory, creationParameters, cancellationToken).ConfigureAwait(false);
 								}
-								if (result is not null) break;
+								if (result is not null)
+								{
+									assemblyReference = liveFactoryDetails.AssemblyReference;
+									break;
+								}
 							}
 							catch (Exception ex)
 							{
@@ -347,6 +352,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					state.AssociatedKeys = result.RegistrationKeys;
 					state.Registration = result.DisposableResult;
 					state.SharedComponentReference = sharedReference;
+					state.AssemblyReference = assemblyReference;
 
 					if (typeof(TComponent) == typeof(Driver))
 					{
@@ -486,6 +492,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		public ImmutableArray<TKey> AssociatedKeys { get; set; }
 		public IAsyncDisposable? Registration { get; set; }
 		public ComponentSharedReference? SharedComponentReference { get; set; }
+		public LoadedAssemblyReference? AssemblyReference { get; set; }
 
 		public ComponentState(ImmutableArray<TKey> associatedKeys)
 		{
@@ -536,7 +543,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					_dependentHandle.Dispose();
 				}
 
-				var method = GetMethod(assemblyLoader, AssemblyName, MethodReference);
+				var (assemblyReference, method) = GetMethod(assemblyLoader, AssemblyName, MethodReference);
 
 				var exclusionLock = method.GetCustomAttribute<ExclusionCategoryAttribute>() is { } exclusionCategory ?
 					exclusionLocks.GetOrCreateValue(exclusionCategory.Category) :
@@ -544,7 +551,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 				var factory = ComponentFactory.Get<TFactory, TCreationContext, TResult>(method);
 
-				var details = new LiveFactoryMethodDetails<TFactory>(factory, exclusionLock);
+				var details = new LiveFactoryMethodDetails<TFactory>(assemblyReference, factory, exclusionLock);
 
 				_dependentHandle = new(method, details);
 
@@ -552,23 +559,29 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			}
 		}
 
-		private static MethodInfo GetMethod(IAssemblyLoader assemblyLoader, AssemblyName assemblyName, MethodReference methodReference)
+		private static (LoadedAssemblyReference AssemblyReference, MethodInfo MethodInfo) GetMethod(IAssemblyLoader assemblyLoader, AssemblyName assemblyName, MethodReference methodReference)
 		{
-			var assembly = assemblyLoader.LoadAssembly(assemblyName);
-			var type = assembly.GetType(methodReference.TypeName) ?? throw new InvalidOperationException($"The type {methodReference.TypeName} was not found in {assemblyName}.");
+			var assemblyReference = assemblyLoader.LoadAssembly(assemblyName);
+			var type = assemblyReference.Assembly.GetType(methodReference.TypeName) ?? throw new InvalidOperationException($"The type {methodReference.TypeName} was not found in {assemblyName}.");
 			var signature = methodReference.Signature;
-			return type.GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(m => signature.Matches(m)) ??
+			if (type.GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(m => signature.Matches(m)) is not { } method)
+			{
 				throw new InvalidOperationException($"Could not find method with signature {signature} in {methodReference.TypeName} of {assemblyName}.");
+			}
+			return (assemblyReference, method);
+				
 		}
 	}
 
 	private sealed class LiveFactoryMethodDetails<TFactory>
 	{
+		public LoadedAssemblyReference AssemblyReference { get; }
 		public TFactory Factory { get; }
 		public ExclusionLock? ExclusionLock { get; }
 
-		public LiveFactoryMethodDetails(TFactory factory, ExclusionLock? exclusionLock)
+		public LiveFactoryMethodDetails(LoadedAssemblyReference assemblyReference, TFactory factory, ExclusionLock? exclusionLock)
 		{
+			AssemblyReference = assemblyReference;
 			Factory = factory;
 			ExclusionLock = exclusionLock;
 		}
