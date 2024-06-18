@@ -40,11 +40,11 @@ internal sealed class PendingOperationFactory
 
 	public static OperationFactory ForOneExtraParameter<T>()
 		where T : struct, IMessageParameters
-		=> AnyLength<T>.Factory;
+		=> AnyLength<T>.OneExtraParameterFactory;
 
 	public static OperationFactory ForTwoExtraParameters<T>()
 		where T : struct, IMessageParameters
-		=> AnyLength<T>.Factory;
+		=> AnyLength<T>.TwoExtraParametersFactory;
 
 	private PendingOperationFactory() { }
 }
