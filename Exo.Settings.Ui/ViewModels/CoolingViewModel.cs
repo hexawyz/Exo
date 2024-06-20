@@ -460,7 +460,7 @@ internal sealed class CoolerViewModel : ResettableBindableObject
 		{
 			coolingModes.Add(AutomaticCoolingModeViewModel.Instance);
 		}
-		else if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
+		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			coolingModes.Add(new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
 			coolingModes.Add(new ControlCurveCoolingModeViewModel(sensorsViewModel, coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));

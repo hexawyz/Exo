@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Cooling;
