@@ -82,7 +82,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 Exo relies on these runtimes, that you can download from the official websites:
 
 * .NET 8.0 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/8.0
-* Windows App SDK 1.5 Runtime: https://aka.ms/windowsappsdk/1.5/1.5.240428000/windowsappruntimeinstall-x64.exe
+* Windows App SDK 1.5 Runtime: https://aka.ms/windowsappsdk/1.5/1.5.240607001/windowsappruntimeinstall-x64.exe
 
 ### Optional
 
