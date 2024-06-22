@@ -21,7 +21,7 @@ public sealed unsafe class ExoArchive : IDisposable
 		if (!BitConverter.IsLittleEndian) throw new InvalidOperationException("Big-endian architectures are not supported.");
 	}
 
-	private MemoryMappedFile? _memoryMappedFile;
+	private IDisposable? _file;
 	private MemoryMappedViewAccessor? _memoryMappedViewAccessor;
 	private volatile byte* _pointer;
 	private readonly uint _entryCount;
@@ -35,25 +35,15 @@ public sealed unsafe class ExoArchive : IDisposable
 		try
 		{
 			_length = (ulong)stream.Length;
-			_memoryMappedFile = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
-			_memoryMappedViewAccessor = _memoryMappedFile.CreateViewAccessor(0, stream.Length, MemoryMappedFileAccess.Read);
+			var memoryMappedFile = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
+			_memoryMappedViewAccessor = memoryMappedFile.CreateViewAccessor(0, stream.Length, MemoryMappedFileAccess.Read);
+			_file = memoryMappedFile;
 			byte* pointer = null;
 			_memoryMappedViewAccessor.SafeMemoryMappedViewHandle.AcquirePointer(ref pointer);
 			if (pointer == null) throw new InvalidOperationException();
 			_pointer = pointer;
 
-			ref var header = ref Unsafe.AsRef<ExoArchiveHeader>(_pointer);
-			if (header.Signature != 0x52414F58) throw new InvalidDataException("Invalid signature.");
-			if (header.Version != 1) throw new InvalidDataException("Invalid version.");
-			if (header.HashTableLength != 0 && ((int)header.HashTableLength < 0 || !BitOperations.IsPow2(header.HashTableLength))) throw new InvalidDataException("Invalid hash table length.");
-			if (header.BlockSize < 8 || (header.BlockSize & 0x7) != 0) throw new InvalidDataException("Invalid block size.");
-			_entryCount = header.HashTableLength;
-			_blockSize = header.BlockSize;
-			if (checked((ulong)Math.BigMul(unchecked((int)_entryCount), Unsafe.SizeOf<ExoArchiveHashTableEntry>())) > _length) throw new InvalidDataException("Invalid file size.");
-			// Adjust the data offset to be a multiple of the block size.
-			uint offset = checked(unchecked((uint)Unsafe.SizeOf<ExoArchiveHeader>()) + (uint)Math.BigMul(unchecked((int)_entryCount), unchecked((int)Unsafe.SizeOf<ExoArchiveHashTableEntry>())));
-			if (offset % _blockSize is > 0 and uint r) offset += _blockSize - r;
-			_dataOffset = offset;
+			ParseHeader(_pointer, _length, out _entryCount, out _blockSize, out _dataOffset);
 		}
 		catch
 		{
@@ -62,15 +52,52 @@ public sealed unsafe class ExoArchive : IDisposable
 		}
 	}
 
+	public ExoArchive(UnmanagedMemoryStream stream) : this(stream, false) { }
+
+	public ExoArchive(UnmanagedMemoryStream stream, bool leaveOpen)
+	{
+		ArgumentNullException.ThrowIfNull(stream);
+		try
+		{
+			_length = (ulong)stream.Length;
+			if (!leaveOpen) _file = stream;
+			_pointer = stream.PositionPointer;
+
+			ParseHeader(_pointer, _length, out _entryCount, out _blockSize, out _dataOffset);
+		}
+		catch
+		{
+			if (!leaveOpen) stream.Dispose();
+			throw;
+		}
+	}
+
+	private static void ParseHeader(byte* pointer, ulong length, out uint entryCount, out uint blockSize, out uint dataOffset)
+	{
+		if (length < (ulong)Unsafe.SizeOf<ExoArchiveHeader>()) throw new InvalidDataException("File is too small.");
+		ref var header = ref Unsafe.AsRef<ExoArchiveHeader>(pointer);
+		if (header.Signature != 0x52414F58) throw new InvalidDataException("Invalid signature.");
+		if (header.Version != 1) throw new InvalidDataException("Invalid version.");
+		if (header.HashTableLength != 0 && ((int)header.HashTableLength < 0 || !BitOperations.IsPow2(header.HashTableLength))) throw new InvalidDataException("Invalid hash table length.");
+		if (header.BlockSize < 8 || (header.BlockSize & 0x7) != 0) throw new InvalidDataException("Invalid block size.");
+		entryCount = header.HashTableLength;
+		blockSize = header.BlockSize;
+		if (checked((ulong)Math.BigMul(unchecked((int)entryCount), Unsafe.SizeOf<ExoArchiveHashTableEntry>())) > length) throw new InvalidDataException("Invalid file size.");
+		// Adjust the data offset to be a multiple of the block size.
+		uint offset = checked(unchecked((uint)Unsafe.SizeOf<ExoArchiveHeader>()) + (uint)Math.BigMul(unchecked((int)entryCount), unchecked((int)Unsafe.SizeOf<ExoArchiveHashTableEntry>())));
+		if (offset % blockSize is > 0 and uint r) offset += blockSize - r;
+		dataOffset = offset;
+	}
+
 	public void Dispose()
 	{
+		_pointer = null;
 		if (Interlocked.Exchange(ref _memoryMappedViewAccessor, null) is { } accessor)
 		{
-			_pointer = null;
 			accessor.SafeMemoryMappedViewHandle.DangerousRelease();
 			accessor.Dispose();
-			Interlocked.Exchange(ref _memoryMappedFile, null)?.Dispose();
 		}
+		Interlocked.Exchange(ref _file, null)?.Dispose();
 	}
 
 	private ref byte DataReference
