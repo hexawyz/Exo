@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
@@ -68,14 +69,14 @@ public class GenericMonitorDriver
 		var ddc = new DisplayDataChannel(i2cBus, true);
 
 		var buffer = ArrayPool<byte>.Shared.Rent(1000);
-		byte[] rawCapabilities;
+		ImmutableArray<byte> rawCapabilities;
 		try
 		{
 			ushort length = await ddc.GetCapabilitiesAsync(buffer, cancellationToken).ConfigureAwait(false);
 			rawCapabilities = [.. buffer[..length]];
 			if (logger.IsEnabled(LogLevel.Information))
 			{
-				logger.MonitorRetrievedCapabilities(new MonitorId(edid.VendorId, edid.ProductId).ToString()!, Encoding.UTF8.GetString(rawCapabilities));
+				logger.MonitorRetrievedCapabilities(new MonitorId(edid.VendorId, edid.ProductId).ToString()!, Encoding.UTF8.GetString(rawCapabilities.AsSpan()));
 			}
 		}
 		finally
@@ -86,25 +87,38 @@ public class GenericMonitorDriver
 		if (TryGetMonitorDefinition(deviceId, out var definition))
 		{
 			if (definition.Name is not null) friendlyName = definition.Name;
+			// NB: We do completely override the capabilities string if a value is provided.
+			// This can be a simpler way of defining the capabilities of a monitor. e.g. if it doesn't provide a capabilities string, or if the built-in one is broken.
+			if (!definition.Capabilities.IsDefault) rawCapabilities = definition.Capabilities;
 		}
 
-		if (MonitorCapabilities.TryParse(rawCapabilities, out var capabilities))
+		var vcpCodesToIgnore = !definition.IgnoredCapabilitiesVcpCodes.IsDefaultOrEmpty ?
+			new HashSet<byte>(ImmutableCollectionsMarshal.AsArray(definition.IgnoredCapabilitiesVcpCodes)!) :
+			null;
+
+		if (MonitorCapabilities.TryParse(rawCapabilities.AsSpan(), out var capabilities))
 		{
 			features |= SupportedFeatures.Capabilities;
 
-			foreach (var capability in capabilities.SupportedVcpCommands)
+			if (!definition.IgnoreAllCapabilitiesVcpCodes)
 			{
-				if (capability.VcpCode == (byte)VcpCode.Luminance)
+				foreach (var capability in capabilities.SupportedVcpCommands)
 				{
-					features |= SupportedFeatures.Brightness;
-				}
-				else if (capability.VcpCode == (byte)VcpCode.Contrast)
-				{
-					features |= SupportedFeatures.Contrast;
-				}
-				else if (capability.VcpCode == (byte)VcpCode.AudioSpeakerVolume)
-				{
-					features |= SupportedFeatures.AudioVolume;
+					// Ignore some VCP codes if they are specifically indicated to be ignored.
+					// This can be useful if some features are not properly mapped by the monitor.
+					if (vcpCodesToIgnore?.Contains(capability.VcpCode) == true) continue;
+					if (capability.VcpCode == (byte)VcpCode.Luminance)
+					{
+						features |= SupportedFeatures.Brightness;
+					}
+					else if (capability.VcpCode == (byte)VcpCode.Contrast)
+					{
+						features |= SupportedFeatures.Contrast;
+					}
+					else if (capability.VcpCode == (byte)VcpCode.AudioSpeakerVolume)
+					{
+						features |= SupportedFeatures.AudioVolume;
+					}
 				}
 			}
 		}
@@ -116,7 +130,7 @@ public class GenericMonitorDriver
 			(
 				ddc,
 				features,
-				rawCapabilities,
+				rawCapabilities.AsMemory(),
 				capabilities,
 				deviceId,
 				friendlyName,
