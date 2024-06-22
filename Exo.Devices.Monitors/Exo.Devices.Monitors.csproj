@@ -21,5 +21,41 @@
 		<ProjectReference Include="..\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference
+			Include="..\Exo.MonitorDatabaseCompiler\Exo.MonitorDatabaseCompiler.csproj"
+			Private="false"
+			ExcludeAssets="all"
+			ReferenceOutputAssembly="false"
+			DisableTransitiveProjectReferences="true"
+			SkipGetTargetFrameworkProperties="true"
+			GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
+	</ItemGroup>
+
+	<Target Name="BuildMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData;CompileMonitorDatabase" BeforeTargets="AssignTargetPaths"></Target>
+
+	<Target Name="PrepareMonitorData">
+		<ItemGroup>
+			<_CollectedMonitorDefinitionData Include="$(MSBuildThisFileDirectory)\Definitions\???????.json" />
+		</ItemGroup>
+		<PropertyGroup>
+			<_MonitorDatabaseIntermediatePath>$(IntermediateOutputPath)Definitions.xoa</_MonitorDatabaseIntermediatePath>
+		</PropertyGroup>
+	</Target>
+
+	<Target Name="LocateExoMonitorDatabaseCompiler">
+		<PropertyGroup>
+			<_ExoMonitorDatabaseCompilerPath>$(MSBuildThisFileDirectory)\..\Exo.MonitorDatabaseCompiler\bin\$(Configuration)\$(TargetFramework)\Exo.MonitorDatabaseCompiler.dll</_ExoMonitorDatabaseCompilerPath>
+		</PropertyGroup>
+	</Target>
+
+	<Target Name="CompileMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData" Inputs="$(_ExoMonitorDatabaseCompilerPath);@(_CollectedMonitorDefinitionData)" Outputs="$(_MonitorDatabaseIntermediatePath)" Condition="'@(_CollectedMonitorDefinitionData)' != ''">
+		<Exec Command="dotnet &quot;$(_ExoMonitorDatabaseCompilerPath)&quot; &quot;$(MSBuildThisFileDirectory)\Definitions&quot; &quot;$(_MonitorDatabaseIntermediatePath)&quot;" />
+		<ItemGroup>
+			<FileWrites Include="$(_MonitorDatabaseIntermediatePath)" />
+			<EmbeddedResource Include="$(_MonitorDatabaseIntermediatePath)" Link="Definitions.xoa" LogicalName="Definitions.xoa" />
+		</ItemGroup>
+	</Target>
 
 </Project>

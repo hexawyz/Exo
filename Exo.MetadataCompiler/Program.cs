@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Exo.Metadata;
-using Exo.Metadata;
 
 if (args.Length < 3)
 {

@@ -1,0 +1,81 @@
+{
+    // Input Source Names
+    "38118523-ae2c-44d3-b95e-101441a9eff8": {
+        "en": "VGA"
+    },
+    "4db28e37-6491-47f8-9c2d-895ce4ddb6a3": {
+        "en": "VGA 1"
+    },
+    "6b8b64f7-f4e4-4f17-ad48-7097869b68ac": {
+        "en": "VGA 2"
+    },
+    "9281d59d-4daa-4579-bda5-84eb5dd5abb3": {
+        "en": "VGA 3"
+    },
+    "fbf98f0c-db32-47b5-9898-04c22b75da27": {
+        "en": "VGA 4"
+    },
+    "c9d851af-7497-41e6-92e0-f57304c7cf28": {
+        "en": "DVI"
+    },
+    "0e8cad25-bd0e-47de-aaba-22c6facd4afd": {
+        "en": "DVI 1"
+    },
+    "16454f19-d79a-45f1-90a6-6e3ad3984515": {
+        "en": "DVI 2"
+    },
+    "15b35801-7453-4fbb-889e-49a0e9796b52": {
+        "en": "DVI 3"
+    },
+    "c3acc405-dc16-4120-b56e-e9db176bd89f": {
+        "en": "DVI 4"
+    },
+    "ff7b1ba4-6e79-4339-a25d-1f634f88f5a6": {
+        "en": "HDMI"
+    },
+    "8803f0ec-5786-4010-93b5-8dcb200e8192": {
+        "en": "HDMI 1"
+    },
+    "b02ab007-24f3-4482-a966-8a999b7c6b98": {
+        "en": "HDMI 2"
+    },
+    "8dace1fa-8d6a-47e6-9da4-735af89d4260": {
+        "en": "HDMI 3"
+    },
+    "d73aa6e5-3390-4165-bd6a-44476e45995a": {
+        "en": "HDMI 4"
+    },
+    "60c27b00-0db2-4f72-a049-a805a7f90883": {
+        "en": "DisplayPort"
+    },
+    "1dacbc30-7fd2-41af-8c1f-9a3bc9883002": {
+        "en": "DisplayPort 1"
+    },
+    "a6da60f2-5502-4500-b756-5b6216e67ea6": {
+        "en": "DisplayPort 2"
+    },
+    "e80a1b7f-3ce9-457c-93b0-5eac47d2eb94": {
+        "en": "DisplayPort 3"
+    },
+    "018edb18-6b2e-4d4a-bf68-ba8f3938882b": {
+        "en": "DisplayPort 4"
+    },
+    "f1635e2b-7b6a-4e8d-add5-337dd0be3271": {
+        "en": "Mini DisplayPort"
+    },
+    "c682fbcd-7229-43a4-8ffb-f31895b1a7f5": {
+        "en": "Mini DisplayPort 1"
+    },
+    "b9b886f1-e310-4578-a394-8a3342f06e24": {
+        "en": "Mini DisplayPort 2"
+    },
+    "0273d2c0-f9d4-4737-a50b-df58292a26ed": {
+        "en": "Mini DisplayPort 3"
+    },
+    "848a16a1-8542-4f15-b2ce-d95169d51153": {
+        "en": "Mini DisplayPort 4"
+    },
+    "1ab09771-ce84-443e-a4be-2cf9378e10f7": {
+        "en": "USB-C"
+    }
+}
