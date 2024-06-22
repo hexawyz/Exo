@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -11,6 +12,8 @@ using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Monitors;
 using Exo.I2C;
+using Exo.Metadata;
+using Exo.Monitors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Monitors;
@@ -27,6 +30,25 @@ public class GenericMonitorDriver
 	IMonitorContrastFeature,
 	IMonitorSpeakerAudioVolumeFeature
 {
+	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(GenericMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
+
+	private static bool TryGetMonitorDefinition(DeviceId deviceId, out MonitorDefinition definition)
+	{
+		Span<byte> key = stackalloc byte[4];
+		BinaryPrimitives.WriteUInt16LittleEndian(key, deviceId.VendorId);
+		BinaryPrimitives.WriteUInt16LittleEndian(key[2..], deviceId.ProductId);
+		if (MonitorDefinitionsDatabase.TryGetFileEntry(key, out var file))
+		{
+			definition = MonitorDefinitionSerializer.Deserialize(file.DangerousGetSpan());
+			return true;
+		}
+		else
+		{
+			definition = default;
+			return false;
+		}
+	}
+
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.Monitor)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
@@ -59,6 +81,11 @@ public class GenericMonitorDriver
 		finally
 		{
 			ArrayPool<byte>.Shared.Return(buffer);
+		}
+
+		if (TryGetMonitorDefinition(deviceId, out var definition))
+		{
+			if (definition.Name is not null) friendlyName = definition.Name;
 		}
 
 		if (MonitorCapabilities.TryParse(rawCapabilities, out var capabilities))

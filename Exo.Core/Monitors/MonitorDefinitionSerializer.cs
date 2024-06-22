@@ -46,12 +46,6 @@ public static class MonitorDefinitionSerializer
 		if (nameBytes is not null) writer.WriteBytes(nameBytes);
 		if (capabilitiesBytes is not null) writer.WriteBytes(capabilitiesBytes);
 
-		if (!monitorDefinition.OverriddenFeatures.IsDefault) writer.WriteVariableUInt32((uint)monitorDefinition.OverriddenFeatures.Length);
-
-		if (!monitorDefinition.IgnoredCapabilitiesVcpCodes.IsDefault) writer.WriteVariableUInt32((uint)monitorDefinition.IgnoredCapabilitiesVcpCodes.Length);
-
-		if (monitorDefinition.Name is not null) writer.WriteVariableUInt32((uint)monitorDefinition.Name.Length);
-
 		if (!monitorDefinition.OverriddenFeatures.IsDefault)
 		{
 			var array = ImmutableCollectionsMarshal.AsArray(monitorDefinition.OverriddenFeatures)!;
@@ -81,7 +75,7 @@ public static class MonitorDefinitionSerializer
 		if (!monitorFeatureDefinition.DiscreteValues.IsDefault) fields |= MonitorFeatureDefinitionField_DiscreteValues;
 		if (monitorFeatureDefinition.MinimumValue is not null) fields |= MonitorFeatureDefinitionField_MinimumValue;
 		if (monitorFeatureDefinition.MaximumValue is not null) fields |= MonitorFeatureDefinitionField_MaximumValue;
-		fields = (byte)(((byte)monitorFeatureDefinition.Access & 0x3) << 6);
+		fields |= (byte)(((byte)monitorFeatureDefinition.Access & 0x3) << 6);
 
 		writer.WriteByte(fields);
 
@@ -109,7 +103,9 @@ public static class MonitorDefinitionSerializer
 	{
 		byte fields = 0;
 
-		if (valueDefinition.NameStringId is null) fields |= MonitorFeatureDiscreteValueDefinitionField_NameStringId;
+		if (valueDefinition.NameStringId is not null) fields |= MonitorFeatureDiscreteValueDefinitionField_NameStringId;
+
+		writer.WriteByte(fields);
 
 		writer.WriteUInt16(valueDefinition.Value);
 
@@ -118,13 +114,12 @@ public static class MonitorDefinitionSerializer
 
 	private static void WriteVariableUInt32(BufferWriter writer, uint value)
 	{
-		uint v = 0;
-		uint w = 0;
+		uint v = value;
 
 		while (true)
 		{
-			w = v >>> 7;
-			v &= 0x8F;
+			uint w = v >>> 7;
+			v &= 0x7F;
 			if (w != 0)
 			{
 				writer.WriteByte((byte)(0x80 | v));
@@ -205,7 +200,7 @@ public static class MonitorDefinitionSerializer
 			_end = ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(buffer), buffer.Length);
 		}
 
-		public readonly nuint Length => (nuint)Unsafe.ByteOffset(in _end, in _current);
+		public readonly nuint Length => (nuint)Unsafe.ByteOffset(in _current, in _end);
 
 		public byte ReadByte()
 		{

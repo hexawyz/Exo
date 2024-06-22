@@ -14,6 +14,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Exo.Archive\Exo.Archive.csproj" />
 		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" Private="false" ExcludeAssets="runtime" />
@@ -23,14 +24,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<ProjectReference
-			Include="..\Exo.MonitorDatabaseCompiler\Exo.MonitorDatabaseCompiler.csproj"
-			Private="false"
-			ExcludeAssets="all"
-			ReferenceOutputAssembly="false"
-			DisableTransitiveProjectReferences="true"
-			SkipGetTargetFrameworkProperties="true"
-			GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
+		<ProjectReference Include="..\Exo.MonitorDatabaseCompiler\Exo.MonitorDatabaseCompiler.csproj" Private="false" ExcludeAssets="all" ReferenceOutputAssembly="false" DisableTransitiveProjectReferences="true" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
 	</ItemGroup>
 
 	<Target Name="BuildMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData;CompileMonitorDatabase" BeforeTargets="AssignTargetPaths"></Target>
