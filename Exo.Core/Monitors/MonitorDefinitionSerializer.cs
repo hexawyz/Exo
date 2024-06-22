@@ -26,7 +26,7 @@ public static class MonitorDefinitionSerializer
 		byte fields = 0;
 
 		if (monitorDefinition.Name is not null) fields |= MonitorDefinitionField_Name;
-		if (monitorDefinition.Capabilities is not null) fields |= MonitorDefinitionField_Capabilities;
+		if (!monitorDefinition.Capabilities.IsDefault) fields |= MonitorDefinitionField_Capabilities;
 		if (!monitorDefinition.OverriddenFeatures.IsDefault) fields |= MonitorDefinitionField_OverriddenFeatures;
 		if (!monitorDefinition.IgnoredCapabilitiesVcpCodes.IsDefault) fields |= MonitorDefinitionField_IgnoredCapabilitiesVcpCodes;
 		if (monitorDefinition.IgnoreAllCapabilitiesVcpCodes) fields |= MonitorDefinitionField_IgnoreAllCapabilitiesVcpCodes;
@@ -37,14 +37,13 @@ public static class MonitorDefinitionSerializer
 		writer.WriteByte(fields);
 
 		byte[]? nameBytes = null;
-		byte[]? capabilitiesBytes = null;
-		if (monitorDefinition.Name is not null) WriteVariableUInt32(writer, (uint)(nameBytes = Encoding.UTF8.GetBytes(monitorDefinition.Name)).Length);
-		if (monitorDefinition.Capabilities is not null) WriteVariableUInt32(writer, (uint)(capabilitiesBytes = Encoding.UTF8.GetBytes(monitorDefinition.Capabilities)).Length);
-		if (!monitorDefinition.OverriddenFeatures.IsDefault) WriteVariableUInt32(writer, (uint)monitorDefinition.OverriddenFeatures.Length);
-		if (!monitorDefinition.IgnoredCapabilitiesVcpCodes.IsDefault) WriteVariableUInt32(writer, (uint)monitorDefinition.IgnoredCapabilitiesVcpCodes.Length);
+		if (monitorDefinition.Name is not null) writer.WriteVariableUInt32((uint)(nameBytes = Encoding.UTF8.GetBytes(monitorDefinition.Name)).Length);
+		if (!monitorDefinition.Capabilities.IsDefault) writer.WriteVariableUInt32((uint)monitorDefinition.Capabilities.Length);
+		if (!monitorDefinition.OverriddenFeatures.IsDefault) writer.WriteVariableUInt32((uint)monitorDefinition.OverriddenFeatures.Length);
+		if (!monitorDefinition.IgnoredCapabilitiesVcpCodes.IsDefault) writer.WriteVariableUInt32((uint)monitorDefinition.IgnoredCapabilitiesVcpCodes.Length);
 
 		if (nameBytes is not null) writer.WriteBytes(nameBytes);
-		if (capabilitiesBytes is not null) writer.WriteBytes(capabilitiesBytes);
+		if (!monitorDefinition.Capabilities.IsDefault) writer.WriteBytes(monitorDefinition.Capabilities.AsSpan());
 
 		if (!monitorDefinition.OverriddenFeatures.IsDefault)
 		{
@@ -240,6 +239,16 @@ public static class MonitorDefinitionSerializer
 			return value;
 		}
 
+		public byte[] ReadBytes(uint length)
+		{
+			if (length == 0) return [];
+			if (length > Length) throw new EndOfStreamException();
+
+			var value = MemoryMarshal.CreateReadOnlySpan(in _current, (int)length).ToArray();
+			_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), (nint)(nuint)length);
+			return value;
+		}
+
 		public Guid ReadGuid()
 		{
 			if (Length < 16) throw new EndOfStreamException();
@@ -273,7 +282,7 @@ public static class MonitorDefinitionSerializer
 		if ((fields & MonitorDefinitionField_IgnoredCapabilitiesVcpCodes) != 0) ignoredCapabilitiesVcpCodes = CreateArray<byte>(reader.ReadVariableUInt32());
 
 		string? name = (fields & MonitorDefinitionField_Name) != 0 ? reader.ReadString(nameLength) : null;
-		string? capabilities = (fields & MonitorDefinitionField_Capabilities) != 0 ? reader.ReadString(capabilitiesLength) : null;
+		byte[]? capabilities = (fields & MonitorDefinitionField_Capabilities) != 0 ? reader.ReadBytes(capabilitiesLength) : null;
 
 		if (overriddenFeatures is not null)
 		{
@@ -294,7 +303,7 @@ public static class MonitorDefinitionSerializer
 		return new()
 		{
 			Name = name,
-			Capabilities = capabilities,
+			Capabilities = ImmutableCollectionsMarshal.AsImmutableArray(capabilities),
 			OverriddenFeatures = ImmutableCollectionsMarshal.AsImmutableArray(overriddenFeatures),
 			IgnoredCapabilitiesVcpCodes = ImmutableCollectionsMarshal.AsImmutableArray(ignoredCapabilitiesVcpCodes),
 			IgnoreAllCapabilitiesVcpCodes = (fields & MonitorDefinitionField_IgnoreAllCapabilitiesVcpCodes) != 0,
