@@ -38,7 +38,7 @@ public enum MonitorFeature : byte
 	Brightness,
 	Contrast,
 	AudioVolume,
-	InputSource,
+	InputSelect,
 }
 
 public enum MonitorFeatureAccess : byte

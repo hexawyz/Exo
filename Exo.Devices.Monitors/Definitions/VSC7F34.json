@@ -3,7 +3,7 @@
 	"overriddenFeatures": [
 		{
 			"vcpCode": 96,
-			"feature": "inputSource",
+			"feature": "inputSelect",
 			"discreteValues": [
 				{
 					// mDP

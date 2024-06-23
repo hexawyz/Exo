@@ -94,7 +94,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_metadataService = metadataService;
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);
-		_devicesViewModel = new(ConnectionManager, _navigateCommand);
+		_devicesViewModel = new(ConnectionManager, _metadataService, _navigateCommand);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);

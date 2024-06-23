@@ -15,13 +15,15 @@ internal class MonitorService : IAsyncDisposable
 		public Driver? Driver;
 		public MonitorSetting[] SupportedSettings;
 		public readonly Dictionary<MonitorSetting, ContinuousValue> KnownValues;
+		public readonly ImmutableArray<NonContinuousValueDescription> InputSources;
 		public readonly AsyncLock Lock;
 
-		public MonitorDeviceDetails(Driver driver, MonitorSetting[] supportedSettings)
+		public MonitorDeviceDetails(Driver driver, MonitorSetting[] supportedSettings, ImmutableArray<NonContinuousValueDescription> inputSources)
 		{
 			Driver = driver;
 			SupportedSettings = supportedSettings;
 			KnownValues = new();
+			InputSources = inputSources;
 			Lock = new();
 		}
 	}
@@ -85,6 +87,7 @@ internal class MonitorService : IAsyncDisposable
 
 					var monitorFeatures = (IDeviceFeatureSet<IMonitorDeviceFeature>)notification.FeatureSet!;
 
+					ImmutableArray<NonContinuousValueDescription> inputSources = default;
 					settings.Clear();
 
 					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>())
@@ -99,9 +102,14 @@ internal class MonitorService : IAsyncDisposable
 					{
 						settings.Add(MonitorSetting.AudioVolume);
 					}
+					if (monitorFeatures.GetFeature<IMonitorInputSelectFeature>() is { } monitorInputSelectFeature)
+					{
+						settings.Add(MonitorSetting.InputSelect);
+						inputSources = monitorInputSelectFeature.InputSources;
+					}
 
 					// Create and lock the details to prevent changes to be made before we read all the features.
-					details = new MonitorDeviceDetails(notification.Driver!, [.. settings]);
+					details = new MonitorDeviceDetails(notification.Driver!, [.. settings], inputSources);
 
 					var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 					// We want to avoid delaying publishing the device, so we first add a empty state to the dictionary.
@@ -151,6 +159,9 @@ internal class MonitorService : IAsyncDisposable
 						break;
 					case MonitorSetting.AudioVolume:
 						value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetVolumeAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.InputSelect:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputSelectFeature>()!.GetInputSourceAsync(cancellationToken).ConfigureAwait(false), 0, 0);
 						break;
 					default:
 						continue;
@@ -231,6 +242,7 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.Brightness => SetBrightnessAsync(deviceId, value, cancellationToken),
 			MonitorSetting.Contrast => SetContrastAsync(deviceId, value, cancellationToken),
 			MonitorSetting.AudioVolume => SetAudioVolumeAsync(deviceId, value, cancellationToken),
+			MonitorSetting.InputSelect => SetInputSourceAsync(deviceId, value, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
 
@@ -312,6 +324,42 @@ internal class MonitorService : IAsyncDisposable
 			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.AudioVolume, value);
 		}
 		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetInputSourceAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorInputSelectFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetInputSourceAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.InputSelect, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public ImmutableArray<NonContinuousValueDescription> GetInputSources(Guid deviceId)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		return details.InputSources;
 	DeviceNotFound:;
 		throw new InvalidOperationException("Device was not found.");
 	}

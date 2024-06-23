@@ -1,21 +1,28 @@
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 {
 	private readonly DeviceViewModel _device;
+	private readonly ISettingsMetadataService _metadataService;
 	private readonly SettingsServiceConnectionManager _connectionManager;
-	private MonitorDeviceSettingViewModel? _brightnessSetting;
-	private MonitorDeviceSettingViewModel? _contrastSetting;
-	private MonitorDeviceSettingViewModel? _audioVolumeSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _brightnessSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _contrastSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _audioVolumeSetting;
+	private NonContinuousMonitorDeviceSettingViewModel? _inputSelectSetting;
 
 	private bool _isReady;
 
-	public MonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
-	public MonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
-	public MonitorDeviceSettingViewModel? AudioVolumeSetting => _audioVolumeSetting;
+	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
+	public ContinuousMonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
+	public ContinuousMonitorDeviceSettingViewModel? AudioVolumeSetting => _audioVolumeSetting;
+	public NonContinuousMonitorDeviceSettingViewModel? InputSelectSetting => _inputSelectSetting;
 
 	public bool IsReady
 	{
@@ -23,10 +30,39 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		private set => SetValue(ref _isReady, !value, ChangedProperty.IsNotBusy);
 	}
 
-	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, SettingsServiceConnectionManager connectionManager)
+	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, SettingsServiceConnectionManager connectionManager)
 	{
 		_device = device;
+		_metadataService = metadataService;
 		_connectionManager = connectionManager;
+	}
+
+	public async Task InitializeAsync(CancellationToken cancellationToken)
+	{
+		var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+		await Task.Delay(1000);
+		var info = await monitorService.GetMonitorInformationAsync(new() { Id = _device.Id }, cancellationToken);
+
+		foreach (var setting in info.SupportedSettings)
+		{
+			switch (setting)
+			{
+			case MonitorSetting.Brightness:
+				InitializeSetting(setting, ref _brightnessSetting, nameof(BrightnessSetting));
+				break;
+			case MonitorSetting.Contrast:
+				InitializeSetting(setting, ref _contrastSetting, nameof(ContrastSetting));
+				break;
+			case MonitorSetting.AudioVolume:
+				InitializeSetting(setting, ref _audioVolumeSetting, nameof(AudioVolumeSetting));
+				break;
+			case MonitorSetting.InputSelect:
+				InitializeSetting(setting, ref _inputSelectSetting, nameof(InputSelectSetting));
+				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
+				_inputSelectSetting!.UpdateNonContinuousValues(_metadataService, info.InputSelectSources);
+				break;
+			}
+		}
 	}
 
 	public void UpdateSetting(MonitorSettingValue settingValue)
@@ -42,17 +78,41 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		case MonitorSetting.AudioVolume:
 			UpdateSetting(settingValue, ref _audioVolumeSetting, nameof(AudioVolumeSetting));
 			break;
+		case MonitorSetting.InputSelect:
+			UpdateSetting(settingValue, ref _inputSelectSetting, nameof(InputSelectSetting));
+			break;
 		}
 	}
 
-	private void UpdateSetting(MonitorSettingValue settingValue, ref MonitorDeviceSettingViewModel? setting, string propertyName)
+	private void InitializeSetting(MonitorSetting setting, ref ContinuousMonitorDeviceSettingViewModel? viewModel, string propertyName)
 	{
-		if (setting is null)
+		if (viewModel is null)
 		{
-			setting = new ContinuousMonitorDeviceSettingViewModel(settingValue.Setting, settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+			viewModel = new ContinuousMonitorDeviceSettingViewModel(setting, 0, 0, 0);
 			NotifyPropertyChanged(propertyName);
 		}
-		else
+	}
+
+	private void InitializeSetting(MonitorSetting setting, ref NonContinuousMonitorDeviceSettingViewModel? viewModel, string propertyName)
+	{
+		if (viewModel is null)
+		{
+			viewModel = new NonContinuousMonitorDeviceSettingViewModel(setting, 0);
+			NotifyPropertyChanged(propertyName);
+		}
+	}
+
+	private void UpdateSetting(MonitorSettingValue settingValue, ref ContinuousMonitorDeviceSettingViewModel? setting, string propertyName)
+	{
+		if (setting is not null)
+		{
+			setting.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+		}
+	}
+
+	private void UpdateSetting(MonitorSettingValue settingValue, ref NonContinuousMonitorDeviceSettingViewModel? setting, string propertyName)
+	{
+		if (setting is not null)
 		{
 			setting.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
 		}
@@ -67,6 +127,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 			try { await ApplyChangeIfNeededAsync(_brightnessSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_contrastSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_audioVolumeSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_inputSelectSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 
 			if (exceptions is not null)
 			{
@@ -80,7 +141,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 	}
 
 	private ValueTask ApplyChangeIfNeededAsync(MonitorDeviceSettingViewModel? setting, CancellationToken cancellationToken)
-		=> setting?.IsChanged == true ? ApplyChangeAsync(setting, cancellationToken): ValueTask.CompletedTask;
+		=> setting?.IsChanged == true ? ApplyChangeAsync(setting, cancellationToken) : ValueTask.CompletedTask;
 
 	private async ValueTask ApplyChangeAsync(MonitorDeviceSettingViewModel setting, CancellationToken cancellationToken)
 	{
@@ -108,7 +169,7 @@ internal abstract class MonitorDeviceSettingViewModel : ChangeableBindableObject
 }
 
 internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
-{ 
+{
 	private ushort _value;
 	private ushort _initialValue;
 	private ushort _minimumValue;
@@ -129,7 +190,7 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 	public ushort InitialValue
 	{
 		get => _initialValue;
-		set
+		private set
 		{
 			bool wasChanged = IsChanged;
 			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
@@ -191,4 +252,152 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 		=> monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value }, cancellationToken);
 
 	public override void Reset() => Value = InitialValue;
+}
+
+internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
+{
+	private NonContinuousValueViewModel? _value;
+	private NonContinuousValueViewModel? _initialValue;
+	private ReadOnlyCollection<NonContinuousValueViewModel> _supportedValueCollection;
+	private readonly Dictionary<ushort, NonContinuousValueViewModel> _supportedValues;
+
+	public override bool IsChanged => _value != _initialValue;
+
+	public override MonitorSetting Setting { get; }
+
+	public string DisplayName => Setting switch
+	{
+		MonitorSetting.InputSelect => "Input Select",
+		_ => Setting.ToString()
+	};
+
+	public NonContinuousValueViewModel? InitialValue
+	{
+		get => _initialValue;
+		private set
+		{
+			bool wasChanged = IsChanged;
+			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
+			{
+				if (!wasChanged)
+				{
+					_value = _initialValue;
+				}
+				else
+				{
+					OnChangeStateChange(wasChanged);
+				}
+			}
+		}
+	}
+
+	public NonContinuousValueViewModel? Value
+	{
+		get => _value;
+		set
+		{
+			ArgumentNullException.ThrowIfNull(value);
+			bool wasChanged = IsChanged;
+			if (SetValue(ref _value, value, ChangedProperty.Value))
+			{
+				OnChangeStateChange(wasChanged);
+			}
+		}
+	}
+
+	public ReadOnlyCollection<NonContinuousValueViewModel> SupportedValues
+	{
+		get => _supportedValueCollection;
+		private set => SetValue(ref _supportedValueCollection, value, ChangedProperty.SupportedValues);
+	}
+
+	public NonContinuousMonitorDeviceSettingViewModel(MonitorSetting setting, ushort currentValue)
+	{
+		Setting = setting;
+		_supportedValueCollection = ReadOnlyCollection<NonContinuousValueViewModel>.Empty;
+		_supportedValues = new();
+	}
+
+	internal void UpdateNonContinuousValues(ISettingsMetadataService metadataService, ImmutableArray<NonContinuousValue> values)
+	{
+		if (values.IsDefaultOrEmpty) SupportedValues = ReadOnlyCollection<NonContinuousValueViewModel>.Empty;
+
+		foreach (var valueDefinition in values)
+		{
+			string? friendlyName = valueDefinition.CustomName;
+			if (friendlyName is null && valueDefinition.NameStringId is { } stringId)
+			{
+				friendlyName = metadataService.GetString(CultureInfo.InvariantCulture, stringId);
+			}
+			if (friendlyName is null)
+			{
+				friendlyName = valueDefinition.Value.ToString("X4", CultureInfo.InvariantCulture);
+			}
+			if (_supportedValues.TryGetValue(valueDefinition.Value, out var vm))
+			{
+				vm.UpdateName(friendlyName);
+			}
+			else
+			{
+				_supportedValues.Add(valueDefinition.Value, new(this, valueDefinition.Value, friendlyName));
+			}
+		}
+
+		if (_supportedValueCollection.Count != values.Length || _supportedValues.Count > values.Length)
+		{
+			var oldValues = new HashSet<ushort>();
+			foreach (var vm in _supportedValueCollection)
+			{
+				oldValues.Add(vm.Value);
+			}
+			var supportedValues = new NonContinuousValueViewModel[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				var valueDefinition = values[i];
+				oldValues.Remove(valueDefinition.Value);
+				supportedValues[i] = _supportedValues[valueDefinition.Value];
+			}
+			foreach (var value in oldValues)
+			{
+				_supportedValues.Remove(value);
+			}
+			SupportedValues = Array.AsReadOnly(supportedValues);
+		}
+	}
+
+	internal override void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue)
+	{
+		var initialValue = _supportedValues.TryGetValue(currentValue, out var valueViewModel) ?
+			valueViewModel :
+			new NonContinuousValueViewModel(this, currentValue, currentValue.ToString("X4", CultureInfo.InvariantCulture));
+		InitialValue = initialValue;
+	}
+
+	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
+		=> Value is { } value ?
+			monitorService.SetInputSourceAsync(new MonitorSettingDirectUpdate { DeviceId = deviceId, Value = Value.Value }, cancellationToken) :
+			ValueTask.CompletedTask;
+
+	public override void Reset() => Value = InitialValue;
+}
+
+internal sealed class NonContinuousValueViewModel : BindableObject
+{
+	internal NonContinuousMonitorDeviceSettingViewModel SettingViewModel { get; }
+	public ushort Value { get; }
+	private string _friendlyName;
+
+	public NonContinuousValueViewModel(NonContinuousMonitorDeviceSettingViewModel settingViewModel, ushort value, string friendlyName)
+	{
+		SettingViewModel = settingViewModel;
+		Value = value;
+		_friendlyName = friendlyName;
+	}
+
+	public string FriendlyName => _friendlyName;
+
+	internal void UpdateName(string name)
+	{
+		SetValue(ref _friendlyName, name, ChangedProperty.FriendlyName);
+	}
 }

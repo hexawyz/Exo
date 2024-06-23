@@ -39,15 +39,22 @@ internal sealed class GrpcMonitorService : IMonitorService
 		}
 	}
 
-	public async ValueTask<MonitorSupportedSettings> GetSupportedSettingsAsync(DeviceRequest request, CancellationToken cancellationToken)
+	public async ValueTask<MonitorInformation> GetMonitorInformationAsync(DeviceRequest request, CancellationToken cancellationToken)
 		=> new()
 		{
-			Settings = ImmutableArray.CreateRange
+			SupportedSettings = ImmutableArray.CreateRange
 			(
 				await _monitorService.GetSupportedSettingsAsync(request.Id, cancellationToken).ConfigureAwait(false),
 				setting => setting.ToGrpc()
 			),
+			InputSelectSources = GetInputSources(request.Id),
 		};
+
+	private ImmutableArray<NonContinuousValue> GetInputSources(Guid deviceId)
+	{
+		var sources = _monitorService.GetInputSources(deviceId);
+		return sources.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(sources, GrpcConvert.ToGrpc);
+	}
 
 	public ValueTask SetSettingValueAsync(MonitorSettingUpdate request, CancellationToken cancellationToken)
 		=> _monitorService.SetSettingValueAsync(request.DeviceId, request.Setting.FromGrpc(), request.Value, cancellationToken);
@@ -57,4 +64,7 @@ internal sealed class GrpcMonitorService : IMonitorService
 
 	public ValueTask SetContrastAsync(MonitorSettingDirectUpdate request, CancellationToken cancellationToken)
 		=> _monitorService.SetContrastAsync(request.DeviceId, request.Value, cancellationToken);
+
+	public ValueTask SetInputSourceAsync(MonitorSettingDirectUpdate request, CancellationToken cancellationToken)
+		=> _monitorService.SetInputSourceAsync(request.DeviceId, request.Value, cancellationToken);
 }

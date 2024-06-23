@@ -61,12 +61,14 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice;
 
+	private readonly ISettingsMetadataService _metadataService;
+
 	private readonly Commands.NavigateToDeviceCommand _navigateToDeviceCommand;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly IDisposable _stateRegistration;
 
-	public DevicesViewModel(SettingsServiceConnectionManager connectionManager, ICommand navigateCommand)
+	public DevicesViewModel(SettingsServiceConnectionManager connectionManager, ISettingsMetadataService metadataService, ICommand navigateCommand)
 	{
 		_devices = new();
 		_removedDeviceIds = new();
@@ -75,6 +77,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingBatteryChanges = new();
 		_pendingDpiChanges = new();
 		_pendingMonitorSettingChanges = new();
+		_metadataService = metadataService;
 		_navigateToDeviceCommand = new(navigateCommand);
 		_cancellationTokenSource = new CancellationTokenSource();
 		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
@@ -152,8 +155,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 						//	// Disconnection from the service is not yet handled.
 						//	continue;
 						//}
-						var device = new DeviceViewModel(_connectionManager, notification.Details);
-						HandleDeviceArrival(device);
+						var device = new DeviceViewModel(_connectionManager, _metadataService, notification.Details);
+						await HandleDeviceArrivalAsync(device, cancellationToken);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
 					}
@@ -184,7 +187,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 							{
 								if (device.IsAvailable = notification.Details.IsAvailable)
 								{
-									HandleDeviceArrival(device);
+									await HandleDeviceArrivalAsync(device, cancellationToken);
 								}
 								else
 								{
@@ -209,8 +212,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private void HandleDeviceArrival(DeviceViewModel device)
+	private async Task HandleDeviceArrivalAsync(DeviceViewModel device, CancellationToken cancellationToken)
 	{
+		await device.InitializeSettingsAsync(cancellationToken);
 		if (_pendingBatteryChanges.Remove(device.Id, out var batteryStatus))
 		{
 			device.BatteryState = batteryStatus;

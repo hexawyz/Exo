@@ -1,23 +1,27 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
-using DeviceTools;
+using Exo.Features.Monitors;
+using CoolerType = Exo.Cooling.CoolerType;
+using DeviceId = DeviceTools.DeviceId;
+using DeviceIdSource = DeviceTools.DeviceIdSource;
+using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
+using GrpcCoolerPowerLimits = Exo.Contracts.Ui.Settings.CoolerPowerLimits;
+using GrpcCoolerType = Exo.Contracts.Ui.Settings.CoolerType;
+using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
+using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
 using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
+using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
+using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
+using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
+using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
+using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
-using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
-using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
-using GrpcCoolerType = Exo.Contracts.Ui.Settings.CoolerType;
-using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
-using GrpcCoolerPowerLimits = Exo.Contracts.Ui.Settings.CoolerPowerLimits;
-using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
-using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
-using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
-using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
-using Exo.Cooling;
+using VendorIdSource = DeviceTools.VendorIdSource;
 
 namespace Exo.Service.Grpc;
 
@@ -176,7 +180,16 @@ internal static class GrpcConvert
 			MonitorSetting.Brightness => GrpcMonitorSetting.Brightness,
 			MonitorSetting.Contrast => GrpcMonitorSetting.Contrast,
 			MonitorSetting.AudioVolume => GrpcMonitorSetting.AudioVolume,
+			MonitorSetting.InputSelect => GrpcMonitorSetting.InputSelect,
 			_ => throw new NotImplementedException()
+		};
+
+	public static GrpcNonContinuousValue ToGrpc(this NonContinuousValueDescription value)
+		=> new()
+		{
+			Value = value.Value,
+			NameStringId = value.NameStringId != default ? value.NameStringId : null,
+			CustomName = value.CustomName,
 		};
 
 	public static MonitorSetting FromGrpc(this GrpcMonitorSetting setting)
@@ -186,6 +199,7 @@ internal static class GrpcConvert
 			GrpcMonitorSetting.Brightness => MonitorSetting.Brightness,
 			GrpcMonitorSetting.Contrast => MonitorSetting.Contrast,
 			GrpcMonitorSetting.AudioVolume => MonitorSetting.AudioVolume,
+			GrpcMonitorSetting.InputSelect => MonitorSetting.InputSelect,
 			_ => throw new NotImplementedException()
 		};
 

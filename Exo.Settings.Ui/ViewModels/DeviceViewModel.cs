@@ -8,7 +8,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 {
 	//private readonly ExtendedDeviceInformation _extendedDeviceInformation;
 
-	public DeviceViewModel(SettingsServiceConnectionManager connectionManager, DeviceInformation deviceInformation)
+	public DeviceViewModel(SettingsServiceConnectionManager connectionManager, ISettingsMetadataService metadataService, DeviceInformation deviceInformation)
 		: base(deviceInformation)
 	{
 		//_extendedDeviceInformation = extendedDeviceInformation;
@@ -20,7 +20,7 @@ internal class DeviceViewModel : BaseDeviceViewModel
 			}
 			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MonitorDeviceFeature))
 			{
-				MonitorFeatures = new(this, connectionManager);
+				MonitorFeatures = new(this, metadataService, connectionManager);
 			}
 		}
 	}
@@ -37,4 +37,12 @@ internal class DeviceViewModel : BaseDeviceViewModel
 
 	// If the device is a monitor, this hosts the mouse-related features.
 	public MonitorDeviceFeaturesViewModel? MonitorFeatures { get; }
+
+	public async Task InitializeSettingsAsync(CancellationToken cancellationToken)
+	{
+		if (MonitorFeatures is not null)
+		{
+			await MonitorFeatures.InitializeAsync(cancellationToken);
+		}
+	}
 }

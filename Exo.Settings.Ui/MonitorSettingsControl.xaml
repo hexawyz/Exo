@@ -23,6 +23,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <FontIcon
                 Grid.Row="0"
@@ -123,6 +124,41 @@
                 IsEnabled="{Binding AudioVolumeSetting.IsChanged, Mode=OneWay}"
                 Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
                 Click="OnAudioVolumeResetButtonClick">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="3"
+                Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xEC77;"
+                ToolTipService.ToolTip="Input Select"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <ComboBox
+                Grid.Row="3"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding InputSelectSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+                SelectedItem="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FriendlyName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button
+                Grid.Row="3"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding InputSelectSetting.IsChanged, Mode=OneWay}"
+                Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Click="OnInputSelectResetButtonClick">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>

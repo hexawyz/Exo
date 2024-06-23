@@ -6,4 +6,5 @@ public enum MonitorSetting : uint
 	Brightness = 1,
 	Contrast = 2,
 	AudioVolume = 3,
+	InputSelect = 4,
 }

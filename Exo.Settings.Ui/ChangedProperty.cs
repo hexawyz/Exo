@@ -12,6 +12,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs InitialValue = new(nameof(InitialValue));
 	public static readonly PropertyChangedEventArgs MinimumValue = new(nameof(MinimumValue));
 	public static readonly PropertyChangedEventArgs MaximumValue = new(nameof(MaximumValue));
+	public static readonly PropertyChangedEventArgs SupportedValues = new(nameof(SupportedValues));
 	public static readonly PropertyChangedEventArgs IsChanged = new(nameof(IsChanged));
 	public static readonly PropertyChangedEventArgs IsNotBusy = new(nameof(IsNotBusy));
 	public static readonly PropertyChangedEventArgs IsReady = new(nameof(IsReady));
