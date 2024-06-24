@@ -51,7 +51,5 @@ internal sealed partial class MonitorSettingsControl : UserControl
 
 	private void OnInputSelectResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.InputSelectSetting!.Reset();
 
-	private void OnResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.Reset();
-
 	private async void OnApplyButtonClick(object sender, RoutedEventArgs e) => await MonitorFeatures!.ApplyChangesAsync(default);
 }

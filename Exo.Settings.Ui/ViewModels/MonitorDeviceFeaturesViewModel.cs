@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
@@ -7,7 +8,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
+internal sealed class MonitorDeviceFeaturesViewModel : ResettableBindableObject
 {
 	private readonly DeviceViewModel _device;
 	private readonly ISettingsMetadataService _metadataService;
@@ -16,7 +17,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 	private ContinuousMonitorDeviceSettingViewModel? _contrastSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _audioVolumeSetting;
 	private NonContinuousMonitorDeviceSettingViewModel? _inputSelectSetting;
+	private readonly PropertyChangedEventHandler _onSettingPropertyChanged;
 
+	private int _changedSettingCount;
 	private bool _isReady;
 
 	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
@@ -35,6 +38,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		_device = device;
 		_metadataService = metadataService;
 		_connectionManager = connectionManager;
+		_onSettingPropertyChanged = new(OnSettingPropertyChanged);
 	}
 
 	public async Task UpdateInformationAsync(MonitorInformation information, CancellationToken cancellationToken)
@@ -85,6 +89,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		if (viewModel is null)
 		{
 			viewModel = new ContinuousMonitorDeviceSettingViewModel(setting, 0, 0, 0);
+			viewModel.PropertyChanged += _onSettingPropertyChanged;
 			NotifyPropertyChanged(propertyName);
 		}
 	}
@@ -94,6 +99,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		if (viewModel is null)
 		{
 			viewModel = new NonContinuousMonitorDeviceSettingViewModel(setting, 0);
+			viewModel.PropertyChanged += _onSettingPropertyChanged;
 			NotifyPropertyChanged(propertyName);
 		}
 	}
@@ -103,6 +109,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		if (viewModel is null)
 		{
 			viewModel = new ContinuousMonitorDeviceSettingViewModel(settingValue.Setting, settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+			viewModel.PropertyChanged += _onSettingPropertyChanged;
 			NotifyPropertyChanged(propertyName);
 		}
 		else
@@ -116,11 +123,23 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		if (viewModel is null)
 		{
 			viewModel = new NonContinuousMonitorDeviceSettingViewModel(settingValue.Setting, settingValue.CurrentValue);
+			viewModel.PropertyChanged += _onSettingPropertyChanged;
 			NotifyPropertyChanged(propertyName);
 		}
 		else
 		{
 			viewModel.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+		}
+	}
+
+	private void OnSettingPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (Equals(e, ChangedProperty.IsChanged) && sender is ChangeableBindableObject setting)
+		{
+			bool wasChanged = IsChanged;
+			if (setting.IsChanged) _changedSettingCount++;
+			else _changedSettingCount--;
+			OnChangeStateChange(wasChanged);
 		}
 	}
 
@@ -155,15 +174,16 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		await setting.ApplyChangeAsync(monitorService, _device.Id, cancellationToken);
 	}
 
-	public void Reset()
+	public override bool IsChanged => _changedSettingCount != 0;
+
+	protected override void Reset()
 	{
 		if (!IsReady) throw new InvalidOperationException();
 		_brightnessSetting?.Reset();
 		_contrastSetting?.Reset();
+		_audioVolumeSetting?.Reset();
+		_inputSelectSetting?.Reset();
 	}
-
-	// TODO
-	public override bool IsChanged => true;
 }
 
 internal abstract class MonitorDeviceSettingViewModel : ChangeableBindableObject

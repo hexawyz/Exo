@@ -4,6 +4,8 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal interface IResettable : IChangeable
 {
+	public static ICommand SharedResetCommand => Commands.ResetCommand.Instance;
+
 	private static class Commands
 	{
 		public sealed class ResetCommand : ICommand
@@ -23,7 +25,7 @@ internal interface IResettable : IChangeable
 
 	static sealed void NotifyCanExecuteChanged() => Commands.ResetCommand.RaiseCanExecuteChanged();
 
-	ICommand ResetCommand => Commands.ResetCommand.Instance;
+	ICommand ResetCommand => SharedResetCommand;
 
 	void Reset();
 }
