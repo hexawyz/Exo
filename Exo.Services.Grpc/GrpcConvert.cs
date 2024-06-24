@@ -14,6 +14,7 @@ using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
+using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
@@ -171,6 +172,14 @@ internal static class GrpcConvert
 			SensorDataType.Float32 => GrpcSensorDataType.Float32,
 			SensorDataType.Float64 => GrpcSensorDataType.Float64,
 			_ => throw new NotImplementedException()
+		};
+
+	public static GrpcMonitorInformation ToGrpc(this MonitorInformation information)
+		=> new()
+		{
+			DeviceId = information.DeviceId,
+			SupportedSettings = ImmutableArray.CreateRange(information.SupportedSettings, ToGrpc),
+			InputSelectSources = information.InputSelectSources.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.InputSelectSources, ToGrpc),
 		};
 
 	public static GrpcMonitorSetting ToGrpc(this MonitorSetting setting)

@@ -7,9 +7,11 @@ namespace Exo.Contracts.Ui.Settings;
 public sealed class MonitorInformation
 {
 	[DataMember(Order = 1)]
-	public string? Capabilities { get; init; }
+	public required Guid DeviceId { get; init; }
 	[DataMember(Order = 2)]
-	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
+	public string? Capabilities { get; init; }
 	[DataMember(Order = 3)]
-	public ImmutableArray<NonContinuousValue> InputSelectSources { get; set; }
+	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
+	[DataMember(Order = 4)]
+	public required ImmutableArray<NonContinuousValue> InputSelectSources { get; set; }
 }

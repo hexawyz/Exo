@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Features;
 using Exo.Features.Monitors;
@@ -12,14 +11,16 @@ internal class MonitorService : IAsyncDisposable
 {
 	private sealed class MonitorDeviceDetails
 	{
+		public Guid DeviceId { get; }
 		public Driver? Driver;
-		public MonitorSetting[] SupportedSettings;
+		public ImmutableArray<MonitorSetting> SupportedSettings;
 		public readonly Dictionary<MonitorSetting, ContinuousValue> KnownValues;
 		public readonly ImmutableArray<NonContinuousValueDescription> InputSources;
 		public readonly AsyncLock Lock;
 
-		public MonitorDeviceDetails(Driver driver, MonitorSetting[] supportedSettings, ImmutableArray<NonContinuousValueDescription> inputSources)
+		public MonitorDeviceDetails(Guid deviceId, Driver driver, ImmutableArray<MonitorSetting> supportedSettings, ImmutableArray<NonContinuousValueDescription> inputSources)
 		{
+			DeviceId = deviceId;
 			Driver = driver;
 			SupportedSettings = supportedSettings;
 			KnownValues = new();
@@ -29,6 +30,7 @@ internal class MonitorService : IAsyncDisposable
 	}
 
 	private readonly Dictionary<Guid, MonitorDeviceDetails> _deviceDetails = new();
+	private ChannelWriter<MonitorInformation>[]? _monitorListeners = [];
 	private ChannelWriter<MonitorSettingWatchNotification>[]? _changeListeners = [];
 	private readonly object _lock = new();
 	private CancellationTokenSource? _cancellationTokenSource = new();
@@ -38,7 +40,7 @@ internal class MonitorService : IAsyncDisposable
 	public MonitorService(IDeviceWatcher deviceWatcher)
 	{
 		_deviceWatcher = deviceWatcher;
-		_monitorWatchTask = WatchMonitorsAsync(_cancellationTokenSource.Token);
+		_monitorWatchTask = WatchMonitorDevicesAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -51,13 +53,12 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	private async Task WatchMonitorsAsync(CancellationToken cancellationToken)
+	private async Task WatchMonitorDevicesAsync(CancellationToken cancellationToken)
 	{
 		// NB: This method is the only method that is updating _deviceDetails, so it can read the dictionary without lock, as there will never be a concurrency issue in that case.
+		var settingsBuilder = ImmutableArray.CreateBuilder<MonitorSetting>();
 		try
 		{
-			var settings = new List<MonitorSetting>();
-
 			await foreach (var notification in _deviceWatcher.WatchAvailableAsync<IMonitorDeviceFeature>(cancellationToken))
 			{
 				try
@@ -88,28 +89,30 @@ internal class MonitorService : IAsyncDisposable
 					var monitorFeatures = (IDeviceFeatureSet<IMonitorDeviceFeature>)notification.FeatureSet!;
 
 					ImmutableArray<NonContinuousValueDescription> inputSources = default;
-					settings.Clear();
+					settingsBuilder.Clear();
 
 					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>())
 					{
-						settings.Add(MonitorSetting.Brightness);
+						settingsBuilder.Add(MonitorSetting.Brightness);
 					}
 					if (monitorFeatures.HasFeature<IMonitorContrastFeature>())
 					{
-						settings.Add(MonitorSetting.Contrast);
+						settingsBuilder.Add(MonitorSetting.Contrast);
 					}
 					if (monitorFeatures.HasFeature<IMonitorSpeakerAudioVolumeFeature>())
 					{
-						settings.Add(MonitorSetting.AudioVolume);
+						settingsBuilder.Add(MonitorSetting.AudioVolume);
 					}
-					if (monitorFeatures.GetFeature<IMonitorInputSelectFeature>() is { } monitorInputSelectFeature)
+					if (monitorFeatures.GetFeature<IMonitorInputSelectFeature>() is { } monitorInputSelectFeature)
 					{
-						settings.Add(MonitorSetting.InputSelect);
+						settingsBuilder.Add(MonitorSetting.InputSelect);
 						inputSources = monitorInputSelectFeature.InputSources;
 					}
 
+					var settings = settingsBuilder.DrainToImmutable();
+
 					// Create and lock the details to prevent changes to be made before we read all the features.
-					details = new MonitorDeviceDetails(notification.Driver!, [.. settings], inputSources);
+					details = new MonitorDeviceDetails(notification.DeviceInformation.Id, notification.Driver!, settings, inputSources);
 
 					var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 					// We want to avoid delaying publishing the device, so we first add a empty state to the dictionary.
@@ -117,6 +120,7 @@ internal class MonitorService : IAsyncDisposable
 					lock (_lock)
 					{
 						_deviceDetails.Add(deviceId, details);
+						_monitorListeners.TryWrite(new() { DeviceId = deviceId, SupportedSettings = settings, InputSelectSources = inputSources });
 					}
 
 					// Finish the updates in a separate execution flow. We don't want to slow monitor enumeration because of a single slow device.
@@ -212,7 +216,7 @@ internal class MonitorService : IAsyncDisposable
 
 			initialNotifications = null;
 
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 			{
 				yield return notification;
 			}
@@ -223,16 +227,40 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask<ImmutableArray<MonitorSetting>> GetSupportedSettingsAsync(Guid deviceId, CancellationToken cancellationToken)
+	public async IAsyncEnumerable<MonitorInformation> WatchMonitorsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		MonitorDeviceDetails? details;
+		var channel = Watcher.CreateSingleWriterChannel<MonitorInformation>();
+
+		// Cache all the initial notifications and register the channel for notifications.
+		// Registering a listener here could inflict a little perf hit on the MonitorService if there are lots of monitors and settings, but this intended for use by the settings UI only.
+		// As such, it should never really be a bottleneck.
+		var initialNotifications = new List<MonitorInformation>();
 		lock (_lock)
 		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details)) return [];
+			foreach (var details in _deviceDetails.Values)
+			{
+				initialNotifications.Add(new() { DeviceId = details.DeviceId, SupportedSettings = details.SupportedSettings, InputSelectSources = details.InputSources });
+			}
+			ArrayExtensions.InterlockedAdd(ref _monitorListeners, channel);
 		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+
+		try
 		{
-			return ImmutableCollectionsMarshal.AsImmutableArray(details.SupportedSettings);
+			foreach (var notification in initialNotifications)
+			{
+				yield return notification;
+			}
+
+			initialNotifications = null;
+
+			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+			{
+				yield return notification;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _monitorListeners, channel);
 		}
 	}
 
@@ -351,16 +379,11 @@ internal class MonitorService : IAsyncDisposable
 	DeviceNotFound:;
 		throw new InvalidOperationException("Device was not found.");
 	}
+}
 
-	public ImmutableArray<NonContinuousValueDescription> GetInputSources(Guid deviceId)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		return details.InputSources;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+public readonly struct MonitorInformation
+{
+	public required Guid DeviceId { get; init; }
+	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
+	public required ImmutableArray<NonContinuousValueDescription> InputSelectSources { get; init; }
 }

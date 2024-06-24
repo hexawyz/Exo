@@ -1,11 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using Exo.Contracts.Ui;
-using Exo.Ui;
-using Exo.Contracts.Ui.Settings;
-using Exo.Settings.Ui.Services;
 using System.Windows.Input;
+using Exo.Contracts.Ui;
+using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Converters;
+using Exo.Settings.Ui.Services;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -55,6 +55,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	// Used to store DPI changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, DpiViewModel> _pendingDpiChanges;
 
+	// Used to store monitor informations when the device view model is not accessible.
+	private readonly Dictionary<Guid, MonitorInformation> _pendingMonitorInformations;
+
 	// Used to store monitor setting changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, List<MonitorSettingValue>> _pendingMonitorSettingChanges;
 
@@ -76,6 +79,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_devicesById = new();
 		_pendingBatteryChanges = new();
 		_pendingDpiChanges = new();
+		_pendingMonitorInformations = new();
 		_pendingMonitorSettingChanges = new();
 		_metadataService = metadataService;
 		_navigateToDeviceCommand = new(navigateCommand);
@@ -100,11 +104,12 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var deviceWatchTask = WatchDevicesAsync(cts.Token);
 			var batteryWatchTask = WatchBatteryChangesAsync(cts.Token);
 			var dpiWatchTask = WatchDpiChangesAsync(cts.Token);
+			var monitorWatchTask = WatchMonitorsAsync(cts.Token);
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
 
 			try
 			{
-				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorSettingWatchTask]).ConfigureAwait(false);
+				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorWatchTask, monitorSettingWatchTask]).ConfigureAwait(false);
 			}
 			catch (Exception)
 			{
@@ -214,7 +219,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	private async Task HandleDeviceArrivalAsync(DeviceViewModel device, CancellationToken cancellationToken)
 	{
-		await device.InitializeSettingsAsync(cancellationToken);
 		if (_pendingBatteryChanges.Remove(device.Id, out var batteryStatus))
 		{
 			device.BatteryState = batteryStatus;
@@ -224,6 +228,13 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			if (device.MouseFeatures is { } mouseFeatures)
 			{
 				mouseFeatures.CurrentDpi = dpi;
+			}
+		}
+		if (_pendingMonitorInformations.Remove(device.Id, out var monitorInformation))
+		{
+			if (device.MonitorFeatures is { } monitorFeatures)
+			{
+				await monitorFeatures.UpdateInformationAsync(monitorInformation, cancellationToken);
 			}
 		}
 		if (_pendingMonitorSettingChanges.Remove(device.Id, out var monitorSettings))
@@ -288,6 +299,31 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				else
 				{
 					_pendingDpiChanges.Add(notification.DeviceId, new(notification.Dpi));
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchMonitorsAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+			await foreach (var notification in monitorService.WatchMonitorsAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
+				{
+					if (device.MonitorFeatures is { } monitorFeatures)
+					{
+						await monitorFeatures.UpdateInformationAsync(notification, cancellationToken);
+					}
+				}
+				else
+				{
+					_pendingMonitorInformations[notification.DeviceId] = notification;
 				}
 			}
 		}

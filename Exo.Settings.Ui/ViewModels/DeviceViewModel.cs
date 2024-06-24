@@ -37,12 +37,4 @@ internal class DeviceViewModel : BaseDeviceViewModel
 
 	// If the device is a monitor, this hosts the mouse-related features.
 	public MonitorDeviceFeaturesViewModel? MonitorFeatures { get; }
-
-	public async Task InitializeSettingsAsync(CancellationToken cancellationToken)
-	{
-		if (MonitorFeatures is not null)
-		{
-			await MonitorFeatures.InitializeAsync(cancellationToken);
-		}
-	}
 }

@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Microsoft.Extensions.Logging;
@@ -39,21 +38,20 @@ internal sealed class GrpcMonitorService : IMonitorService
 		}
 	}
 
-	public async ValueTask<MonitorInformation> GetMonitorInformationAsync(DeviceRequest request, CancellationToken cancellationToken)
-		=> new()
-		{
-			SupportedSettings = ImmutableArray.CreateRange
-			(
-				await _monitorService.GetSupportedSettingsAsync(request.Id, cancellationToken).ConfigureAwait(false),
-				setting => setting.ToGrpc()
-			),
-			InputSelectSources = GetInputSources(request.Id),
-		};
-
-	private ImmutableArray<NonContinuousValue> GetInputSources(Guid deviceId)
+	public async IAsyncEnumerable<Contracts.Ui.Settings.MonitorInformation> WatchMonitorsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		var sources = _monitorService.GetInputSources(deviceId);
-		return sources.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(sources, GrpcConvert.ToGrpc);
+		_logger.GrpcMonitorServiceSettingWatchStart();
+		try
+		{
+			await foreach (var notification in _monitorService.WatchMonitorsAsync(cancellationToken).ConfigureAwait(false))
+			{
+				yield return notification.ToGrpc();
+			}
+		}
+		finally
+		{
+			_logger.GrpcMonitorServiceSettingWatchStop();
+		}
 	}
 
 	public ValueTask SetSettingValueAsync(MonitorSettingUpdate request, CancellationToken cancellationToken)

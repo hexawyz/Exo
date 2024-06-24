@@ -9,7 +9,7 @@ public interface IMonitorService
 	IAsyncEnumerable<MonitorSettingValue> WatchSettingsAsync(CancellationToken cancellationToken);
 
 	[OperationContract(Name = "GetMonitorInformation")]
-	ValueTask<MonitorInformation> GetMonitorInformationAsync(DeviceRequest request, CancellationToken cancellationToken);
+	IAsyncEnumerable<MonitorInformation> WatchMonitorsAsync(CancellationToken cancellationToken);
 
 	[OperationContract(Name = "SetSettingValue")]
 	ValueTask SetSettingValueAsync(MonitorSettingUpdate request, CancellationToken cancellationToken);

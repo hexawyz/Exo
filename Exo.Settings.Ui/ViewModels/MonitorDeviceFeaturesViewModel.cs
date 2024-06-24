@@ -37,13 +37,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		_connectionManager = connectionManager;
 	}
 
-	public async Task InitializeAsync(CancellationToken cancellationToken)
+	public async Task UpdateInformationAsync(MonitorInformation information, CancellationToken cancellationToken)
 	{
-		var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
-		await Task.Delay(1000);
-		var info = await monitorService.GetMonitorInformationAsync(new() { Id = _device.Id }, cancellationToken);
-
-		foreach (var setting in info.SupportedSettings)
+		foreach (var setting in information.SupportedSettings)
 		{
 			switch (setting)
 			{
@@ -59,7 +55,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 			case MonitorSetting.InputSelect:
 				InitializeSetting(setting, ref _inputSelectSetting, nameof(InputSelectSetting));
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
-				_inputSelectSetting!.UpdateNonContinuousValues(_metadataService, info.InputSelectSources);
+				_inputSelectSetting!.UpdateNonContinuousValues(_metadataService, information.InputSelectSources);
 				break;
 			}
 		}
@@ -102,19 +98,29 @@ internal sealed class MonitorDeviceFeaturesViewModel : ChangeableBindableObject
 		}
 	}
 
-	private void UpdateSetting(MonitorSettingValue settingValue, ref ContinuousMonitorDeviceSettingViewModel? setting, string propertyName)
+	private void UpdateSetting(MonitorSettingValue settingValue, ref ContinuousMonitorDeviceSettingViewModel? viewModel, string propertyName)
 	{
-		if (setting is not null)
+		if (viewModel is null)
 		{
-			setting.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+			viewModel = new ContinuousMonitorDeviceSettingViewModel(settingValue.Setting, settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+			NotifyPropertyChanged(propertyName);
+		}
+		else
+		{
+			viewModel.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
 		}
 	}
 
-	private void UpdateSetting(MonitorSettingValue settingValue, ref NonContinuousMonitorDeviceSettingViewModel? setting, string propertyName)
+	private void UpdateSetting(MonitorSettingValue settingValue, ref NonContinuousMonitorDeviceSettingViewModel? viewModel, string propertyName)
 	{
-		if (setting is not null)
+		if (viewModel is null)
 		{
-			setting.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
+			viewModel = new NonContinuousMonitorDeviceSettingViewModel(settingValue.Setting, settingValue.CurrentValue);
+			NotifyPropertyChanged(propertyName);
+		}
+		else
+		{
+			viewModel.SetValues(settingValue.CurrentValue, settingValue.MinimumValue, settingValue.MaximumValue);
 		}
 	}
 
@@ -256,8 +262,8 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 
 internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
-	private NonContinuousValueViewModel? _value;
-	private NonContinuousValueViewModel? _initialValue;
+	private ushort _value;
+	private ushort _initialValue;
 	private ReadOnlyCollection<NonContinuousValueViewModel> _supportedValueCollection;
 	private readonly Dictionary<ushort, NonContinuousValueViewModel> _supportedValues;
 
@@ -273,11 +279,17 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 
 	public NonContinuousValueViewModel? InitialValue
 	{
-		get => _initialValue;
+		get
+		{
+			_supportedValues.TryGetValue(_initialValue, out var vm);
+			return vm;
+		}
 		private set
 		{
+			ArgumentNullException.ThrowIfNull(value);
+			if (!ReferenceEquals(value.SettingViewModel, this)) throw new ArgumentException();
 			bool wasChanged = IsChanged;
-			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
+			if (SetValue(ref _initialValue, value.Value, ChangedProperty.InitialValue))
 			{
 				if (!wasChanged)
 				{
@@ -293,12 +305,17 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 
 	public NonContinuousValueViewModel? Value
 	{
-		get => _value;
+		get
+		{
+			_supportedValues.TryGetValue(_value, out var vm);
+			return vm;
+		}
 		set
 		{
 			ArgumentNullException.ThrowIfNull(value);
+			if (!ReferenceEquals(value.SettingViewModel, this)) throw new ArgumentException();
 			bool wasChanged = IsChanged;
-			if (SetValue(ref _value, value, ChangedProperty.Value))
+			if (SetValue(ref _value, value.Value, ChangedProperty.Value))
 			{
 				OnChangeStateChange(wasChanged);
 			}
@@ -316,6 +333,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 		Setting = setting;
 		_supportedValueCollection = ReadOnlyCollection<NonContinuousValueViewModel>.Empty;
 		_supportedValues = new();
+		_value = _initialValue = currentValue;
 	}
 
 	internal void UpdateNonContinuousValues(ISettingsMetadataService metadataService, ImmutableArray<NonContinuousValue> values)
@@ -345,6 +363,9 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 
 		if (_supportedValueCollection.Count != values.Length || _supportedValues.Count > values.Length)
 		{
+			var oldInitialValue = InitialValue;
+			var oldValue = Value;
+
 			var oldValues = new HashSet<ushort>();
 			foreach (var vm in _supportedValueCollection)
 			{
@@ -362,6 +383,9 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 				_supportedValues.Remove(value);
 			}
 			SupportedValues = Array.AsReadOnly(supportedValues);
+
+			if (!ReferenceEquals(oldInitialValue, InitialValue)) NotifyPropertyChanged(ChangedProperty.InitialValue);
+			if (!ReferenceEquals(oldValue, Value)) NotifyPropertyChanged(ChangedProperty.Value);
 		}
 	}
 

@@ -70,7 +70,7 @@ public class LgMonitorDriver :
 				byte[] data = ArrayPool<byte>.Shared.Rent(1000);
 				try
 				{
-					ushort length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+					ushort length = await ddc.GetCapabilitiesWithRetryAsync(data, cancellationToken).ConfigureAwait(false);
 					rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 				}
 				finally
@@ -205,7 +205,7 @@ public class LgMonitorDriver :
 				await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
 				serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
 
-				ushort length = await ddc.GetCapabilitiesAsync(data, cancellationToken).ConfigureAwait(false);
+				ushort length = await ddc.GetCapabilitiesWithRetryAsync(data, cancellationToken).ConfigureAwait(false);
 				rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
 			}
 			finally
