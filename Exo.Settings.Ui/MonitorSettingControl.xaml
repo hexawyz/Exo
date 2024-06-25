@@ -32,7 +32,7 @@
             HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
             ContentTemplateSelector="{StaticResource MonitorSettingContentTemplateSelector}" />
-        <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" IsEnabled="{Binding IsChanged, Mode=OneWay}" Click="OnResetButtonClick">
+        <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" IsEnabled="{Binding IsChanged, Mode=OneWay}" Command="{Binding ResetCommand}" CommandParameter="{Binding}">
             <FontIcon Glyph="&#xE777;" />
         </Button>
     </Grid>

@@ -8,7 +8,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MonitorDeviceFeaturesViewModel : ResettableBindableObject
+internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBindableObject
 {
 	private readonly DeviceViewModel _device;
 	private readonly ISettingsMetadataService _metadataService;
@@ -143,7 +143,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ResettableBindableObject
 		}
 	}
 
-	public async Task ApplyChangesAsync(CancellationToken cancellationToken)
+	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
 		IsReady = false;
 		List<Exception>? exceptions = null;
@@ -179,19 +179,18 @@ internal sealed class MonitorDeviceFeaturesViewModel : ResettableBindableObject
 	protected override void Reset()
 	{
 		if (!IsReady) throw new InvalidOperationException();
-		_brightnessSetting?.Reset();
-		_contrastSetting?.Reset();
-		_audioVolumeSetting?.Reset();
-		_inputSelectSetting?.Reset();
+		IResettable.SharedResetCommand.Execute(_brightnessSetting);
+		IResettable.SharedResetCommand.Execute(_contrastSetting);
+		IResettable.SharedResetCommand.Execute(_audioVolumeSetting);
+		IResettable.SharedResetCommand.Execute(_inputSelectSetting);
 	}
 }
 
-internal abstract class MonitorDeviceSettingViewModel : ChangeableBindableObject
+internal abstract class MonitorDeviceSettingViewModel : ResettableBindableObject
 {
 	public abstract MonitorSetting Setting { get; }
 	internal abstract void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue);
 	internal abstract ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken);
-	public abstract void Reset();
 }
 
 internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
@@ -277,7 +276,7 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
 		=> monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value }, cancellationToken);
 
-	public override void Reset() => Value = InitialValue;
+	protected override void Reset() => Value = InitialValue;
 }
 
 internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
@@ -422,7 +421,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 			monitorService.SetInputSourceAsync(new MonitorSettingDirectUpdate { DeviceId = deviceId, Value = Value.Value }, cancellationToken) :
 			ValueTask.CompletedTask;
 
-	public override void Reset() => Value = InitialValue;
+	protected override void Reset() => Value = InitialValue;
 }
 
 internal sealed class NonContinuousValueViewModel : BindableObject

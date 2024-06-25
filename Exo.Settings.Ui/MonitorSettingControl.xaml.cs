@@ -41,6 +41,4 @@ internal sealed partial class MonitorSettingControl : UserControl
 	}
 
 	private void OnMonitorFeaturesPropertyChanged(MonitorDeviceSettingViewModel value) => ((FrameworkElement)Content).DataContext = value;
-
-	private void OnResetButtonClick(object sender, RoutedEventArgs e) => Setting.Reset();
 }

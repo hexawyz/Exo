@@ -42,14 +42,4 @@ internal sealed partial class MonitorSettingsControl : UserControl
 	}
 
 	private void OnMonitorFeaturesPropertyChanged(MonitorDeviceFeaturesViewModel value) => ((FrameworkElement)Content).DataContext = value;
-
-	private void OnBrightnessResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.BrightnessSetting!.Reset();
-
-	private void OnContrastResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.ContrastSetting!.Reset();
-
-	private void OnAudioVolumeResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.AudioVolumeSetting!.Reset();
-
-	private void OnInputSelectResetButtonClick(object sender, RoutedEventArgs e) => MonitorFeatures!.InputSelectSetting!.Reset();
-
-	private async void OnApplyButtonClick(object sender, RoutedEventArgs e) => await MonitorFeatures!.ApplyChangesAsync(default);
 }

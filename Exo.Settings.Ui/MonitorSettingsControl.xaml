@@ -55,7 +55,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 IsEnabled="{Binding BrightnessSetting.IsChanged, Mode=OneWay}"
                 Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                Click="OnBrightnessResetButtonClick">
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
             
@@ -89,7 +90,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 IsEnabled="{Binding ContrastSetting.IsChanged, Mode=OneWay}"
                 Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                Click="OnContrastResetButtonClick">
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
             
@@ -123,7 +125,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 IsEnabled="{Binding AudioVolumeSetting.IsChanged, Mode=OneWay}"
                 Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                Click="OnAudioVolumeResetButtonClick">
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
 
@@ -158,13 +161,14 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 IsEnabled="{Binding InputSelectSetting.IsChanged, Mode=OneWay}"
                 Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                Click="OnInputSelectResetButtonClick">
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
             <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-            <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" IsEnabled="{Binding IsChanged, Mode=OneWay}" HorizontalAlignment="Right" Margin="6,0,0,0" Click="OnApplyButtonClick" />
+            <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
         </StackPanel>
     </StackPanel>
 </UserControl>

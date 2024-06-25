@@ -14,7 +14,8 @@ internal interface IResettable : IChangeable
 
 			private ResetCommand() { }
 
-			public void Execute(object? parameter) => ((IResettable)parameter!).Reset();
+			public void Execute(object? parameter) => (parameter as IResettable)?.Reset();
+
 			public bool CanExecute(object? parameter) => (parameter as IResettable)?.IsChanged ?? false;
 
 			public event EventHandler? CanExecuteChanged;
