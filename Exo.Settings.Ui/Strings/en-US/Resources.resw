@@ -183,6 +183,18 @@
   <data name="LightingEffectLabel.Text" xml:space="preserve">
     <value>Effect</value>
   </data>
+  <data name="MonitorAudioVolumeLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Audio Volume</value>
+  </data>
+  <data name="MonitorBrightnessLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Brightness</value>
+  </data>
+  <data name="MonitorContrastLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Contrast</value>
+  </data>
+  <data name="MonitorInputSelectLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Input Select</value>
+  </data>
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Monitor settings</value>
   </data>

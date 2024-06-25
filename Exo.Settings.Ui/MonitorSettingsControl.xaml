@@ -28,9 +28,9 @@
             <FontIcon
                 Grid.Row="0"
                 Grid.Column="0"
+                x:Uid="MonitorBrightnessLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE706;"
-                ToolTipService.ToolTip="Brightness"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
@@ -63,9 +63,9 @@
             <FontIcon
                 Grid.Row="1"
                 Grid.Column="0"
+                x:Uid="MonitorContrastLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE793;"
-                ToolTipService.ToolTip="Contrast"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
@@ -98,9 +98,9 @@
             <FontIcon
                 Grid.Row="2"
                 Grid.Column="0"
+                x:Uid="MonitorAudioVolumeLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE767;"
-                ToolTipService.ToolTip="Audio Volume"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
@@ -133,9 +133,9 @@
             <FontIcon
                 Grid.Row="3"
                 Grid.Column="0"
+                x:Uid="MonitorInputSelectLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xEC77;"
-                ToolTipService.ToolTip="Input Select"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
