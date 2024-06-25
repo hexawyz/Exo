@@ -4,13 +4,17 @@
 
 Exo is the exoskeleton for your Windows computer (Or at least it aims to be ☺️)
 
-You can use it to manage your Mouses, Keyboards, RGB lighting, etc.
+You can use it to manage your Mouses, Keyboards, Monitors, RGB lighting, etc.
 
 The project was started out of spite for all the client-side "drivers" for devices, that consume unimaginable amounts of RAM and CPU.
 As such, the goal of Exo is to replace all of these tools in a single service that will be more stable, consume a relatively small memory footprint, with a low CPU overhead.
 
+To support this vision, Exo is designed to be as modular as possible, and device support will be provided through dynamically-loaded plugins that you can add or remove as you need.
+
 ⚠️ The project is still in the development phase, but it does run and already provides working drivers for quite a few devices.
-As the author, I generally try to be conservative relative to the supported devices, but some of the code is probably already compatible with more devices than it declares. In that case, do not hesitate to contribute by opening an issue.
+As the author, I generally try to be conservative relative to the supported devices, but some of the code is probably already compatible with more devices than it declares.
+
+💡 If you want to request support for a device, or if you believe one of your devices should already be supported by the code, please make this known by opening an issue.
 
 # Why
 
@@ -19,7 +23,7 @@ This is fine, but those device require drivers and/or applications to provide th
 
 When these apps exist, they are more often than not presented as client-side application that will be a terrible Electron-based mess, and almost always as a bloated unoptimized suite with features you will never need.
 
-Other than being slow and consuming a huge chunk of your RAM for nothing, those applications are more often than not not very stable, and can have undesired behavior such as random updates or invisible crashes. (Do you really need 5 unstable chrome processes to manage a mouse?)
+Other than being slow and consuming a huge chunk of your RAM for nothing, those applications are more often than not somewhat unstable, and can have undesired behavior such as random updates or invisible crashes. (Do you really need 5 unstable chrome processes to manage a mouse?)
 
 As the author of Exo, I believe (and by now, have mostly proven 😄) that it is possible to do a much better job than this on all aspects.
 Exo is designed and architected with this in mind, and aims to provide a Windows service that will detect and operate on your device by being mindful of system resources. (Currently about 30 MB and mostly no CPU usage)
@@ -31,12 +35,14 @@ Exo currently support the following features, provided that there is a custom dr
 * Overlay notifications: Some of the other features will push notifications that will be displayed on screen.
 * RGB Lighting: Setting hardware effects is supported, dynamic ARGB lighting not yet ready.
 * Device battery status: The service will be aware of, and display the battery charge of your device, as well as show notifications for low battery, etc.
-* Monitor control: Brightness, Contrast and Audio Volume.
+* Monitor control: Brightness, Contrast, Audio Volume and Input Select. (If those settings are supported by the monitor)
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
 * Mouse: The service can observe and display DPI changes.
 * GPU: Provide support for accessing connected monitors in non-interactive (service) mode.
 * Sensors: For devices that provide data readings, expose sensors that can be read periodically and displayed in the UI.
 * Coolers: For cooling devices, or devices equipped with a fan, expose controllable coolers and allow setting custom software cooling curves based on sensors.
+
+All text in the application can be localized, and in addition to the default English localization, the following languages are supported out of the box: French.
 
 # Supported devices
 
@@ -73,6 +79,16 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Other
 	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
 
+# Planned Features
+
+Features are being added bit by bit, and while some are not yet fully designed, there is actually a vision on what to be done:
+
+* dns-sd/mdns/bonjour service discovery (for Elgato lights, etc)
+* Support for a "Light" feature, slightly different than "Lighting" feature, in that lights are independent entities that can be turned on and off externally.
+* (Temporary?) support for persisting lighting and cooling settings between service restarts. This will probably be partially superseeded by the programming system.
+* Programming system that will allow creating customized complex setups to fit any user need, with predictable state transitions.
+* CPU temperature sensor (Sadly requires a Kernel driver)
+
 # Running Exo
 
 ## Prerequisites
@@ -101,7 +117,7 @@ As is usually the case for this category of software, Exo can sometimes conflict
 This is not always the case and depends on the device, but it is advised to stop other softwares (apps and services) before running Exo, in order to avoid problems.
 
 e.g.:
-* Logitech software: There is generally no conflict, as far as I can tell. An application ID is used in the protocol to prevent problems.
+* Logitech software: For HID++ 2.0 devices, an application ID is used in the protocol to prevent problems. For HID++ 1.0 devices (e.g. USB receivers), some conflicts are possible, although the code tries to ignoring interferences.
 * Razer Synapse (in case of a supported device): The Razer protocol is not really designed to avoid conflicts, so the softwares can run into problems if two are running simultaneously.
 * Stream Deck: When accessing the device Exo can slightly disrupt the StreamDeck software, but this is probably an intentional behavior from Elgato in order to allow others to control the device. Distruption is instantly fixed by simply opening the main window of the Stream Deck software.
 * RGB Fusion 2.0: As long as the software is not open and running any effects, it seems that there are generally no conflicts.
@@ -131,7 +147,7 @@ Let's assume that you extracted the release in `C:\Tools\Exo` for this. (You can
 
 #### Create the Service
 
-If not yet created, you can create the service using the following PowerShell command:
+If not yet created, you can create the service using the following PowerShell command, in administrator mode:
 
 ````PowerShell
 New-Service -Name "Exo" -BinaryPathName "C:\Tools\Exo\Exo.Service\Exo.Service.exe" -DisplayName "Exo" -Description "Exo the exoskeleton for your Windows PC and devices." -StartupType Manual
