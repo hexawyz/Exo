@@ -18,10 +18,15 @@
 	</ItemGroup>
 	<ItemGroup>
 		<None Remove="Strings.json" />
+		<Content Remove="Strings.json" />
 		<None Remove="LightingEffects.json" />
+		<Content Remove="LightingEffects.json" />
 		<None Remove="LightingZones.json" />
+		<Content Remove="LightingZones.json" />
 		<None Remove="Sensors.json" />
+		<Content Remove="Sensors.json" />
 		<None Remove="Coolers.json" />
+		<Content Remove="Coolers.json" />
 		<StringMetadata Include="Strings.json" Condition="Exists('Strings.json')" />
 		<LightingEffectMetadata Include="LightingEffects.json" Condition="Exists('LightingEffects.json')" />
 		<LightingZoneMetadata Include="LightingZones.json" Condition="Exists('LightingZones.json')" />
