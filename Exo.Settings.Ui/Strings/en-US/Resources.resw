@@ -186,6 +186,12 @@
   <data name="MonitorAudioVolumeLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Audio Volume</value>
   </data>
+  <data name="MonitorBlueSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Hue (Blue)</value>
+  </data>
+  <data name="MonitorBlueSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Saturation (Blue)</value>
+  </data>
   <data name="MonitorBlueVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Video Gain (Blue)</value>
   </data>
@@ -195,17 +201,47 @@
   <data name="MonitorContrastLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Contrast</value>
   </data>
+  <data name="MonitorCyanSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Hue (Cyan)</value>
+  </data>
+  <data name="MonitorCyanSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Saturation (Cyan)</value>
+  </data>
+  <data name="MonitorGreenSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Hue (Green)</value>
+  </data>
+  <data name="MonitorGreenSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Saturation (Green)</value>
+  </data>
   <data name="MonitorGreenVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Video Gain (Green)</value>
   </data>
   <data name="MonitorInputSelectLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Input Select</value>
   </data>
+  <data name="MonitorMagentaSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Hue (Magenta)</value>
+  </data>
+  <data name="MonitorMagentaSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Saturation (Magenta)</value>
+  </data>
+  <data name="MonitorRedSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Hue (Red)</value>
+  </data>
+  <data name="MonitorRedSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Saturation (Red)</value>
+  </data>
   <data name="MonitorRedVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Video Gain (Red)</value>
   </data>
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Monitor settings</value>
+  </data>
+  <data name="MonitorYellowSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Hue (Yellow)</value>
+  </data>
+  <data name="MonitorYellowSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
+    <value>6 Axis Saturation (Yellow)</value>
   </data>
   <data name="ResetButton.Content" xml:space="preserve">
     <value>Reset</value>

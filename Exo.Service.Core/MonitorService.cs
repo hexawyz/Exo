@@ -106,6 +106,20 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.HasFeature<IMonitorGreenVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainGreen);
 					if (monitorFeatures.HasFeature<IMonitorBlueVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainBlue);
 
+					if (monitorFeatures.HasFeature<IMonitorRedSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlRed);
+					if (monitorFeatures.HasFeature<IMonitorYellowSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlYellow);
+					if (monitorFeatures.HasFeature<IMonitorGreenSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlGreen);
+					if (monitorFeatures.HasFeature<IMonitorCyanSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlCyan);
+					if (monitorFeatures.HasFeature<IMonitorBlueSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlBlue);
+					if (monitorFeatures.HasFeature<IMonitorMagentaSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlMagenta);
+
+					if (monitorFeatures.HasFeature<IMonitorRedSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlRed);
+					if (monitorFeatures.HasFeature<IMonitorYellowSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlYellow);
+					if (monitorFeatures.HasFeature<IMonitorGreenSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlGreen);
+					if (monitorFeatures.HasFeature<IMonitorCyanSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlCyan);
+					if (monitorFeatures.HasFeature<IMonitorBlueSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlBlue);
+					if (monitorFeatures.HasFeature<IMonitorMagentaSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlMagenta);
+
 					var settings = settingsBuilder.DrainToImmutable();
 
 					// Create and lock the details to prevent changes to be made before we read all the features.
@@ -172,6 +186,42 @@ internal class MonitorService : IAsyncDisposable
 						break;
 					case MonitorSetting.VideoGainBlue:
 						value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetBlueVideoGainAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisSaturationControlFeature>()!.GetRedSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlYellow:
+						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisSaturationControlFeature>()!.GetYellowSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisSaturationControlFeature>()!.GetGreenSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlCyan:
+						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisSaturationControlFeature>()!.GetCyanSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisSaturationControlFeature>()!.GetBlueSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlMagenta:
+						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>()!.GetMagentaSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisHueControlFeature>()!.GetRedSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlYellow:
+						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisHueControlFeature>()!.GetYellowSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisHueControlFeature>()!.GetGreenSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlCyan:
+						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisHueControlFeature>()!.GetCyanSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisHueControlFeature>()!.GetBlueSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlMagenta:
+						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetMagentaSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					default:
 						continue;
@@ -280,6 +330,18 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.VideoGainRed => SetRedVideoGainAsync(deviceId, value, cancellationToken),
 			MonitorSetting.VideoGainGreen => SetGreenVideoGainAsync(deviceId, value, cancellationToken),
 			MonitorSetting.VideoGainBlue => SetBlueVideoGainAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisSaturationControlRed => SetRedSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisSaturationControlYellow => SetYellowSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisSaturationControlGreen => SetGreenSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisSaturationControlCyan => SetCyanSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisSaturationControlBlue => SetBlueSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisSaturationControlMagenta => SetMagentaSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisHueControlRed => SetRedSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisHueControlYellow => SetYellowSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisHueControlGreen => SetGreenSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisHueControlCyan => SetCyanSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisHueControlBlue => SetBlueSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.SixAxisHueControlMagenta => SetMagentaSixAxisHueControlAsync(deviceId, value, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
 
@@ -455,6 +517,294 @@ internal class MonitorService : IAsyncDisposable
 
 			await feature.SetBlueVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
 			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainBlue, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetRedSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorRedSixAxisSaturationControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetRedSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlRed, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetYellowSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorYellowSixAxisSaturationControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetYellowSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlYellow, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetGreenSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorGreenSixAxisSaturationControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetGreenSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlGreen, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetCyanSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorCyanSixAxisSaturationControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetCyanSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlCyan, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetBlueSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBlueSixAxisSaturationControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetBlueSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlBlue, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetMagentaSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetMagentaSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlMagenta, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetRedSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorRedSixAxisHueControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetRedSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlRed, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetYellowSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorYellowSixAxisHueControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetYellowSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlYellow, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetGreenSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorGreenSixAxisHueControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetGreenSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlGreen, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetCyanSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorCyanSixAxisHueControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetCyanSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlCyan, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetBlueSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBlueSixAxisHueControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetBlueSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlBlue, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetMagentaSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorMagentaSixAxisHueControlFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetMagentaSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlMagenta, value);
 		}
 		return;
 	DeviceNotFound:;

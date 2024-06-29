@@ -20,6 +20,18 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private ContinuousMonitorDeviceSettingViewModel? _redVideoGainSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _greenVideoGainSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _blueVideoGainSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _redSixAxisSaturationControl;
+	private ContinuousMonitorDeviceSettingViewModel? _yellowSixAxisSaturationControl;
+	private ContinuousMonitorDeviceSettingViewModel? _greenSixAxisSaturationControl;
+	private ContinuousMonitorDeviceSettingViewModel? _cyanSixAxisSaturationControl;
+	private ContinuousMonitorDeviceSettingViewModel? _blueSixAxisSaturationControl;
+	private ContinuousMonitorDeviceSettingViewModel? _magentaSixAxisSaturationControl;
+	private ContinuousMonitorDeviceSettingViewModel? _redSixAxisHueControl;
+	private ContinuousMonitorDeviceSettingViewModel? _yellowSixAxisHueControl;
+	private ContinuousMonitorDeviceSettingViewModel? _greenSixAxisHueControl;
+	private ContinuousMonitorDeviceSettingViewModel? _cyanSixAxisHueControl;
+	private ContinuousMonitorDeviceSettingViewModel? _blueSixAxisHueControl;
+	private ContinuousMonitorDeviceSettingViewModel? _magentaSixAxisHueControl;
 	private readonly PropertyChangedEventHandler _onSettingPropertyChanged;
 
 	private int _changedSettingCount;
@@ -31,6 +43,18 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	public ContinuousMonitorDeviceSettingViewModel? RedVideoGainSetting => _redVideoGainSetting;
 	public ContinuousMonitorDeviceSettingViewModel? GreenVideoGainSetting => _greenVideoGainSetting;
 	public ContinuousMonitorDeviceSettingViewModel? BlueVideoGainSetting => _blueVideoGainSetting;
+	public ContinuousMonitorDeviceSettingViewModel? RedSixAxisSaturationControl => _redSixAxisSaturationControl;
+	public ContinuousMonitorDeviceSettingViewModel? YellowSixAxisSaturationControl => _yellowSixAxisSaturationControl;
+	public ContinuousMonitorDeviceSettingViewModel? GreenSixAxisSaturationControl => _greenSixAxisSaturationControl;
+	public ContinuousMonitorDeviceSettingViewModel? CyanSixAxisSaturationControl => _cyanSixAxisSaturationControl;
+	public ContinuousMonitorDeviceSettingViewModel? BlueSixAxisSaturationControl => _blueSixAxisSaturationControl;
+	public ContinuousMonitorDeviceSettingViewModel? MagentaSixAxisSaturationControl => _magentaSixAxisSaturationControl;
+	public ContinuousMonitorDeviceSettingViewModel? RedSixAxisHueControl => _redSixAxisHueControl;
+	public ContinuousMonitorDeviceSettingViewModel? YellowSixAxisHueControl => _yellowSixAxisHueControl;
+	public ContinuousMonitorDeviceSettingViewModel? GreenSixAxisHueControl => _greenSixAxisHueControl;
+	public ContinuousMonitorDeviceSettingViewModel? CyanSixAxisHueControl => _cyanSixAxisHueControl;
+	public ContinuousMonitorDeviceSettingViewModel? BlueSixAxisHueControl => _blueSixAxisHueControl;
+	public ContinuousMonitorDeviceSettingViewModel? MagentaSixAxisHueControl => _magentaSixAxisHueControl;
 	public NonContinuousMonitorDeviceSettingViewModel? InputSelectSetting => _inputSelectSetting;
 
 	public bool IsReady
@@ -76,6 +100,42 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			case MonitorSetting.VideoGainBlue:
 				InitializeSetting(setting, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
 				break;
+			case MonitorSetting.SixAxisSaturationControlRed:
+				InitializeSetting(setting, ref _redSixAxisSaturationControl, nameof(RedSixAxisSaturationControl));
+				break;
+			case MonitorSetting.SixAxisSaturationControlYellow:
+				InitializeSetting(setting, ref _yellowSixAxisSaturationControl, nameof(YellowSixAxisSaturationControl));
+				break;
+			case MonitorSetting.SixAxisSaturationControlGreen:
+				InitializeSetting(setting, ref _greenSixAxisSaturationControl, nameof(GreenSixAxisSaturationControl));
+				break;
+			case MonitorSetting.SixAxisSaturationControlCyan:
+				InitializeSetting(setting, ref _cyanSixAxisSaturationControl, nameof(CyanSixAxisSaturationControl));
+				break;
+			case MonitorSetting.SixAxisSaturationControlBlue:
+				InitializeSetting(setting, ref _blueSixAxisSaturationControl, nameof(BlueSixAxisSaturationControl));
+				break;
+			case MonitorSetting.SixAxisSaturationControlMagenta:
+				InitializeSetting(setting, ref _magentaSixAxisSaturationControl, nameof(MagentaSixAxisSaturationControl));
+				break;
+			case MonitorSetting.SixAxisHueControlRed:
+				InitializeSetting(setting, ref _redSixAxisHueControl, nameof(RedSixAxisHueControl));
+				break;
+			case MonitorSetting.SixAxisHueControlYellow:
+				InitializeSetting(setting, ref _yellowSixAxisHueControl, nameof(YellowSixAxisHueControl));
+				break;
+			case MonitorSetting.SixAxisHueControlGreen:
+				InitializeSetting(setting, ref _greenSixAxisHueControl, nameof(GreenSixAxisHueControl));
+				break;
+			case MonitorSetting.SixAxisHueControlCyan:
+				InitializeSetting(setting, ref _cyanSixAxisHueControl, nameof(CyanSixAxisHueControl));
+				break;
+			case MonitorSetting.SixAxisHueControlBlue:
+				InitializeSetting(setting, ref _blueSixAxisHueControl, nameof(BlueSixAxisHueControl));
+				break;
+			case MonitorSetting.SixAxisHueControlMagenta:
+				InitializeSetting(setting, ref _magentaSixAxisHueControl, nameof(MagentaSixAxisHueControl));
+				break;
 			}
 		}
 	}
@@ -104,6 +164,42 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.VideoGainBlue:
 			UpdateSetting(settingValue, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
+			break;
+		case MonitorSetting.SixAxisSaturationControlRed:
+			UpdateSetting(settingValue, ref _redSixAxisSaturationControl, nameof(RedSixAxisSaturationControl));
+			break;
+		case MonitorSetting.SixAxisSaturationControlYellow:
+			UpdateSetting(settingValue, ref _yellowSixAxisSaturationControl, nameof(YellowSixAxisSaturationControl));
+			break;
+		case MonitorSetting.SixAxisSaturationControlGreen:
+			UpdateSetting(settingValue, ref _greenSixAxisSaturationControl, nameof(GreenSixAxisSaturationControl));
+			break;
+		case MonitorSetting.SixAxisSaturationControlCyan:
+			UpdateSetting(settingValue, ref _cyanSixAxisSaturationControl, nameof(CyanSixAxisSaturationControl));
+			break;
+		case MonitorSetting.SixAxisSaturationControlBlue:
+			UpdateSetting(settingValue, ref _blueSixAxisSaturationControl, nameof(BlueSixAxisSaturationControl));
+			break;
+		case MonitorSetting.SixAxisSaturationControlMagenta:
+			UpdateSetting(settingValue, ref _magentaSixAxisSaturationControl, nameof(MagentaSixAxisSaturationControl));
+			break;
+		case MonitorSetting.SixAxisHueControlRed:
+			UpdateSetting(settingValue, ref _redSixAxisHueControl, nameof(RedSixAxisHueControl));
+			break;
+		case MonitorSetting.SixAxisHueControlYellow:
+			UpdateSetting(settingValue, ref _yellowSixAxisHueControl, nameof(YellowSixAxisHueControl));
+			break;
+		case MonitorSetting.SixAxisHueControlGreen:
+			UpdateSetting(settingValue, ref _greenSixAxisHueControl, nameof(GreenSixAxisHueControl));
+			break;
+		case MonitorSetting.SixAxisHueControlCyan:
+			UpdateSetting(settingValue, ref _cyanSixAxisHueControl, nameof(CyanSixAxisHueControl));
+			break;
+		case MonitorSetting.SixAxisHueControlBlue:
+			UpdateSetting(settingValue, ref _blueSixAxisHueControl, nameof(BlueSixAxisHueControl));
+			break;
+		case MonitorSetting.SixAxisHueControlMagenta:
+			UpdateSetting(settingValue, ref _magentaSixAxisHueControl, nameof(MagentaSixAxisHueControl));
 			break;
 		}
 	}
@@ -180,6 +276,18 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			try { await ApplyChangeIfNeededAsync(_redVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_greenVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_blueVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_redSixAxisSaturationControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_yellowSixAxisSaturationControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_greenSixAxisSaturationControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_cyanSixAxisSaturationControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_blueSixAxisSaturationControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_magentaSixAxisSaturationControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_redSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_yellowSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_greenSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_cyanSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_blueSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_magentaSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 
 			if (exceptions is not null)
 			{
@@ -213,6 +321,18 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_redVideoGainSetting);
 		IResettable.SharedResetCommand.Execute(_greenVideoGainSetting);
 		IResettable.SharedResetCommand.Execute(_blueVideoGainSetting);
+		IResettable.SharedResetCommand.Execute(_redSixAxisSaturationControl);
+		IResettable.SharedResetCommand.Execute(_yellowSixAxisSaturationControl);
+		IResettable.SharedResetCommand.Execute(_greenSixAxisSaturationControl);
+		IResettable.SharedResetCommand.Execute(_cyanSixAxisSaturationControl);
+		IResettable.SharedResetCommand.Execute(_blueSixAxisSaturationControl);
+		IResettable.SharedResetCommand.Execute(_magentaSixAxisSaturationControl);
+		IResettable.SharedResetCommand.Execute(_redSixAxisHueControl);
+		IResettable.SharedResetCommand.Execute(_yellowSixAxisHueControl);
+		IResettable.SharedResetCommand.Execute(_greenSixAxisHueControl);
+		IResettable.SharedResetCommand.Execute(_cyanSixAxisHueControl);
+		IResettable.SharedResetCommand.Execute(_blueSixAxisHueControl);
+		IResettable.SharedResetCommand.Execute(_magentaSixAxisHueControl);
 	}
 }
 
@@ -242,6 +362,18 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 		MonitorSetting.VideoGainRed => "Red Video Gain",
 		MonitorSetting.VideoGainGreen => "Green Video Gain",
 		MonitorSetting.VideoGainBlue => "Blue Video Gain",
+		MonitorSetting.SixAxisSaturationControlRed => "Six Axis Saturation Control (Red)",
+		MonitorSetting.SixAxisSaturationControlYellow => "Six Axis Saturation Control (Yellow)",
+		MonitorSetting.SixAxisSaturationControlGreen => "Six Axis Saturation Control (Green)",
+		MonitorSetting.SixAxisSaturationControlCyan => "Six Axis Saturation Control (Cyan)",
+		MonitorSetting.SixAxisSaturationControlBlue => "Six Axis Saturation Control (Blue)",
+		MonitorSetting.SixAxisSaturationControlMagenta => "Six Axis Saturation Control (Magenta)",
+		MonitorSetting.SixAxisHueControlRed => "Six Axis Hue Control (Red)",
+		MonitorSetting.SixAxisHueControlYellow => "Six Axis Hue Control (Yellow)",
+		MonitorSetting.SixAxisHueControlGreen => "Six Axis Hue Control (Green)",
+		MonitorSetting.SixAxisHueControlCyan => "Six Axis Hue Control (Cyan)",
+		MonitorSetting.SixAxisHueControlBlue => "Six Axis Hue Control (Blue)",
+		MonitorSetting.SixAxisHueControlMagenta => "Six Axis Hue Control (Magenta)",
 		_ => Setting.ToString()
 	};
 

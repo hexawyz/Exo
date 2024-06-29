@@ -77,15 +77,69 @@
                 <GradientStop Color="#200" Offset="0" />
                 <GradientStop Color="Red" Offset="1" />
             </LinearGradientBrush>
-
             <LinearGradientBrush x:Key="GreenGainLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
                 <GradientStop Color="#020" Offset="0" />
                 <GradientStop Color="Lime" Offset="1" />
             </LinearGradientBrush>
-
             <LinearGradientBrush x:Key="BlueGainLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
                 <GradientStop Color="#002" Offset="0" />
                 <GradientStop Color="Blue" Offset="1" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="RedSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#4c4c4c" Offset="0" />
+                <GradientStop Color="Red" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="YellowSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#e2e2e2" Offset="0" />
+                <GradientStop Color="Yellow" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="GreenSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#969696" Offset="0" />
+                <GradientStop Color="Lime" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="CyanSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#b3b3b3" Offset="0" />
+                <GradientStop Color="Cyan" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BlueSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#1d1d1d" Offset="0" />
+                <GradientStop Color="Blue" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="MagentaSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#696969" Offset="0" />
+                <GradientStop Color="Magenta" Offset="0.5" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="RedHueLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="Magenta" Offset="0" />
+                <GradientStop Color="Red" Offset="0.5" />
+                <GradientStop Color="Yellow" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="YellowHueLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="Red" Offset="0" />
+                <GradientStop Color="Yellow" Offset="0.5" />
+                <GradientStop Color="Lime" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="GreenHueLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="Yellow" Offset="0" />
+                <GradientStop Color="Lime" Offset="0.5" />
+                <GradientStop Color="Cyan" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="CyanHueLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="Lime" Offset="0" />
+                <GradientStop Color="Cyan" Offset="0.5" />
+                <GradientStop Color="Blue" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BlueHueLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="Cyan" Offset="0" />
+                <GradientStop Color="Blue" Offset="0.5" />
+                <GradientStop Color="Magenta" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="MagentaHueLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="Blue" Offset="0" />
+                <GradientStop Color="Magenta" Offset="0.5" />
+                <GradientStop Color="Red" Offset="1" />
             </LinearGradientBrush>
 
             <SolidColorBrush x:Key="ColorSliderForeground">White</SolidColorBrush>

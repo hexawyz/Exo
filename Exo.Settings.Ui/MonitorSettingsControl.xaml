@@ -27,6 +27,18 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <FontIcon
                 Grid.Row="0"
@@ -278,6 +290,462 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 IsEnabled="{Binding BlueVideoGainSetting.IsChanged, Mode=OneWay}"
                 Visibility="{Binding BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="7"
+                Grid.Column="0"
+                x:Uid="MonitorRedSixAxisSaturationControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF354;"
+                Foreground="Red"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding RedSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="7"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding RedSixAxisSaturationControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource RedSaturationLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="7"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding RedSixAxisSaturationControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding RedSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="8"
+                Grid.Column="0"
+                x:Uid="MonitorRedSixAxisHueControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE790;"
+                Foreground="Red"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding RedSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="8"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding RedSixAxisHueControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource RedHueLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="8"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding RedSixAxisHueControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding RedSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="9"
+                Grid.Column="0"
+                x:Uid="MonitorYellowSixAxisSaturationControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF354;"
+                Foreground="Yellow"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding YellowSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="9"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding YellowSixAxisSaturationControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource YellowSaturationLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="9"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding YellowSixAxisSaturationControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding YellowSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="10"
+                Grid.Column="0"
+                x:Uid="MonitorYellowSixAxisHueControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE790;"
+                Foreground="Yellow"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding YellowSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="10"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding YellowSixAxisHueControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource YellowHueLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="10"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding YellowSixAxisHueControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding YellowSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="11"
+                Grid.Column="0"
+                x:Uid="MonitorGreenSixAxisSaturationControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF354;"
+                Foreground="Lime"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding GreenSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="11"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding GreenSixAxisSaturationControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource GreenSaturationLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="11"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding GreenSixAxisSaturationControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding GreenSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="12"
+                Grid.Column="0"
+                x:Uid="MonitorGreenSixAxisHueControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE790;"
+                Foreground="Lime"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding GreenSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="12"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding GreenSixAxisHueControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource GreenHueLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="12"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding GreenSixAxisHueControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding GreenSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="13"
+                Grid.Column="0"
+                x:Uid="MonitorCyanSixAxisSaturationControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF354;"
+                Foreground="Cyan"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding CyanSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="13"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding CyanSixAxisSaturationControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource CyanSaturationLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="13"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding CyanSixAxisSaturationControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding CyanSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="14"
+                Grid.Column="0"
+                x:Uid="MonitorCyanSixAxisHueControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE790;"
+                Foreground="Cyan"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding CyanSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="14"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding CyanSixAxisHueControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource CyanHueLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="14"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding CyanSixAxisHueControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding CyanSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="15"
+                Grid.Column="0"
+                x:Uid="MonitorBlueSixAxisSaturationControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF354;"
+                Foreground="Blue"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BlueSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="15"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BlueSixAxisSaturationControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource BlueSaturationLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="15"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding BlueSixAxisSaturationControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding BlueSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="16"
+                Grid.Column="0"
+                x:Uid="MonitorBlueSixAxisHueControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE790;"
+                Foreground="Blue"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BlueSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="16"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BlueSixAxisHueControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource BlueHueLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="16"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding BlueSixAxisHueControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding BlueSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="17"
+                Grid.Column="0"
+                x:Uid="MonitorMagentaSixAxisSaturationControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF354;"
+                Foreground="Magenta"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding MagentaSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="17"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding MagentaSixAxisSaturationControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource MagentaSaturationLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="17"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding MagentaSixAxisSaturationControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding MagentaSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="18"
+                Grid.Column="0"
+                x:Uid="MonitorMagentaSixAxisHueControl"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE790;"
+                Foreground="Magenta"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding MagentaSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="18"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding MagentaSixAxisHueControl}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource MagentaHueLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="18"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding MagentaSixAxisHueControl.IsChanged, Mode=OneWay}"
+                Visibility="{Binding MagentaSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
