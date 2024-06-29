@@ -186,14 +186,23 @@
   <data name="MonitorAudioVolumeLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Volume Audio</value>
   </data>
+  <data name="MonitorBlueVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Gain vidéo (bleu)</value>
+  </data>
   <data name="MonitorBrightnessLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Luminosité</value>
   </data>
   <data name="MonitorContrastLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Contraste</value>
   </data>
+  <data name="MonitorGreenVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Gain vidéo (vert)</value>
+  </data>
   <data name="MonitorInputSelectLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Sélection d'entrée</value>
+  </data>
+  <data name="MonitorRedVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Gain vidéo (rouge)</value>
   </data>
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Réglages écran</value>

@@ -39,6 +39,24 @@ public enum MonitorFeature : byte
 	Contrast,
 	AudioVolume,
 	InputSelect,
+
+	VideoGainRed,
+	VideoGainGreen,
+	VideoGainBlue,
+
+	SixAxisSaturationControlRed,
+	SixAxisSaturationControlYellow,
+	SixAxisSaturationControlGreen,
+	SixAxisSaturationControlCyan,
+	SixAxisSaturationControlBlue,
+	SixAxisSaturationControlMagenta,
+
+	SixAxisHueControlRed,
+	SixAxisHueControlYellow,
+	SixAxisHueControlGreen,
+	SixAxisHueControlCyan,
+	SixAxisHueControlBlue,
+	SixAxisHueControlMagenta,
 }
 
 public enum MonitorFeatureAccess : byte

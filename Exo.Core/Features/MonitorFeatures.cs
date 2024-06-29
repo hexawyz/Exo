@@ -50,6 +50,96 @@ public interface IMonitorContrastFeature : IMonitorDeviceFeature
 	ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken);
 }
 
+public interface IMonitorRedVideoGainFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetRedVideoGainAsync(CancellationToken cancellationToken);
+	ValueTask SetRedVideoGainAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorGreenVideoGainFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetGreenVideoGainAsync(CancellationToken cancellationToken);
+	ValueTask SetGreenVideoGainAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorBlueVideoGainFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetBlueVideoGainAsync(CancellationToken cancellationToken);
+	ValueTask SetBlueVideoGainAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorRedSixAxisSaturationControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetRedSixAxisSaturationControlAsync(CancellationToken cancellationToken);
+	ValueTask SetRedSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorYellowSixAxisSaturationControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetYellowSixAxisSaturationControlAsync(CancellationToken cancellationToken);
+	ValueTask SetYellowSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorGreenSixAxisSaturationControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetGreenSixAxisSaturationControlAsync(CancellationToken cancellationToken);
+	ValueTask SetGreenSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorCyanSixAxisSaturationControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetCyanSixAxisSaturationControlAsync(CancellationToken cancellationToken);
+	ValueTask SetCyanSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorBlueSixAxisSaturationControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetBlueSixAxisSaturationControlAsync(CancellationToken cancellationToken);
+	ValueTask SetBlueSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorMagentaSixAxisSaturationControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetMagentaSixAxisSaturationControlAsync(CancellationToken cancellationToken);
+	ValueTask SetMagentaSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorRedSixAxisHueControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetRedSixAxisHueControlAsync(CancellationToken cancellationToken);
+	ValueTask SetRedSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorYellowSixAxisHueControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetYellowSixAxisHueControlAsync(CancellationToken cancellationToken);
+	ValueTask SetYellowSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorGreenSixAxisHueControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetGreenSixAxisHueControlAsync(CancellationToken cancellationToken);
+	ValueTask SetGreenSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorCyanSixAxisHueControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetCyanSixAxisHueControlAsync(CancellationToken cancellationToken);
+	ValueTask SetCyanSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorBlueSixAxisHueControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetBlueSixAxisHueControlAsync(CancellationToken cancellationToken);
+	ValueTask SetBlueSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorMagentaSixAxisHueControlFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetMagentaSixAxisHueControlAsync(CancellationToken cancellationToken);
+	ValueTask SetMagentaSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken);
+}
+
 /// <summary>Provides information about a non continuous value, such as an input source.</summary>
 /// <remarks>
 /// While there is a standard for some non-continuous settings, it is not always exhaustive and various implementations can decide to extend it.

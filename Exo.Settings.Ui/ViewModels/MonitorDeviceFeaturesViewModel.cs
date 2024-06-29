@@ -17,6 +17,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private ContinuousMonitorDeviceSettingViewModel? _contrastSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _audioVolumeSetting;
 	private NonContinuousMonitorDeviceSettingViewModel? _inputSelectSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _redVideoGainSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _greenVideoGainSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _blueVideoGainSetting;
 	private readonly PropertyChangedEventHandler _onSettingPropertyChanged;
 
 	private int _changedSettingCount;
@@ -25,6 +28,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public ContinuousMonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
 	public ContinuousMonitorDeviceSettingViewModel? AudioVolumeSetting => _audioVolumeSetting;
+	public ContinuousMonitorDeviceSettingViewModel? RedVideoGainSetting => _redVideoGainSetting;
+	public ContinuousMonitorDeviceSettingViewModel? GreenVideoGainSetting => _greenVideoGainSetting;
+	public ContinuousMonitorDeviceSettingViewModel? BlueVideoGainSetting => _blueVideoGainSetting;
 	public NonContinuousMonitorDeviceSettingViewModel? InputSelectSetting => _inputSelectSetting;
 
 	public bool IsReady
@@ -61,6 +67,15 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
 				_inputSelectSetting!.UpdateNonContinuousValues(_metadataService, information.InputSelectSources);
 				break;
+			case MonitorSetting.VideoGainRed:
+				InitializeSetting(setting, ref _redVideoGainSetting, nameof(RedVideoGainSetting));
+				break;
+			case MonitorSetting.VideoGainGreen:
+				InitializeSetting(setting, ref _greenVideoGainSetting, nameof(GreenVideoGainSetting));
+				break;
+			case MonitorSetting.VideoGainBlue:
+				InitializeSetting(setting, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
+				break;
 			}
 		}
 	}
@@ -80,6 +95,15 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.InputSelect:
 			UpdateSetting(settingValue, ref _inputSelectSetting, nameof(InputSelectSetting));
+			break;
+		case MonitorSetting.VideoGainRed:
+			UpdateSetting(settingValue, ref _redVideoGainSetting, nameof(RedVideoGainSetting));
+			break;
+		case MonitorSetting.VideoGainGreen:
+			UpdateSetting(settingValue, ref _greenVideoGainSetting, nameof(GreenVideoGainSetting));
+			break;
+		case MonitorSetting.VideoGainBlue:
+			UpdateSetting(settingValue, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
 			break;
 		}
 	}
@@ -153,6 +177,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			try { await ApplyChangeIfNeededAsync(_contrastSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_audioVolumeSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_inputSelectSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_redVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_greenVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_blueVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 
 			if (exceptions is not null)
 			{
@@ -183,6 +210,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_contrastSetting);
 		IResettable.SharedResetCommand.Execute(_audioVolumeSetting);
 		IResettable.SharedResetCommand.Execute(_inputSelectSetting);
+		IResettable.SharedResetCommand.Execute(_redVideoGainSetting);
+		IResettable.SharedResetCommand.Execute(_greenVideoGainSetting);
+		IResettable.SharedResetCommand.Execute(_blueVideoGainSetting);
 	}
 }
 
@@ -209,6 +239,9 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 		MonitorSetting.Brightness => "Brightness",
 		MonitorSetting.Contrast => "Contrast",
 		MonitorSetting.AudioVolume => "Audio Volume",
+		MonitorSetting.VideoGainRed => "Red Video Gain",
+		MonitorSetting.VideoGainGreen => "Green Video Gain",
+		MonitorSetting.VideoGainBlue => "Blue Video Gain",
 		_ => Setting.ToString()
 	};
 

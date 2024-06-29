@@ -91,23 +91,20 @@ internal class MonitorService : IAsyncDisposable
 					ImmutableArray<NonContinuousValueDescription> inputSources = default;
 					settingsBuilder.Clear();
 
-					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>())
-					{
-						settingsBuilder.Add(MonitorSetting.Brightness);
-					}
-					if (monitorFeatures.HasFeature<IMonitorContrastFeature>())
-					{
-						settingsBuilder.Add(MonitorSetting.Contrast);
-					}
-					if (monitorFeatures.HasFeature<IMonitorSpeakerAudioVolumeFeature>())
-					{
-						settingsBuilder.Add(MonitorSetting.AudioVolume);
-					}
+					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>()) settingsBuilder.Add(MonitorSetting.Brightness);
+					if (monitorFeatures.HasFeature<IMonitorContrastFeature>()) settingsBuilder.Add(MonitorSetting.Contrast);
+
+					if (monitorFeatures.HasFeature<IMonitorSpeakerAudioVolumeFeature>()) settingsBuilder.Add(MonitorSetting.AudioVolume);
+
 					if (monitorFeatures.GetFeature<IMonitorInputSelectFeature>() is { } monitorInputSelectFeature)
 					{
 						settingsBuilder.Add(MonitorSetting.InputSelect);
 						inputSources = monitorInputSelectFeature.InputSources;
 					}
+
+					if (monitorFeatures.HasFeature<IMonitorRedVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainRed);
+					if (monitorFeatures.HasFeature<IMonitorGreenVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainGreen);
+					if (monitorFeatures.HasFeature<IMonitorBlueVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainBlue);
 
 					var settings = settingsBuilder.DrainToImmutable();
 
@@ -124,7 +121,7 @@ internal class MonitorService : IAsyncDisposable
 					}
 
 					// Finish the updates in a separate execution flow. We don't want to slow monitor enumeration because of a single slow device.
-					_ = Task.Run(() => PublishChangesAsync(deviceId, details, deviceLock, cancellationToken));
+					_ = Task.Run(() => PublishChangesAsync(deviceId, details, deviceLock, cancellationToken), cancellationToken);
 				}
 				catch (Exception ex)
 				{
@@ -166,6 +163,15 @@ internal class MonitorService : IAsyncDisposable
 						break;
 					case MonitorSetting.InputSelect:
 						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputSelectFeature>()!.GetInputSourceAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.VideoGainRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedVideoGainFeature>()!.GetRedVideoGainAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoGainGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenVideoGainFeature>()!.GetGreenVideoGainAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoGainBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetBlueVideoGainAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					default:
 						continue;
@@ -271,6 +277,9 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.Contrast => SetContrastAsync(deviceId, value, cancellationToken),
 			MonitorSetting.AudioVolume => SetAudioVolumeAsync(deviceId, value, cancellationToken),
 			MonitorSetting.InputSelect => SetInputSourceAsync(deviceId, value, cancellationToken),
+			MonitorSetting.VideoGainRed => SetRedVideoGainAsync(deviceId, value, cancellationToken),
+			MonitorSetting.VideoGainGreen => SetGreenVideoGainAsync(deviceId, value, cancellationToken),
+			MonitorSetting.VideoGainBlue => SetBlueVideoGainAsync(deviceId, value, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
 
@@ -374,6 +383,78 @@ internal class MonitorService : IAsyncDisposable
 
 			await feature.SetInputSourceAsync(value, cancellationToken).ConfigureAwait(false);
 			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.InputSelect, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetRedVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorRedVideoGainFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetRedVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainRed, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetGreenVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorGreenVideoGainFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetGreenVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainGreen, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetBlueVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBlueVideoGainFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetBlueVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainBlue, value);
 		}
 		return;
 	DeviceNotFound:;

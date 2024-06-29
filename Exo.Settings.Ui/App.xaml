@@ -72,6 +72,22 @@
                 <GradientStop Color="White" Offset="1" />
             </LinearGradientBrush>
 
+            <!-- NB: In case of video gain, the gradient over sRGB values should be more representative than a gradient over linear RGB values -->
+            <LinearGradientBrush x:Key="RedGainLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
+                <GradientStop Color="#200" Offset="0" />
+                <GradientStop Color="Red" Offset="1" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="GreenGainLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
+                <GradientStop Color="#020" Offset="0" />
+                <GradientStop Color="Lime" Offset="1" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="BlueGainLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
+                <GradientStop Color="#002" Offset="0" />
+                <GradientStop Color="Blue" Offset="1" />
+            </LinearGradientBrush>
+
             <SolidColorBrush x:Key="ColorSliderForeground">White</SolidColorBrush>
             <SolidColorBrush x:Key="BrightnessSliderForeground">White</SolidColorBrush>
 
@@ -231,7 +247,7 @@
                 <Setter Property="Background" Value="{StaticResource BrightnessLinearGradientBrush}" />
                 <Setter Property="Foreground" Value="{StaticResource BrightnessSliderForeground}" />
             </Style>
-
+            
             <!-- This is used so that we can use an acrylic backdrop on the flyout. Sadly, the same cannot be done on all components. -->
             <Style TargetType="controls:ColorPickerButton">
                 <Setter Property="FlyoutPresenterStyle">

@@ -190,6 +190,21 @@ internal static class GrpcConvert
 			MonitorSetting.Contrast => GrpcMonitorSetting.Contrast,
 			MonitorSetting.AudioVolume => GrpcMonitorSetting.AudioVolume,
 			MonitorSetting.InputSelect => GrpcMonitorSetting.InputSelect,
+			MonitorSetting.VideoGainRed => GrpcMonitorSetting.VideoGainRed,
+			MonitorSetting.VideoGainGreen => GrpcMonitorSetting.VideoGainGreen,
+			MonitorSetting.VideoGainBlue => GrpcMonitorSetting.VideoGainBlue,
+			MonitorSetting.SixAxisSaturationControlRed => GrpcMonitorSetting.SixAxisSaturationControlRed,
+			MonitorSetting.SixAxisSaturationControlYellow => GrpcMonitorSetting.SixAxisSaturationControlYellow,
+			MonitorSetting.SixAxisSaturationControlGreen => GrpcMonitorSetting.SixAxisSaturationControlGreen,
+			MonitorSetting.SixAxisSaturationControlCyan => GrpcMonitorSetting.SixAxisSaturationControlCyan,
+			MonitorSetting.SixAxisSaturationControlBlue => GrpcMonitorSetting.SixAxisSaturationControlBlue,
+			MonitorSetting.SixAxisSaturationControlMagenta => GrpcMonitorSetting.SixAxisSaturationControlMagenta,
+			MonitorSetting.SixAxisHueControlRed => GrpcMonitorSetting.SixAxisHueControlRed,
+			MonitorSetting.SixAxisHueControlYellow => GrpcMonitorSetting.SixAxisHueControlYellow,
+			MonitorSetting.SixAxisHueControlGreen => GrpcMonitorSetting.SixAxisHueControlGreen,
+			MonitorSetting.SixAxisHueControlCyan => GrpcMonitorSetting.SixAxisHueControlCyan,
+			MonitorSetting.SixAxisHueControlBlue => GrpcMonitorSetting.SixAxisHueControlBlue,
+			MonitorSetting.SixAxisHueControlMagenta => GrpcMonitorSetting.SixAxisHueControlMagenta,
 			_ => throw new NotImplementedException()
 		};
 
@@ -209,6 +224,21 @@ internal static class GrpcConvert
 			GrpcMonitorSetting.Contrast => MonitorSetting.Contrast,
 			GrpcMonitorSetting.AudioVolume => MonitorSetting.AudioVolume,
 			GrpcMonitorSetting.InputSelect => MonitorSetting.InputSelect,
+			GrpcMonitorSetting.VideoGainRed => MonitorSetting.VideoGainRed,
+			GrpcMonitorSetting.VideoGainGreen => MonitorSetting.VideoGainGreen,
+			GrpcMonitorSetting.VideoGainBlue => MonitorSetting.VideoGainBlue,
+			GrpcMonitorSetting.SixAxisSaturationControlRed => MonitorSetting.SixAxisSaturationControlRed,
+			GrpcMonitorSetting.SixAxisSaturationControlYellow => MonitorSetting.SixAxisSaturationControlYellow,
+			GrpcMonitorSetting.SixAxisSaturationControlGreen => MonitorSetting.SixAxisSaturationControlGreen,
+			GrpcMonitorSetting.SixAxisSaturationControlCyan => MonitorSetting.SixAxisSaturationControlCyan,
+			GrpcMonitorSetting.SixAxisSaturationControlBlue => MonitorSetting.SixAxisSaturationControlBlue,
+			GrpcMonitorSetting.SixAxisSaturationControlMagenta => MonitorSetting.SixAxisSaturationControlMagenta,
+			GrpcMonitorSetting.SixAxisHueControlRed => MonitorSetting.SixAxisHueControlRed,
+			GrpcMonitorSetting.SixAxisHueControlYellow => MonitorSetting.SixAxisHueControlYellow,
+			GrpcMonitorSetting.SixAxisHueControlGreen => MonitorSetting.SixAxisHueControlGreen,
+			GrpcMonitorSetting.SixAxisHueControlCyan => MonitorSetting.SixAxisHueControlCyan,
+			GrpcMonitorSetting.SixAxisHueControlBlue => MonitorSetting.SixAxisHueControlBlue,
+			GrpcMonitorSetting.SixAxisHueControlMagenta => MonitorSetting.SixAxisHueControlMagenta,
 			_ => throw new NotImplementedException()
 		};
 

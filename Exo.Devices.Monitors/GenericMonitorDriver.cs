@@ -30,7 +30,10 @@ public class GenericMonitorDriver
 	IMonitorBrightnessFeature,
 	IMonitorContrastFeature,
 	IMonitorSpeakerAudioVolumeFeature,
-	IMonitorInputSelectFeature
+	IMonitorInputSelectFeature,
+	IMonitorRedVideoGainFeature,
+	IMonitorGreenVideoGainFeature,
+	IMonitorBlueVideoGainFeature
 {
 	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(GenericMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
 
@@ -101,6 +104,9 @@ public class GenericMonitorDriver
 		byte contrastVcpCode = 0;
 		byte audioVolumeVcpCode = 0;
 		byte inputSelectVcpCode = 0;
+		byte redVideoGainVcpCode = 0;
+		byte greenVideoGainVcpCode = 0;
+		byte blueVideoGainVcpCode = 0;
 
 		ImmutableArray<NonContinuousValueDescription>.Builder inputSourceBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
 
@@ -115,23 +121,21 @@ public class GenericMonitorDriver
 					// Ignore some VCP codes if they are specifically indicated to be ignored.
 					// This can be useful if some features are not properly mapped by the monitor.
 					if (vcpCodesToIgnore?.Contains(capability.VcpCode) == true) continue;
-					if (capability.VcpCode == (byte)VcpCode.Luminance)
+					switch (capability.VcpCode)
 					{
+					case (byte)VcpCode.Luminance:
 						features |= SupportedFeatures.Brightness;
 						brightnessVcpCode = capability.VcpCode;
-					}
-					else if (capability.VcpCode == (byte)VcpCode.Contrast)
-					{
+						break;
+					case (byte)VcpCode.Contrast:
 						features |= SupportedFeatures.Contrast;
 						contrastVcpCode = capability.VcpCode;
-					}
-					else if (capability.VcpCode == (byte)VcpCode.AudioSpeakerVolume)
-					{
+						break;
+					case (byte)VcpCode.AudioSpeakerVolume:
 						features |= SupportedFeatures.AudioVolume;
 						audioVolumeVcpCode = capability.VcpCode;
-					}
-					else if (capability.VcpCode == (byte)VcpCode.InputSelect)
-					{
+						break;
+					case (byte)VcpCode.InputSelect:
 						if (!capability.NonContinuousValues.IsDefaultOrEmpty)
 						{
 							features |= SupportedFeatures.InputSelect;
@@ -170,6 +174,19 @@ public class GenericMonitorDriver
 								inputSourceBuilder.Add(new(value.Value, nameId, value.Name));
 							}
 						}
+						break;
+					case (byte)VcpCode.VideoGainRed:
+						features |= SupportedFeatures.VideoGainRed;
+						redVideoGainVcpCode = capability.VcpCode;
+						break;
+					case (byte)VcpCode.VideoGainGreen:
+						features |= SupportedFeatures.VideoGainGreen;
+						greenVideoGainVcpCode = capability.VcpCode;
+						break;
+					case (byte)VcpCode.VideoGainBlue:
+						features |= SupportedFeatures.VideoGainBlue;
+						blueVideoGainVcpCode = capability.VcpCode;
+						break;
 					}
 				}
 			}
@@ -203,6 +220,18 @@ public class GenericMonitorDriver
 						inputSourceBuilder.Add(new(valueDefinition.Value, valueDefinition.NameStringId.GetValueOrDefault(), null));
 					}
 					break;
+				case MonitorFeature.VideoGainRed:
+					features |= SupportedFeatures.VideoGainRed;
+					redVideoGainVcpCode = feature.VcpCode;
+					break;
+				case MonitorFeature.VideoGainGreen:
+					features |= SupportedFeatures.VideoGainGreen;
+					greenVideoGainVcpCode = feature.VcpCode;
+					break;
+				case MonitorFeature.VideoGainBlue:
+					features |= SupportedFeatures.VideoGainBlue;
+					blueVideoGainVcpCode = feature.VcpCode;
+					break;
 				}
 			}
 		}
@@ -234,6 +263,9 @@ public class GenericMonitorDriver
 				contrastVcpCode,
 				audioVolumeVcpCode,
 				inputSelectVcpCode,
+				redVideoGainVcpCode,
+				greenVideoGainVcpCode,
+				blueVideoGainVcpCode,
 				inputSources,
 				validInputSources,
 				deviceId,
@@ -252,6 +284,9 @@ public class GenericMonitorDriver
 		Contrast = 0x00000004,
 		AudioVolume = 0x00000008,
 		InputSelect = 0x00000010,
+		VideoGainRed = 0x00000020,
+		VideoGainGreen = 0x00000040,
+		VideoGainBlue = 0x00000080,
 	}
 
 	private sealed class MonitorFeatureSet : IDeviceFeatureSet<IMonitorDeviceFeature>
@@ -272,6 +307,10 @@ public class GenericMonitorDriver
 				if ((supportedFeatures & SupportedFeatures.Brightness) != 0) count++;
 				if ((supportedFeatures & SupportedFeatures.Contrast) != 0) count++;
 				if ((supportedFeatures & SupportedFeatures.AudioVolume) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.InputSelect) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.VideoGainRed) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.VideoGainGreen) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.VideoGainBlue) != 0) count++;
 
 				return count;
 			}
@@ -290,7 +329,10 @@ public class GenericMonitorDriver
 				typeof(T) == typeof(IMonitorBrightnessFeature) && (supportedFeatures & SupportedFeatures.Brightness) != 0 ||
 				typeof(T) == typeof(IMonitorContrastFeature) && (supportedFeatures & SupportedFeatures.Contrast) != 0 ||
 				typeof(T) == typeof(IMonitorSpeakerAudioVolumeFeature) && (supportedFeatures & SupportedFeatures.AudioVolume) != 0 ||
-				typeof(T) == typeof(IMonitorInputSelectFeature) && (supportedFeatures & SupportedFeatures.InputSelect) != 0)
+				typeof(T) == typeof(IMonitorInputSelectFeature) && (supportedFeatures & SupportedFeatures.InputSelect) != 0 ||
+				typeof(T) == typeof(IMonitorRedVideoGainFeature) && (supportedFeatures & SupportedFeatures.VideoGainRed) != 0 ||
+				typeof(T) == typeof(IMonitorGreenVideoGainFeature) && (supportedFeatures & SupportedFeatures.VideoGainGreen) != 0 ||
+				typeof(T) == typeof(IMonitorBlueVideoGainFeature) && (supportedFeatures & SupportedFeatures.VideoGainBlue) != 0)
 			{
 				return Unsafe.As<T>(_driver);
 			}
@@ -309,6 +351,9 @@ public class GenericMonitorDriver
 			if ((supportedFeatures & SupportedFeatures.Contrast) != 0) yield return new(typeof(IMonitorContrastFeature), _driver);
 			if ((supportedFeatures & SupportedFeatures.AudioVolume) != 0) yield return new(typeof(IMonitorSpeakerAudioVolumeFeature), _driver);
 			if ((supportedFeatures & SupportedFeatures.InputSelect) != 0) yield return new(typeof(IMonitorInputSelectFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.VideoGainRed) != 0) yield return new(typeof(IMonitorRedVideoGainFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.VideoGainGreen) != 0) yield return new(typeof(IMonitorGreenVideoGainFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.VideoGainBlue) != 0) yield return new(typeof(IMonitorBlueVideoGainFeature), _driver);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() => Unsafe.As<IEnumerable<KeyValuePair<Type, IMonitorDeviceFeature>>>(this).GetEnumerator();
@@ -326,6 +371,9 @@ public class GenericMonitorDriver
 	private readonly byte _contrastVcpCode;
 	private readonly byte _audioVolumeVcpCode;
 	private readonly byte _inputSelectVcpCode;
+	private readonly byte _redVideoGainVcpCode;
+	private readonly byte _greenVideoGainVcpCode;
+	private readonly byte _blueVideoGainVcpCode;
 	private readonly ImmutableArray<NonContinuousValueDescription> _inputSources;
 	private readonly HashSet<ushort>? _validInputSources;
 
@@ -349,6 +397,9 @@ public class GenericMonitorDriver
 		byte contrastVcpCode,
 		byte audioVolumeVcpCode,
 		byte inputSelectVcpCode,
+		byte redVideoGainVcpCode,
+		byte greenVideoGainVcpCode,
+		byte blueVideoGainVcpCode,
 		ImmutableArray<NonContinuousValueDescription> inputSources,
 		HashSet<ushort>? validInputSources,
 		DeviceId deviceId,
@@ -369,6 +420,9 @@ public class GenericMonitorDriver
 		_audioVolumeVcpCode = audioVolumeVcpCode;
 		_inputSelectVcpCode = inputSelectVcpCode;
 		_inputSources = inputSources;
+		_redVideoGainVcpCode = redVideoGainVcpCode;
+		_greenVideoGainVcpCode = greenVideoGainVcpCode;
+		_blueVideoGainVcpCode = blueVideoGainVcpCode;
 		_validInputSources = validInputSources;
 
 		_genericFeatures = configurationKey.UniqueId is not null ?
@@ -445,4 +499,13 @@ public class GenericMonitorDriver
 		}
 		return SetVcpAsync(SupportedFeatures.InputSelect, _inputSelectVcpCode, sourceId, cancellationToken);
 	}
+
+	ValueTask<ContinuousValue> IMonitorRedVideoGainFeature.GetRedVideoGainAsync(CancellationToken cancellationToken) => GetVcpAsync(SupportedFeatures.VideoGainRed, _redVideoGainVcpCode, cancellationToken);
+	ValueTask IMonitorRedVideoGainFeature.SetRedVideoGainAsync(ushort value, CancellationToken cancellationToken) => SetVcpAsync(SupportedFeatures.VideoGainRed, _redVideoGainVcpCode, value, cancellationToken);
+
+	ValueTask<ContinuousValue> IMonitorGreenVideoGainFeature.GetGreenVideoGainAsync(CancellationToken cancellationToken) => GetVcpAsync(SupportedFeatures.VideoGainGreen, _greenVideoGainVcpCode, cancellationToken);
+	ValueTask IMonitorGreenVideoGainFeature.SetGreenVideoGainAsync(ushort value, CancellationToken cancellationToken) => SetVcpAsync(SupportedFeatures.VideoGainGreen, _greenVideoGainVcpCode, value, cancellationToken);
+
+	ValueTask<ContinuousValue> IMonitorBlueVideoGainFeature.GetBlueVideoGainAsync(CancellationToken cancellationToken) => GetVcpAsync(SupportedFeatures.VideoGainBlue, _blueVideoGainVcpCode, cancellationToken);
+	ValueTask IMonitorBlueVideoGainFeature.SetBlueVideoGainAsync(ushort value, CancellationToken cancellationToken) => SetVcpAsync(SupportedFeatures.VideoGainBlue, _blueVideoGainVcpCode, value, cancellationToken);
 }
