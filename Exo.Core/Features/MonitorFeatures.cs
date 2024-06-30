@@ -201,3 +201,10 @@ public enum MonitorShape : byte
 	Square = 1,
 	Circle = 2,
 }
+
+public interface IMonitorOsdLanguageFeature : IMonitorDeviceFeature
+{
+	ImmutableArray<NonContinuousValueDescription> Languages { get; }
+	ValueTask<ushort> GetOsdLanguageAsync(CancellationToken cancellationToken);
+	ValueTask SetOsdLanguageAsync(ushort sourceId, CancellationToken cancellationToken);
+}

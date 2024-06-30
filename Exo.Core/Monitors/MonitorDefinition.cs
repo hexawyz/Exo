@@ -57,6 +57,8 @@ public enum MonitorFeature : byte
 	SixAxisHueControlCyan,
 	SixAxisHueControlBlue,
 	SixAxisHueControlMagenta,
+
+	OsdLanguage,
 }
 
 public enum MonitorFeatureAccess : byte

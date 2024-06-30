@@ -32,6 +32,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private ContinuousMonitorDeviceSettingViewModel? _cyanSixAxisHueControl;
 	private ContinuousMonitorDeviceSettingViewModel? _blueSixAxisHueControl;
 	private ContinuousMonitorDeviceSettingViewModel? _magentaSixAxisHueControl;
+	private NonContinuousMonitorDeviceSettingViewModel? _osdLanguageSetting;
+
 	private readonly PropertyChangedEventHandler _onSettingPropertyChanged;
 
 	private int _changedSettingCount;
@@ -56,6 +58,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	public ContinuousMonitorDeviceSettingViewModel? BlueSixAxisHueControl => _blueSixAxisHueControl;
 	public ContinuousMonitorDeviceSettingViewModel? MagentaSixAxisHueControl => _magentaSixAxisHueControl;
 	public NonContinuousMonitorDeviceSettingViewModel? InputSelectSetting => _inputSelectSetting;
+	public NonContinuousMonitorDeviceSettingViewModel? OsdLanguageSetting => _osdLanguageSetting;
 
 	public bool IsReady
 	{
@@ -136,6 +139,11 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			case MonitorSetting.SixAxisHueControlMagenta:
 				InitializeSetting(setting, ref _magentaSixAxisHueControl, nameof(MagentaSixAxisHueControl));
 				break;
+			case MonitorSetting.OsdLanguage:
+				InitializeSetting(setting, ref _osdLanguageSetting, nameof(OsdLanguageSetting));
+				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
+				_osdLanguageSetting!.UpdateNonContinuousValues(_metadataService, information.OsdLanguages);
+				break;
 			}
 		}
 	}
@@ -200,6 +208,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.SixAxisHueControlMagenta:
 			UpdateSetting(settingValue, ref _magentaSixAxisHueControl, nameof(MagentaSixAxisHueControl));
+			break;
+		case MonitorSetting.OsdLanguage:
+			UpdateSetting(settingValue, ref _osdLanguageSetting, nameof(OsdLanguageSetting));
 			break;
 		}
 	}
@@ -288,6 +299,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			try { await ApplyChangeIfNeededAsync(_cyanSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_blueSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_magentaSixAxisHueControl, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_osdLanguageSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 
 			if (exceptions is not null)
 			{
@@ -333,6 +345,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_cyanSixAxisHueControl);
 		IResettable.SharedResetCommand.Execute(_blueSixAxisHueControl);
 		IResettable.SharedResetCommand.Execute(_magentaSixAxisHueControl);
+		IResettable.SharedResetCommand.Execute(_osdLanguageSetting);
 	}
 }
 
@@ -458,6 +471,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 	public string DisplayName => Setting switch
 	{
 		MonitorSetting.InputSelect => "Input Select",
+		MonitorSetting.OsdLanguage => "OSD Language",
 		_ => Setting.ToString()
 	};
 
@@ -529,7 +543,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 			string? friendlyName = valueDefinition.CustomName;
 			if (friendlyName is null && valueDefinition.NameStringId is { } stringId)
 			{
-				friendlyName = metadataService.GetString(CultureInfo.InvariantCulture, stringId);
+				friendlyName = metadataService.GetString(CultureInfo.CurrentCulture, stringId);
 			}
 			if (friendlyName is null)
 			{
@@ -583,7 +597,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 
 	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
 		=> Value is { } value ?
-			monitorService.SetInputSourceAsync(new MonitorSettingDirectUpdate { DeviceId = deviceId, Value = Value.Value }, cancellationToken) :
+			monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value.Value }, cancellationToken) :
 			ValueTask.CompletedTask;
 
 	protected override void Reset() => Value = InitialValue;

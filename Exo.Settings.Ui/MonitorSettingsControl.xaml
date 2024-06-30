@@ -39,6 +39,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <FontIcon
                 Grid.Row="0"
@@ -746,6 +747,42 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 IsEnabled="{Binding MagentaSixAxisHueControl.IsChanged, Mode=OneWay}"
                 Visibility="{Binding MagentaSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="19"
+                Grid.Column="0"
+                x:Uid="MonitorOsdLanguageLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF2B7;"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <ComboBox
+                Grid.Row="19"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding OsdLanguageSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                SelectedItem="{Binding Value, Mode=TwoWay}"
+                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FriendlyName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button
+                Grid.Row="19"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                IsEnabled="{Binding OsdLanguageSetting.IsChanged, Mode=OneWay}"
+                Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />

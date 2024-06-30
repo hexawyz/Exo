@@ -14,4 +14,6 @@ public sealed class MonitorInformation
 	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
 	[DataMember(Order = 4)]
 	public required ImmutableArray<NonContinuousValue> InputSelectSources { get; set; }
+	[DataMember(Order = 5)]
+	public required ImmutableArray<NonContinuousValue> OsdLanguages { get; set; }
 }

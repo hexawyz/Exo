@@ -16,15 +16,24 @@ internal class MonitorService : IAsyncDisposable
 		public ImmutableArray<MonitorSetting> SupportedSettings;
 		public readonly Dictionary<MonitorSetting, ContinuousValue> KnownValues;
 		public readonly ImmutableArray<NonContinuousValueDescription> InputSources;
+		public readonly ImmutableArray<NonContinuousValueDescription> OsdLanguages;
 		public readonly AsyncLock Lock;
 
-		public MonitorDeviceDetails(Guid deviceId, Driver driver, ImmutableArray<MonitorSetting> supportedSettings, ImmutableArray<NonContinuousValueDescription> inputSources)
+		public MonitorDeviceDetails
+		(
+			Guid deviceId,
+			Driver driver,
+			ImmutableArray<MonitorSetting> supportedSettings,
+			ImmutableArray<NonContinuousValueDescription> inputSources,
+			ImmutableArray<NonContinuousValueDescription> osdLanguages
+		)
 		{
 			DeviceId = deviceId;
 			Driver = driver;
 			SupportedSettings = supportedSettings;
 			KnownValues = new();
 			InputSources = inputSources;
+			OsdLanguages = osdLanguages;
 			Lock = new();
 		}
 	}
@@ -89,6 +98,7 @@ internal class MonitorService : IAsyncDisposable
 					var monitorFeatures = (IDeviceFeatureSet<IMonitorDeviceFeature>)notification.FeatureSet!;
 
 					ImmutableArray<NonContinuousValueDescription> inputSources = default;
+					ImmutableArray<NonContinuousValueDescription> osdLanguages = default;
 					settingsBuilder.Clear();
 
 					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>()) settingsBuilder.Add(MonitorSetting.Brightness);
@@ -120,10 +130,16 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.HasFeature<IMonitorBlueSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlBlue);
 					if (monitorFeatures.HasFeature<IMonitorMagentaSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlMagenta);
 
+					if (monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>() is { } osdLanguageFeature)
+					{
+						settingsBuilder.Add(MonitorSetting.OsdLanguage);
+						osdLanguages = osdLanguageFeature.Languages;
+					}
+
 					var settings = settingsBuilder.DrainToImmutable();
 
 					// Create and lock the details to prevent changes to be made before we read all the features.
-					details = new MonitorDeviceDetails(notification.DeviceInformation.Id, notification.Driver!, settings, inputSources);
+					details = new MonitorDeviceDetails(notification.DeviceInformation.Id, notification.Driver!, settings, inputSources, osdLanguages);
 
 					var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 					// We want to avoid delaying publishing the device, so we first add a empty state to the dictionary.
@@ -131,7 +147,7 @@ internal class MonitorService : IAsyncDisposable
 					lock (_lock)
 					{
 						_deviceDetails.Add(deviceId, details);
-						_monitorListeners.TryWrite(new() { DeviceId = deviceId, SupportedSettings = settings, InputSelectSources = inputSources });
+						_monitorListeners.TryWrite(new() { DeviceId = deviceId, SupportedSettings = settings, InputSelectSources = inputSources, OsdLanguages = osdLanguages });
 					}
 
 					// Finish the updates in a separate execution flow. We don't want to slow monitor enumeration because of a single slow device.
@@ -223,6 +239,9 @@ internal class MonitorService : IAsyncDisposable
 					case MonitorSetting.SixAxisHueControlMagenta:
 						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetMagentaSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
 						break;
+					case MonitorSetting.OsdLanguage:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>()!.GetOsdLanguageAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
 					default:
 						continue;
 					}
@@ -295,7 +314,16 @@ internal class MonitorService : IAsyncDisposable
 		{
 			foreach (var details in _deviceDetails.Values)
 			{
-				initialNotifications.Add(new() { DeviceId = details.DeviceId, SupportedSettings = details.SupportedSettings, InputSelectSources = details.InputSources });
+				initialNotifications.Add
+				(
+					new()
+					{
+						DeviceId = details.DeviceId,
+						SupportedSettings = details.SupportedSettings,
+						InputSelectSources = details.InputSources,
+						OsdLanguages = details.OsdLanguages
+					}
+				);
 			}
 			ArrayExtensions.InterlockedAdd(ref _monitorListeners, channel);
 		}
@@ -342,6 +370,7 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.SixAxisHueControlCyan => SetCyanSixAxisHueControlAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisHueControlBlue => SetBlueSixAxisHueControlAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisHueControlMagenta => SetMagentaSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.OsdLanguage => SetOsdLanguageAsync(deviceId, value, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
 
@@ -810,6 +839,30 @@ internal class MonitorService : IAsyncDisposable
 	DeviceNotFound:;
 		throw new InvalidOperationException("Device was not found.");
 	}
+
+	public async ValueTask SetOsdLanguageAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorOsdLanguageFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetOsdLanguageAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.OsdLanguage, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
 }
 
 public readonly struct MonitorInformation
@@ -817,4 +870,5 @@ public readonly struct MonitorInformation
 	public required Guid DeviceId { get; init; }
 	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
 	public required ImmutableArray<NonContinuousValueDescription> InputSelectSources { get; init; }
+	public required ImmutableArray<NonContinuousValueDescription> OsdLanguages { get; init; }
 }

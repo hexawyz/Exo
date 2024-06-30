@@ -225,6 +225,9 @@
   <data name="MonitorMagentaSixAxisSaturationControl.ToolTipService.ToolTip" xml:space="preserve">
     <value>6 Axis Saturation (Magenta)</value>
   </data>
+  <data name="MonitorOsdLanguageLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>OSD Language</value>
+  </data>
   <data name="MonitorRedSixAxisHueControl.ToolTipService.ToolTip" xml:space="preserve">
     <value>6 Axis Hue (Red)</value>
   </data>

@@ -56,13 +56,4 @@ internal sealed class GrpcMonitorService : IMonitorService
 
 	public ValueTask SetSettingValueAsync(MonitorSettingUpdate request, CancellationToken cancellationToken)
 		=> _monitorService.SetSettingValueAsync(request.DeviceId, request.Setting.FromGrpc(), request.Value, cancellationToken);
-
-	public ValueTask SetBrightnessAsync(MonitorSettingDirectUpdate request, CancellationToken cancellationToken)
-		=> _monitorService.SetBrightnessAsync(request.DeviceId, request.Value, cancellationToken);
-
-	public ValueTask SetContrastAsync(MonitorSettingDirectUpdate request, CancellationToken cancellationToken)
-		=> _monitorService.SetContrastAsync(request.DeviceId, request.Value, cancellationToken);
-
-	public ValueTask SetInputSourceAsync(MonitorSettingDirectUpdate request, CancellationToken cancellationToken)
-		=> _monitorService.SetInputSourceAsync(request.DeviceId, request.Value, cancellationToken);
 }
