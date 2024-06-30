@@ -43,12 +43,12 @@ internal static class Program
 	{
 		Console.OutputEncoding = Encoding.UTF8;
 		bool enumerateMonitors = true;
-		bool enuemrateVcpCodes = false;
+		bool enumerateVcpCodes = false;
 
 		if (enumerateMonitors)
 		{
 			PrintDisplayConfiguration();
-			await ListMonitors(enuemrateVcpCodes);
+			await ListMonitors(enumerateVcpCodes);
 
 			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default));
 			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.DisplayAdapter & Properties.System.Devices.InterfaceEnabled == true, default));
