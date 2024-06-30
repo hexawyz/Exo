@@ -384,7 +384,8 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask SetBrightnessAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Func<TMonitorFeature, ushort, CancellationToken, ValueTask> valueSetter, Guid deviceId, ushort value, CancellationToken cancellationToken)
+		where TMonitorFeature : class, IMonitorDeviceFeature
 	{
 		MonitorDeviceDetails? details;
 		lock (_lock)
@@ -395,474 +396,78 @@ internal class MonitorService : IAsyncDisposable
 		{
 			if (details.Driver is null) goto DeviceNotFound;
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBrightnessFeature>() is not { } feature)
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<TMonitorFeature>() is not { } feature)
 			{
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
 
-			await feature.SetBrightnessAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.Brightness, value);
+			await valueSetter(feature, value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, monitorSetting, value);
 		}
 		return;
 	DeviceNotFound:;
 		throw new InvalidOperationException("Device was not found.");
 	}
 
-	public async ValueTask SetContrastAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetBrightnessAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorBrightnessFeature>(MonitorSetting.Brightness, (feature, value, cancellationToken) => feature.SetBrightnessAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorContrastFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
+	public ValueTask SetContrastAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorContrastFeature>(MonitorSetting.Contrast, (feature, value, cancellationToken) => feature.SetContrastAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			await feature.SetContrastAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.Contrast, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetAudioVolumeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorSpeakerAudioVolumeFeature>(MonitorSetting.AudioVolume, (feature, value, cancellationToken) => feature.SetVolumeAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-	public async ValueTask SetAudioVolumeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetInputSourceAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorInputSelectFeature>(MonitorSetting.InputSelect, (feature, value, cancellationToken) => feature.SetInputSourceAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorSpeakerAudioVolumeFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
+	public ValueTask SetRedVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorRedVideoGainFeature>(MonitorSetting.VideoGainRed, (feature, value, cancellationToken) => feature.SetRedVideoGainAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			await feature.SetVolumeAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.AudioVolume, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetGreenVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorGreenVideoGainFeature>(MonitorSetting.VideoGainGreen, (feature, value, cancellationToken) => feature.SetGreenVideoGainAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-	public async ValueTask SetInputSourceAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetBlueVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorBlueVideoGainFeature>(MonitorSetting.VideoGainBlue, (feature, value, cancellationToken) => feature.SetBlueVideoGainAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorInputSelectFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
+	public ValueTask SetRedSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorRedSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlRed, (feature, value, cancellationToken) => feature.SetRedSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			await feature.SetInputSourceAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.InputSelect, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetYellowSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorYellowSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlYellow, (feature, value, cancellationToken) => feature.SetYellowSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-	public async ValueTask SetRedVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetGreenSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorGreenSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlGreen, (feature, value, cancellationToken) => feature.SetGreenSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorRedVideoGainFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
+	public ValueTask SetCyanSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorCyanSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlCyan, (feature, value, cancellationToken) => feature.SetCyanSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			await feature.SetRedVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainRed, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetBlueSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorBlueSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlBlue, (feature, value, cancellationToken) => feature.SetBlueSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-	public async ValueTask SetGreenVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetMagentaSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorMagentaSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlMagenta, (feature, value, cancellationToken) => feature.SetMagentaSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorGreenVideoGainFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
+	public ValueTask SetRedSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorRedSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlRed, (feature, value, cancellationToken) => feature.SetRedSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			await feature.SetGreenVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainGreen, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetYellowSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorYellowSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlYellow, (feature, value, cancellationToken) => feature.SetYellowSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-	public async ValueTask SetBlueVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetGreenSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorGreenSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlGreen, (feature, value, cancellationToken) => feature.SetGreenSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBlueVideoGainFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
+	public ValueTask SetCyanSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorCyanSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlCyan, (feature, value, cancellationToken) => feature.SetCyanSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			await feature.SetBlueVideoGainAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.VideoGainBlue, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetBlueSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorBlueSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlBlue, (feature, value, cancellationToken) => feature.SetBlueSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-	public async ValueTask SetRedSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
+	public ValueTask SetMagentaSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorMagentaSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlMagenta, (feature, value, cancellationToken) => feature.SetMagentaSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorRedSixAxisSaturationControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetRedSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlRed, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetYellowSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorYellowSixAxisSaturationControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetYellowSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlYellow, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetGreenSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorGreenSixAxisSaturationControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetGreenSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlGreen, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetCyanSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorCyanSixAxisSaturationControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetCyanSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlCyan, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetBlueSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBlueSixAxisSaturationControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetBlueSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlBlue, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetMagentaSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetMagentaSixAxisSaturationControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisSaturationControlMagenta, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetRedSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorRedSixAxisHueControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetRedSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlRed, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetYellowSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorYellowSixAxisHueControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetYellowSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlYellow, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetGreenSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorGreenSixAxisHueControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetGreenSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlGreen, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetCyanSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorCyanSixAxisHueControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetCyanSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlCyan, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetBlueSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorBlueSixAxisHueControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetBlueSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlBlue, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetMagentaSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorMagentaSixAxisHueControlFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetMagentaSixAxisHueControlAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.SixAxisHueControlMagenta, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
-
-	public async ValueTask SetOsdLanguageAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-	{
-		MonitorDeviceDetails? details;
-		lock (_lock)
-		{
-			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
-		}
-		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (details.Driver is null) goto DeviceNotFound;
-
-			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<IMonitorOsdLanguageFeature>() is not { } feature)
-			{
-				throw new InvalidOperationException("The requested feature is not supported.");
-			}
-
-			await feature.SetOsdLanguageAsync(value, cancellationToken).ConfigureAwait(false);
-			UpdateCachedSetting(details.KnownValues, deviceId, MonitorSetting.OsdLanguage, value);
-		}
-		return;
-	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
-	}
+	public ValueTask SetOsdLanguageAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorOsdLanguageFeature>(MonitorSetting.OsdLanguage, (feature, value, cancellationToken) => feature.SetOsdLanguageAsync(value, cancellationToken), deviceId, value, cancellationToken);
 }
 
 public readonly struct MonitorInformation
