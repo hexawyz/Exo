@@ -198,5 +198,191 @@
 	"60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
 		"en": "Reactive",
 		"fr": "Réactif"
+	},
+	// Language names
+	"3d7555d0-345a-49f1-903e-a15d35b0f5ec": {
+		"en": "English",
+		"fr": "Anglais",
+		"ja": "英語"
+	},
+	"cc5d6fb5-0653-49bb-85cc-4ae2ca82f487": {
+		"en": "French",
+		"fr": "Français",
+		"ja": "フランス語"
+	},
+	"1af16a76-e293-4096-a9d7-9e9eff68b591": {
+		"en": "German",
+		"fr": "Allemand",
+		"ja": "ドイツ語"
+	},
+	"f12057bc-08ce-446d-9d25-b5965b6136ab": {
+		"en": "Italian",
+		"fr": "Italien",
+		"ja": "イタリア語"
+	},
+	"9ef9c042-bfbb-4b72-9c24-4da56e1f56be": {
+		"en": "Japanese",
+		"fr": "Japonais",
+		"ja": "日本語"
+	},
+	"12df152a-1065-4200-966f-2be77410fd13": {
+		"en": "Korean",
+		"fr": "Coréen",
+		"ja": "韓国語"
+	},
+	"e9d6e301-de10-4f5a-910e-5aa80cf057d1": {
+		"en": "Chinese (Traditional)",
+		"fr": "Chinois (Traditionnel)",
+		"ja": "中国語（繁体字）"
+	},
+	"4b0f748a-cc4a-41ea-a59b-9549dd619e76": {
+		"en": "Chinese (Simplified)",
+		"fr": "Chinois (Simplifié)",
+		"ja": "中国語（簡体字）"
+	},
+	"e3e65711-aae3-4f2d-aa95-092cfc105872": {
+		"en": "Portuguese (Portugal)",
+		"fr": "Portugais (Portugal)",
+		"ja": "ポルトガル語（ポルトガル）"
+	},
+	"9318646f-67aa-4fae-95fc-3618c2f2777b": {
+		"en": "Portuguese (Brazil)",
+		"fr": "Portugais (Brésil)",
+		"ja": "ポルトガル語（ブラジル）"
+	},
+	"5ad769bf-3aa1-49a1-a9f9-6f0ec1b43dd2": {
+		"en": "Russian",
+		"fr": "Russe",
+		"ja": "ロシア語"
+	},
+	"f4bcb574-a61d-4b25-824b-6e865d7427fe": {
+		"en": "Spanish",
+		"fr": "Espagnol",
+		"ja": "スペイン語"
+	},
+	"88307c6f-da3e-424b-bef0-23a252e5b26d": {
+		"en": "Swedish",
+		"fr": "Suédois",
+		"ja": "スウェーデン語"
+	},
+	"f2fc7a26-b392-4c13-a86e-47b2e390caf8": {
+		"en": "Turkish",
+		"fr": "Turque",
+		"ja": "トルコ語"
+	},
+	"ac934765-0eb0-4ac6-b085-88177b1e2d84": {
+		"en": "Arabic",
+		"fr": "Arabe",
+		"ja": "アラビア語"
+	},
+	"49a21314-8315-47a5-b01b-6c7e50403921": {
+		"en": "Bulgarian",
+		"fr": "Bulgare",
+		"ja": "ブルガリア語"
+	},
+	"5506a84a-4ebf-46f5-b611-047cb8631ab9": {
+		"en": "Croatian",
+		"fr": "Croate",
+		"ja": "クロアチア語"
+	},
+	"f73a11cb-ec92-42a2-83b9-5d89a811d36e": {
+		"en": "Czech",
+		"fr": "Tchèque",
+		"ja": "チェコ語"
+	},
+	"ed6ef567-b80a-40d0-9551-38f39955c4c1": {
+		"en": "Danish",
+		"fr": "Danois",
+		"ja": "デンマーク語"
+	},
+	"c42dd145-2882-4b31-90d0-a47a822ed1cd": {
+		"en": "Dutch",
+		"fr": "Néerlandais",
+		"ja": "オランダ語"
+	},
+	"3ee2c2c1-1da2-434b-80d2-2463a52273f5": {
+		"en": "Estonian",
+		"fr": "Estonien",
+		"ja": "エストニア語"
+	},
+	"42177650-1189-414e-9f67-15a0a484a1f2": {
+		"en": "Finnish",
+		"fr": "Finnois",
+		"ja": "フィンランド語"
+	},
+	"9342a747-f7e4-4f79-b0ce-5fb0c8040126": {
+		"en": "Greek",
+		"fr": "Grec",
+		"ja": "ギリシャ語"
+	},
+	"7bed3e7d-9df4-41a9-94ea-4bde84db23a2": {
+		"en": "Hebrew",
+		"fr": "Hébreu",
+		"ja": "ヘブライ語"
+	},
+	"3f31973d-899a-46f3-a249-db6b9c895f4a": {
+		"en": "Hindi",
+		"fr": "Hindi",
+		"ja": "ヒンディー語"
+	},
+	"e3720708-932f-478f-9c7f-59fd4d3e46bf": {
+		"en": "Hungarian",
+		"fr": "Hongrois",
+		"ja": "ハンガリー語"
+	},
+	"3d1908b1-95d4-4ab4-9b56-c8662e0e9ad1": {
+		"en": "Latvian",
+		"fr": "Letton",
+		"ja": "ラトビア語"
+	},
+	"fdb186f3-4dd1-44fd-9bfa-c7237d035a09": {
+		"en": "Lithuanian",
+		"fr": "Lituanien",
+		"ja": "リトアニア語"
+	},
+	"f550eb5b-c345-44db-a341-26fb3d50c04b": {
+		"en": "Norwegian",
+		"fr": "Norvégien",
+		"ja": "ノルウェー語"
+	},
+	"11801b1c-2084-49ce-a965-19a5c3b37a9e": {
+		"en": "Polish",
+		"fr": "Polonais",
+		"ja": "ポーランド語"
+	},
+	"8a812b6b-9d8c-4281-bc9c-a79fce736366": {
+		"en": "Romanian",
+		"fr": "Roumain",
+		"ja": "ルーマニア語"
+	},
+	"8912b5e0-119d-49dc-9f33-872e7e37e729": {
+		"en": "Serbian",
+		"fr": "Serbe",
+		"ja": "セルビア語"
+	},
+	"5317048d-64dd-4240-ae2a-d0787c04e633": {
+		"en": "Slovak",
+		"fr": "Slovaque",
+		"ja": "スロバキア語"
+	},
+	"78632023-055c-4447-8e94-6319c9fded96": {
+		"en": "Slovenian",
+		"fr": "Slovénien",
+		"ja": "スロベニア語"
+	},
+	"e64bd133-b3a1-4d51-bf9c-63c0c4d0d9a8": {
+		"en": "Thai",
+		"fr": "Thailandais",
+		"ja": "タイ語"
+	},
+	"5a78cc6c-bf97-424e-b520-fb004d1009e9": {
+		"en": "Ukranian",
+		"fr": "Ukrainien",
+		"ja": "ウクライナ語"
+	},
+	"6a8fbd37-8ed5-4ade-af15-ccf2e62fc8b7": {
+		"en": "Vietnamese",
+		"fr": "Vietnamien",
+		"ja": "ベトナム語"
 	}
 }
