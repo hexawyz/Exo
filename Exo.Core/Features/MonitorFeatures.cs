@@ -175,7 +175,7 @@ public interface IMonitorInputSelectFeature : IMonitorDeviceFeature
 {
 	ImmutableArray<NonContinuousValueDescription> InputSources { get; }
 	ValueTask<ushort> GetInputSourceAsync(CancellationToken cancellationToken);
-	ValueTask SetInputSourceAsync(ushort sourceId, CancellationToken cancellationToken);
+	ValueTask SetInputSourceAsync(ushort value, CancellationToken cancellationToken);
 }
 
 // TODO: See how to implement this feature, as it is non-linear.
@@ -206,5 +206,31 @@ public interface IMonitorOsdLanguageFeature : IMonitorDeviceFeature
 {
 	ImmutableArray<NonContinuousValueDescription> Languages { get; }
 	ValueTask<ushort> GetOsdLanguageAsync(CancellationToken cancellationToken);
-	ValueTask SetOsdLanguageAsync(ushort sourceId, CancellationToken cancellationToken);
+	ValueTask SetOsdLanguageAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorResponseTimeFeature : IMonitorDeviceFeature
+{
+	ImmutableArray<NonContinuousValueDescription> ResponseTimes { get; }
+	ValueTask<ushort> GetResponseTimeAsync(CancellationToken cancellationToken);
+	ValueTask SetResponseTimeAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorInputLagFeature : IMonitorDeviceFeature
+{
+	ImmutableArray<NonContinuousValueDescription> InputLags { get; }
+	ValueTask<ContinuousValue> GetInputLagAsync(CancellationToken cancellationToken);
+	ValueTask SetInputLagAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorBlueLightFilterLevelFeature : IMonitorDeviceFeature
+{
+	ValueTask<ContinuousValue> GetBlueLightFilterLevelAsync(CancellationToken cancellationToken);
+	ValueTask SetBlueLightFilterLevelAsync(ushort value, CancellationToken cancellationToken);
+}
+
+public interface IMonitorPowerIndicatorToggleFeature : IMonitorDeviceFeature
+{
+	ValueTask<bool> IsPowerIndicatorEnabledAsync(CancellationToken cancellationToken);
+	ValueTask EnablePowerIndicatorAsync(bool value, CancellationToken cancellationToken);
 }

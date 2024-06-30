@@ -876,8 +876,8 @@ public class GenericMonitorDriver
 	ValueTask<ushort> IMonitorInputSelectFeature.GetInputSourceAsync(CancellationToken cancellationToken)
 		=> GetNonContinuousVcpAsync(SupportedFeatures.InputSelect, _inputSelectVcpCode, cancellationToken);
 
-	ValueTask IMonitorInputSelectFeature.SetInputSourceAsync(ushort sourceId, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.InputSelect, _validInputSources, _inputSelectVcpCode, sourceId, cancellationToken);
+	ValueTask IMonitorInputSelectFeature.SetInputSourceAsync(ushort value, CancellationToken cancellationToken)
+		=> SetVcpAsync(SupportedFeatures.InputSelect, _validInputSources, _inputSelectVcpCode, value, cancellationToken);
 
 	ValueTask<ContinuousValue> IMonitorRedVideoGainFeature.GetRedVideoGainAsync(CancellationToken cancellationToken)
 		=> GetVcpAsync(SupportedFeatures.VideoGainRed, _redVideoGainVcpCode, cancellationToken);
@@ -959,6 +959,6 @@ public class GenericMonitorDriver
 	ValueTask<ushort> IMonitorOsdLanguageFeature.GetOsdLanguageAsync(CancellationToken cancellationToken)
 		=> GetNonContinuousVcpAsync(SupportedFeatures.OsdLanguage, _osdLanguageVcpCode, cancellationToken);
 
-	ValueTask IMonitorOsdLanguageFeature.SetOsdLanguageAsync(ushort sourceId, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.OsdLanguage, _validOsdLanguages, _osdLanguageVcpCode, sourceId, cancellationToken);
+	ValueTask IMonitorOsdLanguageFeature.SetOsdLanguageAsync(ushort value, CancellationToken cancellationToken)
+		=> SetVcpAsync(SupportedFeatures.OsdLanguage, _validOsdLanguages, _osdLanguageVcpCode, value, cancellationToken);
 }
