@@ -16,6 +16,8 @@ internal class MonitorService : IAsyncDisposable
 		public ImmutableArray<MonitorSetting> SupportedSettings;
 		public readonly Dictionary<MonitorSetting, ContinuousValue> KnownValues;
 		public readonly ImmutableArray<NonContinuousValueDescription> InputSources;
+		public readonly ImmutableArray<NonContinuousValueDescription> InputLagLevels;
+		public readonly ImmutableArray<NonContinuousValueDescription> ResponseTimeLevels;
 		public readonly ImmutableArray<NonContinuousValueDescription> OsdLanguages;
 		public readonly AsyncLock Lock;
 
@@ -25,6 +27,8 @@ internal class MonitorService : IAsyncDisposable
 			Driver driver,
 			ImmutableArray<MonitorSetting> supportedSettings,
 			ImmutableArray<NonContinuousValueDescription> inputSources,
+			ImmutableArray<NonContinuousValueDescription> inputLagLevels,
+			ImmutableArray<NonContinuousValueDescription> responseTimeLevels,
 			ImmutableArray<NonContinuousValueDescription> osdLanguages
 		)
 		{
@@ -33,8 +37,12 @@ internal class MonitorService : IAsyncDisposable
 			SupportedSettings = supportedSettings;
 			KnownValues = new();
 			InputSources = inputSources;
+			InputLagLevels = inputLagLevels;
+			ResponseTimeLevels = responseTimeLevels;
 			OsdLanguages = osdLanguages;
 			Lock = new();
+			InputLagLevels = inputLagLevels;
+			ResponseTimeLevels = responseTimeLevels;
 		}
 	}
 
@@ -98,6 +106,8 @@ internal class MonitorService : IAsyncDisposable
 					var monitorFeatures = (IDeviceFeatureSet<IMonitorDeviceFeature>)notification.FeatureSet!;
 
 					ImmutableArray<NonContinuousValueDescription> inputSources = default;
+					ImmutableArray<NonContinuousValueDescription> inputLagLevels = default;
+					ImmutableArray<NonContinuousValueDescription> responseTimeLevels = default;
 					ImmutableArray<NonContinuousValueDescription> osdLanguages = default;
 					settingsBuilder.Clear();
 
@@ -130,16 +140,41 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.HasFeature<IMonitorBlueSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlBlue);
 					if (monitorFeatures.HasFeature<IMonitorMagentaSixAxisHueControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisHueControlMagenta);
 
+					if (monitorFeatures.GetFeature<IMonitorInputLagFeature>() is { } inputLagFeature)
+					{
+						settingsBuilder.Add(MonitorSetting.InputLag);
+						inputLagLevels = inputLagFeature.InputLagLevels;
+					}
+
+					if (monitorFeatures.GetFeature<IMonitorResponseTimeFeature>() is { } responseTimeFeature)
+					{
+						settingsBuilder.Add(MonitorSetting.ResponseTime);
+						responseTimeLevels = responseTimeFeature.ResponseTimeLevels;
+					}
+
+					if (monitorFeatures.HasFeature<IMonitorBlueLightFilterLevelFeature>()) settingsBuilder.Add(MonitorSetting.BlueLightFilterLevel);
+
 					if (monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>() is { } osdLanguageFeature)
 					{
 						settingsBuilder.Add(MonitorSetting.OsdLanguage);
 						osdLanguages = osdLanguageFeature.Languages;
 					}
 
+					if (monitorFeatures.HasFeature<IMonitorPowerIndicatorToggleFeature>()) settingsBuilder.Add(MonitorSetting.PowerIndicator);
+
 					var settings = settingsBuilder.DrainToImmutable();
 
 					// Create and lock the details to prevent changes to be made before we read all the features.
-					details = new MonitorDeviceDetails(notification.DeviceInformation.Id, notification.Driver!, settings, inputSources, osdLanguages);
+					details = new MonitorDeviceDetails
+					(
+						notification.DeviceInformation.Id,
+						notification.Driver!,
+						settings,
+						inputSources,
+						inputLagLevels,
+						responseTimeLevels,
+						osdLanguages
+					);
 
 					var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 					// We want to avoid delaying publishing the device, so we first add a empty state to the dictionary.
@@ -147,7 +182,18 @@ internal class MonitorService : IAsyncDisposable
 					lock (_lock)
 					{
 						_deviceDetails.Add(deviceId, details);
-						_monitorListeners.TryWrite(new() { DeviceId = deviceId, SupportedSettings = settings, InputSelectSources = inputSources, OsdLanguages = osdLanguages });
+						_monitorListeners.TryWrite
+						(
+							new()
+							{
+								DeviceId = deviceId,
+								SupportedSettings = settings,
+								InputSelectSources = inputSources,
+								InputLagLevels = inputLagLevels,
+								ResponseTimeLevels = responseTimeLevels,
+								OsdLanguages = osdLanguages
+							}
+						);
 					}
 
 					// Finish the updates in a separate execution flow. We don't want to slow monitor enumeration because of a single slow device.
@@ -239,8 +285,20 @@ internal class MonitorService : IAsyncDisposable
 					case MonitorSetting.SixAxisHueControlMagenta:
 						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetMagentaSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
 						break;
+					case MonitorSetting.InputLag:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputLagFeature>()!.GetInputLagAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.ResponseTime:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorResponseTimeFeature>()!.GetResponseTimeAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.BlueLightFilterLevel:
+						value = await monitorFeatures.GetFeature<IMonitorBlueLightFilterLevelFeature>()!.GetBlueLightFilterLevelAsync(cancellationToken).ConfigureAwait(false);
+						break;
 					case MonitorSetting.OsdLanguage:
 						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>()!.GetOsdLanguageAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.PowerIndicator:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorPowerIndicatorToggleFeature>()!.IsPowerIndicatorEnabledAsync(cancellationToken).ConfigureAwait(false) ? (ushort)1 : (ushort)0, 0, 1);
 						break;
 					default:
 						continue;
@@ -321,6 +379,8 @@ internal class MonitorService : IAsyncDisposable
 						DeviceId = details.DeviceId,
 						SupportedSettings = details.SupportedSettings,
 						InputSelectSources = details.InputSources,
+						InputLagLevels = details.InputLagLevels,
+						ResponseTimeLevels = details.ResponseTimeLevels,
 						OsdLanguages = details.OsdLanguages
 					}
 				);
@@ -370,7 +430,11 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.SixAxisHueControlCyan => SetCyanSixAxisHueControlAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisHueControlBlue => SetBlueSixAxisHueControlAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisHueControlMagenta => SetMagentaSixAxisHueControlAsync(deviceId, value, cancellationToken),
+			MonitorSetting.InputLag => SetInputLagAsync(deviceId, value, cancellationToken),
+			MonitorSetting.ResponseTime => SetResponseTimeAsync(deviceId, value, cancellationToken),
+			MonitorSetting.BlueLightFilterLevel => SetBlueLightFilterLevelAsync(deviceId, value, cancellationToken),
 			MonitorSetting.OsdLanguage => SetOsdLanguageAsync(deviceId, value, cancellationToken),
+			MonitorSetting.PowerIndicator => SetPowerIndicatorAsync(deviceId, value != 0, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
 
@@ -403,6 +467,31 @@ internal class MonitorService : IAsyncDisposable
 
 			await valueSetter(feature, value, cancellationToken).ConfigureAwait(false);
 			UpdateCachedSetting(details.KnownValues, deviceId, monitorSetting, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Func<TMonitorFeature, bool, CancellationToken, ValueTask> valueSetter, Guid deviceId, bool value, CancellationToken cancellationToken)
+		where TMonitorFeature : class, IMonitorDeviceFeature
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<TMonitorFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await valueSetter(feature, value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, monitorSetting, value ? (ushort)1 : (ushort)0);
 		}
 		return;
 	DeviceNotFound:;
@@ -466,8 +555,20 @@ internal class MonitorService : IAsyncDisposable
 	public ValueTask SetMagentaSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorMagentaSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlMagenta, (feature, value, cancellationToken) => feature.SetMagentaSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
 
+	public ValueTask SetInputLagAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorInputLagFeature>(MonitorSetting.InputLag, (feature, value, cancellationToken) => feature.SetInputLagAsync(value, cancellationToken), deviceId, value, cancellationToken);
+
+	public ValueTask SetResponseTimeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorResponseTimeFeature>(MonitorSetting.ResponseTime, (feature, value, cancellationToken) => feature.SetResponseTimeAsync(value, cancellationToken), deviceId, value, cancellationToken);
+
+	public ValueTask SetBlueLightFilterLevelAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorBlueLightFilterLevelFeature>(MonitorSetting.BlueLightFilterLevel, (feature, value, cancellationToken) => feature.SetBlueLightFilterLevelAsync(value, cancellationToken), deviceId, value, cancellationToken);
+
 	public ValueTask SetOsdLanguageAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorOsdLanguageFeature>(MonitorSetting.OsdLanguage, (feature, value, cancellationToken) => feature.SetOsdLanguageAsync(value, cancellationToken), deviceId, value, cancellationToken);
+
+	public ValueTask SetPowerIndicatorAsync(Guid deviceId, bool value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorPowerIndicatorToggleFeature>(MonitorSetting.PowerIndicator, (feature, value, cancellationToken) => feature.EnablePowerIndicatorAsync(value, cancellationToken), deviceId, value, cancellationToken);
 }
 
 public readonly struct MonitorInformation
@@ -475,5 +576,7 @@ public readonly struct MonitorInformation
 	public required Guid DeviceId { get; init; }
 	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
 	public required ImmutableArray<NonContinuousValueDescription> InputSelectSources { get; init; }
+	public required ImmutableArray<NonContinuousValueDescription> InputLagLevels { get; init; }
+	public required ImmutableArray<NonContinuousValueDescription> ResponseTimeLevels { get; init; }
 	public required ImmutableArray<NonContinuousValueDescription> OsdLanguages { get; init; }
 }

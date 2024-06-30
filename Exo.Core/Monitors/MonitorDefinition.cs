@@ -38,6 +38,7 @@ public enum MonitorFeature : byte
 	Brightness,
 	Contrast,
 	AudioVolume,
+
 	InputSelect,
 
 	VideoGainRed,
@@ -58,7 +59,12 @@ public enum MonitorFeature : byte
 	SixAxisHueControlBlue,
 	SixAxisHueControlMagenta,
 
+	InputLag,
+	ResponseTime,
+	BlueLightFilterLevel,
+
 	OsdLanguage,
+	PowerIndicator,
 }
 
 public enum MonitorFeatureAccess : byte

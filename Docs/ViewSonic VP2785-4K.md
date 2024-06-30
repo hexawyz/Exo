@@ -1,4 +1,4 @@
-﻿# The device
+# The device
 
 Viewsonic VP85-4K is a regular Windows monitor.
 It has various settings that can be adjusted, one of which being the sound volume for its jack output.
@@ -28,7 +28,7 @@ Code | Official Description   | RE Description          | Values
 10   | Brightness             | Brightness              | 0 to 100
 1D   |                        | PIP Source ?            | 241 21 15 17 18 23 (Value changed from 0 to 241 when enabling PIP… But changing the value manually seems to do nothing)
 23   |                        | Low Input Lag           | 1 2 3 (Off, Advanced, Ultra Fast)
-25   |                        | Response Time           | 1 2 3 (Off, Advanced, Ultra Fast)
+25   |                        | Response Time           | 1 2 3 (Standard, Advanced, Ultra Fast)
 2B   |                        | Power Indicator         | 1 2 (Off, On)
 60   | Input Source           | Input Source            | 21 15 17 18 23
 62   | Audio speaker volume   | Audio speaker volume    | 0 to 100

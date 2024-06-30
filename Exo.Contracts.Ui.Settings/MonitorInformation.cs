@@ -15,5 +15,9 @@ public sealed class MonitorInformation
 	[DataMember(Order = 4)]
 	public required ImmutableArray<NonContinuousValue> InputSelectSources { get; set; }
 	[DataMember(Order = 5)]
+	public required ImmutableArray<NonContinuousValue> InputLagLevels { get; set; }
+	[DataMember(Order = 6)]
+	public required ImmutableArray<NonContinuousValue> ResponseTimeLevels { get; set; }
+	[DataMember(Order = 7)]
 	public required ImmutableArray<NonContinuousValue> OsdLanguages { get; set; }
 }

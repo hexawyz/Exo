@@ -43,7 +43,7 @@ internal static class Program
 	{
 		Console.OutputEncoding = Encoding.UTF8;
 		bool enumerateMonitors = true;
-		bool enumerateVcpCodes = false;
+		bool enumerateVcpCodes = true;
 
 		if (enumerateMonitors)
 		{

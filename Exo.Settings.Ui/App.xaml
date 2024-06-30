@@ -141,6 +141,11 @@
                 <GradientStop Color="Magenta" Offset="0.5" />
                 <GradientStop Color="Red" Offset="1" />
             </LinearGradientBrush>
+            
+            <LinearGradientBrush x:Key="BlueLightLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#fff" Offset="0" />
+                <GradientStop Color="#f60" Offset="1" />
+            </LinearGradientBrush>
 
             <SolidColorBrush x:Key="ColorSliderForeground">White</SolidColorBrush>
             <SolidColorBrush x:Key="BrightnessSliderForeground">White</SolidColorBrush>

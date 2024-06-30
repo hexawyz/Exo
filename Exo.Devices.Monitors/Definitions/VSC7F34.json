@@ -1,36 +1,98 @@
 {
-	"name": "ViewSonic VP2785-4K",
-	"overriddenFeatures": [
-		{
-			"vcpCode": 96,
-			"feature": "inputSelect",
-			"discreteValues": [
-				{
-					// mDP
-					"value": 21,
-					"nameStringId": "f1635e2b-7b6a-4e8d-add5-337dd0be3271"
-				},
-				{
-					// DP
-					"value": 15,
-					"nameStringId": "60c27b00-0db2-4f72-a049-a805a7f90883"
-				},
-				{
-					// HDMI 1
-					"value": 17,
-					"nameStringId": "8803f0ec-5786-4010-93b5-8dcb200e8192"
-				},
-				{
-					// HDMI 2
-					"value": 18,
-					"nameStringId": "b02ab007-24f3-4482-a966-8a999b7c6b98"
-				},
-				{
-					// USB-C
-					"value": 23,
-					"nameStringId": "1ab09771-ce84-443e-a4be-2cf9378e10f7"
-				}
-			]
-		}
-	]
+    "name": "ViewSonic VP2785-4K",
+    "overriddenFeatures": [
+        {
+            "vcpCode": 35,
+            "feature": "inputLag",
+            "discreteValues": [
+                {
+                    // Standard
+                    "value": 1,
+                    "nameStringId": "16ac1b8f-cb3f-4910-9af4-bd966aa16279"
+                },
+                {
+                    // Advanced
+                    "value": 2,
+                    "nameStringId": "e677ce93-816f-44c7-ad7e-b1042f61f2fd"
+                },
+                {
+                    // Ultra fast
+                    "value": 3,
+                    "nameStringId": "c90085da-1406-4fc5-a5f5-a7b0443d9f0f"
+                }
+            ]
+        },
+        {
+            "vcpCode": 37,
+            "feature": "responseTime",
+            "discreteValues": [
+                {
+                    // Standard
+                    "value": 1,
+                    "nameStringId": "16ac1b8f-cb3f-4910-9af4-bd966aa16279"
+                },
+                {
+                    // Advanced
+                    "value": 2,
+                    "nameStringId": "e677ce93-816f-44c7-ad7e-b1042f61f2fd"
+                },
+                {
+                    // Ultra fast
+                    "value": 3,
+                    "nameStringId": "c90085da-1406-4fc5-a5f5-a7b0443d9f0f"
+                }
+            ]
+        },
+        {
+            "vcpCode": 43,
+            "feature": "powerIndicator",
+            "discreteValues": [
+                {
+                    // Off
+                    "value": 1,
+                    "nameStringId": "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e"
+                },
+                {
+                    // On
+                    "value": 2,
+                    "nameStringId": "4d2b3404-1cb1-4536-918c-80facc124cf9"
+                }
+            ]
+        },
+        {
+            "vcpCode": 96,
+            "feature": "inputSelect",
+            "discreteValues": [
+                {
+                    // mDP
+                    "value": 21,
+                    "nameStringId": "f1635e2b-7b6a-4e8d-add5-337dd0be3271"
+                },
+                {
+                    // DP
+                    "value": 15,
+                    "nameStringId": "60c27b00-0db2-4f72-a049-a805a7f90883"
+                },
+                {
+                    // HDMI 1
+                    "value": 17,
+                    "nameStringId": "8803f0ec-5786-4010-93b5-8dcb200e8192"
+                },
+                {
+                    // HDMI 2
+                    "value": 18,
+                    "nameStringId": "b02ab007-24f3-4482-a966-8a999b7c6b98"
+                },
+                {
+                    // USB-C
+                    "value": 23,
+                    "nameStringId": "1ab09771-ce84-443e-a4be-2cf9378e10f7"
+                }
+            ]
+        },
+        {
+            "vcpCode": 226,
+            "feature": "blueLightFilterLevel"
+        }
+    ]
 }

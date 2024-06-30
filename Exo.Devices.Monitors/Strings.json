@@ -77,5 +77,10 @@
     },
     "1ab09771-ce84-443e-a4be-2cf9378e10f7": {
         "en": "USB-C"
+    },
+    // Custom setting levels
+    "c90085da-1406-4fc5-a5f5-a7b0443d9f0f": {
+        "en": "Ultra Fast",
+        "fr": "Ultra rapide"
     }
 }

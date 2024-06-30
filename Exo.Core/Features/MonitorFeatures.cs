@@ -211,15 +211,15 @@ public interface IMonitorOsdLanguageFeature : IMonitorDeviceFeature
 
 public interface IMonitorResponseTimeFeature : IMonitorDeviceFeature
 {
-	ImmutableArray<NonContinuousValueDescription> ResponseTimes { get; }
+	ImmutableArray<NonContinuousValueDescription> ResponseTimeLevels { get; }
 	ValueTask<ushort> GetResponseTimeAsync(CancellationToken cancellationToken);
 	ValueTask SetResponseTimeAsync(ushort value, CancellationToken cancellationToken);
 }
 
 public interface IMonitorInputLagFeature : IMonitorDeviceFeature
 {
-	ImmutableArray<NonContinuousValueDescription> InputLags { get; }
-	ValueTask<ContinuousValue> GetInputLagAsync(CancellationToken cancellationToken);
+	ImmutableArray<NonContinuousValueDescription> InputLagLevels { get; }
+	ValueTask<ushort> GetInputLagAsync(CancellationToken cancellationToken);
 	ValueTask SetInputLagAsync(ushort value, CancellationToken cancellationToken);
 }
 

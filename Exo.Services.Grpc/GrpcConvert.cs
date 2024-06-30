@@ -180,6 +180,8 @@ internal static class GrpcConvert
 			DeviceId = information.DeviceId,
 			SupportedSettings = ImmutableArray.CreateRange(information.SupportedSettings, ToGrpc),
 			InputSelectSources = information.InputSelectSources.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.InputSelectSources, ToGrpc),
+			InputLagLevels = information.InputLagLevels.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.InputLagLevels, ToGrpc),
+			ResponseTimeLevels = information.ResponseTimeLevels.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.ResponseTimeLevels, ToGrpc),
 			OsdLanguages = information.OsdLanguages.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.OsdLanguages, ToGrpc),
 		};
 
@@ -206,7 +208,11 @@ internal static class GrpcConvert
 			MonitorSetting.SixAxisHueControlCyan => GrpcMonitorSetting.SixAxisHueControlCyan,
 			MonitorSetting.SixAxisHueControlBlue => GrpcMonitorSetting.SixAxisHueControlBlue,
 			MonitorSetting.SixAxisHueControlMagenta => GrpcMonitorSetting.SixAxisHueControlMagenta,
+			MonitorSetting.InputLag => GrpcMonitorSetting.InputLag,
+			MonitorSetting.ResponseTime => GrpcMonitorSetting.ResponseTime,
+			MonitorSetting.BlueLightFilterLevel => GrpcMonitorSetting.BlueLightFilterLevel,
 			MonitorSetting.OsdLanguage => GrpcMonitorSetting.OsdLanguage,
+			MonitorSetting.PowerIndicator => GrpcMonitorSetting.PowerIndicator,
 			_ => throw new NotImplementedException()
 		};
 
@@ -241,7 +247,11 @@ internal static class GrpcConvert
 			GrpcMonitorSetting.SixAxisHueControlCyan => MonitorSetting.SixAxisHueControlCyan,
 			GrpcMonitorSetting.SixAxisHueControlBlue => MonitorSetting.SixAxisHueControlBlue,
 			GrpcMonitorSetting.SixAxisHueControlMagenta => MonitorSetting.SixAxisHueControlMagenta,
+			GrpcMonitorSetting.InputLag => MonitorSetting.InputLag,
+			GrpcMonitorSetting.ResponseTime => MonitorSetting.ResponseTime,
+			GrpcMonitorSetting.BlueLightFilterLevel => MonitorSetting.BlueLightFilterLevel,
 			GrpcMonitorSetting.OsdLanguage => MonitorSetting.OsdLanguage,
+			GrpcMonitorSetting.PowerIndicator => MonitorSetting.PowerIndicator,
 			_ => throw new NotImplementedException()
 		};
 

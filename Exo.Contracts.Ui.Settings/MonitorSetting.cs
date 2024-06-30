@@ -50,5 +50,14 @@ public enum MonitorSetting : uint
 	SixAxisHueControlMagenta = 19,
 
 	[EnumMember]
-	OsdLanguage = 20,
+	InputLag = 20,
+	[EnumMember]
+	ResponseTime = 21,
+	[EnumMember]
+	BlueLightFilterLevel = 22,
+
+	[EnumMember]
+	OsdLanguage = 23,
+	[EnumMember]
+	PowerIndicator = 24,
 }

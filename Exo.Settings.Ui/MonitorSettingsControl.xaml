@@ -40,6 +40,10 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <FontIcon
                 Grid.Row="0"
@@ -69,8 +73,8 @@
                 Grid.Row="0"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding BrightnessSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding BrightnessSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -104,8 +108,8 @@
                 Grid.Row="1"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding ContrastSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding ContrastSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -139,8 +143,8 @@
                 Grid.Row="2"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding AudioVolumeSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding AudioVolumeSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -151,7 +155,7 @@
                 Grid.Column="0"
                 x:Uid="MonitorInputSelectLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
-                Glyph="&#xEC77;"
+                Glyph="&#xE7B5;"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
@@ -175,8 +179,8 @@
                 Grid.Row="3"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding InputSelectSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding InputSelectSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -213,8 +217,8 @@
                 Grid.Row="4"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding RedVideoGainSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding RedVideoGainSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -251,8 +255,8 @@
                 Grid.Row="5"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding GreenVideoGainSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding GreenVideoGainSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -289,8 +293,8 @@
                 Grid.Row="6"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding BlueVideoGainSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding BlueVideoGainSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -299,18 +303,18 @@
             <FontIcon
                 Grid.Row="7"
                 Grid.Column="0"
-                x:Uid="MonitorRedSixAxisSaturationControl"
+                x:Uid="MonitorRedSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xF354;"
                 Foreground="Red"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding RedSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding RedSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="7"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding RedSixAxisSaturationControl}"
+                DataContext="{Binding RedSixAxisSaturationControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -327,8 +331,8 @@
                 Grid.Row="7"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding RedSixAxisSaturationControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding RedSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding RedSixAxisSaturationControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -337,18 +341,18 @@
             <FontIcon
                 Grid.Row="8"
                 Grid.Column="0"
-                x:Uid="MonitorRedSixAxisHueControl"
+                x:Uid="MonitorRedSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE790;"
                 Foreground="Red"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding RedSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding RedSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="8"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding RedSixAxisHueControl}"
+                DataContext="{Binding RedSixAxisHueControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -365,8 +369,8 @@
                 Grid.Row="8"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding RedSixAxisHueControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding RedSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding RedSixAxisHueControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -375,18 +379,18 @@
             <FontIcon
                 Grid.Row="9"
                 Grid.Column="0"
-                x:Uid="MonitorYellowSixAxisSaturationControl"
+                x:Uid="MonitorYellowSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xF354;"
                 Foreground="Yellow"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding YellowSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding YellowSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="9"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding YellowSixAxisSaturationControl}"
+                DataContext="{Binding YellowSixAxisSaturationControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -403,8 +407,8 @@
                 Grid.Row="9"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding YellowSixAxisSaturationControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding YellowSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding YellowSixAxisSaturationControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -413,18 +417,18 @@
             <FontIcon
                 Grid.Row="10"
                 Grid.Column="0"
-                x:Uid="MonitorYellowSixAxisHueControl"
+                x:Uid="MonitorYellowSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE790;"
                 Foreground="Yellow"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding YellowSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding YellowSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="10"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding YellowSixAxisHueControl}"
+                DataContext="{Binding YellowSixAxisHueControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -441,8 +445,8 @@
                 Grid.Row="10"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding YellowSixAxisHueControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding YellowSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding YellowSixAxisHueControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -451,18 +455,18 @@
             <FontIcon
                 Grid.Row="11"
                 Grid.Column="0"
-                x:Uid="MonitorGreenSixAxisSaturationControl"
+                x:Uid="MonitorGreenSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xF354;"
                 Foreground="Lime"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding GreenSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding GreenSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="11"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding GreenSixAxisSaturationControl}"
+                DataContext="{Binding GreenSixAxisSaturationControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -479,8 +483,8 @@
                 Grid.Row="11"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding GreenSixAxisSaturationControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding GreenSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding GreenSixAxisSaturationControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -489,18 +493,18 @@
             <FontIcon
                 Grid.Row="12"
                 Grid.Column="0"
-                x:Uid="MonitorGreenSixAxisHueControl"
+                x:Uid="MonitorGreenSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE790;"
                 Foreground="Lime"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding GreenSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding GreenSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="12"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding GreenSixAxisHueControl}"
+                DataContext="{Binding GreenSixAxisHueControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -517,8 +521,8 @@
                 Grid.Row="12"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding GreenSixAxisHueControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding GreenSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding GreenSixAxisHueControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -527,18 +531,18 @@
             <FontIcon
                 Grid.Row="13"
                 Grid.Column="0"
-                x:Uid="MonitorCyanSixAxisSaturationControl"
+                x:Uid="MonitorCyanSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xF354;"
                 Foreground="Cyan"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding CyanSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding CyanSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="13"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding CyanSixAxisSaturationControl}"
+                DataContext="{Binding CyanSixAxisSaturationControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -555,8 +559,8 @@
                 Grid.Row="13"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding CyanSixAxisSaturationControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding CyanSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding CyanSixAxisSaturationControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -565,18 +569,18 @@
             <FontIcon
                 Grid.Row="14"
                 Grid.Column="0"
-                x:Uid="MonitorCyanSixAxisHueControl"
+                x:Uid="MonitorCyanSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE790;"
                 Foreground="Cyan"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding CyanSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding CyanSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="14"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding CyanSixAxisHueControl}"
+                DataContext="{Binding CyanSixAxisHueControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -593,8 +597,8 @@
                 Grid.Row="14"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding CyanSixAxisHueControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding CyanSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding CyanSixAxisHueControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -603,18 +607,18 @@
             <FontIcon
                 Grid.Row="15"
                 Grid.Column="0"
-                x:Uid="MonitorBlueSixAxisSaturationControl"
+                x:Uid="MonitorBlueSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xF354;"
                 Foreground="Blue"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding BlueSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding BlueSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="15"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding BlueSixAxisSaturationControl}"
+                DataContext="{Binding BlueSixAxisSaturationControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -631,8 +635,8 @@
                 Grid.Row="15"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding BlueSixAxisSaturationControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding BlueSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding BlueSixAxisSaturationControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -641,18 +645,18 @@
             <FontIcon
                 Grid.Row="16"
                 Grid.Column="0"
-                x:Uid="MonitorBlueSixAxisHueControl"
+                x:Uid="MonitorBlueSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE790;"
                 Foreground="Blue"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding BlueSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding BlueSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="16"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding BlueSixAxisHueControl}"
+                DataContext="{Binding BlueSixAxisHueControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -669,8 +673,8 @@
                 Grid.Row="16"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding BlueSixAxisHueControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding BlueSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding BlueSixAxisHueControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -679,18 +683,18 @@
             <FontIcon
                 Grid.Row="17"
                 Grid.Column="0"
-                x:Uid="MonitorMagentaSixAxisSaturationControl"
+                x:Uid="MonitorMagentaSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xF354;"
                 Foreground="Magenta"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding MagentaSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding MagentaSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="17"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding MagentaSixAxisSaturationControl}"
+                DataContext="{Binding MagentaSixAxisSaturationControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -707,8 +711,8 @@
                 Grid.Row="17"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding MagentaSixAxisSaturationControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding MagentaSixAxisSaturationControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding MagentaSixAxisSaturationControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -717,18 +721,18 @@
             <FontIcon
                 Grid.Row="18"
                 Grid.Column="0"
-                x:Uid="MonitorMagentaSixAxisHueControl"
+                x:Uid="MonitorMagentaSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xE790;"
                 Foreground="Magenta"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding MagentaSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding MagentaSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
                 Grid.Row="18"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding MagentaSixAxisHueControl}"
+                DataContext="{Binding MagentaSixAxisHueControlSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Maximum="{Binding MaximumValue, Mode=OneTime}"
                 Minimum="{Binding MinimumValue, Mode=OneTime}"
@@ -745,8 +749,8 @@
                 Grid.Row="18"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding MagentaSixAxisHueControl.IsChanged, Mode=OneWay}"
-                Visibility="{Binding MagentaSixAxisHueControl, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding MagentaSixAxisHueControlSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
@@ -755,17 +759,17 @@
             <FontIcon
                 Grid.Row="19"
                 Grid.Column="0"
-                x:Uid="MonitorOsdLanguageLabel"
+                x:Uid="MonitorInputLagLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
-                Glyph="&#xF2B7;"
+                Glyph="&#xF182;"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Stretch"
-                Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+                Visibility="{Binding InputLagSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <ComboBox
                 Grid.Row="19"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding OsdLanguageSetting}"
+                DataContext="{Binding InputLagSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 SelectedItem="{Binding Value, Mode=TwoWay}"
                 ItemsSource="{Binding SupportedValues, Mode=OneWay}"
@@ -781,8 +785,148 @@
                 Grid.Row="19"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
-                IsEnabled="{Binding OsdLanguageSetting.IsChanged, Mode=OneWay}"
-                Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                DataContext="{Binding InputLagSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="20"
+                Grid.Column="0"
+                x:Uid="MonitorResponseTimeLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xEC4A;"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding ResponseTimeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <ComboBox
+                Grid.Row="20"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding ResponseTimeSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                SelectedItem="{Binding Value, Mode=TwoWay}"
+                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FriendlyName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button
+                Grid.Row="20"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding ResponseTimeSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="21"
+                Grid.Column="0"
+                x:Uid="MonitorBlueLightFilterLevelLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF08C;"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BlueLightFilterLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="21"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BlueLightFilterLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource BlueLightLinearGradientBrush}"
+                Foreground="#666">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="21"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BlueLightFilterLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="22"
+                Grid.Column="0"
+                x:Uid="MonitorOsdLanguageLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xF2B7;"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <ComboBox
+                Grid.Row="22"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding OsdLanguageSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                SelectedItem="{Binding Value, Mode=TwoWay}"
+                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FriendlyName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button
+                Grid.Row="22"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding OsdLanguageSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="23"
+                Grid.Column="0"
+                x:Uid="MonitorPowerIndicatorLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xE781;"
+                Foreground="#f80"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <ToggleSwitch
+                Grid.Row="23"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding PowerIndicatorSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                IsOn="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch" />
+            <Button
+                Grid.Row="23"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding PowerIndicatorSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
                 Command="{Binding ResetCommand}"
                 CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />

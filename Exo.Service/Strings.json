@@ -1,4 +1,29 @@
 {
+	// Common use strings
+	"4d2b3404-1cb1-4536-918c-80facc124cf9": {
+		"en": "On",
+		"fr": "Allumé"
+	},
+	"a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e": {
+		"en": "Off",
+		"fr": "Éteint"
+	},
+	"5c65f531-fceb-477b-97ef-b762bc358396": {
+		"en": "Enabled",
+		"fr": "Activé"
+	},
+	"da23bf28-6572-4e00-83a1-be68bf7cf749": {
+		"en": "Disabled",
+		"fr": "Désactivé"
+	},
+	"16ac1b8f-cb3f-4910-9af4-bd966aa16279": {
+		"en": "Standard",
+		"fr": "Standard"
+	},
+	"e677ce93-816f-44c7-ad7e-b1042f61f2fd": {
+		"en": "Advanced",
+		"fr": "Avancé"
+	},
 	// Sensors
 	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
 		"en": "Fan Speed",

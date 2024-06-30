@@ -46,9 +46,16 @@ public class GenericMonitorDriver
 	IMonitorCyanSixAxisHueControlFeature,
 	IMonitorBlueSixAxisHueControlFeature,
 	IMonitorMagentaSixAxisHueControlFeature,
-	IMonitorOsdLanguageFeature
+	IMonitorOsdLanguageFeature,
+	IMonitorResponseTimeFeature,
+	IMonitorInputLagFeature,
+	IMonitorBlueLightFilterLevelFeature,
+	IMonitorPowerIndicatorToggleFeature
 {
 	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(GenericMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
+
+	private static readonly Guid OnStringId = new(0x4D2B3404, 0x1CB1, 0x4536, 0x91, 0x8C, 0x80, 0xFA, 0xCC, 0x12, 0x4C, 0xF9);
+	private static readonly Guid OffStringId = new(0xA9F9A2E6, 0x2091, 0x4BD9, 0xB1, 0x35, 0xA4, 0xA5, 0xD6, 0xD4, 0x00, 0x9E);
 
 	private static bool TryGetMonitorDefinition(DeviceId deviceId, out MonitorDefinition definition)
 	{
@@ -133,8 +140,17 @@ public class GenericMonitorDriver
 		byte blueSixAxisHueControlVcpCode = 0;
 		byte magentaSixAxisHueControlVcpCode = 0;
 		byte osdLanguageVcpCode = 0;
+		byte responseTimeVcpCode = 0;
+		byte inputLagVcpCode = 0;
+		byte blueLightFilterLevelVcpCode = 0;
+		byte powerIndicatorVcpCode = 0;
+
+		ushort powerIndicatorOffValue = 0;
+		ushort powerIndicatorOnValue = 0;
 
 		ImmutableArray<NonContinuousValueDescription>.Builder inputSourceBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
+		ImmutableArray<NonContinuousValueDescription>.Builder inputLagLevelBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
+		ImmutableArray<NonContinuousValueDescription>.Builder responseTimeLevelBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
 		ImmutableArray<NonContinuousValueDescription>.Builder osdLanguageBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
 
 		if (MonitorCapabilities.TryParse(rawCapabilities.AsSpan(), out var capabilities))
@@ -387,15 +403,7 @@ public class GenericMonitorDriver
 				case MonitorFeature.InputSelect:
 					features |= SupportedFeatures.InputSelect;
 					inputSelectVcpCode = feature.VcpCode;
-
-					inputSourceBuilder.Clear();
-					if (!feature.DiscreteValues.IsDefaultOrEmpty)
-					{
-						foreach (var valueDefinition in feature.DiscreteValues)
-						{
-							inputSourceBuilder.Add(new(valueDefinition.Value, valueDefinition.NameStringId.GetValueOrDefault(), null));
-						}
-					}
+					OverrideDiscreteValues(inputSourceBuilder, feature.DiscreteValues);
 					break;
 				case MonitorFeature.VideoGainRed:
 					features |= SupportedFeatures.VideoGainRed;
@@ -457,16 +465,43 @@ public class GenericMonitorDriver
 					features |= SupportedFeatures.SixAxisHueControlMagenta;
 					magentaSixAxisHueControlVcpCode = feature.VcpCode;
 					break;
+				case MonitorFeature.InputLag:
+					features |= SupportedFeatures.InputLag;
+					inputLagVcpCode = feature.VcpCode;
+					OverrideDiscreteValues(inputLagLevelBuilder, feature.DiscreteValues);
+					break;
+				case MonitorFeature.ResponseTime:
+					features |= SupportedFeatures.ResponseTime;
+					responseTimeVcpCode = feature.VcpCode;
+					OverrideDiscreteValues(responseTimeLevelBuilder, feature.DiscreteValues);
+					break;
+				case MonitorFeature.BlueLightFilterLevel:
+					features |= SupportedFeatures.BlueLightFilterLevel;
+					blueLightFilterLevelVcpCode = feature.VcpCode;
+					break;
 				case MonitorFeature.OsdLanguage:
 					features |= SupportedFeatures.OsdLanguage;
 					osdLanguageVcpCode = feature.VcpCode;
-
-					osdLanguageBuilder.Clear();
-					if (!feature.DiscreteValues.IsDefaultOrEmpty)
+					OverrideDiscreteValues(osdLanguageBuilder, feature.DiscreteValues);
+					break;
+				case MonitorFeature.PowerIndicator:
+					// TODO: Log if there is a configuration problem.
+					if (!feature.DiscreteValues.IsDefault && feature.DiscreteValues.Length == 2)
 					{
-						foreach (var valueDefinition in feature.DiscreteValues)
+						if (feature.DiscreteValues[0].NameStringId == OnStringId && feature.DiscreteValues[1].NameStringId == OffStringId)
 						{
-							osdLanguageBuilder.Add(new(valueDefinition.Value, valueDefinition.NameStringId.GetValueOrDefault(), null));
+							powerIndicatorOnValue = feature.DiscreteValues[0].Value;
+							powerIndicatorOffValue = feature.DiscreteValues[1].Value;
+						}
+						else
+						{
+							powerIndicatorOffValue = feature.DiscreteValues[0].Value;
+							powerIndicatorOnValue = feature.DiscreteValues[1].Value;
+						}
+						if (powerIndicatorOffValue != powerIndicatorOnValue)
+						{
+							features |= SupportedFeatures.PowerIndicator;
+							powerIndicatorVcpCode = feature.VcpCode;
 						}
 					}
 					break;
@@ -475,32 +510,17 @@ public class GenericMonitorDriver
 		}
 
 		var inputSources = inputSourceBuilder.DrainToImmutable();
-		HashSet<ushort>? validInputSources = null;
-		if (inputSources.Length > 0)
-		{
-			validInputSources = [];
-			foreach (var description in inputSources)
-			{
-				if (!validInputSources.Add(description.Value))
-				{
-					throw new InvalidOperationException("Duplicate input source ID detected.");
-				}
-			}
-		}
+		var validInputSources = ConsolidateSupportedValues(inputSources);
+
+		var inputLagLevels = inputLagLevelBuilder.DrainToImmutable();
+		var validInputLagLevels = ConsolidateSupportedValues(inputLagLevels);
+
+		var responseTimeLevels = responseTimeLevelBuilder.DrainToImmutable();
+		var validResponseTimeLevels = ConsolidateSupportedValues(responseTimeLevels);
 
 		var osdLanguages = osdLanguageBuilder.DrainToImmutable();
-		HashSet<ushort>? validOsdLanguages = null;
-		if (osdLanguages.Length > 0)
-		{
-			validOsdLanguages = [];
-			foreach (var description in osdLanguages)
-			{
-				if (!validOsdLanguages.Add(description.Value))
-				{
-					throw new InvalidOperationException("Duplicate OSD language ID detected.");
-				}
-			}
-		}
+		var validOsdLanguages = ConsolidateSupportedValues(osdLanguages);
+
 		return new DriverCreationResult<SystemDevicePath>
 		(
 			keys,
@@ -529,16 +549,55 @@ public class GenericMonitorDriver
 				cyanSixAxisHueControlVcpCode,
 				blueSixAxisHueControlVcpCode,
 				magentaSixAxisHueControlVcpCode,
+				inputLagVcpCode,
+				responseTimeVcpCode,
+				blueLightFilterLevelVcpCode,
 				osdLanguageVcpCode,
+				powerIndicatorVcpCode,
 				inputSources,
 				validInputSources,
+				inputLagLevels,
+				validInputLagLevels,
+				responseTimeLevels,
+				validResponseTimeLevels,
 				osdLanguages,
 				validOsdLanguages,
+				powerIndicatorOffValue,
+				powerIndicatorOnValue,
 				deviceId,
 				friendlyName,
 				new("monitor", topLevelDeviceName, deviceId.ToString(), edid.SerialNumber)
 			)
 		);
+	}
+
+	private static void OverrideDiscreteValues(ImmutableArray<NonContinuousValueDescription>.Builder builder, ImmutableArray<MonitorFeatureDiscreteValueDefinition> discreteValues)
+	{
+		builder.Clear();
+		if (!discreteValues.IsDefaultOrEmpty)
+		{
+			foreach (var valueDefinition in discreteValues)
+			{
+				builder.Add(new(valueDefinition.Value, valueDefinition.NameStringId.GetValueOrDefault(), null));
+			}
+		}
+	}
+
+	private static HashSet<ushort>? ConsolidateSupportedValues(ImmutableArray<NonContinuousValueDescription> descriptions)
+	{
+		HashSet<ushort>? validValues = null;
+		if (descriptions.Length > 0)
+		{
+			validValues = [];
+			foreach (var description in descriptions)
+			{
+				if (!validValues.Add(description.Value))
+				{
+					throw new InvalidOperationException("Duplicate value detected.");
+				}
+			}
+		}
+		return validValues;
 	}
 
 	[Flags]
@@ -566,6 +625,10 @@ public class GenericMonitorDriver
 		SixAxisHueControlBlue = 0x00040000,
 		SixAxisHueControlMagenta = 0x00080000,
 		OsdLanguage = 0x00100000,
+		PowerIndicator = 0x00200000,
+		InputLag = 0x00400000,
+		ResponseTime = 0x00800000,
+		BlueLightFilterLevel = 0x01000000,
 	}
 
 	private sealed class MonitorFeatureSet : IDeviceFeatureSet<IMonitorDeviceFeature>
@@ -602,7 +665,11 @@ public class GenericMonitorDriver
 				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0) count++;
 				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0) count++;
 				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.InputLag) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.ResponseTime) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0) count++;
 				if ((supportedFeatures & SupportedFeatures.OsdLanguage) != 0) count++;
+				if ((supportedFeatures & SupportedFeatures.PowerIndicator) != 0) count++;
 
 				return count;
 			}
@@ -637,7 +704,11 @@ public class GenericMonitorDriver
 				typeof(T) == typeof(IMonitorCyanSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0 ||
 				typeof(T) == typeof(IMonitorBlueSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0 ||
 				typeof(T) == typeof(IMonitorMagentaSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0 ||
-				typeof(T) == typeof(IMonitorOsdLanguageFeature) && (supportedFeatures & SupportedFeatures.OsdLanguage) != 0)
+				typeof(T) == typeof(IMonitorInputLagFeature) && (supportedFeatures & SupportedFeatures.InputLag) != 0 ||
+				typeof(T) == typeof(IMonitorResponseTimeFeature) && (supportedFeatures & SupportedFeatures.ResponseTime) != 0 ||
+				typeof(T) == typeof(IMonitorBlueLightFilterLevelFeature) && (supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0 ||
+				typeof(T) == typeof(IMonitorOsdLanguageFeature) && (supportedFeatures & SupportedFeatures.OsdLanguage) != 0 ||
+				typeof(T) == typeof(IMonitorPowerIndicatorToggleFeature) && (supportedFeatures & SupportedFeatures.PowerIndicator) != 0)
 			{
 				return Unsafe.As<T>(_driver);
 			}
@@ -671,7 +742,11 @@ public class GenericMonitorDriver
 			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0) yield return new(typeof(IMonitorCyanSixAxisHueControlFeature), _driver);
 			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0) yield return new(typeof(IMonitorBlueSixAxisHueControlFeature), _driver);
 			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0) yield return new(typeof(IMonitorMagentaSixAxisHueControlFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.InputLag) != 0) yield return new(typeof(IMonitorInputLagFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.ResponseTime) != 0) yield return new(typeof(IMonitorResponseTimeFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0) yield return new(typeof(IMonitorBlueLightFilterLevelFeature), _driver);
 			if ((supportedFeatures & SupportedFeatures.OsdLanguage) != 0) yield return new(typeof(IMonitorOsdLanguageFeature), _driver);
+			if ((supportedFeatures & SupportedFeatures.PowerIndicator) != 0) yield return new(typeof(IMonitorPowerIndicatorToggleFeature), _driver);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() => Unsafe.As<IEnumerable<KeyValuePair<Type, IMonitorDeviceFeature>>>(this).GetEnumerator();
@@ -708,13 +783,27 @@ public class GenericMonitorDriver
 	private readonly byte _blueSixAxisHueControlVcpCode;
 	private readonly byte _magentaSixAxisHueControlVcpCode;
 
+	private readonly byte _inputLagVcpCode;
+	private readonly byte _responseTimeVcpCode;
+	private readonly byte _blueLightFilterLevelVcpCode;
+
 	private readonly byte _osdLanguageVcpCode;
+	private readonly byte _powerIndicatorVcpCode;
 
 	private readonly ImmutableArray<NonContinuousValueDescription> _inputSources;
 	private readonly HashSet<ushort>? _validInputSources;
 
+	private readonly ImmutableArray<NonContinuousValueDescription> _inputLagLevels;
+	private readonly HashSet<ushort>? _validInputLagLevels;
+
+	private readonly ImmutableArray<NonContinuousValueDescription> _responseTimeLevels;
+	private readonly HashSet<ushort>? _validResponseTimeLevels;
+
 	private readonly ImmutableArray<NonContinuousValueDescription> _osdLanguages;
 	private readonly HashSet<ushort>? _validOsdLanguages;
+
+	private readonly ushort _powerIndicatorOffValue;
+	private readonly ushort _powerIndicatorOnValue;
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
@@ -751,11 +840,21 @@ public class GenericMonitorDriver
 		byte cyanSixAxisHueControlVcpCode,
 		byte blueSixAxisHueControlVcpCode,
 		byte magentaSixAxisHueControlVcpCode,
+		byte inputLagVcpCode,
+		byte responseTimeVcpCode,
+		byte blueLightFilterLevelVcpCode,
 		byte osdLanguageVcpCode,
+		byte powerIndicatorVcpCode,
 		ImmutableArray<NonContinuousValueDescription> inputSources,
 		HashSet<ushort>? validInputSources,
+		ImmutableArray<NonContinuousValueDescription> inputLagLevels,
+		HashSet<ushort>? validInputLagLevels,
+		ImmutableArray<NonContinuousValueDescription> responseTimeLevels,
+		HashSet<ushort>? validResponseTimeLevels,
 		ImmutableArray<NonContinuousValueDescription> osdLanguages,
 		HashSet<ushort>? validOsdLanguages,
+		ushort powerIndicatorOffValue,
+		ushort powerIndicatorOnValue,
 		DeviceId deviceId,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
@@ -788,11 +887,23 @@ public class GenericMonitorDriver
 		_cyanSixAxisHueControlVcpCode = cyanSixAxisHueControlVcpCode;
 		_blueSixAxisHueControlVcpCode = blueSixAxisHueControlVcpCode;
 		_magentaSixAxisHueControlVcpCode = magentaSixAxisHueControlVcpCode;
+		_inputLagVcpCode = inputLagVcpCode;
+		_responseTimeVcpCode = responseTimeVcpCode;
+		_blueLightFilterLevelVcpCode = blueLightFilterLevelVcpCode;
 		_osdLanguageVcpCode = osdLanguageVcpCode;
+		_powerIndicatorVcpCode = powerIndicatorVcpCode;
 		_inputSources = inputSources;
 		_validInputSources = validInputSources;
+
+		_inputLagLevels = inputLagLevels;
+		_validInputLagLevels = validInputLagLevels;
+		_responseTimeLevels = responseTimeLevels;
+		_validResponseTimeLevels = validResponseTimeLevels;
 		_osdLanguages = osdLanguages;
 		_validOsdLanguages = validOsdLanguages;
+
+		_powerIndicatorOffValue = powerIndicatorOffValue;
+		_powerIndicatorOnValue = powerIndicatorOnValue;
 
 		_genericFeatures = configurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
@@ -820,6 +931,13 @@ public class GenericMonitorDriver
 		EnsureSupportedFeatures(features);
 		var reply = await _ddc.GetVcpFeatureAsync(code, cancellationToken).ConfigureAwait(false);
 		return reply.CurrentValue;
+	}
+
+	private async ValueTask<bool> GetBooleanVcpAsync(SupportedFeatures features, byte code, ushort onValue, CancellationToken cancellationToken)
+	{
+		EnsureSupportedFeatures(features);
+		var reply = await _ddc.GetVcpFeatureAsync(code, cancellationToken).ConfigureAwait(false);
+		return reply.CurrentValue == onValue;
 	}
 
 	private async ValueTask SetVcpAsync(SupportedFeatures features, byte code, ushort value, CancellationToken cancellationToken)
@@ -958,7 +1076,30 @@ public class GenericMonitorDriver
 
 	ValueTask<ushort> IMonitorOsdLanguageFeature.GetOsdLanguageAsync(CancellationToken cancellationToken)
 		=> GetNonContinuousVcpAsync(SupportedFeatures.OsdLanguage, _osdLanguageVcpCode, cancellationToken);
-
 	ValueTask IMonitorOsdLanguageFeature.SetOsdLanguageAsync(ushort value, CancellationToken cancellationToken)
 		=> SetVcpAsync(SupportedFeatures.OsdLanguage, _validOsdLanguages, _osdLanguageVcpCode, value, cancellationToken);
+
+	ImmutableArray<NonContinuousValueDescription> IMonitorInputLagFeature.InputLagLevels => _inputLagLevels;
+
+	ValueTask<ushort> IMonitorInputLagFeature.GetInputLagAsync(CancellationToken cancellationToken)
+		=> GetNonContinuousVcpAsync(SupportedFeatures.InputLag, _inputLagVcpCode, cancellationToken);
+	ValueTask IMonitorInputLagFeature.SetInputLagAsync(ushort value, CancellationToken cancellationToken)
+		=> SetVcpAsync(SupportedFeatures.InputLag, _validInputLagLevels, _inputLagVcpCode, value, cancellationToken);
+
+	ImmutableArray<NonContinuousValueDescription> IMonitorResponseTimeFeature.ResponseTimeLevels => _responseTimeLevels;
+
+	ValueTask<ushort> IMonitorResponseTimeFeature.GetResponseTimeAsync(CancellationToken cancellationToken)
+		=> GetNonContinuousVcpAsync(SupportedFeatures.ResponseTime, _responseTimeVcpCode, cancellationToken);
+	ValueTask IMonitorResponseTimeFeature.SetResponseTimeAsync(ushort value, CancellationToken cancellationToken)
+		=> SetVcpAsync(SupportedFeatures.ResponseTime, _validResponseTimeLevels, _responseTimeVcpCode, value, cancellationToken);
+
+	ValueTask<ContinuousValue> IMonitorBlueLightFilterLevelFeature.GetBlueLightFilterLevelAsync(CancellationToken cancellationToken)
+		=> GetVcpAsync(SupportedFeatures.BlueLightFilterLevel, _blueLightFilterLevelVcpCode, cancellationToken);
+	ValueTask IMonitorBlueLightFilterLevelFeature.SetBlueLightFilterLevelAsync(ushort value, CancellationToken cancellationToken)
+		=> SetVcpAsync(SupportedFeatures.BlueLightFilterLevel, _blueLightFilterLevelVcpCode, value, cancellationToken);
+
+	ValueTask<bool> IMonitorPowerIndicatorToggleFeature.IsPowerIndicatorEnabledAsync(CancellationToken cancellationToken)
+		=> GetBooleanVcpAsync(SupportedFeatures.PowerIndicator, _powerIndicatorVcpCode, _powerIndicatorOnValue, cancellationToken);
+	ValueTask IMonitorPowerIndicatorToggleFeature.EnablePowerIndicatorAsync(bool value, CancellationToken cancellationToken)
+		=> SetVcpAsync(SupportedFeatures.PowerIndicator, _powerIndicatorVcpCode, value ? _powerIndicatorOnValue : _powerIndicatorOffValue, cancellationToken);
 }
