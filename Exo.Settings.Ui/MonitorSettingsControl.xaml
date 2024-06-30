@@ -160,8 +160,8 @@
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding InputSelectSetting}"
                 Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
                 SelectedItem="{Binding Value, Mode=TwoWay}"
+                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
