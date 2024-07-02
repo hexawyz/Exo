@@ -564,7 +564,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			var assemblyReference = assemblyLoader.LoadAssembly(assemblyName);
 			var type = assemblyReference.Assembly.GetType(methodReference.TypeName) ?? throw new InvalidOperationException($"The type {methodReference.TypeName} was not found in {assemblyName}.");
 			var signature = methodReference.Signature;
-			if (type.GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(m => signature.Matches(m)) is not { } method)
+			if (type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).FirstOrDefault(m => signature.Matches(m)) is not { } method)
 			{
 				throw new InvalidOperationException($"Could not find method with signature {signature} in {methodReference.TypeName} of {assemblyName}.");
 			}
@@ -797,7 +797,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 					continue;
 				}
 				var signature = kvp.Value.MethodReference.Signature;
-				var method = type.GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(m => signature.Matches(m));
+				var method = type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).FirstOrDefault(m => signature.Matches(m));
 				if (method is null)
 				{
 					// TODO: Log
@@ -881,7 +881,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			foreach (var typeDetails in assemblyDetails.Types)
 			{
 				var type = assembly.GetType(typeDetails.Name)!;
-				var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
+				var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
 				foreach (var methodDetails in typeDetails.FactoryMethods)
 				{
 					var methodReference = new MethodReference(typeDetails.Name, methodDetails.MethodSignature);
@@ -928,7 +928,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			if (!type.IsPublic || type.IsGenericTypeDefinition) continue;
 
 			typeFactoryMethods.Clear();
-			foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+			foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
 			{
 				// First, validate that the method returns a Task or ValueTask.
 				if (!method.ReturnType.IsGenericType ||

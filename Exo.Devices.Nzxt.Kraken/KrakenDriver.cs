@@ -183,13 +183,13 @@ public class KrakenDriver :
 
 	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
 
-	async ValueTask<ContinuousValue> IMonitorBrightnessFeature.GetBrightnessAsync(CancellationToken cancellationToken)
+	async ValueTask<ContinuousValue> IContinuousVcpFeature.GetValueAsync(CancellationToken cancellationToken)
 	{
 		var info = await _transport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
 		return new ContinuousValue(info.CurrentBrightness, 0, 100);
 	}
 
-	async ValueTask IMonitorBrightnessFeature.SetBrightnessAsync(ushort value, CancellationToken cancellationToken)
+	async ValueTask IContinuousVcpFeature.SetValueAsync(ushort value, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
 		await _transport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);

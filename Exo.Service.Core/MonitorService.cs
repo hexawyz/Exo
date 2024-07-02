@@ -119,7 +119,7 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.GetFeature<IMonitorInputSelectFeature>() is { } monitorInputSelectFeature)
 					{
 						settingsBuilder.Add(MonitorSetting.InputSelect);
-						inputSources = monitorInputSelectFeature.InputSources;
+						inputSources = monitorInputSelectFeature.AllowedValues;
 					}
 
 					if (monitorFeatures.HasFeature<IMonitorRedVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainRed);
@@ -143,13 +143,13 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.GetFeature<IMonitorInputLagFeature>() is { } inputLagFeature)
 					{
 						settingsBuilder.Add(MonitorSetting.InputLag);
-						inputLagLevels = inputLagFeature.InputLagLevels;
+						inputLagLevels = inputLagFeature.AllowedValues;
 					}
 
 					if (monitorFeatures.GetFeature<IMonitorResponseTimeFeature>() is { } responseTimeFeature)
 					{
 						settingsBuilder.Add(MonitorSetting.ResponseTime);
-						responseTimeLevels = responseTimeFeature.ResponseTimeLevels;
+						responseTimeLevels = responseTimeFeature.AllowedValues;
 					}
 
 					if (monitorFeatures.HasFeature<IMonitorBlueLightFilterLevelFeature>()) settingsBuilder.Add(MonitorSetting.BlueLightFilterLevel);
@@ -157,7 +157,7 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>() is { } osdLanguageFeature)
 					{
 						settingsBuilder.Add(MonitorSetting.OsdLanguage);
-						osdLanguages = osdLanguageFeature.Languages;
+						osdLanguages = osdLanguageFeature.AllowedValues;
 					}
 
 					if (monitorFeatures.HasFeature<IMonitorPowerIndicatorToggleFeature>()) settingsBuilder.Add(MonitorSetting.PowerIndicator);
@@ -229,76 +229,76 @@ internal class MonitorService : IAsyncDisposable
 					switch (setting)
 					{
 					case MonitorSetting.Brightness:
-						value = await monitorFeatures.GetFeature<IMonitorBrightnessFeature>()!.GetBrightnessAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorBrightnessFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.Contrast:
-						value = await monitorFeatures.GetFeature<IMonitorContrastFeature>()!.GetContrastAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorContrastFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.AudioVolume:
-						value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetVolumeAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.InputSelect:
-						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputSelectFeature>()!.GetInputSourceAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputSelectFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
 						break;
 					case MonitorSetting.VideoGainRed:
-						value = await monitorFeatures.GetFeature<IMonitorRedVideoGainFeature>()!.GetRedVideoGainAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorRedVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.VideoGainGreen:
-						value = await monitorFeatures.GetFeature<IMonitorGreenVideoGainFeature>()!.GetGreenVideoGainAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorGreenVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.VideoGainBlue:
-						value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetBlueVideoGainAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisSaturationControlRed:
-						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisSaturationControlFeature>()!.GetRedSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisSaturationControlYellow:
-						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisSaturationControlFeature>()!.GetYellowSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisSaturationControlGreen:
-						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisSaturationControlFeature>()!.GetGreenSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisSaturationControlCyan:
-						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisSaturationControlFeature>()!.GetCyanSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisSaturationControlBlue:
-						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisSaturationControlFeature>()!.GetBlueSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisSaturationControlMagenta:
-						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>()!.GetMagentaSixAxisSaturationControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisHueControlRed:
-						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisHueControlFeature>()!.GetRedSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisHueControlYellow:
-						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisHueControlFeature>()!.GetYellowSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisHueControlGreen:
-						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisHueControlFeature>()!.GetGreenSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisHueControlCyan:
-						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisHueControlFeature>()!.GetCyanSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisHueControlBlue:
-						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisHueControlFeature>()!.GetBlueSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.SixAxisHueControlMagenta:
-						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetMagentaSixAxisHueControlAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.InputLag:
-						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputLagFeature>()!.GetInputLagAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputLagFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
 						break;
 					case MonitorSetting.ResponseTime:
-						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorResponseTimeFeature>()!.GetResponseTimeAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorResponseTimeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
 						break;
 					case MonitorSetting.BlueLightFilterLevel:
-						value = await monitorFeatures.GetFeature<IMonitorBlueLightFilterLevelFeature>()!.GetBlueLightFilterLevelAsync(cancellationToken).ConfigureAwait(false);
+						value = await monitorFeatures.GetFeature<IMonitorBlueLightFilterLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 						break;
 					case MonitorSetting.OsdLanguage:
-						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>()!.GetOsdLanguageAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
 						break;
 					case MonitorSetting.PowerIndicator:
-						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorPowerIndicatorToggleFeature>()!.IsPowerIndicatorEnabledAsync(cancellationToken).ConfigureAwait(false) ? (ushort)1 : (ushort)0, 0, 1);
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorPowerIndicatorToggleFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false) ? (ushort)1 : (ushort)0, 0, 1);
 						break;
 					default:
 						continue;
@@ -448,8 +448,8 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Func<TMonitorFeature, ushort, CancellationToken, ValueTask> valueSetter, Guid deviceId, ushort value, CancellationToken cancellationToken)
-		where TMonitorFeature : class, IMonitorDeviceFeature
+	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Guid deviceId, ushort value, CancellationToken cancellationToken)
+		where TMonitorFeature : class, IMonitorDeviceFeature, IContinuousVcpFeature
 	{
 		MonitorDeviceDetails? details;
 		lock (_lock)
@@ -465,7 +465,7 @@ internal class MonitorService : IAsyncDisposable
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
 
-			await valueSetter(feature, value, cancellationToken).ConfigureAwait(false);
+			await feature.SetValueAsync(value, cancellationToken).ConfigureAwait(false);
 			UpdateCachedSetting(details.KnownValues, deviceId, monitorSetting, value);
 		}
 		return;
@@ -473,8 +473,8 @@ internal class MonitorService : IAsyncDisposable
 		throw new InvalidOperationException("Device was not found.");
 	}
 
-	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Func<TMonitorFeature, bool, CancellationToken, ValueTask> valueSetter, Guid deviceId, bool value, CancellationToken cancellationToken)
-		where TMonitorFeature : class, IMonitorDeviceFeature
+	public async ValueTask SetNonContinuousValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Guid deviceId, ushort value, CancellationToken cancellationToken)
+		where TMonitorFeature : class, IMonitorDeviceFeature, INonContinuousVcpFeature
 	{
 		MonitorDeviceDetails? details;
 		lock (_lock)
@@ -490,7 +490,32 @@ internal class MonitorService : IAsyncDisposable
 				throw new InvalidOperationException("The requested feature is not supported.");
 			}
 
-			await valueSetter(feature, value, cancellationToken).ConfigureAwait(false);
+			await feature.SetValueAsync(value, cancellationToken).ConfigureAwait(false);
+			UpdateCachedSetting(details.KnownValues, deviceId, monitorSetting, value);
+		}
+		return;
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
+
+	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Guid deviceId, bool value, CancellationToken cancellationToken)
+		where TMonitorFeature : class, IMonitorDeviceFeature, IBooleanVcpFeature
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (details.Driver is null) goto DeviceNotFound;
+
+			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<TMonitorFeature>() is not { } feature)
+			{
+				throw new InvalidOperationException("The requested feature is not supported.");
+			}
+
+			await feature.SetValueAsync(value, cancellationToken).ConfigureAwait(false);
 			UpdateCachedSetting(details.KnownValues, deviceId, monitorSetting, value ? (ushort)1 : (ushort)0);
 		}
 		return;
@@ -499,76 +524,76 @@ internal class MonitorService : IAsyncDisposable
 	}
 
 	public ValueTask SetBrightnessAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorBrightnessFeature>(MonitorSetting.Brightness, (feature, value, cancellationToken) => feature.SetBrightnessAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorBrightnessFeature>(MonitorSetting.Brightness, deviceId, value, cancellationToken);
 
 	public ValueTask SetContrastAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorContrastFeature>(MonitorSetting.Contrast, (feature, value, cancellationToken) => feature.SetContrastAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorContrastFeature>(MonitorSetting.Contrast, deviceId, value, cancellationToken);
 
 	public ValueTask SetAudioVolumeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorSpeakerAudioVolumeFeature>(MonitorSetting.AudioVolume, (feature, value, cancellationToken) => feature.SetVolumeAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorSpeakerAudioVolumeFeature>(MonitorSetting.AudioVolume, deviceId, value, cancellationToken);
 
 	public ValueTask SetInputSourceAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorInputSelectFeature>(MonitorSetting.InputSelect, (feature, value, cancellationToken) => feature.SetInputSourceAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetNonContinuousValueAsync<IMonitorInputSelectFeature>(MonitorSetting.InputSelect, deviceId, value, cancellationToken);
 
 	public ValueTask SetRedVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorRedVideoGainFeature>(MonitorSetting.VideoGainRed, (feature, value, cancellationToken) => feature.SetRedVideoGainAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorRedVideoGainFeature>(MonitorSetting.VideoGainRed, deviceId, value, cancellationToken);
 
 	public ValueTask SetGreenVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorGreenVideoGainFeature>(MonitorSetting.VideoGainGreen, (feature, value, cancellationToken) => feature.SetGreenVideoGainAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorGreenVideoGainFeature>(MonitorSetting.VideoGainGreen, deviceId, value, cancellationToken);
 
 	public ValueTask SetBlueVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorBlueVideoGainFeature>(MonitorSetting.VideoGainBlue, (feature, value, cancellationToken) => feature.SetBlueVideoGainAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorBlueVideoGainFeature>(MonitorSetting.VideoGainBlue, deviceId, value, cancellationToken);
 
 	public ValueTask SetRedSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorRedSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlRed, (feature, value, cancellationToken) => feature.SetRedSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorRedSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlRed, deviceId, value, cancellationToken);
 
 	public ValueTask SetYellowSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorYellowSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlYellow, (feature, value, cancellationToken) => feature.SetYellowSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorYellowSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlYellow, deviceId, value, cancellationToken);
 
 	public ValueTask SetGreenSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorGreenSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlGreen, (feature, value, cancellationToken) => feature.SetGreenSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorGreenSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlGreen, deviceId, value, cancellationToken);
 
 	public ValueTask SetCyanSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorCyanSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlCyan, (feature, value, cancellationToken) => feature.SetCyanSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorCyanSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlCyan, deviceId, value, cancellationToken);
 
 	public ValueTask SetBlueSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorBlueSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlBlue, (feature, value, cancellationToken) => feature.SetBlueSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorBlueSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlBlue, deviceId, value, cancellationToken);
 
 	public ValueTask SetMagentaSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorMagentaSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlMagenta, (feature, value, cancellationToken) => feature.SetMagentaSixAxisSaturationControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorMagentaSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlMagenta, deviceId, value, cancellationToken);
 
 	public ValueTask SetRedSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorRedSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlRed, (feature, value, cancellationToken) => feature.SetRedSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorRedSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlRed, deviceId, value, cancellationToken);
 
 	public ValueTask SetYellowSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorYellowSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlYellow, (feature, value, cancellationToken) => feature.SetYellowSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorYellowSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlYellow, deviceId, value, cancellationToken);
 
 	public ValueTask SetGreenSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorGreenSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlGreen, (feature, value, cancellationToken) => feature.SetGreenSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorGreenSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlGreen, deviceId, value, cancellationToken);
 
 	public ValueTask SetCyanSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorCyanSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlCyan, (feature, value, cancellationToken) => feature.SetCyanSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorCyanSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlCyan, deviceId, value, cancellationToken);
 
 	public ValueTask SetBlueSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorBlueSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlBlue, (feature, value, cancellationToken) => feature.SetBlueSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorBlueSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlBlue, deviceId, value, cancellationToken);
 
 	public ValueTask SetMagentaSixAxisHueControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorMagentaSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlMagenta, (feature, value, cancellationToken) => feature.SetMagentaSixAxisHueControlAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorMagentaSixAxisHueControlFeature>(MonitorSetting.SixAxisHueControlMagenta, deviceId, value, cancellationToken);
 
 	public ValueTask SetInputLagAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorInputLagFeature>(MonitorSetting.InputLag, (feature, value, cancellationToken) => feature.SetInputLagAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetNonContinuousValueAsync<IMonitorInputLagFeature>(MonitorSetting.InputLag, deviceId, value, cancellationToken);
 
 	public ValueTask SetResponseTimeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorResponseTimeFeature>(MonitorSetting.ResponseTime, (feature, value, cancellationToken) => feature.SetResponseTimeAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetNonContinuousValueAsync<IMonitorResponseTimeFeature>(MonitorSetting.ResponseTime, deviceId, value, cancellationToken);
 
 	public ValueTask SetBlueLightFilterLevelAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorBlueLightFilterLevelFeature>(MonitorSetting.BlueLightFilterLevel, (feature, value, cancellationToken) => feature.SetBlueLightFilterLevelAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorBlueLightFilterLevelFeature>(MonitorSetting.BlueLightFilterLevel, deviceId, value, cancellationToken);
 
 	public ValueTask SetOsdLanguageAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorOsdLanguageFeature>(MonitorSetting.OsdLanguage, (feature, value, cancellationToken) => feature.SetOsdLanguageAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetNonContinuousValueAsync<IMonitorOsdLanguageFeature>(MonitorSetting.OsdLanguage, deviceId, value, cancellationToken);
 
 	public ValueTask SetPowerIndicatorAsync(Guid deviceId, bool value, CancellationToken cancellationToken)
-		=> SetValueAsync<IMonitorPowerIndicatorToggleFeature>(MonitorSetting.PowerIndicator, (feature, value, cancellationToken) => feature.EnablePowerIndicatorAsync(value, cancellationToken), deviceId, value, cancellationToken);
+		=> SetValueAsync<IMonitorPowerIndicatorToggleFeature>(MonitorSetting.PowerIndicator, deviceId, value, cancellationToken);
 }
 
 public readonly struct MonitorInformation

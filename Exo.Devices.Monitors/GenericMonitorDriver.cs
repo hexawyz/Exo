@@ -1,8 +1,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
@@ -19,7 +17,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Monitors;
 
-public class GenericMonitorDriver
+public partial class GenericMonitorDriver
 	: Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
@@ -27,40 +25,17 @@ public class GenericMonitorDriver
 	IDeviceSerialNumberFeature,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
-	IMonitorBrightnessFeature,
-	IMonitorContrastFeature,
-	IMonitorSpeakerAudioVolumeFeature,
-	IMonitorInputSelectFeature,
-	IMonitorRedVideoGainFeature,
-	IMonitorGreenVideoGainFeature,
-	IMonitorBlueVideoGainFeature,
-	IMonitorRedSixAxisSaturationControlFeature,
-	IMonitorYellowSixAxisSaturationControlFeature,
-	IMonitorGreenSixAxisSaturationControlFeature,
-	IMonitorCyanSixAxisSaturationControlFeature,
-	IMonitorBlueSixAxisSaturationControlFeature,
-	IMonitorMagentaSixAxisSaturationControlFeature,
-	IMonitorRedSixAxisHueControlFeature,
-	IMonitorYellowSixAxisHueControlFeature,
-	IMonitorGreenSixAxisHueControlFeature,
-	IMonitorCyanSixAxisHueControlFeature,
-	IMonitorBlueSixAxisHueControlFeature,
-	IMonitorMagentaSixAxisHueControlFeature,
-	IMonitorOsdLanguageFeature,
-	IMonitorResponseTimeFeature,
-	IMonitorInputLagFeature,
-	IMonitorBlueLightFilterLevelFeature,
-	IMonitorPowerIndicatorToggleFeature
+	IMonitorRawVcpFeature
 {
 	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(GenericMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
 
 	private static readonly Guid OnStringId = new(0x4D2B3404, 0x1CB1, 0x4536, 0x91, 0x8C, 0x80, 0xFA, 0xCC, 0x12, 0x4C, 0xF9);
 	private static readonly Guid OffStringId = new(0xA9F9A2E6, 0x2091, 0x4BD9, 0xB1, 0x35, 0xA4, 0xA5, 0xD6, 0xD4, 0x00, 0x9E);
 
-	private static bool TryGetMonitorDefinition(DeviceId deviceId, out MonitorDefinition definition)
+	protected static bool TryGetMonitorDefinition(MonitorId deviceId, out MonitorDefinition definition)
 	{
 		Span<byte> key = stackalloc byte[4];
-		BinaryPrimitives.WriteUInt16LittleEndian(key, deviceId.VendorId);
+		BinaryPrimitives.WriteUInt16LittleEndian(key, deviceId.VendorId.Value);
 		BinaryPrimitives.WriteUInt16LittleEndian(key[2..], deviceId.ProductId);
 		if (MonitorDefinitionsDatabase.TryGetFileEntry(key, out var file))
 		{
@@ -88,10 +63,56 @@ public class GenericMonitorDriver
 		CancellationToken cancellationToken
 	)
 	{
-		var features = SupportedFeatures.None;
-
 		var ddc = new DisplayDataChannel(i2cBus, true);
+		var monitorId = new MonitorId(edid.VendorId, edid.ProductId);
+		var featureSetBuilder = new MonitorFeatureSetBuilder();
+		var info = await PrepareMonitorFeaturesAsync(logger, featureSetBuilder, ddc, monitorId, cancellationToken).ConfigureAwait(false);
 
+		if (info.Definition.Name is not null) friendlyName = info.Definition.Name;
+
+		return new DriverCreationResult<SystemDevicePath>
+		(
+			keys,
+			new GenericMonitorDriver
+			(
+				ddc,
+				featureSetBuilder,
+				info.RawCapabilities.AsMemory(),
+				info.Capabilities,
+				deviceId,
+				friendlyName,
+				new("monitor", topLevelDeviceName, deviceId.ToString(), edid.SerialNumber)
+			)
+		);
+	}
+
+	protected readonly struct ConsolidatedMonitorInformation
+	{
+		public required ImmutableArray<byte> RawCapabilities { get; init; }
+		public required MonitorCapabilities? Capabilities { get; init; }
+		public required MonitorDefinition Definition { get; init; }
+	}
+
+	/// <summary>Applies the standard setup procedure to retrieve monitor information and configure monitor features.</summary>
+	/// <remarks>
+	/// Calling this method is the simplest way to implement a factory for a custom driver based on <see cref="GenericMonitorDriver"/>.
+	/// In cases where this method is not granular enough, one of the other methods with the proper degree of granularity can be called.
+	/// </remarks>
+	/// <param name="logger">The logger.</param>
+	/// <param name="builder">The feature set builder on which all features will be configured.</param>
+	/// <param name="ddc">A DDC instance used to fetch monitor capabilities.</param>
+	/// <param name="monitorId">The monitor ID, used to fetch a custom monitor definition.</param>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	protected static async ValueTask<ConsolidatedMonitorInformation> PrepareMonitorFeaturesAsync
+	(
+		ILogger<GenericMonitorDriver> logger,
+		MonitorFeatureSetBuilder builder,
+		DisplayDataChannel ddc,
+		MonitorId monitorId,
+		CancellationToken cancellationToken
+	)
+	{
 		var buffer = ArrayPool<byte>.Shared.Rent(1000);
 		ImmutableArray<byte> rawCapabilities;
 		try
@@ -100,7 +121,7 @@ public class GenericMonitorDriver
 			rawCapabilities = [.. buffer[..length]];
 			if (logger.IsEnabled(LogLevel.Information))
 			{
-				logger.MonitorRetrievedCapabilities(new MonitorId(edid.VendorId, edid.ProductId).ToString()!, Encoding.UTF8.GetString(rawCapabilities.AsSpan()));
+				logger.MonitorRetrievedCapabilities(monitorId.ToString()!, Encoding.UTF8.GetString(rawCapabilities.AsSpan()));
 			}
 		}
 		finally
@@ -108,57 +129,64 @@ public class GenericMonitorDriver
 			ArrayPool<byte>.Shared.Return(buffer);
 		}
 
-		if (TryGetMonitorDefinition(deviceId, out var definition))
+		return PrepareMonitorFeatures(builder, rawCapabilities, monitorId);
+	}
+
+	protected static ConsolidatedMonitorInformation PrepareMonitorFeatures(MonitorFeatureSetBuilder builder, ImmutableArray<byte> rawCapabilities, MonitorId monitorId)
+	{
+		if (TryGetMonitorDefinition(monitorId, out var definition))
 		{
-			if (definition.Name is not null) friendlyName = definition.Name;
 			// NB: We do completely override the capabilities string if a value is provided.
 			// This can be a simpler way of defining the capabilities of a monitor. e.g. if it doesn't provide a capabilities string, or if the built-in one is broken.
 			if (!definition.Capabilities.IsDefault) rawCapabilities = definition.Capabilities;
 		}
 
-		var vcpCodesToIgnore = !definition.IgnoredCapabilitiesVcpCodes.IsDefaultOrEmpty ?
-			new HashSet<byte>(ImmutableCollectionsMarshal.AsArray(definition.IgnoredCapabilitiesVcpCodes)!) :
-			null;
+		return PrepareMonitorFeatures(builder, rawCapabilities, definition);
+	}
 
-		byte brightnessVcpCode = 0;
-		byte contrastVcpCode = 0;
-		byte audioVolumeVcpCode = 0;
-		byte inputSelectVcpCode = 0;
-		byte redVideoGainVcpCode = 0;
-		byte greenVideoGainVcpCode = 0;
-		byte blueVideoGainVcpCode = 0;
-		byte redSixAxisSaturationControlVcpCode = 0;
-		byte yellowSixAxisSaturationControlVcpCode = 0;
-		byte greenSixAxisSaturationControlVcpCode = 0;
-		byte cyanSixAxisSaturationControlVcpCode = 0;
-		byte blueSixAxisSaturationControlVcpCode = 0;
-		byte magentaSixAxisSaturationControlVcpCode = 0;
-		byte redSixAxisHueControlVcpCode = 0;
-		byte yellowSixAxisHueControlVcpCode = 0;
-		byte greenSixAxisHueControlVcpCode = 0;
-		byte cyanSixAxisHueControlVcpCode = 0;
-		byte blueSixAxisHueControlVcpCode = 0;
-		byte magentaSixAxisHueControlVcpCode = 0;
-		byte osdLanguageVcpCode = 0;
-		byte responseTimeVcpCode = 0;
-		byte inputLagVcpCode = 0;
-		byte blueLightFilterLevelVcpCode = 0;
-		byte powerIndicatorVcpCode = 0;
-
-		ushort powerIndicatorOffValue = 0;
-		ushort powerIndicatorOnValue = 0;
-
-		ImmutableArray<NonContinuousValueDescription>.Builder inputSourceBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
-		ImmutableArray<NonContinuousValueDescription>.Builder inputLagLevelBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
-		ImmutableArray<NonContinuousValueDescription>.Builder responseTimeLevelBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
-		ImmutableArray<NonContinuousValueDescription>.Builder osdLanguageBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
-
+	protected static ConsolidatedMonitorInformation PrepareMonitorFeatures(MonitorFeatureSetBuilder builder, ImmutableArray<byte> rawCapabilities, MonitorDefinition definition)
+	{
 		if (MonitorCapabilities.TryParse(rawCapabilities.AsSpan(), out var capabilities))
 		{
-			features |= SupportedFeatures.Capabilities;
+			builder.AddCapabilitiesFeature();
+		}
+
+		ConfigureFeatureSet(builder, capabilities, definition);
+
+		return new() { RawCapabilities = rawCapabilities, Capabilities = capabilities, Definition = definition };
+	}
+
+	/// <summary>Configures the feature set for the monitor using capabilities and custom monitor definition.</summary>
+	/// <remarks>
+	/// <para>
+	/// This is the core operation for building monitor features based on the default supported set.
+	/// </para>
+	/// <para>
+	/// Depending on the level of customization desired, callers may want to call one of
+	/// <see cref="PrepareMonitorFeaturesAsync(ILogger{GenericMonitorDriver}, MonitorFeatureSetBuilder, DisplayDataChannel, MonitorId, CancellationToken)"/>,
+	/// <see cref="PrepareMonitorFeatures(MonitorFeatureSetBuilder, ImmutableArray{byte}, MonitorId)"/> or
+	/// <see cref="PrepareMonitorFeatures(MonitorFeatureSetBuilder, ImmutableArray{byte}, MonitorDefinition)"/> instead.
+	/// </para>
+	/// </remarks>
+	/// <param name="builder"></param>
+	/// <param name="capabilities"></param>
+	/// <param name="definition"></param>
+	protected static void ConfigureFeatureSet(MonitorFeatureSetBuilder builder, MonitorCapabilities? capabilities, MonitorDefinition definition)
+	{
+		ImmutableArray<NonContinuousValueDescription>.Builder allowedValuesBuilder = ImmutableArray.CreateBuilder<NonContinuousValueDescription>();
+		ushort offValue;
+		ushort onValue;
+
+		if (capabilities is not null)
+		{ 
+			builder.AddCapabilitiesFeature();
 
 			if (!definition.IgnoreAllCapabilitiesVcpCodes)
 			{
+				var vcpCodesToIgnore = !definition.IgnoredCapabilitiesVcpCodes.IsDefaultOrEmpty ?
+					new HashSet<byte>(ImmutableCollectionsMarshal.AsArray(definition.IgnoredCapabilitiesVcpCodes)!) :
+					null;
+
 				foreach (var capability in capabilities.SupportedVcpCommands)
 				{
 					// Ignore some VCP codes if they are specifically indicated to be ignored.
@@ -167,23 +195,17 @@ public class GenericMonitorDriver
 					switch (capability.VcpCode)
 					{
 					case (byte)VcpCode.Luminance:
-						features |= SupportedFeatures.Brightness;
-						brightnessVcpCode = capability.VcpCode;
+						builder.AddBrightnessFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.Contrast:
-						features |= SupportedFeatures.Contrast;
-						contrastVcpCode = capability.VcpCode;
+						builder.AddContrastFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.AudioSpeakerVolume:
-						features |= SupportedFeatures.AudioVolume;
-						audioVolumeVcpCode = capability.VcpCode;
+						builder.AddAudioVolumeFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.InputSelect:
 						if (!capability.NonContinuousValues.IsDefaultOrEmpty)
 						{
-							features |= SupportedFeatures.InputSelect;
-							inputSelectVcpCode = capability.VcpCode;
-
 							foreach (var value in capability.NonContinuousValues)
 							{
 								Guid nameId;
@@ -214,76 +236,59 @@ public class GenericMonitorDriver
 								{
 									nameId = default;
 								}
-								inputSourceBuilder.Add(new(value.Value, nameId, value.Name));
+								allowedValuesBuilder.Add(new(value.Value, nameId, value.Name));
 							}
+							builder.AddInputSelectFeature(capability.VcpCode, allowedValuesBuilder.DrainToImmutable());
 						}
 						break;
 					case (byte)VcpCode.VideoGainRed:
-						features |= SupportedFeatures.VideoGainRed;
-						redVideoGainVcpCode = capability.VcpCode;
+						builder.AddRedVideoGainFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.VideoGainGreen:
-						features |= SupportedFeatures.VideoGainGreen;
-						greenVideoGainVcpCode = capability.VcpCode;
+						builder.AddGreenVideoGainFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.VideoGainBlue:
-						features |= SupportedFeatures.VideoGainBlue;
-						blueVideoGainVcpCode = capability.VcpCode;
+						builder.AddBlueVideoGainFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisSaturationControlRed:
-						features |= SupportedFeatures.SixAxisSaturationControlRed;
-						redSixAxisSaturationControlVcpCode = capability.VcpCode;
+						builder.AddRedSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisSaturationControlYellow:
-						features |= SupportedFeatures.SixAxisSaturationControlYellow;
-						yellowSixAxisSaturationControlVcpCode = capability.VcpCode;
+						builder.AddYellowSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisSaturationControlGreen:
-						features |= SupportedFeatures.SixAxisSaturationControlGreen;
-						greenSixAxisSaturationControlVcpCode = capability.VcpCode;
+						builder.AddGreenSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisSaturationControlCyan:
-						features |= SupportedFeatures.SixAxisSaturationControlCyan;
-						cyanSixAxisSaturationControlVcpCode = capability.VcpCode;
+						builder.AddCyanSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisSaturationControlBlue:
-						features |= SupportedFeatures.SixAxisSaturationControlBlue;
-						blueSixAxisSaturationControlVcpCode = capability.VcpCode;
+						builder.AddBlueSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisSaturationControlMagenta:
-						features |= SupportedFeatures.SixAxisSaturationControlMagenta;
-						magentaSixAxisSaturationControlVcpCode = capability.VcpCode;
+						builder.AddMagentaSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisColorControlRed:
-						features |= SupportedFeatures.SixAxisHueControlRed;
-						redSixAxisHueControlVcpCode = capability.VcpCode;
+						builder.AddRedSixAxisHueControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisColorControlYellow:
-						features |= SupportedFeatures.SixAxisHueControlYellow;
-						yellowSixAxisHueControlVcpCode = capability.VcpCode;
+						builder.AddYellowSixAxisHueControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisColorControlGreen:
-						features |= SupportedFeatures.SixAxisHueControlGreen;
-						greenSixAxisHueControlVcpCode = capability.VcpCode;
+						builder.AddGreenSixAxisHueControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisColorControlCyan:
-						features |= SupportedFeatures.SixAxisHueControlCyan;
-						cyanSixAxisHueControlVcpCode = capability.VcpCode;
+						builder.AddCyanSixAxisHueControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisColorControlBlue:
-						features |= SupportedFeatures.SixAxisHueControlBlue;
-						blueSixAxisHueControlVcpCode = capability.VcpCode;
+						builder.AddBlueSixAxisHueControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.SixAxisColorControlMagenta:
-						features |= SupportedFeatures.SixAxisHueControlMagenta;
-						magentaSixAxisHueControlVcpCode = capability.VcpCode;
+						builder.AddMagentaSixAxisHueControlFeature(capability.VcpCode);
 						break;
 					case (byte)VcpCode.OsdLanguage:
 						if (!capability.NonContinuousValues.IsDefaultOrEmpty)
 						{
-							features |= SupportedFeatures.OsdLanguage;
-							osdLanguageVcpCode = capability.VcpCode;
-
 							foreach (var value in capability.NonContinuousValues)
 							{
 								Guid nameId;
@@ -373,7 +378,110 @@ public class GenericMonitorDriver
 								{
 									nameId = default;
 								}
-								osdLanguageBuilder.Add(new(value.Value, nameId, value.Name));
+								allowedValuesBuilder.Add(new(value.Value, nameId, value.Name));
+							}
+							builder.AddOsdLanguageFeature(capability.VcpCode, allowedValuesBuilder.DrainToImmutable());
+						}
+						break;
+					}
+				}
+			}
+			if (!definition.OverriddenFeatures.IsDefaultOrEmpty)
+			{
+				foreach (var feature in definition.OverriddenFeatures)
+				{
+					switch (feature.Feature)
+					{
+					case MonitorFeature.Brightness:
+						builder.AddBrightnessFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.Contrast:
+						builder.AddContrastFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.AudioVolume:
+						builder.AddAudioVolumeFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.InputSelect:
+						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);
+						builder.AddInputSelectFeature(feature.VcpCode, allowedValuesBuilder.DrainToImmutable());
+						break;
+					case MonitorFeature.VideoGainRed:
+						builder.AddRedVideoGainFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.VideoGainGreen:
+						builder.AddGreenVideoGainFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.VideoGainBlue:
+						builder.AddBlueVideoGainFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisSaturationControlRed:
+						builder.AddRedSixAxisSaturationControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisSaturationControlYellow:
+						builder.AddYellowSixAxisSaturationControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisSaturationControlGreen:
+						builder.AddGreenSixAxisSaturationControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisSaturationControlCyan:
+						builder.AddCyanSixAxisSaturationControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisSaturationControlBlue:
+						builder.AddBlueSixAxisSaturationControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisSaturationControlMagenta:
+						builder.AddMagentaSixAxisSaturationControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisHueControlRed:
+						builder.AddRedSixAxisHueControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisHueControlYellow:
+						builder.AddYellowSixAxisHueControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisHueControlGreen:
+						builder.AddGreenSixAxisHueControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisHueControlCyan:
+						builder.AddCyanSixAxisHueControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisHueControlBlue:
+						builder.AddBlueSixAxisHueControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.SixAxisHueControlMagenta:
+						builder.AddMagentaSixAxisHueControlFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.InputLag:
+						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);
+						builder.AddInputLagFeature(feature.VcpCode, allowedValuesBuilder.DrainToImmutable());
+						break;
+					case MonitorFeature.ResponseTime:
+						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);
+						builder.AddResponseTimeFeature(feature.VcpCode, allowedValuesBuilder.DrainToImmutable());
+						break;
+					case MonitorFeature.BlueLightFilterLevel:
+						builder.AddBlueLightFilterLevelFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.OsdLanguage:
+						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);
+						builder.AddOsdLanguageFeature(feature.VcpCode, allowedValuesBuilder.DrainToImmutable());
+						break;
+					case MonitorFeature.PowerIndicator:
+						// TODO: Log if there is a configuration problem.
+						if (!feature.DiscreteValues.IsDefault && feature.DiscreteValues.Length == 2)
+						{
+							if (feature.DiscreteValues[0].NameStringId == OnStringId && feature.DiscreteValues[1].NameStringId == OffStringId)
+							{
+								onValue = feature.DiscreteValues[0].Value;
+								offValue = feature.DiscreteValues[1].Value;
+							}
+							else
+							{
+								offValue = feature.DiscreteValues[0].Value;
+								onValue = feature.DiscreteValues[1].Value;
+							}
+							if (offValue != onValue)
+							{
+								builder.AddPowerIndicatorToggleFeature(feature.VcpCode, offValue, onValue);
 							}
 						}
 						break;
@@ -381,199 +489,10 @@ public class GenericMonitorDriver
 				}
 			}
 		}
-
-		if (!definition.OverriddenFeatures.IsDefaultOrEmpty)
-		{
-			foreach (var feature in definition.OverriddenFeatures)
-			{
-				switch (feature.Feature)
-				{
-				case MonitorFeature.Brightness:
-					features |= SupportedFeatures.Brightness;
-					brightnessVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.Contrast:
-					features |= SupportedFeatures.Contrast;
-					contrastVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.AudioVolume:
-					features |= SupportedFeatures.AudioVolume;
-					audioVolumeVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.InputSelect:
-					features |= SupportedFeatures.InputSelect;
-					inputSelectVcpCode = feature.VcpCode;
-					OverrideDiscreteValues(inputSourceBuilder, feature.DiscreteValues);
-					break;
-				case MonitorFeature.VideoGainRed:
-					features |= SupportedFeatures.VideoGainRed;
-					redVideoGainVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.VideoGainGreen:
-					features |= SupportedFeatures.VideoGainGreen;
-					greenVideoGainVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.VideoGainBlue:
-					features |= SupportedFeatures.VideoGainBlue;
-					blueVideoGainVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisSaturationControlRed:
-					features |= SupportedFeatures.SixAxisSaturationControlRed;
-					redSixAxisSaturationControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisSaturationControlYellow:
-					features |= SupportedFeatures.SixAxisSaturationControlYellow;
-					yellowSixAxisSaturationControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisSaturationControlGreen:
-					features |= SupportedFeatures.SixAxisSaturationControlGreen;
-					greenSixAxisSaturationControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisSaturationControlCyan:
-					features |= SupportedFeatures.SixAxisSaturationControlCyan;
-					cyanSixAxisSaturationControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisSaturationControlBlue:
-					features |= SupportedFeatures.SixAxisSaturationControlBlue;
-					blueSixAxisSaturationControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisSaturationControlMagenta:
-					features |= SupportedFeatures.SixAxisSaturationControlMagenta;
-					magentaSixAxisSaturationControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisHueControlRed:
-					features |= SupportedFeatures.SixAxisHueControlRed;
-					redSixAxisHueControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisHueControlYellow:
-					features |= SupportedFeatures.SixAxisHueControlYellow;
-					yellowSixAxisHueControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisHueControlGreen:
-					features |= SupportedFeatures.SixAxisHueControlGreen;
-					greenSixAxisHueControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisHueControlCyan:
-					features |= SupportedFeatures.SixAxisHueControlCyan;
-					cyanSixAxisHueControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisHueControlBlue:
-					features |= SupportedFeatures.SixAxisHueControlBlue;
-					blueSixAxisHueControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.SixAxisHueControlMagenta:
-					features |= SupportedFeatures.SixAxisHueControlMagenta;
-					magentaSixAxisHueControlVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.InputLag:
-					features |= SupportedFeatures.InputLag;
-					inputLagVcpCode = feature.VcpCode;
-					OverrideDiscreteValues(inputLagLevelBuilder, feature.DiscreteValues);
-					break;
-				case MonitorFeature.ResponseTime:
-					features |= SupportedFeatures.ResponseTime;
-					responseTimeVcpCode = feature.VcpCode;
-					OverrideDiscreteValues(responseTimeLevelBuilder, feature.DiscreteValues);
-					break;
-				case MonitorFeature.BlueLightFilterLevel:
-					features |= SupportedFeatures.BlueLightFilterLevel;
-					blueLightFilterLevelVcpCode = feature.VcpCode;
-					break;
-				case MonitorFeature.OsdLanguage:
-					features |= SupportedFeatures.OsdLanguage;
-					osdLanguageVcpCode = feature.VcpCode;
-					OverrideDiscreteValues(osdLanguageBuilder, feature.DiscreteValues);
-					break;
-				case MonitorFeature.PowerIndicator:
-					// TODO: Log if there is a configuration problem.
-					if (!feature.DiscreteValues.IsDefault && feature.DiscreteValues.Length == 2)
-					{
-						if (feature.DiscreteValues[0].NameStringId == OnStringId && feature.DiscreteValues[1].NameStringId == OffStringId)
-						{
-							powerIndicatorOnValue = feature.DiscreteValues[0].Value;
-							powerIndicatorOffValue = feature.DiscreteValues[1].Value;
-						}
-						else
-						{
-							powerIndicatorOffValue = feature.DiscreteValues[0].Value;
-							powerIndicatorOnValue = feature.DiscreteValues[1].Value;
-						}
-						if (powerIndicatorOffValue != powerIndicatorOnValue)
-						{
-							features |= SupportedFeatures.PowerIndicator;
-							powerIndicatorVcpCode = feature.VcpCode;
-						}
-					}
-					break;
-				}
-			}
-		}
-
-		var inputSources = inputSourceBuilder.DrainToImmutable();
-		var validInputSources = ConsolidateSupportedValues(inputSources);
-
-		var inputLagLevels = inputLagLevelBuilder.DrainToImmutable();
-		var validInputLagLevels = ConsolidateSupportedValues(inputLagLevels);
-
-		var responseTimeLevels = responseTimeLevelBuilder.DrainToImmutable();
-		var validResponseTimeLevels = ConsolidateSupportedValues(responseTimeLevels);
-
-		var osdLanguages = osdLanguageBuilder.DrainToImmutable();
-		var validOsdLanguages = ConsolidateSupportedValues(osdLanguages);
-
-		return new DriverCreationResult<SystemDevicePath>
-		(
-			keys,
-			new GenericMonitorDriver
-			(
-				ddc,
-				features,
-				rawCapabilities.AsMemory(),
-				capabilities,
-				brightnessVcpCode,
-				contrastVcpCode,
-				audioVolumeVcpCode,
-				inputSelectVcpCode,
-				redVideoGainVcpCode,
-				greenVideoGainVcpCode,
-				blueVideoGainVcpCode,
-				redSixAxisSaturationControlVcpCode,
-				yellowSixAxisSaturationControlVcpCode,
-				greenSixAxisSaturationControlVcpCode,
-				cyanSixAxisSaturationControlVcpCode,
-				blueSixAxisSaturationControlVcpCode,
-				magentaSixAxisSaturationControlVcpCode,
-				redSixAxisHueControlVcpCode,
-				yellowSixAxisHueControlVcpCode,
-				greenSixAxisHueControlVcpCode,
-				cyanSixAxisHueControlVcpCode,
-				blueSixAxisHueControlVcpCode,
-				magentaSixAxisHueControlVcpCode,
-				inputLagVcpCode,
-				responseTimeVcpCode,
-				blueLightFilterLevelVcpCode,
-				osdLanguageVcpCode,
-				powerIndicatorVcpCode,
-				inputSources,
-				validInputSources,
-				inputLagLevels,
-				validInputLagLevels,
-				responseTimeLevels,
-				validResponseTimeLevels,
-				osdLanguages,
-				validOsdLanguages,
-				powerIndicatorOffValue,
-				powerIndicatorOnValue,
-				deviceId,
-				friendlyName,
-				new("monitor", topLevelDeviceName, deviceId.ToString(), edid.SerialNumber)
-			)
-		);
 	}
 
-	private static void OverrideDiscreteValues(ImmutableArray<NonContinuousValueDescription>.Builder builder, ImmutableArray<MonitorFeatureDiscreteValueDefinition> discreteValues)
+	private static void WriteDiscreteValues(ImmutableArray<NonContinuousValueDescription>.Builder builder, ImmutableArray<MonitorFeatureDiscreteValueDefinition> discreteValues)
 	{
-		builder.Clear();
 		if (!discreteValues.IsDefaultOrEmpty)
 		{
 			foreach (var valueDefinition in discreteValues)
@@ -583,230 +502,19 @@ public class GenericMonitorDriver
 		}
 	}
 
-	private static HashSet<ushort>? ConsolidateSupportedValues(ImmutableArray<NonContinuousValueDescription> descriptions)
-	{
-		HashSet<ushort>? validValues = null;
-		if (descriptions.Length > 0)
-		{
-			validValues = [];
-			foreach (var description in descriptions)
-			{
-				if (!validValues.Add(description.Value))
-				{
-					throw new InvalidOperationException("Duplicate value detected.");
-				}
-			}
-		}
-		return validValues;
-	}
-
-	[Flags]
-	protected enum SupportedFeatures : ulong
-	{
-		None = 0x00000000,
-		Capabilities = 0x00000001,
-		Brightness = 0x00000002,
-		Contrast = 0x00000004,
-		AudioVolume = 0x00000008,
-		InputSelect = 0x00000010,
-		VideoGainRed = 0x00000020,
-		VideoGainGreen = 0x00000040,
-		VideoGainBlue = 0x00000080,
-		SixAxisSaturationControlRed = 0x00000100,
-		SixAxisSaturationControlYellow = 0x00000200,
-		SixAxisSaturationControlGreen = 0x00000400,
-		SixAxisSaturationControlCyan = 0x00000800,
-		SixAxisSaturationControlBlue = 0x00001000,
-		SixAxisSaturationControlMagenta = 0x00002000,
-		SixAxisHueControlRed = 0x00004000,
-		SixAxisHueControlYellow = 0x00008000,
-		SixAxisHueControlGreen = 0x00010000,
-		SixAxisHueControlCyan = 0x00020000,
-		SixAxisHueControlBlue = 0x00040000,
-		SixAxisHueControlMagenta = 0x00080000,
-		OsdLanguage = 0x00100000,
-		PowerIndicator = 0x00200000,
-		InputLag = 0x00400000,
-		ResponseTime = 0x00800000,
-		BlueLightFilterLevel = 0x01000000,
-	}
-
-	private sealed class MonitorFeatureSet : IDeviceFeatureSet<IMonitorDeviceFeature>
-	{
-		private readonly GenericMonitorDriver _driver;
-		private Dictionary<Type, IMonitorDeviceFeature>? _cachedFeatureDictionary;
-
-		public bool IsEmpty => _driver._supportedFeatures == SupportedFeatures.None;
-
-		public int Count
-		{
-			get
-			{
-				int count = 0;
-
-				var supportedFeatures = _driver._supportedFeatures;
-				if ((supportedFeatures & SupportedFeatures.Capabilities) != 0) count += 2;
-				if ((supportedFeatures & SupportedFeatures.Brightness) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.Contrast) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.AudioVolume) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.InputSelect) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.VideoGainRed) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.VideoGainGreen) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.VideoGainBlue) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlRed) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlYellow) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlGreen) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlCyan) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlBlue) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlMagenta) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlRed) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlYellow) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlGreen) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.InputLag) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.ResponseTime) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.OsdLanguage) != 0) count++;
-				if ((supportedFeatures & SupportedFeatures.PowerIndicator) != 0) count++;
-
-				return count;
-			}
-		}
-
-		public MonitorFeatureSet(GenericMonitorDriver driver) => _driver = driver;
-
-		IMonitorDeviceFeature? IDeviceFeatureSet<IMonitorDeviceFeature>.this[Type type]
-			=> (_cachedFeatureDictionary ??= new(this))[type];
-
-		T? IDeviceFeatureSet<IMonitorDeviceFeature>.GetFeature<T>() where T : class
-		{
-			var supportedFeatures = _driver._supportedFeatures;
-			if (typeof(T) == typeof(IMonitorCapabilitiesFeature) && (supportedFeatures & SupportedFeatures.Capabilities) != 0 ||
-				typeof(T) == typeof(IMonitorRawCapabilitiesFeature) && (supportedFeatures & SupportedFeatures.Capabilities) != 0 ||
-				typeof(T) == typeof(IMonitorBrightnessFeature) && (supportedFeatures & SupportedFeatures.Brightness) != 0 ||
-				typeof(T) == typeof(IMonitorContrastFeature) && (supportedFeatures & SupportedFeatures.Contrast) != 0 ||
-				typeof(T) == typeof(IMonitorSpeakerAudioVolumeFeature) && (supportedFeatures & SupportedFeatures.AudioVolume) != 0 ||
-				typeof(T) == typeof(IMonitorInputSelectFeature) && (supportedFeatures & SupportedFeatures.InputSelect) != 0 ||
-				typeof(T) == typeof(IMonitorRedVideoGainFeature) && (supportedFeatures & SupportedFeatures.VideoGainRed) != 0 ||
-				typeof(T) == typeof(IMonitorGreenVideoGainFeature) && (supportedFeatures & SupportedFeatures.VideoGainGreen) != 0 ||
-				typeof(T) == typeof(IMonitorBlueVideoGainFeature) && (supportedFeatures & SupportedFeatures.VideoGainBlue) != 0 ||
-				typeof(T) == typeof(IMonitorRedSixAxisSaturationControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisSaturationControlRed) != 0 ||
-				typeof(T) == typeof(IMonitorYellowSixAxisSaturationControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisSaturationControlYellow) != 0 ||
-				typeof(T) == typeof(IMonitorGreenSixAxisSaturationControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisSaturationControlGreen) != 0 ||
-				typeof(T) == typeof(IMonitorCyanSixAxisSaturationControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisSaturationControlCyan) != 0 ||
-				typeof(T) == typeof(IMonitorBlueSixAxisSaturationControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisSaturationControlBlue) != 0 ||
-				typeof(T) == typeof(IMonitorMagentaSixAxisSaturationControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisSaturationControlMagenta) != 0 ||
-				typeof(T) == typeof(IMonitorRedSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlRed) != 0 ||
-				typeof(T) == typeof(IMonitorYellowSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlYellow) != 0 ||
-				typeof(T) == typeof(IMonitorGreenSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlGreen) != 0 ||
-				typeof(T) == typeof(IMonitorCyanSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0 ||
-				typeof(T) == typeof(IMonitorBlueSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0 ||
-				typeof(T) == typeof(IMonitorMagentaSixAxisHueControlFeature) && (supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0 ||
-				typeof(T) == typeof(IMonitorInputLagFeature) && (supportedFeatures & SupportedFeatures.InputLag) != 0 ||
-				typeof(T) == typeof(IMonitorResponseTimeFeature) && (supportedFeatures & SupportedFeatures.ResponseTime) != 0 ||
-				typeof(T) == typeof(IMonitorBlueLightFilterLevelFeature) && (supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0 ||
-				typeof(T) == typeof(IMonitorOsdLanguageFeature) && (supportedFeatures & SupportedFeatures.OsdLanguage) != 0 ||
-				typeof(T) == typeof(IMonitorPowerIndicatorToggleFeature) && (supportedFeatures & SupportedFeatures.PowerIndicator) != 0)
-			{
-				return Unsafe.As<T>(_driver);
-			}
-			return null;
-		}
-
-		IEnumerator<KeyValuePair<Type, IMonitorDeviceFeature>> IEnumerable<KeyValuePair<Type, IMonitorDeviceFeature>>.GetEnumerator()
-		{
-			var supportedFeatures = _driver._supportedFeatures;
-			if ((supportedFeatures & SupportedFeatures.Capabilities) != 0)
-			{
-				yield return new(typeof(IMonitorCapabilitiesFeature), _driver);
-				yield return new(typeof(IMonitorRawCapabilitiesFeature), _driver);
-			}
-			if ((supportedFeatures & SupportedFeatures.Brightness) != 0) yield return new(typeof(IMonitorBrightnessFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.Contrast) != 0) yield return new(typeof(IMonitorContrastFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.AudioVolume) != 0) yield return new(typeof(IMonitorSpeakerAudioVolumeFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.InputSelect) != 0) yield return new(typeof(IMonitorInputSelectFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.VideoGainRed) != 0) yield return new(typeof(IMonitorRedVideoGainFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.VideoGainGreen) != 0) yield return new(typeof(IMonitorGreenVideoGainFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.VideoGainBlue) != 0) yield return new(typeof(IMonitorBlueVideoGainFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlRed) != 0) yield return new(typeof(IMonitorRedSixAxisSaturationControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlYellow) != 0) yield return new(typeof(IMonitorYellowSixAxisSaturationControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlGreen) != 0) yield return new(typeof(IMonitorGreenSixAxisSaturationControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlCyan) != 0) yield return new(typeof(IMonitorCyanSixAxisSaturationControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlBlue) != 0) yield return new(typeof(IMonitorBlueSixAxisSaturationControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisSaturationControlMagenta) != 0) yield return new(typeof(IMonitorMagentaSixAxisSaturationControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlRed) != 0) yield return new(typeof(IMonitorRedSixAxisHueControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlYellow) != 0) yield return new(typeof(IMonitorYellowSixAxisHueControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlGreen) != 0) yield return new(typeof(IMonitorGreenSixAxisHueControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0) yield return new(typeof(IMonitorCyanSixAxisHueControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0) yield return new(typeof(IMonitorBlueSixAxisHueControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0) yield return new(typeof(IMonitorMagentaSixAxisHueControlFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.InputLag) != 0) yield return new(typeof(IMonitorInputLagFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.ResponseTime) != 0) yield return new(typeof(IMonitorResponseTimeFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0) yield return new(typeof(IMonitorBlueLightFilterLevelFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.OsdLanguage) != 0) yield return new(typeof(IMonitorOsdLanguageFeature), _driver);
-			if ((supportedFeatures & SupportedFeatures.PowerIndicator) != 0) yield return new(typeof(IMonitorPowerIndicatorToggleFeature), _driver);
-		}
-
-		IEnumerator IEnumerable.GetEnumerator() => Unsafe.As<IEnumerable<KeyValuePair<Type, IMonitorDeviceFeature>>>(this).GetEnumerator();
-	}
-
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;
 
 	private readonly DisplayDataChannel _ddc;
-	private readonly SupportedFeatures _supportedFeatures;
 	private readonly ReadOnlyMemory<byte> _rawCapabilities;
 	private readonly MonitorCapabilities? _capabilities;
 	private readonly DeviceId _deviceId;
 
-	private readonly byte _brightnessVcpCode;
-	private readonly byte _contrastVcpCode;
-	private readonly byte _audioVolumeVcpCode;
-	private readonly byte _inputSelectVcpCode;
-
-	private readonly byte _redVideoGainVcpCode;
-	private readonly byte _greenVideoGainVcpCode;
-	private readonly byte _blueVideoGainVcpCode;
-
-	private readonly byte _redSixAxisSaturationControlVcpCode;
-	private readonly byte _yellowSixAxisSaturationControlVcpCode;
-	private readonly byte _greenSixAxisSaturationControlVcpCode;
-	private readonly byte _cyanSixAxisSaturationControlVcpCode;
-	private readonly byte _blueSixAxisSaturationControlVcpCode;
-	private readonly byte _magentaSixAxisSaturationControlVcpCode;
-
-	private readonly byte _redSixAxisHueControlVcpCode;
-	private readonly byte _yellowSixAxisHueControlVcpCode;
-	private readonly byte _greenSixAxisHueControlVcpCode;
-	private readonly byte _cyanSixAxisHueControlVcpCode;
-	private readonly byte _blueSixAxisHueControlVcpCode;
-	private readonly byte _magentaSixAxisHueControlVcpCode;
-
-	private readonly byte _inputLagVcpCode;
-	private readonly byte _responseTimeVcpCode;
-	private readonly byte _blueLightFilterLevelVcpCode;
-
-	private readonly byte _osdLanguageVcpCode;
-	private readonly byte _powerIndicatorVcpCode;
-
-	private readonly ImmutableArray<NonContinuousValueDescription> _inputSources;
-	private readonly HashSet<ushort>? _validInputSources;
-
-	private readonly ImmutableArray<NonContinuousValueDescription> _inputLagLevels;
-	private readonly HashSet<ushort>? _validInputLagLevels;
-
-	private readonly ImmutableArray<NonContinuousValueDescription> _responseTimeLevels;
-	private readonly HashSet<ushort>? _validResponseTimeLevels;
-
-	private readonly ImmutableArray<NonContinuousValueDescription> _osdLanguages;
-	private readonly HashSet<ushort>? _validOsdLanguages;
-
-	private readonly ushort _powerIndicatorOffValue;
-	private readonly ushort _powerIndicatorOnValue;
-
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
+
+	protected DisplayDataChannel DisplayDataChannel => _ddc;
+	protected IDeviceFeatureSet<IGenericDeviceFeature> GenericFeatures => _genericFeatures;
+	protected IDeviceFeatureSet<IMonitorDeviceFeature> MonitorFeatures => _monitorFeatures;
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
@@ -818,43 +526,9 @@ public class GenericMonitorDriver
 	protected GenericMonitorDriver
 	(
 		DisplayDataChannel ddc,
-		SupportedFeatures supportedFeatures,
+		MonitorFeatureSetBuilder featureSetBuilder,
 		ReadOnlyMemory<byte> rawCapabilities,
 		MonitorCapabilities? capabilities,
-		byte brightnessVcpCode,
-		byte contrastVcpCode,
-		byte audioVolumeVcpCode,
-		byte inputSelectVcpCode,
-		byte redVideoGainVcpCode,
-		byte greenVideoGainVcpCode,
-		byte blueVideoGainVcpCode,
-		byte redSixAxisSaturationControlVcpCode,
-		byte yellowSixAxisSaturationControlVcpCode,
-		byte greenSixAxisSaturationControlVcpCode,
-		byte cyanSixAxisSaturationControlVcpCode,
-		byte blueSixAxisSaturationControlVcpCode,
-		byte magentaSixAxisSaturationControlVcpCode,
-		byte redSixAxisHueControlVcpCode,
-		byte yellowSixAxisHueControlVcpCode,
-		byte greenSixAxisHueControlVcpCode,
-		byte cyanSixAxisHueControlVcpCode,
-		byte blueSixAxisHueControlVcpCode,
-		byte magentaSixAxisHueControlVcpCode,
-		byte inputLagVcpCode,
-		byte responseTimeVcpCode,
-		byte blueLightFilterLevelVcpCode,
-		byte osdLanguageVcpCode,
-		byte powerIndicatorVcpCode,
-		ImmutableArray<NonContinuousValueDescription> inputSources,
-		HashSet<ushort>? validInputSources,
-		ImmutableArray<NonContinuousValueDescription> inputLagLevels,
-		HashSet<ushort>? validInputLagLevels,
-		ImmutableArray<NonContinuousValueDescription> responseTimeLevels,
-		HashSet<ushort>? validResponseTimeLevels,
-		ImmutableArray<NonContinuousValueDescription> osdLanguages,
-		HashSet<ushort>? validOsdLanguages,
-		ushort powerIndicatorOffValue,
-		ushort powerIndicatorOnValue,
 		DeviceId deviceId,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
@@ -862,93 +536,45 @@ public class GenericMonitorDriver
 		: base(friendlyName, configurationKey)
 	{
 		_ddc = ddc;
-		_supportedFeatures = supportedFeatures;
 		_rawCapabilities = rawCapabilities;
 		_capabilities = capabilities;
 		_deviceId = deviceId;
 
-		_brightnessVcpCode = brightnessVcpCode;
-		_contrastVcpCode = contrastVcpCode;
-		_contrastVcpCode = contrastVcpCode;
-		_audioVolumeVcpCode = audioVolumeVcpCode;
-		_inputSelectVcpCode = inputSelectVcpCode;
-		_redVideoGainVcpCode = redVideoGainVcpCode;
-		_greenVideoGainVcpCode = greenVideoGainVcpCode;
-		_blueVideoGainVcpCode = blueVideoGainVcpCode;
-		_redSixAxisSaturationControlVcpCode = redSixAxisSaturationControlVcpCode;
-		_yellowSixAxisSaturationControlVcpCode = yellowSixAxisSaturationControlVcpCode;
-		_greenSixAxisSaturationControlVcpCode = greenSixAxisSaturationControlVcpCode;
-		_cyanSixAxisSaturationControlVcpCode = cyanSixAxisSaturationControlVcpCode;
-		_blueSixAxisSaturationControlVcpCode = blueSixAxisSaturationControlVcpCode;
-		_magentaSixAxisSaturationControlVcpCode = magentaSixAxisSaturationControlVcpCode;
-		_redSixAxisHueControlVcpCode = redSixAxisHueControlVcpCode;
-		_yellowSixAxisHueControlVcpCode = yellowSixAxisHueControlVcpCode;
-		_greenSixAxisHueControlVcpCode = greenSixAxisHueControlVcpCode;
-		_cyanSixAxisHueControlVcpCode = cyanSixAxisHueControlVcpCode;
-		_blueSixAxisHueControlVcpCode = blueSixAxisHueControlVcpCode;
-		_magentaSixAxisHueControlVcpCode = magentaSixAxisHueControlVcpCode;
-		_inputLagVcpCode = inputLagVcpCode;
-		_responseTimeVcpCode = responseTimeVcpCode;
-		_blueLightFilterLevelVcpCode = blueLightFilterLevelVcpCode;
-		_osdLanguageVcpCode = osdLanguageVcpCode;
-		_powerIndicatorVcpCode = powerIndicatorVcpCode;
-		_inputSources = inputSources;
-		_validInputSources = validInputSources;
+		_genericFeatures = CreateGenericFeatures(configurationKey);
 
-		_inputLagLevels = inputLagLevels;
-		_validInputLagLevels = validInputLagLevels;
-		_responseTimeLevels = responseTimeLevels;
-		_validResponseTimeLevels = validResponseTimeLevels;
-		_osdLanguages = osdLanguages;
-		_validOsdLanguages = validOsdLanguages;
+		_monitorFeatures = featureSetBuilder.CreateFeatureSet(this);
+	}
 
-		_powerIndicatorOffValue = powerIndicatorOffValue;
-		_powerIndicatorOnValue = powerIndicatorOnValue;
-
-		_genericFeatures = configurationKey.UniqueId is not null ?
+	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures(DeviceConfigurationKey configurationKey)
+		=> configurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
 
-		_monitorFeatures = new MonitorFeatureSet(this);
-	}
+	public override ValueTask DisposeAsync() => _ddc.DisposeAsync();
 
-	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
-
-	private void EnsureSupportedFeatures(SupportedFeatures features)
+	private async ValueTask<ContinuousValue> GetVcpAsync(byte code, CancellationToken cancellationToken)
 	{
-		if ((_supportedFeatures & features) != features) throw new NotSupportedException("The requested feature is not supported by this monitor.");
-	}
-
-	private async ValueTask<ContinuousValue> GetVcpAsync(SupportedFeatures features, byte code, CancellationToken cancellationToken)
-	{
-		EnsureSupportedFeatures(features);
 		var reply = await _ddc.GetVcpFeatureAsync(code, cancellationToken).ConfigureAwait(false);
 		return new ContinuousValue(reply.CurrentValue, 0, reply.MaximumValue);
 	}
 
-	private async ValueTask<ushort> GetNonContinuousVcpAsync(SupportedFeatures features, byte code, CancellationToken cancellationToken)
+	private async ValueTask<ushort> GetNonContinuousVcpAsync(byte code, CancellationToken cancellationToken)
 	{
-		EnsureSupportedFeatures(features);
 		var reply = await _ddc.GetVcpFeatureAsync(code, cancellationToken).ConfigureAwait(false);
 		return reply.CurrentValue;
 	}
 
-	private async ValueTask<bool> GetBooleanVcpAsync(SupportedFeatures features, byte code, ushort onValue, CancellationToken cancellationToken)
+	private async ValueTask<bool> GetBooleanVcpAsync(byte code, ushort onValue, CancellationToken cancellationToken)
 	{
-		EnsureSupportedFeatures(features);
 		var reply = await _ddc.GetVcpFeatureAsync(code, cancellationToken).ConfigureAwait(false);
 		return reply.CurrentValue == onValue;
 	}
 
-	private async ValueTask SetVcpAsync(SupportedFeatures features, byte code, ushort value, CancellationToken cancellationToken)
-	{
-		EnsureSupportedFeatures(features);
-		await _ddc.SetVcpFeatureAsync(code, value, cancellationToken).ConfigureAwait(false);
-	}
+	private async ValueTask SetVcpAsync(byte code, ushort value, CancellationToken cancellationToken)
+		=> await _ddc.SetVcpFeatureAsync(code, value, cancellationToken).ConfigureAwait(false);
 
-	private async ValueTask SetVcpAsync(SupportedFeatures features, HashSet<ushort>? supportedValues, byte code, ushort value, CancellationToken cancellationToken)
+	private async ValueTask SetVcpAsync(HashSet<ushort>? supportedValues, byte code, ushort value, CancellationToken cancellationToken)
 	{
-		EnsureSupportedFeatures(features);
 		if (supportedValues is null || !supportedValues.Contains(value))
 		{
 			throw new ArgumentOutOfRangeException(nameof(value), "The specified value is not allowed by the definition.");
@@ -956,150 +582,16 @@ public class GenericMonitorDriver
 		await _ddc.SetVcpFeatureAsync(code, value, cancellationToken).ConfigureAwait(false);
 	}
 
-	ReadOnlySpan<byte> IMonitorRawCapabilitiesFeature.RawCapabilities
+	ReadOnlySpan<byte> IMonitorRawCapabilitiesFeature.RawCapabilities => _rawCapabilities.Span;
+
+	MonitorCapabilities IMonitorCapabilitiesFeature.Capabilities => _capabilities!;
+
+	ValueTask IMonitorRawVcpFeature.SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
+		=> SetVcpAsync(vcpCode, value, cancellationToken);
+
+	async ValueTask<VcpFeatureReply> IMonitorRawVcpFeature.GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
-		get
-		{
-			EnsureSupportedFeatures(SupportedFeatures.Capabilities);
-			return _rawCapabilities.Span;
-		}
+		var result = await _ddc.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
+		return new(result.CurrentValue, result.MaximumValue, result.IsMomentary);
 	}
-
-	MonitorCapabilities IMonitorCapabilitiesFeature.Capabilities
-	{
-		get
-		{
-			EnsureSupportedFeatures(SupportedFeatures.Capabilities);
-			return _capabilities!;
-		}
-	}
-
-	ValueTask<ContinuousValue> IMonitorBrightnessFeature.GetBrightnessAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.Brightness, _brightnessVcpCode, cancellationToken);
-	ValueTask IMonitorBrightnessFeature.SetBrightnessAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.Brightness, _brightnessVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorContrastFeature.GetContrastAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.Contrast, _contrastVcpCode, cancellationToken);
-	ValueTask IMonitorContrastFeature.SetContrastAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.Contrast, _contrastVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorSpeakerAudioVolumeFeature.GetVolumeAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.AudioVolume, _audioVolumeVcpCode, cancellationToken);
-	ValueTask IMonitorSpeakerAudioVolumeFeature.SetVolumeAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.AudioVolume, _audioVolumeVcpCode, value, cancellationToken);
-
-	ImmutableArray<NonContinuousValueDescription> IMonitorInputSelectFeature.InputSources => _inputSources;
-
-	ValueTask<ushort> IMonitorInputSelectFeature.GetInputSourceAsync(CancellationToken cancellationToken)
-		=> GetNonContinuousVcpAsync(SupportedFeatures.InputSelect, _inputSelectVcpCode, cancellationToken);
-
-	ValueTask IMonitorInputSelectFeature.SetInputSourceAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.InputSelect, _validInputSources, _inputSelectVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorRedVideoGainFeature.GetRedVideoGainAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.VideoGainRed, _redVideoGainVcpCode, cancellationToken);
-	ValueTask IMonitorRedVideoGainFeature.SetRedVideoGainAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.VideoGainRed, _redVideoGainVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorGreenVideoGainFeature.GetGreenVideoGainAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.VideoGainGreen, _greenVideoGainVcpCode, cancellationToken);
-	ValueTask IMonitorGreenVideoGainFeature.SetGreenVideoGainAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.VideoGainGreen, _greenVideoGainVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorBlueVideoGainFeature.GetBlueVideoGainAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.VideoGainBlue, _blueVideoGainVcpCode, cancellationToken);
-	ValueTask IMonitorBlueVideoGainFeature.SetBlueVideoGainAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.VideoGainBlue, _blueVideoGainVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorRedSixAxisSaturationControlFeature.GetRedSixAxisSaturationControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisSaturationControlRed, _redSixAxisSaturationControlVcpCode, cancellationToken);
-	ValueTask IMonitorRedSixAxisSaturationControlFeature.SetRedSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisSaturationControlRed, _redSixAxisSaturationControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorYellowSixAxisSaturationControlFeature.GetYellowSixAxisSaturationControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisSaturationControlYellow, _yellowSixAxisSaturationControlVcpCode, cancellationToken);
-	ValueTask IMonitorYellowSixAxisSaturationControlFeature.SetYellowSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisSaturationControlYellow, _yellowSixAxisSaturationControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorGreenSixAxisSaturationControlFeature.GetGreenSixAxisSaturationControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisSaturationControlGreen, _greenSixAxisSaturationControlVcpCode, cancellationToken);
-	ValueTask IMonitorGreenSixAxisSaturationControlFeature.SetGreenSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisSaturationControlGreen, _greenSixAxisSaturationControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorCyanSixAxisSaturationControlFeature.GetCyanSixAxisSaturationControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisSaturationControlCyan, _cyanSixAxisSaturationControlVcpCode, cancellationToken);
-	ValueTask IMonitorCyanSixAxisSaturationControlFeature.SetCyanSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisSaturationControlCyan, _cyanSixAxisSaturationControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorBlueSixAxisSaturationControlFeature.GetBlueSixAxisSaturationControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisSaturationControlBlue, _blueSixAxisSaturationControlVcpCode, cancellationToken);
-	ValueTask IMonitorBlueSixAxisSaturationControlFeature.SetBlueSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisSaturationControlBlue, _blueSixAxisSaturationControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorMagentaSixAxisSaturationControlFeature.GetMagentaSixAxisSaturationControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisSaturationControlMagenta, _magentaSixAxisSaturationControlVcpCode, cancellationToken);
-	ValueTask IMonitorMagentaSixAxisSaturationControlFeature.SetMagentaSixAxisSaturationControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisSaturationControlMagenta, _magentaSixAxisSaturationControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorRedSixAxisHueControlFeature.GetRedSixAxisHueControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisHueControlRed, _redSixAxisHueControlVcpCode, cancellationToken);
-	ValueTask IMonitorRedSixAxisHueControlFeature.SetRedSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisHueControlRed, _redSixAxisHueControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorYellowSixAxisHueControlFeature.GetYellowSixAxisHueControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisHueControlYellow, _yellowSixAxisHueControlVcpCode, cancellationToken);
-	ValueTask IMonitorYellowSixAxisHueControlFeature.SetYellowSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisHueControlYellow, _yellowSixAxisHueControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorGreenSixAxisHueControlFeature.GetGreenSixAxisHueControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisHueControlGreen, _greenSixAxisHueControlVcpCode, cancellationToken);
-	ValueTask IMonitorGreenSixAxisHueControlFeature.SetGreenSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisHueControlGreen, _greenSixAxisHueControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorCyanSixAxisHueControlFeature.GetCyanSixAxisHueControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisHueControlCyan, _cyanSixAxisHueControlVcpCode, cancellationToken);
-	ValueTask IMonitorCyanSixAxisHueControlFeature.SetCyanSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisHueControlCyan, _cyanSixAxisHueControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorBlueSixAxisHueControlFeature.GetBlueSixAxisHueControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisHueControlBlue, _blueSixAxisHueControlVcpCode, cancellationToken);
-	ValueTask IMonitorBlueSixAxisHueControlFeature.SetBlueSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisHueControlBlue, _blueSixAxisHueControlVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorMagentaSixAxisHueControlFeature.GetMagentaSixAxisHueControlAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.SixAxisHueControlMagenta, _magentaSixAxisHueControlVcpCode, cancellationToken);
-	ValueTask IMonitorMagentaSixAxisHueControlFeature.SetMagentaSixAxisHueControlAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.SixAxisHueControlMagenta, _magentaSixAxisHueControlVcpCode, value, cancellationToken);
-
-	ImmutableArray<NonContinuousValueDescription> IMonitorOsdLanguageFeature.Languages => _osdLanguages;
-
-	ValueTask<ushort> IMonitorOsdLanguageFeature.GetOsdLanguageAsync(CancellationToken cancellationToken)
-		=> GetNonContinuousVcpAsync(SupportedFeatures.OsdLanguage, _osdLanguageVcpCode, cancellationToken);
-	ValueTask IMonitorOsdLanguageFeature.SetOsdLanguageAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.OsdLanguage, _validOsdLanguages, _osdLanguageVcpCode, value, cancellationToken);
-
-	ImmutableArray<NonContinuousValueDescription> IMonitorInputLagFeature.InputLagLevels => _inputLagLevels;
-
-	ValueTask<ushort> IMonitorInputLagFeature.GetInputLagAsync(CancellationToken cancellationToken)
-		=> GetNonContinuousVcpAsync(SupportedFeatures.InputLag, _inputLagVcpCode, cancellationToken);
-	ValueTask IMonitorInputLagFeature.SetInputLagAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.InputLag, _validInputLagLevels, _inputLagVcpCode, value, cancellationToken);
-
-	ImmutableArray<NonContinuousValueDescription> IMonitorResponseTimeFeature.ResponseTimeLevels => _responseTimeLevels;
-
-	ValueTask<ushort> IMonitorResponseTimeFeature.GetResponseTimeAsync(CancellationToken cancellationToken)
-		=> GetNonContinuousVcpAsync(SupportedFeatures.ResponseTime, _responseTimeVcpCode, cancellationToken);
-	ValueTask IMonitorResponseTimeFeature.SetResponseTimeAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.ResponseTime, _validResponseTimeLevels, _responseTimeVcpCode, value, cancellationToken);
-
-	ValueTask<ContinuousValue> IMonitorBlueLightFilterLevelFeature.GetBlueLightFilterLevelAsync(CancellationToken cancellationToken)
-		=> GetVcpAsync(SupportedFeatures.BlueLightFilterLevel, _blueLightFilterLevelVcpCode, cancellationToken);
-	ValueTask IMonitorBlueLightFilterLevelFeature.SetBlueLightFilterLevelAsync(ushort value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.BlueLightFilterLevel, _blueLightFilterLevelVcpCode, value, cancellationToken);
-
-	ValueTask<bool> IMonitorPowerIndicatorToggleFeature.IsPowerIndicatorEnabledAsync(CancellationToken cancellationToken)
-		=> GetBooleanVcpAsync(SupportedFeatures.PowerIndicator, _powerIndicatorVcpCode, _powerIndicatorOnValue, cancellationToken);
-	ValueTask IMonitorPowerIndicatorToggleFeature.EnablePowerIndicatorAsync(bool value, CancellationToken cancellationToken)
-		=> SetVcpAsync(SupportedFeatures.PowerIndicator, _powerIndicatorVcpCode, value ? _powerIndicatorOnValue : _powerIndicatorOffValue, cancellationToken);
 }

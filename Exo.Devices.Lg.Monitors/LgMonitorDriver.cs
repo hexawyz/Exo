@@ -1,39 +1,30 @@
-using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
+using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.DisplayDevices.Mccs;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.Devices.Monitors;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Lighting;
-using Exo.Features.Monitors;
 using Exo.I2C;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;
 
 public class LgMonitorDriver :
-	Driver,
-	IDeviceDriver<IGenericDeviceFeature>,
-	IDeviceDriver<IMonitorDeviceFeature>,
+	GenericMonitorDriver,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
-	IDeviceIdFeature,
 	IDeviceIdsFeature,
 	IVariableFeatureSetDeviceFeature,
-	IDeviceSerialNumberFeature,
-	IRawVcpFeature,
-	IMonitorBrightnessFeature,
-	IMonitorContrastFeature,
-	IMonitorSpeakerAudioVolumeFeature,
-	IMonitorCapabilitiesFeature,
-	IMonitorRawCapabilitiesFeature,
 	ILgMonitorScalerVersionFeature,
 	ILgMonitorNxpVersionFeature,
 	ILgMonitorDisplayStreamCompressionVersionFeature
@@ -62,7 +53,7 @@ public class LgMonitorDriver :
 		if (!DriversBySerialNumber.TryGetValue(edid.SerialNumber, out var driver))
 		{
 			ushort scalerVersion;
-			byte[] rawCapabilities;
+			ImmutableArray<byte> rawCapabilities;
 			await using (var ddc = new LgDisplayDataChannelWithRetry(i2cBus, false, I2CRetryCount))
 			{
 				var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
@@ -71,7 +62,7 @@ public class LgMonitorDriver :
 				try
 				{
 					ushort length = await ddc.GetCapabilitiesWithRetryAsync(data, cancellationToken).ConfigureAwait(false);
-					rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
+					rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToImmutableArray();
 				}
 				finally
 				{
@@ -79,28 +70,36 @@ public class LgMonitorDriver :
 				}
 			}
 
-			if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
-			{
-				throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
-			}
-
 			var info = DeviceDatabase.GetMonitorInformationFromMonitorProductId(edid.ProductId);
+
+			var featureSetBuilder = new MonitorFeatureSetBuilder();
+
+			var genericMonitorDetails = PrepareMonitorFeatures(featureSetBuilder, rawCapabilities, new MonitorId(edid.VendorId, edid.ProductId));
+
+			if (genericMonitorDetails.Capabilities is null)
+			{
+				throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities.AsSpan())}"".");
+			}
 
 			// NB: We will not always get the same top level device name depending on which connection is initialized first (USB or one of the multiple display connections).
 			// TODO: See if something must be done about the main device name. (Maybe reuse the SN in that case? Anyway, the ID SN from EDID would be part of the Windows device name)
 			driver = new LgMonitorDriver
 			(
+				new CompositeI2cBus(),
+				featureSetBuilder,
 				null,
 				info.DeviceIds,
 				0,
 				scalerVersion,
 				0,
-				rawCapabilities,
-				parsedCapabilities,
+				rawCapabilities.AsMemory(),
+				genericMonitorDetails.Capabilities,
 				info.Features,
 				"LG " + info.ModelName,
 				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{info.ModelName}", edid.SerialNumber)
 			);
+
+			driver.CompositeI2cBus.AddBus(i2cBus);
 		}
 		else
 		{
@@ -181,7 +180,7 @@ public class LgMonitorDriver :
 		byte dscVersion;
 		string modelName;
 		string serialNumber;
-		byte[] rawCapabilities;
+		ImmutableArray<byte> rawCapabilities;
 		await using (var ddc = new LgDisplayDataChannelWithRetry(i2cBus, false, I2CRetryCount))
 		{
 			var vcpResponse = await ddc.GetVcpFeatureWithRetryAsync((byte)VcpCode.DisplayFirmwareLevel, cancellationToken).ConfigureAwait(false);
@@ -206,7 +205,7 @@ public class LgMonitorDriver :
 				serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
 
 				ushort length = await ddc.GetCapabilitiesWithRetryAsync(data, cancellationToken).ConfigureAwait(false);
-				rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToArray();
+				rawCapabilities = data.AsSpan(0, data.AsSpan(0, length).IndexOf((byte)0)).ToImmutableArray();
 			}
 			finally
 			{
@@ -214,14 +213,21 @@ public class LgMonitorDriver :
 			}
 		}
 
-		if (!MonitorCapabilities.TryParse(rawCapabilities, out var parsedCapabilities))
-		{
-			throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities)}"".");
-		}
-
 		var info = DeviceDatabase.GetMonitorInformationFromModelName(modelName);
 
-		// For now, hardcode the lighting for 27GP950. It will be relatively to support other monitors, but we need to make sure that everything works properly.
+		// Get the first non-USB device ID for the monitor for the database lookup.
+		var monitorDeviceId = info.DeviceIds[info.DeviceIds.Length > 1 && info.DeviceIds[0].Source == DeviceIdSource.Usb ? 1 : 0];
+
+		var featureSetBuilder = new MonitorFeatureSetBuilder();
+
+		var genericMonitorDetails = PrepareMonitorFeatures(featureSetBuilder, rawCapabilities, new MonitorId(PnpVendorId.FromRaw(monitorDeviceId.VendorId), monitorDeviceId.ProductId));
+
+		if (genericMonitorDetails.Capabilities is null)
+		{
+			throw new InvalidOperationException($@"Could not parse monitor capabilities. Value was: ""{Encoding.ASCII.GetString(rawCapabilities.AsSpan())}"".");
+		}
+
+		// For now, hardcode the lighting for 27GP950. It will be relatively easy to support other monitors, but we need to make sure that everything works properly.
 		UltraGearLightingFeatures? lightingFeatures = null;
 		if (info.ModelName == "27GP950")
 		{
@@ -240,13 +246,15 @@ public class LgMonitorDriver :
 		{
 			driver = new LgMonitorDriver
 			(
+				new CompositeI2cBus(),
+				featureSetBuilder,
 				lightingFeatures,
 				info.DeviceIds,
 				version,
 				scalerVersion,
 				dscVersion,
-				rawCapabilities,
-				parsedCapabilities,
+				rawCapabilities.AsMemory(),
+				genericMonitorDetails.Capabilities,
 				info.Features,
 				"LG " + info.ModelName,
 				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{modelName}", serialNumber)
@@ -343,20 +351,16 @@ public class LgMonitorDriver :
 		}
 	}
 
-	private readonly LgDisplayDataChannelWithRetry _ddc;
 	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly ushort _nxpVersion;
 	private readonly ushort _scalerVersion;
 	private readonly byte _dscVersion;
-	private readonly byte[] _rawCapabilities;
-	private readonly MonitorCapabilities _parsedCapabilities;
 	private IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
-	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureSet<ILgMonitorDeviceFeature> _lgMonitorFeatures;
-	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private FeatureSetDescription[] _featureSets;
 	private CompositeI2cBus CompositeI2cBus { get; }
 
+	[MemberNotNull(nameof(_lightingFeatures))]
 	private void UpdateFeatures(UltraGearLightingFeatures? ultraGearLightingFeatures)
 	{
 		var lightingFeatures = ultraGearLightingFeatures is not null ?
@@ -397,9 +401,9 @@ public class LgMonitorDriver :
 	{
 		System.Collections.IEnumerable GetFeatures()
 		{
-			if (typeof(TFeature) == typeof(IGenericDeviceFeature)) return _genericFeatures;
+			if (typeof(TFeature) == typeof(IGenericDeviceFeature)) return GenericFeatures;
 			if (typeof(TFeature) == typeof(ILightingDeviceFeature)) return _lightingFeatures;
-			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return _monitorFeatures;
+			if (typeof(TFeature) == typeof(IMonitorDeviceFeature)) return MonitorFeatures;
 			if (typeof(TFeature) == typeof(ILgMonitorDeviceFeature)) return _lgMonitorFeatures;
 
 			return FeatureSet.Empty<TFeature>();
@@ -410,42 +414,40 @@ public class LgMonitorDriver :
 
 	private LgMonitorDriver
 	(
+		CompositeI2cBus compositeI2cBus,
+		MonitorFeatureSetBuilder monitorFeatureSetBuilder,
 		UltraGearLightingFeatures? ultraGearLightingFeatures,
 		ImmutableArray<DeviceId> deviceIds,
 		ushort nxpVersion,
 		ushort scalerVersion,
 		byte dscVersion,
-		byte[] rawCapabilities,
+		ReadOnlyMemory<byte> rawCapabilities,
 		MonitorCapabilities parsedCapabilities,
 		MonitorDeviceFeatures features,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
-	) : base(friendlyName, configurationKey)
+	) : base
+	(
+		new LgDisplayDataChannelWithRetry(compositeI2cBus, true, I2CRetryCount),
+		monitorFeatureSetBuilder,
+		rawCapabilities,
+		parsedCapabilities,
+		deviceIds[0],
+		friendlyName,
+		configurationKey
+	)
 	{
-		CompositeI2cBus = new();
-		_ddc = new LgDisplayDataChannelWithRetry(CompositeI2cBus, true, I2CRetryCount);
+		CompositeI2cBus = compositeI2cBus;
 		_deviceIds = deviceIds;
 		_nxpVersion = nxpVersion;
 		_scalerVersion = scalerVersion;
 		_dscVersion = dscVersion;
-		_rawCapabilities = rawCapabilities;
-		_parsedCapabilities = parsedCapabilities;
-		_monitorFeatures = FeatureSet.Create<
-			IMonitorDeviceFeature,
-			LgMonitorDriver,
-			IMonitorRawCapabilitiesFeature,
-			IMonitorCapabilitiesFeature,
-			IRawVcpFeature,
-			IMonitorBrightnessFeature,
-			IMonitorContrastFeature,
-			IMonitorSpeakerAudioVolumeFeature>(this);
 		_lgMonitorFeatures = FeatureSet.Create<
 			ILgMonitorDeviceFeature,
 			LgMonitorDriver,
 			ILgMonitorScalerVersionFeature,
 			ILgMonitorNxpVersionFeature,
 			ILgMonitorDisplayStreamCompressionVersionFeature>(this);
-		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature, IVariableFeatureSetDeviceFeature>(this);
 		if ((features & MonitorDeviceFeatures.Lighting) != 0)
 		{
 			UpdateFeatures(ultraGearLightingFeatures);
@@ -462,66 +464,30 @@ public class LgMonitorDriver :
 		}
 	}
 
+	protected sealed override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures(DeviceConfigurationKey configurationKey)
+		=> FeatureSet.Create<IGenericDeviceFeature, LgMonitorDriver, IDeviceSerialNumberFeature, IDeviceIdFeature, IDeviceIdsFeature, IVariableFeatureSetDeviceFeature>(this);
+
 	// The firmware archive explicitly names the SV, DV and NV as "Scaler", "DSC" and "NXP"
 	// DSC versions are expanded in a single byte, seemingly in BCD format. So, 0x44 for version 44, and 0x51 for version 51.
 	public SimpleVersion FirmwareNxpVersion => new((byte)(_nxpVersion >>> 8), (byte)_nxpVersion);
 	public SimpleVersion FirmwareScalerVersion => new((byte)(_scalerVersion >>> 8), (byte)_scalerVersion);
 	public SimpleVersion FirmwareDisplayStreamCompressionVersion => new((byte)((_dscVersion >>> 4) * 10 | _dscVersion & 0x0F), 0);
-	public ReadOnlySpan<byte> RawCapabilities => _rawCapabilities;
-	public MonitorCapabilities Capabilities => _parsedCapabilities;
 
-	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureSet<ILgMonitorDeviceFeature> IDeviceDriver<ILgMonitorDeviceFeature>.Features => _lgMonitorFeatures;
 	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => Volatile.Read(ref _lightingFeatures);
 
 	ImmutableArray<DeviceId> IDeviceIdsFeature.DeviceIds => _deviceIds;
 	int? IDeviceIdsFeature.MainDeviceIdIndex => 0;
-	DeviceId IDeviceIdFeature.DeviceId => _deviceIds[0];
-	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
 	public override async ValueTask DisposeAsync()
 	{
 		try
 		{
-			await _ddc.DisposeAsync().ConfigureAwait(false);
+			await base.DisposeAsync().ConfigureAwait(false);
 		}
 		finally
 		{
 			DriversBySerialNumber.TryRemove(new(ConfigurationKey.UniqueId!, this));
 		}
 	}
-
-	public ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken) => _ddc.SetVcpFeatureAsync(vcpCode, value, cancellationToken);
-
-	public async ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
-	{
-		var result = await _ddc.GetVcpFeatureAsync(vcpCode, cancellationToken).ConfigureAwait(false);
-		return new(result.CurrentValue, result.MaximumValue, result.IsMomentary);
-	}
-
-	public async ValueTask<ContinuousValue> GetBrightnessAsync(CancellationToken cancellationToken)
-	{
-		var result = await _ddc.GetVcpFeatureAsync((byte)VcpCode.Luminance, cancellationToken).ConfigureAwait(false);
-		return new(result.CurrentValue, 0, result.MaximumValue);
-	}
-
-	public ValueTask SetBrightnessAsync(ushort value, CancellationToken cancellationToken) => _ddc.SetVcpFeatureAsync((byte)VcpCode.Luminance, value, cancellationToken);
-
-	public async ValueTask<ContinuousValue> GetContrastAsync(CancellationToken cancellationToken)
-	{
-		var result = await _ddc.GetVcpFeatureAsync((byte)VcpCode.Contrast, cancellationToken).ConfigureAwait(false);
-		return new(result.CurrentValue, 0, result.MaximumValue);
-	}
-
-	public ValueTask SetContrastAsync(ushort value, CancellationToken cancellationToken) => _ddc.SetVcpFeatureAsync((byte)VcpCode.Contrast, value, cancellationToken);
-
-	async ValueTask<ContinuousValue> IMonitorSpeakerAudioVolumeFeature.GetVolumeAsync(CancellationToken cancellationToken)
-	{
-		var result = await _ddc.GetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, cancellationToken).ConfigureAwait(false);
-		return new(result.CurrentValue, 0, result.MaximumValue);
-	}
-
-	ValueTask IMonitorSpeakerAudioVolumeFeature.SetVolumeAsync(ushort value, CancellationToken cancellationToken)
-		=> _ddc.SetVcpFeatureAsync((byte)VcpCode.AudioSpeakerVolume, value, cancellationToken);
 }
