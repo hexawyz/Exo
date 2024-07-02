@@ -124,6 +124,7 @@ internal class MonitorService : IAsyncDisposable
 
 					if (monitorFeatures.HasFeature<IMonitorBrightnessFeature>()) settingsBuilder.Add(MonitorSetting.Brightness);
 					if (monitorFeatures.HasFeature<IMonitorContrastFeature>()) settingsBuilder.Add(MonitorSetting.Contrast);
+					if (monitorFeatures.HasFeature<IMonitorSharpnessFeature>()) settingsBuilder.Add(MonitorSetting.Sharpness);
 
 					if (monitorFeatures.HasFeature<IMonitorSpeakerAudioVolumeFeature>()) settingsBuilder.Add(MonitorSetting.AudioVolume);
 
@@ -249,6 +250,9 @@ internal class MonitorService : IAsyncDisposable
 							break;
 						case MonitorSetting.Contrast:
 							value = await monitorFeatures.GetFeature<IMonitorContrastFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+							break;
+						case MonitorSetting.Sharpness:
+							value = await monitorFeatures.GetFeature<IMonitorSharpnessFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 							break;
 						case MonitorSetting.AudioVolume:
 							value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
@@ -437,6 +441,7 @@ internal class MonitorService : IAsyncDisposable
 		{
 			MonitorSetting.Brightness => SetBrightnessAsync(deviceId, value, cancellationToken),
 			MonitorSetting.Contrast => SetContrastAsync(deviceId, value, cancellationToken),
+			MonitorSetting.Sharpness => SetSharpnessAsync(deviceId, value, cancellationToken),
 			MonitorSetting.AudioVolume => SetAudioVolumeAsync(deviceId, value, cancellationToken),
 			MonitorSetting.InputSelect => SetInputSourceAsync(deviceId, value, cancellationToken),
 			MonitorSetting.VideoGainRed => SetRedVideoGainAsync(deviceId, value, cancellationToken),
@@ -552,6 +557,9 @@ internal class MonitorService : IAsyncDisposable
 
 	public ValueTask SetContrastAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorContrastFeature>(MonitorSetting.Contrast, deviceId, value, cancellationToken);
+
+	public ValueTask SetSharpnessAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorSharpnessFeature>(MonitorSetting.Sharpness, deviceId, value, cancellationToken);
 
 	public ValueTask SetAudioVolumeAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorSpeakerAudioVolumeFeature>(MonitorSetting.AudioVolume, deviceId, value, cancellationToken);

@@ -252,6 +252,9 @@
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Monitor settings</value>
   </data>
+  <data name="MonitorSharpnessLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Sharpness</value>
+  </data>
   <data name="MonitorYellowSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>6 Axis Hue (Yellow)</value>
   </data>

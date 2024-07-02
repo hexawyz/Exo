@@ -205,6 +205,9 @@ public partial class GenericMonitorDriver
 					case (byte)VcpCode.Contrast:
 						builder.AddContrastFeature(capability.VcpCode);
 						break;
+					case (byte)VcpCode.Sharpness:
+						builder.AddSharpnessFeature(capability.VcpCode);
+						break;
 					case (byte)VcpCode.AudioSpeakerVolume:
 						builder.AddAudioVolumeFeature(capability.VcpCode);
 						break;
@@ -402,6 +405,9 @@ public partial class GenericMonitorDriver
 						break;
 					case MonitorFeature.Contrast:
 						builder.AddContrastFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.Sharpness:
+						builder.AddSharpnessFeature(feature.VcpCode);
 						break;
 					case MonitorFeature.AudioVolume:
 						builder.AddAudioVolumeFeature(feature.VcpCode);

@@ -252,6 +252,9 @@
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Réglages écran</value>
   </data>
+  <data name="MonitorSharpnessLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Netteté</value>
+  </data>
   <data name="MonitorYellowSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Ajustement de teinte jaune</value>
   </data>

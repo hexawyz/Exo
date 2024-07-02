@@ -3,33 +3,36 @@ namespace Exo.Service;
 public enum MonitorSetting : uint
 {
 	Unknown = 0,
+
 	Brightness = 1,
 	Contrast = 2,
-	AudioVolume = 3,
-	InputSelect = 4,
+	Sharpness = 3,
+	BlueLightFilterLevel = 4,
 
-	VideoGainRed = 5,
-	VideoGainGreen = 6,
-	VideoGainBlue = 7,
+	AudioVolume = 5,
+	InputSelect = 6,
 
-	SixAxisSaturationControlRed = 8,
-	SixAxisSaturationControlYellow = 9,
-	SixAxisSaturationControlGreen = 10,
-	SixAxisSaturationControlCyan = 11,
-	SixAxisSaturationControlBlue = 12,
-	SixAxisSaturationControlMagenta = 13,
+	VideoGainRed = 7,
+	VideoGainGreen = 8,
+	VideoGainBlue = 9,
 
-	SixAxisHueControlRed = 14,
-	SixAxisHueControlYellow = 15,
-	SixAxisHueControlGreen = 16,
-	SixAxisHueControlCyan = 17,
-	SixAxisHueControlBlue = 18,
-	SixAxisHueControlMagenta = 19,
+	SixAxisSaturationControlRed = 10,
+	SixAxisSaturationControlYellow = 11,
+	SixAxisSaturationControlGreen = 12,
+	SixAxisSaturationControlCyan = 13,
+	SixAxisSaturationControlBlue = 14,
+	SixAxisSaturationControlMagenta = 15,
 
-	InputLag = 20,
-	ResponseTime = 21,
-	BlueLightFilterLevel = 22,
+	SixAxisHueControlRed = 16,
+	SixAxisHueControlYellow = 17,
+	SixAxisHueControlGreen = 18,
+	SixAxisHueControlCyan = 19,
+	SixAxisHueControlBlue = 20,
+	SixAxisHueControlMagenta = 21,
 
-	OsdLanguage = 23,
-	PowerIndicator = 24,
+	InputLag = 22,
+	ResponseTime = 23,
+
+	OsdLanguage = 24,
+	PowerIndicator = 25,
 }

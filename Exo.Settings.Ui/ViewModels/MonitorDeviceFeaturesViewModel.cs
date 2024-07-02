@@ -15,6 +15,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private ContinuousMonitorDeviceSettingViewModel? _brightnessSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _contrastSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _sharpnessSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _blueLightFilterLevelSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _audioVolumeSetting;
 	private NonContinuousMonitorDeviceSettingViewModel? _inputSelectSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _redVideoGainSetting;
@@ -34,7 +36,6 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private ContinuousMonitorDeviceSettingViewModel? _magentaSixAxisHueControlSetting;
 	private NonContinuousMonitorDeviceSettingViewModel? _inputLagSetting;
 	private NonContinuousMonitorDeviceSettingViewModel? _responseTimeSetting;
-	private ContinuousMonitorDeviceSettingViewModel? _blueLightFilterLevelSetting;
 	private NonContinuousMonitorDeviceSettingViewModel? _osdLanguageSetting;
 	private BooleanMonitorDeviceSettingViewModel? _powerIndicatorSetting;
 
@@ -45,6 +46,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public ContinuousMonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
+	public ContinuousMonitorDeviceSettingViewModel? SharpnessSetting => _sharpnessSetting;
+	public ContinuousMonitorDeviceSettingViewModel? BlueLightFilterLevelSetting => _blueLightFilterLevelSetting;
 	public ContinuousMonitorDeviceSettingViewModel? AudioVolumeSetting => _audioVolumeSetting;
 	public ContinuousMonitorDeviceSettingViewModel? RedVideoGainSetting => _redVideoGainSetting;
 	public ContinuousMonitorDeviceSettingViewModel? GreenVideoGainSetting => _greenVideoGainSetting;
@@ -61,7 +64,6 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	public ContinuousMonitorDeviceSettingViewModel? CyanSixAxisHueControlSetting => _cyanSixAxisHueControlSetting;
 	public ContinuousMonitorDeviceSettingViewModel? BlueSixAxisHueControlSetting => _blueSixAxisHueControlSetting;
 	public ContinuousMonitorDeviceSettingViewModel? MagentaSixAxisHueControlSetting => _magentaSixAxisHueControlSetting;
-	public ContinuousMonitorDeviceSettingViewModel? BlueLightFilterLevelSetting => _blueLightFilterLevelSetting;
 	public NonContinuousMonitorDeviceSettingViewModel? InputSelectSetting => _inputSelectSetting;
 	public NonContinuousMonitorDeviceSettingViewModel? InputLagSetting => _inputLagSetting;
 	public NonContinuousMonitorDeviceSettingViewModel? ResponseTimeSetting => _responseTimeSetting;
@@ -93,6 +95,12 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 				break;
 			case MonitorSetting.Contrast:
 				InitializeSetting(setting, ref _contrastSetting, nameof(ContrastSetting));
+				break;
+			case MonitorSetting.Sharpness:
+				InitializeSetting(setting, ref _sharpnessSetting, nameof(SharpnessSetting));
+				break;
+			case MonitorSetting.BlueLightFilterLevel:
+				InitializeSetting(setting, ref _blueLightFilterLevelSetting, nameof(BlueLightFilterLevelSetting));
 				break;
 			case MonitorSetting.AudioVolume:
 				InitializeSetting(setting, ref _audioVolumeSetting, nameof(AudioVolumeSetting));
@@ -157,9 +165,6 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
 				_responseTimeSetting!.UpdateNonContinuousValues(_metadataService, information.ResponseTimeLevels);
 				break;
-			case MonitorSetting.BlueLightFilterLevel:
-				InitializeSetting(setting, ref _blueLightFilterLevelSetting, nameof(BlueLightFilterLevelSetting));
-				break;
 			case MonitorSetting.OsdLanguage:
 				InitializeSetting(setting, ref _osdLanguageSetting, nameof(OsdLanguageSetting));
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
@@ -181,6 +186,12 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.Contrast:
 			UpdateSetting(settingValue, ref _contrastSetting, nameof(ContrastSetting));
+			break;
+		case MonitorSetting.Sharpness:
+			UpdateSetting(settingValue, ref _sharpnessSetting, nameof(SharpnessSetting));
+			break;
+		case MonitorSetting.BlueLightFilterLevel:
+			UpdateSetting(settingValue, ref _blueLightFilterLevelSetting, nameof(BlueLightFilterLevelSetting));
 			break;
 		case MonitorSetting.AudioVolume:
 			UpdateSetting(settingValue, ref _audioVolumeSetting, nameof(AudioVolumeSetting));
@@ -238,9 +249,6 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.ResponseTime:
 			UpdateSetting(settingValue, ref _responseTimeSetting, nameof(ResponseTimeSetting));
-			break;
-		case MonitorSetting.BlueLightFilterLevel:
-			UpdateSetting(settingValue, ref _blueLightFilterLevelSetting, nameof(BlueLightFilterLevelSetting));
 			break;
 		case MonitorSetting.OsdLanguage:
 			UpdateSetting(settingValue, ref _osdLanguageSetting, nameof(OsdLanguageSetting));
@@ -342,6 +350,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		{
 			try { await ApplyChangeIfNeededAsync(_brightnessSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_contrastSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_sharpnessSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_blueLightFilterLevelSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_audioVolumeSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_inputSelectSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_redVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
@@ -361,7 +371,6 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			try { await ApplyChangeIfNeededAsync(_magentaSixAxisHueControlSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_inputLagSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_responseTimeSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
-			try { await ApplyChangeIfNeededAsync(_blueLightFilterLevelSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_osdLanguageSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_powerIndicatorSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 
@@ -392,6 +401,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		if (!IsReady) throw new InvalidOperationException();
 		IResettable.SharedResetCommand.Execute(_brightnessSetting);
 		IResettable.SharedResetCommand.Execute(_contrastSetting);
+		IResettable.SharedResetCommand.Execute(_sharpnessSetting);
+		IResettable.SharedResetCommand.Execute(_blueLightFilterLevelSetting);
 		IResettable.SharedResetCommand.Execute(_audioVolumeSetting);
 		IResettable.SharedResetCommand.Execute(_inputSelectSetting);
 		IResettable.SharedResetCommand.Execute(_redVideoGainSetting);
@@ -411,7 +422,6 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_magentaSixAxisHueControlSetting);
 		IResettable.SharedResetCommand.Execute(_inputLagSetting);
 		IResettable.SharedResetCommand.Execute(_responseTimeSetting);
-		IResettable.SharedResetCommand.Execute(_blueLightFilterLevelSetting);
 		IResettable.SharedResetCommand.Execute(_osdLanguageSetting);
 		IResettable.SharedResetCommand.Execute(_powerIndicatorSetting);
 	}

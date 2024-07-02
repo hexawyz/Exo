@@ -35,8 +35,10 @@ public readonly struct MonitorFeatureDiscreteValueDefinition
 public enum MonitorFeature : byte
 {
 	Other = 0,
+
 	Brightness,
 	Contrast,
+	Sharpness,
 	AudioVolume,
 
 	InputSelect,

@@ -90,6 +90,7 @@ public interface IBooleanVcpFeature
 
 public interface IMonitorBrightnessFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorContrastFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
+public interface IMonitorSharpnessFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorRedVideoGainFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorGreenVideoGainFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorBlueVideoGainFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }

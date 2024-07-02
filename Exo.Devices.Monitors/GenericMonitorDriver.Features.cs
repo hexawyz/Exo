@@ -18,6 +18,7 @@ public partial class GenericMonitorDriver
 
 		private byte _brightnessVcpCode;
 		private byte _contrastVcpCode;
+		private byte _sharpnessVcpCode;
 		private byte _audioVolumeVcpCode;
 		private byte _inputSelectVcpCode;
 		private byte _redVideoGainVcpCode;
@@ -66,6 +67,7 @@ public partial class GenericMonitorDriver
 
 		public virtual void AddBrightnessFeature(byte vcpCode) => AddFeature(ref _brightnessVcpCode, SupportedFeatures.Brightness, vcpCode);
 		public virtual void AddContrastFeature(byte vcpCode) => AddFeature(ref _contrastVcpCode, SupportedFeatures.Contrast, vcpCode);
+		public virtual void AddSharpnessFeature(byte vcpCode) => AddFeature(ref _sharpnessVcpCode, SupportedFeatures.Sharpness, vcpCode);
 		public virtual void AddAudioVolumeFeature(byte vcpCode) => AddFeature(ref _audioVolumeVcpCode, SupportedFeatures.AudioVolume, vcpCode);
 		public virtual void AddRedVideoGainFeature(byte vcpCode) => AddFeature(ref _redVideoGainVcpCode, SupportedFeatures.VideoGainRed, vcpCode);
 		public virtual void AddGreenVideoGainFeature(byte vcpCode) => AddFeature(ref _greenVideoGainVcpCode, SupportedFeatures.VideoGainGreen, vcpCode);
@@ -117,6 +119,9 @@ public partial class GenericMonitorDriver
 
 		protected virtual IMonitorContrastFeature? CreateContrastFeature(GenericMonitorDriver driver)
 			=> (_supportedFeatures & SupportedFeatures.Contrast) != 0 ? new ContrastFeature(driver, _contrastVcpCode) : null;
+
+		protected virtual IMonitorSharpnessFeature? CreateSharpnessFeature(GenericMonitorDriver driver)
+			=> (_supportedFeatures & SupportedFeatures.Sharpness) != 0 ? new SharpnessFeature(driver, _sharpnessVcpCode) : null;
 
 		protected virtual IMonitorSpeakerAudioVolumeFeature? CreateAudioVolumeFeature(GenericMonitorDriver driver)
 			=> (_supportedFeatures & SupportedFeatures.AudioVolume) != 0 ? new SpeakerAudioVolumeFeature(driver, _audioVolumeVcpCode) : null;
@@ -192,6 +197,7 @@ public partial class GenericMonitorDriver
 				CreateRawVcpFeature(driver),
 				CreateBrightnessFeature(driver),
 				CreateContrastFeature(driver),
+				CreateSharpnessFeature(driver),
 				CreateBlueLightFilterLevelFeature(driver),
 				CreateAudioVolumeFeature(driver),
 				CreateInputSelectFeature(driver),
@@ -225,6 +231,7 @@ public partial class GenericMonitorDriver
 		private readonly IMonitorRawVcpFeature? _rawVcpFeature;
 		private readonly IMonitorBrightnessFeature? _brightnessFeature;
 		private readonly IMonitorContrastFeature? _contrastFeature;
+		private readonly IMonitorSharpnessFeature? _sharpnessFeature;
 		private readonly IMonitorBlueLightFilterLevelFeature? _blueLightFilterLevelFeature;
 		private readonly IMonitorSpeakerAudioVolumeFeature? _speakerAudioVolumeFeature;
 		private readonly IMonitorInputSelectFeature? _inputSelectFeature;
@@ -257,6 +264,7 @@ public partial class GenericMonitorDriver
 			IMonitorRawVcpFeature? rawVcpFeature,
 			IMonitorBrightnessFeature? brightnessFeature,
 			IMonitorContrastFeature? contrastFeature,
+			IMonitorSharpnessFeature? sharpnessFeature,
 			IMonitorBlueLightFilterLevelFeature? blueLightFilterLevelFeature,
 			IMonitorSpeakerAudioVolumeFeature? speakerAudioVolumeFeature,
 			IMonitorInputSelectFeature? inputSelectFeature,
@@ -286,6 +294,7 @@ public partial class GenericMonitorDriver
 			_rawVcpFeature = rawVcpFeature;
 			_brightnessFeature = brightnessFeature;
 			_contrastFeature = contrastFeature;
+			_sharpnessFeature = sharpnessFeature;
 			_blueLightFilterLevelFeature = blueLightFilterLevelFeature;
 			_speakerAudioVolumeFeature = speakerAudioVolumeFeature;
 			_inputSelectFeature = inputSelectFeature;
@@ -326,6 +335,7 @@ public partial class GenericMonitorDriver
 
 				if (_brightnessFeature is not null) count++;
 				if (_contrastFeature is not null) count++;
+				if (_sharpnessFeature is not null) count++;
 				if (_blueLightFilterLevelFeature is not null) count++;
 
 				if (_speakerAudioVolumeFeature is not null) count++;
@@ -369,6 +379,7 @@ public partial class GenericMonitorDriver
 
 			if (typeof(T) == typeof(IMonitorBrightnessFeature) && _brightnessFeature is not null) return _brightnessFeature;
 			if (typeof(T) == typeof(IMonitorContrastFeature) && _contrastFeature is not null) return _contrastFeature;
+			if (typeof(T) == typeof(IMonitorSharpnessFeature) && _sharpnessFeature is not null) return _sharpnessFeature;
 			if (typeof(T) == typeof(IMonitorBlueLightFilterLevelFeature) && _blueLightFilterLevelFeature is not null) return _blueLightFilterLevelFeature;
 
 			if (typeof(T) == typeof(IMonitorSpeakerAudioVolumeFeature) && _speakerAudioVolumeFeature is not null) return _speakerAudioVolumeFeature;
@@ -409,6 +420,7 @@ public partial class GenericMonitorDriver
 
 			if (_brightnessFeature is not null) yield return new(typeof(IMonitorBrightnessFeature), _brightnessFeature);
 			if (_contrastFeature is not null) yield return new(typeof(IMonitorContrastFeature), _contrastFeature);
+			if (_sharpnessFeature is not null) yield return new(typeof(IMonitorSharpnessFeature), _sharpnessFeature);
 			if (_blueLightFilterLevelFeature is not null) yield return new(typeof(IMonitorBlueLightFilterLevelFeature), _blueLightFilterLevelFeature);
 
 			if (_speakerAudioVolumeFeature is not null) yield return new(typeof(IMonitorSpeakerAudioVolumeFeature), _speakerAudioVolumeFeature);
@@ -520,6 +532,7 @@ public partial class GenericMonitorDriver
 
 	protected sealed class BrightnessFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBrightnessFeature { }
 	protected sealed class ContrastFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorContrastFeature { }
+	protected sealed class SharpnessFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorSharpnessFeature { }
 	protected sealed class BlueLightFilterLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueLightFilterLevelFeature { }
 
 	protected sealed class SpeakerAudioVolumeFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorSpeakerAudioVolumeFeature { }

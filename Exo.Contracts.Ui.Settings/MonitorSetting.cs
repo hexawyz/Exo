@@ -12,52 +12,54 @@ public enum MonitorSetting : uint
 	[EnumMember]
 	Contrast = 2,
 	[EnumMember]
-	AudioVolume = 3,
+	Sharpness = 3,
 	[EnumMember]
-	InputSelect = 4,
+	BlueLightFilterLevel = 4,
+	[EnumMember]
+	AudioVolume = 5,
+	[EnumMember]
+	InputSelect = 6,
 
 	[EnumMember]
-	VideoGainRed = 5,
+	VideoGainRed = 7,
 	[EnumMember]
-	VideoGainGreen = 6,
+	VideoGainGreen = 8,
 	[EnumMember]
-	VideoGainBlue = 7,
+	VideoGainBlue = 9,
 
 	[EnumMember]
-	SixAxisSaturationControlRed = 8,
+	SixAxisSaturationControlRed = 10,
 	[EnumMember]
-	SixAxisSaturationControlYellow = 9,
+	SixAxisSaturationControlYellow = 11,
 	[EnumMember]
-	SixAxisSaturationControlGreen = 10,
+	SixAxisSaturationControlGreen = 12,
 	[EnumMember]
-	SixAxisSaturationControlCyan = 11,
+	SixAxisSaturationControlCyan = 13,
 	[EnumMember]
-	SixAxisSaturationControlBlue = 12,
+	SixAxisSaturationControlBlue = 14,
 	[EnumMember]
-	SixAxisSaturationControlMagenta = 13,
+	SixAxisSaturationControlMagenta = 15,
 
 	[EnumMember]
-	SixAxisHueControlRed = 14,
+	SixAxisHueControlRed = 16,
 	[EnumMember]
-	SixAxisHueControlYellow = 15,
+	SixAxisHueControlYellow = 17,
 	[EnumMember]
-	SixAxisHueControlGreen = 16,
+	SixAxisHueControlGreen = 18,
 	[EnumMember]
-	SixAxisHueControlCyan = 17,
+	SixAxisHueControlCyan = 19,
 	[EnumMember]
-	SixAxisHueControlBlue = 18,
+	SixAxisHueControlBlue = 20,
 	[EnumMember]
-	SixAxisHueControlMagenta = 19,
+	SixAxisHueControlMagenta = 21,
 
 	[EnumMember]
-	InputLag = 20,
+	InputLag = 22,
 	[EnumMember]
-	ResponseTime = 21,
-	[EnumMember]
-	BlueLightFilterLevel = 22,
+	ResponseTime = 23,
 
 	[EnumMember]
-	OsdLanguage = 23,
+	OsdLanguage = 24,
 	[EnumMember]
-	PowerIndicator = 24,
+	PowerIndicator = 25,
 }
