@@ -24,6 +24,18 @@
 		"en": "Advanced",
 		"fr": "Avancé"
 	},
+	"c88a634b-9621-4108-91b8-b2f74208421f": {
+		"en": "Normal",
+		"fr": "Normal"
+	},
+	"76e54863-cd4a-4690-bcc1-ae566b534cef": {
+		"en": "Fast",
+		"fr": "Rapide"
+	},
+	"e383e29e-60c3-44a5-a761-b08f96a200a7": {
+		"en": "Faster",
+		"fr": "Plus rapide"
+	},
 	// Sensors
 	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
 		"en": "Fan Speed",
