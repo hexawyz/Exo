@@ -93,6 +93,14 @@ public partial class GenericMonitorDriver
 		public required MonitorDefinition Definition { get; init; }
 	}
 
+	protected static void LogRetrievedCapabilities(ILogger logger, MonitorId monitorId, ImmutableArray<byte> rawCapabilities)
+	{
+		if (logger.IsEnabled(LogLevel.Information))
+		{
+			logger.MonitorRetrievedCapabilities(monitorId.ToString()!, Encoding.UTF8.GetString(rawCapabilities.AsSpan()));
+		}
+	}
+
 	/// <summary>Applies the standard setup procedure to retrieve monitor information and configure monitor features.</summary>
 	/// <remarks>
 	/// Calling this method is the simplest way to implement a factory for a custom driver based on <see cref="GenericMonitorDriver"/>.
@@ -106,7 +114,7 @@ public partial class GenericMonitorDriver
 	/// <returns></returns>
 	protected static async ValueTask<ConsolidatedMonitorInformation> PrepareMonitorFeaturesAsync
 	(
-		ILogger<GenericMonitorDriver> logger,
+		ILogger logger,
 		MonitorFeatureSetBuilder builder,
 		DisplayDataChannel ddc,
 		MonitorId monitorId,
@@ -119,10 +127,7 @@ public partial class GenericMonitorDriver
 		{
 			ushort length = await ddc.GetCapabilitiesAsync(buffer, cancellationToken).ConfigureAwait(false);
 			rawCapabilities = [.. buffer[..length]];
-			if (logger.IsEnabled(LogLevel.Information))
-			{
-				logger.MonitorRetrievedCapabilities(monitorId.ToString()!, Encoding.UTF8.GetString(rawCapabilities.AsSpan()));
-			}
+			LogRetrievedCapabilities(logger, monitorId, rawCapabilities);
 		}
 		finally
 		{

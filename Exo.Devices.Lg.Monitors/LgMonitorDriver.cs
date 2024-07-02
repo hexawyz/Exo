@@ -41,6 +41,7 @@ public class LgMonitorDriver :
 	[MonitorId("GSM5BC0")]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
+		ILogger<LgMonitorDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		Edid edid,
 		II2CBus i2cBus,
@@ -70,11 +71,15 @@ public class LgMonitorDriver :
 				}
 			}
 
+			var monitorId = new MonitorId(edid.VendorId, edid.ProductId);
+
+			LogRetrievedCapabilities(logger, monitorId, rawCapabilities);
+
 			var info = DeviceDatabase.GetMonitorInformationFromMonitorProductId(edid.ProductId);
 
 			var featureSetBuilder = new MonitorFeatureSetBuilder();
 
-			var genericMonitorDetails = PrepareMonitorFeatures(featureSetBuilder, rawCapabilities, new MonitorId(edid.VendorId, edid.ProductId));
+			var genericMonitorDetails = PrepareMonitorFeatures(featureSetBuilder, rawCapabilities, monitorId);
 
 			if (genericMonitorDetails.Capabilities is null)
 			{
@@ -114,6 +119,7 @@ public class LgMonitorDriver :
 	[ProductId(VendorIdSource.Usb, DeviceDatabase.LgUsbVendorId, 0x9A8A)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
+		ILogger<LgMonitorDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		ushort productId,
 		ushort version,
@@ -217,10 +223,13 @@ public class LgMonitorDriver :
 
 		// Get the first non-USB device ID for the monitor for the database lookup.
 		var monitorDeviceId = info.DeviceIds[info.DeviceIds.Length > 1 && info.DeviceIds[0].Source == DeviceIdSource.Usb ? 1 : 0];
+		var monitorId = new MonitorId(PnpVendorId.FromRaw(monitorDeviceId.VendorId), monitorDeviceId.ProductId);
+
+		LogRetrievedCapabilities(logger, monitorId, rawCapabilities);
 
 		var featureSetBuilder = new MonitorFeatureSetBuilder();
 
-		var genericMonitorDetails = PrepareMonitorFeatures(featureSetBuilder, rawCapabilities, new MonitorId(PnpVendorId.FromRaw(monitorDeviceId.VendorId), monitorDeviceId.ProductId));
+		var genericMonitorDetails = PrepareMonitorFeatures(featureSetBuilder, rawCapabilities, monitorId);
 
 		if (genericMonitorDetails.Capabilities is null)
 		{
