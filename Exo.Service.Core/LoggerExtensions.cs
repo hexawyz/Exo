@@ -97,9 +97,21 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 4104, Level = LogLevel.Debug, Message = "Polling scheduler disabled.")]
 	public static partial void SensorServicePollingSchedulerDisabled(this ILogger logger);
 
-	[LoggerMessage(EventId = 4301, Level = LogLevel.Debug, Message = "Sensor watch execution error.")]
+	[LoggerMessage(EventId = 4301, Level = LogLevel.Error, Message = "Sensor watch execution error.")]
 	public static partial void SensorServiceSensorStateWatchError(this ILogger logger, Exception ex);
 
-	[LoggerMessage(EventId = 4301, Level = LogLevel.Debug, Message = "Grouped query execution error.")]
+	[LoggerMessage(EventId = 4301, Level = LogLevel.Error, Message = "Grouped query execution error.")]
 	public static partial void SensorServiceGroupedQueryError(this ILogger logger, Exception ex);
+
+	[LoggerMessage(EventId = 5001, Level = LogLevel.Error, Message = "Error while processing arrival of monitor device {DeviceId}.")]
+	public static partial void MonitorServiceDeviceArrivalError(this ILogger logger, Guid deviceId, Exception ex);
+
+	[LoggerMessage(EventId = 5002, Level = LogLevel.Error, Message = "Error while processing removal of monitor device {DeviceId}.")]
+	public static partial void MonitorServiceDeviceRemovalError(this ILogger logger, Guid deviceId, Exception ex);
+
+	[LoggerMessage(EventId = 5003, Level = LogLevel.Error, Message = "Error while publishing setting values for device {DeviceId}.")]
+	public static partial void MonitorServiceFeaturePublishError(this ILogger logger, Guid deviceId, Exception ex);
+
+	[LoggerMessage(EventId = 5004, Level = LogLevel.Error, Message = "Error while retrieving the value for monitor setting {MonitorSetting} of device {DeviceId}.")]
+	public static partial void MonitorServiceFeatureValueRetrievalError(this ILogger logger, Guid deviceId, MonitorSetting monitorSetting, Exception ex);
 }
