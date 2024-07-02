@@ -170,19 +170,19 @@ public partial class GenericMonitorDriver
 			=> (_supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0 ? new BlueLightFilterLevelFeature(driver, _blueLightFilterLevelVcpCode) : null;
 
 		protected virtual IMonitorInputLagFeature? CreateInputLagFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.InputLag) != 0 ? new InputLagFeature(driver, _brightnessVcpCode, _inputLagLevels) : null;
+			=> (_supportedFeatures & SupportedFeatures.InputLag) != 0 ? new InputLagFeature(driver, _inputLagVcpCode, _inputLagLevels) : null;
 
 		protected virtual IMonitorInputSelectFeature? CreateInputSelectFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.InputSelect) != 0 ? new InputSelectFeature(driver, _brightnessVcpCode, _inputSources) : null;
+			=> (_supportedFeatures & SupportedFeatures.InputSelect) != 0 ? new InputSelectFeature(driver, _inputSelectVcpCode, _inputSources) : null;
 
 		protected virtual IMonitorResponseTimeFeature? CreateResponseTimeFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.ResponseTime) != 0 ? new ResponseTimeFeature(driver, _brightnessVcpCode, _responseTimeLevels) : null;
+			=> (_supportedFeatures & SupportedFeatures.ResponseTime) != 0 ? new ResponseTimeFeature(driver, _responseTimeVcpCode, _responseTimeLevels) : null;
 
 		protected virtual IMonitorOsdLanguageFeature? CreateOsdLanguageFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.OsdLanguage) != 0 ? new OsdLanguageFeature(driver, _brightnessVcpCode, _osdLanguages) : null;
+			=> (_supportedFeatures & SupportedFeatures.OsdLanguage) != 0 ? new OsdLanguageFeature(driver, _osdLanguageVcpCode, _osdLanguages) : null;
 
 		protected virtual IMonitorPowerIndicatorToggleFeature? CreatePowerIndicatorToggleFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.PowerIndicator) != 0 ? new PowerIndicatorToggleFeature(driver, _brightnessVcpCode, _powerIndicatorOffValue, _powerIndicatorOnValue) : null;
+			=> (_supportedFeatures & SupportedFeatures.PowerIndicator) != 0 ? new PowerIndicatorToggleFeature(driver, _powerIndicatorVcpCode, _powerIndicatorOffValue, _powerIndicatorOnValue) : null;
 
 		public virtual IDeviceFeatureSet<IMonitorDeviceFeature> CreateFeatureSet(GenericMonitorDriver driver)
 			=> new MonitorFeatureSet
