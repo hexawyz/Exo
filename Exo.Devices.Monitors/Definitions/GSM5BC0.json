@@ -27,6 +27,10 @@
                     "nameStringId": "e383e29e-60c3-44a5-a761-b08f96a200a7"
                 }
             ]
+        },
+        {
+            "vcpCode": 135,
+            "feature": "sharpness"
         }
     ]
 }
