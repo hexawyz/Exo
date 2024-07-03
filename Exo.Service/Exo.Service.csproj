@@ -35,6 +35,7 @@
 		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
 		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
 		<ProjectReference Include="..\DeviceTools.Numerics\DeviceTools.Numerics.csproj" />
+		<ProjectReference Include="..\Exo.Archive\Exo.Archive.csproj" />
 		<ProjectReference Include="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
 		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
