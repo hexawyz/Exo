@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings;
@@ -9,8 +10,5 @@ public sealed class MetadataSourceChangeNotification
 	public required WatchNotificationKind NotificationKind { get; init; }
 
 	[DataMember(Order = 2)]
-	public required MetadataArchiveCategory Category { get; init; }
-
-	[DataMember(Order = 3)]
-	public required string ArchivePath { get; init; }
+	public required ImmutableArray<MetadataSourceInformation> Sources { get; init; }
 }

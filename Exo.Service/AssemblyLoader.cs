@@ -245,8 +245,12 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 			_ => throw new InvalidOperationException(),
 		};
 
-	private static MetadataSourceChangeNotification CreateNotification(WatchNotificationKind kind, string assemblyPath, MetadataArchiveCategory category, int extensionLength)
-		=> new(kind, category, $"{assemblyPath.AsSpan(0, assemblyPath.Length - extensionLength)}{GetCategorySuffix(category)}");
+	private static MetadataSourceInformation CreateSourceInformation(string assemblyPath, MetadataArchiveCategory category, int extensionLength)
+		=> new()
+		{
+			Category = category,
+			ArchivePath = $"{assemblyPath.AsSpan(0, assemblyPath.Length - extensionLength)}{GetCategorySuffix(category)}"
+		};
 
 	public async IAsyncEnumerable<MetadataSourceChangeNotification> WatchMetadataSourceChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
@@ -261,28 +265,32 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 
 		try
 		{
+			var sourceBuilder = ImmutableArray.CreateBuilder<MetadataSourceInformation>();
 			foreach (var entry in loadedAssemblies)
 			{
 				if (entry.AvailableMetadataArchives == 0) continue;
 
 				int extensionLength = Path.GetExtension(entry.Path.AsSpan()).Length;
 
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.Strings, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.LightingEffects, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.LightingZones, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.Sensors, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(WatchNotificationKind.Enumeration, entry.Path, MetadataArchiveCategory.Coolers, extensionLength);
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Strings) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.Strings, extensionLength));
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.LightingEffects, extensionLength));
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.LightingZones, extensionLength));
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.Sensors, extensionLength));
+				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.Coolers, extensionLength));
 			}
+			yield return new(WatchNotificationKind.Enumeration, sourceBuilder.DrainToImmutable());
 
 			await foreach (var (kind, assemblyPath, availableMetadataArchives) in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 			{
 				int extensionLength = Path.GetExtension(assemblyPath.AsSpan()).Length;
 
-				if ((availableMetadataArchives & MetadataArchiveCategories.Strings) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.Strings, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.LightingEffects, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.LightingZones, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.Sensors, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) yield return CreateNotification(kind, assemblyPath, MetadataArchiveCategory.Coolers, extensionLength);
+				if ((availableMetadataArchives & MetadataArchiveCategories.Strings) != 0) sourceBuilder.Add(CreateSourceInformation(assemblyPath, MetadataArchiveCategory.Strings, extensionLength));
+				if ((availableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) sourceBuilder.Add(CreateSourceInformation(assemblyPath, MetadataArchiveCategory.LightingEffects, extensionLength));
+				if ((availableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) sourceBuilder.Add(CreateSourceInformation(assemblyPath, MetadataArchiveCategory.LightingZones, extensionLength));
+				if ((availableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) sourceBuilder.Add(CreateSourceInformation(assemblyPath, MetadataArchiveCategory.Sensors, extensionLength));
+				if ((availableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) sourceBuilder.Add(CreateSourceInformation(assemblyPath, MetadataArchiveCategory.Coolers, extensionLength));
+
+				yield return new(kind, sourceBuilder.DrainToImmutable());
 			}
 		}
 		finally

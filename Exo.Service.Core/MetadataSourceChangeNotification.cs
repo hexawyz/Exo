@@ -1,15 +1,15 @@
+using System.Collections.Immutable;
+
 namespace Exo.Service;
 
 public readonly struct MetadataSourceChangeNotification
 {
 	public WatchNotificationKind NotificationKind { get; }
-	public MetadataArchiveCategory Category { get; }
-	public string ArchivePath { get; }
+	public ImmutableArray<MetadataSourceInformation> Sources { get; }
 
-	public MetadataSourceChangeNotification(WatchNotificationKind notificationKind, MetadataArchiveCategory category, string archivePath)
+	public MetadataSourceChangeNotification(WatchNotificationKind notificationKind, ImmutableArray<MetadataSourceInformation> sources)
 	{
 		NotificationKind = notificationKind;
-		Category = category;
-		ArchivePath = archivePath;
+		Sources = sources;
 	}
 }

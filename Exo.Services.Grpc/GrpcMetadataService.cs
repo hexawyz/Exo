@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 
@@ -27,8 +28,15 @@ internal sealed class GrpcMetadataService : IMetadataService
 			yield return new Contracts.Ui.Settings.MetadataSourceChangeNotification
 			{
 				NotificationKind = notification.NotificationKind.ToGrpc(),
-				Category = notification.Category.ToGrpc(),
-				ArchivePath = notification.ArchivePath,
+				Sources = ImmutableArray.CreateRange
+				(
+					notification.Sources,
+					s => new Contracts.Ui.Settings.MetadataSourceInformation()
+					{
+						Category = s.Category.ToGrpc(),
+						ArchivePath = s.ArchivePath,
+					}
+				),
 			};
 		}
 	}

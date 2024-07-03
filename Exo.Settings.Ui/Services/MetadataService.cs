@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui;
@@ -81,35 +82,54 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 		_lightingZoneMetadataResolver = new();
 		_sensorMetadataResolver = new();
 		_coolerMetadataResolver = new();
-		if (_availabilitySignal is TaskCompletionSource tcs)
-		{
-			tcs.TrySetResult();
-			_availabilitySignal = Task.CompletedTask;
-		}
 		await foreach (var notification in metadataService.WatchMetadataSourceChangesAsync(cancellationToken))
 		{
-			MetadataResolver resolver = notification.Category switch
-			{
-				MetadataArchiveCategory.Strings => _stringMetadataResolver,
-				MetadataArchiveCategory.LightingEffects => _lightingEffectMetadataResolver,
-				MetadataArchiveCategory.LightingZones => _lightingZoneMetadataResolver,
-				MetadataArchiveCategory.Sensors => _sensorMetadataResolver,
-				MetadataArchiveCategory.Coolers => _coolerMetadataResolver,
-				_ => throw new InvalidOperationException(),
-			};
-
 			switch (notification.NotificationKind)
 			{
 			case WatchNotificationKind.Enumeration:
+				AddArchives(notification.Sources);
+				if (_availabilitySignal is TaskCompletionSource tcs)
+				{
+					tcs.TrySetResult();
+					_availabilitySignal = Task.CompletedTask;
+				}
+				break;
 			case WatchNotificationKind.Addition:
-				resolver.AddArchive(notification.ArchivePath);
+				AddArchives(notification.Sources);
 				break;
 			case WatchNotificationKind.Removal:
-				resolver.RemoveArchive(notification.ArchivePath);
+				RemoveArchives(notification.Sources);
 				break;
 			}
 		}
 	}
+
+	private void AddArchives(ImmutableArray<MetadataSourceInformation> sources)
+	{
+		foreach (var source in sources)
+		{
+			GetResolver(source.Category).AddArchive(source.ArchivePath);
+		}
+	}
+
+	private void RemoveArchives(ImmutableArray<MetadataSourceInformation> sources)
+	{
+		foreach (var source in sources)
+		{
+			GetResolver(source.Category).RemoveArchive(source.ArchivePath);
+		}
+	}
+
+	private MetadataResolver GetResolver(MetadataArchiveCategory category)
+		=> category switch
+		{
+			MetadataArchiveCategory.Strings => _stringMetadataResolver!,
+			MetadataArchiveCategory.LightingEffects => _lightingEffectMetadataResolver!,
+			MetadataArchiveCategory.LightingZones => _lightingZoneMetadataResolver!,
+			MetadataArchiveCategory.Sensors => _sensorMetadataResolver!,
+			MetadataArchiveCategory.Coolers => _coolerMetadataResolver!,
+			_ => throw new InvalidOperationException(),
+		};
 
 	void IConnectedState.Reset() => Reset();
 
