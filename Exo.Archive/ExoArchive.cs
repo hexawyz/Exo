@@ -237,27 +237,37 @@ internal readonly struct ExoArchiveHashTableEntry
 /// </remarks>
 public sealed class InMemoryExoArchiveBuilder
 {
-	private readonly struct Entry
+	private readonly struct Key(ulong hash1, ulong hash2)
 	{
-		public readonly ulong Hash1;
-		public readonly ulong Hash2;
+		public readonly ulong Hash1 = hash1;
+		public readonly ulong Hash2 = hash2;
+	}
+
+	private readonly struct File
+	{
+		public readonly ImmutableArray<Key> Keys;
 		public readonly ImmutableArray<byte> Data;
 
-		public Entry(ulong hash1, ulong hash2, ImmutableArray<byte> data)
+		public File(ulong hash1, ulong hash2, ImmutableArray<byte> data)
 		{
-			Hash1 = hash1;
-			Hash2 = hash2;
+			Keys = [new(hash1, hash2)];
+			Data = data;
+		}
+
+		public File(ImmutableArray<Key> keys, ImmutableArray<byte> data)
+		{
+			Keys = keys;
 			Data = data;
 		}
 	}
 
 	private readonly HashSet<ulong> _hashes;
-	private readonly List<Entry> _entries;
+	private readonly List<File> _file;
 
 	public InMemoryExoArchiveBuilder()
 	{
 		_hashes = new();
-		_entries = new();
+		_file = new();
 	}
 
 	public void AddFile(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
@@ -267,7 +277,7 @@ public sealed class InMemoryExoArchiveBuilder
 
 		if (!_hashes.Add(hash2)) throw new InvalidOperationException("An entry with the same hash has already been added.");
 
-		_entries.Add(new(hash1, hash2, data.ToImmutableArray()));
+		_file.Add(new(hash1, hash2, data.ToImmutableArray()));
 	}
 
 	public void AddFile(ReadOnlySpan<byte> key, ImmutableArray<byte> data)
@@ -277,16 +287,81 @@ public sealed class InMemoryExoArchiveBuilder
 
 		if (!_hashes.Add(hash2)) throw new InvalidOperationException("An entry with the same hash has already been added.");
 
-		_entries.Add(new(hash1, hash2, data));
+		_file.Add(new(hash1, hash2, data));
+	}
+
+	public void AddFile(ReadOnlySpan<byte> keys, ReadOnlySpan<int> keyLengths, ReadOnlySpan<byte> data)
+	{
+		var fileKeys = new Key[keyLengths.Length];
+		int offset = 0;
+		for (int i = 0; i < keyLengths.Length; i++)
+		{
+			int keyLength = keyLengths[i];
+			var key = keys.Slice(offset, keyLength);
+			offset += keyLength;
+
+			ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
+			ulong hash2 = XxHash3.HashToUInt64(key, 0);
+
+			if (!_hashes.Add(hash2))
+			{
+				// Rollback registration of the previous keys.
+				for (int j = 0; j < i; j++)
+				{
+					_hashes.Remove(fileKeys[j].Hash2);
+				}
+				throw new InvalidOperationException("An entry with the same hash has already been added.");
+			}
+
+			fileKeys[i] = new(hash1, hash2);
+		}
+
+		_file.Add(new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), data.ToImmutableArray()));
+	}
+
+	public void AddFile(ReadOnlySpan<byte> keys, ReadOnlySpan<int> keyLengths, ImmutableArray<byte> data)
+	{
+		var fileKeys = new Key[keyLengths.Length];
+		int offset = 0;
+		for (int i = 0; i < keyLengths.Length; i++)
+		{
+			int keyLength = keyLengths[i];
+			var key = keys.Slice(offset, keyLength);
+			offset += keyLength;
+
+			ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
+			ulong hash2 = XxHash3.HashToUInt64(key, 0);
+
+			if (!_hashes.Add(hash2))
+			{
+				// Rollback registration of the previous keys.
+				for (int j = 0; j < i; j++)
+				{
+					_hashes.Remove(fileKeys[j].Hash2);
+				}
+				throw new InvalidOperationException("An entry with the same hash has already been added.");
+			}
+
+			fileKeys[i] = new(hash1, hash2);
+		}
+
+		_file.Add(new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), data));
 	}
 
 	public async ValueTask SaveAsync(string fileName, CancellationToken cancellationToken)
 	{
 		const uint BlockSize = 8;
 
-		static byte[] BuildEntries(List<Entry> sourceEntries)
+		static byte[] BuildEntries(List<File> sourceEntries)
 		{
-			uint hashTableLength = BitOperations.RoundUpToPowerOf2((uint)sourceEntries.Count);
+			int keyCount = 0;
+
+			foreach (var sourceEntry in sourceEntries)
+			{
+				keyCount += sourceEntry.Keys.Length;
+			}
+
+			uint hashTableLength = BitOperations.RoundUpToPowerOf2((uint)keyCount);
 
 		// NB: In the case where the entries would be too tightly packed, it would be better for us to just grow up widen the hash table.
 		// In order to do this, we'll do a first pass building the hash table, while keeping track of the number of times we have to skip an entry
@@ -301,28 +376,31 @@ public sealed class InMemoryExoArchiveBuilder
 
 			foreach (var sourceEntry in sourceEntries)
 			{
-				int referenceEntryIndex = (int)(sourceEntry.Hash1 & (hashTableLength - 1));
-				int i = referenceEntryIndex;
-				int retryCount = 0;
-
-				while (true)
+				foreach (var key in sourceEntry.Keys)
 				{
-					if (destinationEntries[i].BlockIndex + 1 == 0)
+					int referenceEntryIndex = (int)(key.Hash1 & (hashTableLength - 1));
+					int i = referenceEntryIndex;
+					int retryCount = 0;
+
+					while (true)
 					{
-						destinationEntries[i] = new(sourceEntry.Hash2, blockIndex, (uint)sourceEntry.Data.Length);
-						break;
+						if (destinationEntries[i].BlockIndex + 1 == 0)
+						{
+							destinationEntries[i] = new(key.Hash2, blockIndex, (uint)sourceEntry.Data.Length);
+							break;
+						}
+						i++;
+						retryCount++;
+						totalRetryCount++;
+						if (i == hashTableLength) i = 0;
+						if (i == referenceEntryIndex) throw new InvalidOperationException();
 					}
-					i++;
-					retryCount++;
-					totalRetryCount++;
-					if (i == hashTableLength) i = 0;
-					if (i == referenceEntryIndex) throw new InvalidOperationException();
-				}
 
-				if (retryCount > 0)
-				{
-					maxRetryCount = Math.Max(maxRetryCount, retryCount);
-					collisionCount++;
+					if (retryCount > 0)
+					{
+						maxRetryCount = Math.Max(maxRetryCount, retryCount);
+						collisionCount++;
+					}
 				}
 
 				var (q, r) = Math.DivRem((uint)sourceEntry.Data.Length, BlockSize);
@@ -342,7 +420,7 @@ public sealed class InMemoryExoArchiveBuilder
 			return buffer;
 		}
 
-		var entries = BuildEntries(_entries);
+		var entries = BuildEntries(_file);
 
 		using var file = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
 
@@ -362,7 +440,7 @@ public sealed class InMemoryExoArchiveBuilder
 			await file.WriteAsync(paddingBytes.AsMemory(0, (int)r), cancellationToken).ConfigureAwait(false);
 		}
 
-		foreach (var entry in _entries)
+		foreach (var entry in _file)
 		{
 			await file.WriteAsync(ImmutableCollectionsMarshal.AsArray(entry.Data), cancellationToken).ConfigureAwait(false);
 			r = (uint)entry.Data.Length % BlockSize;
