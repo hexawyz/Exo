@@ -39,7 +39,7 @@
             "maximumValue": 255
         },
         {
-            "vcpCode": 110,
+            "vcpCode": 112,
             "feature": "videoBlackLevelBlue",
             "maximumValue": 255
         },
