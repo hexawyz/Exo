@@ -410,74 +410,74 @@ public partial class GenericMonitorDriver
 					switch (feature.Feature)
 					{
 					case MonitorFeature.Brightness:
-						builder.AddBrightnessFeature(feature.VcpCode);
+						builder.AddBrightnessFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.Contrast:
-						builder.AddContrastFeature(feature.VcpCode);
+						builder.AddContrastFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.Sharpness:
-						builder.AddSharpnessFeature(feature.VcpCode);
+						builder.AddSharpnessFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.AudioVolume:
-						builder.AddAudioVolumeFeature(feature.VcpCode);
+						builder.AddAudioVolumeFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.InputSelect:
 						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);
 						builder.AddInputSelectFeature(feature.VcpCode, allowedValuesBuilder.DrainToImmutable());
 						break;
 					case MonitorFeature.VideoGainRed:
-						builder.AddRedVideoGainFeature(feature.VcpCode);
+						builder.AddRedVideoGainFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.VideoGainGreen:
-						builder.AddGreenVideoGainFeature(feature.VcpCode);
+						builder.AddGreenVideoGainFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.VideoGainBlue:
-						builder.AddBlueVideoGainFeature(feature.VcpCode);
+						builder.AddBlueVideoGainFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.VideoBlackLevelRed:
-						builder.AddRedVideoBlackLevelFeature(feature.VcpCode);
+						builder.AddRedVideoBlackLevelFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.VideoBlackLevelGreen:
-						builder.AddGreenVideoBlackLevelFeature(feature.VcpCode);
+						builder.AddGreenVideoBlackLevelFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.VideoBlackLevelBlue:
-						builder.AddBlueVideoBlackLevelFeature(feature.VcpCode);
+						builder.AddBlueVideoBlackLevelFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisSaturationControlRed:
-						builder.AddRedSixAxisSaturationControlFeature(feature.VcpCode);
+						builder.AddRedSixAxisSaturationControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisSaturationControlYellow:
-						builder.AddYellowSixAxisSaturationControlFeature(feature.VcpCode);
+						builder.AddYellowSixAxisSaturationControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisSaturationControlGreen:
-						builder.AddGreenSixAxisSaturationControlFeature(feature.VcpCode);
+						builder.AddGreenSixAxisSaturationControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisSaturationControlCyan:
-						builder.AddCyanSixAxisSaturationControlFeature(feature.VcpCode);
+						builder.AddCyanSixAxisSaturationControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisSaturationControlBlue:
-						builder.AddBlueSixAxisSaturationControlFeature(feature.VcpCode);
+						builder.AddBlueSixAxisSaturationControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisSaturationControlMagenta:
-						builder.AddMagentaSixAxisSaturationControlFeature(feature.VcpCode);
+						builder.AddMagentaSixAxisSaturationControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisHueControlRed:
-						builder.AddRedSixAxisHueControlFeature(feature.VcpCode);
+						builder.AddRedSixAxisHueControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisHueControlYellow:
-						builder.AddYellowSixAxisHueControlFeature(feature.VcpCode);
+						builder.AddYellowSixAxisHueControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisHueControlGreen:
-						builder.AddGreenSixAxisHueControlFeature(feature.VcpCode);
+						builder.AddGreenSixAxisHueControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisHueControlCyan:
-						builder.AddCyanSixAxisHueControlFeature(feature.VcpCode);
+						builder.AddCyanSixAxisHueControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisHueControlBlue:
-						builder.AddBlueSixAxisHueControlFeature(feature.VcpCode);
+						builder.AddBlueSixAxisHueControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.SixAxisHueControlMagenta:
-						builder.AddMagentaSixAxisHueControlFeature(feature.VcpCode);
+						builder.AddMagentaSixAxisHueControlFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.InputLag:
 						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);
@@ -488,7 +488,7 @@ public partial class GenericMonitorDriver
 						builder.AddResponseTimeFeature(feature.VcpCode, allowedValuesBuilder.DrainToImmutable());
 						break;
 					case MonitorFeature.BlueLightFilterLevel:
-						builder.AddBlueLightFilterLevelFeature(feature.VcpCode);
+						builder.AddBlueLightFilterLevelFeature(feature.VcpCode, feature.MinimumValue, feature.MaximumValue);
 						break;
 					case MonitorFeature.OsdLanguage:
 						WriteDiscreteValues(allowedValuesBuilder, feature.DiscreteValues);

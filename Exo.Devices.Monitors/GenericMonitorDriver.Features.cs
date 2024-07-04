@@ -14,35 +14,42 @@ public partial class GenericMonitorDriver
 	/// </remarks>
 	protected class MonitorFeatureSetBuilder
 	{
+		private struct FeatureInfo
+		{
+			public byte VcpCode;
+			public ushort? MinimumValue;
+			public ushort? MaximumValue;
+		}
+
 		private SupportedFeatures _supportedFeatures;
 
-		private byte _brightnessVcpCode;
-		private byte _contrastVcpCode;
-		private byte _sharpnessVcpCode;
-		private byte _audioVolumeVcpCode;
+		private FeatureInfo _brightnessInfo;
+		private FeatureInfo _contrastInfo;
+		private FeatureInfo _sharpnessInfo;
+		private FeatureInfo _audioVolumeInfo;
 		private byte _inputSelectVcpCode;
-		private byte _redVideoGainVcpCode;
-		private byte _greenVideoGainVcpCode;
-		private byte _blueVideoGainVcpCode;
-		private byte _redVideoBlackLevelVcpCode;
-		private byte _greenVideoBlackLevelVcpCode;
-		private byte _blueVideoBlackLevelVcpCode;
-		private byte _redSixAxisSaturationControlVcpCode;
-		private byte _yellowSixAxisSaturationControlVcpCode;
-		private byte _greenSixAxisSaturationControlVcpCode;
-		private byte _cyanSixAxisSaturationControlVcpCode;
-		private byte _blueSixAxisSaturationControlVcpCode;
-		private byte _magentaSixAxisSaturationControlVcpCode;
-		private byte _redSixAxisHueControlVcpCode;
-		private byte _yellowSixAxisHueControlVcpCode;
-		private byte _greenSixAxisHueControlVcpCode;
-		private byte _cyanSixAxisHueControlVcpCode;
-		private byte _blueSixAxisHueControlVcpCode;
-		private byte _magentaSixAxisHueControlVcpCode;
+		private FeatureInfo _redVideoGainInfo;
+		private FeatureInfo _greenVideoGainInfo;
+		private FeatureInfo _blueVideoGainInfo;
+		private FeatureInfo _redVideoBlackLevelInfo;
+		private FeatureInfo _greenVideoBlackLevelInfo;
+		private FeatureInfo _blueVideoBlackLevelInfo;
+		private FeatureInfo _redSixAxisSaturationControlInfo;
+		private FeatureInfo _yellowSixAxisSaturationControlInfo;
+		private FeatureInfo _greenSixAxisSaturationControlInfo;
+		private FeatureInfo _cyanSixAxisSaturationControlInfo;
+		private FeatureInfo _blueSixAxisSaturationControlInfo;
+		private FeatureInfo _magentaSixAxisSaturationControlInfo;
+		private FeatureInfo _redSixAxisHueControlInfo;
+		private FeatureInfo _yellowSixAxisHueControlInfo;
+		private FeatureInfo _greenSixAxisHueControlInfo;
+		private FeatureInfo _cyanSixAxisHueControlInfo;
+		private FeatureInfo _blueSixAxisHueControlInfo;
+		private FeatureInfo _magentaSixAxisHueControlInfo;
 		private byte _osdLanguageVcpCode;
 		private byte _responseTimeVcpCode;
 		private byte _inputLagVcpCode;
-		private byte _blueLightFilterLevelVcpCode;
+		private FeatureInfo _blueLightFilterLevelInfo;
 		private byte _powerIndicatorVcpCode;
 
 		private ushort _powerIndicatorOffValue;
@@ -59,6 +66,14 @@ public partial class GenericMonitorDriver
 			vcpCodeStorage = vcpCode;
 		}
 
+		private void AddFeature(ref FeatureInfo featureInfoStorage, SupportedFeatures supportedFeature, byte vcpCode, ushort? minimumValue, ushort? maximumValue)
+		{
+			_supportedFeatures |= supportedFeature;
+			featureInfoStorage.VcpCode = vcpCode;
+			featureInfoStorage.MinimumValue = minimumValue;
+			featureInfoStorage.MaximumValue = maximumValue;
+		}
+
 		private void AddFeature(ref byte vcpCodeStorage, ref ImmutableArray<NonContinuousValueDescription> allowedValueStorage, SupportedFeatures supportedFeature, byte vcpCode, ImmutableArray<NonContinuousValueDescription> allowedValues)
 		{
 			_supportedFeatures |= supportedFeature;
@@ -68,29 +83,29 @@ public partial class GenericMonitorDriver
 
 		public virtual void AddCapabilitiesFeature() => _supportedFeatures |= SupportedFeatures.Capabilities;
 
-		public virtual void AddBrightnessFeature(byte vcpCode) => AddFeature(ref _brightnessVcpCode, SupportedFeatures.Brightness, vcpCode);
-		public virtual void AddContrastFeature(byte vcpCode) => AddFeature(ref _contrastVcpCode, SupportedFeatures.Contrast, vcpCode);
-		public virtual void AddSharpnessFeature(byte vcpCode) => AddFeature(ref _sharpnessVcpCode, SupportedFeatures.Sharpness, vcpCode);
-		public virtual void AddAudioVolumeFeature(byte vcpCode) => AddFeature(ref _audioVolumeVcpCode, SupportedFeatures.AudioVolume, vcpCode);
-		public virtual void AddRedVideoGainFeature(byte vcpCode) => AddFeature(ref _redVideoGainVcpCode, SupportedFeatures.VideoGainRed, vcpCode);
-		public virtual void AddGreenVideoGainFeature(byte vcpCode) => AddFeature(ref _greenVideoGainVcpCode, SupportedFeatures.VideoGainGreen, vcpCode);
-		public virtual void AddBlueVideoGainFeature(byte vcpCode) => AddFeature(ref _blueVideoGainVcpCode, SupportedFeatures.VideoGainBlue, vcpCode);
-		public virtual void AddRedVideoBlackLevelFeature(byte vcpCode) => AddFeature(ref _redVideoBlackLevelVcpCode, SupportedFeatures.VideoBlackLevelRed, vcpCode);
-		public virtual void AddGreenVideoBlackLevelFeature(byte vcpCode) => AddFeature(ref _greenVideoBlackLevelVcpCode, SupportedFeatures.VideoBlackLevelGreen, vcpCode);
-		public virtual void AddBlueVideoBlackLevelFeature(byte vcpCode) => AddFeature(ref _blueVideoBlackLevelVcpCode, SupportedFeatures.VideoBlackLevelBlue, vcpCode);
-		public virtual void AddRedSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _redSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlRed, vcpCode);
-		public virtual void AddYellowSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _yellowSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlYellow, vcpCode);
-		public virtual void AddGreenSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _greenSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlGreen, vcpCode);
-		public virtual void AddCyanSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _cyanSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlCyan, vcpCode);
-		public virtual void AddBlueSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _blueSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlBlue, vcpCode);
-		public virtual void AddMagentaSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _magentaSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlMagenta, vcpCode);
-		public virtual void AddRedSixAxisHueControlFeature(byte vcpCode) => AddFeature(ref _redSixAxisHueControlVcpCode, SupportedFeatures.SixAxisHueControlRed, vcpCode);
-		public virtual void AddYellowSixAxisHueControlFeature(byte vcpCode) => AddFeature(ref _yellowSixAxisHueControlVcpCode, SupportedFeatures.SixAxisHueControlYellow, vcpCode);
-		public virtual void AddGreenSixAxisHueControlFeature(byte vcpCode) => AddFeature(ref _greenSixAxisHueControlVcpCode, SupportedFeatures.SixAxisHueControlGreen, vcpCode);
-		public virtual void AddCyanSixAxisHueControlFeature(byte vcpCode) => AddFeature(ref _cyanSixAxisHueControlVcpCode, SupportedFeatures.SixAxisHueControlCyan, vcpCode);
-		public virtual void AddBlueSixAxisHueControlFeature(byte vcpCode) => AddFeature(ref _blueSixAxisHueControlVcpCode, SupportedFeatures.SixAxisHueControlBlue, vcpCode);
-		public virtual void AddMagentaSixAxisHueControlFeature(byte vcpCode) => AddFeature(ref _magentaSixAxisHueControlVcpCode, SupportedFeatures.SixAxisHueControlMagenta, vcpCode);
-		public virtual void AddBlueLightFilterLevelFeature(byte vcpCode) => AddFeature(ref _blueLightFilterLevelVcpCode, SupportedFeatures.BlueLightFilterLevel, vcpCode);
+		public virtual void AddBrightnessFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _brightnessInfo, SupportedFeatures.Brightness, vcpCode, minimumValue, maximumValue);
+		public virtual void AddContrastFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _contrastInfo, SupportedFeatures.Contrast, vcpCode, minimumValue, maximumValue);
+		public virtual void AddSharpnessFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _sharpnessInfo, SupportedFeatures.Sharpness, vcpCode, minimumValue, maximumValue);
+		public virtual void AddAudioVolumeFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _audioVolumeInfo, SupportedFeatures.AudioVolume, vcpCode, minimumValue, maximumValue);
+		public virtual void AddRedVideoGainFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _redVideoGainInfo, SupportedFeatures.VideoGainRed, vcpCode, minimumValue, maximumValue);
+		public virtual void AddGreenVideoGainFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _greenVideoGainInfo, SupportedFeatures.VideoGainGreen, vcpCode, minimumValue, maximumValue);
+		public virtual void AddBlueVideoGainFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _blueVideoGainInfo, SupportedFeatures.VideoGainBlue, vcpCode, minimumValue, maximumValue);
+		public virtual void AddRedVideoBlackLevelFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _redVideoBlackLevelInfo, SupportedFeatures.VideoBlackLevelRed, vcpCode, minimumValue, maximumValue);
+		public virtual void AddGreenVideoBlackLevelFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _greenVideoBlackLevelInfo, SupportedFeatures.VideoBlackLevelGreen, vcpCode, minimumValue, maximumValue);
+		public virtual void AddBlueVideoBlackLevelFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _blueVideoBlackLevelInfo, SupportedFeatures.VideoBlackLevelBlue, vcpCode, minimumValue, maximumValue);
+		public virtual void AddRedSixAxisSaturationControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _redSixAxisSaturationControlInfo, SupportedFeatures.SixAxisSaturationControlRed, vcpCode, minimumValue, maximumValue);
+		public virtual void AddYellowSixAxisSaturationControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _yellowSixAxisSaturationControlInfo, SupportedFeatures.SixAxisSaturationControlYellow, vcpCode, minimumValue, maximumValue);
+		public virtual void AddGreenSixAxisSaturationControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _greenSixAxisSaturationControlInfo, SupportedFeatures.SixAxisSaturationControlGreen, vcpCode, minimumValue, maximumValue);
+		public virtual void AddCyanSixAxisSaturationControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _cyanSixAxisSaturationControlInfo, SupportedFeatures.SixAxisSaturationControlCyan, vcpCode, minimumValue, maximumValue);
+		public virtual void AddBlueSixAxisSaturationControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _blueSixAxisSaturationControlInfo, SupportedFeatures.SixAxisSaturationControlBlue, vcpCode, minimumValue, maximumValue);
+		public virtual void AddMagentaSixAxisSaturationControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _magentaSixAxisSaturationControlInfo, SupportedFeatures.SixAxisSaturationControlMagenta, vcpCode, minimumValue, maximumValue);
+		public virtual void AddRedSixAxisHueControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _redSixAxisHueControlInfo, SupportedFeatures.SixAxisHueControlRed, vcpCode, minimumValue, maximumValue);
+		public virtual void AddYellowSixAxisHueControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _yellowSixAxisHueControlInfo, SupportedFeatures.SixAxisHueControlYellow, vcpCode, minimumValue, maximumValue);
+		public virtual void AddGreenSixAxisHueControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _greenSixAxisHueControlInfo, SupportedFeatures.SixAxisHueControlGreen, vcpCode, minimumValue, maximumValue);
+		public virtual void AddCyanSixAxisHueControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _cyanSixAxisHueControlInfo, SupportedFeatures.SixAxisHueControlCyan, vcpCode, minimumValue, maximumValue);
+		public virtual void AddBlueSixAxisHueControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _blueSixAxisHueControlInfo, SupportedFeatures.SixAxisHueControlBlue, vcpCode, minimumValue, maximumValue);
+		public virtual void AddMagentaSixAxisHueControlFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _magentaSixAxisHueControlInfo, SupportedFeatures.SixAxisHueControlMagenta, vcpCode, minimumValue, maximumValue);
+		public virtual void AddBlueLightFilterLevelFeature(byte vcpCode, ushort? minimumValue = null, ushort? maximumValue = null) => AddFeature(ref _blueLightFilterLevelInfo, SupportedFeatures.BlueLightFilterLevel, vcpCode, minimumValue, maximumValue);
 
 		public virtual void AddPowerIndicatorToggleFeature(byte vcpCode, ushort offValue, ushort onValue)
 		{
@@ -121,73 +136,73 @@ public partial class GenericMonitorDriver
 			=> driver;
 
 		protected virtual IMonitorBrightnessFeature? CreateBrightnessFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.Brightness) != 0 ? new BrightnessFeature(driver, _brightnessVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.Brightness) != 0 ? new BrightnessFeature(driver, _brightnessInfo.VcpCode, _brightnessInfo.MinimumValue, _brightnessInfo.MaximumValue) : null;
 
 		protected virtual IMonitorContrastFeature? CreateContrastFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.Contrast) != 0 ? new ContrastFeature(driver, _contrastVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.Contrast) != 0 ? new ContrastFeature(driver, _contrastInfo.VcpCode, _contrastInfo.MinimumValue, _contrastInfo.MaximumValue) : null;
 
 		protected virtual IMonitorSharpnessFeature? CreateSharpnessFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.Sharpness) != 0 ? new SharpnessFeature(driver, _sharpnessVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.Sharpness) != 0 ? new SharpnessFeature(driver, _sharpnessInfo.VcpCode, _sharpnessInfo.MinimumValue, _sharpnessInfo.MaximumValue) : null;
 
 		protected virtual IMonitorSpeakerAudioVolumeFeature? CreateAudioVolumeFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.AudioVolume) != 0 ? new SpeakerAudioVolumeFeature(driver, _audioVolumeVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.AudioVolume) != 0 ? new SpeakerAudioVolumeFeature(driver, _audioVolumeInfo.VcpCode, _audioVolumeInfo.MinimumValue, _audioVolumeInfo.MaximumValue) : null;
 
 		protected virtual IMonitorRedVideoGainFeature? CreateRedVideoGainFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.VideoGainRed) != 0 ? new RedVideoGainFeature(driver, _redVideoGainVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.VideoGainRed) != 0 ? new RedVideoGainFeature(driver, _redVideoGainInfo.VcpCode, _redVideoGainInfo.MinimumValue, _redVideoGainInfo.MaximumValue) : null;
 
 		protected virtual IMonitorGreenVideoGainFeature? CreateGreenVideoGainFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.VideoGainGreen) != 0 ? new GreenVideoGainFeature(driver, _greenVideoGainVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.VideoGainGreen) != 0 ? new GreenVideoGainFeature(driver, _greenVideoGainInfo.VcpCode, _greenVideoGainInfo.MinimumValue, _greenVideoGainInfo.MaximumValue) : null;
 
 		protected virtual IMonitorBlueVideoGainFeature? CreateBlueVideoGainFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.VideoGainBlue) != 0 ? new BlueVideoGainFeature(driver, _blueVideoGainVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.VideoGainBlue) != 0 ? new BlueVideoGainFeature(driver, _blueVideoGainInfo.VcpCode, _blueVideoGainInfo.MinimumValue, _blueVideoGainInfo.MaximumValue) : null;
 
 		protected virtual IMonitorRedVideoBlackLevelFeature? CreateRedVideoBlackLevelFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelRed) != 0 ? new RedVideoBlackLevelFeature(driver, _redVideoBlackLevelVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelRed) != 0 ? new RedVideoBlackLevelFeature(driver, _redVideoBlackLevelInfo.VcpCode, _redVideoBlackLevelInfo.MinimumValue, _redVideoBlackLevelInfo.MaximumValue) : null;
 
 		protected virtual IMonitorGreenVideoBlackLevelFeature? CreateGreenVideoBlackLevelFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelGreen) != 0 ? new GreenVideoBlackLevelFeature(driver, _greenVideoBlackLevelVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelGreen) != 0 ? new GreenVideoBlackLevelFeature(driver, _greenVideoBlackLevelInfo.VcpCode, _greenVideoBlackLevelInfo.MinimumValue, _greenVideoBlackLevelInfo.MaximumValue) : null;
 
 		protected virtual IMonitorBlueVideoBlackLevelFeature? CreateBlueVideoBlackLevelFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelBlue) != 0 ? new BlueVideoBlackLevelFeature(driver, _blueVideoBlackLevelVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelBlue) != 0 ? new BlueVideoBlackLevelFeature(driver, _blueVideoBlackLevelInfo.VcpCode, _blueVideoBlackLevelInfo.MinimumValue, _blueVideoBlackLevelInfo.MaximumValue) : null;
 
 		protected virtual IMonitorRedSixAxisSaturationControlFeature? CreateRedSixAxisSaturationControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlRed) != 0 ? new RedSixAxisSaturationControlFeature(driver, _redSixAxisSaturationControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlRed) != 0 ? new RedSixAxisSaturationControlFeature(driver, _redSixAxisSaturationControlInfo.VcpCode, _redSixAxisSaturationControlInfo.MinimumValue, _redSixAxisSaturationControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorYellowSixAxisSaturationControlFeature? CreateYellowSixAxisSaturationControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlYellow) != 0 ? new YellowSixAxisSaturationControlFeature(driver, _yellowSixAxisSaturationControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlYellow) != 0 ? new YellowSixAxisSaturationControlFeature(driver, _yellowSixAxisSaturationControlInfo.VcpCode, _yellowSixAxisSaturationControlInfo.MinimumValue, _yellowSixAxisSaturationControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorGreenSixAxisSaturationControlFeature? CreateGreenSixAxisSaturationControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlGreen) != 0 ? new GreenSixAxisSaturationControlFeature(driver, _greenSixAxisSaturationControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlGreen) != 0 ? new GreenSixAxisSaturationControlFeature(driver, _greenSixAxisSaturationControlInfo.VcpCode, _greenSixAxisSaturationControlInfo.MinimumValue, _greenSixAxisSaturationControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorCyanSixAxisSaturationControlFeature? CreateCyanSixAxisSaturationControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlCyan) != 0 ? new CyanSixAxisSaturationControlFeature(driver, _cyanSixAxisSaturationControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlCyan) != 0 ? new CyanSixAxisSaturationControlFeature(driver, _cyanSixAxisSaturationControlInfo.VcpCode, _cyanSixAxisSaturationControlInfo.MinimumValue, _cyanSixAxisSaturationControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorBlueSixAxisSaturationControlFeature? CreateBlueSixAxisSaturationControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlBlue) != 0 ? new BlueSixAxisSaturationControlFeature(driver, _blueSixAxisSaturationControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlBlue) != 0 ? new BlueSixAxisSaturationControlFeature(driver, _blueSixAxisSaturationControlInfo.VcpCode, _blueSixAxisSaturationControlInfo.MinimumValue, _blueSixAxisSaturationControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorMagentaSixAxisSaturationControlFeature? CreateMagentaSixAxisSaturationControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlMagenta) != 0 ? new MagentaSixAxisSaturationControlFeature(driver, _magentaSixAxisSaturationControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlMagenta) != 0 ? new MagentaSixAxisSaturationControlFeature(driver, _magentaSixAxisSaturationControlInfo.VcpCode, _magentaSixAxisSaturationControlInfo.MinimumValue, _magentaSixAxisSaturationControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorRedSixAxisHueControlFeature? CreateRedSixAxisHueControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlRed) != 0 ? new RedSixAxisHueControlFeature(driver, _redSixAxisHueControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlRed) != 0 ? new RedSixAxisHueControlFeature(driver, _redSixAxisHueControlInfo.VcpCode, _redSixAxisHueControlInfo.MinimumValue, _redSixAxisHueControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorYellowSixAxisHueControlFeature? CreateYellowSixAxisHueControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlYellow) != 0 ? new YellowSixAxisHueControlFeature(driver, _yellowSixAxisHueControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlYellow) != 0 ? new YellowSixAxisHueControlFeature(driver, _yellowSixAxisHueControlInfo.VcpCode, _yellowSixAxisHueControlInfo.MinimumValue, _yellowSixAxisHueControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorGreenSixAxisHueControlFeature? CreateGreenSixAxisHueControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlGreen) != 0 ? new GreenSixAxisHueControlFeature(driver, _greenSixAxisHueControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlGreen) != 0 ? new GreenSixAxisHueControlFeature(driver, _greenSixAxisHueControlInfo.VcpCode, _greenSixAxisHueControlInfo.MinimumValue, _greenSixAxisHueControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorCyanSixAxisHueControlFeature? CreateCyanSixAxisHueControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0 ? new CyanSixAxisHueControlFeature(driver, _cyanSixAxisHueControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlCyan) != 0 ? new CyanSixAxisHueControlFeature(driver, _cyanSixAxisHueControlInfo.VcpCode, _cyanSixAxisHueControlInfo.MinimumValue, _cyanSixAxisHueControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorBlueSixAxisHueControlFeature? CreateBlueSixAxisHueControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0 ? new BlueSixAxisHueControlFeature(driver, _blueSixAxisHueControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlBlue) != 0 ? new BlueSixAxisHueControlFeature(driver, _blueSixAxisHueControlInfo.VcpCode, _blueSixAxisHueControlInfo.MinimumValue, _blueSixAxisHueControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorMagentaSixAxisHueControlFeature? CreateMagentaSixAxisHueControlFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0 ? new MagentaSixAxisHueControlFeature(driver, _magentaSixAxisHueControlVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.SixAxisHueControlMagenta) != 0 ? new MagentaSixAxisHueControlFeature(driver, _magentaSixAxisHueControlInfo.VcpCode, _magentaSixAxisHueControlInfo.MinimumValue, _magentaSixAxisHueControlInfo.MaximumValue) : null;
 
 		protected virtual IMonitorBlueLightFilterLevelFeature? CreateBlueLightFilterLevelFeature(GenericMonitorDriver driver)
-			=> (_supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0 ? new BlueLightFilterLevelFeature(driver, _blueLightFilterLevelVcpCode) : null;
+			=> (_supportedFeatures & SupportedFeatures.BlueLightFilterLevel) != 0 ? new BlueLightFilterLevelFeature(driver, _blueLightFilterLevelInfo.VcpCode, _blueLightFilterLevelInfo.MinimumValue, _blueLightFilterLevelInfo.MaximumValue) : null;
 
 		protected virtual IMonitorInputLagFeature? CreateInputLagFeature(GenericMonitorDriver driver)
 			=> (_supportedFeatures & SupportedFeatures.InputLag) != 0 ? new InputLagFeature(driver, _inputLagVcpCode, _inputLagLevels) : null;
@@ -495,17 +510,38 @@ public partial class GenericMonitorDriver
 
 	protected abstract class ContinuousVcpFeature : IMonitorDeviceFeature, IContinuousVcpFeature
 	{
+		private const int FlagHasMinimumValue = 1;
+		private const int FlagHasMaximumValue = 2;
+
 		private readonly GenericMonitorDriver _driver;
 		private readonly byte _vcpCode;
+		private readonly byte _flags;
+		private readonly ushort _minimumValue;
+		private readonly ushort _maximumValue;
 
-		private protected ContinuousVcpFeature(GenericMonitorDriver driver, byte vcpCode)
+		private protected ContinuousVcpFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue)
 		{
 			_driver = driver;
 			_vcpCode = vcpCode;
+			_flags = (byte)((minimumValue.HasValue ? FlagHasMinimumValue : 0) | (maximumValue.HasValue ? FlagHasMaximumValue : 0));
+			_minimumValue = minimumValue.GetValueOrDefault();
+			_maximumValue = maximumValue.GetValueOrDefault();
 		}
 
-		public async ValueTask<ContinuousValue> GetValueAsync(CancellationToken cancellationToken)
-			=> await _driver.GetVcpAsync(_vcpCode, cancellationToken).ConfigureAwait(false);
+		public ValueTask<ContinuousValue> GetValueAsync(CancellationToken cancellationToken)
+			=> (_flags & (FlagHasMaximumValue | FlagHasMaximumValue)) == 0 ?
+				_driver.GetVcpAsync(_vcpCode, cancellationToken) :
+				GetValueWithOverrideAsync(cancellationToken);
+
+		private async ValueTask<ContinuousValue> GetValueWithOverrideAsync(CancellationToken cancellationToken)
+			=> OverrideBounds(await _driver.GetVcpAsync(_vcpCode, cancellationToken).ConfigureAwait(false));
+
+		private ContinuousValue OverrideBounds(ContinuousValue value)
+		{
+			byte flags = _flags;
+			// NB: The minimum always defaults to 0, so we don't need to check the flags for it.
+			return new ContinuousValue(value.Current, _minimumValue, (flags & FlagHasMaximumValue) != 0 ? _maximumValue : value.Maximum);
+		}
 
 		public ValueTask SetValueAsync(ushort value, CancellationToken cancellationToken)
 			=> _driver.SetVcpAsync(_vcpCode, value, cancellationToken);
@@ -569,38 +605,38 @@ public partial class GenericMonitorDriver
 			=> _driver.SetVcpAsync(_allowedValueSet, _vcpCode, value, cancellationToken);
 	}
 
-	protected sealed class BrightnessFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBrightnessFeature { }
-	protected sealed class ContrastFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorContrastFeature { }
-	protected sealed class SharpnessFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorSharpnessFeature { }
-	protected sealed class BlueLightFilterLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueLightFilterLevelFeature { }
+	protected sealed class BrightnessFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorBrightnessFeature { }
+	protected sealed class ContrastFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorContrastFeature { }
+	protected sealed class SharpnessFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorSharpnessFeature { }
+	protected sealed class BlueLightFilterLevelFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorBlueLightFilterLevelFeature { }
 
-	protected sealed class SpeakerAudioVolumeFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorSpeakerAudioVolumeFeature { }
+	protected sealed class SpeakerAudioVolumeFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorSpeakerAudioVolumeFeature { }
 
 	protected sealed class InputSelectFeature(GenericMonitorDriver driver, byte vcpCode, ImmutableArray<NonContinuousValueDescription> allowedValues)
 		: NonContinuousVcpFeature(driver, vcpCode, allowedValues), IMonitorInputSelectFeature
 	{ }
 
-	protected sealed class RedVideoGainFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedVideoGainFeature { }
-	protected sealed class GreenVideoGainFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorGreenVideoGainFeature { }
-	protected sealed class BlueVideoGainFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueVideoGainFeature { }
+	protected sealed class RedVideoGainFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorRedVideoGainFeature { }
+	protected sealed class GreenVideoGainFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorGreenVideoGainFeature { }
+	protected sealed class BlueVideoGainFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorBlueVideoGainFeature { }
 
-	protected sealed class RedVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedVideoBlackLevelFeature { }
-	protected sealed class GreenVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorGreenVideoBlackLevelFeature { }
-	protected sealed class BlueVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueVideoBlackLevelFeature { }
+	protected sealed class RedVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorRedVideoBlackLevelFeature { }
+	protected sealed class GreenVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorGreenVideoBlackLevelFeature { }
+	protected sealed class BlueVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorBlueVideoBlackLevelFeature { }
 
-	protected sealed class RedSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedSixAxisSaturationControlFeature { }
-	protected sealed class YellowSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorYellowSixAxisSaturationControlFeature { }
-	protected sealed class GreenSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorGreenSixAxisSaturationControlFeature { }
-	protected sealed class CyanSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorCyanSixAxisSaturationControlFeature { }
-	protected sealed class BlueSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueSixAxisSaturationControlFeature { }
-	protected sealed class MagentaSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorMagentaSixAxisSaturationControlFeature { }
+	protected sealed class RedSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorRedSixAxisSaturationControlFeature { }
+	protected sealed class YellowSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorYellowSixAxisSaturationControlFeature { }
+	protected sealed class GreenSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorGreenSixAxisSaturationControlFeature { }
+	protected sealed class CyanSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorCyanSixAxisSaturationControlFeature { }
+	protected sealed class BlueSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorBlueSixAxisSaturationControlFeature { }
+	protected sealed class MagentaSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorMagentaSixAxisSaturationControlFeature { }
 
-	protected sealed class RedSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedSixAxisHueControlFeature { }
-	protected sealed class YellowSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorYellowSixAxisHueControlFeature { }
-	protected sealed class GreenSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorGreenSixAxisHueControlFeature { }
-	protected sealed class CyanSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorCyanSixAxisHueControlFeature { }
-	protected sealed class BlueSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueSixAxisHueControlFeature { }
-	protected sealed class MagentaSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorMagentaSixAxisHueControlFeature { }
+	protected sealed class RedSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorRedSixAxisHueControlFeature { }
+	protected sealed class YellowSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorYellowSixAxisHueControlFeature { }
+	protected sealed class GreenSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorGreenSixAxisHueControlFeature { }
+	protected sealed class CyanSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorCyanSixAxisHueControlFeature { }
+	protected sealed class BlueSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorBlueSixAxisHueControlFeature { }
+	protected sealed class MagentaSixAxisHueControlFeature(GenericMonitorDriver driver, byte vcpCode, ushort? minimumValue, ushort? maximumValue) : ContinuousVcpFeature(driver, vcpCode, minimumValue, maximumValue), IMonitorMagentaSixAxisHueControlFeature { }
 
 	protected sealed class InputLagFeature(GenericMonitorDriver driver, byte vcpCode, ImmutableArray<NonContinuousValueDescription> allowedValues)
 		: NonContinuousVcpFeature(driver, vcpCode, allowedValues), IMonitorInputLagFeature
