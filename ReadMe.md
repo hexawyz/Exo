@@ -35,7 +35,7 @@ Exo currently support the following features, provided that there is a custom dr
 * Overlay notifications: Some of the other features will push notifications that will be displayed on screen.
 * RGB Lighting: Setting hardware effects is supported, dynamic ARGB lighting not yet ready.
 * Device battery status: The service will be aware of, and display the battery charge of your device, as well as show notifications for low battery, etc.
-* Monitor control: Brightness, Contrast, Audio Volume and Input Select. (If those settings are supported by the monitor)
+* Monitor control: Brightness, Contrast, Audio Volume, Input Select and various settings, if supported by the monitor. (A configuration system for overriding monitor details is available)
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
 * Mouse: The service can observe and display DPI changes.
 * GPU: Provide support for accessing connected monitors in non-interactive (service) mode.
@@ -364,3 +364,164 @@ Most drivers would also provide `ISensorsGroupedQueryFeature` as a means to effi
 #### `ICoolingDeviceFeature`: Cooling features
 
 All devices having a controllable cooler would usually expose it through the `ICoolingControllerFeature` interface.
+
+# Adding a monitor configuration
+
+Support for various monitors can be improved or greatly improved by providing a custom configuration for your monitor.
+
+Custom monitor configurations are located in [Exo.Devices.Monitors/Definitions](Exo.Devices.Monitors/Definitions/) in JSON format.
+Those configurations will be parsed transformed into binary format during the build, in order to provide efficient runtime lookup.
+
+## Determine if a custom configuration is needed
+
+In all cases, you will need some degree of understanding of the VESA MCCS 2.2 specification. If you understand what is the capabilities string and what are VCP codes, you're probably good to go.
+
+You may need a custom monitor configuration if:
+
+* You want to provide a custom friendly name for the model of your monitor
+* Your monitor incorrectly exposes VCP features, or if some of the exposed features are buggy (e.g. do not do what is expected)
+* Some of the features that your monitor actually provides are not advertised in the capabilities string
+* Features of your monitor have an unusual, non-standard mapping. (i.e. the VCP codes do not match the MCCS spec)
+* Your monitor supports some of the custom features provided by Exo, and you want to enable them for your monitor:
+	* Input lag
+	* Response time
+	* Blue light filter
+	* On/Off power indicator
+* You need to customize the text for discrete values of a setting such as input select
+
+## Format of a custom configuration
+
+The custom configuration model is defined in [Exo.Core/Monitors/MonitorDefinition.cs](Exo.Core/Monitors/MonitorDefinition.cs).
+
+````json
+{
+	// Friendly name that will be used for the device
+	"name": "BRAND Monitor",
+	// Can override the capabilities string if desired. May be especially useful for monitors with a bogus capabilities string.
+	"capabilities": null,
+	// Provide manual overrides of some monitor features
+	"overriddenFeatures": [
+		// Provide a configuration to define the power indicator feature of the monitor
+        {
+            "vcpCode": 43,
+            "feature": "powerIndicator",
+			// Provide some explicit discrete values for the setting (if the setting is a discrete setting)
+            "discreteValues": [
+                {
+                    // Off
+                    "value": 1,
+                    "nameStringId": "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e"
+                },
+                {
+                    // On
+                    "value": 2,
+                    "nameStringId": "4d2b3404-1cb1-4536-918c-80facc124cf9"
+                }
+            ]
+        },
+		// Provides a configuration for the "Video Black Level (Red)" feature of the monitor, with a custom maximum value
+        {
+            "vcpCode": 108,
+            "feature": "videoBlackLevelRed",
+			// This maximum value will override the maximum returned by the monitor GetVCPFeature call.
+            "maximumValue": 255
+        },
+	],
+	// Ignore specific VCP codes from the capabilities string.
+	"ignoredCapabilitiesVcpCodes": [
+		// Ignore the Input Select VCP code
+		96
+	],
+	// Allow to ignore all features advertised by the capabilities string and only rely on overriddenFeatures.
+	// This is a stronger and simpler version of ignoredCapabilitiesVcpCodes.
+	"ignoreAllCapabilitiesVcpCodes" : false
+}
+````
+
+The strings are mapped using the metadata system of Exo.
+
+## Naming your custom configuration
+
+Custom configurations are named by the monitor (PNP) device ID, which is composed of 3 letters indicating the vendor, and 4 hexadecimal digits indicating the product ID.
+
+A configuration can be mapped to multiple monitor IDs by separating those IDs with dashes.
+For example, a configuration for monitor with the IDs `GSM5BBF`, `GSM5BC0` and `GSM5BEE`, should be named `GSM5BBF-GSM5BC0-GSM5BEE.json`.
+
+# The metadata system
+
+Exo provides a metadata system to provide non-critical data for devices that will mainly be used within the UI.
+
+The core metadata component is the `Strings` component.
+This component will provide localizable strings everywhere across the application. Those strings will always be referenced through a unique ID in the form of a GUID.
+
+Other metadata components are:
+
+* `LightingEffects`: Provides metadata for lighting effects.
+* `LightingZones`: Provides metadata for lighting zones.
+* `Sensors`: Provides metadata for sensors.
+* `Coolers`: Provides metadata for coolers.
+
+## GUID as object identifiers
+
+Most elements within Exo are identified with a GUID. This GUID will be used to reference the element from various places, and will be used as (part of) the metadata key for the object.
+
+Strings are no exception, and all (localizable) strings are referenced using their unique GUID.
+
+## Defining metadata
+
+As part of plugins, providing metadata is as simple as adding a JSON file appropriately named with the metadata category, e.g. `Strings.json`.
+Metadata added in this way will be automatically detected, built and published with Exo.
+
+NB: The service provides does provide core `Strings` and `LightingEffects` metadata, but those are not discovered dynamically.
+It might make sense to provide common strings as part of the `Strings.json` file of `Exo.Service`.
+
+The format of metadata depends on the kind of metadata represented. You can find examples in the code, or locate the core definitions in [Exo.Metadata](Exo.Metadata).
+
+## When to provide metadata
+
+You generally need to provide metadata as soon as you introduce a new UI-facing element that is identified by a GUID. (Lighting effect, lighting zone, sensor, cooler, …)
+
+All those UI-facing elements will at least need to be provided with a friendly name that can be localized, and the way to provide that is through metadata.
+
+## Example of string metadata
+
+````json
+{
+	// Freshly generated GUID for a new string. (e.g. by calling Guid.NewGuid)
+	"3d82a39b-9fd7-4393-854e-3c0e69532425": {
+		// NB: English is considered to be the default. Always provide an english version for a string.
+		"en": "The english text",
+		"fr": "The french text",
+		"de": "The german text",
+		"ja": "The japanese text",
+	}
+}
+````
+
+# PowerShell functions to quickly generate or format GUIDs
+
+As you may need to generate quite a few GUIDs when adding new features, these PowerShell functions may prove to be very useful:
+
+````PowerShell
+function New-Guid {
+    param (
+        [int] $Count = 1
+    )
+
+    for ($local:i = 0; $i -lt $Count; $i++) {
+        Write-Output ([System.Guid]::NewGuid());
+    }
+}
+
+function Format-Guid {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [System.Guid[]] $Guid
+    )
+
+    process {
+        $local:Bytes = $Guid.ToByteArray();
+        Write-Output "new Guid(0x$([System.BitConverter]::ToUInt32($local:Bytes, 0).ToString("X8")), 0x$([System.BitConverter]::ToUInt16($local:Bytes, 4).ToString("X4")), 0x$([System.BitConverter]::ToUInt16($local:Bytes, 6).ToString("X4")), 0x$($local:Bytes[8].ToString("X2")), 0x$($local:Bytes[9].ToString("X2")), 0x$($local:Bytes[10].ToString("X2")), 0x$($local:Bytes[11].ToString("X2")), 0x$($local:Bytes[12].ToString("X2")), 0x$($local:Bytes[13].ToString("X2")), 0x$($local:Bytes[14].ToString("X2")), 0x$($local:Bytes[15].ToString("X2")))"
+    }
+}
+````
