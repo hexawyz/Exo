@@ -195,6 +195,9 @@
   <data name="MonitorBlueSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Ajustement de saturation bleu</value>
   </data>
+  <data name="MonitorBlueVideoBlackLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Décalage Bleu</value>
+  </data>
   <data name="MonitorBlueVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Gain vidéo (bleu)</value>
   </data>
@@ -215,6 +218,9 @@
   </data>
   <data name="MonitorGreenSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Saturation vert</value>
+  </data>
+  <data name="MonitorGreenVideoBlackLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Décalage Vert</value>
   </data>
   <data name="MonitorGreenVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Gain vidéo (vert)</value>
@@ -242,6 +248,9 @@
   </data>
   <data name="MonitorRedSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Saturation rouge</value>
+  </data>
+  <data name="MonitorRedVideoBlackLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Décalage Rouge</value>
   </data>
   <data name="MonitorRedVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Gain vidéo (rouge)</value>
