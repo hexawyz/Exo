@@ -46,6 +46,9 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <FontIcon
                 Grid.Row="0"
@@ -302,6 +305,53 @@
             <FontIcon
                 Grid.Row="7"
                 Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xED67;"
+                Foreground="Black"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <FontIcon
+                Grid.Row="7"
+                Grid.Column="0"
+                x:Uid="MonitorRedVideoBlackLevelLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xED66;"
+                Foreground="Red"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="7"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding RedVideoBlackLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource RedBlackLevelLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="7"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding RedVideoBlackLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="8"
+                Grid.Column="0"
                 x:Uid="MonitorGreenVideoGainLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
                 Glyph="&#xED67;"
@@ -310,7 +360,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="7"
+                Grid.Row="8"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding GreenVideoGainSetting}"
@@ -327,7 +377,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="7"
+                Grid.Row="8"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding GreenVideoGainSetting}"
@@ -338,7 +388,54 @@
             </Button>
 
             <FontIcon
-                Grid.Row="8"
+                Grid.Row="9"
+                Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xED67;"
+                Foreground="Black"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <FontIcon
+                Grid.Row="9"
+                Grid.Column="0"
+                x:Uid="MonitorGreenVideoBlackLevelLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xED66;"
+                Foreground="Lime"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="9"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding GreenVideoBlackLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource GreenBlackLevelLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="9"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding GreenVideoBlackLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="10"
                 Grid.Column="0"
                 x:Uid="MonitorBlueVideoGainLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -348,7 +445,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="8"
+                Grid.Row="10"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BlueVideoGainSetting}"
@@ -365,7 +462,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="8"
+                Grid.Row="10"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BlueVideoGainSetting}"
@@ -376,7 +473,54 @@
             </Button>
 
             <FontIcon
-                Grid.Row="9"
+                Grid.Row="11"
+                Grid.Column="0"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xED67;"
+                Foreground="Black"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <FontIcon
+                Grid.Row="11"
+                Grid.Column="0"
+                x:Uid="MonitorBlueVideoBlackLevelLabel"
+                Margin="{StaticResource RowContentLabelMargin}"
+                Glyph="&#xED66;"
+                Foreground="Blue"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+            <Slider
+                Grid.Row="11"
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BlueVideoBlackLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Maximum="{Binding MaximumValue, Mode=OneTime}"
+                Minimum="{Binding MinimumValue, Mode=OneTime}"
+                Value="{Binding Value, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource ColorSliderStyle}"
+                Background="{StaticResource BlueBlackLevelLinearGradientBrush}">
+                <Slider.ThumbToolTipValueConverter>
+                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+                </Slider.ThumbToolTipValueConverter>
+            </Slider>
+            <Button
+                Grid.Row="11"
+                Grid.Column="2"
+                Margin="{StaticResource RowContentLabelMargin}"
+                DataContext="{Binding BlueVideoBlackLevelSetting}"
+                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+                Command="{Binding ResetCommand}"
+                CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+
+            <FontIcon
+                Grid.Row="12"
                 Grid.Column="0"
                 x:Uid="MonitorRedSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -386,7 +530,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding RedSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="9"
+                Grid.Row="12"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding RedSixAxisSaturationControlSetting}"
@@ -403,7 +547,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="9"
+                Grid.Row="12"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding RedSixAxisSaturationControlSetting}"
@@ -414,7 +558,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="10"
+                Grid.Row="13"
                 Grid.Column="0"
                 x:Uid="MonitorRedSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -424,7 +568,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding RedSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="10"
+                Grid.Row="13"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding RedSixAxisHueControlSetting}"
@@ -441,7 +585,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="10"
+                Grid.Row="13"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding RedSixAxisHueControlSetting}"
@@ -452,7 +596,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="11"
+                Grid.Row="14"
                 Grid.Column="0"
                 x:Uid="MonitorYellowSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -462,7 +606,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding YellowSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="11"
+                Grid.Row="14"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding YellowSixAxisSaturationControlSetting}"
@@ -479,7 +623,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="11"
+                Grid.Row="14"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding YellowSixAxisSaturationControlSetting}"
@@ -490,7 +634,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="12"
+                Grid.Row="15"
                 Grid.Column="0"
                 x:Uid="MonitorYellowSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -500,7 +644,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding YellowSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="12"
+                Grid.Row="15"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding YellowSixAxisHueControlSetting}"
@@ -517,7 +661,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="12"
+                Grid.Row="15"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding YellowSixAxisHueControlSetting}"
@@ -528,7 +672,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="13"
+                Grid.Row="16"
                 Grid.Column="0"
                 x:Uid="MonitorGreenSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -538,7 +682,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding GreenSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="13"
+                Grid.Row="16"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding GreenSixAxisSaturationControlSetting}"
@@ -555,7 +699,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="13"
+                Grid.Row="16"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding GreenSixAxisSaturationControlSetting}"
@@ -566,7 +710,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="14"
+                Grid.Row="17"
                 Grid.Column="0"
                 x:Uid="MonitorGreenSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -576,7 +720,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding GreenSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="14"
+                Grid.Row="17"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding GreenSixAxisHueControlSetting}"
@@ -593,7 +737,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="14"
+                Grid.Row="17"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding GreenSixAxisHueControlSetting}"
@@ -604,7 +748,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="15"
+                Grid.Row="18"
                 Grid.Column="0"
                 x:Uid="MonitorCyanSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -614,7 +758,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding CyanSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="15"
+                Grid.Row="18"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding CyanSixAxisSaturationControlSetting}"
@@ -631,7 +775,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="15"
+                Grid.Row="18"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding CyanSixAxisSaturationControlSetting}"
@@ -642,7 +786,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="16"
+                Grid.Row="19"
                 Grid.Column="0"
                 x:Uid="MonitorCyanSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -652,7 +796,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding CyanSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="16"
+                Grid.Row="19"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding CyanSixAxisHueControlSetting}"
@@ -669,7 +813,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="16"
+                Grid.Row="19"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding CyanSixAxisHueControlSetting}"
@@ -680,7 +824,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="17"
+                Grid.Row="20"
                 Grid.Column="0"
                 x:Uid="MonitorBlueSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -690,7 +834,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding BlueSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="17"
+                Grid.Row="20"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BlueSixAxisSaturationControlSetting}"
@@ -707,7 +851,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="17"
+                Grid.Row="20"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BlueSixAxisSaturationControlSetting}"
@@ -718,7 +862,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="18"
+                Grid.Row="21"
                 Grid.Column="0"
                 x:Uid="MonitorBlueSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -728,7 +872,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding BlueSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="18"
+                Grid.Row="21"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BlueSixAxisHueControlSetting}"
@@ -745,7 +889,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="18"
+                Grid.Row="21"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding BlueSixAxisHueControlSetting}"
@@ -756,7 +900,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="19"
+                Grid.Row="22"
                 Grid.Column="0"
                 x:Uid="MonitorMagentaSixAxisSaturationLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -766,7 +910,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding MagentaSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="19"
+                Grid.Row="22"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding MagentaSixAxisSaturationControlSetting}"
@@ -783,7 +927,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="19"
+                Grid.Row="22"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding MagentaSixAxisSaturationControlSetting}"
@@ -794,7 +938,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="20"
+                Grid.Row="23"
                 Grid.Column="0"
                 x:Uid="MonitorMagentaSixAxisHueLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -804,7 +948,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding MagentaSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <Slider
-                Grid.Row="20"
+                Grid.Row="23"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding MagentaSixAxisHueControlSetting}"
@@ -821,7 +965,7 @@
                 </Slider.ThumbToolTipValueConverter>
             </Slider>
             <Button
-                Grid.Row="20"
+                Grid.Row="23"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding MagentaSixAxisHueControlSetting}"
@@ -832,7 +976,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="21"
+                Grid.Row="24"
                 Grid.Column="0"
                 x:Uid="MonitorInputLagLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -841,7 +985,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding InputLagSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <ComboBox
-                Grid.Row="21"
+                Grid.Row="24"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding InputLagSetting}"
@@ -857,7 +1001,7 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <Button
-                Grid.Row="21"
+                Grid.Row="24"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding InputLagSetting}"
@@ -868,7 +1012,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="22"
+                Grid.Row="25"
                 Grid.Column="0"
                 x:Uid="MonitorResponseTimeLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -877,7 +1021,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding ResponseTimeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <ComboBox
-                Grid.Row="22"
+                Grid.Row="25"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding ResponseTimeSetting}"
@@ -893,7 +1037,7 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <Button
-                Grid.Row="22"
+                Grid.Row="25"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding ResponseTimeSetting}"
@@ -904,7 +1048,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="23"
+                Grid.Row="26"
                 Grid.Column="0"
                 x:Uid="MonitorOsdLanguageLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -913,7 +1057,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <ComboBox
-                Grid.Row="23"
+                Grid.Row="26"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding OsdLanguageSetting}"
@@ -929,7 +1073,7 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <Button
-                Grid.Row="23"
+                Grid.Row="26"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding OsdLanguageSetting}"
@@ -940,7 +1084,7 @@
             </Button>
 
             <FontIcon
-                Grid.Row="24"
+                Grid.Row="27"
                 Grid.Column="0"
                 x:Uid="MonitorPowerIndicatorLabel"
                 Margin="{StaticResource RowContentLabelMargin}"
@@ -950,7 +1094,7 @@
                 HorizontalAlignment="Stretch"
                 Visibility="{Binding PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
             <ToggleSwitch
-                Grid.Row="24"
+                Grid.Row="27"
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding PowerIndicatorSetting}"
@@ -959,7 +1103,7 @@
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch" />
             <Button
-                Grid.Row="24"
+                Grid.Row="27"
                 Grid.Column="2"
                 Margin="{StaticResource RowContentLabelMargin}"
                 DataContext="{Binding PowerIndicatorSetting}"

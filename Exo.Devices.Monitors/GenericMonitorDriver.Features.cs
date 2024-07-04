@@ -24,6 +24,9 @@ public partial class GenericMonitorDriver
 		private byte _redVideoGainVcpCode;
 		private byte _greenVideoGainVcpCode;
 		private byte _blueVideoGainVcpCode;
+		private byte _redVideoBlackLevelVcpCode;
+		private byte _greenVideoBlackLevelVcpCode;
+		private byte _blueVideoBlackLevelVcpCode;
 		private byte _redSixAxisSaturationControlVcpCode;
 		private byte _yellowSixAxisSaturationControlVcpCode;
 		private byte _greenSixAxisSaturationControlVcpCode;
@@ -72,6 +75,9 @@ public partial class GenericMonitorDriver
 		public virtual void AddRedVideoGainFeature(byte vcpCode) => AddFeature(ref _redVideoGainVcpCode, SupportedFeatures.VideoGainRed, vcpCode);
 		public virtual void AddGreenVideoGainFeature(byte vcpCode) => AddFeature(ref _greenVideoGainVcpCode, SupportedFeatures.VideoGainGreen, vcpCode);
 		public virtual void AddBlueVideoGainFeature(byte vcpCode) => AddFeature(ref _blueVideoGainVcpCode, SupportedFeatures.VideoGainBlue, vcpCode);
+		public virtual void AddRedVideoBlackLevelFeature(byte vcpCode) => AddFeature(ref _redVideoBlackLevelVcpCode, SupportedFeatures.VideoBlackLevelRed, vcpCode);
+		public virtual void AddGreenVideoBlackLevelFeature(byte vcpCode) => AddFeature(ref _greenVideoBlackLevelVcpCode, SupportedFeatures.VideoBlackLevelGreen, vcpCode);
+		public virtual void AddBlueVideoBlackLevelFeature(byte vcpCode) => AddFeature(ref _blueVideoBlackLevelVcpCode, SupportedFeatures.VideoBlackLevelBlue, vcpCode);
 		public virtual void AddRedSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _redSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlRed, vcpCode);
 		public virtual void AddYellowSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _yellowSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlYellow, vcpCode);
 		public virtual void AddGreenSixAxisSaturationControlFeature(byte vcpCode) => AddFeature(ref _greenSixAxisSaturationControlVcpCode, SupportedFeatures.SixAxisSaturationControlGreen, vcpCode);
@@ -134,6 +140,15 @@ public partial class GenericMonitorDriver
 
 		protected virtual IMonitorBlueVideoGainFeature? CreateBlueVideoGainFeature(GenericMonitorDriver driver)
 			=> (_supportedFeatures & SupportedFeatures.VideoGainBlue) != 0 ? new BlueVideoGainFeature(driver, _blueVideoGainVcpCode) : null;
+
+		protected virtual IMonitorRedVideoBlackLevelFeature? CreateRedVideoBlackLevelFeature(GenericMonitorDriver driver)
+			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelRed) != 0 ? new RedVideoBlackLevelFeature(driver, _redVideoBlackLevelVcpCode) : null;
+
+		protected virtual IMonitorGreenVideoBlackLevelFeature? CreateGreenVideoBlackLevelFeature(GenericMonitorDriver driver)
+			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelGreen) != 0 ? new GreenVideoBlackLevelFeature(driver, _greenVideoBlackLevelVcpCode) : null;
+
+		protected virtual IMonitorBlueVideoBlackLevelFeature? CreateBlueVideoBlackLevelFeature(GenericMonitorDriver driver)
+			=> (_supportedFeatures & SupportedFeatures.VideoBlackLevelBlue) != 0 ? new BlueVideoBlackLevelFeature(driver, _blueVideoBlackLevelVcpCode) : null;
 
 		protected virtual IMonitorRedSixAxisSaturationControlFeature? CreateRedSixAxisSaturationControlFeature(GenericMonitorDriver driver)
 			=> (_supportedFeatures & SupportedFeatures.SixAxisSaturationControlRed) != 0 ? new RedSixAxisSaturationControlFeature(driver, _redSixAxisSaturationControlVcpCode) : null;
@@ -204,6 +219,9 @@ public partial class GenericMonitorDriver
 				CreateRedVideoGainFeature(driver),
 				CreateGreenVideoGainFeature(driver),
 				CreateBlueVideoGainFeature(driver),
+				CreateRedVideoBlackLevelFeature(driver),
+				CreateGreenVideoBlackLevelFeature(driver),
+				CreateBlueVideoBlackLevelFeature(driver),
 				CreateRedSixAxisSaturationControlFeature(driver),
 				CreateYellowSixAxisSaturationControlFeature(driver),
 				CreateGreenSixAxisSaturationControlFeature(driver),
@@ -238,6 +256,9 @@ public partial class GenericMonitorDriver
 		private readonly IMonitorRedVideoGainFeature? _redVideoGainFeature;
 		private readonly IMonitorGreenVideoGainFeature? _greenVideoGainFeature;
 		private readonly IMonitorBlueVideoGainFeature? _blueVideoGainFeature;
+		private readonly IMonitorRedVideoBlackLevelFeature? _redVideoBlackLevelFeature;
+		private readonly IMonitorGreenVideoBlackLevelFeature? _greenVideoBlackLevelFeature;
+		private readonly IMonitorBlueVideoBlackLevelFeature? _blueVideoBlackLevelFeature;
 		private readonly IMonitorRedSixAxisSaturationControlFeature? _redSixAxisSaturationControlFeature;
 		private readonly IMonitorYellowSixAxisSaturationControlFeature? _yellowSixAxisSaturationControlFeature;
 		private readonly IMonitorGreenSixAxisSaturationControlFeature? _greenSixAxisSaturationControlFeature;
@@ -271,6 +292,9 @@ public partial class GenericMonitorDriver
 			IMonitorRedVideoGainFeature? redVideoGainFeature,
 			IMonitorGreenVideoGainFeature? greenVideoGainFeature,
 			IMonitorBlueVideoGainFeature? blueVideoGainFeature,
+			IMonitorRedVideoBlackLevelFeature? redVideoBlackLevelFeature,
+			IMonitorGreenVideoBlackLevelFeature? greenVideoBlackLevelFeature,
+			IMonitorBlueVideoBlackLevelFeature? blueVideoBlackLevelFeature,
 			IMonitorRedSixAxisSaturationControlFeature? redSixAxisSaturationControlFeature,
 			IMonitorYellowSixAxisSaturationControlFeature? yellowSixAxisSaturationControlFeature,
 			IMonitorGreenSixAxisSaturationControlFeature? greenSixAxisSaturationControlFeature,
@@ -301,6 +325,9 @@ public partial class GenericMonitorDriver
 			_redVideoGainFeature = redVideoGainFeature;
 			_greenVideoGainFeature = greenVideoGainFeature;
 			_blueVideoGainFeature = blueVideoGainFeature;
+			_redVideoBlackLevelFeature = redVideoBlackLevelFeature;
+			_greenVideoBlackLevelFeature = greenVideoBlackLevelFeature;
+			_blueVideoBlackLevelFeature = blueVideoBlackLevelFeature;
 			_redSixAxisSaturationControlFeature = redSixAxisSaturationControlFeature;
 			_yellowSixAxisSaturationControlFeature = yellowSixAxisSaturationControlFeature;
 			_greenSixAxisSaturationControlFeature = greenSixAxisSaturationControlFeature;
@@ -344,6 +371,10 @@ public partial class GenericMonitorDriver
 				if (_redVideoGainFeature is not null) count++;
 				if (_greenVideoGainFeature is not null) count++;
 				if (_blueVideoGainFeature is not null) count++;
+
+				if (_redVideoBlackLevelFeature is not null) count++;
+				if (_greenVideoBlackLevelFeature is not null) count++;
+				if (_blueVideoBlackLevelFeature is not null) count++;
 
 				if (_redSixAxisSaturationControlFeature is not null) count++;
 				if (_yellowSixAxisSaturationControlFeature is not null) count++;
@@ -389,6 +420,10 @@ public partial class GenericMonitorDriver
 			if (typeof(T) == typeof(IMonitorGreenVideoGainFeature) && _greenVideoGainFeature is not null) return _greenVideoGainFeature;
 			if (typeof(T) == typeof(IMonitorBlueVideoGainFeature) && _blueVideoGainFeature is not null) return _blueVideoGainFeature;
 
+			if (typeof(T) == typeof(IMonitorRedVideoBlackLevelFeature) && _redVideoBlackLevelFeature is not null) return _redVideoBlackLevelFeature;
+			if (typeof(T) == typeof(IMonitorGreenVideoBlackLevelFeature) && _greenVideoBlackLevelFeature is not null) return _greenVideoBlackLevelFeature;
+			if (typeof(T) == typeof(IMonitorBlueVideoBlackLevelFeature) && _blueVideoBlackLevelFeature is not null) return _blueVideoBlackLevelFeature;
+
 			if (typeof(T) == typeof(IMonitorRedSixAxisSaturationControlFeature) && _redSixAxisSaturationControlFeature is not null) return _redSixAxisSaturationControlFeature;
 			if (typeof(T) == typeof(IMonitorYellowSixAxisSaturationControlFeature) && _yellowSixAxisSaturationControlFeature is not null) return _yellowSixAxisSaturationControlFeature;
 			if (typeof(T) == typeof(IMonitorGreenSixAxisSaturationControlFeature) && _greenSixAxisSaturationControlFeature is not null) return _greenSixAxisSaturationControlFeature;
@@ -429,6 +464,10 @@ public partial class GenericMonitorDriver
 			if (_redVideoGainFeature is not null) yield return new(typeof(IMonitorRedVideoGainFeature), _redVideoGainFeature);
 			if (_greenVideoGainFeature is not null) yield return new(typeof(IMonitorGreenVideoGainFeature), _greenVideoGainFeature);
 			if (_blueVideoGainFeature is not null) yield return new(typeof(IMonitorBlueVideoGainFeature), _blueVideoGainFeature);
+
+			if (_redVideoBlackLevelFeature is not null) yield return new(typeof(IMonitorRedVideoBlackLevelFeature), _redVideoBlackLevelFeature);
+			if (_greenVideoBlackLevelFeature is not null) yield return new(typeof(IMonitorGreenVideoBlackLevelFeature), _greenVideoBlackLevelFeature);
+			if (_blueVideoBlackLevelFeature is not null) yield return new(typeof(IMonitorBlueVideoBlackLevelFeature), _blueVideoBlackLevelFeature);
 
 			if (_redSixAxisSaturationControlFeature is not null) yield return new(typeof(IMonitorRedSixAxisSaturationControlFeature), _redSixAxisSaturationControlFeature);
 			if (_yellowSixAxisSaturationControlFeature is not null) yield return new(typeof(IMonitorYellowSixAxisSaturationControlFeature), _yellowSixAxisSaturationControlFeature);
@@ -544,6 +583,10 @@ public partial class GenericMonitorDriver
 	protected sealed class RedVideoGainFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedVideoGainFeature { }
 	protected sealed class GreenVideoGainFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorGreenVideoGainFeature { }
 	protected sealed class BlueVideoGainFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueVideoGainFeature { }
+
+	protected sealed class RedVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedVideoBlackLevelFeature { }
+	protected sealed class GreenVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorGreenVideoBlackLevelFeature { }
+	protected sealed class BlueVideoBlackLevelFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorBlueVideoBlackLevelFeature { }
 
 	protected sealed class RedSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorRedSixAxisSaturationControlFeature { }
 	protected sealed class YellowSixAxisSaturationControlFeature(GenericMonitorDriver driver, byte vcpCode) : ContinuousVcpFeature(driver, vcpCode), IMonitorYellowSixAxisSaturationControlFeature { }

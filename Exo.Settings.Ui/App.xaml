@@ -85,6 +85,22 @@
                 <GradientStop Color="#002" Offset="0" />
                 <GradientStop Color="Blue" Offset="1" />
             </LinearGradientBrush>
+            
+            <LinearGradientBrush x:Key="RedBlackLevelLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
+                <GradientStop Color="#0ff" Offset="0" />
+                <GradientStop Color="#000" Offset="0.5" />
+                <GradientStop Color="#f00" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="GreenBlackLevelLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
+                <GradientStop Color="#f0f" Offset="0" />
+                <GradientStop Color="#000" Offset="0.5" />
+                <GradientStop Color="#0f0" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BlueBlackLevelLinearGradientBrush" ColorInterpolationMode="SRgbLinearInterpolation">
+                <GradientStop Color="#ff0" Offset="0" />
+                <GradientStop Color="#000" Offset="0.5" />
+                <GradientStop Color="#00f" Offset="1" />
+            </LinearGradientBrush>
 
             <LinearGradientBrush x:Key="RedSaturationLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
                 <GradientStop Color="#4c4c4c" Offset="0" />

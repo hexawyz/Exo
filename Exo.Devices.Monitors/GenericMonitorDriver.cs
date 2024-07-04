@@ -258,6 +258,15 @@ public partial class GenericMonitorDriver
 					case (byte)VcpCode.VideoGainBlue:
 						builder.AddBlueVideoGainFeature(capability.VcpCode);
 						break;
+					case (byte)VcpCode.VideoBlackLevelRed:
+						builder.AddRedVideoBlackLevelFeature(capability.VcpCode);
+						break;
+					case (byte)VcpCode.VideoBlackLevelGreen:
+						builder.AddGreenVideoBlackLevelFeature(capability.VcpCode);
+						break;
+					case (byte)VcpCode.VideoBlackLevelBlue:
+						builder.AddBlueVideoBlackLevelFeature(capability.VcpCode);
+						break;
 					case (byte)VcpCode.SixAxisSaturationControlRed:
 						builder.AddRedSixAxisSaturationControlFeature(capability.VcpCode);
 						break;
@@ -424,6 +433,15 @@ public partial class GenericMonitorDriver
 						break;
 					case MonitorFeature.VideoGainBlue:
 						builder.AddBlueVideoGainFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.VideoBlackLevelRed:
+						builder.AddRedVideoBlackLevelFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.VideoBlackLevelGreen:
+						builder.AddGreenVideoBlackLevelFeature(feature.VcpCode);
+						break;
+					case MonitorFeature.VideoBlackLevelBlue:
+						builder.AddBlueVideoBlackLevelFeature(feature.VcpCode);
 						break;
 					case MonitorFeature.SixAxisSaturationControlRed:
 						builder.AddRedSixAxisSaturationControlFeature(feature.VcpCode);

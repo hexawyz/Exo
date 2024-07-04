@@ -28,38 +28,45 @@ public enum MonitorSetting : uint
 	VideoGainBlue = 9,
 
 	[EnumMember]
-	SixAxisSaturationControlRed = 10,
+	VideoBlackLevelRed = 10,
 	[EnumMember]
-	SixAxisSaturationControlYellow = 11,
+	VideoBlackLevelGreen = 11,
 	[EnumMember]
-	SixAxisSaturationControlGreen = 12,
-	[EnumMember]
-	SixAxisSaturationControlCyan = 13,
-	[EnumMember]
-	SixAxisSaturationControlBlue = 14,
-	[EnumMember]
-	SixAxisSaturationControlMagenta = 15,
+	VideoBlackLevelBlue = 12,
 
 	[EnumMember]
-	SixAxisHueControlRed = 16,
+	SixAxisSaturationControlRed = 13,
 	[EnumMember]
-	SixAxisHueControlYellow = 17,
+	SixAxisSaturationControlYellow = 14,
 	[EnumMember]
-	SixAxisHueControlGreen = 18,
+	SixAxisSaturationControlGreen = 15,
 	[EnumMember]
-	SixAxisHueControlCyan = 19,
+	SixAxisSaturationControlCyan = 16,
 	[EnumMember]
-	SixAxisHueControlBlue = 20,
+	SixAxisSaturationControlBlue = 17,
 	[EnumMember]
-	SixAxisHueControlMagenta = 21,
+	SixAxisSaturationControlMagenta = 18,
 
 	[EnumMember]
-	InputLag = 22,
+	SixAxisHueControlRed = 19,
 	[EnumMember]
-	ResponseTime = 23,
+	SixAxisHueControlYellow = 20,
+	[EnumMember]
+	SixAxisHueControlGreen = 21,
+	[EnumMember]
+	SixAxisHueControlCyan = 22,
+	[EnumMember]
+	SixAxisHueControlBlue = 23,
+	[EnumMember]
+	SixAxisHueControlMagenta = 24,
 
 	[EnumMember]
-	OsdLanguage = 24,
+	InputLag = 25,
 	[EnumMember]
-	PowerIndicator = 25,
+	ResponseTime = 26,
+
+	[EnumMember]
+	OsdLanguage = 27,
+	[EnumMember]
+	PowerIndicator = 28,
 }

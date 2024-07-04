@@ -22,6 +22,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private ContinuousMonitorDeviceSettingViewModel? _redVideoGainSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _greenVideoGainSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _blueVideoGainSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _redVideoBlackLevelSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _greenVideoBlackLevelSetting;
+	private ContinuousMonitorDeviceSettingViewModel? _blueVideoBlackLevelSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _redSixAxisSaturationControlSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _yellowSixAxisSaturationControlSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _greenSixAxisSaturationControlSetting;
@@ -52,6 +55,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	public ContinuousMonitorDeviceSettingViewModel? RedVideoGainSetting => _redVideoGainSetting;
 	public ContinuousMonitorDeviceSettingViewModel? GreenVideoGainSetting => _greenVideoGainSetting;
 	public ContinuousMonitorDeviceSettingViewModel? BlueVideoGainSetting => _blueVideoGainSetting;
+	public ContinuousMonitorDeviceSettingViewModel? RedVideoBlackLevelSetting => _redVideoBlackLevelSetting;
+	public ContinuousMonitorDeviceSettingViewModel? GreenVideoBlackLevelSetting => _greenVideoBlackLevelSetting;
+	public ContinuousMonitorDeviceSettingViewModel? BlueVideoBlackLevelSetting => _blueVideoBlackLevelSetting;
 	public ContinuousMonitorDeviceSettingViewModel? RedSixAxisSaturationControlSetting => _redSixAxisSaturationControlSetting;
 	public ContinuousMonitorDeviceSettingViewModel? YellowSixAxisSaturationControlSetting => _yellowSixAxisSaturationControlSetting;
 	public ContinuousMonitorDeviceSettingViewModel? GreenSixAxisSaturationControlSetting => _greenSixAxisSaturationControlSetting;
@@ -118,6 +124,15 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 				break;
 			case MonitorSetting.VideoGainBlue:
 				InitializeSetting(setting, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
+				break;
+			case MonitorSetting.VideoBlackLevelRed:
+				InitializeSetting(setting, ref _redVideoBlackLevelSetting, nameof(RedVideoBlackLevelSetting));
+				break;
+			case MonitorSetting.VideoBlackLevelGreen:
+				InitializeSetting(setting, ref _greenVideoBlackLevelSetting, nameof(GreenVideoBlackLevelSetting));
+				break;
+			case MonitorSetting.VideoBlackLevelBlue:
+				InitializeSetting(setting, ref _blueVideoBlackLevelSetting, nameof(BlueVideoBlackLevelSetting));
 				break;
 			case MonitorSetting.SixAxisSaturationControlRed:
 				InitializeSetting(setting, ref _redSixAxisSaturationControlSetting, nameof(RedSixAxisSaturationControlSetting));
@@ -207,6 +222,15 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.VideoGainBlue:
 			UpdateSetting(settingValue, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
+			break;
+		case MonitorSetting.VideoBlackLevelRed:
+			UpdateSetting(settingValue, ref _redVideoBlackLevelSetting, nameof(RedVideoBlackLevelSetting));
+			break;
+		case MonitorSetting.VideoBlackLevelGreen:
+			UpdateSetting(settingValue, ref _greenVideoBlackLevelSetting, nameof(GreenVideoBlackLevelSetting));
+			break;
+		case MonitorSetting.VideoBlackLevelBlue:
+			UpdateSetting(settingValue, ref _blueVideoBlackLevelSetting, nameof(BlueVideoBlackLevelSetting));
 			break;
 		case MonitorSetting.SixAxisSaturationControlRed:
 			UpdateSetting(settingValue, ref _redSixAxisSaturationControlSetting, nameof(RedSixAxisSaturationControlSetting));
@@ -357,6 +381,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			try { await ApplyChangeIfNeededAsync(_redVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_greenVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_blueVideoGainSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_redVideoBlackLevelSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_greenVideoBlackLevelSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
+			try { await ApplyChangeIfNeededAsync(_blueVideoBlackLevelSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_redSixAxisSaturationControlSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_yellowSixAxisSaturationControlSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
 			try { await ApplyChangeIfNeededAsync(_greenSixAxisSaturationControlSetting, cancellationToken); } catch (Exception ex) { (exceptions ??= []).Add(ex); }
@@ -408,6 +435,9 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_redVideoGainSetting);
 		IResettable.SharedResetCommand.Execute(_greenVideoGainSetting);
 		IResettable.SharedResetCommand.Execute(_blueVideoGainSetting);
+		IResettable.SharedResetCommand.Execute(_redVideoBlackLevelSetting);
+		IResettable.SharedResetCommand.Execute(_greenVideoBlackLevelSetting);
+		IResettable.SharedResetCommand.Execute(_blueVideoBlackLevelSetting);
 		IResettable.SharedResetCommand.Execute(_redSixAxisSaturationControlSetting);
 		IResettable.SharedResetCommand.Execute(_yellowSixAxisSaturationControlSetting);
 		IResettable.SharedResetCommand.Execute(_greenSixAxisSaturationControlSetting);
@@ -453,6 +483,9 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 		MonitorSetting.VideoGainRed => "Red Video Gain",
 		MonitorSetting.VideoGainGreen => "Green Video Gain",
 		MonitorSetting.VideoGainBlue => "Blue Video Gain",
+		MonitorSetting.VideoBlackLevelRed => "Red Video Black Level",
+		MonitorSetting.VideoBlackLevelGreen => "Green Video Black Level",
+		MonitorSetting.VideoBlackLevelBlue => "Blue Video Black Level",
 		MonitorSetting.SixAxisSaturationControlRed => "Six Axis Saturation Control (Red)",
 		MonitorSetting.SixAxisSaturationControlYellow => "Six Axis Saturation Control (Yellow)",
 		MonitorSetting.SixAxisSaturationControlGreen => "Six Axis Saturation Control (Green)",

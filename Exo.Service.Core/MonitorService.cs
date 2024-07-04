@@ -138,6 +138,10 @@ internal class MonitorService : IAsyncDisposable
 					if (monitorFeatures.HasFeature<IMonitorGreenVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainGreen);
 					if (monitorFeatures.HasFeature<IMonitorBlueVideoGainFeature>()) settingsBuilder.Add(MonitorSetting.VideoGainBlue);
 
+					if (monitorFeatures.HasFeature<IMonitorRedVideoBlackLevelFeature>()) settingsBuilder.Add(MonitorSetting.VideoBlackLevelRed);
+					if (monitorFeatures.HasFeature<IMonitorGreenVideoBlackLevelFeature>()) settingsBuilder.Add(MonitorSetting.VideoBlackLevelGreen);
+					if (monitorFeatures.HasFeature<IMonitorBlueVideoBlackLevelFeature>()) settingsBuilder.Add(MonitorSetting.VideoBlackLevelBlue);
+
 					if (monitorFeatures.HasFeature<IMonitorRedSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlRed);
 					if (monitorFeatures.HasFeature<IMonitorYellowSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlYellow);
 					if (monitorFeatures.HasFeature<IMonitorGreenSixAxisSaturationControlFeature>()) settingsBuilder.Add(MonitorSetting.SixAxisSaturationControlGreen);
@@ -268,6 +272,15 @@ internal class MonitorService : IAsyncDisposable
 							break;
 						case MonitorSetting.VideoGainBlue:
 							value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+							break;
+						case MonitorSetting.VideoBlackLevelRed:
+							value = await monitorFeatures.GetFeature<IMonitorRedVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+							break;
+						case MonitorSetting.VideoBlackLevelGreen:
+							value = await monitorFeatures.GetFeature<IMonitorGreenVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+							break;
+						case MonitorSetting.VideoBlackLevelBlue:
+							value = await monitorFeatures.GetFeature<IMonitorBlueVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
 							break;
 						case MonitorSetting.SixAxisSaturationControlRed:
 							value = await monitorFeatures.GetFeature<IMonitorRedSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
@@ -447,6 +460,9 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.VideoGainRed => SetRedVideoGainAsync(deviceId, value, cancellationToken),
 			MonitorSetting.VideoGainGreen => SetGreenVideoGainAsync(deviceId, value, cancellationToken),
 			MonitorSetting.VideoGainBlue => SetBlueVideoGainAsync(deviceId, value, cancellationToken),
+			MonitorSetting.VideoBlackLevelRed => SetRedVideoBlackLevelAsync(deviceId, value, cancellationToken),
+			MonitorSetting.VideoBlackLevelGreen => SetGreenVideoBlackLevelAsync(deviceId, value, cancellationToken),
+			MonitorSetting.VideoBlackLevelBlue => SetBlueVideoBlackLevelAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisSaturationControlRed => SetRedSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisSaturationControlYellow => SetYellowSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
 			MonitorSetting.SixAxisSaturationControlGreen => SetGreenSixAxisSaturationControlAsync(deviceId, value, cancellationToken),
@@ -575,6 +591,15 @@ internal class MonitorService : IAsyncDisposable
 
 	public ValueTask SetBlueVideoGainAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorBlueVideoGainFeature>(MonitorSetting.VideoGainBlue, deviceId, value, cancellationToken);
+
+	public ValueTask SetRedVideoBlackLevelAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorRedVideoBlackLevelFeature>(MonitorSetting.VideoBlackLevelRed, deviceId, value, cancellationToken);
+
+	public ValueTask SetGreenVideoBlackLevelAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorGreenVideoBlackLevelFeature>(MonitorSetting.VideoBlackLevelGreen, deviceId, value, cancellationToken);
+
+	public ValueTask SetBlueVideoBlackLevelAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
+		=> SetValueAsync<IMonitorBlueVideoBlackLevelFeature>(MonitorSetting.VideoBlackLevelBlue, deviceId, value, cancellationToken);
 
 	public ValueTask SetRedSixAxisSaturationControlAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorRedSixAxisSaturationControlFeature>(MonitorSetting.SixAxisSaturationControlRed, deviceId, value, cancellationToken);

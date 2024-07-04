@@ -29,6 +29,21 @@
             ]
         },
         {
+            "vcpCode": 108,
+            "feature": "videoBlackLevelRed",
+            "maximumValue": 255
+        },
+        {
+            "vcpCode": 110,
+            "feature": "videoBlackLevelGreen",
+            "maximumValue": 255
+        },
+        {
+            "vcpCode": 110,
+            "feature": "videoBlackLevelBlue",
+            "maximumValue": 255
+        },
+        {
             "vcpCode": 135,
             "feature": "sharpness"
         }

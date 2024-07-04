@@ -94,6 +94,9 @@ public interface IMonitorSharpnessFeature : IMonitorDeviceFeature, IContinuousVc
 public interface IMonitorRedVideoGainFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorGreenVideoGainFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorBlueVideoGainFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
+public interface IMonitorRedVideoBlackLevelFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
+public interface IMonitorGreenVideoBlackLevelFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
+public interface IMonitorBlueVideoBlackLevelFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorRedSixAxisSaturationControlFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorYellowSixAxisSaturationControlFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorGreenSixAxisSaturationControlFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }

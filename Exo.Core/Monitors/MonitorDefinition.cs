@@ -47,6 +47,10 @@ public enum MonitorFeature : byte
 	VideoGainGreen,
 	VideoGainBlue,
 
+	VideoBlackLevelRed,
+	VideoBlackLevelGreen,
+	VideoBlackLevelBlue,
+
 	SixAxisSaturationControlRed,
 	SixAxisSaturationControlYellow,
 	SixAxisSaturationControlGreen,
