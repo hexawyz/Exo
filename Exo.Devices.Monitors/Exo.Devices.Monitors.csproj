@@ -8,6 +8,15 @@
 		<IsExoPluginAssembly>true</IsExoPluginAssembly>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
+	
+	<ItemGroup>
+		<AvailableItemName Include="MonitorDefinition" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<MonitorDefinition Include="Definitions\???????.json;Definitions\???????-???????.json;Definitions\???????-???????-???????.json;Definitions\???????-???????-???????-???????.json;Definitions\???????-???????-???????-???????-???????.json;Definitions\???????-???????-???????-???????-???????-???????.json" />
+		<None Remove="@(MonitorDefinition)" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Private="false" ExcludeAssets="runtime" />
@@ -30,9 +39,6 @@
 	<Target Name="BuildMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData;CompileMonitorDatabase" BeforeTargets="AssignTargetPaths"></Target>
 
 	<Target Name="PrepareMonitorData">
-		<ItemGroup>
-			<_CollectedMonitorDefinitionData Include="$(MSBuildThisFileDirectory)\Definitions\???????.json" />
-		</ItemGroup>
 		<PropertyGroup>
 			<_MonitorDatabaseIntermediatePath>$(IntermediateOutputPath)Definitions.xoa</_MonitorDatabaseIntermediatePath>
 		</PropertyGroup>
@@ -44,7 +50,7 @@
 		</PropertyGroup>
 	</Target>
 
-	<Target Name="CompileMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData" Inputs="$(_ExoMonitorDatabaseCompilerPath);@(_CollectedMonitorDefinitionData)" Outputs="$(_MonitorDatabaseIntermediatePath)" Condition="'@(_CollectedMonitorDefinitionData)' != ''">
+	<Target Name="CompileMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData" Inputs="$(_ExoMonitorDatabaseCompilerPath);@(MonitorDefinition)" Outputs="$(_MonitorDatabaseIntermediatePath)" Condition="'@(MonitorDefinition)' != ''">
 		<Exec Command="dotnet &quot;$(_ExoMonitorDatabaseCompilerPath)&quot; &quot;$(MSBuildThisFileDirectory)\Definitions&quot; &quot;$(_MonitorDatabaseIntermediatePath)&quot;" />
 		<ItemGroup>
 			<FileWrites Include="$(_MonitorDatabaseIntermediatePath)" />
