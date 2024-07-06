@@ -1,0 +1,13 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Package Name="Exo" Manufacturer="Hexawyz" Version="1.0.0.0" UpgradeCode="07dd3181-64aa-475b-8787-b8a89e6420b5">
+        <MediaTemplate EmbedCab="yes" />
+        
+        <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+
+        <Feature Id="Main">
+            <ComponentGroupRef Id="Exo.Service" />
+            <ComponentGroupRef Id="Exo.Overlay" />
+            <ComponentGroupRef Id="Exo.Settings.Ui" />
+        </Feature>
+    </Package>
+</Wix>

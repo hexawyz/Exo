@@ -166,6 +166,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.MetadataCompiler", "Exo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.MonitorDatabaseCompiler", "Exo.MonitorDatabaseCompiler\Exo.MonitorDatabaseCompiler.csproj", "{27B0369E-85F1-4C8E-9BB9-66DC1537F72A}"
 EndProject
+Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "Exo.InstallerPackage", "Exo.InstallerPackage\Exo.InstallerPackage.wixproj", "{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1162,6 +1164,22 @@ Global
 		{27B0369E-85F1-4C8E-9BB9-66DC1537F72A}.Release|x64.Build.0 = Release|Any CPU
 		{27B0369E-85F1-4C8E-9BB9-66DC1537F72A}.Release|x86.ActiveCfg = Release|Any CPU
 		{27B0369E-85F1-4C8E-9BB9-66DC1537F72A}.Release|x86.Build.0 = Release|Any CPU
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|Any CPU.Build.0 = Debug|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|arm64.ActiveCfg = Debug|ARM64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|arm64.Build.0 = Debug|ARM64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|x64.ActiveCfg = Debug|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|x64.Build.0 = Debug|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|x86.ActiveCfg = Debug|x86
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Debug|x86.Build.0 = Debug|x86
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|Any CPU.ActiveCfg = Release|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|Any CPU.Build.0 = Release|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|arm64.ActiveCfg = Release|ARM64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|arm64.Build.0 = Release|ARM64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|x64.ActiveCfg = Release|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|x64.Build.0 = Release|x64
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|x86.ActiveCfg = Release|x86
+		{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

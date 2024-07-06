@@ -1,0 +1,43 @@
+<Project Sdk="WixToolset.Sdk/5.0.0">
+  <PropertyGroup>
+    <EnableProjectHarvesting>false</EnableProjectHarvesting>
+    <OutputName>Exo Installer</OutputName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Exo.Service\Exo.Service.csproj" Publish="true" />
+    <ProjectReference Include="..\Exo.Overlay\Exo.Overlay.csproj" Publish="true" />
+    <ProjectReference Include="..\Exo.Settings.Ui\Exo.Settings.Ui.csproj" Publish="true" />
+  </ItemGroup>
+  <ItemGroup>
+    <HarvestDirectory Include="$(IntermediateOutputPath)publish\Exo.Service">
+      <ComponentGroupName>Exo.Service</ComponentGroupName>
+      <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+      <SuppressRegistry>true</SuppressRegistry>
+      <Transforms>ExoService.xsl</Transforms>
+    </HarvestDirectory>
+    <BindPath Include="$(IntermediateOutputPath)publish\Exo.Service" />
+  </ItemGroup>
+  <ItemGroup>
+    <HarvestDirectory Include="$(IntermediateOutputPath)publish\Exo.Overlay">
+      <ComponentGroupName>Exo.Overlay</ComponentGroupName>
+      <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+      <SuppressRegistry>true</SuppressRegistry>
+    </HarvestDirectory>
+    <BindPath Include="$(IntermediateOutputPath)publish\Exo.Overlay" />
+  </ItemGroup>
+  <ItemGroup>
+    <HarvestDirectory Include="$(IntermediateOutputPath)publish\Exo.Settings.Ui">
+      <ComponentGroupName>Exo.Settings.Ui</ComponentGroupName>
+      <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+      <SuppressRegistry>true</SuppressRegistry>
+    </HarvestDirectory>
+    <BindPath Include="$(IntermediateOutputPath)publish\Exo.Settings.Ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ExoService.xsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Heat" Version="5.0.0" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.0" />
+  </ItemGroup>
+</Project>
