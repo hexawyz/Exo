@@ -86,10 +86,12 @@
 		</MSBuild>
 
 		<PropertyGroup>
+			<_PluginPdbFiles>@(PluginPrimaryAssembly->'%(RootDir)%(Directory)%(Filename).pdb')</_PluginPdbFiles>
 			<_PluginMetadataArchives>@(PluginPrimaryAssembly->'%(RootDir)%(Directory)%(Filename).*.xoa')</_PluginMetadataArchives>
 		</PropertyGroup>
 
 		<ItemGroup>
+			<_PluginPdbFiles Include="$(_PluginPdbFiles)" />
 			<_PluginMetadataArchives Include="$(_PluginMetadataArchives)" />
 			<ResolvedFileToPublish Include="@(_PluginMetadataArchives)">
 				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
@@ -97,6 +99,10 @@
 			</ResolvedFileToPublish>
 			<_PluginMetadataArchives Remove="$(_PluginMetadataArchives)" />
 			<ResolvedFileToPublish Include="@(PluginPrimaryAssembly-&gt;ClearMetadata())">
+				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</ResolvedFileToPublish>
+			<ResolvedFileToPublish Include="@(_PluginPdbFiles)">
 				<RelativePath>plugins\%(Filename)%(Extension)</RelativePath>
 				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 			</ResolvedFileToPublish>
