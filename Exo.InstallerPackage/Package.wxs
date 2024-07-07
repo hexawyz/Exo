@@ -11,5 +11,16 @@
             <ComponentGroupRef Id="Exo.Overlay" />
             <ComponentGroupRef Id="Exo.Settings.Ui" />
         </Feature>
+
+        <CustomAction Id="ExecuteOverlay"
+            Execute="immediate"
+            Impersonate="no"
+            Return="asyncNoWait"
+            FileRef="ExoOverlayExecutable"
+            ExeCommand="" />
+
+        <InstallExecuteSequence>
+            <Custom Action="ExecuteOverlay" After="InstallFinalize" Condition="NOT Installed" />
+        </InstallExecuteSequence>
     </Package>
 </Wix>
