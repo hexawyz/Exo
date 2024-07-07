@@ -126,66 +126,10 @@ e.g.:
 
 You can a binary release either from the [Releases page](https://github.com/hexawyz/Exo/releases) or a build artifact from a recent [GitHub actions build](https://github.com/hexawyz/Exo/actions).
 
-## Running Exo
+Exo is now released through a prebuild MSI installer.
+You just need to run this installer to get Exo running.
 
-Extract the release somewhere of your choice. e.g. create a directory `c:\tools\exo` and put everything ere. It is up to you to decide.
-
-⚠️ It is important to not mix up executables from different releases. Newer versions will validate that the versions match before communicating with the service.
-
-### As a command line application (Recommended for a first try)
-
-* Run `Exo.Service.exe` from where it was extracted, and watch the service start. There can be some error messages appearing during startup for some non supported devices, this is normal.
-* Run `Exo.Overlay.exe` from where it was extracted. This will start the overlay UI that exposes a notification icon and can display some overlay notifications.
-* In order to access the settings UI, you can use the taskbar tray icon created by `Exo.Overlay.exe` or manually run `Exo.Settings.UI.exe` from where it was extracted.
-  The UI windows will show up and present you with the supported devices that were detected on your system.
-
-### As a Windows Service
-
-If you know that Exo.Service is working on your system, you can instead start it as a Windows Service, which is the intended way of using it 🙂
-
-Let's assume that you extracted the release in `C:\Tools\Exo` for this. (You can adapt depending on your installation)
-
-#### Create the Service
-
-If not yet created, you can create the service using the following PowerShell command, in administrator mode:
-
-````PowerShell
-New-Service -Name "Exo" -BinaryPathName "C:\Tools\Exo\Exo.Service\Exo.Service.exe" -DisplayName "Exo" -Description "Exo the exoskeleton for your Windows PC and devices." -StartupType Manual
-````
-
-In the command above, I set the startup type to `Manual`, but you can set it to `Automatic` in order to have it start with Windows.
-
-#### Starting the service
-
-Still in PowerShell, run the following command:
-
-````PowerShell
-Start-Service Exo
-````
-
-Alternatively, you can control the service using the Windows Service Manager UI, or the Windows 11 Task Manager.
-
-#### Running the UIs
-
-The UI can be started manually in the same way as was explained earlier for running Exo in command line mode.
-
-#### Stopping the service
-
-Similarly, in PowerShell, run the following command:
-
-````PowerShell
-Stop-Service Exo
-````
-
-This can also be done from the Windows UI.
-
-#### Removing the service
-
-If you decide to remove the service from your system for any reason, this can be done as simply as you created it, using the PowerShell command:
-
-````PowerShell
-Remove-Service -Name "Exo"
-````
+⚠️ You may still need to manually install the Windows App SDK from Microsoft if you haven't already done so. This is required to run the UI, but the service will properly start without it.
 
 # Developing and building Exo
 
