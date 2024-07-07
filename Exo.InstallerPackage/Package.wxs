@@ -16,8 +16,8 @@
             Execute="immediate"
             Impersonate="no"
             Return="asyncNoWait"
-            FileRef="ExoOverlayExecutable"
-            ExeCommand="" />
+            Directory="ExoOverlayDirectory"
+            ExeCommand="[#ExoOverlayExecutable]" />
 
         <InstallExecuteSequence>
             <Custom Action="ExecuteOverlay" After="InstallFinalize" Condition="NOT Installed" />

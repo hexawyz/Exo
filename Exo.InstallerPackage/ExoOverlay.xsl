@@ -8,6 +8,17 @@
         </xsl:copy>
     </xsl:template>
 
+    <xsl:template match='wix:Wix/wix:Fragment/wix:DirectoryRef[@Id="INSTALLFOLDER"]/wix:Directory[@Name="Exo.Overlay"]'>
+        <xsl:element name="wix:Directory">
+            <xsl:attribute name="Id">ExoOverlayDirectory</xsl:attribute>
+            <xsl:attribute name="Name">
+                <xsl:value-of select="@Name"/>
+            </xsl:attribute>
+            
+            <xsl:apply-templates select="node()"/>
+        </xsl:element>
+    </xsl:template>
+
     <xsl:template match='wix:Wix/wix:Fragment/wix:DirectoryRef[@Id="INSTALLFOLDER"]/wix:Directory[@Name="Exo.Overlay"]/wix:Component[wix:File[@Source="SourceDir\Exo.Overlay.exe"]]'>
         <xsl:element name="wix:Component">
             <xsl:attribute name="Id">
