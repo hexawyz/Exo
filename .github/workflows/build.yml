@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Prepare artifact name
-      run: Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_NAME=$(Get-Date -Format yyyy-MM-dd)-$env:GITHUB_SHA"
+      run: Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_NAME=Exo Installer $(Get-Date -Format yyyy-MM-dd)-$env:GITHUB_SHA"
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -41,18 +41,16 @@ jobs:
       env:
         Configuration: ${{ matrix.configuration }}
 
-    # Decode the base 64 encoded pfx and save the Signing_Certificate
-    - name: Publish
-      run: .\Publish.ps1
-
-    # Bundle the results of the publish step into a 7z archive.
-    - name: Bundle
-      run: 7z a "$env:ARTIFACT_NAME.7z" .\publish\*
+    # Build the WiX project, which depends on the main projects
+    - name: Build the installer
+      run: msbuild Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:OutputName="$env:ARTIFACT_NAME"
+      env:
+        Configuration: ${{ matrix.configuration }}
 
     # Publish the artifact
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ARTIFACT_NAME }}
-        path: ${{ env.ARTIFACT_NAME }}.7z
-      
+        path: Exo.InstallerPackage\bin\x64\Release\en-US\${{ env.ARTIFACT_NAME }}.msi
+

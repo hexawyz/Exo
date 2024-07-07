@@ -1,7 +1,7 @@
 <Project Sdk="WixToolset.Sdk/5.0.0">
   <PropertyGroup>
     <EnableProjectHarvesting>false</EnableProjectHarvesting>
-    <OutputName>Exo Installer</OutputName>
+    <OutputName Condition="'$(OutputName)' == ''">Exo Installer</OutputName>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Exo.Service\Exo.Service.csproj" Publish="true" />

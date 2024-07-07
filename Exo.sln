@@ -15,7 +15,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		global.json = global.json
 		LICENCE.txt = LICENCE.txt
 		NuGet.config = NuGet.config
-		Publish.ps1 = Publish.ps1
 		ReadMe.md = ReadMe.md
 		Useful Bits.md = Useful Bits.md
 	EndProjectSection
