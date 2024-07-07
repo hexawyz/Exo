@@ -1,5 +1,5 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-    <Package Name="Exo" Manufacturer="Hexawyz" Version="1.0.0.0" UpgradeCode="07dd3181-64aa-475b-8787-b8a89e6420b5">
+    <Package Name="Exo" Manufacturer="Hexawyz" Version="0.1.0.0" UpgradeCode="07dd3181-64aa-475b-8787-b8a89e6420b5">
         <Icon Id="Exo.ico" SourceFile="..\exo-icon.ico"/>
         
         <MediaTemplate EmbedCab="yes" />
