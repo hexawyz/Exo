@@ -43,5 +43,7 @@
   <ItemGroup>
     <PackageReference Include="WixToolset.Heat" Version="5.0.0" />
     <PackageReference Include="WixToolset.Util.wixext" Version="5.0.0" />
+    <PackageReference Include="WixToolset.Netfx.wixext" Version="5.0.0" />
+    <PackageReference Include="WixToolset.Bal.wixext" Version="5.0.0" />
   </ItemGroup>
 </Project>
