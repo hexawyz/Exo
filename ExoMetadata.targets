@@ -1,12 +1,13 @@
 <Project>
 	<ItemGroup>
 		<ProjectReference
-			Include="$(MSBuildThisFileDirectory)Exo.MetadataCompiler/Exo.MetadataCompiler.csproj"
+			Include="$(MSBuildThisFileDirectory)Exo.MetadataCompiler\Exo.MetadataCompiler.csproj"
 			Private="false"
 			ExcludeAssets="all"
 			ReferenceOutputAssembly="false"
 			DisableTransitiveProjectReferences="true"
 			SkipGetTargetFrameworkProperties="true"
+			SetPlatform="Platform=AnyCPU"
 			GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
 	</ItemGroup>
 	<ItemGroup>

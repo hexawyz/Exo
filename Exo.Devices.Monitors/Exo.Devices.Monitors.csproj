@@ -33,7 +33,15 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<ProjectReference Include="..\Exo.MonitorDatabaseCompiler\Exo.MonitorDatabaseCompiler.csproj" Private="false" ExcludeAssets="all" ReferenceOutputAssembly="false" DisableTransitiveProjectReferences="true" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
+		<ProjectReference
+			Include="..\Exo.MonitorDatabaseCompiler\Exo.MonitorDatabaseCompiler.csproj"
+			Private="false"
+			ExcludeAssets="all"
+			ReferenceOutputAssembly="false"
+			DisableTransitiveProjectReferences="true"
+			SkipGetTargetFrameworkProperties="true"
+			SetPlatform="Platform=AnyCPU"
+			GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
 	</ItemGroup>
 
 	<Target Name="BuildMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData;CompileMonitorDatabase" BeforeTargets="AssignTargetPaths"></Target>
