@@ -18,9 +18,7 @@
             </xsl:attribute>
 
             <xsl:element name="wix:File">
-                <xsl:attribute name="Id">
-                    <xsl:value-of select="wix:File/@Id"/>
-                </xsl:attribute>
+                <xsl:attribute name="Id">ExoServiceExecutable</xsl:attribute>
                 <xsl:attribute name="Source">
                     <xsl:value-of select="wix:File/@Source"/>
                 </xsl:attribute>

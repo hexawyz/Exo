@@ -22,6 +22,7 @@
       <ComponentGroupName>Exo.Overlay</ComponentGroupName>
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <SuppressRegistry>true</SuppressRegistry>
+      <Transforms>ExoOverlay.xsl</Transforms>
     </HarvestDirectory>
     <BindPath Include="$(IntermediateOutputPath)publish\Exo.Overlay" />
   </ItemGroup>
@@ -30,10 +31,13 @@
       <ComponentGroupName>Exo.Settings.Ui</ComponentGroupName>
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <SuppressRegistry>true</SuppressRegistry>
+      <Transforms>ExoSettingsUi.xsl</Transforms>
     </HarvestDirectory>
     <BindPath Include="$(IntermediateOutputPath)publish\Exo.Settings.Ui" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ExoSettingsUi.xsl" />
+    <None Include="ExoOverlay.xsl" />
     <None Include="ExoService.xsl" />
   </ItemGroup>
   <ItemGroup>
