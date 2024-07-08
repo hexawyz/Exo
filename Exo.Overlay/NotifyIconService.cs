@@ -74,7 +74,7 @@ internal sealed class NotifyIconService : IAsyncDisposable
 		{
 			await _window.SwitchTo();
 
-			while (true)
+			while (!cancellationToken.IsCancellationRequested)
 			{
 				var customMenuService = await _serviceConnectionManager.CreateServiceAsync<IOverlayCustomMenuService>(cancellationToken);
 				_customMenuServiceTaskCompletionSource.TrySetResult(customMenuService);
@@ -84,6 +84,10 @@ internal sealed class NotifyIconService : IAsyncDisposable
 					{
 						ProcessCustomMenuChangeNotification(notification);
 					}
+				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+				{
+					return;
 				}
 				catch (Exception)
 				{
