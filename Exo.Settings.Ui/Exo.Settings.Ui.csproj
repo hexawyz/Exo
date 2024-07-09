@@ -33,6 +33,7 @@
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
     <None Remove="MonitorMiscSettingsControl.xaml" />
+    <None Remove="MonitorPerformanceSettingsControl.xaml" />
     <None Remove="MonitorRgbSettingsControl.xaml" />
     <None Remove="MonitorSettingControl.xaml" />
     <None Remove="MonitorSettingsControl.xaml" />
@@ -98,6 +99,10 @@
   <ItemGroup>
     <Page Update="Controls\LineChart.xaml">
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="MonitorPerformanceSettingsControl.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
     </Page>
     <Page Update="MonitorMiscSettingsControl.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>

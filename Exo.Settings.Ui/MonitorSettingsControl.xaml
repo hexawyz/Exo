@@ -30,25 +30,6 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <FontIcon
                 Grid.Row="0"
@@ -266,91 +247,26 @@
 
             <Expander Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>
-                    RGB Settings
+                    Performance
                 </Expander.Header>
-                <local:MonitorRgbSettingsControl DataContext="{Binding Mode=OneTime}" />
+                <local:MonitorPerformanceSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
 
             <Expander Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>
-                    Six Color Settings
+                    RGB
+                </Expander.Header>
+                <local:MonitorRgbSettingsControl DataContext="{Binding Mode=OneTime}" />
+            </Expander>
+
+            <Expander Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    Six Colors
                 </Expander.Header>
                 <local:MonitorSixAxisSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
 
-            <FontIcon
-                Grid.Row="24"
-                Grid.Column="0"
-                x:Uid="MonitorInputLagLabel"
-                Margin="{StaticResource RowContentLabelMargin}"
-                Glyph="&#xF182;"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Stretch"
-                Visibility="{Binding InputLagSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-            <ComboBox
-                Grid.Row="24"
-                Grid.Column="1"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding InputLagSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                SelectedItem="{Binding Value, Mode=TwoWay}"
-                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
-                HorizontalContentAlignment="Stretch"
-                HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding FriendlyName}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button
-                Grid.Row="24"
-                Grid.Column="2"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding InputLagSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Command="{Binding ResetCommand}"
-                CommandParameter="{Binding}">
-                <FontIcon Glyph="&#xE777;" />
-            </Button>
-
-            <FontIcon
-                Grid.Row="25"
-                Grid.Column="0"
-                x:Uid="MonitorResponseTimeLabel"
-                Margin="{StaticResource RowContentLabelMargin}"
-                Glyph="&#xEC4A;"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Stretch"
-                Visibility="{Binding ResponseTimeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-            <ComboBox
-                Grid.Row="25"
-                Grid.Column="1"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding ResponseTimeSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                SelectedItem="{Binding Value, Mode=TwoWay}"
-                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
-                HorizontalContentAlignment="Stretch"
-                HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding FriendlyName}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button
-                Grid.Row="25"
-                Grid.Column="2"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding ResponseTimeSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Command="{Binding ResetCommand}"
-                CommandParameter="{Binding}">
-                <FontIcon Glyph="&#xE777;" />
-            </Button>
-
-            <Expander Grid.Row="26" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>
                     Miscellaneous
                 </Expander.Header>

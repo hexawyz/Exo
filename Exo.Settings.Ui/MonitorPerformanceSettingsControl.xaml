@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Exo.Settings.Ui.MonitorPerformanceSettingsControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
+    IsEnabled="{Binding IsReady}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <FontIcon
+            Grid.Row="0"
+            Grid.Column="0"
+            x:Uid="MonitorInputLagLabel"
+            Margin="{StaticResource RowContentLabelMargin}"
+            Glyph="&#xF182;"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Stretch"
+            Visibility="{Binding InputLagSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <ComboBox
+            Grid.Row="0"
+            Grid.Column="1"
+            Margin="{StaticResource RowContentLabelMargin}"
+            DataContext="{Binding InputLagSetting}"
+            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+            SelectedItem="{Binding Value, Mode=TwoWay}"
+            ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+            HorizontalContentAlignment="Stretch"
+            HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding FriendlyName}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button
+            Grid.Row="0"
+            Grid.Column="2"
+            Margin="{StaticResource RowContentLabelMargin}"
+            DataContext="{Binding InputLagSetting}"
+            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+            Command="{Binding ResetCommand}"
+            CommandParameter="{Binding}">
+            <FontIcon Glyph="&#xE777;" />
+        </Button>
+
+        <FontIcon
+            Grid.Row="1"
+            Grid.Column="0"
+            x:Uid="MonitorResponseTimeLabel"
+            Margin="{StaticResource RowContentLabelMargin}"
+            Glyph="&#xEC4A;"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Stretch"
+            Visibility="{Binding ResponseTimeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <ComboBox
+            Grid.Row="1"
+            Grid.Column="1"
+            Margin="{StaticResource RowContentLabelMargin}"
+            DataContext="{Binding ResponseTimeSetting}"
+            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+            SelectedItem="{Binding Value, Mode=TwoWay}"
+            ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+            HorizontalContentAlignment="Stretch"
+            HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding FriendlyName}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button
+            Grid.Row="1"
+            Grid.Column="2"
+            Margin="{StaticResource RowContentLabelMargin}"
+            DataContext="{Binding ResponseTimeSetting}"
+            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+            Command="{Binding ResetCommand}"
+            CommandParameter="{Binding}">
+            <FontIcon Glyph="&#xE777;" />
+        </Button>
+    </Grid>
+</UserControl>
