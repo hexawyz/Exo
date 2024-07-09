@@ -350,71 +350,12 @@
                 <FontIcon Glyph="&#xE777;" />
             </Button>
 
-            <FontIcon
-                Grid.Row="26"
-                Grid.Column="0"
-                x:Uid="MonitorOsdLanguageLabel"
-                Margin="{StaticResource RowContentLabelMargin}"
-                Glyph="&#xF2B7;"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Stretch"
-                Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-            <ComboBox
-                Grid.Row="26"
-                Grid.Column="1"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding OsdLanguageSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                SelectedItem="{Binding Value, Mode=TwoWay}"
-                ItemsSource="{Binding SupportedValues, Mode=OneWay}"
-                HorizontalContentAlignment="Stretch"
-                HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding FriendlyName}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button
-                Grid.Row="26"
-                Grid.Column="2"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding OsdLanguageSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Command="{Binding ResetCommand}"
-                CommandParameter="{Binding}">
-                <FontIcon Glyph="&#xE777;" />
-            </Button>
-
-            <FontIcon
-                Grid.Row="27"
-                Grid.Column="0"
-                x:Uid="MonitorPowerIndicatorLabel"
-                Margin="{StaticResource RowContentLabelMargin}"
-                Glyph="&#xE781;"
-                Foreground="#f80"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Stretch"
-                Visibility="{Binding PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-            <ToggleSwitch
-                Grid.Row="27"
-                Grid.Column="1"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding PowerIndicatorSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                IsOn="{Binding Value, Mode=TwoWay}"
-                HorizontalContentAlignment="Stretch"
-                HorizontalAlignment="Stretch" />
-            <Button
-                Grid.Row="27"
-                Grid.Column="2"
-                Margin="{StaticResource RowContentLabelMargin}"
-                DataContext="{Binding PowerIndicatorSetting}"
-                Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-                Command="{Binding ResetCommand}"
-                CommandParameter="{Binding}">
-                <FontIcon Glyph="&#xE777;" />
-            </Button>
+            <Expander Grid.Row="26" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    Miscellaneous
+                </Expander.Header>
+                <local:MonitorMiscSettingsControl DataContext="{Binding Mode=OneTime}" />
+            </Expander>
         </Grid>
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
             <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
