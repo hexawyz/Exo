@@ -245,28 +245,56 @@
                 <FontIcon Glyph="&#xE777;" />
             </Button>
 
-            <Expander Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander
+                Grid.Row="6"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                Margin="{StaticResource VerticalItemSpacing}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                IsExpanded="{Binding IsPerformanceSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     Performance
                 </Expander.Header>
                 <local:MonitorPerformanceSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
 
-            <Expander Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander
+                Grid.Row="7"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                Margin="{StaticResource VerticalItemSpacing}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                IsExpanded="{Binding IsRgbSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     RGB
                 </Expander.Header>
                 <local:MonitorRgbSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
 
-            <Expander Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander
+                Grid.Row="8"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                Margin="{StaticResource VerticalItemSpacing}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                IsExpanded="{Binding IsSixAxisSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     Six Colors
                 </Expander.Header>
                 <local:MonitorSixAxisSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
 
-            <Expander Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Margin="{StaticResource VerticalItemSpacing}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Expander
+                Grid.Row="9"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                Margin="{StaticResource VerticalItemSpacing}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                IsExpanded="{Binding IsMiscellaneousSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     Miscellaneous
                 </Expander.Header>

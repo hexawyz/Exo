@@ -47,6 +47,10 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private int _changedSettingCount;
 	private bool _isReady;
 	private bool _isExpanded;
+	private bool _isPerformanceSectionExpanded;
+	private bool _isRgbSectionExpanded;
+	private bool _isSixAxisSectionExpanded;
+	private bool _isMiscellaneousSectionExpanded;
 
 	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public ContinuousMonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
@@ -87,6 +91,30 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	{
 		get => _isExpanded;
 		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
+	}
+
+	public bool IsPerformanceSectionExpanded
+	{
+		get => _isPerformanceSectionExpanded;
+		set => SetValue(ref _isPerformanceSectionExpanded, value);
+	}
+
+	public bool IsRgbSectionExpanded
+	{
+		get => _isRgbSectionExpanded;
+		set => SetValue(ref _isRgbSectionExpanded, value);
+	}
+
+	public bool IsSixAxisSectionExpanded
+	{
+		get => _isSixAxisSectionExpanded;
+		set => SetValue(ref _isSixAxisSectionExpanded, value);
+	}
+
+	public bool IsMiscellaneousSectionExpanded
+	{
+		get => _isMiscellaneousSectionExpanded;
+		set => SetValue(ref _isMiscellaneousSectionExpanded, value);
 	}
 
 	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, SettingsServiceConnectionManager connectionManager)
