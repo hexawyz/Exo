@@ -237,8 +237,14 @@
   <data name="MonitorMagentaSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Saturation magenta</value>
   </data>
+  <data name="MonitorMiscellaneousSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Divers</value>
+  </data>
   <data name="MonitorOsdLanguageLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Langue de l'affichage à l'écran (OSD)</value>
+  </data>
+  <data name="MonitorPerformanceSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Performance</value>
   </data>
   <data name="MonitorPowerIndicatorLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Voyant d'alimentation</value>
@@ -258,11 +264,17 @@
   <data name="MonitorResponseTimeLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Temps de réponse</value>
   </data>
+  <data name="MonitorRgbSettingsSectionHeader.Text" xml:space="preserve">
+    <value>R/V/B</value>
+  </data>
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
     <value>Réglages écran</value>
   </data>
   <data name="MonitorSharpnessLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Netteté</value>
+  </data>
+  <data name="MonitorSixAxisSettingsSectionHeader.Text" xml:space="preserve">
+    <value>6 Couleurs</value>
   </data>
   <data name="MonitorYellowSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Ajustement de teinte jaune</value>

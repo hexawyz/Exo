@@ -254,7 +254,10 @@
                 HorizontalContentAlignment="Stretch"
                 IsExpanded="{Binding IsPerformanceSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
-                    Performance
+                    <StackPanel Orientation="Horizontal">
+                        <FontIcon Glyph="&#xEC4A;" />
+                        <TextBlock x:Uid="MonitorPerformanceSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+                    </StackPanel>
                 </Expander.Header>
                 <local:MonitorPerformanceSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
@@ -268,7 +271,10 @@
                 HorizontalContentAlignment="Stretch"
                 IsExpanded="{Binding IsRgbSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
-                    RGB
+                    <StackPanel Orientation="Horizontal">
+                        <FontIcon Glyph="&#xE790;" />
+                        <TextBlock x:Uid="MonitorRgbSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+                    </StackPanel>
                 </Expander.Header>
                 <local:MonitorRgbSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
@@ -282,7 +288,10 @@
                 HorizontalContentAlignment="Stretch"
                 IsExpanded="{Binding IsSixAxisSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
-                    Six Colors
+                    <StackPanel Orientation="Horizontal">
+                        <FontIcon Glyph="&#xE790;" />
+                        <TextBlock x:Uid="MonitorSixAxisSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+                    </StackPanel>
                 </Expander.Header>
                 <local:MonitorSixAxisSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
@@ -296,7 +305,10 @@
                 HorizontalContentAlignment="Stretch"
                 IsExpanded="{Binding IsMiscellaneousSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
-                    Miscellaneous
+                    <StackPanel Orientation="Horizontal">
+                        <FontIcon Glyph="&#xE713;" />
+                        <TextBlock x:Uid="MonitorMiscellaneousSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+                    </StackPanel>
                 </Expander.Header>
                 <local:MonitorMiscSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
