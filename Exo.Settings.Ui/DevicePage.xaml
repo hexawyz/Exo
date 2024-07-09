@@ -89,7 +89,7 @@
                     <TextBlock x:Uid="MonitorSettingsSectionHeader" Text="Monitor" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
-            <local:MonitorSettingsControl MonitorFeatures="{Binding MonitorFeatures}" />
+            <local:MonitorSettingsControl DataContext="{Binding MonitorFeatures}" />
         </Expander>
     </StackPanel>
 </Page>
