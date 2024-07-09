@@ -252,6 +252,7 @@
                 Margin="{StaticResource VerticalItemSpacing}"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
+                Visibility="{Binding HasPerformanceSection, Converter={StaticResource BooleanToVisibilityConverter}}"
                 IsExpanded="{Binding IsPerformanceSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
@@ -269,6 +270,7 @@
                 Margin="{StaticResource VerticalItemSpacing}"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
+                Visibility="{Binding HasRgbSection, Converter={StaticResource BooleanToVisibilityConverter}}"
                 IsExpanded="{Binding IsRgbSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
@@ -286,6 +288,7 @@
                 Margin="{StaticResource VerticalItemSpacing}"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
+                Visibility="{Binding HasSixAxisSection, Converter={StaticResource BooleanToVisibilityConverter}}"
                 IsExpanded="{Binding IsSixAxisSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
@@ -303,6 +306,7 @@
                 Margin="{StaticResource VerticalItemSpacing}"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
+                Visibility="{Binding HasMiscellaneousSection, Converter={StaticResource BooleanToVisibilityConverter}}"
                 IsExpanded="{Binding IsMiscellaneousSectionExpanded, Mode=TwoWay}">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">

@@ -48,9 +48,13 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private bool _isReady;
 	private bool _isExpanded;
 	private bool _isPerformanceSectionExpanded;
+	private bool _hasPerformanceSection;
 	private bool _isRgbSectionExpanded;
+	private bool _hasRgbSection;
 	private bool _isSixAxisSectionExpanded;
+	private bool _hasSixAxisSection;
 	private bool _isMiscellaneousSectionExpanded;
+	private bool _hasMiscellaneousSection;
 
 	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public ContinuousMonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
@@ -99,10 +103,22 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		set => SetValue(ref _isPerformanceSectionExpanded, value);
 	}
 
+	public bool HasPerformanceSection
+	{
+		get => _hasPerformanceSection;
+		private set => SetValue(ref _hasPerformanceSection, value);
+	}
+
 	public bool IsRgbSectionExpanded
 	{
 		get => _isRgbSectionExpanded;
 		set => SetValue(ref _isRgbSectionExpanded, value);
+	}
+
+	public bool HasRgbSection
+	{
+		get => _hasRgbSection;
+		private set => SetValue(ref _hasRgbSection, value);
 	}
 
 	public bool IsSixAxisSectionExpanded
@@ -111,10 +127,22 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		set => SetValue(ref _isSixAxisSectionExpanded, value);
 	}
 
+	public bool HasSixAxisSection
+	{
+		get => _hasSixAxisSection;
+		private set => SetValue(ref _hasSixAxisSection, value);
+	}
+
 	public bool IsMiscellaneousSectionExpanded
 	{
 		get => _isMiscellaneousSectionExpanded;
 		set => SetValue(ref _isMiscellaneousSectionExpanded, value);
+	}
+
+	public bool HasMiscellaneousSection
+	{
+		get => _hasMiscellaneousSection;
+		private set => SetValue(ref _hasMiscellaneousSection, value);
 	}
 
 	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, SettingsServiceConnectionManager connectionManager)
@@ -153,75 +181,97 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 				break;
 			case MonitorSetting.VideoGainRed:
 				InitializeSetting(setting, ref _redVideoGainSetting, nameof(RedVideoGainSetting));
+				HasRgbSection = true;
 				break;
 			case MonitorSetting.VideoGainGreen:
 				InitializeSetting(setting, ref _greenVideoGainSetting, nameof(GreenVideoGainSetting));
+				HasRgbSection = true;
 				break;
 			case MonitorSetting.VideoGainBlue:
 				InitializeSetting(setting, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
+				HasRgbSection = true;
 				break;
 			case MonitorSetting.VideoBlackLevelRed:
 				InitializeSetting(setting, ref _redVideoBlackLevelSetting, nameof(RedVideoBlackLevelSetting));
+				HasRgbSection = true;
 				break;
 			case MonitorSetting.VideoBlackLevelGreen:
 				InitializeSetting(setting, ref _greenVideoBlackLevelSetting, nameof(GreenVideoBlackLevelSetting));
+				HasRgbSection = true;
 				break;
 			case MonitorSetting.VideoBlackLevelBlue:
 				InitializeSetting(setting, ref _blueVideoBlackLevelSetting, nameof(BlueVideoBlackLevelSetting));
+				HasRgbSection = true;
 				break;
 			case MonitorSetting.SixAxisSaturationControlRed:
 				InitializeSetting(setting, ref _redSixAxisSaturationControlSetting, nameof(RedSixAxisSaturationControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisSaturationControlYellow:
 				InitializeSetting(setting, ref _yellowSixAxisSaturationControlSetting, nameof(YellowSixAxisSaturationControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisSaturationControlGreen:
 				InitializeSetting(setting, ref _greenSixAxisSaturationControlSetting, nameof(GreenSixAxisSaturationControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisSaturationControlCyan:
 				InitializeSetting(setting, ref _cyanSixAxisSaturationControlSetting, nameof(CyanSixAxisSaturationControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisSaturationControlBlue:
 				InitializeSetting(setting, ref _blueSixAxisSaturationControlSetting, nameof(BlueSixAxisSaturationControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisSaturationControlMagenta:
 				InitializeSetting(setting, ref _magentaSixAxisSaturationControlSetting, nameof(MagentaSixAxisSaturationControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisHueControlRed:
 				InitializeSetting(setting, ref _redSixAxisHueControlSetting, nameof(RedSixAxisHueControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisHueControlYellow:
 				InitializeSetting(setting, ref _yellowSixAxisHueControlSetting, nameof(YellowSixAxisHueControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisHueControlGreen:
 				InitializeSetting(setting, ref _greenSixAxisHueControlSetting, nameof(GreenSixAxisHueControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisHueControlCyan:
 				InitializeSetting(setting, ref _cyanSixAxisHueControlSetting, nameof(CyanSixAxisHueControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisHueControlBlue:
 				InitializeSetting(setting, ref _blueSixAxisHueControlSetting, nameof(BlueSixAxisHueControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.SixAxisHueControlMagenta:
 				InitializeSetting(setting, ref _magentaSixAxisHueControlSetting, nameof(MagentaSixAxisHueControlSetting));
+				HasSixAxisSection = true;
 				break;
 			case MonitorSetting.InputLag:
 				InitializeSetting(setting, ref _inputLagSetting, nameof(ResponseTimeSetting));
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
 				_inputLagSetting!.UpdateNonContinuousValues(_metadataService, information.InputLagLevels);
+				HasPerformanceSection = true;
 				break;
 			case MonitorSetting.ResponseTime:
 				InitializeSetting(setting, ref _responseTimeSetting, nameof(ResponseTimeSetting));
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
 				_responseTimeSetting!.UpdateNonContinuousValues(_metadataService, information.ResponseTimeLevels);
+				HasPerformanceSection = true;
 				break;
 			case MonitorSetting.OsdLanguage:
 				InitializeSetting(setting, ref _osdLanguageSetting, nameof(OsdLanguageSetting));
 				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
 				_osdLanguageSetting!.UpdateNonContinuousValues(_metadataService, information.OsdLanguages);
+				HasMiscellaneousSection = true;
 				break;
 			case MonitorSetting.PowerIndicator:
 				InitializeSetting(setting, ref _powerIndicatorSetting, nameof(PowerIndicatorSetting));
+				HasMiscellaneousSection = true;
 				break;
 			}
 		}
@@ -251,69 +301,91 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 			break;
 		case MonitorSetting.VideoGainRed:
 			UpdateSetting(settingValue, ref _redVideoGainSetting, nameof(RedVideoGainSetting));
+			HasRgbSection = true;
 			break;
 		case MonitorSetting.VideoGainGreen:
 			UpdateSetting(settingValue, ref _greenVideoGainSetting, nameof(GreenVideoGainSetting));
+			HasRgbSection = true;
 			break;
 		case MonitorSetting.VideoGainBlue:
 			UpdateSetting(settingValue, ref _blueVideoGainSetting, nameof(BlueVideoGainSetting));
+			HasRgbSection = true;
 			break;
 		case MonitorSetting.VideoBlackLevelRed:
 			UpdateSetting(settingValue, ref _redVideoBlackLevelSetting, nameof(RedVideoBlackLevelSetting));
+			HasRgbSection = true;
 			break;
 		case MonitorSetting.VideoBlackLevelGreen:
 			UpdateSetting(settingValue, ref _greenVideoBlackLevelSetting, nameof(GreenVideoBlackLevelSetting));
+			HasRgbSection = true;
 			break;
 		case MonitorSetting.VideoBlackLevelBlue:
 			UpdateSetting(settingValue, ref _blueVideoBlackLevelSetting, nameof(BlueVideoBlackLevelSetting));
+			HasRgbSection = true;
 			break;
 		case MonitorSetting.SixAxisSaturationControlRed:
 			UpdateSetting(settingValue, ref _redSixAxisSaturationControlSetting, nameof(RedSixAxisSaturationControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisSaturationControlYellow:
 			UpdateSetting(settingValue, ref _yellowSixAxisSaturationControlSetting, nameof(YellowSixAxisSaturationControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisSaturationControlGreen:
 			UpdateSetting(settingValue, ref _greenSixAxisSaturationControlSetting, nameof(GreenSixAxisSaturationControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisSaturationControlCyan:
 			UpdateSetting(settingValue, ref _cyanSixAxisSaturationControlSetting, nameof(CyanSixAxisSaturationControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisSaturationControlBlue:
 			UpdateSetting(settingValue, ref _blueSixAxisSaturationControlSetting, nameof(BlueSixAxisSaturationControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisSaturationControlMagenta:
 			UpdateSetting(settingValue, ref _magentaSixAxisSaturationControlSetting, nameof(MagentaSixAxisSaturationControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisHueControlRed:
 			UpdateSetting(settingValue, ref _redSixAxisHueControlSetting, nameof(RedSixAxisHueControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisHueControlYellow:
 			UpdateSetting(settingValue, ref _yellowSixAxisHueControlSetting, nameof(YellowSixAxisHueControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisHueControlGreen:
 			UpdateSetting(settingValue, ref _greenSixAxisHueControlSetting, nameof(GreenSixAxisHueControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisHueControlCyan:
 			UpdateSetting(settingValue, ref _cyanSixAxisHueControlSetting, nameof(CyanSixAxisHueControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisHueControlBlue:
 			UpdateSetting(settingValue, ref _blueSixAxisHueControlSetting, nameof(BlueSixAxisHueControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.SixAxisHueControlMagenta:
 			UpdateSetting(settingValue, ref _magentaSixAxisHueControlSetting, nameof(MagentaSixAxisHueControlSetting));
+			HasSixAxisSection = true;
 			break;
 		case MonitorSetting.InputLag:
 			UpdateSetting(settingValue, ref _inputLagSetting, nameof(InputLagSetting));
+			HasPerformanceSection = true;
 			break;
 		case MonitorSetting.ResponseTime:
 			UpdateSetting(settingValue, ref _responseTimeSetting, nameof(ResponseTimeSetting));
+			HasPerformanceSection = true;
 			break;
 		case MonitorSetting.OsdLanguage:
 			UpdateSetting(settingValue, ref _osdLanguageSetting, nameof(OsdLanguageSetting));
+			HasMiscellaneousSection = true;
 			break;
 		case MonitorSetting.PowerIndicator:
 			UpdateSetting(settingValue, ref _powerIndicatorSetting, nameof(PowerIndicatorSetting));
+			HasMiscellaneousSection = true;
 			break;
 		}
 	}
