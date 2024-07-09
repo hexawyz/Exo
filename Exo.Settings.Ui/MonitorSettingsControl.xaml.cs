@@ -15,9 +15,6 @@ using Windows.Foundation;
 using Windows.Foundation.Collections;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace Exo.Settings.Ui;
 
 internal sealed partial class MonitorSettingsControl : UserControl
