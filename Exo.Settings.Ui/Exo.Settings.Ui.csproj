@@ -35,6 +35,7 @@
     <None Remove="MonitorRgbSettingsControl.xaml" />
     <None Remove="MonitorSettingControl.xaml" />
     <None Remove="MonitorSettingsControl.xaml" />
+    <None Remove="MonitorSixAxisSettingsControl.xaml" />
     <None Remove="ProgrammingPage.xaml" />
     <None Remove="RootPage.xaml" />
     <None Remove="SensorsPage.xaml" />
@@ -96,6 +97,10 @@
   <ItemGroup>
     <Page Update="Controls\LineChart.xaml">
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="MonitorSixAxisSettingsControl.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
     </Page>
     <Page Update="MonitorRgbSettingsControl.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
