@@ -13,4 +13,7 @@ public interface IMonitorService
 
 	[OperationContract(Name = "SetSettingValue")]
 	ValueTask SetSettingValueAsync(MonitorSettingUpdate request, CancellationToken cancellationToken);
+
+	[OperationContract(Name = "RefreshMonitorSettings")]
+	ValueTask RefreshMonitorSettingsAsync(DeviceRequest request, CancellationToken cancellationToken);
 }

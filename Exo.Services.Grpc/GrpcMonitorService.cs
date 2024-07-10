@@ -56,4 +56,7 @@ internal sealed class GrpcMonitorService : IMonitorService
 
 	public ValueTask SetSettingValueAsync(MonitorSettingUpdate request, CancellationToken cancellationToken)
 		=> _monitorService.SetSettingValueAsync(request.DeviceId, request.Setting.FromGrpc(), request.Value, cancellationToken);
+
+	public ValueTask RefreshMonitorSettingsAsync(DeviceRequest request, CancellationToken cancellationToken)
+		=> _monitorService.RefreshValuesAsync(request.Id, cancellationToken);
 }

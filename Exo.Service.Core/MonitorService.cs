@@ -213,7 +213,7 @@ internal class MonitorService : IAsyncDisposable
 					}
 
 					// Finish the updates in a separate execution flow. We don't want to slow monitor enumeration because of a single slow device.
-					_ = Task.Run(() => PublishChangesAsync(deviceId, details, deviceLock, cancellationToken), cancellationToken);
+					_ = Task.Run(() => PublishChangesAsync(details, deviceLock, cancellationToken), cancellationToken);
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 				{
@@ -229,135 +229,165 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	private async Task PublishChangesAsync(Guid deviceId, MonitorDeviceDetails details, IDisposable deviceLock, CancellationToken cancellationToken)
+	private async Task PublishChangesAsync(MonitorDeviceDetails details, IDisposable deviceLock, CancellationToken cancellationToken)
 	{
-		var changes = new List<MonitorSettingWatchNotification>();
 		try
 		{
-			using (deviceLock)
-			{
-				var monitorFeatures = details.Driver!.GetFeatureSet<IMonitorDeviceFeature>();
-
-				// Compute all the changes after the details have been published. (Which means new watchers might have both captured the details and registered for update notifications)
-				changes.Clear();
-				foreach (var setting in details.SupportedSettings)
-				{
-					try
-					{
-						// NB: The code below will throw NRE if any of the features has become unavailable (which shouldn't happen, but the whole feature set could have been taken offline)
-						// This can be improved later, but it is "fine" for now, as we will catch this exception and do nothing, which is actually the best that must be done in this case.
-						ContinuousValue value;
-						switch (setting)
-						{
-						case MonitorSetting.Brightness:
-							value = await monitorFeatures.GetFeature<IMonitorBrightnessFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.Contrast:
-							value = await monitorFeatures.GetFeature<IMonitorContrastFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.Sharpness:
-							value = await monitorFeatures.GetFeature<IMonitorSharpnessFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.AudioVolume:
-							value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.InputSelect:
-							value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputSelectFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
-							break;
-						case MonitorSetting.VideoGainRed:
-							value = await monitorFeatures.GetFeature<IMonitorRedVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.VideoGainGreen:
-							value = await monitorFeatures.GetFeature<IMonitorGreenVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.VideoGainBlue:
-							value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.VideoBlackLevelRed:
-							value = await monitorFeatures.GetFeature<IMonitorRedVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.VideoBlackLevelGreen:
-							value = await monitorFeatures.GetFeature<IMonitorGreenVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.VideoBlackLevelBlue:
-							value = await monitorFeatures.GetFeature<IMonitorBlueVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisSaturationControlRed:
-							value = await monitorFeatures.GetFeature<IMonitorRedSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisSaturationControlYellow:
-							value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisSaturationControlGreen:
-							value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisSaturationControlCyan:
-							value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisSaturationControlBlue:
-							value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisSaturationControlMagenta:
-							value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisHueControlRed:
-							value = await monitorFeatures.GetFeature<IMonitorRedSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisHueControlYellow:
-							value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisHueControlGreen:
-							value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisHueControlCyan:
-							value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisHueControlBlue:
-							value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.SixAxisHueControlMagenta:
-							value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.InputLag:
-							value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputLagFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
-							break;
-						case MonitorSetting.ResponseTime:
-							value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorResponseTimeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
-							break;
-						case MonitorSetting.BlueLightFilterLevel:
-							value = await monitorFeatures.GetFeature<IMonitorBlueLightFilterLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
-							break;
-						case MonitorSetting.OsdLanguage:
-							value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
-							break;
-						case MonitorSetting.PowerIndicator:
-							value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorPowerIndicatorToggleFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false) ? (ushort)1 : (ushort)0, 0, 1);
-							break;
-						default:
-							continue;
-						}
-
-						// Acquire the lock once for each update, and publish the updates immediately.
-						// This means that watchers that register will never get duplicate updates.
-						lock (_lock)
-						{
-							details.KnownValues.Add(setting, value);
-							_changeListeners.TryWrite(new(deviceId, setting, value.Current, value.Minimum, value.Maximum));
-						}
-					}
-					catch (Exception ex)
-					{
-						_logger.MonitorServiceFeatureValueRetrievalError(deviceId, setting, ex);
-					}
-				}
-			}
+			await PublishOrRefreshSettingsAsync(details, deviceLock, cancellationToken).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 		}
 		catch (Exception ex)
 		{
-			_logger.MonitorServiceFeaturePublishError(deviceId, ex);
+			_logger.MonitorServiceSettingPublishError(details.DeviceId, ex);
+		}
+	}
+
+	private async Task RefreshSettingsAsync(MonitorDeviceDetails details, IDisposable deviceLock, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await PublishOrRefreshSettingsAsync(details, deviceLock, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			_logger.MonitorServiceSettingRefreshError(details.DeviceId, ex);
+		}
+	}
+
+	private async Task PublishOrRefreshSettingsAsync(MonitorDeviceDetails details, IDisposable deviceLock, CancellationToken cancellationToken)
+	{
+		using (deviceLock)
+		{
+			var changes = new List<MonitorSettingWatchNotification>();
+			var monitorFeatures = details.Driver!.GetFeatureSet<IMonitorDeviceFeature>();
+
+			// Compute all the changes after the details have been published. (Which means new watchers might have both captured the details and registered for update notifications)
+			changes.Clear();
+			foreach (var setting in details.SupportedSettings)
+			{
+				try
+				{
+					// NB: The code below will throw NRE if any of the features has become unavailable (which shouldn't happen, but the whole feature set could have been taken offline)
+					// This can be improved later, but it is "fine" for now, as we will catch this exception and do nothing, which is actually the best that must be done in this case.
+					ContinuousValue value;
+					switch (setting)
+					{
+					case MonitorSetting.Brightness:
+						value = await monitorFeatures.GetFeature<IMonitorBrightnessFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.Contrast:
+						value = await monitorFeatures.GetFeature<IMonitorContrastFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.Sharpness:
+						value = await monitorFeatures.GetFeature<IMonitorSharpnessFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.AudioVolume:
+						value = await monitorFeatures.GetFeature<IMonitorSpeakerAudioVolumeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.InputSelect:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputSelectFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.VideoGainRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoGainGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoGainBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueVideoGainFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoBlackLevelRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoBlackLevelGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.VideoBlackLevelBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueVideoBlackLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlYellow:
+						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlCyan:
+						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisSaturationControlMagenta:
+						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisSaturationControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlRed:
+						value = await monitorFeatures.GetFeature<IMonitorRedSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlYellow:
+						value = await monitorFeatures.GetFeature<IMonitorYellowSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlGreen:
+						value = await monitorFeatures.GetFeature<IMonitorGreenSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlCyan:
+						value = await monitorFeatures.GetFeature<IMonitorCyanSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlBlue:
+						value = await monitorFeatures.GetFeature<IMonitorBlueSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.SixAxisHueControlMagenta:
+						value = await monitorFeatures.GetFeature<IMonitorMagentaSixAxisHueControlFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.InputLag:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorInputLagFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.ResponseTime:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorResponseTimeFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.BlueLightFilterLevel:
+						value = await monitorFeatures.GetFeature<IMonitorBlueLightFilterLevelFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false);
+						break;
+					case MonitorSetting.OsdLanguage:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorOsdLanguageFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false), 0, 0);
+						break;
+					case MonitorSetting.PowerIndicator:
+						value = new ContinuousValue(await monitorFeatures.GetFeature<IMonitorPowerIndicatorToggleFeature>()!.GetValueAsync(cancellationToken).ConfigureAwait(false) ? (ushort)1 : (ushort)0, 0, 1);
+						break;
+					default:
+						continue;
+					}
+
+					// Acquire the lock once for each update, and publish the updates immediately.
+					// This means that watchers that register will never get duplicate updates.
+					lock (_lock)
+					{
+						if (!details.KnownValues.TryGetValue(setting, out var oldValue))
+						{
+							details.KnownValues.Add(setting, value);
+						}
+						else if (oldValue != value)
+						{
+							details.KnownValues[setting] = value;
+						}
+						else
+						{
+							// Skip the change notification if the value was neither created not updated.
+							goto UpdateProcessed;
+						}
+						_changeListeners.TryWrite(new(details.DeviceId, setting, value.Current, value.Minimum, value.Maximum));
+					UpdateProcessed:;
+					}
+				}
+				catch (Exception ex)
+				{
+					_logger.MonitorServiceSettingValueRetrievalError(details.DeviceId, setting, ex);
+				}
+			}
 		}
 	}
 
@@ -482,6 +512,21 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.PowerIndicator => SetPowerIndicatorAsync(deviceId, value != 0, cancellationToken),
 			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
 		};
+
+
+
+	public async ValueTask RefreshValuesAsync(Guid deviceId, CancellationToken cancellationToken)
+	{
+		MonitorDeviceDetails? details;
+		lock (_lock)
+		{
+			if (!_deviceDetails.TryGetValue(deviceId, out details) || details.Driver is null) goto DeviceNotFound;
+		}
+		var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
+		await RefreshSettingsAsync(details, deviceLock, cancellationToken).ConfigureAwait(false);
+	DeviceNotFound:;
+		throw new InvalidOperationException("Device was not found.");
+	}
 
 	private void UpdateCachedSetting(Dictionary<MonitorSetting, ContinuousValue> knownValues, Guid deviceId, MonitorSetting setting, ushort value)
 	{

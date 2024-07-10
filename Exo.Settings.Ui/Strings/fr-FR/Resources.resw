@@ -282,6 +282,9 @@
   <data name="MonitorYellowSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Saturation jaune</value>
   </data>
+  <data name="RefreshButton.Content" xml:space="preserve">
+    <value>Rafraîchir</value>
+  </data>
   <data name="ResetButton.Content" xml:space="preserve">
     <value>Réinitialiser</value>
   </data>

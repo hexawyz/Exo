@@ -35,7 +35,7 @@ internal interface IApplicable : IChangeable
 
 	static sealed void NotifyCanExecuteChanged() => Commands.ApplyCommand.RaiseCanExecuteChanged();
 
-	ICommand ResetCommand => SharedApplyCommand;
+	ICommand ApplyCommand => SharedApplyCommand;
 
 	Task ApplyAsync(CancellationToken cancellationToken);
 }

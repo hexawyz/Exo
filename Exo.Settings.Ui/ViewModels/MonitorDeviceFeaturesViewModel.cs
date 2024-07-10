@@ -2,13 +2,14 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBindableObject
+internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBindableObject, IRefreshable
 {
 	private readonly DeviceViewModel _device;
 	private readonly ISettingsMetadataService _metadataService;
@@ -145,6 +146,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		private set => SetValue(ref _hasMiscellaneousSection, value);
 	}
 
+	public ICommand RefreshCommand => IRefreshable.SharedRefreshCommand;
+
 	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, SettingsServiceConnectionManager connectionManager)
 	{
 		_device = device;
@@ -155,6 +158,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	public async Task UpdateInformationAsync(MonitorInformation information, CancellationToken cancellationToken)
 	{
+		if (information.SupportedSettings.IsDefault) return;
+
 		foreach (var setting in information.SupportedSettings)
 		{
 			switch (setting)
@@ -561,6 +566,12 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_responseTimeSetting);
 		IResettable.SharedResetCommand.Execute(_osdLanguageSetting);
 		IResettable.SharedResetCommand.Execute(_powerIndicatorSetting);
+	}
+
+	public async Task RefreshAsync(CancellationToken cancellationToken)
+	{
+		var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+		await monitorService.RefreshMonitorSettingsAsync(new() { Id = _device.Id }, cancellationToken);
 	}
 }
 

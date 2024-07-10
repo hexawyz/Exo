@@ -317,9 +317,18 @@
                 <local:MonitorMiscSettingsControl DataContext="{Binding Mode=OneTime}" />
             </Expander>
         </Grid>
-        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-            <Button HorizontalAlignment="Right" Content="Reset" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-            <Button Content="Apply" Style="{StaticResource AccentButtonStyle}" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
-        </StackPanel>
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Uid="RefreshButton" HorizontalAlignment="Right" Content="Reset" Command="{Binding RefreshCommand}" CommandParameter="{Binding}" />
+            <Button Grid.Column="3" x:Uid="ResetButton" HorizontalAlignment="Right" Content="Reset" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
+            <Button Grid.Column="5" x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+        </Grid>
     </StackPanel>
 </UserControl>

@@ -110,8 +110,11 @@ internal static partial class LoggerExtensions
 	public static partial void MonitorServiceDeviceRemovalError(this ILogger logger, Guid deviceId, Exception ex);
 
 	[LoggerMessage(EventId = 5003, Level = LogLevel.Error, Message = "Error while publishing setting values for device {DeviceId}.")]
-	public static partial void MonitorServiceFeaturePublishError(this ILogger logger, Guid deviceId, Exception ex);
+	public static partial void MonitorServiceSettingPublishError(this ILogger logger, Guid deviceId, Exception ex);
 
-	[LoggerMessage(EventId = 5004, Level = LogLevel.Error, Message = "Error while retrieving the value for monitor setting {MonitorSetting} of device {DeviceId}.")]
-	public static partial void MonitorServiceFeatureValueRetrievalError(this ILogger logger, Guid deviceId, MonitorSetting monitorSetting, Exception ex);
+	[LoggerMessage(EventId = 5004, Level = LogLevel.Error, Message = "Error while refreshing setting values for device {DeviceId}.")]
+	public static partial void MonitorServiceSettingRefreshError(this ILogger logger, Guid deviceId, Exception ex);
+
+	[LoggerMessage(EventId = 5005, Level = LogLevel.Error, Message = "Error while retrieving the value for monitor setting {MonitorSetting} of device {DeviceId}.")]
+	public static partial void MonitorServiceSettingValueRetrievalError(this ILogger logger, Guid deviceId, MonitorSetting monitorSetting, Exception ex);
 }
