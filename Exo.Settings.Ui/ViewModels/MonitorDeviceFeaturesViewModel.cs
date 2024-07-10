@@ -88,8 +88,14 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	public bool IsReady
 	{
-		get => !_isReady;
-		private set => SetValue(ref _isReady, !value, ChangedProperty.IsNotBusy);
+		get => _isReady;
+		private set
+		{
+			if (SetValue(ref _isReady, value, ChangedProperty.IsReady))
+			{
+				IRefreshable.NotifyCanExecuteChanged();
+			}
+		}
 	}
 
 	public bool IsExpanded
@@ -153,6 +159,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		_device = device;
 		_metadataService = metadataService;
 		_connectionManager = connectionManager;
+		_isReady = true;
 		_onSettingPropertyChanged = new(OnSettingPropertyChanged);
 	}
 
@@ -480,6 +487,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
+		if (!IsReady) throw new InvalidOperationException();
 		IsReady = false;
 		List<Exception>? exceptions = null;
 		try
@@ -568,10 +576,21 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IResettable.SharedResetCommand.Execute(_powerIndicatorSetting);
 	}
 
-	public async Task RefreshAsync(CancellationToken cancellationToken)
+	bool IRefreshable.CanRefresh => IsReady;
+
+	async Task IRefreshable.RefreshAsync(CancellationToken cancellationToken)
 	{
-		var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
-		await monitorService.RefreshMonitorSettingsAsync(new() { Id = _device.Id }, cancellationToken);
+		if (!IsReady) throw new InvalidOperationException();
+		IsReady = false;
+		try
+		{
+			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+			await monitorService.RefreshMonitorSettingsAsync(new() { Id = _device.Id }, cancellationToken);
+		}
+		finally
+		{
+			IsReady = true;
+		}
 	}
 }
 

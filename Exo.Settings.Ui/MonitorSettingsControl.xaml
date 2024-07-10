@@ -10,7 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
-    IsEnabled="{Binding IsReady}">
+    IsEnabled="{Binding IsReady, Mode=TwoWay}">
 
     <StackPanel Orientation="Vertical" Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}">
         <Grid>

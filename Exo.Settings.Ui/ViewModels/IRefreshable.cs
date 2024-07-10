@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -25,13 +25,19 @@ internal interface IRefreshable
 				}
 			}
 
-			public bool CanExecute(object? parameter) => true;
+			public bool CanExecute(object? parameter) => (parameter as IRefreshable)?.CanRefresh ?? false;
 
-			public event EventHandler? CanExecuteChanged { add { } remove { } }
+			public event EventHandler? CanExecuteChanged;
+
+			public static void RaiseCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
 		}
 	}
 
+	static sealed void NotifyCanExecuteChanged() => Commands.RefreshCommand.RaiseCanExecuteChanged();
+
 	ICommand RefreshCommand => SharedRefreshCommand;
+
+	bool CanRefresh => true;
 
 	Task RefreshAsync(CancellationToken cancellationToken);
 }

@@ -524,6 +524,7 @@ internal class MonitorService : IAsyncDisposable
 		}
 		var deviceLock = await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 		await RefreshSettingsAsync(details, deviceLock, cancellationToken).ConfigureAwait(false);
+		return;
 	DeviceNotFound:;
 		throw new InvalidOperationException("Device was not found.");
 	}
