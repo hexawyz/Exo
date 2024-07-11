@@ -20,6 +20,14 @@ namespace DeviceTools.Cli;
 
 internal static class Program
 {
+	[Flags]
+	private enum VcpCodeEnumerationOptions
+	{
+		None = 0,
+		Documented = 1,
+		Undocumented = 2,
+	}
+
 	private static readonly Dictionary<Guid, string> DeviceInterfaceClassGuidNames =
 		typeof(DeviceInterfaceClassGuids).GetFields()
 			.Concat(typeof(DeviceInterfaceClassGuids.KernelStreaming).GetFields())
@@ -28,7 +36,7 @@ internal static class Program
 			.Concat(typeof(DeviceInterfaceClassGuids.BluetoothGattServiceClasses).GetFields())
 			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
 			.ToDictionary(t => t.Value, t => t.Name);
-	
+
 	private static readonly Dictionary<Guid, string> DeviceClassGuidNames =
 		typeof(DeviceClassGuids).GetFields()
 			.Select(f => (f.Name, Value: (Guid)f.GetValue(null)!))
@@ -43,12 +51,12 @@ internal static class Program
 	{
 		Console.OutputEncoding = Encoding.UTF8;
 		bool enumerateMonitors = true;
-		bool enumerateVcpCodes = true;
+		var vcpCodeEnumerationOptions = VcpCodeEnumerationOptions.None;
 
 		if (enumerateMonitors)
 		{
 			PrintDisplayConfiguration();
-			await ListMonitors(enumerateVcpCodes);
+			await ListMonitorsAsync(vcpCodeEnumerationOptions);
 
 			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Monitor & Properties.System.Devices.InterfaceEnabled == true, default));
 			await PrintDeviceInterfaces(await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.DisplayAdapter & Properties.System.Devices.InterfaceEnabled == true, default));
@@ -394,7 +402,7 @@ internal static class Program
 		}
 	}
 
-	private static void PrintMonitors(bool listVcp)
+	private static void PrintMonitors(VcpCodeEnumerationOptions vcpCodeEnumerationOptions)
 	{
 		foreach (var monitor in LogicalMonitor.GetAll())
 		{
@@ -420,37 +428,65 @@ internal static class Program
 					}
 
 					Console.WriteLine($"Supported VCP commands: {capabilities.SupportedVcpCommands.Length}");
-					if (listVcp)
+					if ((vcpCodeEnumerationOptions & (VcpCodeEnumerationOptions.Documented | VcpCodeEnumerationOptions.Undocumented)) != 0)
 					{
+						var enumeratedCodes = new HashSet<byte>();
 						foreach (var vcpCommand in capabilities.SupportedVcpCommands)
 						{
-							Console.Write($"Command {vcpCommand.VcpCode:X2}");
-							if (vcpCommand.Name is { Length: not 0 })
-							{
-								Console.Write($" - {vcpCommand.Name}");
-							}
-							Console.WriteLine();
+							enumeratedCodes.Add(vcpCommand.VcpCode);
 
-							try
+							if ((vcpCodeEnumerationOptions & (VcpCodeEnumerationOptions.Documented)) != 0)
 							{
-								var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
-
-								Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
-								Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
-							}
-							catch
-							{
-								Console.WriteLine("Failed to query the VCP code.");
-							}
-
-							foreach (var value in vcpCommand.NonContinuousValues)
-							{
-								Console.Write($"Value {value.Value:X2}");
-								if (value.Name is { Length: not 0 })
+								Console.Write($"Command {vcpCommand.VcpCode:X2}");
+								if (vcpCommand.Name is { Length: not 0 })
 								{
-									Console.Write($" - {value.Name}");
+									Console.Write($" - {vcpCommand.Name}");
 								}
 								Console.WriteLine();
+
+								try
+								{
+									var reply = physicalMonitor.GetVcpFeature(vcpCommand.VcpCode);
+
+									Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
+									Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
+								}
+								catch
+								{
+									Console.WriteLine("Failed to query the VCP code.");
+								}
+
+								foreach (var value in vcpCommand.NonContinuousValues)
+								{
+									Console.Write($"Value {value.Value:X2}");
+									if (value.Name is { Length: not 0 })
+									{
+										Console.Write($" - {value.Name}");
+									}
+									Console.WriteLine();
+								}
+							}
+						}
+
+						if ((vcpCodeEnumerationOptions & (VcpCodeEnumerationOptions.Undocumented)) != 0)
+						{
+							for (int i = 0; i < 256; i++)
+							{
+								if (enumeratedCodes.Contains((byte)i)) continue;
+								Console.Write($"Command {(byte)i:X2}");
+								Console.WriteLine();
+
+								try
+								{
+									var reply = physicalMonitor.GetVcpFeature((byte)i);
+
+									Console.WriteLine($"Current Value: {reply.CurrentValue:X2}");
+									Console.WriteLine($"Maximum Value: {reply.MaximumValue:X2}");
+								}
+								catch
+								{
+									Console.WriteLine("Failed to query the VCP code.");
+								}
 							}
 						}
 					}
@@ -652,11 +688,11 @@ internal static class Program
 		return Enum.IsDefined(value) ? value.ToString() : usage.ToString("X4");
 	}
 
-	private static async Task ListMonitors(bool listVcp)
+	private static async Task ListMonitorsAsync(VcpCodeEnumerationOptions vcpCodeEnumerationOptions)
 	{
 		PrintAdapters();
 
-		PrintMonitors(listVcp);
+		PrintMonitors(vcpCodeEnumerationOptions);
 	}
 
 	private static void ListAllDeviceInterfaces(bool? knownGuids = null)
