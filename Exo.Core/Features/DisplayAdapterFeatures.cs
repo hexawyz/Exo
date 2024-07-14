@@ -9,5 +9,5 @@ public interface IDisplayAdapterI2CBusProviderFeature : IDisplayAdapterDeviceFea
 	/// <remarks>This information is necessary for monitors to find the proper I2C bus based on the name of the display adapter they are connected to.</remarks>
 	string DeviceName { get; }
 
-	ValueTask<II2CBus> GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
+	ValueTask<II2cBus> GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
 }

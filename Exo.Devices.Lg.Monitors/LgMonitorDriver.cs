@@ -44,7 +44,7 @@ public class LgMonitorDriver :
 		ILogger<LgMonitorDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		Edid edid,
-		II2CBus i2cBus,
+		II2cBus i2cBus,
 		string topLevelDeviceName,
 		CancellationToken cancellationToken
 	)
@@ -309,9 +309,9 @@ public class LgMonitorDriver :
 
 	private sealed class ConnectedMonitorFacet : Facet
 	{
-		private readonly II2CBus _i2cBus;
+		private readonly II2cBus _i2cBus;
 
-		public ConnectedMonitorFacet(LgMonitorDriver driver, II2CBus i2cBus)
+		public ConnectedMonitorFacet(LgMonitorDriver driver, II2cBus i2cBus)
 			: base(driver)
 		{
 			_i2cBus = i2cBus;

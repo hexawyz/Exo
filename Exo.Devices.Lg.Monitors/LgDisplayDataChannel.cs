@@ -4,7 +4,7 @@ namespace Exo.Devices.Lg.Monitors;
 
 public class LgDisplayDataChannel : DisplayDataChannel
 {
-	public LgDisplayDataChannel(II2CBus i2cBus, bool isOwned)
+	public LgDisplayDataChannel(II2cBus i2cBus, bool isOwned)
 		: base(i2cBus, 104, isOwned)
 	{
 	}

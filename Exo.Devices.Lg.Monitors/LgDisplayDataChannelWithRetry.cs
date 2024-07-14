@@ -6,7 +6,7 @@ public class LgDisplayDataChannelWithRetry : LgDisplayDataChannel
 {
 	private readonly int _retryCount;
 
-	public LgDisplayDataChannelWithRetry(II2CBus i2cBus, bool isOwned, int retryCount)
+	public LgDisplayDataChannelWithRetry(II2cBus i2cBus, bool isOwned, int retryCount)
 		: base(i2cBus, isOwned)
 	{
 		_retryCount = retryCount;

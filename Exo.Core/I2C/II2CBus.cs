@@ -3,7 +3,7 @@ using DeviceTools;
 namespace Exo.I2C;
 
 /// <summary>Provides the raw API to interact with an I2C bus.</summary>
-public interface II2CBus : IAsyncDisposable
+public interface II2cBus : IAsyncDisposable
 {
 	/// <summary>Writes data to the specified address and register.</summary>
 	/// <remarks>
@@ -68,15 +68,15 @@ public interface II2CBus : IAsyncDisposable
 /// <param name="serialNumber">The actual serial number of the monitor, if available.</param>
 /// <param name="cancellationToken"></param>
 /// <returns></returns>
-public delegate ValueTask<II2CBus> MonitorI2CBusResolver(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
+public delegate ValueTask<II2cBus> MonitorI2cBusResolver(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
 
-public interface II2CBusProvider
+public interface II2cBusProvider
 {
-	ValueTask<MonitorI2CBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken);
+	ValueTask<MonitorI2cBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken);
 	//ValueTask<II2CBus> GetBus(string deviceName, CancellationToken cancellationToken);
 }
 
-public interface II2CBusRegistry
+public interface II2cBusRegistry
 {
 	/// <summary>Registers a I2C bus provider for a video adapter.</summary>
 	/// <remarks>
@@ -93,6 +93,6 @@ public interface II2CBusRegistry
 	/// <param name="resolver"></param>
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
-	IDisposable RegisterBusResolver(string deviceName, MonitorI2CBusResolver resolver);
+	IDisposable RegisterBusResolver(string deviceName, MonitorI2cBusResolver resolver);
 	//IDisposable RegisterBus(string deviceName, II2CBus bus);
 }

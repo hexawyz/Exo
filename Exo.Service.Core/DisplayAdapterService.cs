@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Exo.Features;
 using Exo.I2C;
 
@@ -8,10 +7,10 @@ internal class DisplayAdapterService
 {
 	private CancellationTokenSource? _cancellationTokenSource = new();
 	private readonly IDeviceWatcher _deviceWatcher;
-	private readonly II2CBusRegistry _busRegistry;
+	private readonly II2cBusRegistry _busRegistry;
 	private readonly Task _displayAdapterWatchTask;
 
-	public DisplayAdapterService(IDeviceWatcher deviceWatcher, II2CBusRegistry busRegistry)
+	public DisplayAdapterService(IDeviceWatcher deviceWatcher, II2cBusRegistry busRegistry)
 	{
 		_deviceWatcher = deviceWatcher;
 		_busRegistry = busRegistry;

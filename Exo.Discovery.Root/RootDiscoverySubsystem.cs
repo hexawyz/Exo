@@ -17,7 +17,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	internal IDiscoveryOrchestrator DiscoveryOrchestrator { get; }
 	internal IDeviceNotificationService DeviceNotificationService { get; }
-	internal II2CBusProvider I2CBusProvider { get; }
+	internal II2cBusProvider I2CBusProvider { get; }
 	internal ISystemManagementBusProvider SystemManagementBusProvider { get; }
 	internal ConcurrentDictionary<RootComponentKey, Guid> RegisteredFactories { get; }
 	private List<(RootComponentKey Key, Guid TypeId)>? _pendingArrivals;
@@ -30,7 +30,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider,
+		II2cBusProvider i2cBusProvider,
 		ISystemManagementBusProvider systemManagementBusProvider
 	)
 	{
@@ -53,7 +53,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider,
+		II2cBusProvider i2cBusProvider,
 		ISystemManagementBusProvider systemManagementBusProvider
 	)
 	{

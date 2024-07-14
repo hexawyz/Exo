@@ -72,7 +72,7 @@ public sealed class IntelGpuDriver :
 		);
 	}
 
-	private sealed class MonitorI2CBus : II2CBus
+	private sealed class MonitorI2CBus : II2cBus
 	{
 		private readonly nint _gpu;
 
@@ -132,8 +132,8 @@ public sealed class IntelGpuDriver :
 
 	string IDisplayAdapterI2CBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
 
-	ValueTask<II2CBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+	ValueTask<II2cBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 	{
-		return ValueTask.FromException<II2CBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new NotImplementedException()));
+		return ValueTask.FromException<II2cBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new NotImplementedException()));
 	}
 }

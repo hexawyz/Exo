@@ -7,7 +7,7 @@ using DeviceTools.DisplayDevices.Configuration;
 
 namespace DeviceTools.DisplayDevices;
 
-// FIXME: Endiannes of some data structures with bit fields on Big Endian hosts ?
+// FIXME: Endianness of some data structures with bit fields on Big Endian hosts ?
 [SuppressUnmanagedCodeSecurity]
 internal static partial class NativeMethods
 {

@@ -27,6 +27,7 @@ internal partial class App : Application
 
 	private OverlayViewModel? _overlayViewModel;
 	private NotifyIconService? _notifyIconService;
+	private MonitorControlProxy? _monitorControlProxy;
 
 	public static new App Current => (App)Application.Current;
 
@@ -40,6 +41,7 @@ internal partial class App : Application
 		_overlayViewModel = new(_connectionManager);
 
 		_notifyIconService = await NotifyIconService.CreateAsync(_connectionManager).ConfigureAwait(false);
+		_monitorControlProxy = new MonitorControlProxy(_connectionManager);
 	}
 
 	private static string? LocateSettingsUi()
@@ -65,6 +67,15 @@ internal partial class App : Application
 
 	internal async ValueTask RequestShutdown()
 	{
+		if (_notifyIconService is { } notifyIconService)
+		{
+			await notifyIconService.DisposeAsync().ConfigureAwait(false);
+		}
+		if (_monitorControlProxy is { } monitorControlProxy)
+		{
+			await monitorControlProxy.DisposeAsync().ConfigureAwait(false);
+		}
+		await _connectionManager.DisposeAsync().ConfigureAwait(false);
 		await Dispatcher.InvokeAsync(() => Shutdown(0));
 	}
 }

@@ -441,7 +441,7 @@ public partial class NVidiaGpuDriver :
 
 	string IDisplayAdapterI2CBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
 
-	ValueTask<II2CBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+	ValueTask<II2cBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 	{
 		var displays = _gpu.GetConnectedDisplays(default);
 		foreach (var display in displays)
@@ -460,7 +460,7 @@ public partial class NVidiaGpuDriver :
 				// TODO: Log.
 			}
 		}
-		return ValueTask.FromException<II2CBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Could not find the monitor.")));
+		return ValueTask.FromException<II2cBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Could not find the monitor.")));
 	}
 
 	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)

@@ -2,18 +2,18 @@ using Exo.I2C;
 
 namespace Exo.Devices.Lg.Monitors;
 
-internal sealed class CompositeI2cBus : II2CBus
+internal sealed class CompositeI2cBus : II2cBus
 {
-	private II2CBus[]? _buses = [];
+	private II2cBus[]? _buses = [];
 	private bool _hasUsbBus;
 
 	public void SetUsbBus(HidI2CTransport bus)
 	{
-		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2CBus));
+		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2cBus));
 
 		if (_hasUsbBus) throw new InvalidOperationException("The USB I2C bus for the device was already assigned. This exception should never happen.");
 
-		var newBuses = new II2CBus[oldBuses.Length + 1];
+		var newBuses = new II2cBus[oldBuses.Length + 1];
 
 		newBuses[0] = bus;
 		Array.Copy(oldBuses, 0, newBuses, 1, oldBuses.Length);
@@ -22,10 +22,10 @@ internal sealed class CompositeI2cBus : II2CBus
 		_hasUsbBus = true;
 	}
 
-	public void AddBus(II2CBus bus)
+	public void AddBus(II2cBus bus)
 	{
-		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2CBus));
-		var newBuses = new II2CBus[oldBuses.Length + 1];
+		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2cBus));
+		var newBuses = new II2cBus[oldBuses.Length + 1];
 
 		Array.Copy(oldBuses, newBuses, oldBuses.Length);
 		newBuses[oldBuses.Length] = bus;
@@ -35,11 +35,11 @@ internal sealed class CompositeI2cBus : II2CBus
 
 	public void UnsetUsbBus(HidI2CTransport bus)
 	{
-		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2CBus));
+		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2cBus));
 
 		if (!_hasUsbBus || oldBuses.Length == 0 || oldBuses[0] != bus) throw new InvalidOperationException("The USB I2C bus for the device was not assigned. This exception should never happen.");
 
-		var newBuses = oldBuses.Length == 1 ? [] : new II2CBus[oldBuses.Length - 1];
+		var newBuses = oldBuses.Length == 1 ? [] : new II2cBus[oldBuses.Length - 1];
 
 		Array.Copy(oldBuses, 1, newBuses, 0, newBuses.Length);
 
@@ -47,15 +47,15 @@ internal sealed class CompositeI2cBus : II2CBus
 		_hasUsbBus = false;
 	}
 
-	public void RemoveBus(II2CBus bus)
+	public void RemoveBus(II2cBus bus)
 	{
-		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2CBus));
+		var oldBuses = _buses ?? throw new ObjectDisposedException(nameof(II2cBus));
 
 		int busIndex = Array.IndexOf(oldBuses, bus);
 
 		if (busIndex <= 0) throw new InvalidOperationException("The specified bus for the device was not registered. This exception should never happen.");
 
-		var newBuses = oldBuses.Length == 1 ? [] : new II2CBus[oldBuses.Length - 1];
+		var newBuses = oldBuses.Length == 1 ? [] : new II2cBus[oldBuses.Length - 1];
 
 		Array.Copy(oldBuses, newBuses, busIndex);
 		Array.Copy(oldBuses, busIndex + 1, newBuses, busIndex, newBuses.Length - busIndex);
@@ -64,7 +64,7 @@ internal sealed class CompositeI2cBus : II2CBus
 		_hasUsbBus = false;
 	}
 
-	private II2CBus Bus
+	private II2cBus Bus
 		=> Volatile.Read(ref _buses) is { Length: > 0 } buses ?
 		buses[0] :
 		throw new InvalidOperationException("There are no available I2C buses for the device. This exception should never happen.");

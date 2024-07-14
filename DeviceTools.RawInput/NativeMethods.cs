@@ -337,7 +337,7 @@ public static class NativeMethods
 
 		if ((int)count < buffer.Length)
 		{
-			// In the event where the buffer would actually not have been used up entirely, despite having queryed for the correct size beforehand…
+			// In the event where the buffer would actually not have been used up entirely, despite having queried for the correct size beforehand…
 			Array.Resize(ref buffer, (int)count);
 		}
 

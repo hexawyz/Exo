@@ -4,7 +4,7 @@ namespace Exo.Devices.NVidia;
 
 public partial class NVidiaGpuDriver
 {
-	private sealed class MonitorI2CBus : II2CBus
+	private sealed class MonitorI2CBus : II2cBus
 	{
 		private readonly NvApi.PhysicalGpu _gpu;
 		private readonly uint _outputId;

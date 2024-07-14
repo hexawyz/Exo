@@ -2,14 +2,14 @@ namespace DeviceTools.DisplayDevices.Mccs;
 
 public readonly struct VcpFeatureReply
 {
-	public VcpFeatureReply(ushort currentValue, ushort maximumValue, bool isTemporary)
+	public VcpFeatureReply(ushort currentValue, ushort maximumValue, bool isMomentary)
 	{
 		CurrentValue = currentValue;
 		MaximumValue = maximumValue;
-		IsTemporary = isTemporary;
+		IsMomentary = isMomentary;
 	}
 
 	public ushort CurrentValue { get; }
 	public ushort MaximumValue { get; }
-	public bool IsTemporary { get; }
+	public bool IsMomentary { get; }
 }

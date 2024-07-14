@@ -15,10 +15,10 @@ public class DisplayDataChannel : IAsyncDisposable
 	public const int CapabilitiesReplyDelay = 50;
 
 	private readonly byte[] _buffer;
-	private II2CBus? _i2cBus;
+	private II2cBus? _i2cBus;
 	private readonly bool _isOwned;
 
-	protected II2CBus I2CBus
+	protected II2cBus I2CBus
 	{
 		get
 		{
@@ -30,14 +30,14 @@ public class DisplayDataChannel : IAsyncDisposable
 
 	protected Memory<byte> Buffer => MemoryMarshal.CreateFromPinnedArray(_buffer, 0, _buffer.Length);
 
-	public DisplayDataChannel(II2CBus? i2cBus, bool isOwned)
+	public DisplayDataChannel(II2cBus? i2cBus, bool isOwned)
 		: this(i2cBus, 40, isOwned)
 	{
 		// We should generally not need anything more than 37 bytes for the buffer, so this main constructor requests a 40 byte buffer.
 		// 40 bytes should fit neatly in a 64 byte sequence, considering the object header and array length.
 	}
 
-	protected DisplayDataChannel(II2CBus i2cBus, byte bufferLength, bool isOwned)
+	protected DisplayDataChannel(II2cBus i2cBus, byte bufferLength, bool isOwned)
 	{
 		_buffer = GC.AllocateUninitializedArray<byte>(bufferLength, pinned: true);
 		_i2cBus = i2cBus;
@@ -218,6 +218,7 @@ public class DisplayDataChannel : IAsyncDisposable
 		=> GetVariableLengthAsync(destination, DdcCiCommand.CapabilitiesRequest, DdcCiCommand.CapabilitiesReply, CapabilitiesReplyDelay, cancellationToken);
 }
 
+// TODO: Maybe remove and use VcpFeatureReply from DeviceTools.Monitors
 public record struct VcpFeatureResponse
 {
 	public ushort CurrentValue { get; }

@@ -34,7 +34,7 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 	public Edid Edid { get; }
 	/// <summary>Gets an interface used to access the I2C bus associated with this monitor.</summary>
 	// TODO: Make optional?
-	public II2CBus I2cBus { get; }
+	public II2cBus I2cBus { get; }
 	/// <summary>Gets all the device interfaces in the container.</summary>
 	/// <remarks>These can easily be filtered on the HID device interface class in order to retrieve the required details.</remarks>
 	public ImmutableArray<DeviceObjectInformation> DeviceInterfaces { get; }
@@ -71,7 +71,7 @@ public sealed class MonitorDriverCreationContext : DriverCreationContext
 		Guid containerId,
 		string? friendlyName,
 		Edid edid,
-		II2CBus i2cBus,
+		II2cBus i2cBus,
 		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
 		ImmutableArray<DeviceObjectInformation> devices,
 		int topLevelDeviceIndex

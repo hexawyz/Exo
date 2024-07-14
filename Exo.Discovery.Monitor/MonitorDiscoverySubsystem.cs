@@ -22,7 +22,7 @@ public sealed class MonitorDiscoverySubsystem :
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider
+		II2cBusProvider i2cBusProvider
 	)
 	{
 		var service = new MonitorDiscoverySubsystem(loggerFactory, driverRegistry, deviceNotificationService, i2cBusProvider);
@@ -48,7 +48,7 @@ public sealed class MonitorDiscoverySubsystem :
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	private readonly IDeviceNotificationService _deviceNotificationService;
-	internal II2CBusProvider I2CBusProvider { get; }
+	internal II2cBusProvider I2CBusProvider { get; }
 	private IDisposable? _monitorNotificationRegistration;
 	private readonly object _lock;
 
@@ -57,7 +57,7 @@ public sealed class MonitorDiscoverySubsystem :
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDeviceNotificationService deviceNotificationService,
-		II2CBusProvider i2cBusProvider
+		II2cBusProvider i2cBusProvider
 	)
 	{
 		LoggerFactory = loggerFactory;

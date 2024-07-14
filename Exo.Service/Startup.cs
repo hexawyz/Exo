@@ -74,9 +74,9 @@ public class Startup
 		services.AddSingleton<IDriverRegistry>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<INestedDriverRegistryProvider>(sp => sp.GetRequiredService<DeviceRegistry>());
 		services.AddSingleton<IDeviceWatcher>(sp => sp.GetRequiredService<DeviceRegistry>());
-		services.AddSingleton<I2CBusRegistry>();
-		services.AddSingleton<II2CBusRegistry>(sp => sp.GetRequiredService<I2CBusRegistry>());
-		services.AddSingleton<II2CBusProvider>(sp => sp.GetRequiredService<I2CBusRegistry>());
+		services.AddSingleton<I2cBusRegistry>();
+		services.AddSingleton<II2cBusRegistry>(sp => sp.GetRequiredService<I2cBusRegistry>());
+		services.AddSingleton<II2cBusProvider>(sp => sp.GetRequiredService<I2cBusRegistry>());
 		services.AddSingleton<SystemManagementBusRegistry>();
 		services.AddSingleton<ISystemManagementBusRegistry>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
 		services.AddSingleton<ISystemManagementBusProvider>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
@@ -160,7 +160,7 @@ public class Startup
 				sp.GetRequiredService<INestedDriverRegistryProvider>(),
 				sp.GetRequiredService<IDiscoveryOrchestrator>(),
 				sp.GetRequiredService<IDeviceNotificationService>(),
-				sp.GetRequiredService<II2CBusProvider>(),
+				sp.GetRequiredService<II2cBusProvider>(),
 				sp.GetRequiredService<ISystemManagementBusProvider>()
 			).GetAwaiter().GetResult()
 		);
@@ -179,6 +179,8 @@ public class Startup
 		services.AddSingleton<IDiscoveryOrchestrator>(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
+		services.AddSingleton<GrpcMonitorControlProxyService>();
+		services.AddSingleton(sp => new InteractiveModeFallbackMonitorI2cBusProvider(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcSensorService>();
@@ -228,6 +230,7 @@ public class Startup
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMetadataService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
+			endpoints.MapGrpcService<GrpcMonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<IOverlayCustomMenuService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);
 			endpoints.MapRazorPages();

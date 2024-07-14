@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;
 
-public sealed class HidI2CTransport : II2CBus, IAsyncDisposable
+public sealed class HidI2CTransport : II2cBus, IAsyncDisposable
 {
 	// The message length is hardcoded to 64 bytes + report ID.
 	private const int MessageLength = 65;

@@ -58,7 +58,7 @@ public partial class GenericMonitorDriver
 		string friendlyName,
 		DeviceId deviceId,
 		Edid edid,
-		II2CBus i2cBus,
+		II2cBus i2cBus,
 		string topLevelDeviceName,
 		CancellationToken cancellationToken
 	)

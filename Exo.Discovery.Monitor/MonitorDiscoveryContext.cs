@@ -113,11 +113,11 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 
 		// Use a timeout for resolving the I2C Bus. Depending on time is bad design, but for now, we don't have any way to know when waiting is ok or not.
 		// e.g. Propagating a signal from the Pci discovery to inform that all known adapters have been processed: If all adapters have had the chance to initialize, we can know for sure that the I2C bus is unavailable.
-		II2CBus? i2cBus;
+		II2cBus? i2cBus;
 		using (var i2cTimeoutCancellationTokenSource = new CancellationTokenSource(new TimeSpan(60 * TimeSpan.TicksPerSecond)))
 		using (var hybridCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, i2cTimeoutCancellationTokenSource.Token))
 		{
-			MonitorI2CBusResolver i2cBusResolver;
+			MonitorI2cBusResolver i2cBusResolver;
 			try
 			{
 				i2cBusResolver = await _discoverySubsystem.I2CBusProvider.GetMonitorBusResolverAsync(displayAdapterName, hybridCancellationTokenSource.Token).ConfigureAwait(false) ??

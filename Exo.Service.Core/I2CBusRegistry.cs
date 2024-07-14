@@ -4,15 +4,15 @@ using Exo.I2C;
 
 namespace Exo.Service;
 
-internal class I2CBusRegistry : II2CBusRegistry, II2CBusProvider
+internal class I2cBusRegistry : II2cBusRegistry, II2cBusProvider
 {
 	private class Registration : IDisposable
 	{
 		private ConcurrentDictionary<string, object>? _registeredBusses;
 		private readonly string _deviceName;
-		private readonly MonitorI2CBusResolver _resolver;
+		private readonly MonitorI2cBusResolver _resolver;
 
-		public Registration(ConcurrentDictionary<string, object> registeredBusses, string deviceName, MonitorI2CBusResolver resolver)
+		public Registration(ConcurrentDictionary<string, object> registeredBusses, string deviceName, MonitorI2cBusResolver resolver)
 		{
 			_registeredBusses = registeredBusses;
 			_deviceName = deviceName;
@@ -29,8 +29,11 @@ internal class I2CBusRegistry : II2CBusRegistry, II2CBusProvider
 	}
 
 	private readonly ConcurrentDictionary<string, object> _registeredBusses = new();
+	private readonly InteractiveModeFallbackMonitorI2cBusProvider _fallbackResolver;
 
-	public IDisposable RegisterBusResolver(string deviceName, MonitorI2CBusResolver resolver)
+	public I2cBusRegistry(InteractiveModeFallbackMonitorI2cBusProvider fallbackResolver) => _fallbackResolver = fallbackResolver;
+
+	public IDisposable RegisterBusResolver(string deviceName, MonitorI2cBusResolver resolver)
 	{
 		var registration = new Registration(_registeredBusses, deviceName, resolver);
 
@@ -38,7 +41,7 @@ internal class I2CBusRegistry : II2CBusRegistry, II2CBusProvider
 		{
 			if (!_registeredBusses.TryGetValue(deviceName, out var other)) continue;
 
-			if (other is TaskCompletionSource<MonitorI2CBusResolver> tcs)
+			if (other is TaskCompletionSource<MonitorI2cBusResolver> tcs)
 			{
 				if (!_registeredBusses.TryUpdate(deviceName, resolver, other)) continue;
 
@@ -50,16 +53,16 @@ internal class I2CBusRegistry : II2CBusRegistry, II2CBusProvider
 		return registration;
 	}
 
-	public ValueTask<MonitorI2CBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken)
+	public ValueTask<MonitorI2cBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<MonitorI2CBusResolver>? tcs = null;
+		TaskCompletionSource<MonitorI2cBusResolver>? tcs = null;
 		while (true)
 		{
 			if (_registeredBusses.TryGetValue(deviceName, out var obj))
 			{
-				if (obj is MonitorI2CBusResolver resolver) return new(resolver);
+				if (obj is MonitorI2cBusResolver resolver) return new(resolver);
 
-				return new(Unsafe.As<TaskCompletionSource<MonitorI2CBusResolver>>(obj).Task.WaitAsync(cancellationToken));
+				return new(Unsafe.As<TaskCompletionSource<MonitorI2cBusResolver>>(obj).Task.WaitAsync(cancellationToken));
 			}
 			else
 			{
