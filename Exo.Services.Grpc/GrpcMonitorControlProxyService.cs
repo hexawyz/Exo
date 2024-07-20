@@ -18,7 +18,6 @@ namespace Exo.Service.Grpc;
 internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMonitorControlService
 {
 	private static readonly BoundedChannelOptions BoundedChannelOptions = new(10) { AllowSynchronousContinuations = true, FullMode = BoundedChannelFullMode.Wait, SingleWriter = true, SingleReader = true };
-	private static readonly UnboundedChannelOptions UnboundedChannelOptions = new() { AllowSynchronousContinuations = true, SingleWriter = true, SingleReader = true };
 
 	/// <summary>This represents one instance of a connected service.</summary>
 	/// <remarks>
@@ -31,39 +30,38 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 	/// Because we have the knowledge and are able to handle individual client instances in a structured way, this will make state management on the consumer side of this service easier.
 	/// </para>
 	/// </remarks>
-	private sealed class Session
+	private sealed class Session : IAsyncDisposable
 	{
+		private readonly Dictionary<uint, (MonitorControlProxyRequestResponseOneOfCase RequestType, object TaskCompletionSource)> _pendingRequests;
 		private readonly GrpcMonitorControlProxyService _service;
-		private readonly Guid _sessionId;
+		private readonly ChannelWriter<MonitorControlProxyRequest> _requests;
+		private uint _requestId;
 
-		// There are 6 services to initialize for the state to be ready.
-		private const int NumberOfServicesToInitialize = 6;
-		private ServiceState<AdapterRequest, AdapterResponse>? _adapterService;
-		private ServiceState<MonitorRequest, MonitorResponse>? _monitorService;
-		private ServiceState<MonitorCapabilitiesRequest, MonitorCapabilitiesResponse>? _capabilitiesService;
-		private ServiceState<MonitorVcpGetRequest, MonitorVcpGetResponse>? _monitorVcpGetService;
-		private ServiceState<MonitorVcpSetRequest, MonitorVcpSetResponse>? _monitorVcpSetService;
-		private ChannelWriter<MonitorReleaseRequest>? _monitorReleaseWriter;
-
-		private readonly object _lock;
-		private TaskCompletionSource? _readySignal;
 		private Session? _nextSession;
-		private int _initializedServiceCount;
 
-		public Session(GrpcMonitorControlProxyService service, Guid sessionId)
+		private CancellationTokenSource? _cancellationTokenSource;
+		private readonly Task _runTask;
+
+		public Session(GrpcMonitorControlProxyService service, ChannelWriter<MonitorControlProxyRequest> requests, IAsyncEnumerable<MonitorControlProxyResponse> responses)
 		{
 			_service = service;
-			_sessionId = sessionId;
-			_lock = new();
-			_readySignal = new();
+			_requests = requests;
+			_pendingRequests = new();
+			_cancellationTokenSource = new();
+			_runTask = RunAsync(responses, _cancellationTokenSource.Token);
+			_service.RegisterActiveSession(this);
 		}
 
-		public ServiceState<AdapterRequest, AdapterResponse> AdapterService => _adapterService ?? throw new InvalidOperationException("Service disconnected.");
-		public ServiceState<MonitorRequest, MonitorResponse> MonitorService => _monitorService ?? throw new InvalidOperationException("Service disconnected.");
-		public ServiceState<MonitorCapabilitiesRequest, MonitorCapabilitiesResponse> CapabilitiesService => _capabilitiesService ?? throw new InvalidOperationException("Service disconnected.");
-		public ServiceState<MonitorVcpGetRequest, MonitorVcpGetResponse> MonitorVcpGetService => _monitorVcpGetService ?? throw new InvalidOperationException("Service disconnected.");
-		public ServiceState<MonitorVcpSetRequest, MonitorVcpSetResponse> MonitorVcpSetService => _monitorVcpSetService ?? throw new InvalidOperationException("Service disconnected.");
-		public ChannelWriter<MonitorReleaseRequest> MonitorReleaseWriter => _monitorReleaseWriter ?? throw new InvalidOperationException("Service disconnected.");
+		public async ValueTask DisposeAsync()
+		{
+			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
+
+			cts.Cancel();
+
+			await _runTask.ConfigureAwait(false);
+			_service.UnregisterSession(this);
+			cts.Dispose();
+		}
 
 		// NB: MUST be called within the main lock (of the GRPC service).
 		public Session? NextSession => _nextSession;
@@ -97,192 +95,41 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			}
 		}
 
-		public Task WaitAsync(CancellationToken cancellationToken)
-			=> _readySignal is { } tcs
-				? _readySignal.Task.WaitAsync(cancellationToken)
-				: Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(Session).FullName)));
-
-		private ref ServiceState<TRequest, TResponse>? GetServiceReference<TRequest, TResponse>()
-			where TRequest : IRequestId
-			where TResponse : IRequestId
-		{
-			if (typeof(TRequest) == typeof(AdapterRequest) && typeof(TResponse) == typeof(AdapterResponse))
-				return ref Unsafe.As<ServiceState<AdapterRequest, AdapterResponse>?, ServiceState<TRequest, TResponse>?>(ref _adapterService);
-
-			if (typeof(TRequest) == typeof(MonitorRequest) && typeof(TResponse) == typeof(MonitorResponse))
-				return ref Unsafe.As<ServiceState<MonitorRequest, MonitorResponse>?, ServiceState<TRequest, TResponse>?>(ref _monitorService);
-
-			if (typeof(TRequest) == typeof(MonitorCapabilitiesRequest) && typeof(TResponse) == typeof(MonitorCapabilitiesResponse))
-				return ref Unsafe.As<ServiceState<MonitorCapabilitiesRequest, MonitorCapabilitiesResponse>?, ServiceState<TRequest, TResponse>?>(ref _capabilitiesService);
-
-			if (typeof(TRequest) == typeof(MonitorVcpGetRequest) && typeof(TResponse) == typeof(MonitorVcpGetResponse))
-				return ref Unsafe.As<ServiceState<MonitorVcpGetRequest, MonitorVcpGetResponse>?, ServiceState<TRequest, TResponse>?>(ref _monitorVcpGetService);
-
-			if (typeof(TRequest) == typeof(MonitorVcpSetRequest) && typeof(TResponse) == typeof(MonitorVcpSetResponse))
-				return ref Unsafe.As<ServiceState<MonitorVcpSetRequest, MonitorVcpSetResponse>?, ServiceState<TRequest, TResponse>?>(ref _monitorVcpSetService);
-
-			// NB: As you guessed by reading this code, all possible request/response combinations are hardcoded in this helper method in order to support true generic code in other parts.
-			throw new InvalidOperationException("Unsupported request and response types.");
-		}
-
-		// NB: MUST be called within both locks.
-		private void IncrementReferenceCount()
-		{
-			if (_initializedServiceCount == NumberOfServicesToInitialize)
-			{
-				if (_readySignal?.TrySetResult() == true)
-				{
-					_service.RegisterActiveSession(this);
-				}
-			}
-		}
-
-		// NB: MUST be called within both locks.
-		private void DecrementReferenceCount()
-		{
-			if (--_initializedServiceCount == 0)
-			{
-				_service.UnregisterSession(this);
-				_nextSession = null;
-				_initializedServiceCount = int.MinValue >> 1;
-				if (_readySignal is not null && !_readySignal.Task.IsCompleted)
-				{
-					_readySignal.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(Session).FullName)));
-				}
-				else
-				{
-					_readySignal = null;
-				}
-			}
-		}
-
-		// NB: Must be called within the main lock (of the GRPC service).
-		public ServiceState<TRequest, TResponse> InitializeService<TRequest, TResponse>(IAsyncEnumerable<TResponse> responses)
-			where TRequest : IRequestId
-			where TResponse : IRequestId
-		{
-			ref var storage = ref GetServiceReference<TRequest, TResponse>();
-			ServiceState<TRequest, TResponse> service;
-			lock (_lock)
-			{
-				if (storage is not null) throw new InvalidOperationException("The processing endpoint is already connected.");
-				if (_initializedServiceCount < 0) throw new ObjectDisposedException(typeof(Session).FullName);
-				storage = service = new ServiceState<TRequest, TResponse>(this, responses);
-				IncrementReferenceCount();
-			}
-			return service;
-		}
-
-		// NB: This is called outside of the main lock (of the GRPC service), so this method acquires it.
-		internal void OnServiceDisposed<TRequest, TResponse>(ServiceState<TRequest, TResponse> service)
-			where TRequest : IRequestId
-			where TResponse : IRequestId
-		{
-			ref var storage = ref GetServiceReference<TRequest, TResponse>();
-			lock (_service._lock)
-			{
-				lock (_lock)
-				{
-					var oldValue = storage;
-					if (oldValue != service) throw new InvalidOperationException("The current service reference does not match the parameter.");
-					storage = null;
-					if (--_initializedServiceCount == 0)
-					{
-						_service._sessions.Remove(_sessionId, out _);
-						_initializedServiceCount = int.MinValue >> 1;
-						if (_readySignal is not null && !_readySignal.Task.IsCompleted)
-						{
-							_readySignal.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(Session).FullName)));
-						}
-						else
-						{
-							_readySignal = null;
-						}
-					}
-				}
-			}
-		}
-
-		public void SetMonitorReleaseWriter(ChannelWriter<MonitorReleaseRequest> writer)
-		{
-			lock (_lock)
-			{
-				if (_monitorReleaseWriter is not null) throw new InvalidOperationException("The processing endpoint is already connected.");
-				if (_initializedServiceCount < 0) throw new ObjectDisposedException(typeof(Session).FullName);
-				_monitorReleaseWriter = writer;
-				IncrementReferenceCount();
-			}
-		}
-
-		public void ClearMonitorReleaseWriter()
-		{
-			lock (_service._lock)
-			{
-				lock (_lock)
-				{
-					var oldValue = _monitorReleaseWriter;
-					_monitorReleaseWriter = null;
-					if (--_initializedServiceCount == 0)
-					{
-						_service._sessions.Remove(_sessionId, out _);
-						_initializedServiceCount = int.MinValue >> 1;
-						if (_readySignal is not null && !_readySignal.Task.IsCompleted)
-						{
-							_readySignal.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(Session).FullName)));
-						}
-						else
-						{
-							_readySignal = null;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	private sealed class ServiceState<TRequest, TResponse> : IAsyncDisposable
-		where TRequest : IRequestId
-		where TResponse : IRequestId
-	{
-		private readonly Session _session;
-		private readonly Channel<TRequest> _requests;
-		private int _requestId;
-		private readonly Dictionary<int, TaskCompletionSource<TResponse>> _pendingRequests;
-
-		private CancellationTokenSource? _cancellationTokenSource;
-		private readonly Task _runTask;
-
-		public ServiceState(Session session, IAsyncEnumerable<TResponse> responses)
-		{
-			_session = session;
-			_requests = Channel.CreateBounded<TRequest>(BoundedChannelOptions);
-			_pendingRequests = new();
-			_cancellationTokenSource = new();
-			_runTask = RunAsync(responses, _cancellationTokenSource.Token);
-		}
-
-		public async ValueTask DisposeAsync()
-		{
-			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
-
-			cts.Cancel();
-			await _runTask.ConfigureAwait(false);
-			_session.OnServiceDisposed(this);
-			cts.Dispose();
-		}
-
-		private async Task RunAsync(IAsyncEnumerable<TResponse> responses, CancellationToken cancellationToken)
+		private async Task RunAsync(IAsyncEnumerable<MonitorControlProxyResponse> responses, CancellationToken cancellationToken)
 		{
 			try
 			{
-				await _session.WaitAsync(cancellationToken).ConfigureAwait(false);
 				await foreach (var response in responses.ConfigureAwait(false))
 				{
 					lock (_pendingRequests)
 					{
-						if (_pendingRequests.Remove(response.RequestId, out var state))
+						if (_pendingRequests.Remove(response.RequestId, out var t))
 						{
-							state.TrySetResult(response);
+							var (requestType, tcs) = t;
+							switch (requestType)
+							{
+							case MonitorControlProxyRequestResponseOneOfCase.Adapter:
+								CompleteRequest(response.Status, response.Content.AdapterResponse, tcs);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.Monitor:
+								CompleteRequest(response.Status, response.Content.MonitorResponse, tcs);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorRelease:
+								CompleteRequest(response.Status, response.Content.MonitorReleaseResponse, tcs);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities:
+								CompleteRequest(response.Status, response.Content.MonitorCapabilitiesResponse, tcs);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet:
+								CompleteRequest(response.Status, response.Content.MonitorVcpGetResponse, tcs);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet:
+								CompleteRequest(response.Status, response.Content.MonitorVcpSetResponse, tcs);
+								break;
+							default:
+								// We control the type of requests that we send, so if this case is reached, this can only be a bug in the code. (Or a solar flare)
+								throw new InvalidOperationException("Unhandled request type.");
+							}
 						}
 					}
 				}
@@ -294,36 +141,136 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			{
 				// TODO: Log
 			}
+			finally
+			{
+				// We need to fail all the remaining requests so that the callers are notified of the disposal.
+				lock (_pendingRequests)
+				{
+					_requests.TryComplete();
+					if (_pendingRequests.Count > 0)
+					{
+						var exception = ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(Session).FullName));
+						foreach (var t in _pendingRequests.Values)
+						{
+							var (requestType, tcs) = t;
+							switch (requestType)
+							{
+							case MonitorControlProxyRequestResponseOneOfCase.Adapter:
+								FailRequest<AdapterResponse>(tcs, exception);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.Monitor:
+								FailRequest<MonitorResponse>(tcs, exception);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorRelease:
+								FailRequest<MonitorReleaseResponse>(tcs, exception);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities:
+								FailRequest<MonitorCapabilitiesResponse>(tcs, exception);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet:
+								FailRequest<MonitorVcpGetResponse>(tcs, exception);
+								break;
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet:
+								FailRequest<MonitorVcpSetResponse>(tcs, exception);
+								break;
+							}
+						}
+					}
+				}
+			}
 		}
 
-		public int GetRequestId() => Interlocked.Increment(ref _requestId);
+		private static void FailRequest<TResponse>(object tcs, Exception exception)
+			where TResponse : class
+			=> Unsafe.As<TaskCompletionSource<TResponse>>(tcs).TrySetException(exception);
 
-		public async ValueTask<TResponse> SendRequestAsync(TRequest request, CancellationToken cancellationToken)
+		private static void CompleteRequest<TResponse>(MonitorControlResponseStatus status, TResponse? response, object tcs)
+			where TResponse : class
+			=> CompleteRequest(status, response, Unsafe.As<TaskCompletionSource<TResponse>>(tcs));
+
+		private static void CompleteRequest<TResponse>(MonitorControlResponseStatus status, TResponse? response, TaskCompletionSource<TResponse> tcs)
+			where TResponse : class
+		{
+			switch (status)
+			{
+			case MonitorControlResponseStatus.Success:
+				if (response is not null)
+				{
+					tcs.SetResult(response);
+				}
+				else
+				{
+					tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("The response was unexpectedly empty.")));
+				}
+				break;
+			case MonitorControlResponseStatus.NotFound:
+				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new DeviceNotFoundException()));
+				break;
+			case MonitorControlResponseStatus.Error:
+				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("An error has occurred while processing the request.")));
+				break;
+			case MonitorControlResponseStatus.InvalidVcpCode:
+				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("Failed to query the VCP code.")));
+				break;
+			default:
+				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("An error occurred with an unknown status.")));
+				break;
+			}
+		}
+
+		public ValueTask<AdapterResponse> SendRequestAsync(AdapterRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<AdapterResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+
+		public ValueTask<MonitorResponse> SendRequestAsync(MonitorRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<MonitorResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+
+		public ValueTask<MonitorReleaseResponse> SendRequestAsync(MonitorReleaseRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<MonitorReleaseResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+
+		public ValueTask<MonitorCapabilitiesResponse> SendRequestAsync(MonitorCapabilitiesRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<MonitorCapabilitiesResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+
+		public ValueTask<MonitorVcpGetResponse> SendRequestAsync(MonitorVcpGetRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<MonitorVcpGetResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+
+		public ValueTask<MonitorVcpSetResponse> SendRequestAsync(MonitorVcpSetRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<MonitorVcpSetResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+
+		private async ValueTask<TResponse> SendRequestAsync<TResponse>(MonitorControlProxyRequest request, CancellationToken cancellationToken)
 		{
 			TaskCompletionSource<TResponse> tcs;
-			int requestId = request.RequestId;
+			uint requestId = request.RequestId;
 			lock (_pendingRequests)
 			{
 				tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-				_pendingRequests.Add(requestId, tcs);
-				_requests.Writer.WriteAsync(request);
+				_pendingRequests.Add(requestId, (request.Content.RequestType, tcs));
 			}
 			try
 			{
-				return await tcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+				await _requests.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 			}
-			catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+			catch
 			{
 				lock (_pendingRequests)
 				{
 					_pendingRequests.Remove(requestId);
 				}
-				tcs.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			try
+			{
+				return await tcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException ex) when (tcs.TrySetCanceled(ex.CancellationToken))
+			{
+				// Remove the request from the pending request dictionary if it wasn't already.
+				lock (_pendingRequests)
+				{
+					_pendingRequests.Remove(requestId);
+				}
 				throw;
 			}
 		}
-
-		public IAsyncEnumerable<TRequest> EnumerateAllRequestsAsync(CancellationToken cancellationToken) => _requests.Reader.ReadAllAsync(cancellationToken);
 	}
 
 	private sealed class Adapter : IMonitorControlAdapter
@@ -339,13 +286,10 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 
 		async Task<IMonitorControlMonitor> IMonitorControlAdapter.ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 		{
-			var monitorService = _session.MonitorService;
-
-			var response = await monitorService.SendRequestAsync
+			var response = await _session.SendRequestAsync
 			(
-				new()
+				new MonitorRequest()
 				{
-					RequestId = monitorService.GetRequestId(),
 					AdapterId = _adapterId,
 					EdidVendorId = vendorId,
 					EdidProductId = productId,
@@ -354,7 +298,6 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 				},
 				cancellationToken
 			).ConfigureAwait(false);
-			ValidateResponseStatus(response.Status);
 			return new Monitor(_session, response.MonitorHandle);
 		}
 	}
@@ -371,11 +314,11 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			_monitorHandle = monitorHandle;
 		}
 
-		void IDisposable.Dispose()
+		async ValueTask IAsyncDisposable.DisposeAsync()
 		{
 			if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
 			{
-				_session.MonitorReleaseWriter.TryWrite(new MonitorReleaseRequest() { MonitorHandle = _monitorHandle });
+				await _session.SendRequestAsync(new MonitorReleaseRequest() { MonitorHandle = _monitorHandle }, default).ConfigureAwait(false);
 			}
 		}
 
@@ -384,78 +327,64 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		async Task<ImmutableArray<byte>> IMonitorControlMonitor.GetCapabilitiesAsync(CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
-			var capabilitiesService = _session.CapabilitiesService;
-			var response = await capabilitiesService.SendRequestAsync(new() { RequestId = capabilitiesService.GetRequestId(), MonitorHandle = _monitorHandle }, cancellationToken).ConfigureAwait(false);
-			ValidateResponseStatus(response.Status);
+			var response = await _session.SendRequestAsync(new MonitorCapabilitiesRequest() { MonitorHandle = _monitorHandle }, cancellationToken).ConfigureAwait(false);
 			return response.Utf8Capabilities;
 		}
 
 		async Task<VcpFeatureResponse> IMonitorControlMonitor.GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
-			var monitorVcpGetService = _session.MonitorVcpGetService;
-			var response = await monitorVcpGetService.SendRequestAsync(new() { RequestId = monitorVcpGetService.GetRequestId(), MonitorHandle = _monitorHandle, VcpCode = vcpCode }, cancellationToken).ConfigureAwait(false);
-			ValidateResponseStatus(response.Status);
+			var response = await _session.SendRequestAsync(new MonitorVcpGetRequest() { MonitorHandle = _monitorHandle, VcpCode = vcpCode }, cancellationToken).ConfigureAwait(false);
 			return new(response.CurrentValue, response.MaximumValue, response.IsTemporary);
 		}
 
 		async Task IMonitorControlMonitor.SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
-			var monitorVcpSetService = _session.MonitorVcpSetService;
-			var response = await monitorVcpSetService.SendRequestAsync(new() { RequestId = monitorVcpSetService.GetRequestId(), MonitorHandle = _monitorHandle, VcpCode = vcpCode, Value = value }, cancellationToken).ConfigureAwait(false);
-			ValidateResponseStatus(response.Status);
-		}
-	}
-
-	private static void ValidateResponseStatus(ResponseStatus status)
-	{
-		switch (status)
-		{
-		case ResponseStatus.Success: return;
-		case ResponseStatus.NotFound: throw new Exception("Not found.");
-		case ResponseStatus.Error: throw new Exception("Error.");
-		default: throw new InvalidOperationException("Invalid status.");
+			var response = await _session.SendRequestAsync(new MonitorVcpSetRequest() { MonitorHandle = _monitorHandle, VcpCode = vcpCode, Value = value }, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
 	private readonly object _lock = new();
-	private readonly Dictionary<Guid, Session> _sessions = new();
 	private object? _currentSessionOrTaskCompletionSource;
 
-	// NB: MUST be called within the lock.
 	private void RegisterActiveSession(Session session)
 	{
-		if (_currentSessionOrTaskCompletionSource is not null)
+		lock (_lock)
 		{
-			if (_currentSessionOrTaskCompletionSource is not TaskCompletionSource<Session> tcs)
+			if (_currentSessionOrTaskCompletionSource is not null)
 			{
-				Unsafe.As<Session>(_currentSessionOrTaskCompletionSource).EnqueueSession(session);
-				return;
+				if (_currentSessionOrTaskCompletionSource is not TaskCompletionSource<Session> tcs)
+				{
+					Unsafe.As<Session>(_currentSessionOrTaskCompletionSource).EnqueueSession(session);
+					return;
+				}
+				else
+				{
+					tcs.TrySetResult(session);
+				}
 			}
-			else
-			{
-				tcs.TrySetResult(session);
-			}
+			_currentSessionOrTaskCompletionSource = session;
 		}
-		_currentSessionOrTaskCompletionSource = session;
 	}
 
-	// NB: MUST be called within the lock.
 	private void UnregisterSession(Session session)
 	{
-		// The most common case we should encounter (ideally 100% of the time), is that the current session is the one we want to unregister.
-		if (ReferenceEquals(_currentSessionOrTaskCompletionSource, session))
+		lock (_lock)
 		{
-			// NB: The NextSession value should be cleared after the call to this method, in order to reduce the chances to leak session objects.
-			// This clearing will be done by the caller, as this method is called in Session.DecrementReferenceCount.
-			_currentSessionOrTaskCompletionSource = session.NextSession;
-		}
-		else if (_currentSessionOrTaskCompletionSource is Session otherSession)
-		{
-			// NB: the value should always be a value of type Session, but the type-check above is done as a sanity check.
-			// If we want to register a session that is not the current (active) one, we defer the dequeuing to the session object.
-			otherSession.DequeueSession(session);
+			// The most common case we should encounter (ideally 100% of the time), is that the current session is the one we want to unregister.
+			if (ReferenceEquals(_currentSessionOrTaskCompletionSource, session))
+			{
+				// NB: The NextSession value should be cleared after the call to this method, in order to reduce the chances to leak session objects.
+				// This clearing will be done by the caller, as this method is called in Session.DecrementReferenceCount.
+				_currentSessionOrTaskCompletionSource = session.NextSession;
+			}
+			else if (_currentSessionOrTaskCompletionSource is Session otherSession)
+			{
+				// NB: the value should always be a value of type Session, but the type-check above is done as a sanity check.
+				// If we want to register a session that is not the current (active) one, we defer the dequeuing to the session object.
+				otherSession.DequeueSession(session);
+			}
 		}
 	}
 
@@ -484,81 +413,20 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		}
 	}
 
-	private async IAsyncEnumerable<TRequest> ProcessRequests<TRequest, TResponse>(Guid sessionId, IAsyncEnumerable<TResponse> responses, [EnumeratorCancellation] CancellationToken cancellationToken)
-		where TRequest : IRequestId
-		where TResponse : IRequestId
-	{
-		Session? session;
-		ServiceState<TRequest, TResponse> service;
-		lock (_lock)
-		{
-			if (!_sessions.TryGetValue(sessionId, out session))
-			{
-				_sessions.Add(sessionId, session = new Session(this, sessionId));
-			}
-			service = session.InitializeService<TRequest, TResponse>(responses);
-		}
-		await using (service)
-		{
-			await session.WaitAsync(cancellationToken).ConfigureAwait(false);
-			await foreach (var request in service.EnumerateAllRequestsAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return request;
-			}
-		}
-	}
-
-	IAsyncEnumerable<AdapterRequest> IMonitorControlProxyService.ProcessAdapterRequestsAsync(Guid sessionId, IAsyncEnumerable<AdapterResponse> responses, CancellationToken cancellationToken)
-		=> ProcessRequests<AdapterRequest, AdapterResponse>(sessionId, responses, cancellationToken);
-
-	IAsyncEnumerable<MonitorRequest> IMonitorControlProxyService.ProcessMonitorRequestsAsync(Guid sessionId, IAsyncEnumerable<MonitorResponse> responses, CancellationToken cancellationToken)
-		=> ProcessRequests<MonitorRequest, MonitorResponse>(sessionId, responses, cancellationToken);
-
-	IAsyncEnumerable<MonitorCapabilitiesRequest> IMonitorControlProxyService.ProcessCapabilitiesRequestsAsync(Guid sessionId, IAsyncEnumerable<MonitorCapabilitiesResponse> responses, CancellationToken cancellationToken)
-		=> ProcessRequests<MonitorCapabilitiesRequest, MonitorCapabilitiesResponse>(sessionId, responses, cancellationToken);
-
-	IAsyncEnumerable<MonitorVcpGetRequest> IMonitorControlProxyService.ProcessVcpGetRequestsAsync(Guid sessionId, IAsyncEnumerable<MonitorVcpGetResponse> responses, CancellationToken cancellationToken)
-		=> ProcessRequests<MonitorVcpGetRequest, MonitorVcpGetResponse>(sessionId, responses, cancellationToken);
-
-	IAsyncEnumerable<MonitorVcpSetRequest> IMonitorControlProxyService.ProcessVcpSetRequestsAsync(Guid sessionId, IAsyncEnumerable<MonitorVcpSetResponse> responses, CancellationToken cancellationToken)
-		=> ProcessRequests<MonitorVcpSetRequest, MonitorVcpSetResponse>(sessionId, responses, cancellationToken);
-
-	async IAsyncEnumerable<MonitorReleaseRequest> IMonitorControlProxyService.EnumerateMonitorsToReleaseAsync(Guid sessionId, [EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		Session? session;
-		var channel = Channel.CreateUnbounded<MonitorReleaseRequest>(UnboundedChannelOptions);
-		lock (_lock)
-		{
-			if (!_sessions.TryGetValue(sessionId, out session))
-			{
-				_sessions.Add(sessionId, session = new Session(this, sessionId));
-			}
-			session.SetMonitorReleaseWriter(channel);
-		}
-		try
-		{
-			await session.WaitAsync(cancellationToken).ConfigureAwait(false);
-			await foreach (var request in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return request;
-			}
-		}
-		finally
-		{
-			session.ClearMonitorReleaseWriter();
-		}
-	}
-
 	async Task<IMonitorControlAdapter> IMonitorControlService.ResolveAdapterAsync(string deviceName, CancellationToken cancellationToken)
 	{
 		var session = await GetSessionAsync(cancellationToken).ConfigureAwait(false);
-
-		var adapterService = session.AdapterService;
-
-		var response = await adapterService.SendRequestAsync(new AdapterRequest() { RequestId = adapterService.GetRequestId(), DeviceName = deviceName }, cancellationToken).ConfigureAwait(false);
-
-		ValidateResponseStatus(response.Status);
-
+		var response = await session.SendRequestAsync(new AdapterRequest() { DeviceName = deviceName }, cancellationToken).ConfigureAwait(false);
 		return new Adapter(session, response.AdapterId);
+	}
+
+	async IAsyncEnumerable<MonitorControlProxyRequest> IMonitorControlProxyService.ProcessRequestsAsync(IAsyncEnumerable<MonitorControlProxyResponse> responses, [EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var requests = Channel.CreateBounded<MonitorControlProxyRequest>(BoundedChannelOptions);
+		await using var session = new Session(this, requests, responses);
+		await foreach (var request in requests.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+		{
+			yield return request;
+		}
 	}
 }

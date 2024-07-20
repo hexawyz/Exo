@@ -65,11 +65,7 @@ internal sealed class InteractiveModeFallbackMonitorI2cBusProvider : II2cBusProv
 			_lastRequestOffset = 0xFFFF;
 		}
 
-		public ValueTask DisposeAsync()
-		{
-			_monitor.Dispose();
-			return ValueTask.CompletedTask;
-		}
+		public ValueTask DisposeAsync() => _monitor.DisposeAsync();
 
 		public ValueTask WriteAsync(byte address, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
 			=> WriteAsync(address, bytes.Span[0], bytes[1..], cancellationToken);
@@ -228,7 +224,7 @@ internal interface IMonitorControlAdapter
 	Task<IMonitorControlMonitor> ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
 }
 
-internal interface IMonitorControlMonitor : IDisposable
+internal interface IMonitorControlMonitor : IAsyncDisposable
 {
 	Task<ImmutableArray<byte>> GetCapabilitiesAsync(CancellationToken cancellationToken);
 	Task<VcpFeatureResponse> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken);

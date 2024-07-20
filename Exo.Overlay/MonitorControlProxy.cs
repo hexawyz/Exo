@@ -64,17 +64,9 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 			while (!cancellationToken.IsCancellationRequested)
 			{
 				var monitorProxyService = await _serviceConnectionManager.CreateServiceAsync<IMonitorControlProxyService>(cancellationToken).ConfigureAwait(false);
-				var sessionId = Guid.NewGuid();
 				try
 				{
-					await Task.WhenAll
-					(
-						ProcessAdapterRequestsAsync(sessionId, monitorProxyService, cancellationToken),
-						ProcessMonitorRequestsAsync(sessionId, monitorProxyService, cancellationToken),
-						ProcessVcpGetRequestsAsync(sessionId, monitorProxyService, cancellationToken),
-						ProcessVcpSetRequestsAsync(sessionId, monitorProxyService, cancellationToken),
-						ProcessMonitorReleaseRequestsAsync(sessionId, monitorProxyService, cancellationToken)
-					).ConfigureAwait(false);
+					await ProcessRequestsAsync(monitorProxyService, cancellationToken);
 				}
 				catch
 				{
@@ -102,37 +94,34 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 		}
 	}
 
-	private async Task ProcessAdapterRequestsAsync(Guid sessionId, IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
+	private async Task ProcessRequestsAsync(IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var channel = Channel.CreateBounded<AdapterResponse>(BoundedChannelOptions);
+			var channel = Channel.CreateBounded<MonitorControlProxyResponse>(BoundedChannelOptions);
 			try
 			{
-				await foreach (var request in monitorProxyService.ProcessAdapterRequestsAsync(sessionId, channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
+				await foreach (var request in monitorProxyService.ProcessRequestsAsync(channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
 				{
-					ulong adapterId;
+					MonitorControlProxyResponse response;
 					try
 					{
-						var displayConfiguration = DisplayConfiguration.GetForActivePaths();
-						foreach (var path in displayConfiguration.Paths)
+						response = request.Content.RequestType switch
 						{
-							if (path.SourceInfo.Adapter.GetDeviceName() == request.DeviceName)
-							{
-								adapterId = (ulong)path.SourceInfo.Adapter.Id;
-								goto AdapterFound;
-							}
-						}
+							MonitorControlProxyRequestResponseOneOfCase.Adapter => ProcessAdapterRequest(request.RequestId, request.Content.AdapterRequest!),
+							MonitorControlProxyRequestResponseOneOfCase.Monitor => ProcessMonitorRequest(request.RequestId, request.Content.MonitorRequest!),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorRelease => ProcessMonitorReleaseRequest(request.RequestId, request.Content.MonitorReleaseRequest!),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities => ProcessCapabilitiesRequest(request.RequestId, request.Content.MonitorCapabilitiesRequest!),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet => ProcessVcpGetRequest(request.RequestId, request.Content.MonitorVcpGetRequest!),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet => ProcessVcpSetRequest(request.RequestId, request.Content.MonitorVcpSetRequest!),
+							_ => throw new InvalidOperationException("Unsupported request.")
+						};
 					}
-					catch (Exception ex) when (ex is not OperationCanceledException)
+					catch
 					{
-						channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Error, AdapterId = 0 });
-						continue;
+						response = new() { RequestId = request.RequestId, Status = MonitorControlResponseStatus.Error };
 					}
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.NotFound, AdapterId = 0 });
-					continue;
-				AdapterFound:;
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Success, AdapterId = adapterId });
+					channel.Writer.TryWrite(response);
 				}
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -149,278 +138,152 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 		}
 	}
 
-	private async Task ProcessMonitorRequestsAsync(Guid sessionId, IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
+	private MonitorControlProxyResponse ProcessAdapterRequest(uint requestId, AdapterRequest request)
 	{
-		try
+		ulong adapterId;
+		var displayConfiguration = DisplayConfiguration.GetForActivePaths();
+		foreach (var path in displayConfiguration.Paths)
 		{
-			var channel = Channel.CreateBounded<MonitorResponse>(BoundedChannelOptions);
-			try
+			if (path.SourceInfo.Adapter.GetDeviceName() == request.DeviceName)
 			{
-				await foreach (var request in monitorProxyService.ProcessMonitorRequestsAsync(sessionId, channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
-				{
-					uint monitorHandle;
-					PhysicalMonitor physicalMonitor;
-					try
-					{
-						var displayConfiguration = DisplayConfiguration.GetForActivePaths();
-
-						// First, build a more workable structure of the sources and targets from the display configuration.
-						var targetsBySource = new List<(DisplayConfigurationPathSourceInfo Source, List<DisplayConfigurationPathTargetInfo> Targets)>();
-						foreach (var path in DisplayConfiguration.GetForActivePaths().Paths)
-						{
-							if (targetsBySource.Count == 0 || path.SourceInfo != CollectionsMarshal.AsSpan(targetsBySource)[^1].Source)
-							{
-								targetsBySource.Add((path.SourceInfo, new() { path.TargetInfo }));
-							}
-							else
-							{
-								CollectionsMarshal.AsSpan(targetsBySource)[^1].Targets.Add(path.TargetInfo);
-							}
-						}
-
-						var logicalMonitors = LogicalMonitor.GetAll();
-
-						if (logicalMonitors.Length != targetsBySource.Count)
-						{
-							goto DisplayConfigurationMismatch;
-						}
-
-						for (int i = 0; i < logicalMonitors.Length; i++)
-						{
-							var logicalMonitor = logicalMonitors[i];
-							if (targetsBySource[i].Source.GetDeviceName() != logicalMonitor.GetMonitorInformation().DeviceName)
-							{
-								goto DisplayConfigurationMismatch;
-							}
-
-							var targets = targetsBySource[i].Targets;
-							var physicalMonitors = logicalMonitor.GetPhysicalMonitors();
-							if (physicalMonitors.Length != targets.Count)
-							{
-								goto DisplayConfigurationMismatch;
-							}
-
-							for (int j = 0; j < physicalMonitors.Length; j++)
-							{
-								var currentPhysicalMonitor = physicalMonitors[j];
-								var target = targets[j];
-
-								var targetNameInformation = target.GetDeviceNameInformation();
-								if (!targetNameInformation.IsEdidValid) continue;
-								if (targetNameInformation.EdidVendorId.Value != request.EdidVendorId || targetNameInformation.EdidProductId != request.EdidProductId) continue;
-								byte[]? cachedRawEdid;
-								using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{targetNameInformation.GetMonitorDeviceName()}\Device Parameters"))
-								{
-									if (deviceKey is null) continue;
-									cachedRawEdid = deviceKey.GetValue("EDID") as byte[];
-								}
-								var edid = Edid.Parse(cachedRawEdid);
-								if (edid.IdSerialNumber == request.IdSerialNumber && edid.SerialNumber == request.SerialNumber)
-								{
-									monitorHandle = Interlocked.Increment(ref _lastMonitorHandle);
-									physicalMonitor = currentPhysicalMonitor;
-									lock (_lock)
-									{
-										_physicalMonitors.Add(monitorHandle, physicalMonitor);
-									}
-									// Play nice and dispose all physical monitors after the successful one. (Worst case, they would get finalized)
-									for (int k = j + 1; k < physicalMonitors.Length; k++)
-									{
-										physicalMonitors[k].Dispose();
-									}
-									goto MonitorFound;
-								}
-								// If the physical monitor is not a match dispose it.
-								currentPhysicalMonitor.Dispose();
-							}
-						}
-					}
-					catch (Exception ex) when (ex is not OperationCanceledException)
-					{
-						channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Error, MonitorHandle = 0 });
-						continue;
-					}
-				DisplayConfigurationMismatch:;
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.NotFound, MonitorHandle = 0 });
-					continue;
-				MonitorFound:;
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Success, MonitorHandle = monitorHandle });
-				}
-			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-			{
-				channel.Writer.TryComplete();
-			}
-			catch (Exception ex)
-			{
-				channel.Writer.TryComplete(ex);
+				adapterId = (ulong)path.SourceInfo.Adapter.Id;
+				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new AdapterResponse { AdapterId = adapterId } };
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-		{
-		}
+		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
 	}
 
-	private async Task ProcessCapabilitiesRequestsAsync(Guid sessionId, IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
+	private MonitorControlProxyResponse ProcessMonitorRequest(uint requestId, MonitorRequest request)
 	{
-		try
-		{
-			var channel = Channel.CreateBounded<MonitorCapabilitiesResponse>(BoundedChannelOptions);
-			try
-			{
-				await foreach (var request in monitorProxyService.ProcessCapabilitiesRequestsAsync(sessionId, channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
-				{
-					ImmutableArray<byte> utf8Capabilities;
-					try
-					{
-						lock (_lock)
-						{
-							if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
-							{
-								utf8Capabilities = physicalMonitor.GetCapabilitiesUtf8String().Span.ToImmutableArray();
-								goto Success;
-							}
-						}
-					}
-					catch (Exception ex) when (ex is not OperationCanceledException)
-					{
-						channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Error, Utf8Capabilities = [] });
-						continue;
-					}
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.NotFound, Utf8Capabilities = [] });
-					continue;
-				Success:;
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Success, Utf8Capabilities = utf8Capabilities });
-				}
-			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-			{
-				channel.Writer.TryComplete();
-			}
-			catch (Exception ex)
-			{
-				channel.Writer.TryComplete(ex);
-			}
-		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-		{
-		}
-	}
+		uint monitorHandle;
+		PhysicalMonitor physicalMonitor;
+		var displayConfiguration = DisplayConfiguration.GetForActivePaths();
 
-	private async Task ProcessVcpGetRequestsAsync(Guid sessionId, IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
-	{
-		try
+		// First, build a more workable structure of the sources and targets from the display configuration.
+		var targetsBySource = new List<(DisplayConfigurationPathSourceInfo Source, List<DisplayConfigurationPathTargetInfo> Targets)>();
+		foreach (var path in DisplayConfiguration.GetForActivePaths().Paths)
 		{
-			var channel = Channel.CreateBounded<MonitorVcpGetResponse>(BoundedChannelOptions);
-			try
+			if (targetsBySource.Count == 0 || path.SourceInfo != CollectionsMarshal.AsSpan(targetsBySource)[^1].Source)
 			{
-				await foreach (var request in monitorProxyService.ProcessVcpGetRequestsAsync(sessionId, channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
-				{
-					VcpFeatureReply reply;
-					try
-					{
-						lock (_lock)
-						{
-							if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
-							{
-								reply = physicalMonitor.GetVcpFeature(request.VcpCode);
-								goto Success;
-							}
-						}
-					}
-					catch (Exception ex) when (ex is not OperationCanceledException)
-					{
-						channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Error });
-						continue;
-					}
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.NotFound });
-					continue;
-				Success:;
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Success, CurrentValue = reply.CurrentValue, MaximumValue = reply.MaximumValue, IsTemporary = reply.IsMomentary });
-				}
+				targetsBySource.Add((path.SourceInfo, new() { path.TargetInfo }));
 			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			else
 			{
-				channel.Writer.TryComplete();
-			}
-			catch (Exception ex)
-			{
-				channel.Writer.TryComplete(ex);
+				CollectionsMarshal.AsSpan(targetsBySource)[^1].Targets.Add(path.TargetInfo);
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-		{
-		}
-	}
 
-	private async Task ProcessVcpSetRequestsAsync(Guid sessionId, IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
-	{
-		try
-		{
-			var channel = Channel.CreateBounded<MonitorVcpSetResponse>(BoundedChannelOptions);
-			try
-			{
-				await foreach (var request in monitorProxyService.ProcessVcpSetRequestsAsync(sessionId, channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
-				{
-					try
-					{
-						lock (_lock)
-						{
-							if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
-							{
-								physicalMonitor.SetVcpFeature(request.VcpCode, request.Value);
-								goto Success;
-							}
-						}
-					}
-					catch (Exception ex) when (ex is not OperationCanceledException)
-					{
-						channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Error });
-						continue;
-					}
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.NotFound });
-					continue;
-				Success:;
-					channel.Writer.TryWrite(new() { RequestId = request.RequestId, Status = ResponseStatus.Success });
-				}
-			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-			{
-				channel.Writer.TryComplete();
-			}
-			catch (Exception ex)
-			{
-				channel.Writer.TryComplete(ex);
-			}
-		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-		{
-		}
-	}
+		var logicalMonitors = LogicalMonitor.GetAll();
 
-	private async Task ProcessMonitorReleaseRequestsAsync(Guid sessionId, IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
-	{
-		try
+		if (logicalMonitors.Length != targetsBySource.Count)
 		{
-			await foreach (var request in monitorProxyService.EnumerateMonitorsToReleaseAsync(sessionId, cancellationToken).ConfigureAwait(false))
+			goto DisplayConfigurationMismatch;
+		}
+
+		for (int i = 0; i < logicalMonitors.Length; i++)
+		{
+			var logicalMonitor = logicalMonitors[i];
+			if (targetsBySource[i].Source.GetDeviceName() != logicalMonitor.GetMonitorInformation().DeviceName)
 			{
-				try
+				goto DisplayConfigurationMismatch;
+			}
+
+			var targets = targetsBySource[i].Targets;
+			var physicalMonitors = logicalMonitor.GetPhysicalMonitors();
+			if (physicalMonitors.Length != targets.Count)
+			{
+				goto DisplayConfigurationMismatch;
+			}
+
+			for (int j = 0; j < physicalMonitors.Length; j++)
+			{
+				var currentPhysicalMonitor = physicalMonitors[j];
+				var target = targets[j];
+
+				var targetNameInformation = target.GetDeviceNameInformation();
+				if (!targetNameInformation.IsEdidValid) continue;
+				if (targetNameInformation.EdidVendorId.Value != request.EdidVendorId || targetNameInformation.EdidProductId != request.EdidProductId) continue;
+				byte[]? cachedRawEdid;
+				using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{targetNameInformation.GetMonitorDeviceName()}\Device Parameters"))
 				{
+					if (deviceKey is null) continue;
+					cachedRawEdid = deviceKey.GetValue("EDID") as byte[];
+				}
+				var edid = Edid.Parse(cachedRawEdid);
+				if (edid.IdSerialNumber == request.IdSerialNumber && edid.SerialNumber == request.SerialNumber)
+				{
+					monitorHandle = Interlocked.Increment(ref _lastMonitorHandle);
+					physicalMonitor = currentPhysicalMonitor;
 					lock (_lock)
 					{
-						if (_physicalMonitors.Remove(request.MonitorHandle, out var physicalMonitor))
-						{
-							physicalMonitor.Dispose();
-						}
+						_physicalMonitors.Add(monitorHandle, physicalMonitor);
 					}
+					// Play nice and dispose all physical monitors after the successful one. (Worst case, they would get finalized)
+					for (int k = j + 1; k < physicalMonitors.Length; k++)
+					{
+						physicalMonitors[k].Dispose();
+					}
+					return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorResponse { MonitorHandle = monitorHandle } };
 				}
-				catch (Exception ex) when (ex is not OperationCanceledException)
-				{
-				}
+				// If the physical monitor is not a match dispose it.
+				currentPhysicalMonitor.Dispose();
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+	DisplayConfigurationMismatch:;
+		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+	}
+
+	private MonitorControlProxyResponse ProcessCapabilitiesRequest(uint requestId, MonitorCapabilitiesRequest request)
+	{
+		ImmutableArray<byte> utf8Capabilities;
+		lock (_lock)
 		{
+			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
+			{
+				utf8Capabilities = physicalMonitor.GetCapabilitiesUtf8String().Span.ToImmutableArray();
+				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorCapabilitiesResponse { Utf8Capabilities = utf8Capabilities } };
+			}
 		}
+		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+	}
+
+	private MonitorControlProxyResponse ProcessVcpGetRequest(uint requestId, MonitorVcpGetRequest request)
+	{
+		VcpFeatureReply reply;
+		lock (_lock)
+		{
+			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
+			{
+				reply = physicalMonitor.GetVcpFeature(request.VcpCode);
+				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorVcpGetResponse { CurrentValue = reply.CurrentValue, MaximumValue = reply.MaximumValue, IsTemporary = reply.IsMomentary } };
+			}
+		}
+		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+	}
+
+	private MonitorControlProxyResponse ProcessVcpSetRequest(uint requestId, MonitorVcpSetRequest request)
+	{
+		lock (_lock)
+		{
+			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
+			{
+				physicalMonitor.SetVcpFeature(request.VcpCode, request.Value);
+				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorVcpSetResponse() };
+			}
+		}
+		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+	}
+
+	private MonitorControlProxyResponse ProcessMonitorReleaseRequest(uint requestId, MonitorReleaseRequest request)
+	{
+		lock (_lock)
+		{
+			if (_physicalMonitors.Remove(request.MonitorHandle, out var physicalMonitor))
+			{
+				physicalMonitor.Dispose();
+				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorReleaseResponse() };
+			}
+		}
+		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
 	}
 }
