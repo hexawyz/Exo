@@ -25,6 +25,9 @@ public sealed class PciDriverCreationContext : DriverCreationContext
 	public ImmutableArray<SystemDevicePath> Keys { get; }
 	/// <summary>Gets the device ID.</summary>
 	public DeviceId DeviceId { get; }
+	/// <summary>Gets the default friendly name for the physical device.</summary>
+	/// <remarks>This is the display name of the device, as returned by Windows.</remarks>
+	public string? FriendlyName { get; }
 	/// <summary>Gets all the device interfaces in the container.</summary>
 	/// <remarks>These can easily be filtered on the HID device interface class in order to retrieve the required details.</remarks>
 	public ImmutableArray<DeviceObjectInformation> DeviceInterfaces { get; }
@@ -71,6 +74,7 @@ public sealed class PciDriverCreationContext : DriverCreationContext
 		PciDiscoverySubsystem discoverySubsystem,
 		ImmutableArray<SystemDevicePath> keys,
 		DeviceId deviceId,
+		string? friendlyName,
 		ImmutableArray<DeviceObjectInformation> deviceInterfaces,
 		ImmutableArray<DeviceObjectInformation> devices,
 		int topLevelDeviceIndex

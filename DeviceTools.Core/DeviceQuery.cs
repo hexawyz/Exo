@@ -652,6 +652,18 @@ namespace DeviceTools
 			return GetObjectPropertyAsync(GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), false, propertyKeys, filter, cancellationToken), property);
 		}
 
+		public static Task<object?> GetLocalizedObjectPropertyAsync(DeviceObjectKind objectKind, string objectId, Property property, CancellationToken cancellationToken)
+			=> GetLocalizedObjectPropertyAsync(objectKind, objectId, property, null, cancellationToken);
+
+		public static Task<object?> GetLocalizedObjectPropertyAsync(DeviceObjectKind objectKind, string objectId, Property property, DeviceFilterExpression? filter, CancellationToken cancellationToken)
+		{
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = stackalloc NativeMethods.DevicePropertyCompoundKey[1];
+
+			propertyKeys[0].Key = property.Key;
+
+			return GetObjectPropertyAsync(GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), true, propertyKeys, filter, cancellationToken), property);
+		}
+
 		private static async Task<object?> GetObjectPropertyAsync(Task<DevicePropertyDictionary> task, Property property)
 		{
 			var properties = await task.ConfigureAwait(false);
@@ -672,6 +684,19 @@ namespace DeviceTools
 			propertyKeys[0].Key = property.Key;
 
 			return GetObjectPropertyAsync<TValue>(GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), false, propertyKeys, filter, cancellationToken), property);
+		}
+
+		// This helper method avoids boilerplate stuff when you need to query a single property. It will not avoid allocations but it is way more convenient to use.
+		public static Task<TValue?> GetLocalizedObjectPropertyAsync<TValue>(DeviceObjectKind objectKind, string objectId, Property<TValue?> property, CancellationToken cancellationToken)
+			=> GetLocalizedObjectPropertyAsync(objectKind, objectId, property, null, cancellationToken);
+
+		public static Task<TValue?> GetLocalizedObjectPropertyAsync<TValue>(DeviceObjectKind objectKind, string objectId, Property<TValue?> property, DeviceFilterExpression? filter, CancellationToken cancellationToken)
+		{
+			Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = stackalloc NativeMethods.DevicePropertyCompoundKey[1];
+
+			propertyKeys[0].Key = property.Key;
+
+			return GetObjectPropertyAsync<TValue>(GetObjectPropertiesAsync(objectKind, MemoryMarshal.GetReference(objectId.AsSpan()), true, propertyKeys, filter, cancellationToken), property);
 		}
 
 		private static async Task<TValue?> GetObjectPropertyAsync<TValue>(Task<DevicePropertyDictionary> task, Property property)

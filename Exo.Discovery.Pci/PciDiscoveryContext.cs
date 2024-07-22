@@ -24,6 +24,7 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		Properties.System.Devices.BusNumber,
 		Properties.System.Devices.Address,
 		Properties.System.Devices.Driver,
+		Properties.System.ItemNameDisplay,
 	];
 
 	private readonly PciDiscoverySubsystem _discoverySubsystem;
@@ -67,9 +68,10 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 
 		// The device node structure for PCI graphics adapter should be relatively simple.
 		// If we forget about HD audio stuff, which is considered a separate device with different product ID, there is a single device node to which the device interface classes are attached.
+		DevicePropertyDictionary deviceProperties;
 		if (interfaceClassGuid == DeviceInterfaceClassGuids.DisplayAdapter || interfaceClassGuid == DeviceInterfaceClassGuids.DisplayDeviceArrival)
 		{
-			var deviceProperties = await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, sourceDeviceName, RequestedDeviceProperties, cancellationToken).ConfigureAwait(false);
+			deviceProperties = await DeviceQuery.GetObjectPropertiesAsync(DeviceObjectKind.Device, sourceDeviceName, RequestedDeviceProperties, cancellationToken).ConfigureAwait(false);
 			devices = [new DeviceObjectInformation(DeviceObjectKind.Device, sourceDeviceName, deviceProperties)];
 
 			deviceInterfaces = await DeviceQuery.FindAllAsync(DeviceObjectKind.DeviceInterface, RequestedDeviceInterfaceProperties, Properties.System.Devices.DeviceInstanceId == sourceDeviceName, cancellationToken).ConfigureAwait(false);
@@ -79,6 +81,13 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		else
 		{
 			throw new InvalidOperationException("The device interface class is not supported yet. It might be trivial to support, but the code needs to be added.");
+		}
+
+		// Read the friendly name from the device.
+		// This is necessary to implement generic GPU drivers (without connection to the manufacturer's kernel driver), and we already do something similar for HID devices.
+		if (!deviceProperties.TryGetValue<string>(Properties.System.ItemNameDisplay.Key, out var friendlyName))
+		{
+			friendlyName = await DeviceQuery.GetLocalizedObjectPropertyAsync(DeviceObjectKind.Device, sourceDeviceName, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false);
 		}
 
 		if (topLevelDeviceIndex < 0) throw new InvalidOperationException("Could not find the top level device.");
@@ -128,6 +137,7 @@ public sealed class PciDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 			_discoverySubsystem,
 			associatedKeys,
 			deviceId,
+			friendlyName,
 			ImmutableCollectionsMarshal.AsImmutableArray(deviceInterfaces),
 			ImmutableCollectionsMarshal.AsImmutableArray(devices),
 			topLevelDeviceIndex
