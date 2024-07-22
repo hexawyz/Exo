@@ -58,9 +58,7 @@ public class InteractiveModeFallbackMonitorI2cBusProviderTests
 			_brightness = 70;
 		}
 
-		public void Dispose()
-		{
-		}
+		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
 		public Task<ImmutableArray<byte>> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(_capabilities);
 
@@ -91,7 +89,7 @@ public class InteractiveModeFallbackMonitorI2cBusProviderTests
 	public async Task ShouldReadCapabilities()
 	{
 		var service = new FakeMonitorControlService();
-		var i2cBusProvider = new InteractiveModeFallbackMonitorI2cBusProvider(service);
+		var i2cBusProvider = new ProxiedI2cBusProvider(service);
 		var monitorI2cBusResolver = await i2cBusProvider.GetMonitorBusResolverAsync(AdapterDeviceName1, CancellationToken.None);
 		var i2cBus = await monitorI2cBusResolver(PnpVendorId.FromRaw(Adapter1Monitor1VendorId), Adapter1Monitor1ProductId, Adapter1Monitor1IdSerialNumber, Adapter1Monitor1SerialNumber, CancellationToken.None);
 		await using var ddc = new DisplayDataChannel(i2cBus, true);
@@ -104,7 +102,7 @@ public class InteractiveModeFallbackMonitorI2cBusProviderTests
 	public async Task ShouldGetAndSetLuminance()
 	{
 		var service = new FakeMonitorControlService();
-		var i2cBusProvider = new InteractiveModeFallbackMonitorI2cBusProvider(service);
+		var i2cBusProvider = new ProxiedI2cBusProvider(service);
 		var monitorI2cBusResolver = await i2cBusProvider.GetMonitorBusResolverAsync(AdapterDeviceName1, CancellationToken.None);
 		var i2cBus = await monitorI2cBusResolver(PnpVendorId.FromRaw(Adapter1Monitor1VendorId), Adapter1Monitor1ProductId, Adapter1Monitor1IdSerialNumber, Adapter1Monitor1SerialNumber, CancellationToken.None);
 		await using var ddc = new DisplayDataChannel(i2cBus, true);

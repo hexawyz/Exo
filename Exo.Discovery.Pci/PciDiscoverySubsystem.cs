@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using DeviceTools;
+using Exo.Features;
+using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -20,10 +22,11 @@ public sealed class PciDiscoverySubsystem :
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		Func<string, IDisplayAdapterI2cBusProviderFeature> fallbackI2cBusProviderFeatureProvider
 	)
 	{
-		var service = new PciDiscoverySubsystem(loggerFactory, driverRegistry, deviceNotificationService);
+		var service = new PciDiscoverySubsystem(loggerFactory, driverRegistry, deviceNotificationService, fallbackI2cBusProviderFeatureProvider);
 		try
 		{
 			await service.RegisterAsync(discoveryOrchestrator);
@@ -44,6 +47,7 @@ public sealed class PciDiscoverySubsystem :
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	private readonly IDeviceNotificationService _deviceNotificationService;
+	internal Func<string, IDisplayAdapterI2cBusProviderFeature> FallbackI2cBusProviderFeatureProvider { get; }
 
 	private IDisposable? _displayAdapterNotificationRegistration;
 	private IDisposable? _displayDeviceArrivalDeviceNotificationRegistration;
@@ -53,13 +57,15 @@ public sealed class PciDiscoverySubsystem :
 	(
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
-		IDeviceNotificationService deviceNotificationService
+		IDeviceNotificationService deviceNotificationService,
+		Func<string, IDisplayAdapterI2cBusProviderFeature> fallbackI2cBusProviderFeatureProvider
 	)
 	{
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		_logger = loggerFactory.CreateLogger<PciDiscoverySubsystem>();
 		_deviceNotificationService = deviceNotificationService;
+		FallbackI2cBusProviderFeatureProvider = fallbackI2cBusProviderFeatureProvider;
 
 		_productVersionFactories = new();
 		_productFactories = new();

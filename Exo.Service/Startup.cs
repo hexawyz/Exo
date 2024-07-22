@@ -154,15 +154,20 @@ public class Startup
 		// The root discovery service must be pulled in as a hard dependency, as it will serve to bootstrap all other discovery services.
 		services.AddSingleton
 		(
-			sp => RootDiscoverySubsystem.CreateAsync
-			(
-				sp.GetRequiredService<ILoggerFactory>(),
-				sp.GetRequiredService<INestedDriverRegistryProvider>(),
-				sp.GetRequiredService<IDiscoveryOrchestrator>(),
-				sp.GetRequiredService<IDeviceNotificationService>(),
-				sp.GetRequiredService<II2cBusProvider>(),
-				sp.GetRequiredService<ISystemManagementBusProvider>()
-			).GetAwaiter().GetResult()
+			sp =>
+			{
+				var i2cProvider = sp.GetRequiredService<ProxiedI2cBusProvider>();
+				return RootDiscoverySubsystem.CreateAsync
+				(
+					sp.GetRequiredService<ILoggerFactory>(),
+					sp.GetRequiredService<INestedDriverRegistryProvider>(),
+					sp.GetRequiredService<IDiscoveryOrchestrator>(),
+					sp.GetRequiredService<IDeviceNotificationService>(),
+					sp.GetRequiredService<II2cBusProvider>(),
+					sp.GetRequiredService<ISystemManagementBusProvider>(),
+					(deviceName) => new FallbackDisplayAdapterI2cBusProviderFeature(i2cProvider, deviceName)
+				).GetAwaiter().GetResult();
+			}
 		);
 		// Pull up the debug discovery service if we are building with support for fake devices
 #if WITH_FAKE_DEVICES
@@ -180,7 +185,7 @@ public class Startup
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
 		services.AddSingleton<GrpcMonitorControlProxyService>();
-		services.AddSingleton(sp => new InteractiveModeFallbackMonitorI2cBusProvider(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
+		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcSensorService>();

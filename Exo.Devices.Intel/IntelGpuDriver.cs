@@ -13,7 +13,7 @@ public sealed class IntelGpuDriver :
 	IDeviceIdFeature,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IDisplayAdapterDeviceFeature>,
-	IDisplayAdapterI2CBusProviderFeature
+	IDisplayAdapterI2cBusProviderFeature
 {
 	private const ushort IntelVendorId = 0x8086;
 
@@ -124,15 +124,15 @@ public sealed class IntelGpuDriver :
 	{
 		DeviceId = deviceId;
 		_gpu = gpu;
-		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, IntelGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
+		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, IntelGpuDriver, IDisplayAdapterI2cBusProviderFeature>(this);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, IntelGpuDriver, IDeviceIdFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-	string IDisplayAdapterI2CBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
+	string IDisplayAdapterI2cBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
 
-	ValueTask<II2cBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+	ValueTask<II2cBus> IDisplayAdapterI2cBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 	{
 		return ValueTask.FromException<II2cBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new NotImplementedException()));
 	}

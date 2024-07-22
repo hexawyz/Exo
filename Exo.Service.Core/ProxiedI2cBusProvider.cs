@@ -18,7 +18,7 @@ namespace Exo.Service;
 /// The only DDC commands supported are capabilities, VCP Get and VCP Set.
 /// </para>
 /// </remarks>
-internal sealed class InteractiveModeFallbackMonitorI2cBusProvider : II2cBusProvider
+internal sealed class ProxiedI2cBusProvider : II2cBusProvider
 {
 	internal sealed class AdapterMonitorResolver
 	{
@@ -192,7 +192,7 @@ internal sealed class InteractiveModeFallbackMonitorI2cBusProvider : II2cBusProv
 	private readonly Dictionary<string, AdapterMonitorResolver> _knownAdapters;
 	private readonly AsyncLock _lock;
 
-	public InteractiveModeFallbackMonitorI2cBusProvider(IMonitorControlService monitorControlService)
+	public ProxiedI2cBusProvider(IMonitorControlService monitorControlService)
 	{
 		_monitorControlService = monitorControlService;
 		_knownAdapters = new();
@@ -210,23 +210,4 @@ internal sealed class InteractiveModeFallbackMonitorI2cBusProvider : II2cBusProv
 			return adapterMonitorResolver.ResolveI2cBus;
 		}
 	}
-}
-
-/// <summary>Defines the internal control interface for monitors.</summary>
-/// <remarks>This will be implemented by the monitor proxy service.</remarks>
-internal interface IMonitorControlService
-{
-	Task<IMonitorControlAdapter> ResolveAdapterAsync(string deviceName, CancellationToken cancellationToken);
-}
-
-internal interface IMonitorControlAdapter
-{
-	Task<IMonitorControlMonitor> ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken);
-}
-
-internal interface IMonitorControlMonitor : IAsyncDisposable
-{
-	Task<ImmutableArray<byte>> GetCapabilitiesAsync(CancellationToken cancellationToken);
-	Task<VcpFeatureResponse> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken);
-	Task SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken);
 }

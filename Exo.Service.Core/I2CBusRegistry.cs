@@ -29,9 +29,6 @@ internal class I2cBusRegistry : II2cBusRegistry, II2cBusProvider
 	}
 
 	private readonly ConcurrentDictionary<string, object> _registeredBusses = new();
-	private readonly InteractiveModeFallbackMonitorI2cBusProvider _fallbackResolver;
-
-	public I2cBusRegistry(InteractiveModeFallbackMonitorI2cBusProvider fallbackResolver) => _fallbackResolver = fallbackResolver;
 
 	public IDisposable RegisterBusResolver(string deviceName, MonitorI2cBusResolver resolver)
 	{

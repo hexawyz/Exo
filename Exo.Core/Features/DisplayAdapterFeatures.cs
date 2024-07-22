@@ -3,7 +3,7 @@ using Exo.I2C;
 
 namespace Exo.Features;
 
-public interface IDisplayAdapterI2CBusProviderFeature : IDisplayAdapterDeviceFeature
+public interface IDisplayAdapterI2cBusProviderFeature : IDisplayAdapterDeviceFeature
 {
 	/// <summary>This should return the device name of the display adapter.</summary>
 	/// <remarks>This information is necessary for monitors to find the proper I2C bus based on the name of the display adapter they are connected to.</remarks>

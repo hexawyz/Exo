@@ -22,7 +22,7 @@ public partial class NVidiaGpuDriver :
 	IDeviceDriver<IDisplayAdapterDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceDriver<ISensorDeviceFeature>,
-	IDisplayAdapterI2CBusProviderFeature,
+	IDisplayAdapterI2cBusProviderFeature,
 	ILightingControllerFeature,
 	ILightingDeferredChangesFeature,
 	ISensorsFeature,
@@ -395,7 +395,7 @@ public partial class NVidiaGpuDriver :
 		}
 		_sensors = sensors.DrainToImmutable();
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
-		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2CBusProviderFeature>(this);
+		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2cBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
 		_lightingFeatures = lightingZones.Length > 0 ?
 			FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this) :
@@ -439,9 +439,9 @@ public partial class NVidiaGpuDriver :
 		return ValueTask.CompletedTask;
 	}
 
-	string IDisplayAdapterI2CBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
+	string IDisplayAdapterI2cBusProviderFeature.DeviceName => ConfigurationKey.DeviceMainId;
 
-	ValueTask<II2cBus> IDisplayAdapterI2CBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+	ValueTask<II2cBus> IDisplayAdapterI2cBusProviderFeature.GetBusForMonitorAsync(PnpVendorId vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 	{
 		var displays = _gpu.GetConnectedDisplays(default);
 		foreach (var display in displays)

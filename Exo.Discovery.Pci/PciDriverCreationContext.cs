@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using DeviceTools;
+using Exo.Features;
+using Exo.I2C;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
@@ -37,6 +39,19 @@ public sealed class PciDriverCreationContext : DriverCreationContext
 	/// <summary>Gets the name of the top level device referenced by <see cref="TopLevelDevice"/>.</summary>
 	/// <remarks>This property is the quickest way to access the information if you don't require access to the rest of device information.</remarks>
 	public string TopLevelDeviceName => TopLevelDevice.Id;
+	private IDisplayAdapterI2cBusProviderFeature? _fallbackI2cBusProviderFeature;
+	/// <summary>Gets a I2CBus provider feature to use as a fallback for drivers that can't provide their own.</summary>
+	/// <remarks>
+	/// <para>
+	/// Usage of feature this should be left strictly for the cases where this is necessary and known to work.
+	/// The fallback provider depends on a helper running independently of the service, so reliability absolutely can't be guaranteed.
+	/// </para>
+	/// <para>
+	/// One notable issue is that if the helper is not available, compatibility with the adapter and the monitor can't be checked.
+	/// This is why exposing this feature is left to drivers that can guarantee that the fallback with work with the device.
+	/// </para>
+	/// </remarks>
+	public IDisplayAdapterI2cBusProviderFeature? FallbackI2cBusProviderFeature => _fallbackI2cBusProviderFeature ??= _discoverySubsystem.FallbackI2cBusProviderFeatureProvider(TopLevelDeviceName);
 
 	protected override INestedDriverRegistryProvider NestedDriverRegistryProvider => _discoverySubsystem.DriverRegistry;
 	public override ILoggerFactory LoggerFactory => _discoverySubsystem.LoggerFactory;

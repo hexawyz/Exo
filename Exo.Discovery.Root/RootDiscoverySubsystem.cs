@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using Exo.Features;
 using Exo.I2C;
 using Exo.Services;
 using Exo.SystemManagementBus;
@@ -19,6 +20,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 	internal IDeviceNotificationService DeviceNotificationService { get; }
 	internal II2cBusProvider I2CBusProvider { get; }
 	internal ISystemManagementBusProvider SystemManagementBusProvider { get; }
+	internal Func<string, IDisplayAdapterI2cBusProviderFeature> FallbackI2cBusProviderFeatureProvider { get; }
 	internal ConcurrentDictionary<RootComponentKey, Guid> RegisteredFactories { get; }
 	private List<(RootComponentKey Key, Guid TypeId)>? _pendingArrivals;
 
@@ -31,10 +33,11 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
 		II2cBusProvider i2cBusProvider,
-		ISystemManagementBusProvider systemManagementBusProvider
+		ISystemManagementBusProvider systemManagementBusProvider,
+		Func<string, IDisplayAdapterI2cBusProviderFeature> fallbackI2cBusProviderFeatureProvider
 	)
 	{
-		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider, systemManagementBusProvider);
+		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider, systemManagementBusProvider, fallbackI2cBusProviderFeatureProvider);
 		try
 		{
 			await service.RegisterAsync(discoveryOrchestrator);
@@ -54,7 +57,8 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
 		II2cBusProvider i2cBusProvider,
-		ISystemManagementBusProvider systemManagementBusProvider
+		ISystemManagementBusProvider systemManagementBusProvider,
+		Func<string, IDisplayAdapterI2cBusProviderFeature> fallbackI2cBusProviderFeatureProvider
 	)
 	{
 		LoggerFactory = loggerFactory;
@@ -65,6 +69,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		SystemManagementBusProvider = systemManagementBusProvider;
 		RegisteredFactories = new();
 		_pendingArrivals = new();
+		FallbackI2cBusProviderFeatureProvider = fallbackI2cBusProviderFeatureProvider;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out RootFactoryDetails parsedFactoryDetails)

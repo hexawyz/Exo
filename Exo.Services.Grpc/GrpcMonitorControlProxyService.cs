@@ -52,6 +52,8 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			_service.RegisterActiveSession(this);
 		}
 
+		public bool IsDisposed => _cancellationTokenSource is null;
+
 		public async ValueTask DisposeAsync()
 		{
 			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
@@ -318,11 +320,26 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		{
 			if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
 			{
-				await _session.SendRequestAsync(new MonitorReleaseRequest() { MonitorHandle = _monitorHandle }, default).ConfigureAwait(false);
+				try
+				{
+					await _session.SendRequestAsync(new MonitorReleaseRequest() { MonitorHandle = _monitorHandle }, default).ConfigureAwait(false);
+				}
+				catch
+				{
+				}
 			}
 		}
 
-		private void EnsureNotDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, typeof(Monitor));
+		private void EnsureNotDisposed()
+		{
+		Retry:;
+			ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, typeof(Monitor));
+			if (_session.IsDisposed)
+			{
+				Volatile.Write(ref _isDisposed, 1);
+				goto Retry;
+			}
+		}
 
 		async Task<ImmutableArray<byte>> IMonitorControlMonitor.GetCapabilitiesAsync(CancellationToken cancellationToken)
 		{
