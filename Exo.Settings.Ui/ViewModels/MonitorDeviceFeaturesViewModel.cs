@@ -580,7 +580,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	async Task IRefreshable.RefreshAsync(CancellationToken cancellationToken)
 	{
-		if (!IsReady) throw new InvalidOperationException();
+		if (!IsReady) return;
 		IsReady = false;
 		try
 		{

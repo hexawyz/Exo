@@ -189,25 +189,12 @@ internal sealed class ProxiedI2cBusProvider : II2cBusProvider
 	}
 
 	private readonly IMonitorControlService _monitorControlService;
-	private readonly Dictionary<string, AdapterMonitorResolver> _knownAdapters;
-	private readonly AsyncLock _lock;
 
 	public ProxiedI2cBusProvider(IMonitorControlService monitorControlService)
-	{
-		_monitorControlService = monitorControlService;
-		_knownAdapters = new();
-		_lock = new();
-	}
+		=> _monitorControlService = monitorControlService;
 
 	public async ValueTask<MonitorI2cBusResolver> GetMonitorBusResolverAsync(string deviceName, CancellationToken cancellationToken)
 	{
-		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (!_knownAdapters.TryGetValue(deviceName, out var adapterMonitorResolver))
-			{
-				_knownAdapters.Add(deviceName, adapterMonitorResolver = new(await _monitorControlService.ResolveAdapterAsync(deviceName, cancellationToken).ConfigureAwait(false)));
-			}
-			return adapterMonitorResolver.ResolveI2cBus;
-		}
+		return new AdapterMonitorResolver(await _monitorControlService.ResolveAdapterAsync(deviceName, cancellationToken).ConfigureAwait(false)).ResolveI2cBus;
 	}
 }

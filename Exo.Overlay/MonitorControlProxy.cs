@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
+using DeviceTools;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.DisplayDevices.Mccs;
@@ -144,7 +145,9 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 		var displayConfiguration = DisplayConfiguration.GetForActivePaths();
 		foreach (var path in displayConfiguration.Paths)
 		{
-			if (path.SourceInfo.Adapter.GetDeviceName() == request.DeviceName)
+			var adapterDeviceInterfaceName = path.SourceInfo.Adapter.GetDeviceName();
+			string adapterDeviceName = Device.GetDeviceInstanceId(adapterDeviceInterfaceName);
+			if (adapterDeviceName == request.DeviceName)
 			{
 				adapterId = (ulong)path.SourceInfo.Adapter.Id;
 				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new AdapterResponse { AdapterId = adapterId } };
@@ -203,8 +206,10 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 				var targetNameInformation = target.GetDeviceNameInformation();
 				if (!targetNameInformation.IsEdidValid) continue;
 				if (targetNameInformation.EdidVendorId.Value != request.EdidVendorId || targetNameInformation.EdidProductId != request.EdidProductId) continue;
+				string monitorDeviceInterfaceName = targetNameInformation.GetMonitorDeviceName();
+				string monitorDeviceName = Device.GetDeviceInstanceId(monitorDeviceInterfaceName);
 				byte[]? cachedRawEdid;
-				using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{targetNameInformation.GetMonitorDeviceName()}\Device Parameters"))
+				using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{monitorDeviceName}\Device Parameters"))
 				{
 					if (deviceKey is null) continue;
 					cachedRawEdid = deviceKey.GetValue("EDID") as byte[];

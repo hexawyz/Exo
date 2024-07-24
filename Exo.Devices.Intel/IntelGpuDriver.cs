@@ -20,7 +20,7 @@ public abstract class IntelGpuDriver : Driver, IDeviceIdFeature
 	(
 		ILogger<IntelGpuDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
-		string friendlyName,
+		string? friendlyName,
 		DeviceObjectInformation topLevelDevice,
 		DeviceId deviceId,
 		IDisplayAdapterI2cBusProviderFeature? fallbackI2cBusProviderFeature
@@ -68,7 +68,7 @@ public abstract class IntelGpuDriver : Driver, IDeviceIdFeature
 				new ControlLibraryDriver
 				(
 					deviceId,
-					friendlyName,
+					friendlyName ?? "Intel GPU",
 					new("intel_gpu", topLevelDevice.Id, $"{IntelVendorId:X4}:{deviceId.ProductId:X4}", null),
 					foundGpu
 				)
@@ -84,7 +84,7 @@ public abstract class IntelGpuDriver : Driver, IDeviceIdFeature
 				new FallbackIntelGpuDriver
 				(
 					deviceId,
-					friendlyName,
+					friendlyName ?? "Intel GPU",
 					new("intel_gpu", topLevelDevice.Id, $"{IntelVendorId:X4}:{deviceId.ProductId:X4}", null),
 					fallbackI2cBusProviderFeature
 				)

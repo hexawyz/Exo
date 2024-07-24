@@ -83,6 +83,7 @@ public sealed class PciDriverCreationContext : DriverCreationContext
 		_discoverySubsystem = discoverySubsystem;
 		Keys = keys;
 		DeviceId = deviceId;
+		FriendlyName = friendlyName;
 		DeviceInterfaces = deviceInterfaces;
 		Devices = devices;
 		TopLevelDeviceIndex = topLevelDeviceIndex;
