@@ -59,7 +59,7 @@
 	</Target>
 
 	<Target Name="CompileMonitorDatabase" DependsOnTargets="LocateExoMonitorDatabaseCompiler;PrepareMonitorData" Inputs="$(_ExoMonitorDatabaseCompilerPath);@(MonitorDefinition)" Outputs="$(_MonitorDatabaseIntermediatePath)" Condition="'@(MonitorDefinition)' != ''">
-		<Exec Command="dotnet &quot;$(_ExoMonitorDatabaseCompilerPath)&quot; &quot;$(MSBuildThisFileDirectory)Definitions&quot; &quot;$(_MonitorDatabaseIntermediatePath)&quot;" />
+		<Exec Command="dotnet &quot;$(_ExoMonitorDatabaseCompilerPath)&quot; &quot;$(MSBuildThisFileDirectory)Definitions&quot; &quot;$(_MonitorDatabaseIntermediatePath)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
 		<ItemGroup>
 			<FileWrites Include="$(_MonitorDatabaseIntermediatePath)" />
 			<EmbeddedResource Include="$(_MonitorDatabaseIntermediatePath)" Link="Definitions.xoa" LogicalName="Definitions.xoa" />
