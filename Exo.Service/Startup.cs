@@ -185,7 +185,8 @@ public class Startup
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
 		services.AddSingleton<GrpcMonitorControlProxyService>();
-		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
+		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
+		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcSensorService>();
