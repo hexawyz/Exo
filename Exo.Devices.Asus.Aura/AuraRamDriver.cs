@@ -48,7 +48,7 @@ public partial class AuraRamDriver :
 	private const ushort AddressMovableSlotId = 0x80F8;
 	private const ushort AddressDeviceAddress = 0x80F9;
 	// Address where the slot ID is supposedly readable. (This seems to correlate but it could be wrong)
-	private const ushort AddressDeviceSlotId = 0x8586;
+	private const ushort AddressReadableDeviceSlotId = 0x8586;
 
 	// NB: Aura sticks are generally configured all at once, since they start mapped at the same 0x77 register.
 	// We should be able to detect and map each of the discovered sticks as separate lighting zones under the same device, but we could also expose each ram stick as its own device.
@@ -107,7 +107,7 @@ public partial class AuraRamDriver :
 						{
 							logger.SmBusAuraDeviceDetected(candidateAddress);
 
-							byte slotIndex = await ReadByteAsync(systemManagementBus, candidateAddress, AddressDeviceSlotId);
+							byte slotIndex = await ReadByteAsync(systemManagementBus, candidateAddress, AddressReadableDeviceSlotId);
 							int moduleIndex = slotIndex < 8 ? slotIndexToIndex[slotIndex] : -1;
 
 							if (moduleIndex < 0) throw new InvalidOperationException("Expected to read a slot index, but got something else instead.");
@@ -133,7 +133,7 @@ public partial class AuraRamDriver :
 							{
 								if ((sbyte)discoveredModules[moduleIndex].Address > 0) continue;
 								// Try to move the module. This should only do something if the module for the specified slot ID is still
-								await WriteBytesAsync(systemManagementBus, DefaultDeviceAddress, AddressDeviceSlotId, memoryModules[moduleIndex].Index, candidateAddress);
+								await WriteBytesAsync(systemManagementBus, DefaultDeviceAddress, AddressMovableSlotId, memoryModules[moduleIndex].Index, (byte)(candidateAddress << 1));
 
 								if (await DetectDevicePresenceAsync(systemManagementBus, candidateAddress))
 								{
@@ -167,7 +167,7 @@ public partial class AuraRamDriver :
 				// We allow one device to be mapped on address 0x77, because that should never really be a problem (right?)
 				if (unmappedDeviceCount == 1 && await DetectAuraRamAsync(systemManagementBus, DefaultDeviceAddress))
 				{
-					int slotIndex = await ReadByteAsync(systemManagementBus, DefaultDeviceAddress, AddressDeviceSlotId);
+					int slotIndex = await ReadByteAsync(systemManagementBus, DefaultDeviceAddress, AddressReadableDeviceSlotId);
 					int moduleIndex = slotIndex < 8 ? slotIndexToIndex[slotIndex] : -1;
 
 					if (moduleIndex < 0) throw new InvalidOperationException("Expected to read a slot index, but got something else instead.");
