@@ -38,7 +38,7 @@ Exo currently support the following features, provided that there is a custom dr
 * Monitor control: Brightness, Contrast, Audio Volume, Input Select and various settings, if supported by the monitor. (A configuration system for overriding monitor details is available)
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
 * Mouse: The service can observe and display DPI changes.
-* GPU: Provide support for accessing connected monitors in non-interactive (service) mode.
+* GPU: Provide support for accessing connected monitors in non-interactive (service) mode. (May rely on fallback using the Windows API if necessary)
 * Sensors: For devices that provide data readings, expose sensors that can be read periodically and displayed in the UI.
 * Coolers: For cooling devices, or devices equipped with a fan, expose controllable coolers and allow setting custom software cooling curves based on sensors.
 
@@ -61,6 +61,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* GeForce RTX 3090 FE and select other GPUs: RGB lighting
 * Intel
 	* WIP: Should at term be able to expose the I2C interface to control connected monitors, however the IGCL library support is currently very poor and doesn't work on many not-too-old configurations.
+	* Monitor control via the I2C fallback (for when the IGCL library is unavailable, which is very frequent) 
 * Gigabyte
 	* Z490 VISION D and other similar motherboards:
 		* IT5702 RGB controller: RGB lighting
@@ -77,7 +78,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * NZXT
 	* Kraken Z devices: Screen brightness, Cooling control, Sensors for Liquid temperature, Pump speed and Fan speed.
 * Other
-	* Generic monitor support (Currently works only for monitors connected to NVIDIA GPUs)
+	* Generic monitor support (Requires a GPU driver for the GPU the monitor is connected to; May require the UI helper to be started if the GPU driver cannot directly provide I2C support)
 
 # Planned Features
 
@@ -169,8 +170,9 @@ The product is currently split in three executables:
 * Exo.Overlay:
   A user-facing application that will display overlay notifications, and provide means of interacting with the service, such as starting the settings UI.
   It displays a custom menu that will in the future, run command that are programmed by the user (you!) within the service.
+  ⚠️ This application also provides the monitor control proxy that will be used as a fallback for kernel GPU drivers that don't expose their I2C. This can only work when the application is started.
 * Exo.Settings.UI:
-  A modern WinUI 3 user interface that will communicate with the service and provide graphical view and controls over your devices.
+  A modern WinUI 3 user interface that will communicate with the service and provide graphical view and controls over all the discovered and supported devices.
 
 Splitting the application this way allows to further preserve system resources, as running a settings UI should not be necessary 100% of the time.
 
