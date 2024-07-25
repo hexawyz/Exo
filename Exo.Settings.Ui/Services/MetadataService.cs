@@ -106,6 +106,7 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 
 	private void AddArchives(ImmutableArray<MetadataSourceInformation> sources)
 	{
+		if (sources.IsDefault) return;
 		foreach (var source in sources)
 		{
 			GetResolver(source.Category).AddArchive(source.ArchivePath);
@@ -114,6 +115,7 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 
 	private void RemoveArchives(ImmutableArray<MetadataSourceInformation> sources)
 	{
+		if (sources.IsDefault) return;
 		foreach (var source in sources)
 		{
 			GetResolver(source.Category).RemoveArchive(source.ArchivePath);
