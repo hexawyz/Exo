@@ -249,7 +249,14 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			}
 			try
 			{
-				await _requests.WriteAsync(request, cancellationToken).ConfigureAwait(false);
+				try
+				{
+					await _requests.WriteAsync(request, cancellationToken).ConfigureAwait(false);
+				}
+				catch (ChannelClosedException)
+				{
+					throw new ObjectDisposedException(typeof(Session).FullName);
+				}
 			}
 			catch
 			{
@@ -288,6 +295,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 
 		async Task<IMonitorControlMonitor> IMonitorControlAdapter.ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 		{
+			ObjectDisposedException.ThrowIf(_session.IsDisposed, typeof(Adapter));
 			var response = await _session.SendRequestAsync
 			(
 				new MonitorRequest()

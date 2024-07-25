@@ -42,7 +42,7 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 			return adapter;
 		}
 
-		public async Task<IMonitorControlMonitor> ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+		public async Task<IMonitorControlMonitor> ResolveUnderlyingMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 		{
 			Retry:;
 				var adapter = Volatile.Read(ref _adapter);
@@ -59,13 +59,30 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 				adapter = await ReconnectAsync(adapter, cancellationToken).ConfigureAwait(false);
 				goto Retry;
 		}
+
+		Task<IMonitorControlMonitor> IMonitorControlAdapter.ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
+			=> ReconnectingMonitor.CreateAsync(this, PnpVendorId.FromRaw(vendorId), productId, idSerialNumber, serialNumber, cancellationToken);
 	}
 
 	private sealed class ReconnectingMonitor : IMonitorControlMonitor
 	{
+		public static async Task<IMonitorControlMonitor> CreateAsync
+		(
+			ReconnectingAdapter adapter,
+			PnpVendorId vendorId,
+			ushort productId,
+			uint idSerialNumber,
+			string? serialNumber,
+			CancellationToken cancellationToken
+		)
+		{
+			var monitor = new ReconnectingMonitor(adapter, vendorId, productId, idSerialNumber, serialNumber);
+			await monitor.ReconnectAsync(monitor, cancellationToken).ConfigureAwait(false);
+			return monitor;
+		}
+
 		private readonly ReconnectingAdapter _adapter;
 		private IMonitorControlMonitor? _monitor;
-		private readonly string _adapterDeviceName;
 		private readonly PnpVendorId _vendorId;
 		private readonly ushort _productId;
 		private readonly uint _idSerialNumber;
@@ -73,10 +90,9 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 		private readonly AsyncLock _lock;
 		private readonly CancellationTokenSource _disposeCancellationTokenSource;
 
-		public ReconnectingMonitor
+		private ReconnectingMonitor
 		(
 			ReconnectingAdapter adapter,
-			string adapterDeviceName,
 			PnpVendorId vendorId,
 			ushort productId,
 			uint idSerialNumber,
@@ -84,7 +100,6 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 		)
 		{
 			_adapter = adapter;
-			_adapterDeviceName = adapterDeviceName;
 			_vendorId = vendorId;
 			_productId = productId;
 			_idSerialNumber = idSerialNumber;
@@ -113,7 +128,7 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 				if (monitor == (monitor = _monitor))
 				{
 					Volatile.Write(ref _monitor, null);
-					Volatile.Write(ref _monitor, await _adapter.ResolveMonitorAsync(_vendorId.Value, _productId, _idSerialNumber, _serialNumber, cancellationToken).ConfigureAwait(false));
+					Volatile.Write(ref _monitor, await _adapter.ResolveUnderlyingMonitorAsync(_vendorId.Value, _productId, _idSerialNumber, _serialNumber, cancellationToken).ConfigureAwait(false));
 				}
 			}
 
