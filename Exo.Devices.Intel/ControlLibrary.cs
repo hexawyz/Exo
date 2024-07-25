@@ -16,40 +16,56 @@ internal unsafe sealed class ControlLibrary
 
 	static ControlLibrary() { }
 
+	private readonly nint _libraryHandle;
+	private readonly delegate* unmanaged[Cdecl]<nint, uint*, nint*, Result> _ctlEnumerateDevices;
+	private readonly delegate* unmanaged[Cdecl]<nint, DeviceAdapterProperties*, Result> _ctlGetDeviceProperties;
 	private nint _handle;
 
 	private ControlLibrary()
 	{
-		// NB: Request version 1.0 because version 1.1 can return version not supported, however it still doesn't work.
-		var args = new InitArgs
+		nint libraryHandle = NativeLibrary.Load(LibraryName);
+		try
 		{
-			Size = (uint)sizeof(InitArgs),
-			AppVersion = 0x00010000,
-			Flags = InitFlags.UseLevelZero,
-		};
+			// NB: Request version 1.0 because version 1.1 can return version not supported, however it still doesn't work.
+			var args = new InitArgs
+			{
+				Size = (uint)sizeof(InitArgs),
+				AppVersion = 0x00010000,
+				Flags = InitFlags.None,
+			};
 
-		nint handle = 0;
+			nint handle = 0;
 
-		ValidateResult(Init(&args, &handle));
+			ValidateResult(((delegate* unmanaged[Cdecl]<InitArgs*, nint*, Result>)NativeLibrary.GetExport(libraryHandle, "ctlInit"))(&args, &handle));
 
-		_handle = handle;
+			_handle = handle;
+
+			_ctlEnumerateDevices = (delegate* unmanaged[Cdecl]<nint, uint*, nint*, Result>)(NativeLibrary.GetExport(libraryHandle, "ctlEnumerateDevices"));
+			_ctlGetDeviceProperties = (delegate* unmanaged[Cdecl]<nint, DeviceAdapterProperties*, Result>)(NativeLibrary.GetExport(libraryHandle, "ctlGetDeviceProperties"));
+		}
+		catch
+		{
+			NativeLibrary.Free(libraryHandle);
+			throw;
+		}
 	}
 
 	~ControlLibrary()
 	{
-		ValidateResult(Close(_handle));
+		ValidateResult(((delegate* unmanaged[Cdecl]<nint, Result>)NativeLibrary.GetExport(_libraryHandle, "ctlInit"))(_handle));
+		NativeLibrary.Free(_libraryHandle);
 	}
 
 	public static DisplayAdapter[] GetDisplayAdapters()
 	{
 		uint deviceCount = 0;
-		ValidateResult(EnumerateDevices(Handle, &deviceCount, null));
+		ValidateResult(Instance._ctlEnumerateDevices(Handle, &deviceCount, null));
 		return deviceCount <= 32 ? GetFromStack(deviceCount) : GetFromArray(deviceCount);
 
 		static DisplayAdapter[] GetFromStack(uint count)
 		{
 			nint* handles = stackalloc nint[(int)count];
-			ValidateResult(EnumerateDevices(Handle, &count, handles));
+			ValidateResult(Instance._ctlEnumerateDevices(Handle, &count, handles));
 			return new Span<DisplayAdapter>((DisplayAdapter*)handles, (int)count).ToArray();
 		}
 
@@ -58,7 +74,7 @@ internal unsafe sealed class ControlLibrary
 			var adapters = new DisplayAdapter[count];
 			fixed (DisplayAdapter* adaptersPointer = adapters)
 			{
-				ValidateResult(EnumerateDevices(Handle, &count, (nint*)adaptersPointer));
+				ValidateResult(Instance._ctlEnumerateDevices(Handle, &count, (nint*)adaptersPointer));
 			}
 			return (uint)adapters.Length > count ? adapters[..(int)count] : adapters;
 		}
@@ -76,7 +92,7 @@ internal unsafe sealed class ControlLibrary
 			{
 				Size = (uint)sizeof(DeviceAdapterProperties)
 			};
-			GetDeviceProperties(_handle, &properties);
+			Instance._ctlGetDeviceProperties(_handle, &properties);
 			return new()
 			{
 				DeviceId = *properties.DeviceIdPointer,
@@ -347,16 +363,4 @@ internal unsafe sealed class ControlLibrary
 			return Encoding.UTF8.GetString(name[..endIndex]);
 		}
 	}
-
-	[DllImport(LibraryName, EntryPoint = "ctlInit", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-	private static extern Result Init(InitArgs* initDescriptor, nint* apiHandle);
-
-	[DllImport(LibraryName, EntryPoint = "ctlClose", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-	private static extern Result Close(nint apiHandle);
-
-	[DllImport(LibraryName, EntryPoint = "ctlEnumerateDevices", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-	private static extern Result EnumerateDevices(nint apiHandle, uint* deviceCount, nint* deviceHandles);
-
-	[DllImport(LibraryName, EntryPoint = "ctlGetDeviceProperties", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-	private static extern Result GetDeviceProperties(nint deviceAdapterHandle, DeviceAdapterProperties* properties);
 }
