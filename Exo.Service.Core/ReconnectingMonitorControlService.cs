@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using DeviceTools;
 using Exo.I2C;
 
@@ -205,5 +205,5 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 	public ReconnectingMonitorControlService(IMonitorControlService monitorControlService) => _monitorControlService = monitorControlService;
 
 	public Task<IMonitorControlAdapter> ResolveAdapterAsync(string deviceName, CancellationToken cancellationToken)
-		=> ReconnectingAdapter.CreateAsync(this, deviceName, cancellationToken);
+		=> ReconnectingAdapter.CreateAsync(_monitorControlService, deviceName, cancellationToken);
 }
