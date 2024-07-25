@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
@@ -56,6 +57,8 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	private bool _hasSixAxisSection;
 	private bool _isMiscellaneousSectionExpanded;
 	private bool _hasMiscellaneousSection;
+
+	private long _lastRefreshTimestamp;
 
 	public ContinuousMonitorDeviceSettingViewModel? BrightnessSetting => _brightnessSetting;
 	public ContinuousMonitorDeviceSettingViewModel? ContrastSetting => _contrastSetting;
@@ -161,6 +164,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		_connectionManager = connectionManager;
 		_isReady = true;
 		_onSettingPropertyChanged = new(OnSettingPropertyChanged);
+		_lastRefreshTimestamp = Stopwatch.GetTimestamp();
 	}
 
 	public async Task UpdateInformationAsync(MonitorInformation information, CancellationToken cancellationToken)
@@ -586,11 +590,21 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		{
 			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
 			await monitorService.RefreshMonitorSettingsAsync(new() { Id = _device.Id }, cancellationToken);
+			_lastRefreshTimestamp = Stopwatch.GetTimestamp();
 		}
 		finally
 		{
 			IsReady = true;
 		}
+	}
+
+	// We want to refresh the settings when the page is displayed, but because it can be quite slow in some circustances, we don't want to do it in too quick succession.
+	// For example, accessing the monitors through the I2C proxy forwarding requests to the Windows DXVA2 APIs, is quite slow.
+	// Generally, monitors exposing a large quantity of settings will take longer to refresh, as the basic MCCS spec has some mandatory waits of tens of ms for each call.
+	public async Task DebouncedRefreshAsync(CancellationToken cancellationToken)
+	{
+		if (Stopwatch.GetElapsedTime(_lastRefreshTimestamp) < TimeSpan.FromSeconds(30)) return;
+		await (this as IRefreshable).RefreshAsync(cancellationToken);
 	}
 }
 

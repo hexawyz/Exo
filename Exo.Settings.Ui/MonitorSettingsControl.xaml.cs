@@ -6,17 +6,39 @@ namespace Exo.Settings.Ui;
 
 internal sealed partial class MonitorSettingsControl : UserControl
 {
+	private CancellationTokenSource? _dataContextCancellationTokenSource;
+	private MonitorDeviceFeaturesViewModel? _viewModel;
+
 	public MonitorSettingsControl()
 	{
 		InitializeComponent();
 		DataContextChanged += OnDataContextChanged;
 	}
 
-	private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
+	private async void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
 	{
-		if (args.NewValue is MonitorDeviceFeaturesViewModel vm)
+		var oldValue = _viewModel;
+		_viewModel = args.NewValue as MonitorDeviceFeaturesViewModel;
+
+		if (!ReferenceEquals(oldValue, _viewModel))
 		{
-			vm.RefreshCommand.Execute(vm);
+			if (Interlocked.Exchange(ref _dataContextCancellationTokenSource, null) is { } cts)
+			{
+				cts.Cancel();
+				cts.Dispose();
+			}
+
+			if (_viewModel is not null)
+			{
+				_dataContextCancellationTokenSource = cts = new CancellationTokenSource();
+				try
+				{
+					await _viewModel.DebouncedRefreshAsync(cts.Token);
+				}
+				catch
+				{
+				}
+			}
 		}
 	}
 }
