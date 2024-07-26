@@ -258,7 +258,7 @@ public sealed class MonitorVcpGetResponse
 	[DataMember(Order = 2)]
 	public ushort MaximumValue { get; init; }
 	[DataMember(Order = 3)]
-	public bool IsTemporary { get; init; }
+	public bool IsMomentary { get; init; }
 }
 
 [DataContract]

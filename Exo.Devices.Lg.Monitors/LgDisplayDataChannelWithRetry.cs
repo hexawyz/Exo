@@ -1,3 +1,4 @@
+using DeviceTools.DisplayDevices.Mccs;
 using Exo.I2C;
 
 namespace Exo.Devices.Lg.Monitors;
@@ -28,7 +29,7 @@ public class LgDisplayDataChannelWithRetry : LgDisplayDataChannel
 		}
 	}
 
-	public async ValueTask<VcpFeatureResponse> GetVcpFeatureWithRetryAsync(byte vcpCode, CancellationToken cancellationToken)
+	public async ValueTask<VcpFeatureReply> GetVcpFeatureWithRetryAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
 		int retryCount = _retryCount;
 		while (true)

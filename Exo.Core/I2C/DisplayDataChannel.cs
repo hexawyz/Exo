@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices;
+using DeviceTools.DisplayDevices.Mccs;
 
 namespace Exo.I2C;
 
@@ -111,7 +112,7 @@ public class DisplayDataChannel : IAsyncDisposable
 		return message.Slice(3, length - 1);
 	}
 
-	private static VcpFeatureResponse ReadVcpFeatureReply(ReadOnlySpan<byte> message, byte vcpCode)
+	private static VcpFeatureReply ReadVcpFeatureReply(ReadOnlySpan<byte> message, byte vcpCode)
 	{
 		var contents = ValidateDdcResponse(message, DdcCiCommand.VcpReply);
 
@@ -177,7 +178,7 @@ public class DisplayDataChannel : IAsyncDisposable
 		return false;
 	}
 
-	public async ValueTask<VcpFeatureResponse> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
+	public async ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
@@ -216,19 +217,4 @@ public class DisplayDataChannel : IAsyncDisposable
 
 	public ValueTask<ushort> GetCapabilitiesAsync(Memory<byte> destination, CancellationToken cancellationToken)
 		=> GetVariableLengthAsync(destination, DdcCiCommand.CapabilitiesRequest, DdcCiCommand.CapabilitiesReply, CapabilitiesReplyDelay, cancellationToken);
-}
-
-// TODO: Maybe remove and use VcpFeatureReply from DeviceTools.Monitors
-public record struct VcpFeatureResponse
-{
-	public ushort CurrentValue { get; }
-	public ushort MaximumValue { get; }
-	public bool IsMomentary { get; }
-
-	public VcpFeatureResponse(ushort currentValue, ushort maximumValue, bool isMomentary)
-	{
-		CurrentValue = currentValue;
-		MaximumValue = maximumValue;
-		IsMomentary = isMomentary;
-	}
 }

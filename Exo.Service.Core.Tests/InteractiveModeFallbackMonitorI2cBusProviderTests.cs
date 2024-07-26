@@ -62,12 +62,12 @@ public class InteractiveModeFallbackMonitorI2cBusProviderTests
 
 		public Task<ImmutableArray<byte>> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(_capabilities);
 
-		public Task<VcpFeatureResponse> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
+		public Task<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 		{
 			switch ((VcpCode)vcpCode)
 			{
 			case VcpCode.Luminance:
-				return Task.FromResult(new VcpFeatureResponse(_brightness, 100, false));
+				return Task.FromResult(new VcpFeatureReply(_brightness, 100, false));
 			default:
 				throw new NotSupportedException();
 			}

@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Exo.I2C;
+using DeviceTools.DisplayDevices.Mccs;
 
 namespace Exo.Service;
 
@@ -18,6 +18,6 @@ internal interface IMonitorControlAdapter
 internal interface IMonitorControlMonitor : IAsyncDisposable
 {
 	Task<ImmutableArray<byte>> GetCapabilitiesAsync(CancellationToken cancellationToken);
-	Task<VcpFeatureResponse> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken);
+	Task<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken);
 	Task SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken);
 }

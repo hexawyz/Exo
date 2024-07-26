@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using DeviceTools;
+using DeviceTools.DisplayDevices.Mccs;
 using Exo.I2C;
 
 namespace Exo.Service;
@@ -161,7 +162,7 @@ internal sealed class ReconnectingMonitorControlService : IMonitorControlService
 			}
 		}
 
-		public async Task<VcpFeatureResponse> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
+		public async Task<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 		{
 			ObjectDisposedException.ThrowIf(_disposeCancellationTokenSource.IsCancellationRequested, typeof(ReconnectingMonitor));
 			using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposeCancellationTokenSource.Token, cancellationToken))

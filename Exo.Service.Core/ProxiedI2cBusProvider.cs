@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
+using DeviceTools.DisplayDevices.Mccs;
 using Exo.I2C;
 
 namespace Exo.Service;
@@ -52,7 +53,7 @@ internal sealed class ProxiedI2cBusProvider : II2cBusProvider
 	{
 		private readonly IMonitorControlMonitor _monitor;
 		private ImmutableArray<byte> _rawCapabilities;
-		private VcpFeatureResponse _vcpResponse;
+		private VcpFeatureReply _vcpResponse;
 		private DdcCiCommand _lastRequest;
 		private byte _lastVcpCode;
 		private ushort _lastRequestOffset;

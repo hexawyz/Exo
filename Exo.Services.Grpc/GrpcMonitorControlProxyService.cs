@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
+using DeviceTools.DisplayDevices.Mccs;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Features.Monitors;
 using Exo.I2C;
@@ -249,14 +250,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			}
 			try
 			{
-				try
-				{
-					await _requests.WriteAsync(request, cancellationToken).ConfigureAwait(false);
-				}
-				catch (ChannelClosedException)
-				{
-					throw new ObjectDisposedException(typeof(Session).FullName);
-				}
+				await _requests.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 			}
 			catch
 			{
@@ -295,7 +289,6 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 
 		async Task<IMonitorControlMonitor> IMonitorControlAdapter.ResolveMonitorAsync(ushort vendorId, ushort productId, uint idSerialNumber, string? serialNumber, CancellationToken cancellationToken)
 		{
-			ObjectDisposedException.ThrowIf(_session.IsDisposed, typeof(Adapter));
 			var response = await _session.SendRequestAsync
 			(
 				new MonitorRequest()
@@ -356,11 +349,11 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			return response.Utf8Capabilities;
 		}
 
-		async Task<VcpFeatureResponse> IMonitorControlMonitor.GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
+		async Task<VcpFeatureReply> IMonitorControlMonitor.GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
 			var response = await _session.SendRequestAsync(new MonitorVcpGetRequest() { MonitorHandle = _monitorHandle, VcpCode = vcpCode }, cancellationToken).ConfigureAwait(false);
-			return new(response.CurrentValue, response.MaximumValue, response.IsTemporary);
+			return new(response.CurrentValue, response.MaximumValue, response.IsMomentary);
 		}
 
 		async Task IMonitorControlMonitor.SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)

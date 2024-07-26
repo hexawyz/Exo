@@ -260,7 +260,7 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
 			{
 				reply = physicalMonitor.GetVcpFeature(request.VcpCode);
-				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorVcpGetResponse { CurrentValue = reply.CurrentValue, MaximumValue = reply.MaximumValue, IsTemporary = reply.IsMomentary } };
+				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorVcpGetResponse { CurrentValue = reply.CurrentValue, MaximumValue = reply.MaximumValue, IsMomentary = reply.IsMomentary } };
 			}
 		}
 		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
