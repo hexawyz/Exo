@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
@@ -18,6 +19,7 @@ public class DisplayDataChannel : IAsyncDisposable
 	private readonly byte[] _buffer;
 	private II2cBus? _i2cBus;
 	private readonly bool _isOwned;
+	private CancellationTokenSource? _cancellationTokenSource;
 
 	protected II2cBus I2CBus
 	{
@@ -43,14 +45,25 @@ public class DisplayDataChannel : IAsyncDisposable
 		_buffer = GC.AllocateUninitializedArray<byte>(bufferLength, pinned: true);
 		_i2cBus = i2cBus;
 		_isOwned = isOwned;
+		_cancellationTokenSource = new();
 	}
 
 	public ValueTask DisposeAsync()
 	{
-		if (_isOwned && Interlocked.Exchange(ref _i2cBus, null) is { } i2cBus)
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{
-			return i2cBus.DisposeAsync();
+			cts.Cancel();
+			cts.Dispose();
+
+			if (Interlocked.Exchange(ref _i2cBus, null) is { } i2cBus)
+			{
+				if (_isOwned)
+				{
+					return i2cBus.DisposeAsync();
+				}
+			}
 		}
+
 		return ValueTask.CompletedTask;
 	}
 
@@ -180,6 +193,24 @@ public class DisplayDataChannel : IAsyncDisposable
 
 	public async ValueTask<VcpFeatureReply> GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 	{
+		var cts = Volatile.Read(ref _cancellationTokenSource);
+		ObjectDisposedException.ThrowIf(cts is null || cts.IsCancellationRequested, GetType());
+		var instanceCancellationToken = cts.Token;
+		if (cancellationToken.CanBeCanceled)
+		{
+			using (var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(instanceCancellationToken, cancellationToken))
+			{
+				return await GetVcpFeatureAsyncCore(vcpCode, linkedCancellationTokenSource.Token).ConfigureAwait(false);
+			}
+		}
+		else
+		{
+			return await GetVcpFeatureAsyncCore(vcpCode, instanceCancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async ValueTask<VcpFeatureReply> GetVcpFeatureAsyncCore(byte vcpCode, CancellationToken cancellationToken)
+	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
 		WriteVcpRequest(buffer.Span, vcpCode, (DefaultDeviceAddress << 1) ^ 0x51);
@@ -191,6 +222,24 @@ public class DisplayDataChannel : IAsyncDisposable
 
 	public async ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
 	{
+		var cts = Volatile.Read(ref _cancellationTokenSource);
+		ObjectDisposedException.ThrowIf(cts is null || cts.IsCancellationRequested, GetType());
+		var otherToken = cts.Token;
+		if (cancellationToken.CanBeCanceled)
+		{
+			using (var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(otherToken, cancellationToken))
+			{
+				await SetVcpFeatureAsyncCore(vcpCode, value, linkedCancellationTokenSource.Token).ConfigureAwait(false);
+			}
+		}
+		else
+		{
+			await SetVcpFeatureAsyncCore(vcpCode, value, otherToken).ConfigureAwait(false);
+		}
+	}
+
+	private async ValueTask SetVcpFeatureAsyncCore(byte vcpCode, ushort value, CancellationToken cancellationToken)
+	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
 		WriteVcpSet(buffer.Span, vcpCode, value, (DefaultDeviceAddress << 1) ^ 0x51);
@@ -199,6 +248,24 @@ public class DisplayDataChannel : IAsyncDisposable
 	}
 
 	protected async ValueTask<ushort> GetVariableLengthAsync(Memory<byte> destination, DdcCiCommand requestCommand, DdcCiCommand replyCommand, int delay, CancellationToken cancellationToken)
+	{
+		var cts = Volatile.Read(ref _cancellationTokenSource);
+		ObjectDisposedException.ThrowIf(cts is null || cts.IsCancellationRequested, GetType());
+		var otherToken = cts.Token;
+		if (cancellationToken.CanBeCanceled)
+		{
+			using (var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(otherToken, cancellationToken))
+			{
+				return await GetVariableLengthAsyncCore(destination, requestCommand, replyCommand, delay, linkedCancellationTokenSource.Token).ConfigureAwait(false);
+			}
+		}
+		else
+		{
+			return await GetVariableLengthAsyncCore(destination, requestCommand, replyCommand, delay, otherToken).ConfigureAwait(false);
+		}
+	}
+
+	private async ValueTask<ushort> GetVariableLengthAsyncCore(Memory<byte> destination, DdcCiCommand requestCommand, DdcCiCommand replyCommand, int delay, CancellationToken cancellationToken)
 	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
