@@ -19,55 +19,61 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1005, EventName = "DiscoveryComponentCreationFailure", Level = LogLevel.Error, Message = "An error occurred during creation of the component with the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\".")]
 	public static partial void DiscoveryComponentCreationFailure(this ILogger logger, string methodName, string typeName, string assemblyName, Exception exception);
 
-	[LoggerMessage(EventId = 1006, EventName = "DiscoveryComponentDisposeFailure", Level = LogLevel.Error, Message = "An error occurred during while disposing driver of type \"{TypeName}\" of \"{AssemblyName}\".")]
+	[LoggerMessage(EventId = 1006, EventName = "DiscoveryComponentCreationAbort", Level = LogLevel.Information, Message = "Aborted the creation of the component for {Key}.")]
+	public static partial void DiscoveryComponentCreationAbort(this ILogger logger, string? key);
+
+	[LoggerMessage(EventId = 1007, EventName = "DiscoveryComponentDisposeFailure", Level = LogLevel.Error, Message = "An error occurred during while disposing driver of type \"{TypeName}\" of \"{AssemblyName}\".")]
 	public static partial void DiscoveryComponentDisposalFailure(this ILogger logger, string typeName, string assemblyName, Exception exception);
 
-	[LoggerMessage(EventId = 1007, EventName = "DiscoveryDriverCreationSuccess", Level = LogLevel.Information, Message = "The driver for {DeviceFriendlyName} was created successfully for {DeviceName}.")]
+	[LoggerMessage(EventId = 1008, EventName = "DiscoveryDriverCreationSuccess", Level = LogLevel.Information, Message = "The driver for {DeviceFriendlyName} was created successfully for {DeviceName}.")]
 	public static partial void DiscoveryDriverCreationSuccess(this ILogger logger, string deviceFriendlyName, string deviceName);
 
-	[LoggerMessage(EventId = 1008, EventName = "DiscoveryDriverCreationFailure", Level = LogLevel.Error, Message = "An error occurred during creation of the driver with the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\".")]
+	[LoggerMessage(EventId = 1009, EventName = "DiscoveryDriverCreationFailure", Level = LogLevel.Error, Message = "An error occurred during creation of the driver with the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\".")]
 	public static partial void DiscoveryDriverCreationFailure(this ILogger logger, string methodName, string typeName, string assemblyName, Exception exception);
 
-	[LoggerMessage(EventId = 1009, EventName = "DiscoveryDriverDisposeFailure", Level = LogLevel.Error, Message = "An error occurred during while disposing driver of type \"{TypeName}\" of \"{AssemblyName}\".")]
+	[LoggerMessage(EventId = 1010, EventName = "DiscoveryDriverCreationAbort", Level = LogLevel.Information, Message = "Aborted the creation of the driver for {Key}.")]
+	public static partial void DiscoveryDriverCreationAbort(this ILogger logger, string? key);
+
+	[LoggerMessage(EventId = 1011, EventName = "DiscoveryDriverDisposeFailure", Level = LogLevel.Error, Message = "An error occurred during while disposing driver of type \"{TypeName}\" of \"{AssemblyName}\".")]
 	public static partial void DiscoveryDriverDisposalFailure(this ILogger logger, string typeName, string assemblyName, Exception exception);
 
-	[LoggerMessage(EventId = 1010, EventName = "DiscoveryComponentDependencyDisposeFailure", Level = LogLevel.Error, Message = "An error occurred during while disposing a component dependency.")]
+	[LoggerMessage(EventId = 1012, EventName = "DiscoveryComponentDependencyDisposeFailure", Level = LogLevel.Error, Message = "An error occurred during while disposing a component dependency.")]
 	public static partial void DiscoveryComponentDependencyDisposalFailure(this ILogger logger, Exception exception);
 
-	[LoggerMessage(EventId = 1011, EventName = "DiscoveryComponentAddSharedReferenceFailure", Level = LogLevel.Error, Message = "Failed to add a reference to the component.")]
+	[LoggerMessage(EventId = 1013, EventName = "DiscoveryComponentAddSharedReferenceFailure", Level = LogLevel.Error, Message = "Failed to add a reference to the component.")]
 	public static partial void DiscoveryComponentAddSharedReferenceFailure(this ILogger logger, Exception exception);
 
-	[LoggerMessage(EventId = 1012,
+	[LoggerMessage(EventId = 1014,
 		EventName = "DiscoveryFactoryRegistrationSuccess",
 		Level = LogLevel.Debug,
 		Message = "The factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" successfully registered with the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryRegistrationSuccess(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName);
 
-	[LoggerMessage(EventId = 1013,
+	[LoggerMessage(EventId = 1015,
 		EventName = "DiscoveryFactoryRegistrationFailure",
 		Level = LogLevel.Warning,
 		Message = "The factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" failed to register with the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryRegistrationFailure(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName);
 
-	[LoggerMessage(EventId = 1014,
+	[LoggerMessage(EventId = 1016,
 		EventName = "DiscoveryFactoryParsingError",
 		Level = LogLevel.Warning,
 		Message = "An exception occurred when trying to parse the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" with the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryParsingError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
 
-	[LoggerMessage(EventId = 1015,
+	[LoggerMessage(EventId = 1017,
 		EventName = "DiscoveryFactoryRegistrationError",
 		Level = LogLevel.Warning,
 		Message = "An exception occurred when trying to register the factory \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" with the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryRegistrationError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
 
-	[LoggerMessage(EventId = 1016,
+	[LoggerMessage(EventId = 1018,
 		EventName = "DiscoveryFactoryDetailsReadError",
 		Level = LogLevel.Warning,
 		Message = "An exception occurred when trying to read the factory details for \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" for the service {ComponentFriendlyName}.")]
 	public static partial void DiscoveryFactoryDetailsReadError(this ILogger logger, string methodName, string typeName, string assemblyName, string componentFriendlyName, Exception exception);
 
-	[LoggerMessage(EventId = 1017,
+	[LoggerMessage(EventId = 1019,
 		EventName = "DiscoveryFactoryDetailsWriteError",
 		Level = LogLevel.Warning,
 		Message = "An exception occurred when trying to persist the factory details for \"{TypeName}.{MethodName}\" of \"{AssemblyName}\" for the service {ComponentFriendlyName}.")]

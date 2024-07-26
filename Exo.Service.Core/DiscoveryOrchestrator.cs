@@ -185,8 +185,19 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		private async ValueTask HandleArrivalAsync(TDiscoveryContext context, CancellationToken cancellationToken)
 		{
 			// Prepare a state object for the component initialization.
-			var state = new ComponentState<TKey>(context.DiscoveredKeys);
+			var state = new ComponentState<TKey>(context.DiscoveredKeys, cancellationToken);
+			try
+			{
+				await HandleArrivalAsync(context, state, state.ArrivalCancellationToken);
+			}
+			finally
+			{
+				state.ClearArrivalCancellation();
+			}
+		}
 
+		private async ValueTask HandleArrivalAsync(TDiscoveryContext context, ComponentState<TKey> state, CancellationToken cancellationToken)
+		{
 			using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				var keys = new HashSet<TKey>();
@@ -429,6 +440,21 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		{
 			if (!_states.TryGetValue(key, out var state)) return;
 
+			// If the referenced component is being initialized, cancel the initialization.
+			// We provide this mechanism so that initialization devices that would take a virtually infinite time forever can be aborted.
+			// One example where this is especially important is when we are waiting on monitor I2C bus implementations.
+			if (state.CancelArrival())
+			{
+				if (typeof(TComponent) == typeof(Driver))
+				{
+					Orchestrator.Logger.DiscoveryDriverCreationAbort(key?.ToString());
+				}
+				else
+				{
+					Orchestrator.Logger.DiscoveryComponentCreationAbort(key?.ToString());
+				}
+			}
+
 			using (await state.Lock.WaitAsync(cancellationToken))
 			{
 				_states.Remove(state.AssociatedKeys, state);
@@ -493,11 +519,33 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		public IAsyncDisposable? Registration { get; set; }
 		public ComponentSharedReference? SharedComponentReference { get; set; }
 		public LoadedAssemblyReference? AssemblyReference { get; set; }
+		private CancellationTokenSource? _arrivalCancellationTokenSource;
+		public CancellationToken ArrivalCancellationToken => _arrivalCancellationTokenSource?.Token ?? default;
 
-		public ComponentState(ImmutableArray<TKey> associatedKeys)
+		public ComponentState(ImmutableArray<TKey> associatedKeys, CancellationToken cancellationToken)
 		{
 			Lock = new();
 			AssociatedKeys = associatedKeys;
+			_arrivalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		}
+
+		public bool CancelArrival()
+		{
+			if (Interlocked.Exchange(ref _arrivalCancellationTokenSource, null) is { } cts)
+			{
+				cts.Cancel();
+				cts.Dispose();
+				return true;
+			}
+			return false;
+		}
+
+		public void ClearArrivalCancellation()
+		{
+			if (Interlocked.Exchange(ref _arrivalCancellationTokenSource, null) is { } cts)
+			{
+				cts.Dispose();
+			}
 		}
 	}
 
