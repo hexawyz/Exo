@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
+using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Features.Monitors;
@@ -213,7 +214,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("An error has occurred while processing the request.")));
 				break;
 			case MonitorControlResponseStatus.InvalidVcpCode:
-				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("Failed to query the VCP code.")));
+				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new VcpCodeNotSupportedException()));
 				break;
 			default:
 				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("An error occurred with an unknown status.")));

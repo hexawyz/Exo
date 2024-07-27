@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using DeviceTools.DisplayDevices.Mccs;
 
 namespace DeviceTools.DisplayDevices;
@@ -90,7 +91,13 @@ public sealed class PhysicalMonitor : IDisposable
 	{
 		if (NativeMethods.GetVcpFeatureAndVcpFeatureReply(Handle, vcpCode, out var type, out uint currentValue, out uint maximumValue) == 0)
 		{
-			throw new Win32Exception(Marshal.GetLastWin32Error());
+			switch (Marshal.GetLastWin32Error())
+			{
+			case NativeMethods.ErrorGraphicsDdcCiVcpNotSupported:
+				throw new VcpCodeNotSupportedException();
+			case int error:
+				throw new Win32Exception(error);
+			}
 		}
 
 		return new VcpFeatureReply((ushort)currentValue, (ushort)maximumValue, type == NativeMethods.VcpCodeType.Momentary);

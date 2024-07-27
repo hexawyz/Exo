@@ -11,6 +11,7 @@ namespace DeviceTools.DisplayDevices;
 [SuppressUnmanagedCodeSecurity]
 internal static partial class NativeMethods
 {
+	public const int ErrorGraphicsDdcCiVcpNotSupported = unchecked((int)0xC0262584);
 	public const int ErrorGraphicsDdcCiInvalidMessageCommand = unchecked((int)0xC0262589);
 	public const int ErrorGraphicsDdcCiInvalidMessageLength = unchecked((int)0xC026258A);
 	public const int ErrorGraphicsDdcCiInvalidMessageChecksum = unchecked((int)0xC026258B);

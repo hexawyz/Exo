@@ -118,6 +118,10 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 							_ => throw new InvalidOperationException("Unsupported request.")
 						};
 					}
+					catch (VcpCodeNotSupportedException)
+					{
+						response = new() { RequestId = request.RequestId, Status = MonitorControlResponseStatus.InvalidVcpCode };
+					}
 					catch
 					{
 						response = new() { RequestId = request.RequestId, Status = MonitorControlResponseStatus.Error };
