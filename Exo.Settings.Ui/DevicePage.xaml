@@ -7,10 +7,11 @@
     xmlns:local="using:Exo.Settings.Ui"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    IsEnabled="{Binding Devices.SelectedDevice.IsAvailable}"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice, Mode=TwoWay}">
+    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice}">
         <Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceIds, Converter={StaticResource CollectionToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
