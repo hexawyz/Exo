@@ -42,6 +42,11 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 				{
 					return;
 				}
+				catch (IOException ex) when (ex.HResult == unchecked((int)0x8007048f))
+				{
+					// Ignore ERROR_DEVICE_NOT_CONNECTED
+					return;
+				}
 
 				if (count == 0)
 				{
