@@ -109,7 +109,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 			try
 			{
-				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorWatchTask, monitorSettingWatchTask]).ConfigureAwait(false);
+				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorWatchTask, monitorSettingWatchTask]);
 			}
 			catch (Exception)
 			{

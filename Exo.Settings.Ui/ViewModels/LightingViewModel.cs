@@ -210,7 +210,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	{
 		try
 		{
-			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken).ConfigureAwait(false);
+			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
 			await foreach (var notification in lightingService.WatchBrightnessAsync(cancellationToken))
 			{
 				_brightnessLevels[notification.DeviceId] = notification.BrightnessLevel;
