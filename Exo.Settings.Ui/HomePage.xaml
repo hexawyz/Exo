@@ -39,8 +39,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <lc:Gauge Value="{Binding BatteryState.Level}" Maximum="1" Width="120" Height="120" />
-                                    <TextBlock Grid.Row="0" Text="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <lc:Gauge Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}" ForegroundArcStroke="Lime" />
                                     <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </Border>
