@@ -62,6 +62,7 @@
             <lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
             <lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />
             <lconverters:BatteryLevelToColorConverter x:Key="BatteryLevelToColorConverter" />
+            <lconverters:BatteryStateToExternalPowerVisibilityConverter x:Key="BatteryStateToExternalPowerVisibilityConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

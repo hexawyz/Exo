@@ -37,14 +37,20 @@
                                 <Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <lc:Gauge Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
                                         <lc:Gauge.ForegroundArcStroke>
                                             <SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
                                         </lc:Gauge.ForegroundArcStroke>
                                     </lc:Gauge>
-                                    <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <FontIcon Grid.Column="2" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
+                                    <TextBlock Grid.Row="2" Margin="0,6,0,0" Text="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
