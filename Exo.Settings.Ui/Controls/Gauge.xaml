@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui.Controls"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters">
+    <x:Int32 x:Key="GaugeCircleThicknessPercentage">15</x:Int32>
+    <PenLineCap x:Key="GaugeArcLineCap">Round</PenLineCap>
+    <Style x:Key="DefaultGaugeStyle" TargetType="local:Gauge">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BackgroundCircleStroke" Value="{ThemeResource ControlSolidFillColorDefaultBrush}" />
+        <Setter Property="ForegroundArcStroke" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+        <Setter Property="CircleThicknessPercentage" Value="{StaticResource GaugeCircleThicknessPercentage}" />
+        <Setter Property="ArcLineCap" Value="{StaticResource GaugeArcLineCap}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:Gauge">
+                    <Grid x:Name="PART_LayoutGrid">
+                        <Path x:Name="PART_BackgroundCirclePath" Stroke="{TemplateBinding BackgroundCircleStroke}" />
+                        <Path x:Name="PART_ForegroundArcPath" Stroke="{TemplateBinding ForegroundArcStroke}" StrokeStartLineCap="{TemplateBinding ArcLineCap}" StrokeEndLineCap="{TemplateBinding ArcLineCap}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="local:Gauge" BasedOn="{StaticResource DefaultGaugeStyle}" />
+</ResourceDictionary>

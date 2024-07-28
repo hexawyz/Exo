@@ -14,6 +14,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <local:DataTemplates />
+                <ResourceDictionary Source="Controls\Gauge.xaml" />
                 <ResourceDictionary Source="Controls\LineChart.xaml" />
                 <ResourceDictionary Source="Controls\PowerControlCurveEditor.xaml" />
             </ResourceDictionary.MergedDictionaries>
