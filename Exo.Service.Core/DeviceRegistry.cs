@@ -597,7 +597,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
+			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
 				initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
@@ -655,7 +655,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
+			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
 				if (state.Driver is not null)
@@ -728,7 +728,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
+			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
 				if (state.DeviceInformation.SupportedFeatureIds.Contains(featureId))
@@ -801,7 +801,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Min(_deviceStates.Count, 10));
+			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
 			foreach (var state in _deviceStates.Values)
 			{
 				if (state.Driver is { } driver && driver.GetFeatureSet<TFeature>() is { IsEmpty: false } featureSet)
