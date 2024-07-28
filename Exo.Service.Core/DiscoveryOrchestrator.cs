@@ -3,7 +3,6 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Exo.Configuration;
 using Exo.Discovery;
 using Microsoft.Extensions.Hosting;
@@ -674,6 +673,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 				{
 					throw new InvalidOperationException("The component reference does not match.");
 				}
+				AddDependencies(dependencies);
 				_referenceCount++;
 			}
 		}
@@ -697,7 +697,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			var disposableDependencies = _disposableDependencies;
 			if (disposableDependencies.IsEmpty)
 			{
-				disposableDependencies = dependencies;
+				_disposableDependencies = dependencies;
 			}
 			else
 			{
