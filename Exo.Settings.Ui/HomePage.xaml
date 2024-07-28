@@ -49,7 +49,7 @@
                                             <SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
                                         </lc:Gauge.ForegroundArcStroke>
                                     </lc:Gauge>
-                                    <FontIcon Grid.Column="2" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
+                                    <FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
                                     <TextBlock Grid.Row="2" Margin="0,6,0,0" Text="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </Border>
