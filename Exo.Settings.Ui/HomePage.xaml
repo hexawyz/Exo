@@ -39,7 +39,11 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <lc:Gauge Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}" ForegroundArcStroke="Lime" />
+                                    <lc:Gauge Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
+                                        <lc:Gauge.ForegroundArcStroke>
+                                            <SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
+                                        </lc:Gauge.ForegroundArcStroke>
+                                    </lc:Gauge>
                                     <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </Border>
