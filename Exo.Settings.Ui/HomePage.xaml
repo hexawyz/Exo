@@ -34,7 +34,7 @@
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate>
                             <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource ControlCornerRadius}">
-                                <Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}">
+                                <Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}" Width="150">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
