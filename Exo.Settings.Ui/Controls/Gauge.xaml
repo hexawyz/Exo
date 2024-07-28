@@ -15,7 +15,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Gauge">
-                    <Grid x:Name="PART_LayoutGrid">
+                    <Grid x:Name="PART_LayoutGrid" Background="{TemplateBinding Background}">
                         <Path x:Name="PART_BackgroundCirclePath" Stroke="{TemplateBinding BackgroundCircleStroke}" />
                         <Path x:Name="PART_ForegroundArcPath" Stroke="{TemplateBinding ForegroundArcStroke}" StrokeStartLineCap="{TemplateBinding ArcLineCap}" StrokeEndLineCap="{TemplateBinding ArcLineCap}" />
                     </Grid>

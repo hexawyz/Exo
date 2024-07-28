@@ -414,7 +414,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="lcontrols:Gauge">
-                            <Grid x:Name="PART_LayoutGrid">
+                            <Grid x:Name="PART_LayoutGrid" Background="{TemplateBinding Background}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
