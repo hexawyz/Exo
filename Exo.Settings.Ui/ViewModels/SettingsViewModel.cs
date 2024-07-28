@@ -49,6 +49,7 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly IEditionService _editionService;
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly DevicesViewModel _devicesViewModel;
+	private readonly BatteryDevicesViewModel _batteryDevicesViewModel;
 	private readonly LightingViewModel _lightingViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
 	private readonly CoolingViewModel _coolingViewModel;
@@ -95,6 +96,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);
 		_devicesViewModel = new(ConnectionManager, _metadataService, _navigateCommand);
+		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
@@ -135,6 +137,7 @@ internal sealed class SettingsViewModel : BindableObject
 	}
 
 	public DevicesViewModel Devices => _devicesViewModel;
+	public BatteryDevicesViewModel BatteryDevices => _batteryDevicesViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
 	public SensorsViewModel Sensors => _sensorsViewModel;
 	public CoolingViewModel Cooling => _coolingViewModel;

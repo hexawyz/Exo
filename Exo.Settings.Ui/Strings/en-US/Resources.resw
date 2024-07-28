@@ -120,6 +120,9 @@
   <data name="ApplyButton.Content" xml:space="preserve">
     <value>Apply</value>
   </data>
+  <data name="BatteryLevelsTitleTextBlock.Text" xml:space="preserve">
+    <value>Battery Levels</value>
+  </data>
   <data name="CoolerCoolingModeLabel.Text" xml:space="preserve">
     <value>Mode</value>
   </data>
@@ -288,7 +291,7 @@
   <data name="ResetButton.Content" xml:space="preserve">
     <value>Reset</value>
   </data>
-  <data name="Welcome.Text" xml:space="preserve">
+  <data name="WelcomeTextBlock.Text" xml:space="preserve">
     <value>Welcome to Exo.</value>
   </data>
 </root>

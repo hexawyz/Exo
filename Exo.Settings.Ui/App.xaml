@@ -52,6 +52,7 @@
             <lconverters:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
             <lconverters:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
             <lconverters:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
+            <lconverters:IntegerToVisibilityConverter x:Key="IntegerToVisibilityConverter" />
             <converters:CollectionVisibilityConverter x:Key="CollectionToVisibilityConverter" />
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <lconverters:StringFormatConverter x:Key="StringFormatConverter" />
