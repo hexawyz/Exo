@@ -298,7 +298,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				}
 				else
 				{
-					_pendingDpiChanges.Add(notification.DeviceId, new(notification.Dpi));
+					_pendingDpiChanges[notification.DeviceId] = new(notification.Dpi);
 				}
 			}
 		}
@@ -350,7 +350,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				{
 					if (!_pendingMonitorSettingChanges.TryGetValue(notification.DeviceId, out var changes))
 					{
-						_pendingMonitorSettingChanges.Add(notification.DeviceId, changes = new());
+						_pendingMonitorSettingChanges[notification.DeviceId] = changes = [];
 					}
 					changes.Add(notification);
 				}

@@ -96,7 +96,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable, IConnectedState
 					}
 					else if (!_devicesViewModel.IsRemovedId(info.DeviceId))
 					{
-						_pendingDeviceInformations.Add(info.DeviceId, info);
+						_pendingDeviceInformations[info.DeviceId] = info;
 					}
 				}
 			}
