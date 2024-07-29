@@ -244,8 +244,8 @@ public static class EffectSerializer
 
 		// The serialization and deserialization methods will be built in parallel, which may make the code a bit confusing,
 		// but it makes sense, since all code here makes use of the properties
-		var serializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), new[] { effectType.MakeByRefType() }, effectType, true);
-		var deserializeMethod = new DynamicMethod("Deserialize", effectType, new[] { typeof(LightingEffect) }, effectType, true);
+		var serializeMethod = new DynamicMethod("Serialize", typeof(LightingEffect), [effectType.MakeByRefType()], effectType, true);
+		var deserializeMethod = new DynamicMethod("Deserialize", effectType, [typeof(LightingEffect)], effectType, true);
 
 		var serializeIlGenerator = serializeMethod.GetILGenerator();
 		var deserializeIlGenerator = deserializeMethod.GetILGenerator();
@@ -483,7 +483,7 @@ public static class EffectSerializer
 			serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal);
 			serializeIlGenerator.Emit(OpCodes.Initobj, typeof(PropertyValue));
 		}
-		
+
 		// We need a field in which to prepare data values.
 		dataValueLocal = serializeIlGenerator.DeclareLocal(typeof(DataValue));
 

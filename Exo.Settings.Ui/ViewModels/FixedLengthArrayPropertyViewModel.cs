@@ -97,7 +97,7 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 			WriteValue(bytes.AsSpan(offset, itemSize), _values[i]);
 		}
 
-		return new DataValue { BytesValue = bytes };
+		return new() { BytesValue = bytes };
 	}
 
 	protected abstract int ItemSize { get; }

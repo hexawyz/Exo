@@ -80,27 +80,27 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 		case DataType.UInt16:
 		case DataType.UInt32:
 		case DataType.UInt64:
-			return new DataValue { UnsignedValue = Convert.ToUInt64(value) };
+			return new() { UnsignedValue = Convert.ToUInt64(value) };
 		case DataType.Int8:
 		case DataType.Int16:
 		case DataType.Int32:
 		case DataType.Int64:
-			return new DataValue { SignedValue = Convert.ToInt64(value) };
+			return new() { SignedValue = Convert.ToInt64(value) };
 		case DataType.Float16:
 		case DataType.Float32:
-			return new DataValue { SingleValue = Convert.ToSingle(value) };
+			return new() { SingleValue = Convert.ToSingle(value) };
 		case DataType.Float64:
-			return new DataValue { DoubleValue = Convert.ToDouble(value) };
+			return new() { DoubleValue = Convert.ToDouble(value) };
 		case DataType.Boolean:
-			return new DataValue { UnsignedValue = (bool)value ? 1U : 0U };
+			return new() { UnsignedValue = (bool)value ? 1U : 0U };
 		case DataType.ColorRgb24:
-			return new DataValue { UnsignedValue = (uint)((Color)value).ToInt() & 0xFFFFFFU };
+			return new() { UnsignedValue = (uint)((Color)value).ToInt() & 0xFFFFFFU };
 		case DataType.ColorArgb32:
-			return new DataValue { UnsignedValue = (uint)((Color)value).ToInt() };
+			return new() { UnsignedValue = (uint)((Color)value).ToInt() };
 		case DataType.String:
-			return new DataValue { StringValue = (string)value };
+			return new() { StringValue = (string)value };
 		case DataType.Guid:
-			return new DataValue { GuidValue = (Guid)value };
+			return new() { GuidValue = (Guid)value };
 		case DataType.TimeSpan:
 		case DataType.DateTime:
 		default:

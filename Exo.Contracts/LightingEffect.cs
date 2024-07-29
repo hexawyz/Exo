@@ -24,5 +24,5 @@ public sealed class LightingEffect
 
 	/// <summary>Values for all properties that are not present on this object.</summary>
 	[DataMember(Order = 4)]
-	public required ImmutableArray<PropertyValue> ExtendedPropertyValues { get; init; } = ImmutableArray<PropertyValue>.Empty;
+	public required ImmutableArray<PropertyValue> ExtendedPropertyValues { get; init; } = [];
 }
