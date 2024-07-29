@@ -202,9 +202,9 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			}
 			else
 			{
-				DataValue? dataValue = property.GetDataValue();
+				DataValue dataValue = property.GetDataValue();
 
-				if (dataValue is not null)
+				if (!dataValue.IsDefault)
 				{
 					propertyValues.Add(new() { Index = property.Index.GetValueOrDefault(), Value = dataValue });
 				}

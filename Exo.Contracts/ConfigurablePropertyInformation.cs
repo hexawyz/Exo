@@ -32,15 +32,15 @@ public sealed class ConfigurablePropertyInformation
 
 	/// <summary>The default value of the property, if any.</summary>
 	[DataMember(Order = 6)]
-	public DataValue? DefaultValue { get; init; }
+	public DataValue DefaultValue { get; init; }
 
 	/// <summary>The minimum value of the property, if applicable.</summary>
 	[DataMember(Order = 7)]
-	public DataValue? MinimumValue { get; init; }
+	public DataValue MinimumValue { get; init; }
 
 	/// <summary>The maximum value of the property, if applicable.</summary>
 	[DataMember(Order = 8)]
-	public DataValue? MaximumValue { get; init; }
+	public DataValue MaximumValue { get; init; }
 
 	/// <summary>The unit in which numeric values are expressed, if applicable.</summary>
 	[DataMember(Order = 9)]

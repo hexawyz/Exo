@@ -48,7 +48,6 @@ public static class EffectSerializer
 	private static readonly PropertyInfo PropertyValueIndexPropertyInfo = typeof(PropertyValue).GetProperty(nameof(PropertyValue.Index))!;
 	private static readonly PropertyInfo PropertyValueValuePropertyInfo = typeof(PropertyValue).GetProperty(nameof(PropertyValue.Value))!;
 
-	private static readonly ConstructorInfo DataValueConstructorInfo = typeof(DataValue).GetConstructor(Type.EmptyTypes)!;
 	private static readonly PropertyInfo DataValueUnsignedValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.UnsignedValue))!;
 	private static readonly PropertyInfo DataValueSignedValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.SignedValue))!;
 	private static readonly PropertyInfo DataValueSingleValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.SingleValue))!;
@@ -467,6 +466,7 @@ public static class EffectSerializer
 
 		LocalBuilder? immutableArrayBuilderLocal = null;
 		LocalBuilder? propertyValueLocal = null;
+		LocalBuilder? dataValueLocal = null;
 		LocalBuilder? rgb24Local = null;
 		LocalBuilder? rgbw32Local = null;
 		LocalBuilder? readOnlySpanByteLocal = null;
@@ -483,6 +483,9 @@ public static class EffectSerializer
 			serializeIlGenerator.Emit(OpCodes.Ldloca, propertyValueLocal);
 			serializeIlGenerator.Emit(OpCodes.Initobj, typeof(PropertyValue));
 		}
+		
+		// We need a field in which to prepare data values.
+		dataValueLocal = serializeIlGenerator.DeclareLocal(typeof(DataValue));
 
 		// lightingEffect = new()
 		serializeIlGenerator.Emit(OpCodes.Newobj, LightingEffectConstructorInfo);
@@ -605,8 +608,9 @@ public static class EffectSerializer
 				serializeIlGenerator.Emit(OpCodes.Dup); // propertyValueLocal&
 				serializeIlGenerator.Emit(OpCodes.Ldc_I4, details.DataIndex);
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.SetMethod!);
-				serializeIlGenerator.Emit(OpCodes.Newobj, DataValueConstructorInfo);
-				serializeIlGenerator.Emit(OpCodes.Dup); // new DataValue()
+				serializeIlGenerator.Emit(OpCodes.Ldloca, dataValueLocal);
+				serializeIlGenerator.Emit(OpCodes.Initobj, typeof(DataValue));
+				serializeIlGenerator.Emit(OpCodes.Ldloca, dataValueLocal); // dataValue = new DataValue(); dataValue.X = Y…
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				if (field is not null)
 				{
@@ -625,7 +629,7 @@ public static class EffectSerializer
 					serializeIlGenerator.Emit(OpCodes.Conv_U8);
 					goto case SerializerDataType.UInt64;
 				case SerializerDataType.UInt64:
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueUnsignedValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueUnsignedValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.Int8:
 				case SerializerDataType.Int16:
@@ -633,22 +637,22 @@ public static class EffectSerializer
 					serializeIlGenerator.Emit(OpCodes.Conv_I8);
 					goto case SerializerDataType.Int64;
 				case SerializerDataType.Int64:
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSignedValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueSignedValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.Float16:
 					serializeIlGenerator.Emit(OpCodes.Call, HalfToSingleMethodInfo);
 					goto case SerializerDataType.Float32;
 				case SerializerDataType.Float32:
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSingleValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueSingleValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.Float64:
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueDoubleValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueDoubleValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.String:
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueStringValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueStringValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.Guid:
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueGuidValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueGuidValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.ColorRgb24:
 					serializeIlGenerator.Emit(OpCodes.Stloc, rgb24Local ??= serializeIlGenerator.DeclareLocal(typeof(RgbColor)));
@@ -670,7 +674,7 @@ public static class EffectSerializer
 					serializeIlGenerator.Emit(OpCodes.Stloc, readOnlySpanByteLocal ??= serializeIlGenerator.DeclareLocal(typeof(ReadOnlySpan<byte>)));
 					serializeIlGenerator.Emit(OpCodes.Ldloca, readOnlySpanByteLocal);
 					serializeIlGenerator.Emit(OpCodes.Call, ReadOnlySpanBytesToArrayMethodInfo);
-					serializeIlGenerator.Emit(OpCodes.Callvirt, DataValueBytesValuePropertyInfo.SetMethod!);
+					serializeIlGenerator.Emit(OpCodes.Call, DataValueBytesValuePropertyInfo.SetMethod!);
 					break;
 				case SerializerDataType.ColorGrayscale8:
 				case SerializerDataType.ColorGrayscale16:
@@ -684,6 +688,7 @@ public static class EffectSerializer
 					// TODO
 					throw new NotImplementedException();
 				}
+				serializeIlGenerator.Emit(OpCodes.Ldloc, dataValueLocal);
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueValuePropertyInfo.SetMethod!);
 				serializeIlGenerator.Emit(OpCodes.Ldloc, propertyValueLocal!);
 				serializeIlGenerator.Emit(OpCodes.Call, ImmutableArrayBuilderAddMethodInfo);
@@ -710,30 +715,30 @@ public static class EffectSerializer
 				case SerializerDataType.UInt64:
 				case SerializerDataType.ColorRgb24:
 				case SerializerDataType.ColorRgbw32:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueUnsignedValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueUnsignedValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.Int8:
 				case SerializerDataType.Int16:
 				case SerializerDataType.Int32:
 				case SerializerDataType.Int64:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSignedValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueSignedValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.Float16:
 				case SerializerDataType.Float32:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueSingleValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueSingleValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.Float64:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueDoubleValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueDoubleValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.String:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueStringValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueStringValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.Guid:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueGuidValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueGuidValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.ArrayOfColorRgb24:
 				case SerializerDataType.ArrayOfColorRgbw32:
-					deserializeIlGenerator.Emit(OpCodes.Callvirt, DataValueBytesValuePropertyInfo.GetMethod!);
+					deserializeIlGenerator.Emit(OpCodes.Call, DataValueBytesValuePropertyInfo.GetMethod!);
 					break;
 				case SerializerDataType.DateTime:
 				case SerializerDataType.TimeSpan:
@@ -787,9 +792,9 @@ public static class EffectSerializer
 				DisplayName = displayAttribute?.Name ?? details.FieldOrProperty.Name,
 				Description = displayAttribute?.Description,
 				DataType = details.DataType,
-				DefaultValue = defaultValueAttribute is not null ? GetValue(details.DataType, defaultValueAttribute.Value) : null,
-				MinimumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Minimum) : null,
-				MaximumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Maximum) : null,
+				DefaultValue = defaultValueAttribute is not null ? GetValue(details.DataType, defaultValueAttribute.Value) : default,
+				MinimumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Minimum) : default,
+				MaximumValue = rangeAttribute is not null ? GetValue(details.DataType, rangeAttribute.Maximum) : default,
 				EnumerationValues = details.RuntimeType.IsEnum ? GetEnumerationValues(details.RuntimeType) : [],
 				ArrayLength = details.FixedArrayLength,
 			};
@@ -1100,9 +1105,9 @@ public static class EffectSerializer
 		return values;
 	}
 
-	private static DataValue? GetValue(SerializerDataType dataType, object? value)
+	private static DataValue GetValue(SerializerDataType dataType, object? value)
 	{
-		if (value is null) return null;
+		if (value is null) return default;
 
 		switch (dataType)
 		{
@@ -1122,7 +1127,7 @@ public static class EffectSerializer
 			return new() { DoubleValue = Convert.ToDouble(value) };
 		case SerializerDataType.Boolean:
 			return new() { UnsignedValue = Convert.ToBoolean(value) ? 1U : 0U };
-		default: return null;
+		default: return default;
 		}
 	}
 

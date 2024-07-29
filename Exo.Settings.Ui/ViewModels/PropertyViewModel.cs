@@ -7,8 +7,8 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal abstract class PropertyViewModel : ChangeableBindableObject
 {
-	protected static object? GetValue(DataType type, DataValue? value)
-		=> value is not null ?
+	protected static object? GetValue(DataType type, DataValue value)
+		=> !value.IsDefault ?
 			type switch
 			{
 				DataType.UInt8 => (byte?)value.UnsignedValue,
@@ -35,8 +35,8 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 			} :
 			null;
 
-	private static object? GetValue(DataType type, DataValue? value, int index)
-		=> value is not null ?
+	private static object? GetValue(DataType type, DataValue value, int index)
+		=> !value.IsDefault ?
 			type switch
 			{
 				DataType.ArrayOfColorRgb24 => value.BytesValue is { } bytes && 3 * index is int offset ? Color.FromArgb(255, bytes[offset], bytes[offset + 2], bytes[offset + 2]) : null,
@@ -59,7 +59,7 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 			DataType.Float16 => 0f,
 			DataType.Float32 => 0f,
 			DataType.Float64 => 0d,
-			DataType.Boolean => (bool)false,
+			DataType.Boolean => false,
 			DataType.ColorGrayscale8 => (byte?)0,
 			DataType.ColorGrayscale16 => (ushort?)0,
 			DataType.ColorRgb24 or DataType.ColorArgb32 => Color.FromArgb(255, 255, 255, 255),
@@ -70,9 +70,9 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 			_ => throw new NotSupportedException()
 		};
 
-	protected static DataValue? GetDataValue(DataType dataType, object? value)
+	protected static DataValue GetDataValue(DataType dataType, object? value)
 	{
-		if (value is null) return null;
+		if (value is null) return default;
 
 		switch (dataType)
 		{
@@ -128,8 +128,8 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 	}
 
 	protected abstract void Reset();
-	public abstract void SetInitialValue(DataValue? value);
-	public abstract DataValue? GetDataValue();
+	public abstract void SetInitialValue(DataValue value);
+	public abstract DataValue GetDataValue();
 
 	protected sealed override void OnChanged()
 	{

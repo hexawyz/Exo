@@ -43,11 +43,11 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 		OnChangeStateChange(wasChanged);
 	}
 
-	public override void SetInitialValue(DataValue? value)
+	public override void SetInitialValue(DataValue value)
 	{
 		int itemSize = ItemSize;
 
-		if (value is null || value.BytesValue is not { } bytes || bytes.Length != PropertyInformation.ArrayLength.GetValueOrDefault() * ItemSize)
+		if (value.IsDefault || value.BytesValue is not { } bytes || bytes.Length != PropertyInformation.ArrayLength.GetValueOrDefault() * ItemSize)
 		{
 			throw new InvalidOperationException("Invalid array length.");
 		}
@@ -86,7 +86,7 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 		OnChangeStateChange(wasChanged);
 	}
 
-	public override DataValue? GetDataValue()
+	public override DataValue GetDataValue()
 	{
 		int itemSize = ItemSize;
 		var bytes = new byte[PropertyInformation.ArrayLength.GetValueOrDefault() * ItemSize];

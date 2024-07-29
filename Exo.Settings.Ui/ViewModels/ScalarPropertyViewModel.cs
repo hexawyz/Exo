@@ -50,12 +50,12 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 
 	protected override void Reset() => Value = InitialValue;
 
-	public override void SetInitialValue(DataValue? value)
+	public override void SetInitialValue(DataValue value)
 	{
 		InitialValue = GetValue(DataType, value);
 	}
 
-	public override DataValue? GetDataValue() => GetDataValue(DataType, Value);
+	public override DataValue GetDataValue() => GetDataValue(DataType, Value);
 
 	public ScalarPropertyViewModel(ConfigurablePropertyInformation propertyInformation, LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
 		: base(propertyInformation)

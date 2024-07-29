@@ -25,5 +25,5 @@ public readonly struct PropertyValue
 	public required uint Index { get; init; }
 	/// <summary>The value of the property.</summary>
 	[DataMember(Order = 2)]
-	public required DataValue? Value { get; init; }
+	public required DataValue Value { get; init; }
 }
