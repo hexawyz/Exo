@@ -22,7 +22,7 @@ namespace Exo.Contracts;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct DataValue
 {
-	private static readonly object UnknownValueSentinel = new();
+	private static readonly object EmptyValueSentinel = new();
 	private static readonly object UnsignedValueSentinel = new();
 	private static readonly object SignedValueSentinel = new();
 	private static readonly object SingleValueSentinel = new();
@@ -33,76 +33,145 @@ public readonly struct DataValue
 	private readonly ulong _data0;
 	private readonly ulong _data1;
 
-	public DataValue() => _valueOrDataType = UnknownValueSentinel;
+	public DataValue() => _valueOrDataType = EmptyValueSentinel;
 
 	public bool IsDefault => _valueOrDataType is null;
 
+	// The main purpose of having this member is to force empty values to be serialized.
 	[DataMember(Order = 1)]
+	public bool IsEmpty
+	{
+		get => _valueOrDataType == EmptyValueSentinel;
+		init
+		{
+			if (value)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+		}
+	}
+
+	[DataMember(Order = 2)]
 	public ulong UnsignedValue
 	{
 		get => _valueOrDataType == UnsignedValueSentinel ? _data0 : 0;
 		init
 		{
-			_valueOrDataType = UnsignedValueSentinel;
-			_data0 = value;
+			if (value == 0)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = UnsignedValueSentinel;
+				_data0 = value;
+			}
 		}
 	}
 
-	[DataMember(Order = 2)]
+	[DataMember(Order = 3)]
 	public long SignedValue
 	{
 		get => _valueOrDataType == SignedValueSentinel ? (long)_data0 : 0;
 		init
 		{
-			_valueOrDataType = SignedValueSentinel;
-			_data0 = (ulong)value;
+			if (value == 0)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = SignedValueSentinel;
+				_data0 = (ulong)value;
+			}
 		}
 	}
 
-	[DataMember(Order = 3)]
+	[DataMember(Order = 4)]
 	public float SingleValue
 	{
 		get => _valueOrDataType == SingleValueSentinel ? Unsafe.BitCast<uint, float>((uint)_data0) : 0;
 		init
 		{
-			_valueOrDataType = SingleValueSentinel;
-			_data0 = Unsafe.BitCast<float, uint>(value);
+			if (value == 0)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = SingleValueSentinel;
+				_data0 = Unsafe.BitCast<float, uint>(value);
+			}
 		}
 	}
 
-	[DataMember(Order = 4)]
+	[DataMember(Order = 5)]
 	public double DoubleValue
 	{
 		get => _valueOrDataType == DoubleValueSentinel ? Unsafe.BitCast<ulong, double>(_data0) : 0;
 		init
 		{
-			_valueOrDataType = DoubleValueSentinel;
-			_data0 = Unsafe.BitCast<double, ulong>(value);
+			if (value == 0)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = DoubleValueSentinel;
+				_data0 = Unsafe.BitCast<double, ulong>(value);
+			}
 		}
 	}
 
-	[DataMember(Order = 5)]
+	[DataMember(Order = 6)]
 	public byte[]? BytesValue
 	{
 		get => _valueOrDataType as byte[];
-		init => _valueOrDataType = value;
-	}
-
-	[DataMember(Order = 6)]
-	public string? StringValue
-	{
-		get => _valueOrDataType as string;
-		init => _valueOrDataType = value;
+		init
+		{
+			if (value is null)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = value;
+			}
+		}
 	}
 
 	[DataMember(Order = 7)]
+	public string? StringValue
+	{
+		get => _valueOrDataType as string;
+		init
+		{
+			if (value is null)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = value;
+			}
+		}
+	}
+
+	[DataMember(Order = 8)]
 	public Guid GuidValue
 	{
 		get => _valueOrDataType == GuidValueSentinel ? Unsafe.As<ulong, Guid>(ref Unsafe.AsRef(in _data0)) : default;
 		init
 		{
-			_valueOrDataType = GuidValueSentinel;
-			Unsafe.As<ulong, Guid>(ref Unsafe.AsRef(in _data0)) = value;
+			if (value == default)
+			{
+				_valueOrDataType = EmptyValueSentinel;
+			}
+			else
+			{
+				_valueOrDataType = GuidValueSentinel;
+				Unsafe.As<ulong, Guid>(ref Unsafe.AsRef(in _data0)) = value;
+			}
 		}
 	}
 }
