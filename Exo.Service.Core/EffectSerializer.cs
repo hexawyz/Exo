@@ -47,6 +47,7 @@ public static class EffectSerializer
 
 	private static readonly PropertyInfo PropertyValueIndexPropertyInfo = typeof(PropertyValue).GetProperty(nameof(PropertyValue.Index))!;
 	private static readonly PropertyInfo PropertyValueValuePropertyInfo = typeof(PropertyValue).GetProperty(nameof(PropertyValue.Value))!;
+	private static readonly MethodInfo PropertyValueGetValueRefMethodInfo = typeof(PropertyValue).GetMethod(nameof(PropertyValue.GetValueRef), BindingFlags.Public | BindingFlags.Static)!;
 
 	private static readonly PropertyInfo DataValueUnsignedValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.UnsignedValue))!;
 	private static readonly PropertyInfo DataValueSignedValuePropertyInfo = typeof(DataValue).GetProperty(nameof(DataValue.SignedValue))!;
@@ -399,7 +400,7 @@ public static class EffectSerializer
 
 		LocalBuilder? deserializationPropertyValuesLocal = null; // We'll unsafe-convert this from ImmutableArray for convenience.
 		LocalBuilder? counterLocal = null;
-		LocalBuilder? deserializationPropertyValueLocal = null;
+		LocalBuilder? deserializationPropertyValueRefLocal = null;
 
 		Label deserializationLoopStartLabel = default;
 		Label deserializationLoopEndLabel = default;
@@ -410,7 +411,7 @@ public static class EffectSerializer
 			var deserializationPropertyValuesImmutableArrayLocal = deserializeIlGenerator.DeclareLocal(typeof(ImmutableArray<PropertyValue>));
 			deserializationPropertyValuesLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue[])); // We'll unsafe-convert this from ImmutableArray for convenience.
 			counterLocal = deserializeIlGenerator.DeclareLocal(typeof(int));
-			deserializationPropertyValueLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue).MakeByRefType());
+			deserializationPropertyValueRefLocal = deserializeIlGenerator.DeclareLocal(typeof(PropertyValue).MakeByRefType());
 
 			deserializationLoopStartLabel = deserializeIlGenerator.DefineLabel();
 			deserializationLoopEndLabel = deserializeIlGenerator.DefineLabel();
@@ -466,7 +467,7 @@ public static class EffectSerializer
 
 		LocalBuilder? immutableArrayBuilderLocal = null;
 		LocalBuilder? propertyValueLocal = null;
-		LocalBuilder? dataValueLocal = null;
+		LocalBuilder? serializationDataValueLocal = null;
 		LocalBuilder? rgb24Local = null;
 		LocalBuilder? rgbw32Local = null;
 		LocalBuilder? readOnlySpanByteLocal = null;
@@ -485,7 +486,7 @@ public static class EffectSerializer
 		}
 
 		// We need a field in which to prepare data values.
-		dataValueLocal = serializeIlGenerator.DeclareLocal(typeof(DataValue));
+		serializationDataValueLocal = serializeIlGenerator.DeclareLocal(typeof(DataValue));
 
 		// lightingEffect = new()
 		serializeIlGenerator.Emit(OpCodes.Newobj, LightingEffectConstructorInfo);
@@ -528,12 +529,12 @@ public static class EffectSerializer
 			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValuesLocal!);
 			deserializeIlGenerator.Emit(OpCodes.Ldloc, counterLocal!);
 			deserializeIlGenerator.Emit(OpCodes.Ldelema, typeof(PropertyValue));
-			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValueLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Stloc, deserializationPropertyValueRefLocal!);
 
 			// switch (propertyValue.Index)
-			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueLocal!);
+			deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueRefLocal!);
 			deserializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.GetMethod!);
-			deserializeIlGenerator.Emit(OpCodes.Switch, deserializationLabels.ToArray());
+			deserializeIlGenerator.Emit(OpCodes.Switch, [.. deserializationLabels]);
 
 			deserializeIlGenerator.Emit(OpCodes.Br, deserializationDefaultCaseLabel);
 		}
@@ -608,9 +609,9 @@ public static class EffectSerializer
 				serializeIlGenerator.Emit(OpCodes.Dup); // propertyValueLocal&
 				serializeIlGenerator.Emit(OpCodes.Ldc_I4, details.DataIndex);
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueIndexPropertyInfo.SetMethod!);
-				serializeIlGenerator.Emit(OpCodes.Ldloca, dataValueLocal);
+				serializeIlGenerator.Emit(OpCodes.Ldloca, serializationDataValueLocal);
 				serializeIlGenerator.Emit(OpCodes.Initobj, typeof(DataValue));
-				serializeIlGenerator.Emit(OpCodes.Ldloca, dataValueLocal); // dataValue = new DataValue(); dataValue.X = Y…
+				serializeIlGenerator.Emit(OpCodes.Ldloca, serializationDataValueLocal); // dataValue = new DataValue(); dataValue.X = Y…
 				serializeIlGenerator.Emit(OpCodes.Ldarg_0);
 				if (field is not null)
 				{
@@ -688,7 +689,7 @@ public static class EffectSerializer
 					// TODO
 					throw new NotImplementedException();
 				}
-				serializeIlGenerator.Emit(OpCodes.Ldloc, dataValueLocal);
+				serializeIlGenerator.Emit(OpCodes.Ldloc, serializationDataValueLocal);
 				serializeIlGenerator.Emit(OpCodes.Call, PropertyValueValuePropertyInfo.SetMethod!);
 				serializeIlGenerator.Emit(OpCodes.Ldloc, propertyValueLocal!);
 				serializeIlGenerator.Emit(OpCodes.Call, ImmutableArrayBuilderAddMethodInfo);
@@ -702,8 +703,8 @@ public static class EffectSerializer
 				}
 
 				// property.Value // reference the property value for assigning the property afterwards
-				deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueLocal!);
-				deserializeIlGenerator.Emit(OpCodes.Call, PropertyValueValuePropertyInfo.GetMethod!);
+				deserializeIlGenerator.Emit(OpCodes.Ldloc, deserializationPropertyValueRefLocal!);
+				deserializeIlGenerator.Emit(OpCodes.Call, PropertyValueGetValueRefMethodInfo);
 
 				// Read the field matching the DataType.
 				switch (details.DataType)

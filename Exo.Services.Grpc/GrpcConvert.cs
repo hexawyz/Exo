@@ -45,14 +45,7 @@ internal static class GrpcConvert
 		=> new()
 		{
 			ZoneId = zoneInformation.ZoneId,
-			SupportedEffectIds = ImmutableCollectionsMarshal.AsImmutableArray
-			(
-				Array.ConvertAll
-				(
-					ImmutableCollectionsMarshal.AsArray(zoneInformation.SupportedEffectTypes)!,
-					t => EffectSerializer.GetEffectInformation(t).EffectId
-				)
-			),
+			SupportedEffectIds = zoneInformation.SupportedEffectTypeIds,
 		};
 
 	public static GrpcSensorDeviceInformation ToGrpc(this SensorDeviceInformation sensorDeviceInformation)

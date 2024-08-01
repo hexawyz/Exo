@@ -15,6 +15,7 @@ public class ConfigurationService : IConfigurationNode
 		AllowTrailingCommas = false,
 		WriteIndented = false,
 		NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.AllowNamedFloatingPointLiterals,
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
 		Converters = { new JsonStringEnumConverter() },
@@ -33,7 +34,12 @@ public class ConfigurationService : IConfigurationNode
 							{
 								property.ObjectCreationHandling = JsonObjectCreationHandling.Replace;
 								property.IsRequired = false;
+								continue;
 							}
+						}
+						if (property.IsRequired)
+						{
+							property.ShouldSerialize = (_, _) => true;
 						}
 					}
 				}

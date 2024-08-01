@@ -84,7 +84,16 @@ public class Startup
 		services.AddSingleton<DpiWatcher>();
 		services.AddSingleton<LockedKeysWatcher>();
 		services.AddSingleton<BacklightWatcher>();
-		services.AddSingleton<LightingService>();
+		services.AddSingleton
+		(
+			sp => LightingService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<LightingService>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
+				sp.GetRequiredService<IDeviceWatcher>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<BatteryService>();
 		services.AddSingleton<KeyboardService>();
 		services.AddSingleton<DisplayAdapterService>();

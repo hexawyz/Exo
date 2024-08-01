@@ -2,27 +2,26 @@ using System.Collections.Immutable;
 
 namespace Exo.Service;
 
-// Making this is a class should be more efficient to reference it from other parts of the code.
-// Lighting zone information objects usually be should be long-lived, so it is not an unwise choice to make.
-public sealed class LightingZoneInformation : IEquatable<LightingZoneInformation?>
+[TypeId(0xB6677089, 0x77FE, 0x467A, 0x8C, 0x23, 0x87, 0x8C, 0x80, 0x71, 0x03, 0x19)]
+public readonly struct LightingZoneInformation : IEquatable<LightingZoneInformation>
 {
-	public LightingZoneInformation(Guid zoneId, ImmutableArray<Type> supportedEffectTypes)
+	public LightingZoneInformation(Guid zoneId, ImmutableArray<Guid> supportedEffectTypeIds)
 	{
 		ZoneId = zoneId;
-		SupportedEffectTypes = supportedEffectTypes;
+		SupportedEffectTypeIds = supportedEffectTypeIds;
 	}
 
 	public Guid ZoneId { get; }
-	public ImmutableArray<Type> SupportedEffectTypes { get; }
+	public ImmutableArray<Guid> SupportedEffectTypeIds { get; }
 
-	public override bool Equals(object? obj) => Equals(obj as LightingZoneInformation);
+	public override bool Equals(object? obj) => obj is LightingZoneInformation info && Equals(info);
 
-	public bool Equals(LightingZoneInformation? other)
-		=> other is not null && ZoneId.Equals(other.ZoneId) &&
-			SupportedEffectTypes.SequenceEqual(other.SupportedEffectTypes);
+	public bool Equals(LightingZoneInformation other)
+		=> ZoneId.Equals(other.ZoneId) &&
+			SupportedEffectTypeIds.SequenceEqual(other.SupportedEffectTypeIds);
 
-	public override int GetHashCode() => HashCode.Combine(ZoneId, SupportedEffectTypes.Length());
+	public override int GetHashCode() => HashCode.Combine(ZoneId, SupportedEffectTypeIds.Length());
 
-	public static bool operator ==(LightingZoneInformation? left, LightingZoneInformation? right) => EqualityComparer<LightingZoneInformation>.Default.Equals(left, right);
-	public static bool operator !=(LightingZoneInformation? left, LightingZoneInformation? right) => !(left == right);
+	public static bool operator ==(LightingZoneInformation left, LightingZoneInformation right) => EqualityComparer<LightingZoneInformation>.Default.Equals(left, right);
+	public static bool operator !=(LightingZoneInformation left, LightingZoneInformation right) => !(left == right);
 }

@@ -23,7 +23,16 @@ public readonly struct PropertyValue
 	/// <summary>The index of the property.</summary>
 	[DataMember(Order = 1)]
 	public required uint Index { get; init; }
+
+	private readonly DataValue _value;
+
 	/// <summary>The value of the property.</summary>
 	[DataMember(Order = 2)]
-	public required DataValue Value { get; init; }
+	public required DataValue Value
+	{
+		get => _value;
+		init => _value = value;
+	}
+
+	public static ref readonly DataValue GetValueRef(ref readonly PropertyValue propertyValue) => ref propertyValue._value;
 }

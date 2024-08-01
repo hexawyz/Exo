@@ -6,6 +6,7 @@ namespace Exo.Contracts;
 /// <summary>Represents a lighting effect.</summary>
 /// <remarks>Some common effect properties are present on the type itself, in order to avoid the overhead that would be associated with extended property values</remarks>
 [DataContract]
+[TypeId(0xFE4E94FA, 0xB60B, 0x4702, 0xB8, 0x4C, 0xE0, 0xA4, 0x68, 0x21, 0x93, 0xEA)]
 public sealed class LightingEffect
 {
 	/// <summary>ID of the effect.</summary>

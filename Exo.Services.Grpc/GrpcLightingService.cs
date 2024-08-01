@@ -2,8 +2,6 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
-using Exo.Features;
-using Exo.Features.Lighting;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
@@ -27,65 +25,25 @@ internal sealed class GrpcLightingService : ILightingService
 		_logger.GrpcLightingServiceDeviceWatchStart();
 		try
 		{
-			await foreach (var notification in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var lightingDevice in _lightingService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
 			{
-				if (notification.Kind is WatchNotificationKind.Removal) continue;
-
-				// TODO: This should only send updates when stuff has changed.
-				// Rework still needs to be done on the base service to properly handle persistance.
-
-				LightingBrightnessCapabilities? brightnessCapabilities = null;
 				LightingPaletteCapabilities? paletteCapabilities = null;
-
-				RegisterEffectTypes(notification);
-
-				var lightingFeatures = notification.Driver!.GetFeatureSet<ILightingDeviceFeature>();
-
-				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } brightnessFeature)
-				{
-					brightnessCapabilities = new() { MinimumBrightness = brightnessFeature.MinimumBrightness, MaximumBrightness = brightnessFeature.MaximumBrightness };
-				}
 
 				yield return new()
 				{
-					DeviceId = notification.DeviceInformation.Id,
-					BrightnessCapabilities = brightnessCapabilities,
+					DeviceId = lightingDevice.DeviceId,
+					BrightnessCapabilities = lightingDevice.BrightnessCapabilities is { } brightnessCapabilities ?
+						new() { MinimumBrightness = brightnessCapabilities.MinimumValue, MaximumBrightness = brightnessCapabilities.MaximumValue } :
+						null,
 					PaletteCapabilities = paletteCapabilities,
-					UnifiedLightingZone = notification.LightingDeviceInformation.UnifiedLightingZone?.ToGrpc(),
-					LightingZones = ImmutableArray.CreateRange(notification.LightingDeviceInformation.LightingZones, z => z.ToGrpc()),
+					UnifiedLightingZone = lightingDevice.UnifiedLightingZone?.ToGrpc(),
+					LightingZones = ImmutableArray.CreateRange(lightingDevice.LightingZones, z => z.ToGrpc()),
 				};
 			}
 		}
 		finally
 		{
 			_logger.GrpcLightingServiceDeviceWatchStop();
-		}
-	}
-
-	private void RegisterEffectTypes(LightingDeviceWatchNotification notification)
-	{
-		if (notification.LightingDeviceInformation.UnifiedLightingZone is { } unifiedLightingZone)
-		{
-			RegisterEffectTypes(unifiedLightingZone.SupportedEffectTypes);
-		}
-		foreach (var zone in notification.LightingDeviceInformation.LightingZones)
-		{
-			RegisterEffectTypes(zone.SupportedEffectTypes);
-		}
-	}
-
-	private void RegisterEffectTypes(ImmutableArray<Type> supportedEffectTypes)
-	{
-		foreach (var effectType in supportedEffectTypes)
-		{
-			try
-			{
-				_ = EffectSerializer.GetEffectInformation(effectType);
-			}
-			catch (Exception ex)
-			{
-				_logger.GrpcLightingServiceEffectInformationRetrievalError(effectType, ex);
-			}
 		}
 	}
 
