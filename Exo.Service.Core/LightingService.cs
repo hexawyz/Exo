@@ -52,6 +52,9 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			LightingZones = lightingZones;
 			UnifiedLightingZoneId = unifiedLightingZoneId;
 		}
+
+		public PersistedLightingDeviceConfiguration CreatePersistedConfiguration()
+			=> new() { IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, Brightness = Brightness };
 	}
 
 	private sealed class LightingZoneState
@@ -228,7 +231,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly ILogger<LightingService> _logger;
 
-	private readonly CancellationTokenSource _cancellationTokenSource;
+	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _watchTask;
 
 	private LightingService
@@ -252,8 +255,21 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 	public async ValueTask DisposeAsync()
 	{
-		_cancellationTokenSource.Cancel();
-		await _watchTask.ConfigureAwait(false);
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
+		{
+			cts.Cancel();
+			cts.Dispose();
+			await _watchTask.ConfigureAwait(false);
+		}
+	}
+
+	// Retrieves the global cancellation token while checking that the instance is not disposed.
+	// We use this cancellation token to cancel pending write operations.
+	private CancellationToken GetCancellationToken()
+	{
+		var cts = Volatile.Read(ref _cancellationTokenSource);
+		ObjectDisposedException.ThrowIf(cts is null, typeof(LightingEffectMetadataService));
+		return cts.Token;
 	}
 
 	private async Task WatchAsync(CancellationToken cancellationToken)
@@ -656,7 +672,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			{
 				await deviceState.DeviceConfigurationContainer.WriteValueAsync
 				(
-					new PersistedLightingDeviceConfiguration { IsUnifiedLightingEnabled = isUnifiedLightingEnabled, Brightness = deviceState.Brightness },
+					deviceState.CreatePersistedConfiguration(),
 					cancellationToken
 				).ConfigureAwait(false);
 			}
@@ -862,6 +878,8 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	private void SetEffectInternal<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
 		where TEffect : struct, ILightingEffect
 	{
+		var cancellationToken = GetCancellationToken();
+
 		if (!_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
 		{
 			throw new InvalidOperationException($"Could not find the specified device.");
@@ -879,7 +897,22 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				SetEffect(zone, effect);
 			}
 
-			zoneState.SerializedCurrentEffect = serializedEffect;
+			bool wasDeviceConfigurationUpdated = false;
+			if (!isRestore)
+			{
+				zoneState.SerializedCurrentEffect = serializedEffect;
+
+				if (zoneId == deviceState.UnifiedLightingZoneId)
+				{
+					deviceState.IsUnifiedLightingEnabled = true;
+					wasDeviceConfigurationUpdated = true;
+				}
+				else if (deviceState.IsUnifiedLightingEnabled)
+				{
+					deviceState.IsUnifiedLightingEnabled = false;
+					wasDeviceConfigurationUpdated = true;
+				}
+			}
 
 			if (!isRestore)
 			{
@@ -893,6 +926,12 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					{
 						_effectChangeListeners.TryWrite(new(deviceId, zoneId, serializedEffect));
 					}
+				}
+
+				PersistActiveEffect(deviceState.LightingZonesConfigurationContainer, zoneId, serializedEffect, cancellationToken);
+				if (wasDeviceConfigurationUpdated)
+				{
+					PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 				}
 			}
 		}
@@ -913,6 +952,8 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 	private void SetBrightness(Guid deviceId, byte brightness, bool isRestore)
 	{
+		var cancellationToken = GetCancellationToken();
+
 		if (_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
 		{
 			lock (deviceState.Lock)
@@ -943,6 +984,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					{
 						_brightnessChangeListeners.TryWrite(new(deviceId, brightness));
 					}
+					PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 				}
 			}
 		}
@@ -970,4 +1012,39 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	Completed:;
 		return applyChangesTask;
 	}
+
+	// NB: With the current code, there is not a strong enforcing of configuration update order.
+	// (Important to note, though, configuration writes themselves are already serialized using a lock. The worst that can happen is a later configuration being overwritten by an earlier one)
+	// I don't think it matters too much as these configuration changes should not occur concurrently and they are supposed to be the result of manual actions of the user (so, in slow sequence).
+	// The code should still be improved probably, as we don't prevent it, but it can be done later. (Especially considering we want to have a more complex programming model somewhat replacing this)
+
+	private async void PersistActiveEffect(IConfigurationContainer<Guid> lightingZonesConfigurationContainer, Guid zoneId, LightingEffect effect, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await PersistActiveEffectAsync(lightingZonesConfigurationContainer, zoneId, effect, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
+	}
+
+	private ValueTask PersistActiveEffectAsync(IConfigurationContainer<Guid> lightingZonesConfigurationContainer, Guid zoneId, LightingEffect effect, CancellationToken cancellationToken)
+		=> lightingZonesConfigurationContainer.WriteValueAsync(zoneId, effect, cancellationToken);
+
+	private async void PersistDeviceConfiguration(IConfigurationContainer deviceConfigurationContainer, PersistedLightingDeviceConfiguration configuration, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await PersistDeviceConfigurationAsync(deviceConfigurationContainer, configuration, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
+	}
+
+	private ValueTask PersistDeviceConfigurationAsync(IConfigurationContainer deviceConfigurationContainer, PersistedLightingDeviceConfiguration configuration, CancellationToken cancellationToken)
+		=> deviceConfigurationContainer.WriteValueAsync(configuration, cancellationToken);
 }
