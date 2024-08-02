@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts;
 
 [DataContract]
-public readonly struct EnumerationValue
+public readonly record struct EnumerationValue
 {
 	/// <summary>The underlying value of the enumeration item.</summary>
 	[DataMember(Order = 1)]

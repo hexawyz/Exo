@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts;
 
 [DataContract]
-public sealed class LightingEffectInformation
+public sealed class LightingEffectInformation : IEquatable<LightingEffectInformation?>
 {
 	/// <summary>ID of the effect.</summary>
 	/// <remarks>
@@ -18,6 +18,8 @@ public sealed class LightingEffectInformation
 	[DataMember(Order = 2)]
 	public required string EffectTypeName { get; init; }
 
+	private readonly ImmutableArray<ConfigurablePropertyInformation> _properties;
+
 	/// <summary>Gets the properties of the lighting effect.</summary>
 	/// <remarks>
 	/// <para>
@@ -30,5 +32,22 @@ public sealed class LightingEffectInformation
 	/// </para>
 	/// </remarks>
 	[DataMember(Order = 3)]
-	public required ImmutableArray<ConfigurablePropertyInformation> Properties { get; init; }
+	public required ImmutableArray<ConfigurablePropertyInformation> Properties
+	{
+		get => _properties;
+		init => _properties = value.NotNull();
+	}
+
+	public override bool Equals(object? obj) => Equals(obj as LightingEffectInformation);
+
+	public bool Equals(LightingEffectInformation? other)
+		=> other is not null &&
+			EffectId.Equals(other.EffectId) &&
+			EffectTypeName == other.EffectTypeName &&
+			Properties.SequenceEqual(other.Properties);
+
+	public override int GetHashCode() => HashCode.Combine(EffectId, EffectTypeName, Properties.Length);
+
+	public static bool operator ==(LightingEffectInformation? left, LightingEffectInformation? right) => EqualityComparer<LightingEffectInformation>.Default.Equals(left, right);
+	public static bool operator !=(LightingEffectInformation? left, LightingEffectInformation? right) => !(left == right);
 }

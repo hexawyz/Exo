@@ -5,7 +5,7 @@ namespace Exo.Contracts;
 
 /// <summary>Information on a property that can be configured through the UI.</summary>
 [DataContract]
-public sealed class ConfigurablePropertyInformation
+public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePropertyInformation?>
 {
 	/// <summary>The index to use for serializing the property.</summary>
 	/// <remarks>This value should be unspecified for properties that would have a direct predefined mapping.</remarks>
@@ -46,13 +46,55 @@ public sealed class ConfigurablePropertyInformation
 	[DataMember(Order = 9)]
 	public string? Unit { get; init; }
 
+	private readonly ImmutableArray<EnumerationValue> _enumerationValues;
+
 	/// <summary>Determines the allowed values if the field is an enumeration.</summary>
 	// NB: Might not be very efficient to have this here, since it would be replicated for every property if the same type is reused. Let's see how critical this is later.
 	[DataMember(Order = 10)]
-	public required ImmutableArray<EnumerationValue> EnumerationValues { get; init; }
+	public required ImmutableArray<EnumerationValue> EnumerationValues
+	{
+		get => _enumerationValues;
+		init => _enumerationValues = value.NotNull();
+	}
 
 	/// <summary>The number of elements in the array, for fixed-length array data types.</summary>
 	/// <remarks>Fixed-length arrays are the only kind of array supported. The array data will be materialized into <see cref="DataValue.BytesValue"/>.</remarks>
 	[DataMember(Order = 11)]
 	public int? ArrayLength { get; init; }
+
+	public override bool Equals(object? obj) => Equals(obj as ConfigurablePropertyInformation);
+
+	public bool Equals(ConfigurablePropertyInformation? other)
+		=> other is not null &&
+			Index == other.Index &&
+			Name == other.Name &&
+			DisplayName == other.DisplayName &&
+			Description == other.Description &&
+			DataType == other.DataType &&
+			DefaultValue == other.DefaultValue &&
+			MinimumValue == other.MinimumValue &&
+			MaximumValue == other.MaximumValue &&
+			Unit == other.Unit &&
+			EnumerationValues.Equals(other.EnumerationValues) &&
+			ArrayLength == other.ArrayLength;
+
+	public override int GetHashCode()
+	{
+		var hash = new HashCode();
+		hash.Add(Index);
+		hash.Add(Name);
+		hash.Add(DisplayName);
+		hash.Add(Description);
+		hash.Add(DataType);
+		hash.Add(DefaultValue);
+		hash.Add(MinimumValue);
+		hash.Add(MaximumValue);
+		hash.Add(Unit);
+		hash.Add(EnumerationValues.Length);
+		hash.Add(ArrayLength);
+		return hash.ToHashCode();
+	}
+
+	public static bool operator ==(ConfigurablePropertyInformation? left, ConfigurablePropertyInformation? right) => EqualityComparer<ConfigurablePropertyInformation>.Default.Equals(left, right);
+	public static bool operator !=(ConfigurablePropertyInformation? left, ConfigurablePropertyInformation? right) => !(left == right);
 }

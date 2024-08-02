@@ -1,4 +1,4 @@
-﻿namespace Exo.Service;
+namespace Exo.Service;
 
 internal static class ConfigurationContainerNames
 {
@@ -6,5 +6,7 @@ internal static class ConfigurationContainerNames
 	public const string Discovery = "dcv";
 	public const string DiscoveryFactory = "fac";
 	public const string Assembly = "asm";
+	public const string Lighting = "lit";
+	public const string LightingEffects = "eff";
 	public const string CustomMenu = "mnu";
 }

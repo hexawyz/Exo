@@ -18,7 +18,7 @@ namespace Exo.Contracts;
 /// </para>
 /// </remarks>
 [DataContract]
-public readonly struct PropertyValue
+public readonly struct PropertyValue : IEquatable<PropertyValue>
 {
 	/// <summary>The index of the property.</summary>
 	[DataMember(Order = 1)]
@@ -35,4 +35,12 @@ public readonly struct PropertyValue
 	}
 
 	public static ref readonly DataValue GetValueRef(ref readonly PropertyValue propertyValue) => ref propertyValue._value;
+
+	public override bool Equals(object? obj) => obj is PropertyValue value && Equals(value);
+	public bool Equals(PropertyValue other) => Index == other.Index && _value.Equals(other._value);
+
+	public override int GetHashCode() => HashCode.Combine(Index, _value);
+
+	public static bool operator ==(PropertyValue left, PropertyValue right) => left.Equals(right);
+	public static bool operator !=(PropertyValue left, PropertyValue right) => !(left == right);
 }

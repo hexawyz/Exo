@@ -17,7 +17,7 @@ namespace Exo.Service;
 
 /// <summary>This implements custom serialization for lighting effects.</summary>
 /// <remarks>This serialization infrastructure is needed for UI management of lighting effects.</remarks>
-public static class EffectSerializer
+internal static class EffectSerializer
 {
 	private static readonly MethodInfo LightingServiceInternalSetEffectMethodInfo =
 		typeof(ILightingServiceInternal).GetMethod(nameof(ILightingServiceInternal.SetEffect), BindingFlags.Public | BindingFlags.Instance)!;

@@ -1,6 +1,8 @@
-﻿namespace Exo.Service;
+namespace Exo.Service;
 
-public sealed partial class LightingService
+#pragma warning disable IDE0040 // Add accessibility modifiers
+partial class LightingService
+#pragma warning restore IDE0040 // Add accessibility modifiers
 {
 	// Helper to load effects for a device arrival.
 	// Here, we use a hash set to reduce the number of calls to the effect serializer, assuming it would be slightly faster than otherwise.
@@ -8,8 +10,12 @@ public sealed partial class LightingService
 	private readonly struct LightingEffectLoader
 	{
 		private readonly HashSet<Type> _loadedTypes = new();
+		private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 
-		public LightingEffectLoader() { }
+		public LightingEffectLoader(LightingEffectMetadataService lightingEffectMetadataService)
+		{
+			_lightingEffectMetadataService = lightingEffectMetadataService;
+		}
 
 		public void RegisterEffects(Type[] effectTypes)
 		{
@@ -17,7 +23,7 @@ public sealed partial class LightingService
 			{
 				if (_loadedTypes.Add(effectType))
 				{
-					_ = EffectSerializer.GetEffectInformation(effectType);
+					_lightingEffectMetadataService.RegisterEffect(effectType);
 				}
 			}
 		}

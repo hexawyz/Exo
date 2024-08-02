@@ -20,14 +20,23 @@ namespace Exo.Contracts;
 /// </remarks>
 [DataContract]
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct DataValue
+public readonly struct DataValue : IEquatable<DataValue>
 {
-	private static readonly object EmptyValueSentinel = new();
-	private static readonly object UnsignedValueSentinel = new();
-	private static readonly object SignedValueSentinel = new();
-	private static readonly object SingleValueSentinel = new();
-	private static readonly object DoubleValueSentinel = new();
-	private static readonly object GuidValueSentinel = new();
+	private sealed class DataType
+	{
+		private readonly int _value;
+
+		public DataType(int value) => _value = value;
+
+		public override int GetHashCode() => _value;
+	}
+
+	private static readonly object EmptyValueSentinel = new DataType(0);
+	private static readonly object UnsignedValueSentinel = new DataType(1);
+	private static readonly object SignedValueSentinel = new DataType(2);
+	private static readonly object SingleValueSentinel = new DataType(3);
+	private static readonly object DoubleValueSentinel = new DataType(4);
+	private static readonly object GuidValueSentinel = new DataType(5);
 
 	private readonly object? _valueOrDataType;
 	private readonly ulong _data0;
@@ -174,4 +183,11 @@ public readonly struct DataValue
 			}
 		}
 	}
+
+	public override bool Equals(object? obj) => obj is DataValue value && Equals(value);
+	public bool Equals(DataValue other) => ReferenceEquals(_valueOrDataType, other._valueOrDataType) && _data0 == other._data0 && _data1 == other._data1;
+	public override int GetHashCode() => HashCode.Combine(_valueOrDataType, _data0, _data1);
+
+	public static bool operator ==(DataValue left, DataValue right) => left.Equals(right);
+	public static bool operator !=(DataValue left, DataValue right) => !(left == right);
 }

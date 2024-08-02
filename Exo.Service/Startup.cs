@@ -51,6 +51,7 @@ public class Startup
 		services.AddKeyedSingleton(ConfigurationContainerNames.DiscoveryFactory, (sp, name) => sp.GetRequiredKeyedService<IConfigurationContainer>(ConfigurationContainerNames.Discovery).GetContainer((string)name, GuidNameSerializer.Instance));
 		services.AddKeyedSingleton(ConfigurationContainerNames.Assembly, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, AssemblyNameSerializer.Instance));
 		services.AddKeyedSingleton(ConfigurationContainerNames.CustomMenu, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Lighting, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
 		if (Environment.IsDevelopment())
 		{
 			services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
@@ -86,11 +87,21 @@ public class Startup
 		services.AddSingleton<BacklightWatcher>();
 		services.AddSingleton
 		(
+			sp => LightingEffectMetadataService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger< LightingEffectMetadataService>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer>(ConfigurationContainerNames.Lighting).GetContainer(ConfigurationContainerNames.LightingEffects, GuidNameSerializer.Instance),
+				default
+			).GetAwaiter().GetResult()
+		);
+		services.AddSingleton
+		(
 			sp => LightingService.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<LightingService>>(),
 				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
 				sp.GetRequiredService<IDeviceWatcher>(),
+				sp.GetRequiredService<LightingEffectMetadataService>(),
 				default
 			).GetAwaiter().GetResult()
 		);

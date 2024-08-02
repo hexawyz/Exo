@@ -17,7 +17,7 @@ namespace Exo.Service;
 
 [Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
-public sealed partial class LightingService : IAsyncDisposable, ILightingServiceInternal
+internal sealed partial class LightingService : IAsyncDisposable, ILightingServiceInternal
 {
 	private sealed class DeviceState
 	{
@@ -119,6 +119,7 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 		ILogger<LightingService> logger,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
+		LightingEffectMetadataService lightingEffectMetadataService,
 		CancellationToken cancellationToken
 	)
 	{
@@ -214,7 +215,7 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 			}
 		}
 
-		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, deviceStates);
+		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, lightingEffectMetadataService, deviceStates);
 	}
 
 	private readonly IDeviceWatcher _deviceWatcher;
@@ -224,6 +225,7 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 	private ChannelWriter<LightingDeviceInformation>[]? _deviceListeners;
 	private ChannelWriter<LightingEffectWatchNotification>[]? _effectChangeListeners;
 	private ChannelWriter<LightingBrightnessWatchNotification>[]? _brightnessChangeListeners;
+	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly ILogger<LightingService> _logger;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
@@ -234,12 +236,14 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 		ILogger<LightingService> logger,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
+		LightingEffectMetadataService lightingEffectMetadataService,
 		ConcurrentDictionary<Guid, DeviceState> lightingDeviceStates
 	)
 	{
 		_logger = logger;
-		_deviceWatcher = deviceWatcher;
 		_devicesConfigurationContainer = devicesConfigurationContainer;
+		_deviceWatcher = deviceWatcher;
+		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingDeviceStates = lightingDeviceStates;
 		_changeLock = new();
 		_cancellationTokenSource = new();
@@ -369,7 +373,7 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 		}
 
 		var changedLightingZones = new HashSet<Guid>();
-		var effectLoader = new LightingEffectLoader();
+		var effectLoader = new LightingEffectLoader(_lightingEffectMetadataService);
 
 		// If the arrived device is a new device, we can create a new state from scratch and retrieve the current configuration from the driver.
 		// NB: Some drivers may hardcode the initial configuration if the device lacks the capability to read current settings.
@@ -518,18 +522,22 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 						{
 							lightingZoneState.LightingZone = unifiedLightingFeature;
 							UpdateSupportedEffects(unifiedLightingZoneId, lightingZoneState, unifiedLightingFeature.GetType(), changedLightingZones);
+							var currentEffect = EffectSerializer.Serialize(unifiedLightingFeature.GetCurrentEffect());
 							// We restore the effect from the saved state if available.
 							if (lightingZoneState.SerializedCurrentEffect is { } effect)
 							{
 								if (isUnifiedLightingEnabled)
 								{
+									if (lightingZoneState.SerializedCurrentEffect != currentEffect)
+									{
 									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingZoneId, effect);
 									shouldApplyChanges = true;
 								}
 							}
+							}
 							else
 							{
-								lightingZoneState.SerializedCurrentEffect = EffectSerializer.Serialize(unifiedLightingFeature.GetCurrentEffect());
+								lightingZoneState.SerializedCurrentEffect = currentEffect;
 								changedLightingZones.Add(unifiedLightingZoneId);
 							}
 						}
@@ -561,14 +569,18 @@ public sealed partial class LightingService : IAsyncDisposable, ILightingService
 						{
 							lightingZoneState.LightingZone = lightingZone;
 							UpdateSupportedEffects(lightingZone.ZoneId, lightingZoneState, lightingZone.GetType(), changedLightingZones);
+							var currentEffect = EffectSerializer.Serialize(lightingZone.GetCurrentEffect());
 							// We restore the effect from the saved state if available.
 							if (lightingZoneState.SerializedCurrentEffect is { } effect)
 							{
 								if (!isUnifiedLightingEnabled)
 								{
+									if (lightingZoneState.SerializedCurrentEffect != currentEffect)
+									{
 									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, lightingZoneId, effect);
 									shouldApplyChanges = true;
 								}
+							}
 							}
 							else
 							{

@@ -9,12 +9,14 @@ namespace Exo.Service.Grpc;
 internal sealed class GrpcLightingService : ILightingService
 {
 	private readonly LightingService _lightingService;
+	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly ILogger<GrpcLightingService> _logger;
 
-	public GrpcLightingService(ILogger<GrpcLightingService> logger, LightingService lightingService)
+	public GrpcLightingService(ILogger<GrpcLightingService> logger, LightingService lightingService, LightingEffectMetadataService lightingEffectMetadataService)
 	{
 		_logger = logger;
 		_lightingService = lightingService;
+		_lightingEffectMetadataService = lightingEffectMetadataService;
 	}
 
 	// TODO: Refactor the lighting service and remove the raw device-related stuff.
@@ -98,7 +100,7 @@ internal sealed class GrpcLightingService : ILightingService
 	}
 
 	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
-		=> new(EffectSerializer.GetEffectInformation(typeReference.TypeId));
+		=> new(_lightingEffectMetadataService.GetEffectInformation(typeReference.TypeId));
 
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
