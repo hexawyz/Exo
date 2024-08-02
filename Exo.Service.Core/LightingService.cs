@@ -453,18 +453,18 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		}
 		else
 		{
+			bool shouldUpdateDeviceInformation = false;
+			bool shouldUpdateDeviceConfiguration = false;
+
 			lightingZoneStates = deviceState.LightingZones;
 
 			var oldLightingZones = new HashSet<Guid>();
-			if (deviceState.Brightness is not null && brightnessFeature is not null)
+			if (brightnessFeature is not null && deviceState.Brightness is not null)
 			{
-				SetBrightness(notification.DeviceInformation.Id, deviceState.Brightness.GetValueOrDefault(), true);
+				byte clampedBrightness = Math.Clamp(deviceState.Brightness.GetValueOrDefault(), deviceState.BrightnessCapabilities.GetValueOrDefault().MinimumValue, deviceState.BrightnessCapabilities.GetValueOrDefault().MaximumValue);
+				if (clampedBrightness != deviceState.Brightness.GetValueOrDefault()) brightness = clampedBrightness;
+				SetBrightness(notification.DeviceInformation.Id, clampedBrightness, true);
 				shouldApplyChanges = true;
-			}
-			else
-			{
-				// TODO: Should we consider preserving the brightness value if a device's driver loses the brightness feature at some point ?
-				deviceState.Brightness = null;
 			}
 
 			// Add all the known lighting zones to the list of listing zones that potentially need to be removed.
@@ -517,7 +517,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 					if (unifiedLightingFeature is not null)
 					{
-						deviceState.UnifiedLightingZoneId = unifiedLightingZoneId;
 						if (lightingZoneStates.TryGetValue(unifiedLightingZoneId, out var lightingZoneState))
 						{
 							lightingZoneState.LightingZone = unifiedLightingFeature;
@@ -530,10 +529,10 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 								{
 									if (lightingZoneState.SerializedCurrentEffect != currentEffect)
 									{
-									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingZoneId, effect);
-									shouldApplyChanges = true;
+										EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingZoneId, effect);
+										shouldApplyChanges = true;
+									}
 								}
-							}
 							}
 							else
 							{
@@ -556,10 +555,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 							changedLightingZones.Add(unifiedLightingZoneId);
 						}
 					}
-					else
-					{
-						deviceState.UnifiedLightingZoneId = default;
-					}
 
 					foreach (var lightingZone in lightingZones)
 					{
@@ -577,10 +572,10 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 								{
 									if (lightingZoneState.SerializedCurrentEffect != currentEffect)
 									{
-									EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, lightingZoneId, effect);
-									shouldApplyChanges = true;
+										EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, lightingZoneId, effect);
+										shouldApplyChanges = true;
+									}
 								}
-							}
 							}
 							else
 							{
@@ -604,10 +599,19 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 						}
 					}
 
-					deviceState.BrightnessCapabilities = brightnessCapabilities;
+					if (deviceState.UnifiedLightingZoneId != unifiedLightingZoneId || deviceState.BrightnessCapabilities != brightnessCapabilities)
+					{
+						deviceState.UnifiedLightingZoneId = unifiedLightingZoneId;
+						deviceState.BrightnessCapabilities = brightnessCapabilities;
+						shouldUpdateDeviceInformation = true;
+					}
+					if (deviceState.IsUnifiedLightingEnabled != isUnifiedLightingEnabled || deviceState.Brightness != brightness)
+					{
+						deviceState.IsUnifiedLightingEnabled = isUnifiedLightingEnabled;
+						deviceState.Brightness = brightness;
+						shouldUpdateDeviceConfiguration = true;
+					}
 					deviceState.Driver = notification.Driver;
-					deviceState.IsUnifiedLightingEnabled = isUnifiedLightingEnabled;
-					deviceState.Brightness = brightness;
 
 					if (shouldApplyChanges)
 					{
@@ -636,6 +640,27 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				}
 			}
 
+			if (shouldUpdateDeviceInformation)
+			{
+				await deviceState.DeviceConfigurationContainer.WriteValueAsync
+				(
+					new PersistedLightingDeviceInformation
+					{
+						UnifiedLightingZoneId = unifiedLightingFeature is not null ? unifiedLightingZoneId : null,
+						BrightnessCapabilities = brightnessCapabilities
+					},
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+			if (shouldUpdateDeviceConfiguration)
+			{
+				await deviceState.DeviceConfigurationContainer.WriteValueAsync
+				(
+					new PersistedLightingDeviceConfiguration { IsUnifiedLightingEnabled = isUnifiedLightingEnabled, Brightness = deviceState.Brightness },
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+
 			foreach (var changedLightingZoneKey in changedLightingZones)
 			{
 				if (deviceState.LightingZones.TryGetValue(changedLightingZoneKey, out var changedLightingZone))
@@ -658,7 +683,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		await applyChangesTask.ConfigureAwait(false);
 	}
 
-	private static void UpdateSupportedEffects(Guid unifiedLightingZoneId, LightingZoneState lightingZoneState, Type lightingZoneType, HashSet<Guid> newLightingZones)
+	private static void UpdateSupportedEffects(Guid unifiedLightingZoneId, LightingZoneState lightingZoneState, Type lightingZoneType, HashSet<Guid> changedLightingZones)
 	{
 		var supportedEffectsAndIds = GetSupportedEffects(lightingZoneType);
 		// If the effects reference is exactly the same, we can skip everything and do nothing.
@@ -667,7 +692,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		if (!lightingZoneState.SupportedEffectTypeIds.AsSpan().SequenceEqual(supportedEffectsAndIds.Item2))
 		{
 			// Mark that this lighting zone must be persisted again.
-			newLightingZones.Add(unifiedLightingZoneId);
+			changedLightingZones.Add(unifiedLightingZoneId);
 		}
 		// Always update the effect reference. It the contents were equal, it will let us get rid of the old copy, and only keep the one that was retrieved from the cache.
 		lightingZoneState.SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2);
@@ -892,7 +917,14 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		{
 			lock (deviceState.Lock)
 			{
+				if (deviceState.BrightnessCapabilities is null || brightness == deviceState.Brightness) return;
+
 				if (deviceState.Driver is null) return;
+
+				if (!isRestore)
+				{
+					deviceState.Brightness = brightness;
+				}
 
 				var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
 
