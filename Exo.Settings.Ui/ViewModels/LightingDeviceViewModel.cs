@@ -72,10 +72,28 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 			var (displayName, displayOrder) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
 			return new LightingZoneViewModel(this, lightingZone, displayName, displayOrder);
 		}
+		LightingZoneViewModel[] CreateZoneViewModels(ImmutableArray<LightingZoneInformation> lightingZones)
+		{
+			var viewModels = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(lightingZones)!, CreateZoneViewModel);
+			Array.Sort
+			(
+				viewModels,
+				static (a, b) =>
+				{
+					int r = Comparer<int>.Default.Compare(a.DisplayOrder, b.DisplayOrder);
+					if (r == 0)
+					{
+						r = Comparer<Guid>.Default.Compare(a.Id, b.Id);
+					}
+					return r;
+				}
+			);
+			return viewModels;
+		}
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? CreateZoneViewModel(lightingDeviceInformation.UnifiedLightingZone) : null;
 		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
 			ReadOnlyCollection<LightingZoneViewModel>.Empty :
-			Array.AsReadOnly(Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(lightingDeviceInformation.LightingZones)!, CreateZoneViewModel));
+			Array.AsReadOnly(CreateZoneViewModels(lightingDeviceInformation.LightingZones));
 		_lightingZoneById = new();
 		if (UnifiedLightingZone is not null)
 		{
