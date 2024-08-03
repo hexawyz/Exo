@@ -87,14 +87,14 @@ public abstract partial class RazerDeviceDriver :
 
 		public ImmutableArray<DeviceId> GetDeviceIds(ushort versionNumber)
 		{
-			if (IsDongle) return ImmutableArray.Create(new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, DongleDeviceProductId, versionNumber));
+			if (IsDongle) return [new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, DongleDeviceProductId, versionNumber)];
 
 			const RazerDeviceFlags ProductIdFlags = RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasBluetoothProductId |
 				RazerDeviceFlags.HasBluetoothLowEnergyProductId;
 			int count = BitOperations.PopCount((byte)(Flags & ProductIdFlags));
-			if (count == 0) return ImmutableArray<DeviceId>.Empty;
+			if (count == 0) return [];
 
 			var productIds = new DeviceId[count];
 			int index = 0;
@@ -147,7 +147,11 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Mouse,
-			RazerDeviceFlags.HasBattery | RazerDeviceFlags.HasReactiveLighting | RazerDeviceFlags.HasWiredProductId | RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.HasBluetoothLowEnergyProductId,
+			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasReactiveLighting |
+				RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId |
+				RazerDeviceFlags.HasBluetoothLowEnergyProductId,
 			0x007C,
 			0x007D,
 			0xFFFF,

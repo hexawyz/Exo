@@ -297,8 +297,9 @@ public static class MetadataSerializer
 
 	private static byte[] Serialize(in LightingZoneMetadata value)
 	{
-		var array = new byte[16];
+		var array = new byte[20];
 		value.NameStringId.TryWriteBytes(array);
+		LittleEndian.Write(ref array[16], (uint)value.DisplayOrder);
 		return array;
 	}
 
@@ -345,6 +346,7 @@ public static class MetadataSerializer
 		=> new LightingZoneMetadata
 		{
 			NameStringId = new Guid(data[..16]),
+			DisplayOrder = (int)LittleEndian.ReadUInt32(in data[16])
 		};
 
 	private static CoolerMetadata DeserializeCoolerMetadata(ReadOnlySpan<byte> data)
@@ -412,6 +414,7 @@ public readonly struct LightingEffectMetadata : IExoMetadata
 public readonly struct LightingZoneMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
+	public required int DisplayOrder { get; init; }
 }
 
 public readonly struct CoolerMetadata : IExoMetadata

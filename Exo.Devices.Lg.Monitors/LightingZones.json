@@ -1,6 +1,7 @@
 {
     // LG Monitor
     "7105a4fa-2235-49fc-a75a-fd0dec135199": {
-        "nameStringId": "e1ff5a67-a651-4532-ba22-3c52fb058dd6"
+        "nameStringId": "e1ff5a67-a651-4532-ba22-3c52fb058dd6",
+        "displayOrder": 0
     }
 }

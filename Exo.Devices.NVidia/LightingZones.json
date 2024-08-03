@@ -1,18 +1,22 @@
 {
     // GPU Top 0
     "22c9ecbe-d047-4e26-b0f4-730e5b3e407e": {
-        "nameStringId": "723774e0-eb2a-4c46-9fee-294a4010b957"
+        "nameStringId": "723774e0-eb2a-4c46-9fee-294a4010b957",
+        "displayOrder": 1
     },
     // GPU Front 0
     "95a687ef-6cbb-4c22-aadb-79186744adda": {
-        "nameStringId": "c5aa233b-afd1-4e86-b2d5-c5421fcccaa2"
+        "nameStringId": "c5aa233b-afd1-4e86-b2d5-c5421fcccaa2",
+        "displayOrder": 2
     },
     // GPU Back 0
     "93505342-3bee-4c22-a51e-dd29ccf655ed": {
-        "nameStringId": "7e3e2fca-24d2-4778-88fa-a118d0dababe"
+        "nameStringId": "7e3e2fca-24d2-4778-88fa-a118d0dababe",
+        "displayOrder": 3
     },
     // SLI Top 0
     "211da55c-dfcc-4a4d-a94e-7f3cfa00c722": {
-        "nameStringId": "20668382-ccca-47b6-bb7a-c822d0d2c7d9"
+        "nameStringId": "20668382-ccca-47b6-bb7a-c822d0d2c7d9",
+        "displayOrder": 100
     }
 }
