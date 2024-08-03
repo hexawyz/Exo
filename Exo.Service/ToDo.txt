@@ -1,53 +1,10 @@
-* Implement the configuration model:
-  * Configuration objects should be stored separately from their key, so that we can reuse a specific obejct for multiple keys and move an object between keys easily.
-  * Configuration objects should be easily serializable, at least to json (we'll see about the exact format later)
-* The configuration should also include caching of some prefetched data, e.g.:
-  * The list of known drivers that was parsed the first time
-  * Which driver was last used / is to be used by a specific device (by unique device name)
-* Configuration should be automatically discarded when changes are detected
-  * Possibly cache the list of files and their date, then compare them to know what is suscpetible of having changed
-  * Worst case, a simple hashing (CRC32, MD5, SHA1 or whatever) of the files could do the trick, but it would be best to avoid anything if possible.
-  * Maybe have a strict integrity mdoe where either caching is disabeld or hashes are checked everytime.
-  * We want to avoid app startup costs whenever possible.
-  * Possibly, the official installation of the apps/service later would be within a locked directory in order to discourage manual tweaking of the files
-* Anyway, if possible, we'll want the service to run under its very own, non-admin account, in order to reduce attack surfaces
+* If possible, we'll want the service to run under its very own, non-admin account, in order to reduce attack surfaces
+  * Complex to do at the moment as the Gigabyte SMBus driver depends on it
+  * But it might be possible to provide this choice through the MSI installer later on? (Might not be easy)
 * Should still possible to allow admin rights to the service in some specific case, if the user explicitly asks for it. (Hopefully we won't need that most of the time?)
 * If the app/service is installed within its own "secure" directory, there should be an official way to package and install plugins through the UI/CLI apps
   * Assembly manifest could be enough in many cases, as a lot of plugins should work without external data?
   * What about complex plugins coming with external files, native DLLs, and such?
-* Read the SMBios table using GetSystemFirmwareTable to get various information on the current computer. (Could also be partially done through WMI but because this is lower level, this should have less overhead)
-* Refactor the device discovery:
-  * There are already relatively central repositories of registered drivers in the current model, however, it can be difficult to imagine how a device that can be discovered through multiple systems can work.
-  * Which constructor should get called, and with which information
-  * Taking the very specific example of a monitor with and USB interface, the monitor can be connected to the computer through multiple relatively independant channels At the minimum, video and USB.
-    Since each connection can be added or removed on the fly independentlmy of others, what would be the best way to present an unified interface ?
-    It seems like presenting an abstract root device with multiple actual children would be a good solution (maybe not the best one ?), but this doesn't really work in the current relatively simple model.
-  * At the very minimum: Restrictions on the CreateAsync<> method were a good idea but they probably need to be lifted ?
-  * How do we manage a "discovered" subdevice ? Who does the discovery ? The minimum implementation dictates that all discovery systems need to accept being returned an already-registered device even if registered from other systems.
-  * This in turn dictates the more centered view of device discovery.
-    * Each device object, be it system-originated or not, should have a unique key composed of a "registrar ID" and a "device ID" that is at least unique in the specific registrar/discoverer, but ideally unique system-wide (which should be mandatory for system provided devices)
-    * The central device driver registry should then be able to track the main driver instance associated with that device and update references on the fly
-    * We probably want to change the instanciation order and have driver (factories) register for notifications and decide themselves when to create an instance
-    * The driver notifications should be handled in a central way too. e.g. Each device discovery system watches for what it needs, then forwards information to the centralized part when something happens
-    * Each driver class/factory should register for notifications using attributes. We need to keepo this declarative so that the information can be cached.
-    * The static CreateAsync stuff can probably be mostly kept as we probably don't want to instanciate driver factory objects. Might be a bit clunky in the long term, but we'll see.
-    * The pattern for notification stuff would be:
-      1 - Central registry/notification system has/gets information on all avaliable device discovery systems. This can be cached.
-      2 - Central registry/notification system instanciates all device discovery systems (implies loading the assemblies), e.g. HID
-      3 - Each device discovery system has/gets information on all drivers (factories) and their metadata. This can be cached too. It must be cached in the final design.
-      4 - Device discovery systems start watching for devices by any appropriate means
-      5 - Upon a device discovery, the necessary context is transfered to the central system for sequential dispatch (avoid race conditions for drivers spanning multiple device objects)
-      6 - Contrarily to before with the CreateAsync method (which should be renamed I guess ?), the driver factory can decide to return a driver instance or not
-      7 - The instance returned can be a pre-existing one. Such an instance can be augmented with the new device info
-      8 - The central system takes action from the result of the driver factory.
-    * As for assembly metadata caching, it is not critical to have it initally, but it will extend some of the code paths that will be required anyway
-      * We want the metadata management to be centralized (as much as possible), so that assemblies are not scanned multiple times
-      * e.g. upon startup without caching, assemblies would be loaded one by one, and for each assembly, each system capable of discovery would be asked to parse them
-      * Metadata could still be stored into multiple files for efficiency. (Thinking of optimal JSON (de)serialization patterns here)
-      * Basically, we want to cascade the metadata management from the main registar code. We'd probably want to have more than those two levels in some scenarios. (More exotic drivers ?)
-      * Metadata should be automatically updated when an assembly is added, removed or modified, even during runtime. All systems must be able to update their runtime caches as well as the serialized data.
-      * The centralized sytem may be able to some of the heavy lifting regarding as to what has been added or removed. (e.g. We expect that a removed assembly would not affect metadata from other assemblies)
-      * We'd probably track file updates using a simple hash such as MD5 or SHA1. (Of course coupled to a FS watcher during runtime)
 * Have an event bus to communicate between components in the app
   * Final model of how everything will integrate is not yet clear (device vs driver vs more general module etc.) BUT
   * We know that the user should be able to e.g. bind a key to switch a monitor's current video input, or to toggle some lighting settings, for example
@@ -74,24 +31,10 @@
     * But it may make the app to hard to access
     * There need to be sensible defaults in how messages will be handled
       * Either provide the choice of two exclusive UIs/components (a simple one and an advanced one)
-      * Or have a unified model that work il all cases
+      * Or have a unified model that work in all cases
 * Remember the idea of the layered architecture:
   * At the lowest level, we SHOULD have "library code". While that is not mandatory, it would generally help having the device-oritented code of drivers (i.e. implementation of the protocol) separated.
   * Then, we MUST have the driver interface. This exposes a real or virtual device as such in the backend service.
   * At the top of the backend, we have services/components that rely on drivers and other internal services (e.g. event bus) to provide useful features to users
     * There should generally be a close mapping between raw features exposed by drivers and features exposed by components: If no component allows to configure the features of a driver, the driver may be somewhat useless.
     * Some exceptions could be possible, as for example a driver that has a single purpose that can always be done without configuration. But generally, we'd still want to be able to enable or disable the driver.
-  * Over all of this, the UI should be built. Let's call it the "configuration" UI.
-    * The UI will be hosted in a separate process, but it may (will ?) share code with the backend.
-    * The UI would likely communicate with the backend using a REST API (Named pipes being another option, but there is no clear value ?)
-      * In theory, the REST API could be "public", meaning that it could be used to configure the service without the UI. (But we DON'T NEED it. Maybe we actually WANT to have it private)
-      * There would in all cases be a "service" API in addition to the "configuration" API.
-        * The service API would essentially be used to send commands and get reports from the service. That API MUST be public. (It is its intended purpose)
-        * The configuration API would only be used to configure the service.
-          * It would ideally not need to be used at all once everything is setup properly. (Of course if the user starts the configuration UI, it will be needed)
-          * Everything should be doable using the service API afterwards. i.e. The configuration API is used to configure the service AND determine what features are exposed through the service API.
-          * There may be no value in making that API public. Allowing anybody to change the configuration of the service may be dangerous.
-        * Both APIs would be secured using an authentication mechanism. (internal and/or external: invisible and/or intrusive)
-          * Maybe we want to secure access to the API by requiring the UI to be launched with admin rights. (Would work with a named pipe: is it also possible with a socket ?)
-    * There MUST be a nice WPF/WinUI interface to configure everywthing.
-    * Having a public API to control stuff would be nice too. (ANyway, everything the frontend UI can do should be doable from the PA
