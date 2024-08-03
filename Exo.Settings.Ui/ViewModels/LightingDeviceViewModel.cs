@@ -9,7 +9,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
+internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 
@@ -24,6 +24,7 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 	private int _changedZoneCount;
 	private int _busyZoneCount;
 	private bool _useUnifiedLighting;
+	private bool _useUnifiedLightingInitialValue;
 	private bool _isExpanded;
 
 	private readonly Commands.ApplyChangesCommand _applyChangesCommand;
@@ -31,10 +32,11 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 
 	public bool IsNotBusy => _busyZoneCount == 0;
 
-	public bool IsChanged => AreZonesChanged || IsBrightnessChanged;
+	public override bool IsChanged => AreZonesChanged || IsBrightnessChanged || IsUseUnifiedLightingChanged;
 
 	private bool AreZonesChanged => _changedZoneCount != 0;
 	private bool IsBrightnessChanged => Brightness?.IsChanged == true;
+	private bool IsUseUnifiedLightingChanged => _useUnifiedLighting != _useUnifiedLightingInitialValue;
 
 	public bool CanToggleUnifiedLighting => UnifiedLightingZone is not null && LightingZones.Count > 0;
 
@@ -43,6 +45,7 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 		get => _useUnifiedLighting;
 		set
 		{
+			bool wasChanged = IsChanged;
 			if (value)
 			{
 				if (UnifiedLightingZone is null) throw new InvalidOperationException("This device does not support unified lighting.");
@@ -52,6 +55,22 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 				if (LightingZones.Count == 0) throw new InvalidOperationException("This device only supports unified lighting.");
 			}
 			SetValue(ref _useUnifiedLighting, value, ChangedProperty.UseUnifiedLighting);
+			OnChangeStateChange(wasChanged);
+		}
+	}
+
+	private bool IsUnifiedLightingInitiallyEnabled
+	{
+		get => _useUnifiedLightingInitialValue;
+		set
+		{
+			bool wasChanged = IsChanged;
+			if (_useUnifiedLighting == _useUnifiedLightingInitialValue)
+			{
+				_useUnifiedLighting = value;
+			}
+			_useUnifiedLightingInitialValue = value;
+			OnChangeStateChange(wasChanged);
 		}
 	}
 
@@ -114,7 +133,7 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 			_lightingZoneById[zone.Id] = zone;
 			zone.PropertyChanged += OnLightingZonePropertyChanged;
 		}
-		_useUnifiedLighting = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty;
+		_useUnifiedLightingInitialValue = _useUnifiedLighting = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty;
 		if (lightingDeviceInformation.BrightnessCapabilities is { } brightnessCapabilities)
 		{
 			BrightnessCapabilities = new(brightnessCapabilities);
@@ -256,7 +275,7 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 		}
 	}
 
-	private void OnChanged()
+	protected override void OnChanged()
 	{
 		_applyChangesCommand.OnChanged();
 		_resetChangesCommand.OnChanged();
