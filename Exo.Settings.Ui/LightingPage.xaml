@@ -16,10 +16,30 @@
             <DataTemplate>
                 <Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsNotBusy}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <StackPanel Orientation="Horizontal">
-                            <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-                            <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Column="3" IsOn="{Binding UseUnifiedLighting, Mode=TwoWay}" OffContent="" OnContent="" FlowDirection="RightToLeft" Margin="{StaticResource TitleTextIconMargin}" Visibility="{Binding CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ToggleSwitch.OffContentTemplate>
+                                    <DataTemplate>
+                                        <!-- x:Uid="LightingZoneUnifiedLightingDisabledLabel" -->
+                                        <FontIcon Glyph="&#xE71B;" />
+                                    </DataTemplate>
+                                </ToggleSwitch.OffContentTemplate>
+                                <ToggleSwitch.OnContentTemplate>
+                                    <DataTemplate>
+                                        <!-- x:Uid="LightingZoneUnifiedLightingEnabledLabel" -->
+                                        <FontIcon Glyph="&#xE71B;" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </DataTemplate>
+                                </ToggleSwitch.OnContentTemplate>
+                            </ToggleSwitch>
+                        </Grid>
                     </Expander.Header>
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
                         <Grid Margin="0,0,0,12" Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
@@ -41,8 +61,8 @@
                                 </Slider.ThumbToolTipValueConverter>
                             </Slider>
                         </Grid>
-                        <local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}" LightingZone="{Binding UnifiedLightingZone}" />
-                        <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
+                        <local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" LightingZone="{Binding UnifiedLightingZone}" />
+                        <ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">

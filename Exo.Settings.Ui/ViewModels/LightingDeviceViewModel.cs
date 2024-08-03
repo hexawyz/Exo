@@ -36,13 +36,22 @@ internal sealed class LightingDeviceViewModel : BindableObject, IDisposable
 	private bool AreZonesChanged => _changedZoneCount != 0;
 	private bool IsBrightnessChanged => Brightness?.IsChanged == true;
 
+	public bool CanToggleUnifiedLighting => UnifiedLightingZone is not null && LightingZones.Count > 0;
+
 	public bool UseUnifiedLighting
 	{
 		get => _useUnifiedLighting;
 		set
 		{
-			if (value == UnifiedLightingZone is null) throw new InvalidOperationException(value ? "This device does not support unified lighting." : "This device only supports unified lighting.");
-			SetValue(ref _useUnifiedLighting, value);
+			if (value)
+			{
+				if (UnifiedLightingZone is null) throw new InvalidOperationException("This device does not support unified lighting.");
+			}
+			else
+			{
+				if (LightingZones.Count == 0) throw new InvalidOperationException("This device only supports unified lighting.");
+			}
+			SetValue(ref _useUnifiedLighting, value, ChangedProperty.UseUnifiedLighting);
 		}
 	}
 

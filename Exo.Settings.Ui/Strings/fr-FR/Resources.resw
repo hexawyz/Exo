@@ -186,6 +186,12 @@
   <data name="LightingEffectLabel.Text" xml:space="preserve">
     <value>Effet</value>
   </data>
+  <data name="LightingZoneUnifiedLightingDisabledLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>L'éclairage unifié est actuellement désactivé.</value>
+  </data>
+  <data name="LightingZoneUnifiedLightingEnabledLabel.ToolTipService.ToolTip1" xml:space="preserve">
+    <value>L'éclairage unifié est actuellement activé.</value>
+  </data>
   <data name="MonitorAudioVolumeLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Volume Audio</value>
   </data>
