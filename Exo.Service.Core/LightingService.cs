@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
@@ -214,6 +213,10 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 						unifiedLightingZoneId.GetValueOrDefault(),
 						lightingZones
 					)
+					{
+						IsUnifiedLightingEnabled = isUnifiedLightingEnabled,
+						Brightness = brightness,
+					}
 				);
 			}
 		}
@@ -535,6 +538,10 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					{
 						if (lightingZoneStates.TryGetValue(unifiedLightingZoneId, out var lightingZoneState))
 						{
+							// NB: We mainly want to restore the existing configuration, so if the zone is found in the persisted configuration (which is expected 99% of the time),
+							// then the unified lighting state from the device should be ignored, and we will apply the persisted value.
+							isUnifiedLightingEnabled = deviceState.IsUnifiedLightingEnabled;
+
 							lightingZoneState.LightingZone = unifiedLightingFeature;
 							UpdateSupportedEffects(unifiedLightingZoneId, lightingZoneState, unifiedLightingFeature.GetType(), changedLightingZones);
 							var currentEffect = EffectSerializer.Serialize(unifiedLightingFeature.GetCurrentEffect());
@@ -670,11 +677,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			}
 			if (shouldUpdateDeviceConfiguration)
 			{
-				await deviceState.DeviceConfigurationContainer.WriteValueAsync
-				(
-					deviceState.CreatePersistedConfiguration(),
-					cancellationToken
-				).ConfigureAwait(false);
+				await PersistDeviceConfigurationAsync(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken).ConfigureAwait(false);
 			}
 
 			foreach (var changedLightingZoneKey in changedLightingZones)
@@ -902,20 +905,14 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			{
 				zoneState.SerializedCurrentEffect = serializedEffect;
 
-				if (zoneId == deviceState.UnifiedLightingZoneId)
-				{
-					deviceState.IsUnifiedLightingEnabled = true;
-					wasDeviceConfigurationUpdated = true;
-				}
-				else if (deviceState.IsUnifiedLightingEnabled)
-				{
-					deviceState.IsUnifiedLightingEnabled = false;
-					wasDeviceConfigurationUpdated = true;
-				}
-			}
+				bool isUnifiedLightingZone = zoneId == deviceState.UnifiedLightingZoneId;
 
-			if (!isRestore)
-			{
+				if (deviceState.IsUnifiedLightingEnabled != isUnifiedLightingZone)
+				{
+					deviceState.IsUnifiedLightingEnabled = isUnifiedLightingZone;
+					wasDeviceConfigurationUpdated = true;
+				}
+
 				// We are really careful about the value of the delegate here, as sending a notification implies boxing.
 				// As such, it is best if we can avoid it.
 				// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
