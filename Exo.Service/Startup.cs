@@ -60,7 +60,16 @@ public class Startup
 		{
 			services.AddSingleton<IAssemblyDiscovery, DynamicAssemblyDiscovery>();
 		}
-		services.AddSingleton<AssemblyLoader>();
+		services.AddSingleton
+		(
+			sp => AssemblyLoader.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<AssemblyLoader>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer>(RootConfigurationContainerKey),
+				sp.GetRequiredService<IAssemblyDiscovery>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<IAssemblyLoader>(sp => sp.GetRequiredService<AssemblyLoader>());
 		services.AddSingleton<IMetadataSourceProvider>(sp => sp.GetRequiredService<AssemblyLoader>());
 		services.AddSingleton

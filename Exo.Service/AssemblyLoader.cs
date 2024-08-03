@@ -1,16 +1,26 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Reflection.Metadata;
-using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Threading.Channels;
+using Exo.Configuration;
+using Exo.Contracts;
 
 namespace Exo.Service;
 
 internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider, IDisposable
 {
+	// Used to persist the name of assemblies that were loaded at least once.
+	// Normally, the component discovery and loading system should strictly avoid unnecessarily loading assemblies,
+	// so all assemblies listed here will have been loaded once for a valid reason.
+	// This information will be used to feed the UI with a list of metadata that should be loaded for proper function.
+	[TypeId(0x4DD1E437, 0x1394, 0x45A4, 0xAA, 0x33, 0x3F, 0x1C, 0x45, 0xD2, 0x39, 0xC1)]
+	private readonly struct UsedAssemblyDetails
+	{
+		public readonly ImmutableArray<string> UsedAssemblyNames { get; init; }
+	}
+
 	[Flags]
 	private enum MetadataArchiveCategories
 	{
@@ -75,6 +85,22 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	private static bool DoesFileExist(ReadOnlyMemory<char> pathWithoutExtension, string suffix)
 		=> File.Exists($"{pathWithoutExtension.Span}{suffix}");
 
+	public static async Task<AssemblyLoader> CreateAsync
+	(
+		ILogger<AssemblyLoader> logger,
+		IConfigurationContainer configurationContainer,
+		IAssemblyDiscovery assemblyDiscovery,
+		CancellationToken cancellationToken
+	)
+	{
+		var result = await configurationContainer.ReadValueAsync<UsedAssemblyDetails>(cancellationToken).ConfigureAwait(false);
+		var assembliesUsedAtLeastOnce = result.Found ?
+			result.Value.UsedAssemblyNames.NotNull() :
+			[];
+
+		return new(logger, configurationContainer, assemblyDiscovery, assembliesUsedAtLeastOnce);
+	}
+
 	private readonly ILogger<AssemblyLoader> _logger;
 	private readonly IAssemblyDiscovery _assemblyDiscovery;
 	private readonly ConcurrentDictionary<string, AssemblyCacheEntry> _availableAssemblyDetails = new(1, 20);
@@ -82,6 +108,10 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	private readonly object _updateLock = new();
 	private readonly HashSet<AssemblyCacheEntry> _loadedAssemblies = new();
 	private ChannelWriter<(WatchNotificationKind Kind, string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives)>[]? _metadataChangeListeners;
+	private readonly HashSet<string> _assembliesUsedAtLeastOnce;
+	private readonly IConfigurationContainer _configurationContainer;
+	private readonly Timer _configurationUpdateTimer;
+	private bool _isConfigurationUpdateScheduled;
 
 	public event EventHandler<AssemblyLoadEventArgs>? AfterAssemblyLoad;
 	public event EventHandler? AvailableAssembliesChanged;
@@ -90,10 +120,13 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 
 	public ImmutableArray<AssemblyName> AvailableAssemblies => Unsafe.As<AssemblyName[], ImmutableArray<AssemblyName>>(ref _availableAssemblies);
 
-	public AssemblyLoader(ILogger<AssemblyLoader> logger, IAssemblyDiscovery assemblyDiscovery)
+	private AssemblyLoader(ILogger<AssemblyLoader> logger, IConfigurationContainer configurationContainer, IAssemblyDiscovery assemblyDiscovery, ImmutableArray<string> assembliesUsedAtLeastOnce)
 	{
 		_logger = logger;
 		_assemblyDiscovery = assemblyDiscovery;
+		_configurationContainer = configurationContainer;
+		_assembliesUsedAtLeastOnce = assembliesUsedAtLeastOnce.ToHashSet();
+		_configurationUpdateTimer = new Timer(OnTimerTick, null, Timeout.Infinite, Timeout.Infinite);
 		_assemblyDiscovery.AssemblyPathsChanged += OnAvailableAssembliesChanged;
 		_onContextUnloading = OnContextUnloading;
 		OnAvailableAssembliesChanged(_assemblyDiscovery, EventArgs.Empty);
@@ -103,6 +136,40 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	{
 		_assemblyDiscovery.AssemblyPathsChanged -= OnAvailableAssembliesChanged;
 	}
+
+	private void OnTimerTick(object? state)
+	{
+		lock (_updateLock)
+		{
+			PersistUsedAssemblies(new() { UsedAssemblyNames = _assembliesUsedAtLeastOnce.ToImmutableArray() });
+			_isConfigurationUpdateScheduled = false;
+		}
+	}
+
+	// ⚠️ To be called within the update lock.
+	private void UnsafeScheduleConfigurationUpdate()
+	{
+		if (!_isConfigurationUpdateScheduled)
+		{
+			_configurationUpdateTimer.Change(0, Timeout.Infinite);
+			_isConfigurationUpdateScheduled = true;
+		}
+	}
+
+	private async void PersistUsedAssemblies(UsedAssemblyDetails details)
+	{
+		try
+		{
+			await PersistUsedAssembliesAsync(details, default).ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
+	}
+
+	private ValueTask PersistUsedAssembliesAsync(UsedAssemblyDetails details, CancellationToken cancellationToken)
+		=> _configurationContainer.WriteValueAsync(details, cancellationToken);
 
 	private void OnAvailableAssembliesChanged(object? sender, EventArgs e)
 	{
@@ -128,6 +195,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 					{
 						if (_loadedAssemblies.Remove(entry))
 						{
+							if (_assembliesUsedAtLeastOnce.Remove(entry.AssemblyName.FullName)) UnsafeScheduleConfigurationUpdate();
 							_metadataChangeListeners.TryWrite((WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
 						}
 					}
@@ -183,7 +251,11 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		lock (_updateLock)
 		{
 			_loadedAssemblies.Add(entry);
-			_metadataChangeListeners.TryWrite((WatchNotificationKind.Addition, entry.Path, entry.AvailableMetadataArchives));
+			if (_assembliesUsedAtLeastOnce.Add(entry.AssemblyName.FullName))
+			{
+				UnsafeScheduleConfigurationUpdate();
+				_metadataChangeListeners.TryWrite((WatchNotificationKind.Addition, entry.Path, entry.AvailableMetadataArchives));
+			}
 		}
 
 		try
@@ -205,10 +277,8 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		{
 			lock (_updateLock)
 			{
-				if (_loadedAssemblies.Remove(entry))
-				{
-					_metadataChangeListeners.TryWrite((WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
-				}
+				// NB: We don't emit a metadata removal notification (anymore) here because metadata of unloaded assemblies is still needed from within the UI.
+				_loadedAssemblies.Remove(entry);
 			}
 		}
 	}
@@ -256,10 +326,19 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	{
 		var channel = Watcher.CreateSingleWriterChannel<(WatchNotificationKind Kind, string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives)>();
 
-		AssemblyCacheEntry[] loadedAssemblies;
+		AssemblyCacheEntry[]? loadedAssemblies;
 		lock (_updateLock)
 		{
-			loadedAssemblies = [.. _loadedAssemblies];
+			loadedAssemblies = new AssemblyCacheEntry[_assembliesUsedAtLeastOnce.Count];
+			int i = 0;
+			foreach (var assemblyName in _assembliesUsedAtLeastOnce)
+			{
+				if (_availableAssemblyDetails.TryGetValue(assemblyName, out var details))
+				{
+					loadedAssemblies[i++] = details;
+				}
+			}
+			if (i < loadedAssemblies.Length) Array.Resize(ref loadedAssemblies, i);
 			ArrayExtensions.InterlockedAdd(ref _metadataChangeListeners, channel);
 		}
 
@@ -278,6 +357,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.Sensors, extensionLength));
 				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) sourceBuilder.Add(CreateSourceInformation(entry.Path, MetadataArchiveCategory.Coolers, extensionLength));
 			}
+			loadedAssemblies = null;
 			yield return new(WatchNotificationKind.Enumeration, sourceBuilder.DrainToImmutable());
 
 			await foreach (var (kind, assemblyPath, availableMetadataArchives) in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
