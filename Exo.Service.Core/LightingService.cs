@@ -895,22 +895,34 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				throw new InvalidOperationException($"Could not find the zone with ID {zoneId:B} on the specified device.");
 			}
 
+			bool isUnifiedLightingZone = zoneId == deviceState.UnifiedLightingZoneId;
+			bool isUnifiedLightingUpdated = deviceState.IsUnifiedLightingEnabled != isUnifiedLightingZone;
+
 			if (zoneState.LightingZone is { } zone)
 			{
 				SetEffect(zone, effect);
 			}
 
-			bool wasDeviceConfigurationUpdated = false;
+			// NB: When this is a restore, we actually expect SerializedCurrentEffect to already be up-to-date, but it is just easier to always overwrite it here.
+			zoneState.SerializedCurrentEffect = serializedEffect;
+
 			if (!isRestore)
 			{
-				zoneState.SerializedCurrentEffect = serializedEffect;
-
-				bool isUnifiedLightingZone = zoneId == deviceState.UnifiedLightingZoneId;
-
-				if (deviceState.IsUnifiedLightingEnabled != isUnifiedLightingZone)
+				if (isUnifiedLightingUpdated)
 				{
 					deviceState.IsUnifiedLightingEnabled = isUnifiedLightingZone;
-					wasDeviceConfigurationUpdated = true;
+
+					// When switching from unified lighting to non-unified lighting, all the other lighting zones need to be restored.
+					// This will cause the lock to be re-entered, which is not something I personally like, but since we the unified lighting state above
+					// and ensured that the operations are restore operations, there should not be more than one level of recursion here.
+					if (!isUnifiedLightingZone)
+					{
+						foreach (var kvp in deviceState.LightingZones)
+						{
+							if (kvp.Key == deviceState.UnifiedLightingZoneId || kvp.Key == zoneId || kvp.Value.LightingZone is null || kvp.Value.SerializedCurrentEffect is null) continue;
+							EffectSerializer.DeserializeAndRestore(this, deviceId, kvp.Key, kvp.Value.SerializedCurrentEffect);
+						}
+					}
 				}
 
 				// We are really careful about the value of the delegate here, as sending a notification implies boxing.
@@ -926,7 +938,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				}
 
 				PersistActiveEffect(deviceState.LightingZonesConfigurationContainer, zoneId, serializedEffect, cancellationToken);
-				if (wasDeviceConfigurationUpdated)
+				if (isUnifiedLightingUpdated)
 				{
 					PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 				}
