@@ -143,6 +143,8 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	{
 		try
 		{
+			// Wait for metadata to be available, as we will need the metadata to properly display a device.
+			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
 			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
 			await foreach (var info in lightingService.WatchLightingDevicesAsync(cancellationToken))
 			{
@@ -260,14 +262,16 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	public LightingEffectViewModel GetEffect(Guid effectId)
 		=> _effectViewModelById.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
 
-	public string GetZoneName(Guid zoneId)
+	public (string DisplayName, int DisplayOrder) GetZoneMetadata(Guid zoneId)
 	{
 		string? displayName = null;
+		int displayOrder = 0;
 		if (_metadataService.TryGetLightingZoneMetadata("", "", zoneId, out var metadata))
 		{
 			displayName = _metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
+			displayOrder = metadata.DisplayOrder;
 		}
-		return displayName ?? $"Unknown {zoneId:B}";
+		return (displayName ?? $"Unknown {zoneId:B}", displayOrder);
 	}
 
 	public LightingEffect? GetActiveLightingEffect(Guid deviceId, Guid zoneId)

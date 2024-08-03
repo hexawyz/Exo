@@ -6,6 +6,7 @@ using System.Windows.Input;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
+using Exo.Metadata;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -48,7 +49,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	private readonly Commands.ResetCommand _resetCommand;
 	public ICommand ResetCommand => _resetCommand;
 
-	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation)
+	public string Name { get; }
+	public int DisplayOrder { get; }
+
+	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation, string displayName, int displayOrder)
 	{
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
@@ -63,10 +67,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 				_device.LightingViewModel.GetEffect
 			)
 		);
+		Name = displayName;
+		DisplayOrder = displayOrder;
 		OnEffectUpdated();
 	}
-
-	public string Name => _device.LightingViewModel.GetZoneName(Id);
 
 	public LightingEffectViewModel? CurrentEffect
 	{
