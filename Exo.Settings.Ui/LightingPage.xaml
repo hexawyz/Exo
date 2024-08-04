@@ -25,19 +25,13 @@
                             </Grid.ColumnDefinitions>
                             <FontIcon Grid.Column="0" Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" VerticalAlignment="Center" />
-                            <ToggleSwitch Grid.Column="3" Style="{StaticResource LeftContentToggleSwitchStyle}" IsOn="{Binding UseUnifiedLighting, Mode=TwoWay}" OffContent="" OnContent="" Margin="{StaticResource TitleTextIconMargin}" Visibility="{Binding CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <ToggleSwitch.OffContentTemplate>
-                                    <DataTemplate>
-                                        <!-- x:Uid="LightingZoneUnifiedLightingDisabledLabel" -->
-                                        <FontIcon Glyph="&#xE71B;" />
-                                    </DataTemplate>
-                                </ToggleSwitch.OffContentTemplate>
-                                <ToggleSwitch.OnContentTemplate>
-                                    <DataTemplate>
-                                        <!-- x:Uid="LightingZoneUnifiedLightingEnabledLabel" -->
-                                        <FontIcon Glyph="&#xE71B;" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    </DataTemplate>
-                                </ToggleSwitch.OnContentTemplate>
+                            <ToggleSwitch Grid.Column="3" x:Uid="LightingZoneUnifiedLightingToggle" Style="{StaticResource LeftContentToggleSwitchStyle}" IsOn="{Binding UseUnifiedLighting, Mode=TwoWay}" Margin="{StaticResource TitleTextIconMargin}" Visibility="{Binding CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ToggleSwitch.OffContent>
+                                    <FontIcon Glyph="&#xE71B;" />
+                                </ToggleSwitch.OffContent>
+                                <ToggleSwitch.OnContent>
+                                    <FontIcon Glyph="&#xE71B;" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                </ToggleSwitch.OnContent>
                             </ToggleSwitch>
                         </Grid>
                     </Expander.Header>

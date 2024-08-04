@@ -257,21 +257,20 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 
 	private void Reset()
 	{
-		if (UseUnifiedLighting && UnifiedLightingZone is not null)
+		UseUnifiedLighting = IsUnifiedLightingInitiallyEnabled;
+		if (Brightness is { } brightness) brightness.Reset();
+		if (UnifiedLightingZone is not null)
 		{
 			if (UnifiedLightingZone.IsChanged)
 			{
 				UnifiedLightingZone.Reset();
 			}
 		}
-		else
+		foreach (var zone in LightingZones)
 		{
-			foreach (var zone in LightingZones)
+			if (zone.IsChanged)
 			{
-				if (zone.IsChanged)
-				{
-					zone.Reset();
-				}
+				zone.Reset();
 			}
 		}
 	}
