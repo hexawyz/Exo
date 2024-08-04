@@ -219,7 +219,9 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			{
 				foreach (var zone in LightingZones)
 				{
-					if (zone.IsChanged)
+					// If the unified lighting flag is changed, we forcefully update all (other) lighting zones.
+					// Otherwise, we just update the lighting zones that changed.
+					if (zone.IsChanged || IsUseUnifiedLightingChanged)
 					{
 						if (zone.BuildEffect() is { } effect)
 						{
