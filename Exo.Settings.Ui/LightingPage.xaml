@@ -25,7 +25,7 @@
                             </Grid.ColumnDefinitions>
                             <FontIcon Grid.Column="0" Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" VerticalAlignment="Center" />
-                            <ToggleSwitch Grid.Column="3" IsOn="{Binding UseUnifiedLighting, Mode=TwoWay}" OffContent="" OnContent="" FlowDirection="RightToLeft" Margin="{StaticResource TitleTextIconMargin}" Visibility="{Binding CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ToggleSwitch Grid.Column="3" Style="{StaticResource LeftContentToggleSwitchStyle}" IsOn="{Binding UseUnifiedLighting, Mode=TwoWay}" OffContent="" OnContent="" Margin="{StaticResource TitleTextIconMargin}" Visibility="{Binding CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ToggleSwitch.OffContentTemplate>
                                     <DataTemplate>
                                         <!-- x:Uid="LightingZoneUnifiedLightingDisabledLabel" -->
