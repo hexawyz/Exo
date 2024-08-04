@@ -3,12 +3,14 @@ namespace Exo;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public sealed class RamModuleIdAttribute : Attribute
 {
-	public RamModuleIdAttribute(byte manufacturerBankNumber, byte manufacturerIndex, string partNumber)
+	public RamModuleIdAttribute(byte manufacturerIdContinuationCodeCount, byte manufacturerIdCode, string partNumber)
 	{
-		ManufacturerCode = new(manufacturerBankNumber, manufacturerIndex);
+		ManufacturerIdContinuationCodeCount = manufacturerIdContinuationCodeCount;
+		ManufacturerIdCode = manufacturerIdCode;
 		PartNumber = partNumber;
 	}
 
-	public JedecManufacturerCode ManufacturerCode { get; }
+	public byte ManufacturerIdContinuationCodeCount { get; }
+	public byte ManufacturerIdCode { get; }
 	public string PartNumber { get; }
 }

@@ -47,9 +47,10 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 		for (int i = 0; i < memoryDevices.Length; i++)
 		{
 			var memoryDevice = memoryDevices[i];
-			if (memoryDevice.PartNumber is { Length: not 0 } partNumber && memoryDevice.ModuleManufacturerId is ushort manufacturerId)
+			if (memoryDevice.PartNumber is { Length: not 0 } partNumber && memoryDevice.ModuleManufacturerId is { } manufacturerId)
 			{
-				keys.Add(new() { Index = (byte)i, ManufacturerCode = JedecManufacturerCode.FromRawValue(manufacturerId), PartNumber = partNumber.TrimEnd('\x20') });
+				var manufacturerIdWithFixedParity = manufacturerId.FixParity();
+				keys.Add(new() { Index = (byte)i, ManufacturerId = manufacturerIdWithFixedParity, PartNumber = partNumber.TrimEnd('\x20') });
 			}
 		}
 		return keys.DrainToImmutable();
@@ -97,7 +98,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 
 			foreach (var module in InstalledModules)
 			{
-				if (_ramModuleFactories.TryGetValue(new RamModuleKey() { ManufacturerCode = module.ManufacturerCode, PartNumber = module.PartNumber }, out var factoryId))
+				if (_ramModuleFactories.TryGetValue(new RamModuleKey() { ManufacturerId = module.ManufacturerId, PartNumber = module.PartNumber }, out var factoryId))
 				{
 					if (!modulesByFactories.TryGetValue(factoryId, out var modules))
 					{
@@ -126,7 +127,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 				attribute.ConstructorArguments is [ { Value: byte bankNumber }, { Value: byte manufacturerIndex }, { Value: string partNumber }] &&
 				(sbyte)(bankNumber | manufacturerIndex) >= 0)
 			{
-				keys.Add(new() { ManufacturerCode = new JedecManufacturerCode(bankNumber, manufacturerIndex), PartNumber = partNumber });
+				keys.Add(new() { ManufacturerId = new JedecManufacturerId(bankNumber, manufacturerIndex), PartNumber = partNumber });
 			}
 		}
 		if (keys.Count > 0)

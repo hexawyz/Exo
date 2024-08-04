@@ -45,7 +45,8 @@ public sealed partial class SmBios
 			private readonly byte _nonNullIds;
 			private readonly byte _memoryTechnology;
 			private readonly ushort _memoryOperatingModeCapability;
-			private readonly ushort _moduleManufacturerId;
+			private readonly byte _moduleManufacturerIdContinuationCodeCount;
+			private readonly byte _moduleManufacturerIdCode;
 			private readonly ushort _moduleProductId;
 			private readonly ushort _memorySubsystemControllerManufacturerId;
 			private readonly ushort _memorySubsystemControllerProductId;
@@ -73,7 +74,7 @@ public sealed partial class SmBios
 			public MemoryDeviceMemoryTechnology MemoryTechnology => (MemoryDeviceMemoryTechnology)_memoryTechnology;
 			public MemoryDeviceMemoryOperatingModeCapability OperatingModeCapability => (MemoryDeviceMemoryOperatingModeCapability)_memoryOperatingModeCapability;
 
-			public ushort? ModuleManufacturerId => (_nonNullIds & 0x1) != 0 ? _moduleManufacturerId : null;
+			public JedecManufacturerId? ModuleManufacturerId => (_nonNullIds & 0x1) != 0 ? new(_moduleManufacturerIdContinuationCodeCount, _moduleManufacturerIdCode) : null;
 			public ushort? ModuleProductId => (_nonNullIds & 0x2) != 0 ? _moduleProductId : null;
 			public ushort? MemorySubsystemControllerManufacturerId => (_nonNullIds & 0x4) != 0 ? _memorySubsystemControllerManufacturerId : null;
 			public ushort? MemorySubsystemControllerProductId => (_nonNullIds & 0x8) != 0 ? _memorySubsystemControllerProductId : null;
@@ -156,7 +157,9 @@ public sealed partial class SmBios
 
 									// Optimize the 4 nullable values in a single field.
 									byte nonNullIds = 0;
-									if ((_moduleManufacturerId = LittleEndian.Read<ushort>(data[40..])) is not 0) nonNullIds |= 1;
+									_moduleManufacturerIdContinuationCodeCount = data[40];
+									_moduleManufacturerIdCode = data[41];
+									if (_moduleManufacturerIdContinuationCodeCount is not 0 || _moduleManufacturerIdCode is not 0) nonNullIds |= 1;
 									if ((_moduleProductId = LittleEndian.Read<ushort>(data[42..])) is not 0) nonNullIds |= 2;
 									if ((_memorySubsystemControllerManufacturerId = LittleEndian.Read<ushort>(data[44..])) is not 0) nonNullIds |= 4;
 									if ((_memorySubsystemControllerProductId = LittleEndian.Read<ushort>(data[46..])) is not 0) nonNullIds |= 8;
