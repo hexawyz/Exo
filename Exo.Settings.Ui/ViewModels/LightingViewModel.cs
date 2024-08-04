@@ -20,7 +20,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
 	private readonly Dictionary<(Guid, Guid), LightingEffect> _activeLightingEffects;
-	private readonly Dictionary<Guid, byte> _brightnessLevels;
+	private readonly Dictionary<Guid, LightingDeviceConfigurationUpdate> _pendingConfigurationUpdates;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
@@ -37,7 +37,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
 		_activeLightingEffects = new();
-		_brightnessLevels = new();
+		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
@@ -60,7 +60,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 
 			var watchDevicesTask = WatchDevicesAsync(cts.Token);
 			var watchEffectsTask = WatchEffectsAsync(cts.Token);
-			var watchBrightnessTask = WatchBrightnessAsync(cts.Token);
+			var watchBrightnessTask = WatchConfigurationChangesAsync(cts.Token);
 
 			try
 			{
@@ -77,7 +77,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		_lightingDeviceById.Clear();
 		_effectViewModelById.Clear();
 		_activeLightingEffects.Clear();
-		_brightnessLevels.Clear();
+		_pendingConfigurationUpdates.Clear();
 		_pendingDeviceInformations.Clear();
 
 		foreach (var device in _lightingDevices)
@@ -122,6 +122,10 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		var vm = new LightingDeviceViewModel(this, device, lightingDeviceInformation);
 		_lightingDevices.Add(vm);
 		_lightingDeviceById[vm.Id] = vm;
+		if (_pendingConfigurationUpdates.Remove(lightingDeviceInformation.DeviceId, out var configuration))
+		{
+			vm.OnDeviceConfigurationUpdated(configuration.IsUnifiedLightingEnabled, configuration.BrightnessLevel);
+		}
 	}
 
 	private void OnDeviceRemoved(Guid deviceId)
@@ -208,17 +212,20 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	}
 
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
-	private async Task WatchBrightnessAsync(CancellationToken cancellationToken)
+	private async Task WatchConfigurationChangesAsync(CancellationToken cancellationToken)
 	{
 		try
 		{
 			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
-			await foreach (var notification in lightingService.WatchBrightnessAsync(cancellationToken))
+			await foreach (var notification in lightingService.WatchConfigurationUpdatesAsync(cancellationToken))
 			{
-				_brightnessLevels[notification.DeviceId] = notification.BrightnessLevel;
 				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
 				{
-					vm.OnBrightnessUpdated();
+					vm.OnDeviceConfigurationUpdated(notification.IsUnifiedLightingEnabled, notification.BrightnessLevel);
+				}
+				else if (notification.BrightnessLevel is not null)
+				{
+					_pendingConfigurationUpdates[notification.DeviceId] = notification;
 				}
 			}
 		}
@@ -276,7 +283,4 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 
 	public LightingEffect? GetActiveLightingEffect(Guid deviceId, Guid zoneId)
 		=> _activeLightingEffects.TryGetValue((deviceId, zoneId), out var effect) ? effect : null;
-
-	public byte? GetBrightness(Guid deviceId)
-		=> _brightnessLevels.TryGetValue(deviceId, out var brightness) ? brightness : null;
 }

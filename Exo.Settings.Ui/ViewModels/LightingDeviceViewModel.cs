@@ -140,7 +140,6 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			Brightness = new(brightnessCapabilities);
 			Brightness.PropertyChanged += OnBrightnessPropertyChanged;
 		}
-		OnBrightnessUpdated();
 		_deviceViewModel.PropertyChanged += OnDevicePropertyChanged;
 	}
 
@@ -286,11 +285,12 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 
 	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(_deviceViewModel.Id, zoneId);
 
-	public void OnBrightnessUpdated()
+	public void OnDeviceConfigurationUpdated(bool isUnifiedLightingEnabled, byte? brightnessLevel)
 	{
-		if (Brightness is { } vm && LightingViewModel.GetBrightness(_deviceViewModel.Id) is byte brightnessLevel)
+		IsUnifiedLightingInitiallyEnabled = isUnifiedLightingEnabled;
+		if (Brightness is { } vm && brightnessLevel is not null)
 		{
-			vm.SetInitialBrightness(brightnessLevel);
+			vm.SetInitialBrightness(brightnessLevel.GetValueOrDefault());
 		}
 	}
 

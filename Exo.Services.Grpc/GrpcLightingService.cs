@@ -123,7 +123,7 @@ internal sealed class GrpcLightingService : ILightingService
 		}
 	}
 
-	public async IAsyncEnumerable<DeviceBrightnessLevel> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<LightingDeviceConfigurationUpdate> WatchConfigurationUpdatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		_logger.GrpcLightingServiceBrightnessWatchStart();
 		try
@@ -133,6 +133,7 @@ internal sealed class GrpcLightingService : ILightingService
 				yield return new()
 				{
 					DeviceId = notification.DeviceId,
+					IsUnifiedLightingEnabled = notification.IsUnifiedLightingEnabled,
 					BrightnessLevel = notification.BrightnessLevel,
 				};
 			}

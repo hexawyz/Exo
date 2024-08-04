@@ -54,6 +54,9 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 		public PersistedLightingDeviceConfiguration CreatePersistedConfiguration()
 			=> new() { IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, Brightness = Brightness };
+
+		public LightingDeviceConfigurationWatchNotification CreateConfigurationWatchNotification(Guid deviceId)
+			=> new() { DeviceId = deviceId, IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, BrightnessLevel = Brightness };
 	}
 
 	private sealed class LightingZoneState
@@ -230,7 +233,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	private readonly object _changeLock;
 	private ChannelWriter<LightingDeviceInformation>[]? _deviceListeners;
 	private ChannelWriter<LightingEffectWatchNotification>[]? _effectChangeListeners;
-	private ChannelWriter<LightingBrightnessWatchNotification>[]? _brightnessChangeListeners;
+	private ChannelWriter<LightingDeviceConfigurationWatchNotification>[]? _configurationChangeListeners;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly ILogger<LightingService> _logger;
 
@@ -650,9 +653,9 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				{
 					deviceListeners.TryWrite(CreateDeviceInformation(notification.DeviceInformation.Id, deviceState));
 				}
-				if (Volatile.Read(ref _brightnessChangeListeners) is { } brightnessChangeListeners && deviceState.Brightness is not null)
+				if (Volatile.Read(ref _configurationChangeListeners) is { } configurationChangeListeners)
 				{
-					brightnessChangeListeners.TryWrite(new(notification.DeviceInformation.Id, deviceState.Brightness.GetValueOrDefault()));
+					configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(notification.DeviceInformation.Id));
 				}
 				if (Volatile.Read(ref _effectChangeListeners) is { } effectChangeListeners)
 				{
@@ -824,25 +827,22 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		}
 	}
 
-	public async IAsyncEnumerable<LightingBrightnessWatchNotification> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<LightingDeviceConfigurationWatchNotification> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<LightingBrightnessWatchNotification>();
+		var channel = Watcher.CreateChannel<LightingDeviceConfigurationWatchNotification>();
 		var reader = channel.Reader;
 		var writer = channel.Writer;
 
-		var initialNotifications = new List<LightingBrightnessWatchNotification>();
+		var initialNotifications = new List<LightingDeviceConfigurationWatchNotification>();
 
 		lock (_changeLock)
 		{
 			foreach (var kvp in _lightingDeviceStates)
 			{
-				if (kvp.Value.Brightness is byte brightness)
-				{
-					initialNotifications.Add(new(kvp.Key, brightness));
-				}
+				initialNotifications.Add(new() { DeviceId = kvp.Key, IsUnifiedLightingEnabled = kvp.Value.IsUnifiedLightingEnabled, BrightnessLevel = kvp.Value.Brightness });
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _brightnessChangeListeners, writer);
+			ArrayExtensions.InterlockedAdd(ref _configurationChangeListeners, writer);
 		}
 
 		try
@@ -860,7 +860,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		}
 		finally
 		{
-			ArrayExtensions.InterlockedRemove(ref _brightnessChangeListeners, writer);
+			ArrayExtensions.InterlockedRemove(ref _configurationChangeListeners, writer);
 		}
 	}
 
@@ -937,6 +937,11 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					}
 				}
 
+				if (Volatile.Read(ref _configurationChangeListeners) is not null)
+				{
+					_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
+				}
+
 				PersistActiveEffect(deviceState.LightingZonesConfigurationContainer, zoneId, serializedEffect, cancellationToken);
 				if (isUnifiedLightingUpdated)
 				{
@@ -986,12 +991,12 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 			if (!isRestore)
 			{
-				if (Volatile.Read(ref _brightnessChangeListeners) is not null)
+				if (Volatile.Read(ref _configurationChangeListeners) is not null)
 				{
 					// We probably strictly need this lock for consistency with the WatchBrightnessAsync setup.
 					lock (_changeLock)
 					{
-						_brightnessChangeListeners.TryWrite(new(deviceId, brightness));
+						_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
 					}
 					PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 				}

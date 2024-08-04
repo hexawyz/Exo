@@ -51,7 +51,7 @@ public interface ILightingService
 	[OperationContract]
 	IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync(CancellationToken cancellationToken);
 
-	/// <summary>Watches for brightness values and changes.</summary>
+	/// <summary>Watches for lighting configuration changes.</summary>
 	/// <remarks>
 	/// This will reflect changes done using <see cref="ApplyDeviceLightingChangesAsync(DeviceLightingUpdate, CancellationToken)"/>
 	/// and <see cref="ApplyMultiDeviceLightingChangesAsync(MultiDeviceLightingUpdates, CancellationToken)"/>.
@@ -59,5 +59,5 @@ public interface ILightingService
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	[OperationContract]
-	IAsyncEnumerable<DeviceBrightnessLevel> WatchBrightnessAsync(CancellationToken cancellationToken);
+	IAsyncEnumerable<LightingDeviceConfigurationUpdate> WatchConfigurationUpdatesAsync(CancellationToken cancellationToken);
 }
