@@ -412,9 +412,18 @@ internal static class Program
 			{
 				Console.WriteLine($"Physical monitor description: {physicalMonitor.Description}");
 
-				var capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
-				Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString.Span)}");
+				ReadOnlyMemory<byte> capabilitiesString;
+				try
+				{
+					capabilitiesString = physicalMonitor.GetCapabilitiesUtf8String();
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"Physical monitor capabilities: <{ex.Message}>");
+					continue;
+				}
 
+				Console.WriteLine($"Physical monitor capabilities: {Encoding.ASCII.GetString(capabilitiesString.Span)}");
 				if (MonitorCapabilities.TryParse(capabilitiesString.Span, out var capabilities))
 				{
 					Console.WriteLine($"Physical monitor type: {capabilities!.Type}");
@@ -787,6 +796,7 @@ internal static class Program
 			PrintInfo("Device Locator", md.DeviceLocator);
 			PrintInfo("Bank Locator", md.BankLocator);
 			PrintInfo("Manufacturer", md.Manufacturer);
+			PrintInfo("Manufacturer ID", md.ModuleManufacturerId);
 			PrintInfo("Part Number", md.PartNumber);
 			PrintInfo("Size", md.Size);
 
