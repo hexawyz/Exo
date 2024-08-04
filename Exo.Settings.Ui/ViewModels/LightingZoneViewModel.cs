@@ -6,13 +6,15 @@ using System.Windows.Input;
 using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
-using Exo.Metadata;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class LightingZoneViewModel : ChangeableBindableObject
 {
+	private static readonly Guid NotAvailableEffectId = new(0xC771A454, 0xCAE5, 0x41CF, 0x91, 0x21, 0xBE, 0xF8, 0xAD, 0xC3, 0x80, 0xED);
+	private static readonly Guid DisabledEffectId = new(0x6B972C66, 0x0987, 0x4A0F, 0xA2, 0x0F, 0xCB, 0xFC, 0x1B, 0x0F, 0x3D, 0x4B);
+
 	private readonly LightingDeviceViewModel _device;
 
 	public ReadOnlyCollection<LightingEffectViewModel> SupportedEffects { get; }
@@ -215,9 +217,17 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			}
 		}
 
+		// Quick hack to force an effect update in case the effect is "Not Applicable" (which would initially be the case for either the unified lighting zone or the other ones)
+		// This can be made better, but by doing this, it should ensure that toggling from unified to non-unified lighting actually does something.
+		var effectId = _currentEffect.EffectId;
+		if (effectId == NotAvailableEffectId)
+		{
+			effectId = DisabledEffectId;
+		}
+
 		return new()
 		{
-			EffectId = _currentEffect.EffectId,
+			EffectId = effectId,
 			Color = color.GetValueOrDefault(),
 			Speed = speed.GetValueOrDefault(),
 			ExtendedPropertyValues = propertyValues.DrainToImmutable()
