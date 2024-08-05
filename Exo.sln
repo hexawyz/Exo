@@ -167,7 +167,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.MonitorDatabaseCompiler
 EndProject
 Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "Exo.InstallerPackage", "Exo.InstallerPackage\Exo.InstallerPackage.wixproj", "{BFAD12E8-E09C-4137-A9E6-87C3FB0262FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Service.Core.Tests", "Exo.Service.Core.Tests\Exo.Service.Core.Tests.csproj", "{6F942D5B-74A3-4E51-8FB3-E85CF89D3FBA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Service.Core.Tests", "Exo.Service.Core.Tests\Exo.Service.Core.Tests.csproj", "{6F942D5B-74A3-4E51-8FB3-E85CF89D3FBA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceTools.Bluetooth", "DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj", "{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1197,6 +1199,22 @@ Global
 		{6F942D5B-74A3-4E51-8FB3-E85CF89D3FBA}.Release|x64.Build.0 = Release|Any CPU
 		{6F942D5B-74A3-4E51-8FB3-E85CF89D3FBA}.Release|x86.ActiveCfg = Release|Any CPU
 		{6F942D5B-74A3-4E51-8FB3-E85CF89D3FBA}.Release|x86.Build.0 = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|arm64.Build.0 = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|x64.Build.0 = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Debug|x86.Build.0 = Debug|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|arm64.ActiveCfg = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|arm64.Build.0 = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x64.ActiveCfg = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x64.Build.0 = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x86.ActiveCfg = Release|Any CPU
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1242,6 +1260,7 @@ Global
 		{2FEC262D-7BEA-4CCE-8FB4-98729385DF4F} = {59B8EF45-EA19-477D-B57C-5783B7B1C5CF}
 		{2E2024C9-8D54-4659-A0A5-23A13E78086E} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
 		{5C67F6F0-A3EF-4705-9641-B4449C1AA65B} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
+		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F} = {59B8EF45-EA19-477D-B57C-5783B7B1C5CF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9FEED7F-27EC-4720-9CAB-C2E6FDD8556D}
