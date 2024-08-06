@@ -29,6 +29,7 @@
 	We can revisit this later if needed, but for now this is way simpler.
 	-->
 	<ItemGroup>
+		<ProjectReference Include="..\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" />
 		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
 		<ProjectReference Include="..\DeviceTools.Firmware\DeviceTools.Firmware.csproj" />
 		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
