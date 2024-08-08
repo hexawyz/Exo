@@ -18,7 +18,7 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	[DataMember(Order = 2)]
 	public required string EffectTypeName { get; init; }
 
-	private readonly ImmutableArray<ConfigurablePropertyInformation> _properties;
+	private readonly ImmutableArray<ConfigurablePropertyInformation> _properties = [];
 
 	/// <summary>Gets the properties of the lighting effect.</summary>
 	/// <remarks>
@@ -42,7 +42,7 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 
 	public bool Equals(LightingEffectInformation? other)
 		=> other is not null &&
-			EffectId.Equals(other.EffectId) &&
+			EffectId == other.EffectId &&
 			EffectTypeName == other.EffectTypeName &&
 			Properties.SequenceEqual(other.Properties);
 

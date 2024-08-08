@@ -46,7 +46,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 	[DataMember(Order = 9)]
 	public string? Unit { get; init; }
 
-	private readonly ImmutableArray<EnumerationValue> _enumerationValues;
+	private readonly ImmutableArray<EnumerationValue> _enumerationValues = [];
 
 	/// <summary>Determines the allowed values if the field is an enumeration.</summary>
 	// NB: Might not be very efficient to have this here, since it would be replicated for every property if the same type is reused. Let's see how critical this is later.
@@ -75,7 +75,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			MinimumValue == other.MinimumValue &&
 			MaximumValue == other.MaximumValue &&
 			Unit == other.Unit &&
-			EnumerationValues.Equals(other.EnumerationValues) &&
+			EnumerationValues.SequenceEqual(other.EnumerationValues) &&
 			ArrayLength == other.ArrayLength;
 
 	public override int GetHashCode()
