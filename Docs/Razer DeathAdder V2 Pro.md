@@ -2703,23 +2703,32 @@ But, what could be the two previous bytes ?
 
 81 00 00 00 00 81 00 00 // FW maybe ?
 83 00 00 00 01 82 00 00
+81 00 00 00 01 80 00 00 // ??? (returns 5 bytes)
+83 00 00 00 01 82 00 00 // Read ?? (Two bytes)
 83 00 00 00 01 83 00 00 // Read serial number
-83 00 00 00 03 80 00 01
-05 02 00 00 05 04 00 00
-85 00 00 00 05 85 00 01
-85 00 00 00 05 81 00 01 // Read battery level
+85 00 00 00 01 84 00 00 // Read ?? (value `01`; does not seem to be the polling frequency, but maybe I need to check again)
 87 00 00 00 01 86 00 00
-0b 06 00 00 0b 01 00 00 // Set Mouse DPI
-8b 00 00 00 03 89 00 00
-0f 25 00 00 0b 04 01 00 // Set DPI values ?
-0f 01 00 00 05 0b 01 00 // ??
 91 00 00 00 01 90 00 00
+83 00 00 00 03 80 00 01
+8b 00 00 00 03 89 00 00
+85 00 00 00 05 80 00 00 // ??? (returns 5 bytes)
+85 00 00 00 05 81 00 01 // Read battery level
+07 01 00 00 05 02 00 01 // Write low power mode setting
+87 00 00 00 05 82 00 01 // Read low power mode setting
+05 02 00 00 05 04 00 00 // Write power saving setting
+85 00 00 00 05 84 00 00 // Read power saving setting
+85 00 00 00 05 85 00 00 // Read external power status
+0f 01 00 00 05 0b 01 00 // ??? (One byte; values `00` or `02` ?)
+0b 06 00 00 0b 01 00 00 // Set Mouse DPI
+0f 25 00 00 0b 04 01 00 // Set DPI values ?
+90 00 00 00 10 80 00 00 // ??? (Returns 6 bytes)
+92 00 00 00 10 82 00 00 // ??? (Returns 6 bytes)
 13 0a 00 00 10 03 01 00 // Set (persisted) lighting effect
 93 00 00 00 10 83 01 04 // Read (persisted) lighting effect
 14 08 00 00 10 04 00 00 // Set live color
 15 01 00 00 10 05 01 00 // Set brightness
 
-CC LL 0000 xx yy P1 P2
+C0 LL 0000 C1 C2 P1 P2
 
 The `14` command seems to be the dynamic color command, where the actual color is passed at the very end (of the second packet). Other parameters are unknown.
 The `15` command seems to be the brightness, as the value passed is `0x54` which is about 33%. (84/255)
@@ -2728,3 +2737,21 @@ The `0b` command seems to be used to define the current DPI using explicit value
 
 NB: It looks that byte `yy` is also correlated with reads or writes. We can see the MSB being correlated with the MSB of the command ID. 
 ⚠️ It seems that messing up the matching can make the device behave weird.
+
+After poking with the commands above, I suspect that the two btyes (that I have now named `C1` and `C2`) are actually the command.
+That is also supported by mistakes I made during the dev when a dpi command that should have been a read acutally changed the behavior of the device.
+
+My hypothesis is that the first byte (labelled `C0` here) is actually an arbitrary number used to match the command response in the output stream. (Packets are received as notifications on the read GATT characteristic)
+Looking above, it seems that this byte would always be computed as `C0 = C1 | C2`, but it would not be strictly necessary.
+As, in the tentatives I did, I actually changed `C2` without touching `C0` and still got the correct results.
+
+Actually, the following two commands return the same result:
+
+85 00 00 00 05 82 00 00
+87 00 00 00 05 82 00 00
+
+The second here (`87`) would be the "correct" one according to what is done from Synapse, but the two work the same.
+
+So, in that case, `C1` would be the "feature category", and `C2` would be the actual command, similar to what is done for the USB protocol.
+However, all values are different from the USB protocol. Functions seem to be somewhat ordered similarly, but categories are not.
+e.g. Lighting is `0f` in the USB protocol but `10` in the BLE protocol; Power is `07` in the USB protocol but `05` in the BLE protocol.

@@ -135,6 +135,14 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			=> data[0];
 	}
 
+	private sealed class BooleanWaitState : WaitState<bool>
+	{
+		public BooleanWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
+
+		protected override bool ProcessData(ReadOnlySpan<byte> data)
+			=> data[0] != 0;
+	}
+
 	private sealed class LightingEffectWaitState : WaitState<ILightingEffect?>
 	{
 		public LightingEffectWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
@@ -618,8 +626,42 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	// TODO
-	public ValueTask<bool> IsConnectedToExternalPowerAsync(CancellationToken cancellationToken) => ValueTask.FromResult(false);
+	public async ValueTask<bool> IsConnectedToExternalPowerAsync(CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 85 00 00 00 05 85 00 00
+			((uint*)buffer)[1] = 0x_00_00_00_85;
+			((uint*)buffer)[2] = 0x_00_00_85_05;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new BooleanWaitState(_readBuffer, 0x85);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
 
 	public ValueTask<bool> HandshakeAsync(CancellationToken cancellationToken) => ValueTask.FromResult(true);
 
