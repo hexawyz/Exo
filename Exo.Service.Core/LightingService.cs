@@ -453,6 +453,23 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				Brightness = brightness
 			};
 
+			await deviceState.DeviceConfigurationContainer.WriteValueAsync
+			(
+				new PersistedLightingDeviceInformation
+				{
+					UnifiedLightingZoneId = unifiedLightingFeature is not null ? unifiedLightingZoneId : null,
+					BrightnessCapabilities = brightnessCapabilities
+				},
+				cancellationToken
+			).ConfigureAwait(false);
+
+			await PersistDeviceConfigurationAsync
+			(
+				deviceState.DeviceConfigurationContainer,
+				deviceState.CreatePersistedConfiguration(),
+				cancellationToken
+			).ConfigureAwait(false);
+
 			foreach (var kvp in lightingZoneStates)
 			{
 				await deviceState.LightingZonesConfigurationContainer.WriteValueAsync
