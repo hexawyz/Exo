@@ -127,6 +127,14 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			=> Encoding.UTF8.GetString(data.TrimEnd((byte)0));
 	}
 
+	private sealed class ByteWaitState : WaitState<byte>
+	{
+		public ByteWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
+
+		protected override byte ProcessData(ReadOnlySpan<byte> data)
+			=> data[0];
+	}
+
 	private sealed class LightingEffectWaitState : WaitState<ILightingEffect?>
 	{
 		public LightingEffectWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
@@ -573,8 +581,44 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
+	public async ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 85 00 00 00 05 81 00 01
+			((uint*)buffer)[1] = 0x_00_00_00_85;
+			((uint*)buffer)[2] = 0x_01_00_81_05;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new ByteWaitState(_readBuffer, 0x85);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
 	// TODO
-	public ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken) => ValueTask.FromResult<byte>(100);
 	public ValueTask<bool> IsConnectedToExternalPowerAsync(CancellationToken cancellationToken) => ValueTask.FromResult(false);
 
 	public ValueTask<bool> HandshakeAsync(CancellationToken cancellationToken) => ValueTask.FromResult(true);

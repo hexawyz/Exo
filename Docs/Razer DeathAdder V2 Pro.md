@@ -2701,13 +2701,13 @@ In that case, comparing to the non-bluetooth protocol, we were missing two bytes
 
 But, what could be the two previous bytes ?
 
-81 00 0000 00 81 00 00
+81 00 0000 00 81 00 00 // FW maybe ?
 83 00 0000 01 82 00 00
-83 00 0000 01 83 00 00
+83 00 0000 01 83 00 00 // Read serial number
 83 00 0000 03 80 00 01
 05 02 0000 05 04 00 00
 85 00 0000 05 85 00 01
-85 00 0000 05 81 00 01
+85 00 0000 05 81 00 01 // Read battery level
 85 00 0000 05 85 00 01
 87 00 0000 01 86 00 00
 0b 06 0000 0b 01 00 00 // Set Mouse DPI
