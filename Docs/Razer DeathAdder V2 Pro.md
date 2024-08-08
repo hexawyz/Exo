@@ -2701,24 +2701,23 @@ In that case, comparing to the non-bluetooth protocol, we were missing two bytes
 
 But, what could be the two previous bytes ?
 
-81 00 0000 00 81 00 00 // FW maybe ?
-83 00 0000 01 82 00 00
-83 00 0000 01 83 00 00 // Read serial number
-83 00 0000 03 80 00 01
-05 02 0000 05 04 00 00
-85 00 0000 05 85 00 01
-85 00 0000 05 81 00 01 // Read battery level
-85 00 0000 05 85 00 01
-87 00 0000 01 86 00 00
-0b 06 0000 0b 01 00 00 // Set Mouse DPI
-8b 00 0000 03 89 00 00
-0f 25 0000 0b 04 01 00 // Set DPI values ?
-0f 01 0000 05 0b 01 00 // ??
-91 00 0000 01 90 00 00
-13 0a 0000 10 03 01 00 // Set (persisted) lighting effect
-93 00 0000 10 83 01 04 // Read (persisted) lighting effect
-14 08 0000 10 04 00 00 // Set live color
-15 01 0000 10 05 01 00 // Set brightness
+81 00 00 00 00 81 00 00 // FW maybe ?
+83 00 00 00 01 82 00 00
+83 00 00 00 01 83 00 00 // Read serial number
+83 00 00 00 03 80 00 01
+05 02 00 00 05 04 00 00
+85 00 00 00 05 85 00 01
+85 00 00 00 05 81 00 01 // Read battery level
+87 00 00 00 01 86 00 00
+0b 06 00 00 0b 01 00 00 // Set Mouse DPI
+8b 00 00 00 03 89 00 00
+0f 25 00 00 0b 04 01 00 // Set DPI values ?
+0f 01 00 00 05 0b 01 00 // ??
+91 00 00 00 01 90 00 00
+13 0a 00 00 10 03 01 00 // Set (persisted) lighting effect
+93 00 00 00 10 83 01 04 // Read (persisted) lighting effect
+14 08 00 00 10 04 00 00 // Set live color
+15 01 00 00 10 05 01 00 // Set brightness
 
 CC LL 0000 xx yy P1 P2
 
