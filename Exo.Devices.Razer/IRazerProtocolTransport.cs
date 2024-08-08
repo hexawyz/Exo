@@ -10,10 +10,10 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken);
 	ValueTask<bool> IsConnectedToExternalPowerAsync(CancellationToken cancellationToken);
 
-	ValueTask<DotsPerInch> GetDpiAsync(CancellationToken cancellationToken);
-	ValueTask SetDpiAsync(DotsPerInch dpi, CancellationToken cancellationToken);
+	ValueTask<DotsPerInch> GetDpiAsync(bool persisted, CancellationToken cancellationToken);
+	ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken);
 	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken);
-	ValueTask SetDpiProfilesAsync(bool persisted, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
+	ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
 
 	ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken);
 	ValueTask SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken);

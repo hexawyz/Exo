@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Security.AccessControl;
 using System.Text;
 using DeviceTools;
 using Exo.ColorFormats;
@@ -644,18 +643,28 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 		}
 	}
 
-	public static DotsPerInch ParseDpi(ReadOnlySpan<byte> buffer)
-		=> new (BigEndian.ReadUInt16(buffer[1]), BigEndian.ReadUInt16(buffer[3]));
+	public static DotsPerInch ParseDpi(ReadOnlySpan<byte> buffer, bool bigEndian)
+		=> bigEndian ?
+			new(BigEndian.ReadUInt16(buffer[0]), BigEndian.ReadUInt16(buffer[2])) :
+			new(LittleEndian.ReadUInt16(buffer[0]), LittleEndian.ReadUInt16(buffer[2]));
 
-	public static void WriteDpi(Span<byte> buffer, DotsPerInch dpi)
+	public static void WriteDpi(Span<byte> buffer, DotsPerInch dpi, bool bigEndian)
 	{
-		buffer[0] = 0;
-		BigEndian.Write(ref buffer[1], dpi.Horizontal);
-		BigEndian.Write(ref buffer[3], dpi.Vertical);
-		buffer[5] = 0;
+		if (bigEndian)
+		{
+			BigEndian.Write(ref buffer[0], dpi.Horizontal);
+			BigEndian.Write(ref buffer[2], dpi.Vertical);
+			BigEndian.Write(ref buffer[4], 0);
+		}
+		else
+		{
+			LittleEndian.Write(ref buffer[0], dpi.Horizontal);
+			LittleEndian.Write(ref buffer[2], dpi.Vertical);
+			LittleEndian.Write(ref buffer[4], 0);
+		}
 	}
 
-	public async ValueTask<DotsPerInch> GetDpiAsync(CancellationToken cancellationToken)
+	public async ValueTask<DotsPerInch> GetDpiAsync(bool persisted, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -663,7 +672,7 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 		{
 			var buffer = Buffer;
 
-			static void FillBuffer(Span<byte> buffer)
+			static void FillBuffer(Span<byte> buffer, bool persisted)
 			{
 				buffer[2] = 0x1f;
 
@@ -671,15 +680,17 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 				buffer[7] = (byte)RazerDeviceFeature.Mouse;
 				buffer[8] = 0x85;
 
+				buffer[9] = persisted ? (byte)1 : (byte)0;
+
 				UpdateChecksum(buffer);
 			}
 
 			static DotsPerInch ParseResponse(ReadOnlySpan<byte> buffer)
-				=> ParseDpi(buffer[9..]);
+				=> ParseDpi(buffer[10..], true);
 
 			try
 			{
-				FillBuffer(buffer.Span);
+				FillBuffer(buffer.Span, persisted);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 
@@ -695,7 +706,7 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 		}
 	}
 
-	public async ValueTask SetDpiAsync(DotsPerInch dpi, CancellationToken cancellationToken)
+	public async ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -703,7 +714,7 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 		{
 			var buffer = Buffer;
 
-			static void FillBuffer(Span<byte> buffer, DotsPerInch dpi)
+			static void FillBuffer(Span<byte> buffer, bool persist, DotsPerInch dpi)
 			{
 				buffer[2] = 0x1f;
 
@@ -711,14 +722,16 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 				buffer[7] = (byte)RazerDeviceFeature.Mouse;
 				buffer[8] = 0x05;
 
-				WriteDpi(buffer[9..], dpi);
+				buffer[9] = persist ? (byte)1 : (byte)0;
+
+				WriteDpi(buffer[10..], dpi, true);
 
 				UpdateChecksum(buffer);
 			}
 
 			try
 			{
-				FillBuffer(buffer.Span, dpi);
+				FillBuffer(buffer.Span, persist, dpi);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 

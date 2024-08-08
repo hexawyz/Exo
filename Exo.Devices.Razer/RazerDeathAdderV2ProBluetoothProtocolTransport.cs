@@ -138,7 +138,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	{
 		public DpiWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
 
-		protected override DotsPerInch ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpi(data);
+		protected override DotsPerInch ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpi(data, false);
 	}
 
 	private sealed class DpiProfilesWaitState : WaitState<RazerMouseDpiProfileConfiguration>
@@ -397,7 +397,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask<DotsPerInch> GetDpiAsync(CancellationToken cancellationToken)
+	public async ValueTask<DotsPerInch> GetDpiAsync(bool persisted, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted)
 		{
@@ -417,7 +417,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			Volatile.Write(ref _waitState, waitState);
 			try
 			{
-				WriteData(_serviceHandle, in _writeCharacteristic, true);
+				WriteData(_serviceHandle, in _writeCharacteristic, persisted);
 				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 				{
 					cts.CancelAfter(_operationTimeout);
@@ -436,7 +436,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask SetDpiAsync(DotsPerInch dpi, CancellationToken cancellationToken)
+	public async ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, DotsPerInch dpi)
 		{
@@ -449,7 +449,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			buffer[4 + 7] = 0;
 			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
 			((uint*)buffer)[0] = 6;
-			RazerProtocolTransport.WriteDpi(new Span<byte>(&buffer[4], 6), dpi);
+			RazerProtocolTransport.WriteDpi(new Span<byte>(&buffer[4], 6), dpi, false);
 			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
 		}
 
@@ -459,7 +459,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			Volatile.Write(ref _waitState, waitState);
 			try
 			{
-				WriteData(_serviceHandle, in _writeCharacteristic, true, dpi);
+				WriteData(_serviceHandle, in _writeCharacteristic, persist, dpi);
 				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 				{
 					cts.CancelAfter(_operationTimeout);

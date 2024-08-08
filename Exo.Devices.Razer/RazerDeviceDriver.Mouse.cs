@@ -43,7 +43,7 @@ public abstract partial class RazerDeviceDriver
 
 			var dpiLevels = await _transport.GetDpiProfilesAsync(false, cancellationToken).ConfigureAwait(false);
 			_dpiProfiles = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!, p => new DotsPerInch(p.X, p.Y));
-			var dpi = await _transport.GetDpiAsync(cancellationToken).ConfigureAwait(false);
+			var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
 			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
 		}
 
