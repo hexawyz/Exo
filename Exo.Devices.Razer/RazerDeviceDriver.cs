@@ -135,6 +135,10 @@ public abstract partial class RazerDeviceDriver :
 
 	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
 
+	// This is the GUID of the BLE GATT service used by Razer DeathAdder V2 Pro and possibly other devices.
+	// The BLE protocol is different from the USB HID protocol and does not require a kernel driver. Instead, it uses a custom BLE service exposed by the device.
+	private static readonly Guid RazerGattServiceGuid = new(0x52401523, 0xF97C, 0x7F90, 0x0E, 0x7F, 0x6C, 0x6F, 0x4E, 0x36, 0xDB, 0x1C);
+
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
 	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
 
@@ -218,7 +222,7 @@ public abstract partial class RazerDeviceDriver :
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // DeathAdder V2 Pro Mouse Wired
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock
-	//[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
 	public static async Task<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
@@ -238,8 +242,9 @@ public abstract partial class RazerDeviceDriver :
 		// 2 - We need predefined lighting zone GUIDs. (Maybe we could generate these from VID/PID pairs to avoid this manual mapping ?)
 		var deviceInfo = GetDeviceInformation(productId);
 
-		string? razerControlDeviceName = null;
-		string? notificationDeviceName = null;
+		string? razerControlDeviceInterfaceName = null;
+		string? notificationDeviceInterfaceName = null;
+		string? razerGattServiceDeviceInterfaceName = null;
 
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
@@ -252,12 +257,12 @@ public abstract partial class RazerDeviceDriver :
 
 			if (interfaceClassGuid == RazerControlDeviceInterfaceClassGuid)
 			{
-				if (razerControlDeviceName is not null)
+				if (razerControlDeviceInterfaceName is not null)
 				{
 					throw new InvalidOperationException("Expected a single device interface for Razer device control.");
 				}
 
-				razerControlDeviceName = deviceInterface.Id;
+				razerControlDeviceInterfaceName = deviceInterface.Id;
 			}
 			else if (interfaceClassGuid == DeviceInterfaceClassGuids.Hid)
 			{
@@ -276,26 +281,38 @@ public abstract partial class RazerDeviceDriver :
 						// (Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
 						if (descriptor.InputReports[0].ReportId == 5)
 						{
-							if (notificationDeviceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
+							if (notificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
 
-							notificationDeviceName = deviceInterface.Id;
+							notificationDeviceInterfaceName = deviceInterface.Id;
 						}
 					}
 				}
 			}
+			else if (interfaceClassGuid == DeviceInterfaceClassGuids.BluetoothGattService)
+			{
+				if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Bluetooth.ServiceGuid.Key, out Guid serviceGuid) && serviceGuid == RazerGattServiceGuid)
+				{
+					razerGattServiceDeviceInterfaceName = deviceInterface.Id;
+				}
+			}
 		}
 
-		if (razerControlDeviceName is null)
+		if (razerControlDeviceInterfaceName is null && razerGattServiceDeviceInterfaceName is null)
 		{
 			throw new InvalidOperationException("The device interface for Razer device control was not found.");
 		}
 
-		if (notificationDeviceName is null)
+		if (notificationDeviceInterfaceName is null)
 		{
 			throw new InvalidOperationException("The device interface for device notifications was not found.");
 		}
 
-		var transport = new RazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceName, DeviceAccess.None), FileAccess.ReadWrite));
+		// Instanciate either an USB or BT LE transport depending on the configuration.
+		// ⚠️ Only Razer DeathAdder V2 Pro is supported, especially for BT LE. Other devices may or may not be compatible, but it must be verified using USB/BT LE dumps.
+		// NB: We try to open the BLE device in exclusive mode in order to avoid conflict with other software.
+		IRazerProtocolTransport transport = razerGattServiceDeviceInterfaceName is not null ?
+			new RazerDeathAdderV2ProBluetoothProtocolTransport(Device.OpenHandle(razerGattServiceDeviceInterfaceName, DeviceAccess.ReadWrite, FileShare.None), 1_000) :
+			new RazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceInterfaceName!, DeviceAccess.None, FileShare.None), FileAccess.ReadWrite));
 
 		string? serialNumber = null;
 
@@ -308,7 +325,7 @@ public abstract partial class RazerDeviceDriver :
 		(
 			transport,
 			new(60_000),
-			new(notificationDeviceName),
+			new(notificationDeviceInterfaceName),
 			driverRegistry,
 			version,
 			deviceInfo,
@@ -329,7 +346,7 @@ public abstract partial class RazerDeviceDriver :
 
 	private static async ValueTask<RazerDeviceDriver> CreateDeviceAsync
 	(
-		RazerProtocolTransport transport,
+		IRazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		HidFullDuplexStream notificationStream,
 		Optional<IDriverRegistry> driverRegistry,
@@ -414,7 +431,7 @@ public abstract partial class RazerDeviceDriver :
 
 	private static async ValueTask<RazerDeviceDriver> CreateChildDeviceAsync
 	(
-		RazerProtocolTransport transport,
+		IRazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		DeviceIdSource deviceIdSource,
 		ushort versionNumber,
@@ -490,7 +507,7 @@ public abstract partial class RazerDeviceDriver :
 	}
 
 	// The transport is used to communicate with the device.
-	private readonly RazerProtocolTransport _transport;
+	private readonly IRazerProtocolTransport _transport;
 
 	// The periodic event generator is used to manage periodic events on the transport.
 	// It *could* be merged with the transport for practical reasons but the two features are not related enough.
@@ -519,7 +536,7 @@ public abstract partial class RazerDeviceDriver :
 
 	private RazerDeviceDriver
 	(
-		RazerProtocolTransport transport,
+		IRazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,

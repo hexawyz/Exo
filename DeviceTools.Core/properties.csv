@@ -156,6 +156,11 @@ System.Devices.InstallState,{a45c254e-df1c-4efd-8020-67d146a850e0},36,UInt32,Fal
 System.Devices.LocationPaths,{a45c254e-df1c-4efd-8020-67d146a850e0},37,StringList,True
 System.Devices.BaseContainerId,{a45c254e-df1c-4efd-8020-67d146a850e0},38,Guid,False
 System.Devices.DevObjectType,{13673f42-a3d6-49f6-b4da-ae46e0c5237c},2,UInt32,True
+System.Devices.Aep.Bluetooth.Le.Appearance,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},1,UInt16,True
+System.Devices.Aep.Bluetooth.Le.AddressType,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},4,Byte,True
+System.Devices.Aep.Bluetooth.Le.Category,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},5,UInt16,True
+System.Devices.Aep.Bluetooth.Le.Subcategory,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},6,UInt16,True
+System.Devices.Aep.Bluetooth.Le.IsConnectable,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},8,Boolean,True
 System.DeviceInterface.Bluetooth.DeviceAddress,{2bd67d8b-8beb-48d5-87e0-6cda3428040a},1,String,True
 System.DeviceInterface.Bluetooth.ServiceGuid,{2bd67d8b-8beb-48d5-87e0-6cda3428040a},2,Guid,True
 System.DeviceInterface.Bluetooth.Flags,{2bd67d8b-8beb-48d5-87e0-6cda3428040a},3,UInt32,True

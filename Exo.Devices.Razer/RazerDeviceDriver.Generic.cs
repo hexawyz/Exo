@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using DeviceTools;
 
 namespace Exo.Devices.Razer;
@@ -10,7 +10,7 @@ public abstract partial class RazerDeviceDriver
 		public override DeviceCategory DeviceCategory { get; }
 
 		public Generic(
-			RazerProtocolTransport transport,
+			IRazerProtocolTransport transport,
 			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			DeviceCategory deviceCategory,
 			Guid lightingZoneId,

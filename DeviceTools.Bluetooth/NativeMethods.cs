@@ -7,11 +7,16 @@ namespace DeviceTools.Bluetooth;
 [SuppressUnmanagedCodeSecurity]
 internal static class NativeMethods
 {
+	public const uint ErrorMoreData = 0x800700ea;
+
 	private const string BluetoothLibraryName = "BluetoothAPIs";
 
 	[StructLayout(LayoutKind.Explicit)]
 	public readonly struct ShortOrLongUuid
 	{
+		public ShortOrLongUuid(Guid longId) => LongUuid = longId;
+		public ShortOrLongUuid(ushort shortId) => ShortUuid = shortId;
+
 		[FieldOffset(0)]
 		public readonly Guid LongUuid;
 		[FieldOffset(0)]
@@ -21,7 +26,19 @@ internal static class NativeMethods
 	[StructLayout(LayoutKind.Sequential)]
 	public readonly struct BluetoothLeUuid
 	{
-		public readonly byte IsShortUuid;
+		public BluetoothLeUuid(Guid longId)
+		{
+			IsShortUuid = 0;
+			Value = new(longId);
+		}
+
+		public BluetoothLeUuid(ushort shortId)
+		{
+			IsShortUuid = 1;
+			Value = new(shortId);
+		}
+
+		public readonly byte IsShortUuid { get; }
 		public readonly ShortOrLongUuid Value { get; }
 	}
 
@@ -35,18 +52,18 @@ internal static class NativeMethods
 	[StructLayout(LayoutKind.Sequential)]
 	public readonly struct BluetoothLeGattCharacteristic
 	{
-		public readonly ushort ServiceHandle { get; }
-		public readonly BluetoothLeUuid CharacteristicUuid { get; }
-		public readonly ushort AttributeHandle { get; }
-		public readonly ushort CharacteristicValueHandle { get; }
-		public readonly byte IsBroadcastable { get; }
-		public readonly byte IsReadable { get; }
-		public readonly byte IsWritable { get; }
-		public readonly byte IsWritableWithoutResponse { get; }
-		public readonly byte IsSignedWritable { get; }
-		public readonly byte IsNotifiable { get; }
-		public readonly byte IsIndicatable { get; }
-		public readonly byte HasExtendedProperties { get; }
+		public readonly ushort ServiceHandle { get; init; }
+		public readonly BluetoothLeUuid CharacteristicUuid { get; init; }
+		public readonly ushort AttributeHandle { get; init; }
+		public readonly ushort CharacteristicValueHandle { get; init; }
+		public readonly byte IsBroadcastable { get; init; }
+		public readonly byte IsReadable { get; init; }
+		public readonly byte IsWritable { get; init; }
+		public readonly byte IsWritableWithoutResponse { get; init; }
+		public readonly byte IsSignedWritable { get; init; }
+		public readonly byte IsNotifiable { get; init; }
+		public readonly byte IsIndicatable { get; init; }
+		public readonly byte HasExtendedProperties { get; init; }
 	}
 
 	public enum BluetoothLeGattDescriptorType
@@ -77,9 +94,18 @@ internal static class NativeMethods
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	public readonly struct BluetoothLeGattCharacteristicValueChangedEventRegistrationHeader
+	public struct BluetoothLeGattCharacteristicValueChangedEventRegistrationHeader
 	{
-		public readonly uint DataSize;
+		public uint CharacteristicCount;
+		public BluetoothLeGattCharacteristic FirstCharacteristic;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	public unsafe readonly struct BluetoothLeGattCharacteristicValueChangedEvent
+	{
+		public readonly ushort ChangedAttributeHandle;
+		public readonly nint CharacteristicValueDataSize;
+		public readonly void* Value;
 	}
 
 	[StructLayout(LayoutKind.Explicit)]
@@ -179,7 +205,7 @@ internal static class NativeMethods
 	public static unsafe extern uint BluetoothGattSetDescriptorValue(SafeFileHandle deviceHandle, BluetoothLeGattDescriptor* descriptor, byte* value, BluetoothGattFlags flags);
 
 	[DllImport(BluetoothLibraryName, EntryPoint = "BluetoothGATTRegisterEvent", ExactSpelling = true, SetLastError = false)]
-	public static unsafe extern uint BluetoothGattRegisterEvent(SafeFileHandle deviceHandle, BluetoothLeGattEventType eventType, byte* registrationDetails, delegate* unmanaged[Stdcall]<BluetoothLeGattEventType, void*, void*, void> callback, void* callbackContext, out nint eventHandle, BluetoothGattFlags flags);
+	public static unsafe extern uint BluetoothGattRegisterEvent(SafeFileHandle deviceHandle, BluetoothLeGattEventType eventType, void* registrationDetails, delegate* unmanaged[Stdcall]<BluetoothLeGattEventType, void*, void*, void> callback, nint callbackContext, out nint eventHandle, BluetoothGattFlags flags);
 
 	[DllImport(BluetoothLibraryName, EntryPoint = "BluetoothGATTUnregisterEvent", ExactSpelling = true, SetLastError = false)]
 	public static unsafe extern uint BluetoothGattUnregisterEvent(nint eventHandle, BluetoothGattFlags flags);

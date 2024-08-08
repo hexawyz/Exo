@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using Exo.Features;
@@ -23,7 +23,7 @@ public abstract partial class RazerDeviceDriver
 		private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
 
 		public Mouse(
-			RazerProtocolTransport transport,
+			IRazerProtocolTransport transport,
 			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,

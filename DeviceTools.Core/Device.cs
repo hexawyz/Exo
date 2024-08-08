@@ -28,9 +28,26 @@ public static class Device
 	/// </para>
 	/// </remarks>
 	/// <param name="deviceName">The name of the device file.</param>
-	/// <param name="access">The required access</param>
+	/// <param name="access">The required access.</param>
 	/// <returns>A safe file handle, that can be used to issue IO control, or to create a <see cref="FileStream"/> instance if required.</returns>
 	public static SafeFileHandle OpenHandle(string deviceName, DeviceAccess access)
+		=> OpenHandle(deviceName, access, FileShare.ReadWrite);
+
+	/// <summary>Opens a device file.</summary>
+	/// <remarks>
+	/// <para>
+	/// Use of this function is required to open device because <see cref="FileStream"/> won't agree to randomly opening device files.
+	/// This is somewhat understandable, though, as <see cref="FileStream"/> was conceived as a stream and may lack sufficient features to operate on devices.
+	/// </para>
+	/// <para>
+	/// Driver device file names will usually be of the form <c>\\.\DeviceName</c> or <c>\\?\DosDeviceName</c>. This is a name (symlink) defined by the driver.
+	/// </para>
+	/// </remarks>
+	/// <param name="deviceName">The name of the device file.</param>
+	/// <param name="access">The required access.</param>
+	/// <param name="share">The desired sharing parameters.</param>
+	/// <returns>A safe file handle, that can be used to issue IO control, or to create a <see cref="FileStream"/> instance if required.</returns>
+	public static SafeFileHandle OpenHandle(string deviceName, DeviceAccess access, FileShare share)
 	{
 		// File.OpenHandle was added in .NET 6.0 for Random file access, so we should be able to directly rely on it instead of doing manual interop.
 #if NET6_0_OR_GREATER
@@ -58,7 +75,7 @@ public static class Device
 			deviceName,
 			FileMode.Open,
 			fileAccess,
-			FileShare.ReadWrite,
+			share,
 			fileOptions,
 			0
 		);

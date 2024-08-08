@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using DeviceTools;
 using Exo.ColorFormats;
 using Exo.Devices.Razer.LightingEffects;
@@ -10,7 +9,7 @@ using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Razer;
 
-internal sealed class RazerProtocolTransport : IDisposable
+internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransport
 {
 	private const int SetFeatureIoControlCode = unchecked((int)0x88883010);
 	private const int GetFeatureIoControlCode = unchecked((int)0x88883014);
@@ -172,20 +171,69 @@ internal sealed class RazerProtocolTransport : IDisposable
 	//	}
 	//}
 
-	[StructLayout(LayoutKind.Sequential, Size = 7)]
-	private readonly struct RawDpiProfile
+	[StructLayout(LayoutKind.Sequential, Size = 5)]
+	private readonly struct RawDpiProfileBigEndian
 	{
 		public readonly byte Index;
 		private readonly byte _dpiX0;
 		private readonly byte _dpiX1;
 		private readonly byte _dpiY0;
 		private readonly byte _dpiY1;
-		private readonly byte _dpiZ0;
-		private readonly byte _dpiZ1;
 
 		public ushort DpiX => BigEndian.ReadUInt16(_dpiX0);
 		public ushort DpiY => BigEndian.ReadUInt16(_dpiY0);
-		public ushort DpiZ => BigEndian.ReadUInt16(_dpiZ0);
+	}
+
+	[StructLayout(LayoutKind.Sequential, Size = 5)]
+	private readonly struct RawDpiProfileLittleEndian
+	{
+		public readonly byte Index;
+		private readonly byte _dpiX0;
+		private readonly byte _dpiX1;
+		private readonly byte _dpiY0;
+		private readonly byte _dpiY1;
+
+		public ushort DpiX => LittleEndian.ReadUInt16(_dpiX0);
+		public ushort DpiY => LittleEndian.ReadUInt16(_dpiY0);
+	}
+
+	public static RazerMouseDpiProfileStatus ParseDpiProfiles(ReadOnlySpan<byte> buffer, bool bigEndian)
+	{
+		byte profileCount = buffer[1];
+
+		// In the 80 available bytes, we could only retrieve up to 11 profiles exactly.
+		if (profileCount > 11) throw new InvalidDataException("Returned profile count is too big.");
+
+		var profiles = new RazerMouseDpiProfile[profileCount];
+
+		// In the Bluetooth protocol, it seems that the data can be truncated by one byte if we assume profiles to be 7 bytes.
+		// Maybe the command I reverse-engineered is wrong somehow, or it is an expected behavior.
+		// Anyway, we do the computation below assuming that the profiles are 5 bytes separated by two filler bytes that we don't use.
+		// In that way, the "missing" bytes from the Bluetooth response don't matter as much.
+		int expectedDataLength = 2 + 5 * profileCount + (profileCount > 0 ? 2 * (profileCount - 1) : 0);
+		if (expectedDataLength > buffer.Length) throw new InvalidDataException("Invalid data length");
+
+		ref readonly byte profileStart = ref buffer[2];
+		for (int i = 0; i < profileCount; i++)
+		{
+			// For some reason, it seems that the USB-based protocol uses big endian, while the Bluetooth protocol uses little endian values…
+			// I can't really make a lot of sense of this, but it is what it is.
+			if (bigEndian)
+			{
+				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in profileStart));
+				if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
+				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, 0);
+			}
+			else
+			{
+				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileLittleEndian>(ref Unsafe.AsRef(in profileStart));
+				if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
+				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, 0);
+			}
+			profileStart = ref Unsafe.Add(ref Unsafe.AsRef(in profileStart), 7);
+		}
+
+		return new(buffer[0], ImmutableCollectionsMarshal.AsImmutableArray(profiles));
 	}
 
 	public async ValueTask<RazerMouseDpiProfileStatus> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
@@ -210,26 +258,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 			}
 
 			static RazerMouseDpiProfileStatus ReadResponse(Span<byte> buffer)
-			{
-				var message = buffer.Slice(9);
-
-				byte profileCount = message[2];
-
-				// In the 80 available bytes, we could only retrieve up to 11 profiles exactly.
-				if (profileCount > 11) throw new InvalidDataException("Returned profile count is too big.");
-
-				var profiles = new RazerMouseDpiProfile[profileCount];
-				var rawProfiles = MemoryMarshal.Cast<byte, RawDpiProfile>(message.Slice(3, Unsafe.SizeOf<RawDpiProfile>() * profileCount));
-
-				for (int i = 0; i < profiles.Length; i++)
-				{
-					ref readonly var rawProfile = ref rawProfiles[i];
-					if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
-					profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, rawProfile.DpiZ);
-				}
-
-				return new(message[1], ImmutableCollectionsMarshal.AsImmutableArray(profiles));
-			}
+				=> ParseDpiProfiles(buffer[10..], true);
 
 			try
 			{
@@ -249,7 +278,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 	}
 
 	// NB: I'm really unsure about this one. It could be used entirely wrong, but it seems to return an info we need?
-	internal async ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken)
+	public async ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -286,6 +315,54 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
+	public static ILightingEffect? ParseEffect(ReadOnlySpan<byte> buffer)
+	{
+		byte colorCount = buffer[3];
+		RgbColor color1 = colorCount > 0 ? new(buffer[4], buffer[5], buffer[6]) : default;
+		RgbColor color2 = colorCount > 1 ? new(buffer[7], buffer[8], buffer[9]) : default;
+
+		return (RazerLightingEffect)buffer[0] switch
+		{
+			RazerLightingEffect.Disabled => DisabledEffect.SharedInstance,
+			RazerLightingEffect.Static => new StaticColorEffect(color1),
+			RazerLightingEffect.Breathing => colorCount switch
+			{
+				0 => RandomColorPulseEffect.SharedInstance,
+				1 => new ColorPulseEffect(color1),
+				_ => new TwoColorPulseEffect(color1, color2),
+			},
+			RazerLightingEffect.SpectrumCycle => SpectrumCycleEffect.SharedInstance,
+			RazerLightingEffect.Wave => SpectrumWaveEffect.SharedInstance,
+			RazerLightingEffect.Reactive => new ReactiveEffect(color1),
+			_ => null,
+		};
+	}
+
+	public static int WriteEffect(Span<byte> buffer, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2)
+	{
+		buffer[0] = (byte)effect;
+		buffer[1] = 0x01;
+		buffer[2] = 0x28;
+
+		if (colorCount > 0)
+		{
+			buffer[3] = colorCount;
+
+			buffer[4] = color1.R;
+			buffer[5] = color1.G;
+			buffer[6] = color1.B;
+			if (colorCount > 1)
+			{
+				buffer[7] = color2.R;
+				buffer[8] = color2.G;
+				buffer[9] = color2.B;
+				return 10;
+			}
+			return 7;
+		}
+		return 3;
+	}
+
 	public async ValueTask<ILightingEffect?> GetSavedEffectAsync(byte flag, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
@@ -308,28 +385,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 				UpdateChecksum(buffer);
 			}
 
-			static ILightingEffect? ParseResponse(ReadOnlySpan<byte> buffer)
-			{
-				byte colorCount = buffer[14];
-				RgbColor color1 = colorCount > 0 ? new(buffer[15], buffer[16], buffer[17]) : default;
-				RgbColor color2 = colorCount > 1 ? new(buffer[18], buffer[19], buffer[20]) : default;
-
-				return (RazerLightingEffect)buffer[11] switch
-				{
-					RazerLightingEffect.Disabled => DisabledEffect.SharedInstance,
-					RazerLightingEffect.Static => new StaticColorEffect(color1),
-					RazerLightingEffect.Breathing => colorCount switch
-					{
-						0 => RandomColorPulseEffect.SharedInstance,
-						1 => new ColorPulseEffect(color1),
-						_ => new TwoColorPulseEffect(color1, color2),
-					},
-					RazerLightingEffect.SpectrumCycle => SpectrumCycleEffect.SharedInstance,
-					RazerLightingEffect.Wave => SpectrumWaveEffect.SharedInstance,
-					RazerLightingEffect.Reactive => new ReactiveEffect(color1),
-					_ => null,
-				};
-			}
+			static ILightingEffect? ParseResponse(ReadOnlySpan<byte> buffer) => ParseEffect(buffer[11..]);
 
 			try
 			{
@@ -367,24 +423,8 @@ internal sealed class RazerProtocolTransport : IDisposable
 
 				buffer[9] = persist ? (byte)0x01 : (byte)0x00;
 				buffer[10] = 0x00;
-				buffer[11] = (byte)effect;
-				buffer[12] = 0x01;
-				buffer[13] = 0x28;
 
-				if (colorCount > 0)
-				{
-					buffer[14] = colorCount;
-
-					buffer[15] = color1.R;
-					buffer[16] = color1.G;
-					buffer[17] = color1.B;
-					if (colorCount > 1)
-					{
-						buffer[18] = color2.R;
-						buffer[19] = color2.G;
-						buffer[20] = color2.B;
-					}
-				}
+				WriteEffect(buffer[11..], effect, colorCount, color1, color2);
 
 				UpdateChecksum(buffer);
 			}
@@ -490,6 +530,17 @@ internal sealed class RazerProtocolTransport : IDisposable
 		}
 	}
 
+	public static DotsPerInch ParseDpi(ReadOnlySpan<byte> buffer)
+		=> new (BigEndian.ReadUInt16(buffer[1]), BigEndian.ReadUInt16(buffer[3]));
+
+	public static void WriteDpi(Span<byte> buffer, DotsPerInch dpi)
+	{
+		buffer[0] = 0;
+		BigEndian.Write(ref buffer[1], dpi.Horizontal);
+		BigEndian.Write(ref buffer[3], dpi.Vertical);
+		buffer[5] = 0;
+	}
+
 	public async ValueTask<DotsPerInch> GetDpiAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
@@ -510,9 +561,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 			}
 
 			static DotsPerInch ParseResponse(ReadOnlySpan<byte> buffer)
-			{
-				return new(BigEndian.ReadUInt16(buffer[10]), BigEndian.ReadUInt16(buffer[12]));
-			}
+				=> ParseDpi(buffer[9..]);
 
 			try
 			{
@@ -548,8 +597,7 @@ internal sealed class RazerProtocolTransport : IDisposable
 				buffer[7] = (byte)RazerDeviceFeature.Mouse;
 				buffer[8] = 0x05;
 
-				BigEndian.Write(ref buffer[10], dpi.Horizontal);
-				BigEndian.Write(ref buffer[12], dpi.Vertical);
+				WriteDpi(buffer[9..], dpi);
 
 				UpdateChecksum(buffer);
 			}

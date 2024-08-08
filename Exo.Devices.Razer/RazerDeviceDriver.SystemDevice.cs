@@ -29,7 +29,7 @@ public abstract partial class RazerDeviceDriver
 			public override DeviceCategory DeviceCategory => DeviceCategory.UsbWirelessReceiver;
 
 			public UsbReceiver(
-				RazerProtocolTransport transport,
+				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				IDriverRegistry driverRegistry,
@@ -238,7 +238,7 @@ public abstract partial class RazerDeviceDriver
 
 			public Generic
 			(
-				RazerProtocolTransport transport,
+				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				DeviceCategory deviceCategory,
@@ -269,7 +269,7 @@ public abstract partial class RazerDeviceDriver
 
 			public Mouse
 			(
-				RazerProtocolTransport transport,
+				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				Guid lightingZoneId,
@@ -298,7 +298,7 @@ public abstract partial class RazerDeviceDriver
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 			public Keyboard(
-				RazerProtocolTransport transport,
+				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				HidFullDuplexStream notificationStream,
 				Guid lightingZoneId,

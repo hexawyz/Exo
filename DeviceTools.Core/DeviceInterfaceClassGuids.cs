@@ -173,8 +173,8 @@ namespace DeviceTools
 		/// <remarks>The 16-bit UUIDs are defined in the Assigned Numbers document.</remarks>
 		/// <param name="uuid">The UUID value for which a GUID should be retrieved.</param>
 		/// <returns>A GUID corresponding to the provided UUID.</returns>
-		/// 
 		public static Guid GetBluetoothUuidGuid(BluetoothServiceUuid uuid) => GetBluetoothUuidGuid((ushort)uuid);
+
 		/// <summary>Gets the device interface class Guid for the specified Bluetooth UUID.</summary>
 		/// <remarks>The 16-bit UUIDs are defined in the Assigned Numbers document.</remarks>
 		/// <param name="uuid">The UUID value for which a GUID should be retrieved.</param>

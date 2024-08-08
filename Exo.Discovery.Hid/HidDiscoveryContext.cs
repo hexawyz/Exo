@@ -19,6 +19,16 @@ public sealed class HidDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		Properties.System.DeviceInterface.Hid.VendorId,
 		Properties.System.DeviceInterface.Hid.ProductId,
 		Properties.System.DeviceInterface.Hid.VersionNumber,
+
+		Properties.System.DeviceInterface.Bluetooth.DeviceAddress,
+		Properties.System.DeviceInterface.Bluetooth.ServiceGuid,
+		Properties.System.DeviceInterface.Bluetooth.Manufacturer,
+		Properties.System.DeviceInterface.Bluetooth.VendorIdSource,
+		Properties.System.DeviceInterface.Bluetooth.VendorId,
+		Properties.System.DeviceInterface.Bluetooth.ProductId,
+		Properties.System.DeviceInterface.Bluetooth.ProductVersion,
+
+		Properties.System.Devices.Aep.Bluetooth.Le.AddressType,
 	];
 
 	private static readonly Property[] RequestedDeviceProperties =

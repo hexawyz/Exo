@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using DeviceTools;
 using Exo.Devices.Razer.LightingEffects;
 using Exo.Features;
@@ -118,7 +118,7 @@ public abstract partial class RazerDeviceDriver
 
 		protected BaseDevice
 		(
-			RazerProtocolTransport transport,
+			IRazerProtocolTransport transport,
 			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,
