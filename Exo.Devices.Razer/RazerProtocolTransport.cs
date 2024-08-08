@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Text;
 using DeviceTools;
 using Exo.ColorFormats;
@@ -171,33 +172,71 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 	//	}
 	//}
 
-	[StructLayout(LayoutKind.Sequential, Size = 5)]
-	private readonly struct RawDpiProfileBigEndian
+	[StructLayout(LayoutKind.Explicit, Size = 7)]
+	private struct RawDpiProfileBigEndian
 	{
-		public readonly byte Index;
-		private readonly byte _dpiX0;
-		private readonly byte _dpiX1;
-		private readonly byte _dpiY0;
-		private readonly byte _dpiY1;
+		[FieldOffset(0)]
+		public byte Index;
+		[FieldOffset(1)]
+		private ushort _dpiX;
+		[FieldOffset(3)]
+		private ushort _dpiY;
+		// NB: Not used; Can be truncated in device responses, so this could read out of buffer.
+		[FieldOffset(5)]
+		private ushort _dpiZ;
 
-		public ushort DpiX => BigEndian.ReadUInt16(_dpiX0);
-		public ushort DpiY => BigEndian.ReadUInt16(_dpiY0);
+		public ushort DpiX
+		{
+			readonly get => BigEndian.ReadUInt16(in Unsafe.As<ushort, byte>(ref Unsafe.AsRef(in _dpiX)));
+			set => BigEndian.Write(ref Unsafe.As<ushort, byte>(ref _dpiX), value);
+		}
+
+		public ushort DpiY
+		{
+			readonly get => BigEndian.ReadUInt16(in Unsafe.As<ushort, byte>(ref Unsafe.AsRef(in _dpiY)));
+			set => BigEndian.Write(ref Unsafe.As<ushort, byte>(ref _dpiY), value);
+		}
+
+		public ushort DpiZ
+		{
+			readonly get => BigEndian.ReadUInt16(in Unsafe.As<ushort, byte>(ref Unsafe.AsRef(in _dpiZ)));
+			set => BigEndian.Write(ref Unsafe.As<ushort, byte>(ref _dpiZ), value);
+		}
 	}
 
-	[StructLayout(LayoutKind.Sequential, Size = 5)]
-	private readonly struct RawDpiProfileLittleEndian
+	[StructLayout(LayoutKind.Explicit, Size = 7)]
+	private struct RawDpiProfileLittleEndian
 	{
-		public readonly byte Index;
-		private readonly byte _dpiX0;
-		private readonly byte _dpiX1;
-		private readonly byte _dpiY0;
-		private readonly byte _dpiY1;
+		[FieldOffset(0)]
+		public byte Index;
+		[FieldOffset(1)]
+		private ushort _dpiX;
+		[FieldOffset(3)]
+		private ushort _dpiY;
+		// NB: Not used; Can be truncated in device responses, so this could read out of buffer.
+		[FieldOffset(5)]
+		private ushort _dpiZ;
 
-		public ushort DpiX => LittleEndian.ReadUInt16(_dpiX0);
-		public ushort DpiY => LittleEndian.ReadUInt16(_dpiY0);
+		public ushort DpiX
+		{
+			readonly get => LittleEndian.ReadUInt16(in Unsafe.As<ushort, byte>(ref Unsafe.AsRef(in _dpiX)));
+			set => LittleEndian.Write(ref Unsafe.As<ushort, byte>(ref _dpiX), value);
+		}
+
+		public ushort DpiY
+		{
+			readonly get => LittleEndian.ReadUInt16(in Unsafe.As<ushort, byte>(ref Unsafe.AsRef(in _dpiY)));
+			set => LittleEndian.Write(ref Unsafe.As<ushort, byte>(ref _dpiY), value);
+		}
+
+		public ushort DpiZ
+		{
+			readonly get => LittleEndian.ReadUInt16(in Unsafe.As<ushort, byte>(ref Unsafe.AsRef(in _dpiZ)));
+			set => LittleEndian.Write(ref Unsafe.As<ushort, byte>(ref _dpiZ), value);
+		}
 	}
 
-	public static RazerMouseDpiProfileStatus ParseDpiProfiles(ReadOnlySpan<byte> buffer, bool bigEndian)
+	public static RazerMouseDpiProfileConfiguration ParseDpiProfileConfiguration(ReadOnlySpan<byte> buffer, bool bigEndian)
 	{
 		byte profileCount = buffer[1];
 
@@ -213,30 +252,67 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 		int expectedDataLength = 2 + 5 * profileCount + (profileCount > 0 ? 2 * (profileCount - 1) : 0);
 		if (expectedDataLength > buffer.Length) throw new InvalidDataException("Invalid data length");
 
-		ref readonly byte profileStart = ref buffer[2];
+		ref readonly byte currentRawProfile = ref buffer[2];
+		ref readonly byte bufferEnd = ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(buffer), buffer.Length);
 		for (int i = 0; i < profileCount; i++)
 		{
 			// For some reason, it seems that the USB-based protocol uses big endian, while the Bluetooth protocol uses little endian values…
 			// I can't really make a lot of sense of this, but it is what it is.
 			if (bigEndian)
 			{
-				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in profileStart));
+				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in currentRawProfile));
 				if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
-				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, 0);
+				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, Unsafe.ByteOffset(in currentRawProfile, in bufferEnd) >= 7 ? rawProfile.DpiZ : (ushort)0);
 			}
 			else
 			{
-				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileLittleEndian>(ref Unsafe.AsRef(in profileStart));
+				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileLittleEndian>(ref Unsafe.AsRef(in currentRawProfile));
 				if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
-				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, 0);
+				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, Unsafe.ByteOffset(in currentRawProfile, in bufferEnd) >= 7 ? rawProfile.DpiZ : (ushort)0);
 			}
-			profileStart = ref Unsafe.Add(ref Unsafe.AsRef(in profileStart), 7);
+			currentRawProfile = ref Unsafe.Add(ref Unsafe.AsRef(in currentRawProfile), 7);
 		}
 
 		return new(buffer[0], ImmutableCollectionsMarshal.AsImmutableArray(profiles));
 	}
 
-	public async ValueTask<RazerMouseDpiProfileStatus> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
+	public static int WriteProfileConfiguration(Span<byte> buffer, bool bigEndian, RazerMouseDpiProfileConfiguration configuration)
+	{
+		int expectedDataLength = 2 + 7 * configuration.Profiles.Length;
+
+		if (configuration.Profiles.Length > 11 || expectedDataLength > buffer.Length) throw new ArgumentException("Too many profiles specified.");
+		if (configuration.ActiveProfileIndex == 0 | configuration.ActiveProfileIndex > configuration.Profiles.Length) throw new ArgumentException("Active profile index is out of range.");
+
+		buffer[0] = configuration.ActiveProfileIndex;
+		buffer[1] = (byte)configuration.Profiles.Length;
+
+		var profiles = configuration.Profiles;
+		ref byte currentRawProfile = ref buffer[2];
+		for (int i = 0; i < profiles.Length; i++)
+		{
+			ref readonly var profile = ref ImmutableCollectionsMarshal.AsArray(profiles)![i];
+			currentRawProfile = ref Unsafe.Add(ref Unsafe.AsRef(in currentRawProfile), 7);
+			if (bigEndian)
+			{
+				ref var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in currentRawProfile));
+				rawProfile.Index = (byte)(i + 1);
+				rawProfile.DpiX = profile.X;
+				rawProfile.DpiY = profile.Y;
+				rawProfile.DpiZ = profile.Z;
+			}
+			else
+			{
+				ref var rawProfile = ref Unsafe.As<byte, RawDpiProfileLittleEndian>(ref Unsafe.AsRef(in currentRawProfile));
+				rawProfile.Index = (byte)(i + 1);
+				rawProfile.DpiX = profile.X;
+				rawProfile.DpiY = profile.Y;
+				rawProfile.DpiZ = profile.Z;
+			}
+		}
+		return expectedDataLength;
+	}
+
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -257,8 +333,8 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 				UpdateChecksum(buffer);
 			}
 
-			static RazerMouseDpiProfileStatus ReadResponse(Span<byte> buffer)
-				=> ParseDpiProfiles(buffer[10..], true);
+			static RazerMouseDpiProfileConfiguration ReadResponse(Span<byte> buffer)
+				=> ParseDpiProfileConfiguration(buffer[10..], true);
 
 			try
 			{
@@ -268,6 +344,44 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x86, 0, cancellationToken).ConfigureAwait(false);
 
 				return ReadResponse(buffer.Span);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask SetDpiProfilesAsync(bool persisted, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(bool persisted, Span<byte> buffer, RazerMouseDpiProfileConfiguration configuration)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x26;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
+				buffer[8] = 0x06;
+
+				buffer[9] = persisted ? (byte)0x01 : (byte)0x00;
+
+				WriteProfileConfiguration(buffer[10..^2], true, configuration);
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(persisted, buffer.Span, configuration);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x06, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
@@ -608,7 +722,7 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 
-				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x85, 0, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x05, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{

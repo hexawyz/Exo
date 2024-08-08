@@ -141,12 +141,14 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		protected override DotsPerInch ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpi(data);
 	}
 
-	private sealed class DpiProfilesWaitState : WaitState<RazerMouseDpiProfileStatus>
+	private sealed class DpiProfilesWaitState : WaitState<RazerMouseDpiProfileConfiguration>
 	{
 		public DpiProfilesWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
 
-		protected override RazerMouseDpiProfileStatus ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpiProfiles(data, false);
+		protected override RazerMouseDpiProfileConfiguration ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpiProfileConfiguration(data, false);
 	}
+
+	private const int MaximumWritePacketLength = 20;
 
 	private static readonly Guid WriteCharacteristicUuid = new(0x52401524, 0xF97C, 0x7F90, 0x0E, 0x7F, 0x6C, 0x6F, 0x4E, 0x36, 0xDB, 0x1C);
 	private static readonly Guid ReadCharacteristicUuid = new(0x52401525, 0xF97C, 0x7F90, 0x0E, 0x7F, 0x6C, 0x6F, 0x4E, 0x36, 0xDB, 0x1C);
@@ -477,7 +479,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask<RazerMouseDpiProfileStatus> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted)
 		{
@@ -502,6 +504,61 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 				{
 					cts.CancelAfter(_operationTimeout);
 					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
+	public async ValueTask SetDpiProfilesAsync(bool persisted, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, RazerMouseDpiProfileConfiguration configuration)
+		{
+			// The length is hardcoded to a maximum length of 5 profiles for now. The maximum might need to be made configurable in the future.
+			Span<byte> profilesBuffer = stackalloc byte[2 * 5 * 7];
+			byte* buffer = stackalloc byte[4 + MaximumWritePacketLength];
+
+			uint remainingLength = (uint)RazerProtocolTransport.WriteProfileConfiguration(profilesBuffer, false, configuration);
+
+			((uint*)buffer)[0] = 8;
+			// 0f <length> 00 00 0b 04 <persisted> 00
+			((uint*)buffer)[1] = 0x_00_00_00_0f;
+			buffer[4 + 1] = (byte)remainingLength;
+			*(ushort*)&((uint*)buffer)[2] = 0x_04_0b;
+			buffer[4 + 6] = persisted ? (byte)1 : (byte)0;
+			buffer[4 + 7] = 0;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+			int offset = 0;
+			while (remainingLength != 0)
+			{
+				uint packetLength = Math.Min(remainingLength, MaximumWritePacketLength);
+				((uint*)buffer)[0] = packetLength;
+				profilesBuffer.Slice(offset, (int)packetLength).CopyTo(new(&buffer[4], MaximumWritePacketLength));
+				offset += (int)packetLength;
+				remainingLength -= packetLength;
+				BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+			}
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new SimpleWaitState(0x0f);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic, persisted, configuration);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
 				}
 			}
 			catch (OperationCanceledException ex)
