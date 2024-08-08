@@ -50,8 +50,8 @@ NB: Support of a device does not mean that all of its features will be exposed i
 
 * Logitech
 	* All HID++ devices (with some possible exceptions), including through USB receivers: Battery level and keyboard reporting features.
-* Razer (NB: Requires the official *kernel* drivers from Razer to be installed)
-	* DeathAdder V2 Pro (USB, Dongle): Battery Level, RGB lighting, DPI changes.
+* Razer (⚠️ For wired mode and dongle, requires the official *kernel* drivers from Razer to be installed)
+	* DeathAdder V2 Pro (USB, Dongle, Bluetooth LE): Battery Level, RGB lighting, DPI changes. (NB: Push notifications are not working yet over Bluetooth)
 	* Mouse Dock Chroma: RGB
 * Asus & Various RAM manufacturers:
 	* Aura compatible RAM: RGB lighting (Provided that there is a SMBus driver for your motherboard or chipset, and that the RAM module ID is added to the list of supported module IDs is updated in the code)
