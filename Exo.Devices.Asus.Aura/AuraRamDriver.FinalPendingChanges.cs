@@ -7,8 +7,6 @@ public partial class AuraRamDriver
 	{
 		None = 0,
 		DynamicColors = 1,
-		Commit = 2, 
+		Commit = 2,
 	}
 }
-
-

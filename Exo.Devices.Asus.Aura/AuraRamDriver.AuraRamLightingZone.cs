@@ -268,6 +268,14 @@ public partial class AuraRamDriver
 			PendingChanges = 0;
 		}
 
+		public async ValueTask PersistChangesAsync()
+		{
+			if (AuraEffect != AuraEffect.Dynamic)
+			{
+				await WriteByteAsync(Driver._smBus, Address, 0x80A0, 0xAA);
+			}
+		}
+
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
