@@ -753,6 +753,7 @@ public sealed class RgbFusionIT5702Driver :
 		{
 			buffer[0] = ReportId;
 			buffer[1] = PersistSettingsCommandId;
+			buffer.AsSpan(2).Clear();
 
 			await _stream.SendFeatureReportAsync(Buffer, cancellationToken).ConfigureAwait(false);
 		}
