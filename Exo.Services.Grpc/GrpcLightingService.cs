@@ -68,7 +68,7 @@ internal sealed class GrpcLightingService : ILightingService
 			}
 		}
 
-		await _lightingService.ApplyChanges(update.DeviceId);
+		await _lightingService.ApplyChangesAsync(update.DeviceId, update.ShouldPersist).ConfigureAwait(false);
 	}
 
 	public async ValueTask ApplyMultiDeviceLightingChangesAsync(MultiDeviceLightingUpdates updates, CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ internal sealed class GrpcLightingService : ILightingService
 
 		foreach (var update in updates.DeviceUpdates)
 		{
-			await _lightingService.ApplyChanges(update.DeviceId).ConfigureAwait(false);
+			await _lightingService.ApplyChangesAsync(update.DeviceId, update.ShouldPersist).ConfigureAwait(false);
 		}
 	}
 

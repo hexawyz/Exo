@@ -1021,7 +1021,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		}
 	}
 
-	public ValueTask ApplyChanges(Guid deviceId)
+	public ValueTask ApplyChangesAsync(Guid deviceId, bool shouldPersist)
 	{
 		ValueTask applyChangesTask = ValueTask.CompletedTask;
 
@@ -1031,17 +1031,26 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			{
 				if (deviceState.Driver is null) goto Completed;
 
-				var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
-
-				if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
-				{
-					applyChangesTask = dcf.ApplyChangesAsync();
-				}
+				applyChangesTask = ApplyChangesAsync(deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>(), shouldPersist);
 			}
 		}
 
 	Completed:;
 		return applyChangesTask;
+	}
+
+	private static async ValueTask ApplyChangesAsync(IDeviceFeatureSet<ILightingDeviceFeature> lightingFeatures, bool shouldPersist)
+	{
+		if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } deferredChangesFeature)
+		{
+			await deferredChangesFeature.ApplyChangesAsync().ConfigureAwait(false);
+		}
+
+		// TODO: Should probably be refactored so that persistance is a parameter of ApplyChanges async. (Parameter would then be ignored if the device does not support change persistance) 
+		if (shouldPersist && lightingFeatures.GetFeature<IPersistentLightingFeature>() is { } persistentLightingFeature)
+		{
+			await persistentLightingFeature.PersistCurrentConfigurationAsync().ConfigureAwait(false);
+		}
 	}
 
 	// NB: With the current code, there is not a strong enforcing of configuration update order.

@@ -19,6 +19,7 @@ public abstract partial class RazerDeviceDriver
 			ILightingZone,
 			ILightingZoneEffect<DisabledEffect>,
 			ILightingDeferredChangesFeature,
+			IPersistentLightingFeature,
 			ILightingBrightnessFeature
 		{
 			protected BaseDevice Device { get; }
@@ -36,7 +37,8 @@ public abstract partial class RazerDeviceDriver
 			void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => Device.SetCurrentEffect(DisabledEffect.SharedInstance);
 			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 
-			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => Device.ApplyChangesAsync(default);
+			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => Device.ApplyChangesAsync(false, default);
+			ValueTask IPersistentLightingFeature.PersistCurrentConfigurationAsync() => Device.ApplyChangesAsync(true, default);
 
 			byte ILightingBrightnessFeature.MaximumBrightness => 255;
 			byte ILightingBrightnessFeature.CurrentBrightness
@@ -139,11 +141,13 @@ public abstract partial class RazerDeviceDriver
 					ILightingDeviceFeature,
 					UnifiedReactiveLightingZone,
 					ILightingDeferredChangesFeature,
+					IPersistentLightingFeature,
 					IUnifiedLightingFeature,
 					ILightingBrightnessFeature>(new(this, lightingZoneId)) :
 				FeatureSet.Create<ILightingDeviceFeature,
 					UnifiedBasicLightingZone,
 					ILightingDeferredChangesFeature,
+					IPersistentLightingFeature,
 					IUnifiedLightingFeature,
 					ILightingBrightnessFeature>(new(this, lightingZoneId));
 		}
@@ -273,18 +277,18 @@ public abstract partial class RazerDeviceDriver
 			}
 		}
 
-		private async ValueTask ApplyChangesAsync(CancellationToken cancellationToken)
+		private async ValueTask ApplyChangesAsync(bool shouldPersist, CancellationToken cancellationToken)
 		{
 			using (await _lightingLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				if (!ReferenceEquals(_appliedEffect, _currentEffect))
+				if (shouldPersist || !ReferenceEquals(_appliedEffect, _currentEffect))
 				{
-					await ApplyEffectAsync(_currentEffect, _currentBrightness, false, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
+					await ApplyEffectAsync(_currentEffect, _currentBrightness, shouldPersist, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
 					_appliedEffect = _currentEffect;
 				}
 				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
 				{
-					await _transport.SetBrightnessAsync(false, _currentBrightness, cancellationToken).ConfigureAwait(false);
+					await _transport.SetBrightnessAsync(shouldPersist, _currentBrightness, cancellationToken).ConfigureAwait(false);
 				}
 				_appliedBrightness = _currentBrightness;
 			}

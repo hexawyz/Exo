@@ -26,13 +26,14 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	private bool _useUnifiedLighting;
 	private bool _useUnifiedLightingInitialValue;
 	private bool _isExpanded;
+	private bool _shouldPersistChanges;
 
 	private readonly Commands.ApplyChangesCommand _applyChangesCommand;
 	private readonly Commands.ResetChangesCommand _resetChangesCommand;
 
 	public bool IsNotBusy => _busyZoneCount == 0;
 
-	public override bool IsChanged => AreZonesChanged || IsBrightnessChanged || IsUseUnifiedLightingChanged;
+	public override bool IsChanged => AreZonesChanged || IsBrightnessChanged || IsUseUnifiedLightingChanged || _shouldPersistChanges;
 
 	private bool AreZonesChanged => _changedZoneCount != 0;
 	private bool IsBrightnessChanged => Brightness?.IsChanged == true;
@@ -78,6 +79,19 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	{
 		get => _isExpanded;
 		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
+	}
+
+	// This setting is purely local to the UI and will be reset everytime the apply button is pressed.
+	// When the checkbox is checked, we consider the device to be changed, so that settings can be forcefully applied.
+	public bool ShouldPersistChanges
+	{
+		get => _shouldPersistChanges;
+		set
+		{
+			bool wasChanged = IsChanged;
+			SetValue(ref _shouldPersistChanges, value);
+			OnChangeStateChange(wasChanged);
+		}
 	}
 
 	public Guid Id => _deviceViewModel.Id;
@@ -231,7 +245,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 					}
 				}
 			}
-			if (zoneEffects.Count > 0)
+			if (zoneEffects.Count > 0 || ShouldPersistChanges)
 			{
 				var lightingService = await LightingViewModel.ConnectionManager.GetLightingServiceAsync(cancellationToken);
 				await lightingService.ApplyDeviceLightingChangesAsync
@@ -239,11 +253,13 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 					new()
 					{
 						DeviceId = _deviceViewModel.Id,
+						ShouldPersist = ShouldPersistChanges,
 						BrightnessLevel = Brightness?.Level ?? 0,
 						ZoneEffects = zoneEffects.DrainToImmutable()
 					},
 					cancellationToken
 				);
+				ShouldPersistChanges = false;
 			}
 		}
 		catch
