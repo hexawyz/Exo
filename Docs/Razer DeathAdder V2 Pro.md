@@ -171,6 +171,8 @@ The report ID `05` is used to transmit notifications from the connected device o
 Other report IDs with the same structure exist, but I've not observed them in any trace yet.
 Because notifications do not always contain a device ID, I suspect these other reports could be used in this case?
 
+There are also notifications on other report IDs, whose meaning is yeat to be determined.
+
 #### Structure of a notification.
 
 All notifications follow a very simple format:
@@ -236,7 +238,7 @@ This notification is seen (only?) when the device is in BLE mode, and seems to a
 Structure:
 
 ```
-<BatteryLevel:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8>
+<BatteryLevel:U8> <Unknown:U8> <Unknown:U8> <Device Index?:U8>
 ```
 
 31 BB 01 01 01 - Wired / Charging
@@ -246,6 +248,7 @@ Structure:
 31 C5 01 01 01 - Wired / Charging
 31 CA 00 00 01 - Dongle / Discharging
 31 CA 01 01 01 - Dongle / Docked / Charging
+31 FF 01 01 01 - Dongle / Docked / Charge complete
 
 This notification contains the current battery level as well as three other bytes of data, whose meaning is not yet known.
 It also does not trigger very often, but it seems that it does trigger periodically for a data refresh. (With a very long period, explaining why it is so easy to miss)
@@ -253,6 +256,8 @@ Occurrences of this notification can be followed by the external power notificat
 
 Also, it seems that the value can quickly fluctuate sometimes (e.g. `ca` to `c7` to `ca`).
 Given the values observed, I'm assuming that the [0..255] values are actually [0..100] scaled up to [0..255] for some reason.
+The last byte could be the device index maybe, however, it is weird that the device index does not seem to exist on the external power notification.
+The two bytes before seem to be correlated with external power, but it is difficult to know what they mean exactly, as one byte would be enough for external power status.
 
 ### Function/Register based protocol
 
@@ -2785,3 +2790,25 @@ The second here (`87`) would be the "correct" one according to what is done from
 So, in that case, `C1` would be the "feature category", and `C2` would be the actual command, similar to what is done for the USB protocol.
 However, all values are different from the USB protocol. Functions seem to be somewhat ordered similarly, but categories are not.
 e.g. Lighting is `0f` in the USB protocol but `10` in the BLE protocol; Power is `07` in the USB protocol but `05` in the BLE protocol.
+
+# Notifications on other report IDs
+
+## Report ID `04`
+
+04200000000000000000000000000000
+04000000000000000000000000000000
+04210000000000000000000000000000
+
+0400000000000000
+04000000ffff0000
+0400000001000000
+0400000000000100
+
+
+
+
+## Report ID `08`
+
+0800000000000000
+0800000001000000
+08000000ffff0000
