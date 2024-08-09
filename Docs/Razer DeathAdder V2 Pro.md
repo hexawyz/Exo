@@ -224,6 +224,18 @@ This notification is sent when the device is connected to or disconnected from e
 
 Status will be `00` if the device is not connected and `01` if the device is connected.
 
+##### 10 - ??? (KeepAlive?)
+
+This notification is seen (only?) when the device is in BLE mode, and seems to actually spam when the device is put on the dock.
+
+##### 31 - ???
+
+31 BB 01 01 01
+31 BD 01 01 01
+31 C0 01 01 01
+
+Might it actually be the battery level notification I had been looking for for quite some time already?
+
 ### Function/Register based protocol
 
 The core protocol is composed of SET/GET feature calls to the root device itself. It does not strictly follow the HID spec, and is not exposed by any HID report.

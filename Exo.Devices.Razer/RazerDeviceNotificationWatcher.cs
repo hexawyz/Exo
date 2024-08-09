@@ -96,6 +96,8 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 			// It is sent when connected to or disconnected from the dock, even when at 100%.
 			sink.OnDeviceExternalPowerChange(1, (span[1] & 1) != 0);
 			break;
+		case 16:
+			// Unknown notification that is often observed over Bluetooth.
 		default:
 			break;
 		}
