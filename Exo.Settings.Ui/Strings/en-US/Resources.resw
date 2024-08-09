@@ -190,7 +190,7 @@
     <value>Persist settings in device memory</value>
   </data>
   <data name="LightingPersistChangesCheckBox.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Persisting lighting settings in device memory will allow lighting effects to be applied when the service is not running. Please note that excessive use of this feature can wear the flash storage of some devices.</value>
+    <value>This option will allow lighting effects to be applied when the service is not running. Excessive use of this feature can wear the flash storage of some devices.</value>
   </data>
   <data name="LightingZoneUnifiedLightingToggle.ToolTipService.ToolTip" xml:space="preserve">
     <value>Unified Lighting</value>

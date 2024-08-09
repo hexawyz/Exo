@@ -190,7 +190,7 @@
     <value>Sauvegarder les réglages dans la mémoire du périphérique</value>
   </data>
   <data name="LightingPersistChangesCheckBox.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Sauvegarder les réglages dans la mémoire du périphérique permettra aux effets d'être appliqués quand le service n'est pas actif. Veuillez cependant noter qu'une utilisation excessive de cette fonctionnalité pourrait entraîner l'usure prématurée du stockage flash de certains périphériques.</value>
+    <value>Cette option permettra aux effets d'être appliqués quand le service n'est pas actif. Un usage trop fréquent de cette fonction pourrait user la mémoire flash de certains périphériques.</value>
   </data>
   <data name="LightingZoneUnifiedLightingToggle.ToolTipService.ToolTip" xml:space="preserve">
     <value>Éclairage unifié</value>

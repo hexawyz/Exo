@@ -78,14 +78,19 @@
                         </ItemsControl>
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{Binding ShouldPersistChanges, Mode=TwoWay}" />
-                            <Button x:Uid="ResetButton" Grid.Column="2" Margin="0,0,6,0" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Command="{Binding ResetChangesCommand}" />
-                            <Button x:Uid="ApplyButton" Grid.Column="3" Style="{StaticResource AccentButtonStyle}" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" />
+                            <CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{Binding ShouldPersistChanges, Mode=TwoWay}">
+                                <CheckBox.ContentTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </CheckBox.ContentTemplate>
+                            </CheckBox>
+                            <Button x:Uid="ResetButton" Grid.Column="1" Margin="0,0,6,0" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Command="{Binding ResetChangesCommand}" />
+                            <Button x:Uid="ApplyButton" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" />
                         </Grid>
                     </StackPanel>
                 </Expander>
