@@ -31,7 +31,8 @@ public abstract partial class RazerDeviceDriver
 			public UsbReceiver(
 				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
-				HidFullDuplexStream notificationStream,
+				DeviceStream notificationStream,
+				DeviceNotificationOptions deviceNotificationOptions,
 				IDriverRegistry driverRegistry,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
@@ -40,7 +41,7 @@ public abstract partial class RazerDeviceDriver
 			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
 			{
 				_driverRegistry = driverRegistry;
-				_watcher = new(notificationStream, this);
+				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
 
 			protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
@@ -240,7 +241,8 @@ public abstract partial class RazerDeviceDriver
 			(
 				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
-				HidFullDuplexStream notificationStream,
+				DeviceStream notificationStream,
+				DeviceNotificationOptions deviceNotificationOptions,
 				DeviceCategory deviceCategory,
 				Guid lightingZoneId,
 				string friendlyName,
@@ -250,7 +252,7 @@ public abstract partial class RazerDeviceDriver
 				byte mainDeviceIdIndex
 			) : base(transport, periodicEventGenerator, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
-				_watcher = new(notificationStream, this);
+				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
 
 			public override async ValueTask DisposeAsync()
@@ -271,7 +273,8 @@ public abstract partial class RazerDeviceDriver
 			(
 				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
-				HidFullDuplexStream notificationStream,
+				DeviceStream notificationStream,
+				DeviceNotificationOptions deviceNotificationOptions,
 				Guid lightingZoneId,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
@@ -280,7 +283,7 @@ public abstract partial class RazerDeviceDriver
 				byte mainDeviceIdIndex
 			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
-				_watcher = new(notificationStream, this);
+				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
 
 			public override async ValueTask DisposeAsync()
@@ -300,7 +303,8 @@ public abstract partial class RazerDeviceDriver
 			public Keyboard(
 				IRazerProtocolTransport transport,
 				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
-				HidFullDuplexStream notificationStream,
+				DeviceStream notificationStream,
+				DeviceNotificationOptions deviceNotificationOptions,
 				Guid lightingZoneId,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
@@ -309,7 +313,7 @@ public abstract partial class RazerDeviceDriver
 				byte mainDeviceIdIndex
 			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
-				_watcher = new(notificationStream, this);
+				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
 
 			public override async ValueTask DisposeAsync()

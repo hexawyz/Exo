@@ -1,19 +1,22 @@
 using System.Runtime.InteropServices;
-using DeviceTools.HumanInterfaceDevices;
+using DeviceTools;
 
 namespace Exo.Devices.Razer;
 
 internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 {
-	private readonly HidFullDuplexStream _stream;
+	private readonly DeviceStream _stream;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _readTask;
 
-	public RazerDeviceNotificationWatcher(HidFullDuplexStream stream, IRazerDeviceNotificationSink sink)
+	public RazerDeviceNotificationWatcher(DeviceStream stream, IRazerDeviceNotificationSink sink, DeviceNotificationOptions deviceNotificationOptions)
 	{
 		_stream = stream;
 		_cancellationTokenSource = new();
-		_readTask = ReadAsync(stream, sink, _cancellationTokenSource.Token);
+		var buffer = MemoryMarshal.CreateFromPinnedArray(GC.AllocateUninitializedArray<byte>(deviceNotificationOptions.ReportLength, true), 0, deviceNotificationOptions.ReportLength);
+		bool hasBluetoothHidQuirk = deviceNotificationOptions.HasBluetoothHidQuirk;
+		byte reportId = deviceNotificationOptions.ReportId;
+		_readTask = ReadAsync(stream, sink, buffer, hasBluetoothHidQuirk, reportId, _cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -23,41 +26,49 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 		await _stream.DisposeAsync().ConfigureAwait(false);
 	}
 
-	private static async Task ReadAsync(HidFullDuplexStream stream, IRazerDeviceNotificationSink sink, CancellationToken cancellationToken)
+	private static async Task ReadAsync(DeviceStream stream, IRazerDeviceNotificationSink sink, Memory<byte> buffer, bool hasBluetoothHidQuirk, byte reportId, CancellationToken cancellationToken)
 	{
-		var buffer = MemoryMarshal.CreateFromPinnedArray(GC.AllocateUninitializedArray<byte>(16, true), 0, 16);
-
 		while (true)
 		{
-			// Data is received in fixed length packets, so we expect to always receive exactly the number of bytes that the buffer can hold.
-			var remaining = buffer;
-			do
+			// We should (hopefully) receive data in complete packets, as they are exposed on the wire.
+			int count;
+			try
 			{
-				int count;
-				try
-				{
-					count = await stream.ReadAsync(remaining, cancellationToken).ConfigureAwait(false);
-				}
-				catch (OperationCanceledException)
-				{
-					return;
-				}
-				catch (IOException ex) when (ex.HResult == unchecked((int)0x8007048f))
-				{
-					// Ignore ERROR_DEVICE_NOT_CONNECTED
-					return;
-				}
-
-				if (count == 0)
-				{
-					return;
-				}
-
-				remaining = remaining.Slice(count);
+				count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
 			}
-			while (remaining.Length != 0);
+			catch (OperationCanceledException)
+			{
+				return;
+			}
+			catch (IOException ex) when (ex.HResult == unchecked((int)0x8007048f))
+			{
+				// Ignore ERROR_DEVICE_NOT_CONNECTED
+				return;
+			}
 
-			HandleNotification(sink, buffer.Span[1..]);
+			if (count == 0)
+			{
+				return;
+			}
+
+			HandleNotification(sink, buffer.Span, hasBluetoothHidQuirk, reportId);
+		}
+	}
+
+	private static void HandleNotification(IRazerDeviceNotificationSink sink, Span<byte> span, bool hasBluetoothHidQuirk, byte reportId)
+	{
+		// For now, silently ignore potentially invalid data.
+		// We might want to log this in the future so that bugs can be detected more easily.
+		if (span[0] == reportId)
+		{
+			if (!hasBluetoothHidQuirk)
+			{
+				HandleNotification(sink, span[1..]);
+			}
+			else if (span[1] == reportId)
+			{
+				HandleNotification(sink, span[2..]);
+			}
 		}
 	}
 

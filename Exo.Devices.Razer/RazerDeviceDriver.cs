@@ -245,6 +245,7 @@ public abstract partial class RazerDeviceDriver :
 		string? razerControlDeviceInterfaceName = null;
 		string? notificationDeviceInterfaceName = null;
 		string? razerGattServiceDeviceInterfaceName = null;
+		byte notificationReportLength = 0;
 
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
@@ -284,6 +285,7 @@ public abstract partial class RazerDeviceDriver :
 							if (notificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
 
 							notificationDeviceInterfaceName = deviceInterface.Id;
+							notificationReportLength = checked((byte)descriptor.InputReports[0].ReportSize);
 						}
 					}
 				}
@@ -325,7 +327,8 @@ public abstract partial class RazerDeviceDriver :
 		(
 			transport,
 			new(60_000),
-			new(notificationDeviceInterfaceName),
+			new(notificationDeviceInterfaceName, FileMode.Open, FileAccess.Read, FileShare.Read, 0, true),
+			new DeviceNotificationOptions() { HasBluetoothHidQuirk = razerGattServiceDeviceInterfaceName is not null, ReportId = 5, ReportLength = (byte)notificationReportLength },
 			driverRegistry,
 			version,
 			deviceInfo,
@@ -348,7 +351,8 @@ public abstract partial class RazerDeviceDriver :
 	(
 		IRazerProtocolTransport transport,
 		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
-		HidFullDuplexStream notificationStream,
+		DeviceStream notificationStream,
+		DeviceNotificationOptions notificationOptions,
 		Optional<IDriverRegistry> driverRegistry,
 		ushort versionNumber,
 		DeviceInformation deviceInfo,
@@ -372,6 +376,7 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				periodicEventGenerator,
 				notificationStream,
+				notificationOptions,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
@@ -384,6 +389,7 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				periodicEventGenerator,
 				notificationStream,
+				notificationOptions,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
@@ -396,6 +402,7 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				periodicEventGenerator,
 				notificationStream,
+				notificationOptions,
 				DeviceCategory.MouseDock,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.FriendlyName ?? friendlyName,
@@ -409,6 +416,7 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				periodicEventGenerator,
 				notificationStream,
+				notificationOptions,
 				driverRegistry.GetOrCreateValue(),
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
@@ -593,8 +601,8 @@ public abstract partial class RazerDeviceDriver :
 
 	protected virtual void OnDeviceArrival(byte deviceIndex) { }
 	protected virtual void OnDeviceRemoval(byte deviceIndex) { }
-	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) { }
-	protected virtual void OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) { }
+	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(dpiX, dpiY);
+	protected virtual void OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(isConnectedToExternalPower);
 
 	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
 	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) { }
