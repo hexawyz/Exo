@@ -30,7 +30,6 @@ public abstract partial class RazerDeviceDriver
 
 			public UsbReceiver(
 				IRazerProtocolTransport transport,
-				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				IDriverRegistry driverRegistry,
@@ -38,7 +37,7 @@ public abstract partial class RazerDeviceDriver
 				DeviceConfigurationKey configurationKey,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
+			) : base(transport, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
 			{
 				_driverRegistry = driverRegistry;
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
@@ -160,7 +159,6 @@ public abstract partial class RazerDeviceDriver
 					driver = await CreateChildDeviceAsync
 					(
 						_transport,
-						_periodicEventGenerator,
 						DeviceIdSource.Unknown,
 						0xFFFF,
 						(byte)deviceIndex,
@@ -219,6 +217,16 @@ public abstract partial class RazerDeviceDriver
 				}
 			}
 
+			protected override void OnDeviceBatteryLevelChange(byte deviceIndex, byte batteryLevel)
+			{
+				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
+
+				if (Volatile.Read(ref pairedDevices[deviceIndex - 1].Driver) is { } driver)
+				{
+					driver.OnDeviceBatteryLevelChange(batteryLevel);
+				}
+			}
+
 			// This is some kind of fire and forget driver disposal, but we always catch the exceptions.
 			private async void DisposeDriver(RazerDeviceDriver driver)
 			{
@@ -240,7 +248,6 @@ public abstract partial class RazerDeviceDriver
 			public Generic
 			(
 				IRazerProtocolTransport transport,
-				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				DeviceCategory deviceCategory,
@@ -250,7 +257,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -272,7 +279,6 @@ public abstract partial class RazerDeviceDriver
 			public Mouse
 			(
 				IRazerProtocolTransport transport,
-				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				Guid lightingZoneId,
@@ -281,7 +287,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -302,7 +308,6 @@ public abstract partial class RazerDeviceDriver
 
 			public Keyboard(
 				IRazerProtocolTransport transport,
-				RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				Guid lightingZoneId,
@@ -311,7 +316,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}

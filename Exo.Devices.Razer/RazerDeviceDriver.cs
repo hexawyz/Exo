@@ -16,7 +16,6 @@ public abstract partial class RazerDeviceDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IRazerDeviceNotificationSink,
-	IRazerPeriodicEventHandler,
 	IDeviceSerialNumberFeature,
 	IDeviceIdFeature,
 	IDeviceIdsFeature
@@ -326,7 +325,6 @@ public abstract partial class RazerDeviceDriver :
 		var device = await CreateDeviceAsync
 		(
 			transport,
-			new(60_000),
 			new(notificationDeviceInterfaceName, FileMode.Open, FileAccess.Read, FileShare.Read, 0, true),
 			new DeviceNotificationOptions() { HasBluetoothHidQuirk = razerGattServiceDeviceInterfaceName is not null, ReportId = 5, ReportLength = (byte)notificationReportLength },
 			driverRegistry,
@@ -350,7 +348,6 @@ public abstract partial class RazerDeviceDriver :
 	private static async ValueTask<RazerDeviceDriver> CreateDeviceAsync
 	(
 		IRazerProtocolTransport transport,
-		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		DeviceStream notificationStream,
 		DeviceNotificationOptions notificationOptions,
 		Optional<IDriverRegistry> driverRegistry,
@@ -374,7 +371,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Keyboard => new SystemDevice.Keyboard
 			(
 				transport,
-				periodicEventGenerator,
 				notificationStream,
 				notificationOptions,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
@@ -387,7 +383,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse => new SystemDevice.Mouse
 			(
 				transport,
-				periodicEventGenerator,
 				notificationStream,
 				notificationOptions,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
@@ -400,7 +395,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Dock => new SystemDevice.Generic
 			(
 				transport,
-				periodicEventGenerator,
 				notificationStream,
 				notificationOptions,
 				DeviceCategory.MouseDock,
@@ -414,7 +408,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.UsbReceiver => new SystemDevice.UsbReceiver
 			(
 				transport,
-				periodicEventGenerator,
 				notificationStream,
 				notificationOptions,
 				driverRegistry.GetOrCreateValue(),
@@ -440,7 +433,6 @@ public abstract partial class RazerDeviceDriver :
 	private static async ValueTask<RazerDeviceDriver> CreateChildDeviceAsync
 	(
 		IRazerProtocolTransport transport,
-		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		DeviceIdSource deviceIdSource,
 		ushort versionNumber,
 		byte deviceIndex,
@@ -469,7 +461,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Keyboard => new Keyboard
 			(
 				transport,
-				periodicEventGenerator,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
 				configurationKey,
@@ -480,7 +471,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse => new Mouse
 			(
 				transport,
-				periodicEventGenerator,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
 				configurationKey,
@@ -491,7 +481,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Dock => new Generic
 			(
 				transport,
-				periodicEventGenerator,
 				DeviceCategory.MouseDock,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				friendlyName,
@@ -517,10 +506,6 @@ public abstract partial class RazerDeviceDriver :
 	// The transport is used to communicate with the device.
 	private readonly IRazerProtocolTransport _transport;
 
-	// The periodic event generator is used to manage periodic events on the transport.
-	// It *could* be merged with the transport for practical reasons but the two features are not related enough.
-	private readonly RazerProtocolPeriodicEventGenerator _periodicEventGenerator;
-
 	private readonly DeviceIdSource _deviceIdSource;
 	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly byte _mainDeviceIdIndex;
@@ -545,7 +530,6 @@ public abstract partial class RazerDeviceDriver :
 	private RazerDeviceDriver
 	(
 		IRazerProtocolTransport transport,
-		RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
 		ImmutableArray<DeviceId> deviceIds,
@@ -554,7 +538,6 @@ public abstract partial class RazerDeviceDriver :
 	) : base(friendlyName, configurationKey)
 	{
 		_transport = transport;
-		_periodicEventGenerator = periodicEventGenerator;
 		_deviceIds = deviceIds;
 		_mainDeviceIdIndex = mainDeviceIdIndex;
 		_deviceFlags = deviceFlags;
@@ -570,8 +553,6 @@ public abstract partial class RazerDeviceDriver :
 	// Child devices will share the parent resources, so they should not call this method.
 	private void DisposeRootResources()
 	{
-		// Disposing the periodic event generator first should reduce the risk of errors related to accessing a disposed transport.
-		_periodicEventGenerator.Dispose();
 		_transport.Dispose();
 	}
 
@@ -580,30 +561,20 @@ public abstract partial class RazerDeviceDriver :
 			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
 
-	async void IRazerPeriodicEventHandler.HandlePeriodicEvent()
-	{
-		try
-		{
-			await HandlePeriodicEventAsync().ConfigureAwait(false);
-		}
-		catch (Exception ex)
-		{
-			// TODO: Log
-		}
-	}
-
-	protected virtual ValueTask HandlePeriodicEventAsync() => ValueTask.CompletedTask;
-
 	void IRazerDeviceNotificationSink.OnDeviceArrival(byte deviceIndex) => OnDeviceArrival(deviceIndex);
 	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte deviceIndex) => OnDeviceRemoval(deviceIndex);
 	void IRazerDeviceNotificationSink.OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(deviceIndex, dpiX, dpiY);
 	void IRazerDeviceNotificationSink.OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(deviceIndex, isConnectedToExternalPower);
+	void IRazerDeviceNotificationSink.OnDeviceBatteryLevelChange(byte deviceIndex, byte batteryLevel) => OnDeviceBatteryLevelChange(deviceIndex, batteryLevel);
 
 	protected virtual void OnDeviceArrival(byte deviceIndex) { }
 	protected virtual void OnDeviceRemoval(byte deviceIndex) { }
 	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(dpiX, dpiY);
 	protected virtual void OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(isConnectedToExternalPower);
+	protected virtual void OnDeviceBatteryLevelChange(byte deviceIndex, byte batteryLevel) => OnDeviceBatteryLevelChange(batteryLevel);
 
 	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
 	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) { }
+	protected virtual void OnDeviceBatteryLevelChange(byte batteryLevel) { }
+
 }

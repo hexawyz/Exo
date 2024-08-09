@@ -121,14 +121,13 @@ public abstract partial class RazerDeviceDriver
 		protected BaseDevice
 		(
 			IRazerProtocolTransport transport,
-			RazerProtocolPeriodicEventGenerator periodicEventGenerator,
 			Guid lightingZoneId,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex,
 			RazerDeviceFlags deviceFlags
-		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_appliedEffect = DisabledEffect.SharedInstance;
 			_currentEffect = DisabledEffect.SharedInstance;
@@ -163,7 +162,6 @@ public abstract partial class RazerDeviceDriver
 					await _transport.GetBatteryLevelAsync(cancellationToken).ConfigureAwait(false),
 					await _transport.IsConnectedToExternalPowerAsync(cancellationToken).ConfigureAwait(false)
 				);
-				_periodicEventGenerator.Register(this);
 			}
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
@@ -176,15 +174,6 @@ public abstract partial class RazerDeviceDriver
 			_currentEffect = _appliedEffect;
 		}
 
-		public override ValueTask DisposeAsync()
-		{
-			if (HasBattery)
-			{
-				_periodicEventGenerator.Unregister(this);
-			}
-			return base.DisposeAsync();
-		}
-
 		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
 			=> HasSerialNumber ?
 				HasBattery ?
@@ -194,21 +183,11 @@ public abstract partial class RazerDeviceDriver
 					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
 					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
-		protected override async ValueTask HandlePeriodicEventAsync()
-		{
-			if (HasBattery)
-			{
-				ApplyBatteryLevelAndChargeStatusUpdate
-				(
-					3,
-					await _transport.GetBatteryLevelAsync(default).ConfigureAwait(false),
-					await _transport.IsConnectedToExternalPowerAsync(default).ConfigureAwait(false)
-				);
-			}
-		}
-
 		protected override void OnDeviceExternalPowerChange(bool isCharging)
 			=> ApplyBatteryLevelAndChargeStatusUpdate(2, 0, isCharging);
+
+		protected override void OnDeviceBatteryLevelChange(byte batteryLevel)
+			=> ApplyBatteryLevelAndChargeStatusUpdate(1, batteryLevel, false);
 
 		private void ApplyBatteryLevelAndChargeStatusUpdate(byte changeType, byte newBatteryLevel, bool isCharging)
 		{

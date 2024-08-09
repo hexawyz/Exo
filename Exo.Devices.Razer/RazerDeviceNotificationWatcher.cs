@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 
@@ -98,6 +99,11 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 			break;
 		case 16:
 			// Unknown notification that is often observed over Bluetooth.
+			break;
+		case 49:
+			// This is a battery level notification with some extra data in it.
+			sink.OnDeviceBatteryLevelChange(1, span[1]);
+			break;
 		default:
 			break;
 		}

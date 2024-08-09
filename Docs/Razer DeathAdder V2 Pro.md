@@ -224,17 +224,35 @@ This notification is sent when the device is connected to or disconnected from e
 
 Status will be `00` if the device is not connected and `01` if the device is connected.
 
+NB: Just thinking about it, but maybe the format of the notification explained above is entirely wrong and that the contents of this notification are actually the connected device IDs?
+It is impossible to tell without observing a dongle with two devices appaired.
+
 ##### 10 - ??? (KeepAlive?)
 
 This notification is seen (only?) when the device is in BLE mode, and seems to actually spam when the device is put on the dock.
 
-##### 31 - ???
+##### 31 - Battery Level
 
-31 BB 01 01 01
-31 BD 01 01 01
-31 C0 01 01 01
+Structure:
 
-Might it actually be the battery level notification I had been looking for for quite some time already?
+```
+<BatteryLevel:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8>
+```
+
+31 BB 01 01 01 - Wired / Charging
+31 BD 01 01 01 - Wired / Charging
+31 C0 01 01 01 - Wired / Charging
+31 C2 01 01 01 - Wired / Charging
+31 C5 01 01 01 - Wired / Charging
+31 CA 00 00 01 - Dongle / Discharging
+31 CA 01 01 01 - Dongle / Docked / Charging
+
+This notification contains the current battery level as well as three other bytes of data, whose meaning is not yet known.
+It also does not trigger very often, but it seems that it does trigger periodically for a data refresh. (With a very long period, explaining why it is so easy to miss)
+Occurrences of this notification can be followed by the external power notification (which can also happen alone, more often?), indicating that none of the bytes here might be related to external power.
+
+Also, it seems that the value can quickly fluctuate sometimes (e.g. `ca` to `c7` to `ca`).
+Given the values observed, I'm assuming that the [0..255] values are actually [0..100] scaled up to [0..255] for some reason.
 
 ### Function/Register based protocol
 
