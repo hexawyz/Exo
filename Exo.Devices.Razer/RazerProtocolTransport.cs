@@ -3,17 +3,44 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools;
+using DeviceTools.HumanInterfaceDevices;
 using Exo.ColorFormats;
 using Exo.Devices.Razer.LightingEffects;
 using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Razer;
 
-internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransport
+// This is an implementation based on Razer's driver.
+internal sealed class RzControlRazerProtocolTransport : RazerProtocolTransport
 {
 	private const int SetFeatureIoControlCode = unchecked((int)0x88883010);
 	private const int GetFeatureIoControlCode = unchecked((int)0x88883014);
 
+	public RzControlRazerProtocolTransport(DeviceStream stream) : base(stream) { }
+
+	protected override ValueTask SetFeatureAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+		=> Stream.IoControlAsync(SetFeatureIoControlCode, buffer, cancellationToken);
+
+	protected override async ValueTask GetFeatureAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+		=> await Stream.IoControlAsync(GetFeatureIoControlCode, buffer, cancellationToken).ConfigureAwait(false);
+}
+
+// This is an implementation based on the native HID stack.
+internal sealed class HidRazerProtocolTransport : RazerProtocolTransport
+{
+	public HidRazerProtocolTransport(HidDeviceStream stream) : base(stream) { }
+
+	private new HidDeviceStream Stream => Unsafe.As<HidDeviceStream>(base.Stream);
+
+	protected override ValueTask SetFeatureAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+		=> Stream.SendFeatureReportAsync(buffer, cancellationToken);
+
+	protected override ValueTask GetFeatureAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+		=> Stream.ReceiveFeatureReportAsync(buffer, cancellationToken);
+}
+
+internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTransport
+{
 	// The message length is hardcoded to 90 bytes for now. Maybe different devices use a different buffer length.
 	private const int HidMessageLength = 90;
 
@@ -46,17 +73,13 @@ internal sealed class RazerProtocolTransport : IDisposable, IRazerProtocolTransp
 		}
 	}
 
+	protected DeviceStream Stream => _stream;
+
 	private Memory<byte> Buffer => MemoryMarshal.CreateFromPinnedArray(_buffer, 0, HidBufferLength);
 	private Span<byte> BufferSpan => Buffer.Span;
 
-	private void SetFeature(ReadOnlySpan<byte> buffer) => _stream.IoControl(SetFeatureIoControlCode, buffer, default);
-	private void GetFeature(Span<byte> buffer) => _stream.IoControl(GetFeatureIoControlCode, default, buffer);
-
-	private ValueTask SetFeatureAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
-		=> _stream.IoControlAsync(SetFeatureIoControlCode, buffer, cancellationToken);
-
-	private async ValueTask GetFeatureAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-		=> await _stream.IoControlAsync(GetFeatureIoControlCode, buffer, cancellationToken).ConfigureAwait(false);
+	protected abstract ValueTask SetFeatureAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken);
+	protected abstract ValueTask GetFeatureAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
 	public async ValueTask<bool> HandshakeAsync(CancellationToken cancellationToken)
 	{

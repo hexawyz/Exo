@@ -261,8 +261,9 @@ The two bytes before seem to be correlated with external power, but it is diffic
 
 ### Function/Register based protocol
 
-The core protocol is composed of SET/GET feature calls to the root device itself. It does not strictly follow the HID spec, and is not exposed by any HID report.
-On windows, a special driver is needed to communicate with the device. The official Razer driver will expose a new "Razer control" device interface to communicate.
+The core protocol is composed of SET/GET feature calls to the root device itself.
+On Windows, Razer install a special driver to communicate with the device.
+The official Razer driver will expose a new "Razer control" device interface to communicate.
 
 IO Control Codes are used to implement the GET and SET feature calls:
 
@@ -271,6 +272,11 @@ IO Control Codes are used to implement the GET and SET feature calls:
 
 Packets are always 91 bytes long, including the report ID which is `00`.
 This means that commands themselves are 90 bytes long.
+
+Without the driver, the feature report #00 will be exposed on the Mouse device interface (the same one that is opened in exclusive mode by Windows).
+This might be the reason why Razer felt the need to install a custom driver (that, or maybe some more obscure features?),
+however it is possible to send ioctl on devices opened without any R/W access.
+This means that the driver is actually not needed to communicate.
 
 All messages follow a common pattern:
 
@@ -2812,3 +2818,136 @@ e.g. Lighting is `0f` in the USB protocol but `10` in the BLE protocol; Power is
 0800000000000000
 0800000001000000
 08000000ffff0000
+
+# Partial device info without the Razer driver
+
+║ Device Manufacturer: Razer
+║ Device Product Name: Razer DeathAdder V2 Pro
+║ Device Serial Number: 000000000000
+║ Device Vendor Name: Razer USA, Ltd
+║ Device Enumerator: Usb
+║ Device Vendor ID Source: Usb
+║ Device Vendor ID: 1532
+║ Device Product ID: 007D
+║ Device Version Number: 0100
+║ ╔═══════ Input Reports
+║ ║ Maximum Report Length: 9
+║ ║ ╔═══════ Report #00
+║ ║ ║ Report Length: 9
+║ ║ ║ ╒═══════ Channel #0
+║ ║ ║ │ Collection Usage Page: GenericDesktop
+║ ║ ║ │ Collection Usage: Pointer
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: Button
+║ ║ ║ │ Usage: 0001 .. 0005
+║ ║ ║ │ Data Index: 0 .. 4
+║ ║ ║ │ Item Size: 1
+║ ║ ║ │ Item Count: 5
+║ ║ ║ │ Report Start Byte Index: 1
+║ ║ ║ │ Report Byte Length: 1
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 5
+║ ║ ║ │ Units: counts
+║ ║ ║ │ Is Absolute: True
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╞═══════ Channel #1
+║ ║ ║ │ Collection Usage Page: GenericDesktop
+║ ║ ║ │ Collection Usage: Pointer
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: FF00
+║ ║ ║ │ Usage: 0040
+║ ║ ║ │ Data Index: 5
+║ ║ ║ │ Is Nullable: False
+║ ║ ║ │ Item Size: 8
+║ ║ ║ │ Item Count: 2
+║ ║ ║ │ Report Start Byte Index: 2
+║ ║ ║ │ Report Byte Length: 2
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 16
+║ ║ ║ │ Units: counts
+║ ║ ║ │ Logical Value: 127
+║ ║ ║ │ Is Absolute: True
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╞═══════ Channel #2
+║ ║ ║ │ Collection Usage Page: GenericDesktop
+║ ║ ║ │ Collection Usage: Pointer
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: GenericDesktop
+║ ║ ║ │ Usage: Wheel
+║ ║ ║ │ Data Index: 6
+║ ║ ║ │ Is Nullable: False
+║ ║ ║ │ Item Size: 8
+║ ║ ║ │ Item Count: 1
+║ ║ ║ │ Report Start Byte Index: 4
+║ ║ ║ │ Report Byte Length: 1
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 8
+║ ║ ║ │ Units: counts
+║ ║ ║ │ Logical Value: 127
+║ ║ ║ │ Is Absolute: False
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╞═══════ Channel #3
+║ ║ ║ │ Collection Usage Page: GenericDesktop
+║ ║ ║ │ Collection Usage: Pointer
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: GenericDesktop
+║ ║ ║ │ Usage: Y
+║ ║ ║ │ Data Index: 7
+║ ║ ║ │ Is Nullable: False
+║ ║ ║ │ Item Size: 16
+║ ║ ║ │ Item Count: 1
+║ ║ ║ │ Report Start Byte Index: 7
+║ ║ ║ │ Report Byte Length: 2
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 16
+║ ║ ║ │ Units: counts
+║ ║ ║ │ Logical Value: 32767
+║ ║ ║ │ Is Absolute: False
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╞═══════ Channel #4
+║ ║ ║ │ Collection Usage Page: GenericDesktop
+║ ║ ║ │ Collection Usage: Pointer
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: GenericDesktop
+║ ║ ║ │ Usage: X
+║ ║ ║ │ Data Index: 8
+║ ║ ║ │ Is Nullable: False
+║ ║ ║ │ Item Size: 16
+║ ║ ║ │ Item Count: 1
+║ ║ ║ │ Report Start Byte Index: 5
+║ ║ ║ │ Report Byte Length: 2
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 16
+║ ║ ║ │ Units: counts
+║ ║ ║ │ Logical Value: 32767
+║ ║ ║ │ Is Absolute: False
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╘═══════
+║ ║ ╚═══════
+║ ╠═══════ Feature Reports
+║ ║ Maximum Report Length: 91
+║ ║ ╔═══════ Report #00
+║ ║ ║ Report Length: 0
+║ ║ ║ ╒═══════ Channel #0
+║ ║ ║ │ Collection Usage Page: GenericDesktop
+║ ║ ║ │ Collection Usage: Mouse
+║ ║ ║ ├───────
+║ ║ ║ │ Usage Page: Undefined
+║ ║ ║ │ Usage: 0000
+║ ║ ║ │ Data Index: 0
+║ ║ ║ │ Is Nullable: False
+║ ║ ║ │ Item Size: 0
+║ ║ ║ │ Item Count: 0
+║ ║ ║ │ Report Start Byte Index: 0
+║ ║ ║ │ Report Byte Length: 0
+║ ║ ║ │ Sequence Bit Offset: 0
+║ ║ ║ │ Sequence Bit Length: 0
+║ ║ ║ │ Units: counts
+║ ║ ║ │ Is Absolute: False
+║ ║ ║ │ Is Alias: False
+║ ║ ║ ╘═══════
+║ ║ ╚═══════
+║ ╚═══════
+
+Here, we can see that the "mysterious" feature report is actually exposed.
+The razer drivers likely try to obscure that from Windows when they are installed, but that seems quite a waste of CPU.

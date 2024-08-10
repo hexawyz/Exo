@@ -104,13 +104,26 @@ Exo relies on these runtimes, that you can download from the official websites:
 ### Optional
 
 Some devices comme with kernel drivers that are made by the manufacturer and help with providing support for the device features.
-We can't bundle those drivers with Exo (at least not for now), but we do rely on them to provide the features as well.
+When these drivers are installed on the system, the features exposed to the OS can be different.
+In some cases, Exo will require drivers from the manufacturer, and in other cases it will require them.
 
-* Razer: The simplest way to get the drivers is to actually rely on a Synapse 3 installation
-	1. Install Razer Synapse 3
+In any case, manufacturer drivers can't be bundled with Exo, for obvious reasons.
+
+#### Razer kernel drivers
+
+⚠️ Razer kernel drivers are not required anymore, and Exo should run fine **without** them.
+
+If you have installed and used Razer Synapse 3 with your device at one point, it is likely that those drivers are installed on your system.
+You are free to decide whether to keep them or not. (Drivers can be uninstalled from the Windows device manager, using the driver view)
+
+If you want to get the kernel drivers, (e.g. for preservation), the simplest way to get the drivers is to actually rely on a Synapse 3 installation:
+
+	1. Install or launch Razer Synapse 3 with your device(s) connected
 	2. Drivers will already be installed, but you can find the drivers in `C:\Program Files (x86)\Razer`.
 	3. Save the drivers somewhere else.
 	4. Either uninstall Razer Synapse (and reinstall the drivers if necessary) or disable and stop the Razer services (Setting them to manual startup is enough to disable them)
+
+NB: It is also possible to obtain those drivers without a completing a full installation of Synapse 3, as there are multiple steps in the install.
 
 ### ⚠️ Conflicts with other software
 

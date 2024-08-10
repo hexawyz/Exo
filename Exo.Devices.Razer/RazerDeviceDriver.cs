@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using DeviceTools.HumanInterfaceDevices.Usages;
 using Exo.Discovery;
 using Exo.Features;
 using Microsoft.Extensions.Logging;
@@ -242,6 +243,7 @@ public abstract partial class RazerDeviceDriver :
 		var deviceInfo = GetDeviceInformation(productId);
 
 		string? razerControlDeviceInterfaceName = null;
+		string? razerFeatureReportDeviceInterfaceName = null;
 		string? notificationDeviceInterfaceName = null;
 		string? razerGattServiceDeviceInterfaceName = null;
 		byte notificationReportLength = 0;
@@ -268,24 +270,45 @@ public abstract partial class RazerDeviceDriver :
 			{
 				if (deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsagePage.Key, out ushort usagePage) &&
 					deviceInterface.Properties.TryGetValue(Properties.System.DeviceInterface.Hid.UsageId.Key, out ushort usageId) &&
-					usagePage == (ushort)HidUsagePage.GenericDesktop && usageId == 0)
+					(HidUsagePage)usagePage == HidUsagePage.GenericDesktop)
 				{
-					using (var deviceHandle = HidDevice.FromPath(deviceInterface.Id))
+					switch ((HidGenericDesktopUsage)usageId)
 					{
-						// TODO: Might finally be time to work on that HID descriptor part 😫
-						// Also, I don't know why Windows insist on declaring the values we are looking for as button. The HID descriptor clearly indicates values between 0 and 255…
-						var descriptor = await deviceHandle.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
-
-						// Thanks to the button caps we can check the Report ID.
-						// We are looking for the HID device interface tied to the collection with Report ID 5.
-						// (Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
-						if (descriptor.InputReports[0].ReportId == 5)
+					case 0:
+						using (var deviceHandle = HidDevice.FromPath(deviceInterface.Id))
 						{
-							if (notificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
+							var descriptor = await deviceHandle.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
 
-							notificationDeviceInterfaceName = deviceInterface.Id;
-							notificationReportLength = checked((byte)descriptor.InputReports[0].ReportSize);
+							// We are looking for the HID device interface tied to the collection with Report ID 5.
+							// This device interface will be the one providing us with the most useful notifications. Other interfaces can also provide some notifications but their purpose is unknown.
+							// (NB: Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
+							if (descriptor.InputReports.Count == 1 && descriptor.InputReports[0].ReportId == 5)
+							{
+								if (notificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
+
+								notificationDeviceInterfaceName = deviceInterface.Id;
+								notificationReportLength = checked((byte)descriptor.InputReports[0].ReportSize);
+							}
 						}
+						break;
+					case HidGenericDesktopUsage.Mouse:
+						using (var deviceHandle = HidDevice.FromPath(deviceInterface.Id))
+						{
+							var descriptor = await deviceHandle.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
+
+							// When Razer drivers are not installed, it turns out that the huge feature reports are sent on the mouse interface.
+							// The tricky part here is that some HID collections are opened in exclusive mode by Windows, but we can always open HID devices without requesting any rights.
+							// As it turns out that we can send or receive feature reports without any problem in that situation,
+							// I don't really understand why Razer needed custom drivers in the first place. (Maybe some obscure features)
+							// Also, I suspect the razer kernel driver to actually degrade performance on the system, as the mouse seems to suffer more from system hiccups than other devices.
+							if (descriptor.FeatureReports.Count == 1 && descriptor.FeatureReports[0].ReportId == 0)
+							{
+								if (razerFeatureReportDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device control.");
+
+								razerFeatureReportDeviceInterfaceName = deviceInterface.Id;
+							}
+						}
+						break;
 					}
 				}
 			}
@@ -298,7 +321,7 @@ public abstract partial class RazerDeviceDriver :
 			}
 		}
 
-		if (razerControlDeviceInterfaceName is null && razerGattServiceDeviceInterfaceName is null)
+		if (razerFeatureReportDeviceInterfaceName is null && razerControlDeviceInterfaceName is null && razerGattServiceDeviceInterfaceName is null)
 		{
 			throw new InvalidOperationException("The device interface for Razer device control was not found.");
 		}
@@ -308,12 +331,22 @@ public abstract partial class RazerDeviceDriver :
 			throw new InvalidOperationException("The device interface for device notifications was not found.");
 		}
 
-		// Instanciate either an USB or BT LE transport depending on the configuration.
+		// Instantiate an appropriate protocol transport depending on the detected configuration.
 		// ⚠️ Only Razer DeathAdder V2 Pro is supported, especially for BT LE. Other devices may or may not be compatible, but it must be verified using USB/BT LE dumps.
-		// NB: We try to open the BLE device in exclusive mode in order to avoid conflict with other software.
-		IRazerProtocolTransport transport = razerGattServiceDeviceInterfaceName is not null ?
-			new RazerDeathAdderV2ProBluetoothProtocolTransport(Device.OpenHandle(razerGattServiceDeviceInterfaceName, DeviceAccess.ReadWrite, FileShare.None), 1_000) :
-			new RazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceInterfaceName!, DeviceAccess.None, FileShare.None), FileAccess.ReadWrite));
+		IRazerProtocolTransport transport;
+		if (razerFeatureReportDeviceInterfaceName is not null)
+		{
+			transport = new HidRazerProtocolTransport(new HidDeviceStream(Device.OpenHandle(razerFeatureReportDeviceInterfaceName!, DeviceAccess.None, FileShare.None), FileAccess.ReadWrite));
+		}
+		else if (razerGattServiceDeviceInterfaceName is not null)
+		{
+			// NB: We try to open the BLE device (GATT service) in exclusive mode in order to prevent conflict with other software.
+			transport = new RazerDeathAdderV2ProBluetoothProtocolTransport(Device.OpenHandle(razerGattServiceDeviceInterfaceName, DeviceAccess.ReadWrite, FileShare.None), 1_000);
+		}
+		else
+		{
+			transport = new RzControlRazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceInterfaceName!, DeviceAccess.None, FileShare.None), FileAccess.ReadWrite));
+		}
 
 		string? serialNumber = null;
 

@@ -165,4 +165,17 @@ public class HidDeviceStream : DeviceStream
 			ArrayPool<byte>.Shared.Return(buffer);
 		}
 	}
+
+	/// <summary>Sends a feature report to the HID device.</summary>
+	/// <param name="buffer">The buffer containing the feature report, including the report ID byte.</param>
+	/// <param name="cancellationToken"></param>
+	public ValueTask SendFeatureReportAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+		=> IoControlAsync(NativeMethods.IoCtlHidSetFeature, buffer, cancellationToken);
+
+	/// <summary>Receives a feature report from the HID device</summary>
+	/// <remarks>Before calling this method, the first byte of the buffer must be initialized with the report ID.</remarks>
+	/// <param name="buffer">The buffer containing the feature report, including the report ID byte.</param>
+	/// <param name="cancellationToken"></param>
+	public async ValueTask ReceiveFeatureReportAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+		=> await IoControlAsync(NativeMethods.IoCtlHidGetFeature, buffer, cancellationToken).ConfigureAwait(false);
 }
