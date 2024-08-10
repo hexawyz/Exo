@@ -89,7 +89,7 @@
                                     </DataTemplate>
                                 </CheckBox.ContentTemplate>
                             </CheckBox>
-                            <Button x:Uid="ResetButton" Grid.Column="1" Margin="0,0,6,0" Visibility="{Binding LightingZones, Converter={StaticResource CollectionToVisibilityConverter}}" Command="{Binding ResetChangesCommand}" />
+                            <Button x:Uid="ResetButton" Grid.Column="1" Margin="0,0,6,0" Command="{Binding ResetChangesCommand}" />
                             <Button x:Uid="ApplyButton" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" />
                         </Grid>
                     </StackPanel>
