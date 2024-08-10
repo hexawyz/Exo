@@ -245,8 +245,10 @@ public abstract partial class RazerDeviceDriver :
 		string? razerControlDeviceInterfaceName = null;
 		string? razerFeatureReportDeviceInterfaceName = null;
 		string? notificationDeviceInterfaceName = null;
+		string? secondaryNotificationDeviceInterfaceName = null;
 		string? razerGattServiceDeviceInterfaceName = null;
 		byte notificationReportLength = 0;
+		byte secondaryNotificationReportLength = 0;
 
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
@@ -282,12 +284,23 @@ public abstract partial class RazerDeviceDriver :
 							// We are looking for the HID device interface tied to the collection with Report ID 5.
 							// This device interface will be the one providing us with the most useful notifications. Other interfaces can also provide some notifications but their purpose is unknown.
 							// (NB: Remember this relatively annoying Windows-specific stuff of splitting interfaces by top-level collection)
-							if (descriptor.InputReports.Count == 1 && descriptor.InputReports[0].ReportId == 5)
+							if (descriptor.InputReports.Count == 1)
 							{
-								if (notificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
+								switch (descriptor.InputReports[0].ReportId)
+								{
+								case 0x05:
+									if (notificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications.");
 
-								notificationDeviceInterfaceName = deviceInterface.Id;
-								notificationReportLength = checked((byte)descriptor.InputReports[0].ReportSize);
+									notificationDeviceInterfaceName = deviceInterface.Id;
+									notificationReportLength = checked((byte)descriptor.InputReports[0].ReportSize);
+									break;
+								case 0x09:
+									if (secondaryNotificationDeviceInterfaceName is not null) throw new InvalidOperationException("Found two device interfaces matching the criterion for Razer device notifications second channel.");
+
+									secondaryNotificationDeviceInterfaceName = deviceInterface.Id;
+									secondaryNotificationReportLength = checked((byte)descriptor.InputReports[0].ReportSize);
+									break;
+								}
 							}
 						}
 						break;
@@ -359,7 +372,13 @@ public abstract partial class RazerDeviceDriver :
 		(
 			transport,
 			new(notificationDeviceInterfaceName, FileMode.Open, FileAccess.Read, FileShare.Read, 0, true),
-			new DeviceNotificationOptions() { HasBluetoothHidQuirk = razerGattServiceDeviceInterfaceName is not null, ReportId = 5, ReportLength = (byte)notificationReportLength },
+			new DeviceNotificationOptions()
+			{
+				StreamIndex = 1,
+				ReportId = 5,
+				HasBluetoothHidQuirk = razerGattServiceDeviceInterfaceName is not null,
+				ReportLength = notificationReportLength
+			},
 			driverRegistry,
 			version,
 			deviceInfo,
@@ -594,20 +613,27 @@ public abstract partial class RazerDeviceDriver :
 			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
 
-	void IRazerDeviceNotificationSink.OnDeviceArrival(byte deviceIndex) => OnDeviceArrival(deviceIndex);
-	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte deviceIndex) => OnDeviceRemoval(deviceIndex);
-	void IRazerDeviceNotificationSink.OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(deviceIndex, dpiX, dpiY);
-	void IRazerDeviceNotificationSink.OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(deviceIndex, isConnectedToExternalPower);
-	void IRazerDeviceNotificationSink.OnDeviceBatteryLevelChange(byte deviceIndex, byte batteryLevel) => OnDeviceBatteryLevelChange(deviceIndex, batteryLevel);
+	void IRazerDeviceNotificationSink.OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex) => OnDeviceArrival(notificationStreamIndex, deviceIndex);
+	void IRazerDeviceNotificationSink.OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex, ushort productId) => OnDeviceArrival(notificationStreamIndex, deviceIndex, productId);
 
-	protected virtual void OnDeviceArrival(byte deviceIndex) { }
-	protected virtual void OnDeviceRemoval(byte deviceIndex) { }
+	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex) => OnDeviceRemoval(notificationStreamIndex, deviceIndex);
+	void IRazerDeviceNotificationSink.OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex, ushort productId) => OnDeviceRemoval(notificationStreamIndex, deviceIndex, productId);
+
+	void IRazerDeviceNotificationSink.OnDeviceDpiChange(byte notificationStreamIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(notificationStreamIndex, dpiX, dpiY);
+	void IRazerDeviceNotificationSink.OnDeviceExternalPowerChange(byte notificationStreamIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(notificationStreamIndex, isConnectedToExternalPower);
+	void IRazerDeviceNotificationSink.OnDeviceBatteryLevelChange(byte notificationStreamIndex, byte deviceIndex, byte batteryLevel) => OnDeviceBatteryLevelChange(deviceIndex, batteryLevel);
+
+	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex) => throw new NotSupportedException();
+	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex, ushort productId) => throw new NotSupportedException();
+
+	protected virtual void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex) => throw new NotSupportedException();
+	protected virtual void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex, ushort productId) => throw new NotSupportedException();
+
 	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(dpiX, dpiY);
 	protected virtual void OnDeviceExternalPowerChange(byte deviceIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(isConnectedToExternalPower);
 	protected virtual void OnDeviceBatteryLevelChange(byte deviceIndex, byte batteryLevel) => OnDeviceBatteryLevelChange(batteryLevel);
 
-	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) { }
-	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) { }
-	protected virtual void OnDeviceBatteryLevelChange(byte batteryLevel) { }
-
+	protected virtual void OnDeviceDpiChange(ushort dpiX, ushort dpiY) => throw new NotSupportedException();
+	protected virtual void OnDeviceExternalPowerChange(bool isConnectedToExternalPower) => throw new NotSupportedException();
+	protected virtual void OnDeviceBatteryLevelChange(byte batteryLevel) => throw new NotSupportedException();
 }

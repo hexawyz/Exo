@@ -69,7 +69,8 @@ public abstract partial class RazerDeviceDriver
 				await _watcher.DisposeAsync().ConfigureAwait(false);
 			}
 
-			protected override void OnDeviceArrival(byte deviceIndex)
+			// TODO: Properly handle multi-device.
+			protected override void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex)
 			{
 				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
 
@@ -79,7 +80,12 @@ public abstract partial class RazerDeviceDriver
 				HandleNewDevice(deviceIndex);
 			}
 
-			protected override void OnDeviceRemoval(byte deviceIndex)
+			// TODO: Properly handle multi-device.
+			protected override void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex, ushort productId)
+				=> OnDeviceArrival(notificationStreamIndex, deviceIndex);
+
+			// TODO: Properly handle multi-device.
+			protected override void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex)
 			{
 				if (Volatile.Read(ref _pairedDevices) is not { } pairedDevices) return;
 
@@ -91,6 +97,10 @@ public abstract partial class RazerDeviceDriver
 					RemoveAndDisposeDriver(oldDriver);
 				}
 			}
+
+			// TODO: Properly handle multi-device.
+			protected override void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex, ushort productId)
+				=> OnDeviceRemoval(notificationStreamIndex, deviceIndex);
 
 			private async void RemoveAndDisposeDriver(RazerDeviceDriver driver)
 			{

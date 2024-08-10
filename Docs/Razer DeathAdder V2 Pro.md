@@ -2951,3 +2951,111 @@ e.g. Lighting is `0f` in the USB protocol but `10` in the BLE protocol; Power is
 
 Here, we can see that the "mysterious" feature report is actually exposed.
 The razer drivers likely try to obscure that from Windows when they are installed, but that seems quite a waste of CPU.
+
+# Multi device analysis
+
+I downloaded traces from this thread to try understanding how multiple device stuff works: https://github.com/openrazer/openrazer/issues/1892
+
+## Notifications
+
+From my understanding, the report `09` is identical to `05` but used when two devices are connected to a dongle.
+This can be verified by looking for `31` battery level notifications, whose format is identifiable.
+
+From `dsv2pro_and_naga_synapse_on_off_interactions.pcapng`:
+
+Extract from notifications on `05`:
+
+05 09 02 02 00 00 00000000000000000000 // Availability (unavailable)
+05 09 03 02 00 00 00000000000000000000 // Availability (available)
+05 31 f3 00 00 02 00000000000000000000 // Battery level (95%)
+05 09 02 02 00 00 00000000000000000000 // Availability (unavailable)
+05 09 03 02 00 00 00000000000000000000 // Availability (available)
+05 31 f3 00 00 02 00000000000000000000 // Battery level (95%)
+
+Extract from notifications on `09`:
+
+09 31 f8 00 00 01 00000000000000000000 // Battery level (97%)
+09 02 0960 0960 00000000000000000000 // DPI (2400x2400)
+09 02 0960 0960 00000000000000000000 // DPI (2400x2400)
+09 3a 02 86 00 00 00000000000000000000 // ?
+09 3a 02 86 00 00 00000000000000000000 // ?
+09 3a 02 86 00 00 00000000000000000000 // ?
+09 0c 00 00 00 00 00000000000000000000 // External power (off)
+09 31 f8 00 00 01 00000000000000000000 // Battery level (97%)
+09 02 0960 0960 00000000000000000000 // DPI (2400x2400)
+09 02 0960 0960 00000000000000000000 // DPI (2400x2400)
+09 0c 00 00 00 00 00000000000000000000 // External power (off)
+09 31 f8 00 00 01 00000000000000000000 // Battery level (97%)
+09 35 02 01 00a8 00000000000000000000 // ? (00a8 should be the PID of the device, as per the GH issue)
+09 35 02 01 00a8 00000000000000000000 // ?
+09 3a 02 86 00 00 00000000000000000000 // ?
+09 02 0960 0960 00000000000000000000 // DPI (2400x2400)
+09 3a 02 86 00 00 00000000000000000000 // ?
+09 02 0960 0960 00000000000000000000 // DPI (2400x2400)
+09 0e 04 00 00 00 00000000000000000000 // ?
+09 0c 00 00 00 00 00000000000000000000 // External power (off)
+09 31 f5 00 00 01 00000000000000000000 // Battery level (96%)
+…
+
+So, from the above samples, we can learn a few things:
+
+* Notifications definitely have the same format on those two endpoints
+* Seemingly, the assumption about the device index on some notifications was correct, as we can see `01` and `02` on similar notifications
+* There does not seem to be a strict mapping on which notification endpoint is used for which device, as here, `05` is used for device #2. (Other traces have this in the "expected" order)
+* Not all notifications provide a device index. Which means that knowledge of that information must be acquired from somewhere else. (Including possibly another notification)
+
+In `dsv2pro_and_nagav2pro-2023-01-19_00.21.43.pcapng`, this is observed during pairing:
+
+09 35 03 02 0296 00000000000000000000 (Packet 4485, subsequently 5187)
+
+I'm assuming that this is a device pairing notification, as we can see the PID (`0296`, as explained in the GH issue).
+This would supposedly have a similar format to the device availability notification, but with additional specification of the device PID.
+So here, this would indicate pairing of a device on slot #2, with PID `0296` and currently connected (`03`).
+
+(NB: Here, communications with the first device uses `1F`, while communication with the second device uses `9F`, however I don't know yet how that is decided)
+
+The thing that annoys me, is that, as far as I can see from the traces, the dongle arbitrarily reports the serial number from a single device (the first one connected?).
+I don't know yet if it is possible to request the serial number for a specific device, but that seems like a weird limitation.
+(PS: looking for serial numbers can be done by searching for `504d` within Wireshark, as serial numbers start with `PM`)
+
+=> Actually, from looking more in details, I can see that the ID byte used for the other serial number is `88` instead of `08`.
+My hypothesis is that the second device uses a mask of 0x80 for all its requests, but the picture is not complete yet. (Still don't know how deterministic this is, and how it is chosen)
+
+In the traces, the second device seems to return `0180` to the command `020086`, while the first one is still returns `0000`.
+I don't know if it can be attributed to the device itself or if it would be related to multi-device stuff.
+Would be weird, though, as one needs to explicitly query with ID `88` to get that information. (However, preceding that
+
+Looking at the result of the "paired devices" command, we can see the following, and compared to my own samples:
+
+02 08 000000 3100bf 02 00 00a8 01 0296 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b100
+02 08 000000 3100bf 02 01 007d 00 ffff 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f000
+
+So, we correctly have two device IDs indicated here, with the expected statuses.
+
+Digging again within the traces, when the dongle is discovered by razer synapse, first the pairing is queried, then immediately afterwards, it queries information on the second device.
+So, this would indicate that the 0x80 mask is actually hardcoded.
+And, while the notification channels seemingly can be mixed up, it seems that the communication IDs cannot: `1f` would always be the first device, and `9f` would always be the second.
+
+Looking at the notifications in that file, though:
+
+09 37 01 00000000000000000000000000
+09 37 02 01 0296 0180 0000000000000000
+09 36 01 00000000000000000000000000
+09 35 03 02 0296 00000000000000000000 // Device arrival / pairing
+09 36 02 000000 00000000000000000000
+09 35 03 02 0296 00000000000000000000
+09 35 03 02 0296 00000000000000000000
+09 35 03 02 0296 00000000000000000000
+09 35 03 02 0296 00000000000000000000
+09 35 03 02 0296 00000000000000000000
+09 31 f5 00 00 02 00000000000000000000
+
+Looks like notification `37` could also be related with pairing/arrival (an offline notification maybe ?) (Also includes what is seemingly the result of `020086`, which is `0180` here)
+Also, it seems that the `35` notification only ever occurs on the second channel, for some reason?
+I also never observed a `09` notification on the second channel, so that might actually be it.
+
+Also, this notification would be received when a device is unpaired: (from `nagav2pro_UNpairs_deathstalkerv2.pcapng`)
+
+09 35 02 02 ffff 00000000000000000000
+
+
