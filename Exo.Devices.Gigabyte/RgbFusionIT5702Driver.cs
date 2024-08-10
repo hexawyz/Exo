@@ -596,7 +596,7 @@ public sealed class RgbFusionIT5702Driver :
 			IPersistentLightingFeature>(this);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
 
-		_unifiedLightingZone = new WaveLightingZone((byte)((1 << ledCount) - 1), Z490MotherboardUnifiedZoneId, this);
+		_unifiedLightingZone = new WaveLightingZone(0xFF /*(byte)((1 << ledCount) - 1)*/, Z490MotherboardUnifiedZoneId, this);
 		_lightingZones = new LightingZone[ledCount];
 		for (int i = 0; i < _lightingZones.Length; i++)
 		{
@@ -675,12 +675,13 @@ public sealed class RgbFusionIT5702Driver :
 
 					// If needed, clear all the other command slots.
 					// We only need to do this the first time we switch to unified lighting mode.
+					// NB: We clear all slots, including ones that are not mapped to any LED.
 					if ((_state & StatePendingChangeUnifiedLighting) != 0)
 					{
 						buffer.AsSpan(2).Clear();
-						for (int i = 1; i < _lightingZones.Length; i++)
+						for (int i = 1; i < 8; i++)
 						{
-							buffer[1] = (byte)(FirstCommandId | i & 0x7);
+							buffer[1] = (byte)(FirstCommandId | i);
 							await _stream.SendFeatureReportAsync(bufferMemory, cancellationToken).ConfigureAwait(false);
 						}
 						// Set the command update bits to the maximum, in order for everything to be taken into account.
