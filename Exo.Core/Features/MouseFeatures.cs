@@ -27,8 +27,8 @@ public interface IMouseDynamicDpiFeature : IMouseDpiFeature
 /// <summary>This feature exposes DPI presets supported by a mouse.</summary>
 public interface IMouseDpiPresetFeature : IMouseDynamicDpiFeature
 {
-	///// <summary>Gets a value indicating if the current preset can be changed by using this feature.</summary>
-	//bool CanChangePreset => true;
+	/// <summary>Gets a value indicating if the current preset can be changed by using this feature.</summary>
+	bool CanChangePreset => true;
 
 	/// <summary>Gets the current DPI presets of the mouse.</summary>
 	/// <remarks>
@@ -43,10 +43,10 @@ public interface IMouseDpiPresetFeature : IMouseDynamicDpiFeature
 	/// </remarks>
 	ImmutableArray<DotsPerInch> DpiPresets { get; }
 
-	///// <summary>Change the active mouse preset.</summary>
-	///// <param name="activePresetIndex">The index of the preset that should be used.</param>
-	///// <param name="cancellationToken"></param>
-	//ValueTask ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken);
+	/// <summary>Change the active mouse preset.</summary>
+	/// <param name="activePresetIndex">The index of the preset that should be used.</param>
+	/// <param name="cancellationToken"></param>
+	ValueTask ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken);
 }
 
 /// <summary>This feature enables configuring the list of DPI presets of a mouse.</summary>
@@ -61,6 +61,10 @@ public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetFeature
 
 	/// <summary>Gets a value indicating the maximum number of DPI presets that can be defined.</summary>
 	byte MaxPresetCount { get; }
+
+	/// <summary>Gets a value indicating the maximum allowed DPI values.</summary>
+	/// <remarks>It is expected that for most devices, the maximum DPI value for X and Y will be the same.</remarks>
+	DotsPerInch MaximumDpi { get; }
 
 	/// <summary>Sets the DPI presets of the mouse.</summary>
 	/// <remarks>The list of presets passed must respect the constraints exposed by <see cref="AllowsSeparateXYDpi"/>, <see cref="MinPresetCount"/> and <see cref="MaxPresetCount"/>.</remarks>

@@ -13,18 +13,21 @@ public abstract partial class RazerDeviceDriver
 		IDeviceDriver<IMouseDeviceFeature>,
 		IMouseDpiFeature,
 		IMouseDynamicDpiFeature,
+		IMouseConfigurableDpiPresetsFeature,
 		IMouseDpiPresetFeature
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 		private DotsPerInch[] _dpiProfiles;
 		private ulong _currentDpi;
+		private readonly ushort _maximumDpi;
 
 		private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
 
 		public Mouse(
 			IRazerProtocolTransport transport,
 			Guid lightingZoneId,
+			ushort maximumDpi,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
@@ -33,6 +36,7 @@ public abstract partial class RazerDeviceDriver
 		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_dpiProfiles = [];
+			_maximumDpi = maximumDpi;
 			_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetFeature>(this);
 		}
 
@@ -105,5 +109,26 @@ public abstract partial class RazerDeviceDriver
 		}
 
 		ImmutableArray<DotsPerInch> IMouseDpiPresetFeature.DpiPresets => ImmutableCollectionsMarshal.AsImmutableArray(Volatile.Read(ref _dpiProfiles));
+
+		bool IMouseConfigurableDpiPresetsFeature.AllowsSeparateXYDpi => true;
+		byte IMouseConfigurableDpiPresetsFeature.MaxPresetCount => 5;
+
+		public DotsPerInch MaximumDpi => new(_maximumDpi);
+
+		ValueTask IMouseDpiPresetFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
+			=> _transport.SetDpiAsync(false, _dpiProfiles[activePresetIndex], cancellationToken);
+
+		async ValueTask IMouseConfigurableDpiPresetsFeature.SetDpiPresetsAsync(byte activePresetIndex, ImmutableArray<DotsPerInch> dpiPresets, CancellationToken cancellationToken)
+		{
+			if (dpiPresets.IsDefault) throw new ArgumentNullException(nameof(dpiPresets));
+			if (dpiPresets.Length is < 1 or > 5) throw new ArgumentException();
+
+			await _transport.SetDpiProfilesAsync
+			(
+				true,
+				new RazerMouseDpiProfileConfiguration(activePresetIndex, ImmutableArray.CreateRange(dpiPresets, dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0))),
+				cancellationToken
+			).ConfigureAwait(false);
+		}
 	}
 }

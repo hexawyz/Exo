@@ -35,11 +35,13 @@ public abstract partial class RazerDeviceDriver :
 			ushort bluetoothDeviceProductId,
 			ushort bluetoothLowEnergyDeviceProductId,
 			Guid? lightingZoneGuid,
+			ushort maximumDpi,
 			string friendlyName
 		)
 		{
 			DeviceCategory = deviceCategory;
 			Flags = flags;
+			MaximumDpi = maximumDpi;
 			WiredDeviceProductId = wiredDeviceProductId;
 			DongleDeviceProductId = dongleDeviceProductId;
 			BluetoothDeviceProductId = bluetoothDeviceProductId;
@@ -51,6 +53,8 @@ public abstract partial class RazerDeviceDriver :
 		public RazerDeviceCategory DeviceCategory { get; }
 
 		public RazerDeviceFlags Flags { get; }
+
+		public ushort MaximumDpi { get; }
 
 		// These properties indicate the various IDs related to a device. Availability of these IDs is indicated by the flags.
 		// The meaning slightly changes if the device is a dongle.
@@ -65,6 +69,7 @@ public abstract partial class RazerDeviceDriver :
 		public ushort BluetoothLowEnergyDeviceProductId { get; }
 
 		public Guid? LightingZoneGuid { get; }
+
 		public string FriendlyName { get; }
 
 		public bool HasWiredDeviceProductId => (Flags & RazerDeviceFlags.HasWiredProductId) != 0;
@@ -161,6 +166,7 @@ public abstract partial class RazerDeviceDriver :
 			0xFFFF,
 			0x008E,
 			DeathAdderV2ProLightingZoneGuid,
+			20_000,
 			"Razer DeathAdder V2 Pro"
 		),
 		new
@@ -177,6 +183,7 @@ public abstract partial class RazerDeviceDriver :
 			0xFFFF,
 			0x008E,
 			null,
+			0,
 			"Razer DeathAdder V2 Pro HyperSpeed Dongle"
 		),
 		new
@@ -188,6 +195,7 @@ public abstract partial class RazerDeviceDriver :
 			0xFFFF,
 			0xFFFF,
 			DockLightingZoneGuid,
+			0,
 			"Razer Mouse Dock"
 		)
 	];
@@ -457,6 +465,7 @@ public abstract partial class RazerDeviceDriver :
 				notificationStream,
 				notificationOptions,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				deviceInfo.MaximumDpi,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -545,6 +554,7 @@ public abstract partial class RazerDeviceDriver :
 			(
 				transport,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				deviceInfo.MaximumDpi,
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
