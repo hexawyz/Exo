@@ -993,6 +993,10 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			}
 		}
 
+		// Try to wait for about 4ms. Hopefully this will not be too broken with Windows' internal timer. (But with chrome running on everyone's computer, I assume resolution is always 1ms)
+		// For my testing, waiting this delay make most read succeed on the first try, which is what we want. (NB: Using Wireshark "time delta from previous displayed frame" feature is useful)
+		await Task.Delay(4, cancellationToken).ConfigureAwait(false);
+
 		while (true)
 		{
 			buffer.Span.Clear();
@@ -1012,6 +1016,12 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				errorResponseRetryCount--;
 				break;
 			}
+
+			// Arbitrarily wait between read tentatives
+			// From my recent captures, we have many read retries on some commands, amounting to about 10ms in some cases,
+			// however sometimes the response is relatively quick and we get the result immediately.
+			// As such, ensuring a retry delay of 6ms should be mostly fair, and avoid wasting CPU unnecessarily.
+			await Task.Delay(6, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

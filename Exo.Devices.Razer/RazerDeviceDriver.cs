@@ -344,6 +344,11 @@ public abstract partial class RazerDeviceDriver :
 			throw new InvalidOperationException("The device interface for device notifications was not found.");
 		}
 
+		if (secondaryNotificationDeviceInterfaceName is not null && razerGattServiceDeviceInterfaceName is not null)
+		{
+			throw new InvalidOperationException("Bluetooth devices are not expected to expose a device interface for secondary notifications.");
+		}
+
 		// Instantiate an appropriate protocol transport depending on the detected configuration.
 		// ⚠️ Only Razer DeathAdder V2 Pro is supported, especially for BT LE. Other devices may or may not be compatible, but it must be verified using USB/BT LE dumps.
 		IRazerProtocolTransport transport;
@@ -360,6 +365,8 @@ public abstract partial class RazerDeviceDriver :
 		{
 			transport = new RzControlRazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceInterfaceName!, DeviceAccess.None, FileShare.None), FileAccess.ReadWrite));
 		}
+
+		await transport.HandshakeAsync(cancellationToken).ConfigureAwait(false);
 
 		string? serialNumber = null;
 
@@ -378,6 +385,16 @@ public abstract partial class RazerDeviceDriver :
 				ReportId = 5,
 				HasBluetoothHidQuirk = razerGattServiceDeviceInterfaceName is not null,
 				ReportLength = notificationReportLength
+			},
+			secondaryNotificationDeviceInterfaceName is not null ?
+				new(secondaryNotificationDeviceInterfaceName, FileMode.Open, FileAccess.Read, FileShare.Read, 0, true) :
+				null,
+			new DeviceNotificationOptions()
+			{
+				StreamIndex = 2,
+				ReportId = 9,
+				HasBluetoothHidQuirk = false,
+				ReportLength = secondaryNotificationReportLength
 			},
 			driverRegistry,
 			version,
@@ -402,6 +419,8 @@ public abstract partial class RazerDeviceDriver :
 		IRazerProtocolTransport transport,
 		DeviceStream notificationStream,
 		DeviceNotificationOptions notificationOptions,
+		DeviceStream? secondNotificationStream,
+		DeviceNotificationOptions secondNotificationOptions,
 		Optional<IDriverRegistry> driverRegistry,
 		ushort versionNumber,
 		DeviceInformation deviceInfo,
@@ -462,6 +481,8 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				notificationStream,
 				notificationOptions,
+				secondNotificationStream,
+				secondNotificationOptions,
 				driverRegistry.GetOrCreateValue(),
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,

@@ -61,11 +61,11 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 		{
 			if (!options.HasBluetoothHidQuirk)
 			{
-				HandleNotification(sink, span[1..], options);
+				HandleNotification(sink, span[1..], options.StreamIndex);
 			}
 			else if (span[1] == options.ReportId)
 			{
-				HandleNotification(sink, span[2..], options);
+				HandleNotification(sink, span[2..], options.StreamIndex);
 			}
 		}
 	}

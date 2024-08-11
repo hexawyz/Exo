@@ -370,6 +370,14 @@ e.g. 1000Hz is 1, 500Hz is 2, 125Hz is 8
 
 ###### 06 - ???
 
+Some devices return information here.
+
+Read Response:
+
+```
+<Unknown:U8> <Unknown:U8>
+```
+
 ###### 07 - ???
 
 ###### 3B - ???
@@ -3058,4 +3066,6 @@ Also, this notification would be received when a device is unpaired: (from `naga
 
 09 35 02 02 ffff 00000000000000000000
 
-
+Also of interest, there seem to be empty notifications with report IDs `01` and `02` triggered when one or the other of the devices is going down.
+I can't understand the actual logic here, but on my setup with nly one device, it is always only a `02` notification.
+The notification does not seem to appear when a device is going online. (Is it some power saving stuff?)

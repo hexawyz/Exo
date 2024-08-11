@@ -665,6 +665,6 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 
 	public ValueTask<bool> HandshakeAsync(CancellationToken cancellationToken) => ValueTask.FromResult(true);
 
-	public ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
-	public ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<PairedDeviceInformation> IRazerProtocolTransport.GetDeviceInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<PairedDeviceInformation[]> IRazerProtocolTransport.GetDevicePairingInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 }

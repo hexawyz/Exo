@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
-using DeviceTools.HumanInterfaceDevices;
 
 namespace Exo.Devices.Razer;
 
@@ -22,6 +21,7 @@ public abstract partial class RazerDeviceDriver
 			}
 
 			private readonly RazerDeviceNotificationWatcher _watcher;
+			private readonly RazerDeviceNotificationWatcher? _secondWatcher;
 			private readonly IDriverRegistry _driverRegistry;
 			// As of now, there can be only two devices, but we can use an array here to be more future-proof. (Still need to understand how to address these other devices)
 			private PairedDeviceState[]? _pairedDevices;
@@ -32,6 +32,8 @@ public abstract partial class RazerDeviceDriver
 				IRazerProtocolTransport transport,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
+				DeviceStream? secondNotificationStream,
+				DeviceNotificationOptions secondNotificationOptions,
 				IDriverRegistry driverRegistry,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
@@ -41,6 +43,10 @@ public abstract partial class RazerDeviceDriver
 			{
 				_driverRegistry = driverRegistry;
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
+				if (secondNotificationStream is not null)
+				{
+					_secondWatcher = new(secondNotificationStream, this, secondNotificationOptions);
+				}
 			}
 
 			protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
@@ -67,6 +73,10 @@ public abstract partial class RazerDeviceDriver
 				await base.DisposeAsync().ConfigureAwait(false);
 				DisposeRootResources();
 				await _watcher.DisposeAsync().ConfigureAwait(false);
+				if (_secondWatcher is not null)
+				{
+					await _secondWatcher.DisposeAsync().ConfigureAwait(false);
+				}
 			}
 
 			// TODO: Properly handle multi-device.
