@@ -85,3 +85,12 @@ public interface ISensorDeviceFeature : IDeviceFeature
 public interface ICoolingDeviceFeature : IDeviceFeature
 {
 }
+
+/// <summary>Defines features for devices with power management features.</summary>
+/// <remarks>
+/// This feature class will be mostly useful for wireless and battery powered devices, but its usage is not limited to those.
+/// </remarks>
+[TypeId(0x25409C72, 0xFDCA, 0x48E9, 0x96, 0xF7, 0xA5, 0x00, 0xA6, 0x6D, 0xDE, 0xC0)]
+public interface IPowerManagementDeviceFeature : IDeviceFeature
+{
+}
