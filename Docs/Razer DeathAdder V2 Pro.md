@@ -331,11 +331,11 @@ Unless the command was a successful read, status responses seem to always includ
 
 #### Features
 
-##### 00 - General
+##### `00` - General
 
-###### 01 - ???
+###### `01` - ???
 
-###### 02 - Serial Number
+###### `02` - Serial Number
 
 Read Request: Empty
 
@@ -347,9 +347,9 @@ Read Response:
 
 The serial number is a null-terminated string. (If less long than the response buffer)
 
-###### 04 - ???
+###### `04` - ???
 
-###### 05 - Polling Frequency
+###### `05` - Polling Frequency
 
 Read Response:
 
@@ -368,7 +368,7 @@ The parameter to this command is a frequency divider from the maximum frequency.
 e.g. 1000Hz is 1, 500Hz is 2, 125Hz is 8
 
 
-###### 06 - ???
+###### `06` - ???
 
 Some devices return information here.
 
@@ -378,16 +378,16 @@ Read Response:
 <Unknown:U8> <Unknown:U8>
 ```
 
-###### 07 - ???
+###### `07` - ???
 
-###### 3B - ???
+###### `3B` - ???
 
-###### 3C - ???
+###### `3C` - ???
 
 001f0000000300bc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf00
 021f0000000300bc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf00
 
-###### 3F - Pairing information
+###### `3F` - Pairing information
 
 Read Request:
 
@@ -408,7 +408,7 @@ The value `10` makes sense, as the message length `31` could fit exactly 16 devi
 For each device, the connection status is either `01` if the device is online, or `00` if the device is offline.
 The product ID is the USB product ID. However there is a quirk there, as receivers share the same product ID as their associated product.
 
-###### 45 - Device ID ?
+###### `45` - Device ID ?
 
 Read Request: Empty
 
@@ -422,9 +422,9 @@ This returns similar information to the pairing information stuff.
 
 Maybe this is used to confirm the ID of the connected device ? It would be useful for multiple device stuff, I guess.
 
-##### 04 - Mouse
+##### `04` - Mouse
 
-###### 05 - DPI Level
+###### `05` - DPI Level
 
 Read Request:
 
@@ -442,7 +442,7 @@ The first byte has been observed to be both `00` and `01` depending on the situa
 Logically, it would either indicate that the setting must be or is persisted, or that the horizontal and vertical DPIs are linked.
 The first possibility might be the most likely.
 
-###### 06 - Predefined DPI levels
+###### `06` - Predefined DPI levels
 
 Read Request:
 
@@ -462,9 +462,58 @@ The Razer Synapse software only seems to write values where the first byte is se
 The second byte has been confirmed by simple testing to be the active profile index (e.g. `04` is the 4th profile on a mouse with `05` profiles).
 It follows logically that the following byte should be the number of profiles.
 
-##### 07 - Power
+##### `05` - ???
 
-###### 00 - Battery Level
+###### `00` - ???
+
+```
+<Unknown:U8>
+```
+
+This returns one byte, whose value is `01` for DeathAdder V2 Pro.
+For DeathStalker V2 Pro and Naga V2 Pro, the response seems to be `05`?
+
+###### `01` - ???
+
+```
+<Unknown:U8> <Unknown:U8> [<Unknown:U8> […]]
+```
+
+This command returns at least 2 bytes, but the request indicates 65 bytes.
+
+Response for DeathAdder V2 Pro is `05 01`.
+Response for DeathStalker V2 Pro and Naga V2 Pro is `05 01 02 03 04 05`?
+
+###### `0A` - ???
+
+```
+<Unknown:U8>
+```
+
+This returns one byte, whose value is `05` for DeathAdder V2 Pro, and apparently the same for DeathStalker V2 Pro and Naga V2 Pro.
+
+##### `06` - ???
+
+###### `00` - ???
+
+```
+<Unknown:U8> <Unknown:U8>
+```
+
+Returns `00 00` on DeathAdder V2 Pro.
+Returns `00 01` on DeathStalker V2 Pro and Naga V2 Pro.
+
+###### `0E` - ???
+
+This command returns 15 bytes.
+
+DA V2 Pro:   00 64 00 05 e0 00 00 05 e0 00 00 00 00 00 00
+DS V2 Pro:   00 64 00 05 f0 00 00 05 e6 00 00 00 08 00 00
+Naga V2 Pro: 00 64 00 01 f0 00 00 01 e6 00 00 00 04 00 00
+
+##### `07` - Power
+
+###### `00` - Battery Level
 
 Read Request: Empty
 
@@ -474,7 +523,7 @@ Read Response:
 <Zero:U8> <BatteryLevel:P8>
 ```
 
-###### 01 - Low Power Mode
+###### `01` - Low Power Mode
 
 Write:
 
@@ -484,7 +533,7 @@ Write:
 
 The low power mode is entered after when the device's battery level goes below the specified percentage.
 
-###### 03 - Power Saving
+###### `03` - Power Saving
 
 Write:
 
@@ -494,7 +543,7 @@ Write:
 
 The duration before the device enters sleep mode is expressed in seconds.
 
-###### 04 - External Power Status
+###### `04` - External Power Status
 
 Read Request: Empty
 
@@ -506,9 +555,9 @@ Read Response:
 
 Status is `01` if external power is connected, and `00` otherwise.
 
-##### 0F - Lighting
+##### `0F` - Lighting
 
-###### 00 - Lighting device information ??
+###### `00` - Lighting device information ??
 
 Read Response:
 
@@ -524,7 +573,7 @@ Typical response examples:
 04 19 03 02 02 (Razer DeathAdder V2 Pro)
 05 19 03 01 02 (Razer Mouse Dock)
 
-###### 02 - Current Lighting Effect
+###### `02` - Current Lighting Effect
 
 Read Request:
 
@@ -548,7 +597,7 @@ The parameters passed to read commands are usually `01` followed by the "magic" 
 This value seems to be important, and *can* be passed at the same place in write responses, but it does not seem necessary.
 Passing another value than this or zero in a write may result in weird behavior of the device.
 
-###### 03 - Current Color
+###### `03` - Current Color
 
 Write:
 
@@ -559,7 +608,7 @@ Write:
 This sets the current color of the device, in "streamable"/addressable mode.
 It ignores the current effect and overrides it.
 
-###### 04 - Brightness
+###### `04` - Brightness
 
 Write:
 
