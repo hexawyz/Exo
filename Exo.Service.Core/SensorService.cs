@@ -285,7 +285,7 @@ internal sealed partial class SensorService
 		_groupedQueryStateLogger = loggerFactory.CreateLogger<GroupedQueryState>();
 		_deviceWatcher = deviceWatcher;
 		_cancellationTokenSource = new();
-		_sensorDeviceWatchTask = WatchSensorsDevicesAsync(_cancellationTokenSource.Token);
+		_sensorDeviceWatchTask = WatchSensorDevicesAsync(_cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -314,7 +314,7 @@ internal sealed partial class SensorService
 		}
 	}
 
-	private async Task WatchSensorsDevicesAsync(CancellationToken cancellationToken)
+	private async Task WatchSensorDevicesAsync(CancellationToken cancellationToken)
 	{
 		try
 		{

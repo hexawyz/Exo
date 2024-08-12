@@ -20,6 +20,10 @@ public interface IMouseDpiFeature : IMouseDeviceFeature
 
 public interface IMouseDynamicDpiFeature : IMouseDpiFeature
 {
+	/// <summary>Gets a value indicating the maximum allowed DPI values.</summary>
+	/// <remarks>It is expected that for most devices, the maximum DPI value for X and Y will be the same.</remarks>
+	DotsPerInch MaximumDpi { get; }
+
 	/// <summary>Occurs when the current DPI has changed.</summary>
 	event Action<Driver, MouseDpiStatus> DpiChanged;
 }
@@ -61,10 +65,6 @@ public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetFeature
 
 	/// <summary>Gets a value indicating the maximum number of DPI presets that can be defined.</summary>
 	byte MaxPresetCount { get; }
-
-	/// <summary>Gets a value indicating the maximum allowed DPI values.</summary>
-	/// <remarks>It is expected that for most devices, the maximum DPI value for X and Y will be the same.</remarks>
-	DotsPerInch MaximumDpi { get; }
 
 	/// <summary>Sets the DPI presets of the mouse.</summary>
 	/// <remarks>The list of presets passed must respect the constraints exposed by <see cref="AllowsSeparateXYDpi"/>, <see cref="MinPresetCount"/> and <see cref="MaxPresetCount"/>.</remarks>

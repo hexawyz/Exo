@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Contracts.Ui.Settings;
@@ -91,7 +92,6 @@ public class Startup
 		services.AddSingleton<ISystemManagementBusRegistry>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
 		services.AddSingleton<ISystemManagementBusProvider>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
 		services.AddSingleton<BatteryWatcher>();
-		services.AddSingleton<DpiWatcher>();
 		services.AddSingleton<LockedKeysWatcher>();
 		services.AddSingleton<BacklightWatcher>();
 		services.AddSingleton
@@ -119,7 +119,17 @@ public class Startup
 		services.AddSingleton<DisplayAdapterService>();
 		services.AddSingleton<MotherboardService>();
 		services.AddSingleton<MonitorService>();
-		services.AddSingleton<MouseService>();
+		services.AddSingleton
+		(
+			sp => MouseService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<MouseService>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
+				sp.GetRequiredService<IDeviceWatcher>(),
+				sp.GetRequiredService<ChannelWriter<Programming.Event>>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton
 		(
 			sp => SensorService.CreateAsync

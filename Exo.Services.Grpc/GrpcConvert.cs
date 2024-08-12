@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Runtime.InteropServices;
 using Exo.Features.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
 using DeviceId = DeviceTools.DeviceId;
@@ -16,6 +15,9 @@ using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInform
 using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
+using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
+using GrpcMouseDpiCapabilities = Exo.Contracts.Ui.Settings.MouseDpiCapabilities;
+using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
@@ -39,6 +41,25 @@ internal static class GrpcConvert
 			MainDeviceIdIndex = deviceInformation.MainDeviceIdIndex,
 			SerialNumber = deviceInformation.SerialNumber,
 			IsAvailable = deviceInformation.IsAvailable,
+		};
+
+	public static GrpcMouseDeviceInformation ToGrpc(this MouseDeviceInformation mouseDeviceInformation)
+		=> new()
+		{
+			DeviceId = mouseDeviceInformation.DeviceId,
+			IsConnected = mouseDeviceInformation.IsConnected,
+			DpiCapabilities = mouseDeviceInformation.DpiCapabilities.ToGrpc(),
+			MaximumDpi = mouseDeviceInformation.MaximumDpi.ToGrpc(),
+		};
+
+	public static GrpcMouseDpiCapabilities ToGrpc(this MouseDpiCapabilities mouseDpiCapabilities)
+		=> (GrpcMouseDpiCapabilities)mouseDpiCapabilities;
+
+	public static GrpcDotsPerInch ToGrpc(this DotsPerInch dpi)
+		=> new()
+		{
+			Horizontal = dpi.Horizontal,
+			Vertical = dpi.Vertical,
 		};
 
 	public static GrpcLightingZoneInformation ToGrpc(this LightingZoneInformation zoneInformation)
