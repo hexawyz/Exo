@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace DeviceTools.Firmware;
@@ -20,6 +21,12 @@ public readonly struct JedecManufacturerId : IEquatable<JedecManufacturerId>, IF
 		_codeWithParity = codeWithParity;
 	}
 
+	/// <summary>The number of continuation codes before the final code, including the parity bit.</summary>
+	public byte ContinuationCodeCountWithParity => _continuationCodeCountWithParity;
+
+	/// <summary>The manufacturer code in the corresponding code page, including the parity bit.</summary>
+	public byte CodeWithParity => _codeWithParity;
+
 	/// <summary>The number of continuation codes before the final code.</summary>
 	/// <remarks>
 	/// <para>This value does not include the parity bit. Please use <see cref=" SpdManufacturerIdCode"/> to retrieve the value containing the parity bits.</para>
@@ -28,18 +35,21 @@ public readonly struct JedecManufacturerId : IEquatable<JedecManufacturerId>, IF
 	/// followed by the actual value of the manufacturer index. This has been simplified into a bank index which is the number of continuation bytes if the code was expressed in the legacy format.
 	/// </para>
 	/// </remarks>
+	[IgnoreDataMember]
 	public byte ContinuationCodeCount => (byte)(_continuationCodeCountWithParity & 0x7F);
 
 	/// <summary>The manufacturer code in the corresponding code page.</summary>
 	/// <remarks>
 	/// <para>This value does not include the parity bit. Please use <see cref=" SpdManufacturerIdCode"/> to retrieve the value containing the parity bits.</para>
 	/// </remarks>
+	[IgnoreDataMember]
 	public byte Code => (byte)(_codeWithParity & 0x7F);
 
 	/// <summary>The manufacturer code bank.</summary>
 	/// <remarks>
 	/// <para>This is derived from <see cref="ContinuationCodeCount"/>, where the bank number is the value incremented by <c>#1/c>.</para>
 	/// </remarks>
+	[IgnoreDataMember]
 	public byte BankNumber => (byte)((_continuationCodeCountWithParity & 0x7F) + 1);
 
 	/// <summary>The manufacturer code as read from the DDR4 SPD format.</summary>
@@ -50,6 +60,7 @@ public readonly struct JedecManufacturerId : IEquatable<JedecManufacturerId>, IF
 	/// </para>
 	/// <para>This value would also be present as-is in the Memory Device structure of SMBIOS 3.2+.</para>
 	/// </remarks>
+	[IgnoreDataMember]
 	public ushort SpdManufacturerIdCode
 		=> BitConverter.IsLittleEndian ?
 			Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(in _continuationCodeCountWithParity)) :
@@ -58,7 +69,9 @@ public readonly struct JedecManufacturerId : IEquatable<JedecManufacturerId>, IF
 	private static bool IsEven(byte value) => (BitOperations.PopCount(value) & 1) == 0;
 	private static bool IsOdd(byte value) => (BitOperations.PopCount(value) & 1) != 0;
 
+	[IgnoreDataMember]
 	public bool IsDefault => (ContinuationCodeCount | Code) == 0;
+	[IgnoreDataMember]
 	public bool IsParityValid => IsOdd(ContinuationCodeCount) || IsOdd(Code);
 
 	public JedecManufacturerId FixParity()
