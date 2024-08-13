@@ -39,6 +39,7 @@
     <None Remove="MonitorSettingControl.xaml" />
     <None Remove="MonitorSettingsControl.xaml" />
     <None Remove="MonitorSixAxisSettingsControl.xaml" />
+    <None Remove="MousePerformanceSettingsControl.xaml" />
     <None Remove="ProgrammingPage.xaml" />
     <None Remove="RootPage.xaml" />
     <None Remove="SensorsPage.xaml" />
@@ -81,6 +82,12 @@
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Page Update="MousePerformanceSettingsControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 	
   <ItemGroup>

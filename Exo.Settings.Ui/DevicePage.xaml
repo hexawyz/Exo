@@ -51,138 +51,20 @@
         </Expander>
         <Expander
             Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}"
+            Visibility="{Binding MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
             HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Stretch">
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon Glyph="&#xE7C9;" />
-                    <TextBlock Text="DPI" Margin="{StaticResource TitleTextIconMargin}" />
+                    <TextBlock Text="Mouse Performance" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
-            <Grid HorizontalAlignment="Stretch" DataContext="{Binding MouseFeatures, Mode=OneTime}">
-                <Grid.Resources>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
-                    </Style>
-                </Grid.Resources>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Column="0" Grid.Row="0" Text="Current DPI" />
-                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=CurrentDpi}" />
-                <Grid
-                    Grid.ColumnSpan="2"
-                    Grid.Row="1"
-                    Visibility="{Binding HasPresets, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.ColumnSpan="2" Grid.Row="0" Text="Presets" Margin="0,6,0,6" Style="{ThemeResource BodyStrongTextBlockStyle}" />
-                    <Border
-                        Grid.ColumnSpan="2"
-                        Grid.Row="1"
-                        Padding="6"
-                        HorizontalAlignment="Stretch"
-                        Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}"
-                        BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
-                        CornerRadius="{ThemeResource OverlayCornerRadius}">
-                        <ItemsView
-                            Name="DpiPresetsItemView"
-                            ItemsSource="{Binding DpiPresets}"
-                            SelectionMode="Single"
-                            SelectionChanged="OnDpiPresetsItemsViewSelectionChanged">
-                            <ItemsView.ItemTemplate>
-                                <DataTemplate>
-                                    <ItemContainer Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Width="100">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="12" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="12" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="12" />
-                                                <RowDefinition Height="*" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="*" />
-                                                <RowDefinition Height="12" />
-                                            </Grid.RowDefinitions>
-                                            <NumberBox
-                                                Grid.Row="2"
-                                                Grid.Column="1"
-                                                HorizontalAlignment="Stretch"
-                                                PlaceholderText="{Binding HorizontalInitialValue}"
-                                                Value="{Binding Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}" />
-                                            <NumberBox
-                                                Grid.Row="3"
-                                                Grid.Column="1"
-                                                Margin="0,6,0,0"
-                                                HorizontalAlignment="Stretch"
-                                                PlaceholderText="{Binding VerticalInitialValue}"
-                                                Value="{Binding Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                                                Visibility="{Binding IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        </Grid>
-                                    </ItemContainer>
-                                </DataTemplate>
-                            </ItemsView.ItemTemplate>
-                            <ItemsView.Layout>
-                                <StackLayout Orientation="Horizontal" Spacing="6" />
-                            </ItemsView.Layout>
-                        </ItemsView>
-                    </Border>
-                    <TextBlock
-                        Grid.Row="2"
-                        Grid.Column="0"
-                        Text="Horizontal" />
-                    <Slider
-                        Grid.Row="2"
-                        Grid.Column="1"
-                        Value="{Binding SelectedDpiPreset.Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                        Minimum="1"
-                        Maximum="{Binding MaximumDpi.Horizontal}" />
-                    <TextBlock
-                        Grid.Row="3"
-                        Grid.Column="0"
-                        Text="Vertical"
-                        Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                    <Slider
-                        Grid.Row="3"
-                        Grid.Column="1"
-                        Value="{Binding SelectedDpiPreset.Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                        Minimum="1"
-                        Maximum="{Binding MaximumDpi.Vertical}"
-                        Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                    <CheckBox
-                        Grid.Row="4"
-                        Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        Content="Independent X-Y DPI"
-                        IsChecked="{Binding SelectedDpiPreset.IsIndependent, Mode=TwoWay}"
-                        Visibility="{Binding AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                </Grid>
-            </Grid>
+            <local:MousePerformanceSettingsControl DataContext="{Binding MouseFeatures, Mode=OneWay}" />
         </Expander>
         <Expander
             Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding MonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneTime}"
+            Visibility="{Binding MonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
             IsExpanded="{Binding MonitorFeatures.IsExpanded, Mode=TwoWay}"
             HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Stretch">
@@ -192,7 +74,7 @@
                     <TextBlock x:Uid="MonitorSettingsSectionHeader" Text="Monitor" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
-            <local:MonitorSettingsControl DataContext="{Binding MonitorFeatures}" />
+            <local:MonitorSettingsControl DataContext="{Binding MonitorFeatures, Mode=OneWay}" />
         </Expander>
     </StackPanel>
 </Page>

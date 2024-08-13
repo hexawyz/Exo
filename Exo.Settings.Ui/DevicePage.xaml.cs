@@ -38,11 +38,4 @@ public sealed partial class DevicePage : Page
 	{
 		ViewModel.Devices.SelectedDevice = null;
 	}
-
-	private void OnDpiPresetsItemsViewSelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
-	{
-		if (sender.DataContext is not MouseDeviceFeaturesViewModel mouseFeatures) return;
-
-		mouseFeatures.SelectedDpiPresetIndex = sender.CurrentItemIndex;
-	}
 }
