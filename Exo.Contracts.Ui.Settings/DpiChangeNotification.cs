@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings;
 
@@ -9,5 +9,8 @@ public sealed class DpiChangeNotification
 	public required Guid DeviceId { get; init; }
 
 	[DataMember(Order = 2)]
+	public required byte? PresetIndex { get; init; }
+
+	[DataMember(Order = 3)]
 	public required DotsPerInch Dpi { get; init; }
 }

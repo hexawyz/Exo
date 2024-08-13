@@ -94,7 +94,7 @@ public abstract partial class RazerDeviceDriver
 		private static MouseDpiStatus GetDpi(ulong rawValue)
 			=> new()
 			{
-				PresetIndex = (byte)(rawValue >> 32) is > 0 and byte i ? i : null,
+				PresetIndex = (byte)(rawValue >> 32) is > 0 and byte i ? (byte)(i - 1) : null,
 				Dpi = new((ushort)rawValue, (ushort)(rawValue >> 16))
 			};
 
@@ -110,7 +110,7 @@ public abstract partial class RazerDeviceDriver
 
 		ImmutableArray<DotsPerInch> IMouseDpiPresetFeature.DpiPresets => ImmutableCollectionsMarshal.AsImmutableArray(Volatile.Read(ref _dpiProfiles));
 
-		bool IMouseConfigurableDpiPresetsFeature.AllowsSeparateXYDpi => true;
+		bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => true;
 		byte IMouseConfigurableDpiPresetsFeature.MaxPresetCount => 5;
 
 		public DotsPerInch MaximumDpi => new(_maximumDpi);

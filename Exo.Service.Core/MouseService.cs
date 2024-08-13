@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
@@ -21,6 +22,7 @@ internal sealed class MouseService
 	[TypeId(0xBB4A71CB, 0x2894, 0x4388, 0xAE, 0x06, 0x40, 0x06, 0x03, 0x0F, 0x23, 0xBF)]
 	private readonly struct PersistedMouseInformation
 	{
+		[JsonConstructor]
 		public PersistedMouseInformation(DotsPerInch maximumDpi, MouseDpiCapabilities capabilities, byte minimumDpiPresetCount, byte maximumDpiPresetCount)
 		{
 			MaximumDpi = maximumDpi;
@@ -74,6 +76,10 @@ internal sealed class MouseService
 			MaximumDpiPresetCount = persistedInformation.MaximumDpiPresetCount;
 			isChanged |= Capabilities != persistedInformation.Capabilities;
 			Capabilities = persistedInformation.Capabilities;
+			isChanged |= MinimumDpiPresetCount != persistedInformation.MinimumDpiPresetCount;
+			MinimumDpiPresetCount = persistedInformation.MinimumDpiPresetCount;
+			isChanged |= MaximumDpiPresetCount != persistedInformation.MaximumDpiPresetCount;
+			MaximumDpiPresetCount = persistedInformation.MaximumDpiPresetCount;
 			return isChanged;
 		}
 
@@ -104,7 +110,15 @@ internal sealed class MouseService
 		}
 
 		public MouseDeviceInformation CreateMouseInformation()
-			=> new() { DeviceId = DeviceId, IsConnected = Driver is not null, MaximumDpi = MaximumDpi, DpiCapabilities = Capabilities };
+			=> new()
+			{
+				DeviceId = DeviceId,
+				IsConnected = Driver is not null,
+				MaximumDpi = MaximumDpi,
+				DpiCapabilities = Capabilities,
+				MinimumDpiPresetCount = MinimumDpiPresetCount,
+				MaximumDpiPresetCount = MaximumDpiPresetCount,
+			};
 
 		private void OnDpiChanged(Driver driver, MouseDpiStatus dpi)
 		{
@@ -288,20 +302,24 @@ internal sealed class MouseService
 		{
 			dpiFeature = dynamicDpiFeature = dpiPresetFeature;
 
-			capabilities |= MouseDpiCapabilities.DpiPresets | MouseDpiCapabilities.DynamicDpi;
-			if (dpiPresetFeature.CanChangePreset) capabilities |= MouseDpiCapabilities.DpiPresetChange;
 			maximumDpi = dpiPresetFeature.MaximumDpi;
 			currentDpi = dpiPresetFeature.CurrentDpi;
 			dpiPresets = dpiPresetFeature.DpiPresets;
 			if (!dpiPresets.IsDefaultOrEmpty) maximumDpiPresetCount = minimumDpiPresetCount = (byte)dpiPresets.Length;
+
+			capabilities |= MouseDpiCapabilities.DpiPresets | MouseDpiCapabilities.DynamicDpi;
+			if (dpiPresetFeature.AllowsSeparateXYDpi) capabilities |= MouseDpiCapabilities.SeparateXYDpi;
+			if (dpiPresetFeature.CanChangePreset) capabilities |= MouseDpiCapabilities.DpiPresetChange;
 		}
 		else if ((dynamicDpiFeature = mouseFeatures.GetFeature<IMouseDynamicDpiFeature>()) is not null)
 		{
 			dpiFeature = dynamicDpiFeature;
 
-			capabilities |= MouseDpiCapabilities.DynamicDpi;
 			maximumDpi = dynamicDpiFeature.MaximumDpi;
 			currentDpi = dynamicDpiFeature.CurrentDpi;
+
+			capabilities |= MouseDpiCapabilities.DynamicDpi;
+			if (dynamicDpiFeature.AllowsSeparateXYDpi) capabilities |= MouseDpiCapabilities.SeparateXYDpi;
 		}
 		else if ((dpiFeature = mouseFeatures.GetFeature<IMouseDpiFeature>()) is not null)
 		{
@@ -440,10 +458,9 @@ internal sealed class MouseService
 	{
 		var channel = Watcher.CreateChannel<MouseDeviceInformation>();
 
-		MouseDeviceInformation[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<MouseDeviceInformation>? initialNotifications;
 
-		lock (_lock)
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			initialNotifications = GetInitialNotifications();
 			ArrayExtensions.InterlockedAdd(ref _deviceChangeListeners, channel);
@@ -451,11 +468,14 @@ internal sealed class MouseService
 
 		try
 		{
-			for (int i = 0; i < initialNotificationCount; i++)
+			if (initialNotifications is not null)
 			{
-				yield return initialNotifications[i];
+				for (int i = 0; i < initialNotifications.Count; i++)
+				{
+					yield return initialNotifications[i];
+				}
+				initialNotifications = null;
 			}
-			initialNotifications = null;
 
 			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
 			{
@@ -467,13 +487,14 @@ internal sealed class MouseService
 			ArrayExtensions.InterlockedRemove(ref _deviceChangeListeners, channel);
 		}
 
-		MouseDeviceInformation[] GetInitialNotifications()
+		List<MouseDeviceInformation>? GetInitialNotifications()
 		{
-			var initialNotifications = new MouseDeviceInformation[_deviceStates.Count];
-			int i = 0;
+			if (_deviceStates.IsEmpty) return null;
+
+			var initialNotifications = new List<MouseDeviceInformation>();
 			foreach (var kvp in _deviceStates)
 			{
-				initialNotifications[i++] = kvp.Value.CreateMouseInformation();
+				initialNotifications.Add(kvp.Value.CreateMouseInformation());
 			}
 
 			return initialNotifications;
@@ -484,10 +505,9 @@ internal sealed class MouseService
 	{
 		var channel = Watcher.CreateChannel<DpiWatchNotification>();
 
-		DpiWatchNotification[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<DpiWatchNotification>? initialNotifications;
 
-		lock (_lock)
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			initialNotifications = GetInitialNotifications();
 			ArrayExtensions.InterlockedAdd(ref _dpiChangeListeners, channel);
@@ -495,11 +515,14 @@ internal sealed class MouseService
 
 		try
 		{
-			for (int i = 0; i < initialNotificationCount; i++)
+			if (initialNotifications is not null)
 			{
-				yield return initialNotifications[i];
+				for (int i = 0; i < initialNotifications.Count; i++)
+				{
+					yield return initialNotifications[i];
+				}
+				initialNotifications = null;
 			}
-			initialNotifications = null;
 
 			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
 			{
@@ -511,10 +534,11 @@ internal sealed class MouseService
 			ArrayExtensions.InterlockedRemove(ref _dpiChangeListeners, channel);
 		}
 
-		DpiWatchNotification[] GetInitialNotifications()
+		List<DpiWatchNotification>? GetInitialNotifications()
 		{
-			var initialNotifications = new DpiWatchNotification[_deviceStates.Count];
-			int i = 0;
+			if (_deviceStates.IsEmpty) return null;
+
+			var initialNotifications = new List<DpiWatchNotification>();
 			foreach (var deviceState in _deviceStates.Values)
 			{
 				MouseDpiStatus currentDpi;
@@ -522,13 +546,16 @@ internal sealed class MouseService
 				{
 					currentDpi = deviceState.CurrentDpi;
 				}
-				initialNotifications[i++] = new DpiWatchNotification
+				initialNotifications.Add
 				(
-					WatchNotificationKind.Enumeration,
-					deviceState.DeviceId,
-					currentDpi,
-					currentDpi,
-					deviceState.DpiPresets
+					new DpiWatchNotification
+					(
+						WatchNotificationKind.Enumeration,
+						deviceState.DeviceId,
+						currentDpi,
+						currentDpi,
+						deviceState.DpiPresets
+					)
 				);
 			}
 
@@ -536,14 +563,13 @@ internal sealed class MouseService
 		}
 	}
 
-	public async IAsyncEnumerable<MouseDpiPresetsInformation> WatchDpiPresetAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<MouseDpiPresetsInformation> WatchDpiPresetsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		var channel = Watcher.CreateChannel<MouseDpiPresetsInformation>();
 
-		MouseDpiPresetsInformation[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<MouseDpiPresetsInformation>? initialNotifications;
 
-		lock (_lock)
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			initialNotifications = GetInitialNotifications();
 			ArrayExtensions.InterlockedAdd(ref _dpiPresetChangeListeners, channel);
@@ -551,11 +577,14 @@ internal sealed class MouseService
 
 		try
 		{
-			for (int i = 0; i < initialNotificationCount; i++)
+			if (initialNotifications is not null)
 			{
-				yield return initialNotifications[i];
+				for (int i = 0; i < initialNotifications.Count; i++)
+				{
+					yield return initialNotifications[i];
+				}
+				initialNotifications = null;
 			}
-			initialNotifications = null;
 
 			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
 			{
@@ -567,27 +596,20 @@ internal sealed class MouseService
 			ArrayExtensions.InterlockedRemove(ref _dpiPresetChangeListeners, channel);
 		}
 
-		MouseDpiPresetsInformation[] GetInitialNotifications()
+		List<MouseDpiPresetsInformation>? GetInitialNotifications()
 		{
-			var initialNotifications = new MouseDpiPresetsInformation[_deviceStates.Count];
-			int i = 0;
+			if (_deviceStates.IsEmpty) return null;
+
+			var initialNotifications = new List<MouseDpiPresetsInformation>();
 			foreach (var kvp in _deviceStates)
 			{
 				lock (kvp.Value.Lock)
 				{
-					initialNotifications[i++] = new() { DeviceId = kvp.Key, ActivePresetIndex = kvp.Value.CurrentDpi.PresetIndex, DpiPresets = kvp.Value.DpiPresets };
+					initialNotifications.Add(new() { DeviceId = kvp.Key, ActivePresetIndex = kvp.Value.CurrentDpi.PresetIndex, DpiPresets = kvp.Value.DpiPresets });
 				}
 			}
 
 			return initialNotifications;
 		}
 	}
-}
-
-internal readonly struct MouseDeviceInformation
-{
-	public required Guid DeviceId { get; init; }
-	public required bool IsConnected { get; init; }
-	public required DotsPerInch MaximumDpi { get; init; }
-	public required MouseDpiCapabilities DpiCapabilities { get; init; }
 }

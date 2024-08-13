@@ -39,6 +39,14 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs Points = new(nameof(Points));
 	public static readonly PropertyChangedEventArgs Power = new(nameof(Power));
 	public static readonly PropertyChangedEventArgs FallbackPower = new(nameof(FallbackPower));
+	public static readonly PropertyChangedEventArgs Vertical = new(nameof(Vertical));
+	public static readonly PropertyChangedEventArgs Horizontal = new(nameof(Horizontal));
+	public static readonly PropertyChangedEventArgs VerticalInitialValue = new(nameof(VerticalInitialValue));
+	public static readonly PropertyChangedEventArgs HorizontalInitialValue = new(nameof(HorizontalInitialValue));
+	public static readonly PropertyChangedEventArgs IsIndependent = new(nameof(IsIndependent));
+	public static readonly PropertyChangedEventArgs CurrentDpi = new (nameof(CurrentDpi));
+	public static readonly PropertyChangedEventArgs MaximumDpi = new (nameof(MaximumDpi));
+	public static readonly PropertyChangedEventArgs SelectedDpiPreset = new (nameof(SelectedDpiPreset));
 	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
 	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
 	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));

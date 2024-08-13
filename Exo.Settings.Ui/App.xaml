@@ -58,6 +58,7 @@
             <lconverters:StringFormatConverter x:Key="StringFormatConverter" />
             <lconverters:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
             <lconverters:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
+            <lconverters:UInt16ToDoubleConverter x:Key="UInt16ToDoubleConverter" />
             <lconverters:StringResourceConverter x:Key="StringResourceConverter" />
             <lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
             <lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />

@@ -1,9 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Exo;
 
 public readonly struct DotsPerInch : IEquatable<DotsPerInch>
 {
 	public DotsPerInch(ushort value) : this(value, value) { }
 
+	[JsonConstructor]
 	public DotsPerInch(ushort horizontal, ushort vertical)
 	{
 		Horizontal = horizontal;

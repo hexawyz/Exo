@@ -13,4 +13,8 @@ public sealed class MouseDeviceInformation
 	public required DotsPerInch MaximumDpi { get; init; }
 	[DataMember(Order = 4)]
 	public required MouseDpiCapabilities DpiCapabilities { get; init; }
+	[DataMember(Order = 5)]
+	public byte MinimumDpiPresetCount { get; init; }
+	[DataMember(Order = 6)]
+	public byte MaximumDpiPresetCount { get; init; }
 }

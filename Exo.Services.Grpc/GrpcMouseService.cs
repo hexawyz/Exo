@@ -36,6 +36,7 @@ internal sealed class GrpcMouseService : IMouseService
 				yield return new()
 				{
 					DeviceId = notification.DeviceId,
+					PresetIndex = notification.NewValue.PresetIndex,
 					Dpi = notification.NewValue.Dpi.ToGrpc(),
 				};
 			}
@@ -46,6 +47,13 @@ internal sealed class GrpcMouseService : IMouseService
 		}
 	}
 
-	public IAsyncEnumerable<MouseDpiPresets> WatchDpiPresetsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+	public async IAsyncEnumerable<MouseDpiPresets> WatchDpiPresetsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		await foreach (var presets in _mouseService.WatchDpiPresetsAsync(cancellationToken).ConfigureAwait(false))
+		{
+			yield return presets.ToGrpc();
+		}
+	}
+
 	public ValueTask SetDpiPresetsAsync(MouseDpiPresets request, CancellationToken cancellationToken) => throw new NotImplementedException();
 }

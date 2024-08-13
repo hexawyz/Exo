@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
@@ -52,8 +53,14 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	// Used to store battery changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, BatteryStateViewModel> _pendingBatteryChanges;
 
+	// Used to store mouse informations when the device view model is not accessible.
+	private readonly Dictionary<Guid, MouseDeviceInformation> _pendingMouseInformations;
+
 	// Used to store DPI changes when the device view model is not accessible.
-	private readonly Dictionary<Guid, DpiViewModel> _pendingDpiChanges;
+	private readonly Dictionary<Guid, ImmutableArray<DotsPerInch>> _pendingDpiPresetChanges;
+
+	// Used to store DPI changes when the device view model is not accessible.
+	private readonly Dictionary<Guid, (byte? ActivePresetIndex, DotsPerInch Dpi)> _pendingMouseDpiChanges;
 
 	// Used to store monitor informations when the device view model is not accessible.
 	private readonly Dictionary<Guid, MonitorInformation> _pendingMonitorInformations;
@@ -78,7 +85,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_connectionManager = connectionManager;
 		_devicesById = new();
 		_pendingBatteryChanges = new();
-		_pendingDpiChanges = new();
+		_pendingMouseInformations = new();
+		_pendingMouseDpiChanges = new();
+		_pendingDpiPresetChanges = new();
 		_pendingMonitorInformations = new();
 		_pendingMonitorSettingChanges = new();
 		_metadataService = metadataService;
@@ -103,13 +112,15 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		{
 			var deviceWatchTask = WatchDevicesAsync(cts.Token);
 			var batteryWatchTask = WatchBatteryChangesAsync(cts.Token);
-			var dpiWatchTask = WatchDpiChangesAsync(cts.Token);
+			var mouseWatchTask = WatchMouseDevicesAsync(cts.Token);
+			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(cts.Token);
+			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(cts.Token);
 			var monitorWatchTask = WatchMonitorsAsync(cts.Token);
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
 
 			try
 			{
-				await Task.WhenAll([deviceWatchTask, batteryWatchTask, dpiWatchTask, monitorWatchTask, monitorSettingWatchTask]);
+				await Task.WhenAll([deviceWatchTask, batteryWatchTask, mouseWatchTask, mouseDpiWatchTask, mouseDpiPresetWatchTask, monitorWatchTask, monitorSettingWatchTask]);
 			}
 			catch (Exception)
 			{
@@ -122,7 +133,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_removedDeviceIds.Clear();
 		_devicesById.Clear();
 		_pendingBatteryChanges.Clear();
-		_pendingDpiChanges.Clear();
+		_pendingMouseDpiChanges.Clear();
 		_pendingMonitorSettingChanges.Clear();
 
 		SelectedDevice = null;
@@ -223,11 +234,25 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		{
 			device.BatteryState = batteryStatus;
 		}
-		if (_pendingDpiChanges.Remove(device.Id, out var dpi))
+		if (_pendingMouseInformations.Remove(device.Id, out var mouseInformation))
 		{
 			if (device.MouseFeatures is { } mouseFeatures)
 			{
-				mouseFeatures.CurrentDpi = dpi;
+				mouseFeatures.UpdateInformation(mouseInformation);
+			}
+		}
+		if (_pendingDpiPresetChanges.Remove(device.Id, out var mouseDpiPresets))
+		{
+			if (device.MouseFeatures is { } mouseFeatures)
+			{
+				mouseFeatures.UpdatePresets(mouseDpiPresets);
+			}
+		}
+		if (_pendingMouseDpiChanges.Remove(device.Id, out var dpiUpdate))
+		{
+			if (device.MouseFeatures is { } mouseFeatures)
+			{
+				mouseFeatures.UpdateCurrentDpi(dpiUpdate.ActivePresetIndex, dpiUpdate.Dpi);
 			}
 		}
 		if (_pendingMonitorInformations.Remove(device.Id, out var monitorInformation))
@@ -282,7 +307,57 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchDpiChangesAsync(CancellationToken cancellationToken)
+	private async Task WatchMouseDevicesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			var monitorService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
+			await foreach (var mouseDevice in monitorService.WatchMouseDevicesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(mouseDevice.DeviceId, out var device))
+				{
+					if (device.MouseFeatures is { } mouseFeatures)
+					{
+						mouseFeatures.UpdateInformation(mouseDevice);
+					}
+				}
+				else
+				{
+					_pendingMouseInformations[mouseDevice.DeviceId] = mouseDevice;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchMouseDpiPresetsAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			var monitorService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
+			await foreach (var dpiPresets in monitorService.WatchDpiPresetsAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(dpiPresets.DeviceId, out var device))
+				{
+					if (device.MouseFeatures is { } mouseFeatures)
+					{
+						mouseFeatures.UpdatePresets(dpiPresets.DpiPresets);
+					}
+				}
+				else
+				{
+					_pendingDpiPresetChanges[dpiPresets.DeviceId] = dpiPresets.DpiPresets;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchMouseDpiChangesAsync(CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -293,12 +368,12 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				{
 					if (device.MouseFeatures is { } mouseFeatures)
 					{
-						mouseFeatures.CurrentDpi = new(notification.Dpi);
+						mouseFeatures.UpdateCurrentDpi(notification.PresetIndex, notification.Dpi);
 					}
 				}
 				else
 				{
-					_pendingDpiChanges[notification.DeviceId] = new(notification.Dpi);
+					_pendingMouseDpiChanges[notification.DeviceId] = (notification.PresetIndex, notification.Dpi);
 				}
 			}
 		}

@@ -24,6 +24,13 @@ public interface IMouseDynamicDpiFeature : IMouseDpiFeature
 	/// <remarks>It is expected that for most devices, the maximum DPI value for X and Y will be the same.</remarks>
 	DotsPerInch MaximumDpi { get; }
 
+	/// <summary>Gets a value indicating whether the horizontal and vertical DPIs can be different.</summary>
+	/// <remarks>
+	/// If this value is <see langword="false"/>, all DPI values are assumed to have equal <see cref="DotsPerInch.Horizontal"/> and <see cref="DotsPerInch.Vertical"/> values.
+	/// As such, <see cref="DotsPerInch.Vertical"/> should be ignored and <see cref="DotsPerInch.Horizontal"/> should be assumed to be the DPI value for both X and Y dimensions.
+	/// </remarks>
+	bool AllowsSeparateXYDpi { get; }
+
 	/// <summary>Occurs when the current DPI has changed.</summary>
 	event Action<Driver, MouseDpiStatus> DpiChanged;
 }
@@ -56,9 +63,6 @@ public interface IMouseDpiPresetFeature : IMouseDynamicDpiFeature
 /// <summary>This feature enables configuring the list of DPI presets of a mouse.</summary>
 public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetFeature
 {
-	/// <summary>Gets a value indicating whether the horizontal and vertical DPIs can be different.</summary>
-	bool AllowsSeparateXYDpi { get; }
-
 	/// <summary>Gets a value indicating the minimum number of DPI presets that can be defined.</summary>
 	/// <remarks>This value cannot be less than <c>1</c>.</remarks>
 	byte MinPresetCount => 1;

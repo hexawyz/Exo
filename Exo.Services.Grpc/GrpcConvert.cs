@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Exo.Contracts.Ui.Settings;
 using Exo.Features.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
 using DeviceId = DeviceTools.DeviceId;
@@ -11,13 +12,14 @@ using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
 using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
+using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
 using GrpcMouseDpiCapabilities = Exo.Contracts.Ui.Settings.MouseDpiCapabilities;
-using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
+using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
@@ -50,6 +52,15 @@ internal static class GrpcConvert
 			IsConnected = mouseDeviceInformation.IsConnected,
 			DpiCapabilities = mouseDeviceInformation.DpiCapabilities.ToGrpc(),
 			MaximumDpi = mouseDeviceInformation.MaximumDpi.ToGrpc(),
+			MinimumDpiPresetCount = mouseDeviceInformation.MaximumDpiPresetCount,
+			MaximumDpiPresetCount = mouseDeviceInformation.MinimumDpiPresetCount,
+		};
+
+	public static GrpcMouseDpiPresets ToGrpc(this MouseDpiPresetsInformation mouseDpiPresets)
+		=> new()
+		{
+			DeviceId = mouseDpiPresets.DeviceId,
+			DpiPresets = ImmutableArray.CreateRange(mouseDpiPresets.DpiPresets, ToGrpc),
 		};
 
 	public static GrpcMouseDpiCapabilities ToGrpc(this MouseDpiCapabilities mouseDpiCapabilities)
