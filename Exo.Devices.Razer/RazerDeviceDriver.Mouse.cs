@@ -47,7 +47,7 @@ public abstract partial class RazerDeviceDriver
 			var dpiLevels = await _transport.GetDpiProfilesAsync(false, cancellationToken).ConfigureAwait(false);
 			_dpiProfiles = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!, p => new DotsPerInch(p.X, p.Y));
 			var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
-			_currentDpi = (uint)dpi.Vertical << 16 | dpi.Horizontal;
+			_currentDpi = GetRawDpiValue(_dpiProfiles, dpi.Horizontal, dpi.Vertical);
 		}
 
 		IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
@@ -55,18 +55,7 @@ public abstract partial class RazerDeviceDriver
 		protected override void OnDeviceDpiChange(ushort dpiX, ushort dpiY)
 		{
 			var profiles = Volatile.Read(ref _dpiProfiles);
-
-			uint profileIndex = 0;
-			for (int i = 0; i < profiles.Length; i++)
-			{
-				if (profiles[i].Horizontal == dpiX && profiles[i].Vertical == dpiY)
-				{
-					profileIndex = (uint)i + 1;
-					break;
-				}
-			}
-
-			ulong newDpi = (ulong)profileIndex << 32 | (uint)dpiY << 16 | dpiX;
+			ulong newDpi = GetRawDpiValue(profiles, dpiX, dpiY);
 			ulong oldDpi = Interlocked.Exchange(ref _currentDpi, newDpi);
 
 			if (newDpi != oldDpi)
@@ -91,10 +80,29 @@ public abstract partial class RazerDeviceDriver
 			}
 		}
 
+		private static ulong GetRawDpiValue(DotsPerInch[] profiles, ushort dpiX, ushort dpiY)
+			=> GetRawDpiValue(GetDpiProfileIndex(profiles, dpiX, dpiY), dpiX, dpiY);
+
+		private static ulong GetRawDpiValue(byte rawProfileIndex, ushort dpiX, ushort dpiY)
+			=> (ulong)rawProfileIndex << 32 | (uint)dpiY << 16 | dpiX;
+
+		private static byte GetDpiProfileIndex(DotsPerInch[] profiles, ushort dpiX, ushort dpiY)
+		{
+			for (int i = 0; i < profiles.Length; i++)
+			{
+				if (profiles[i].Horizontal == dpiX && profiles[i].Vertical == dpiY)
+				{
+					return (byte)(i + 1);
+				}
+			}
+
+			return 0;
+		}
+
 		private static MouseDpiStatus GetDpi(ulong rawValue)
 			=> new()
 			{
-				PresetIndex = (byte)(rawValue >> 32) is > 0 and byte i ? (byte)(i - 1) : null,
+				PresetIndex = (byte)(rawValue >> 32) is not 0 and byte i ? (byte)(i - 1) : null,
 				Dpi = new((ushort)rawValue, (ushort)(rawValue >> 16))
 			};
 
