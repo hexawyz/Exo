@@ -91,7 +91,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 
 	internal void UpdateInformation(MouseDeviceInformation information)
 	{
-		bool wasChanged = false;
+		bool wasChanged = IsChanged;
 		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 		bool hadPresets = HasPresets;
@@ -122,7 +122,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 
 	internal void UpdatePresets(ImmutableArray<DotsPerInch> presets)
 	{
-		bool wasChanged = false;
+		bool wasChanged = IsChanged;
 		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 		_initialDpiPresets = presets;
@@ -147,7 +147,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 
 	internal void UpdateCurrentDpi(byte? activePresetIndex, DotsPerInch dpi)
 	{
-		bool wasChanged = false;
+		bool wasChanged = IsChanged;
 		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 
