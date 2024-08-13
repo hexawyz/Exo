@@ -64,7 +64,10 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 		get => _selectedDpiPresetIndex;
 		set
 		{
-			if (SetValue(ref _selectedDpiPresetIndex, value)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
+			if (SetValue(ref _selectedDpiPresetIndex, value, ChangedProperty.SelectedDpiPresetIndex))
+			{
+				NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
+			}
 		}
 	}
 
@@ -97,6 +100,7 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 
 	internal void UpdatePresets(ImmutableArray<DotsPerInch> presets)
 	{
+		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 		_initialDpiPresets = presets;
 		if (!_initialDpiPresets.IsDefault)
@@ -113,11 +117,13 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 				}
 			}
 		}
+		if (_selectedDpiPresetIndex != oldSelectedPresetIndex) NotifyPropertyChanged(ChangedProperty.SelectedDpiPresetIndex);
 		if (!ReferenceEquals(SelectedDpiPreset, oldSelectedPreset)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
 	}
 
 	internal void UpdateCurrentDpi(byte? activePresetIndex, DotsPerInch dpi)
 	{
+		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 
 		if (_activeDpiPresetIndex != activePresetIndex)
@@ -133,6 +139,7 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 			_currentDpi = new(dpi);
 			NotifyPropertyChanged(ChangedProperty.CurrentDpi);
 		}
+		if (_selectedDpiPresetIndex != oldSelectedPresetIndex) NotifyPropertyChanged(ChangedProperty.SelectedDpiPresetIndex);
 		if (!ReferenceEquals(SelectedDpiPreset, oldSelectedPreset)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
 	}
 }
