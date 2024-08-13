@@ -52,8 +52,8 @@ internal static class GrpcConvert
 			IsConnected = mouseDeviceInformation.IsConnected,
 			DpiCapabilities = mouseDeviceInformation.DpiCapabilities.ToGrpc(),
 			MaximumDpi = mouseDeviceInformation.MaximumDpi.ToGrpc(),
-			MinimumDpiPresetCount = mouseDeviceInformation.MaximumDpiPresetCount,
-			MaximumDpiPresetCount = mouseDeviceInformation.MinimumDpiPresetCount,
+			MinimumDpiPresetCount = mouseDeviceInformation.MinimumDpiPresetCount,
+			MaximumDpiPresetCount = mouseDeviceInformation.MaximumDpiPresetCount,
 		};
 
 	public static GrpcMouseDpiPresets ToGrpc(this MouseDpiPresetsInformation mouseDpiPresets)
@@ -72,6 +72,9 @@ internal static class GrpcConvert
 			Horizontal = dpi.Horizontal,
 			Vertical = dpi.Vertical,
 		};
+
+	public static DotsPerInch FromGrpc(this GrpcDotsPerInch dpi)
+		=> new(dpi.Horizontal, dpi.Vertical);
 
 	public static GrpcLightingZoneInformation ToGrpc(this LightingZoneInformation zoneInformation)
 		=> new()

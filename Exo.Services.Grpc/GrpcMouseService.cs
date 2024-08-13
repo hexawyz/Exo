@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Microsoft.Extensions.Logging;
@@ -55,5 +56,6 @@ internal sealed class GrpcMouseService : IMouseService
 		}
 	}
 
-	public ValueTask SetDpiPresetsAsync(MouseDpiPresets request, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public ValueTask SetDpiPresetsAsync(MouseDpiPresetUpdate request, CancellationToken cancellationToken)
+		=> new(_mouseService.SetDpiPresetsAsync(request.DeviceId, request.ActivePresetIndex, ImmutableArray.CreateRange(request.DpiPresets, GrpcConvert.FromGrpc), cancellationToken));
 }

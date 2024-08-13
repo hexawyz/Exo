@@ -151,6 +151,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		try
 		{
 			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken);
+			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
 			await foreach (var notification in deviceService.WatchDevicesAsync(cancellationToken))
 			{
 				var id = notification.Details.Id;
@@ -171,7 +172,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 						//	// Disconnection from the service is not yet handled.
 						//	continue;
 						//}
-						var device = new DeviceViewModel(_connectionManager, _metadataService, notification.Details);
+						var device = new DeviceViewModel(_connectionManager, _metadataService, mouseService, notification.Details);
 						await HandleDeviceArrivalAsync(device, cancellationToken);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);

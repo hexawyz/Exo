@@ -6,6 +6,8 @@ internal abstract class ApplicableResettableBindableObject : ResettableBindableO
 {
 	public ICommand ApplyCommand => IApplicable.SharedApplyCommand;
 
+	protected virtual bool CanApply => IsChanged;
+
 	protected abstract Task ApplyChangesAsync(CancellationToken cancellationToken);
 
 	protected override void OnChanged()
@@ -14,5 +16,6 @@ internal abstract class ApplicableResettableBindableObject : ResettableBindableO
 		base.OnChanged();
 	}
 
+	bool IApplicable.CanApply => CanApply;
 	Task IApplicable.ApplyAsync(CancellationToken cancellationToken) => ApplyChangesAsync(cancellationToken);
 }

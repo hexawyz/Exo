@@ -15,5 +15,5 @@ public interface IMouseService
 	IAsyncEnumerable<MouseDpiPresets> WatchDpiPresetsAsync(CancellationToken cancellationToken);
 
 	[OperationContract(Name = "SetDpiPresets")]
-	ValueTask SetDpiPresetsAsync(MouseDpiPresets request, CancellationToken cancellationToken);
+	ValueTask SetDpiPresetsAsync(MouseDpiPresetUpdate request, CancellationToken cancellationToken);
 }

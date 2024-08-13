@@ -34,6 +34,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <TextBlock Text="Presets" Margin="0,6,0,6" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -128,6 +129,10 @@
                     Maximum="{Binding MaximumDpi.Vertical}"
                     Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </Grid>
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                <Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
+                <Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+            </StackPanel>
         </Grid>
     </Grid>
 </UserControl>

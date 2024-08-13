@@ -36,7 +36,7 @@ public interface IMouseDynamicDpiFeature : IMouseDpiFeature
 }
 
 /// <summary>This feature exposes DPI presets supported by a mouse.</summary>
-public interface IMouseDpiPresetFeature : IMouseDynamicDpiFeature
+public interface IMouseDpiPresetsFeature : IMouseDynamicDpiFeature
 {
 	/// <summary>Gets a value indicating if the current preset can be changed by using this feature.</summary>
 	bool CanChangePreset => true;
@@ -61,7 +61,7 @@ public interface IMouseDpiPresetFeature : IMouseDynamicDpiFeature
 }
 
 /// <summary>This feature enables configuring the list of DPI presets of a mouse.</summary>
-public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetFeature
+public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetsFeature
 {
 	/// <summary>Gets a value indicating the minimum number of DPI presets that can be defined.</summary>
 	/// <remarks>This value cannot be less than <c>1</c>.</remarks>

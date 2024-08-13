@@ -8,7 +8,7 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal class DeviceViewModel : BindableObject
 {
-	public DeviceViewModel(SettingsServiceConnectionManager connectionManager, ISettingsMetadataService metadataService, DeviceInformation deviceInformation)
+	public DeviceViewModel(SettingsServiceConnectionManager connectionManager, ISettingsMetadataService metadataService, IMouseService mouseService, DeviceInformation deviceInformation)
 	{
 		Id = deviceInformation.Id;
 		_friendlyName = deviceInformation.FriendlyName;
@@ -24,7 +24,7 @@ internal class DeviceViewModel : BindableObject
 		{
 			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
 			{
-				MouseFeatures = new(this);
+				MouseFeatures = new(mouseService, this);
 			}
 			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MonitorDeviceFeature))
 			{

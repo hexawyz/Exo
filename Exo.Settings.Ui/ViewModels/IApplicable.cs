@@ -25,7 +25,7 @@ internal interface IApplicable : IChangeable
 				}
 			}
 
-			public bool CanExecute(object? parameter) => (parameter as IApplicable)?.IsChanged ?? false;
+			public bool CanExecute(object? parameter) => (parameter as IApplicable)?.CanApply ?? false;
 
 			public event EventHandler? CanExecuteChanged;
 
@@ -38,4 +38,6 @@ internal interface IApplicable : IChangeable
 	ICommand ApplyCommand => SharedApplyCommand;
 
 	Task ApplyAsync(CancellationToken cancellationToken);
+
+	bool CanApply => IsChanged;
 }

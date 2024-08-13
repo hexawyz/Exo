@@ -313,7 +313,6 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		for (int i = 0; i < profiles.Length; i++)
 		{
 			ref readonly var profile = ref ImmutableCollectionsMarshal.AsArray(profiles)![i];
-			currentRawProfile = ref Unsafe.Add(ref Unsafe.AsRef(in currentRawProfile), 7);
 			if (bigEndian)
 			{
 				ref var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in currentRawProfile));
@@ -330,6 +329,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				rawProfile.DpiY = profile.Y;
 				rawProfile.DpiZ = profile.Z;
 			}
+			currentRawProfile = ref Unsafe.Add(ref Unsafe.AsRef(in currentRawProfile), 7);
 		}
 		return expectedDataLength;
 	}

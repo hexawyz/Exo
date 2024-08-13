@@ -88,9 +88,9 @@ internal sealed class MouseService
 
 		public void RegisterNotificationsAndUpdateDpi(IMouseDynamicDpiFeature feature)
 		{
-			_dynamicDpiFeature = feature;
 			lock (Lock)
 			{
+				_dynamicDpiFeature = feature;
 				feature.DpiChanged += _dpiChangedHandler;
 				CurrentDpi = feature.CurrentDpi;
 				_mouseService.OnDpiChanged(new(WatchNotificationKind.Addition, DeviceId, CurrentDpi, CurrentDpi, DpiPresets));
@@ -99,14 +99,26 @@ internal sealed class MouseService
 
 		public void UnregisterNotifications()
 		{
-			if (_dynamicDpiFeature is not null)
+			lock (Lock)
 			{
-				lock (Lock)
+				if (_dynamicDpiFeature is not null)
 				{
 					_dynamicDpiFeature.DpiChanged -= _dpiChangedHandler;
 				}
 				_dynamicDpiFeature = null;
 			}
+		}
+
+		public IMouseConfigurableDpiPresetsFeature? GetConfigurableDpiPresetsFeature()
+		{
+			lock (Lock)
+			{
+				if ((Capabilities & MouseDpiCapabilities.ConfigurableDpiPresets) != 0 && _dynamicDpiFeature is IMouseConfigurableDpiPresetsFeature configurableDpiPresetsFeature)
+				{
+					return configurableDpiPresetsFeature;
+				}
+			}
+			return null;
 		}
 
 		public MouseDeviceInformation CreateMouseInformation()
@@ -280,7 +292,7 @@ internal sealed class MouseService
 		ImmutableArray<DotsPerInch> dpiPresets = [];
 
 		IMouseConfigurableDpiPresetsFeature? configurableDpiPresetsFeature;
-		IMouseDpiPresetFeature? dpiPresetFeature;
+		IMouseDpiPresetsFeature? dpiPresetFeature;
 		IMouseDynamicDpiFeature? dynamicDpiFeature;
 		IMouseDpiFeature? dpiFeature;
 
@@ -298,7 +310,7 @@ internal sealed class MouseService
 			if (configurableDpiPresetsFeature.AllowsSeparateXYDpi) capabilities |= MouseDpiCapabilities.SeparateXYDpi;
 			if (configurableDpiPresetsFeature.CanChangePreset) capabilities |= MouseDpiCapabilities.DpiPresetChange;
 		}
-		else if ((dpiPresetFeature = mouseFeatures.GetFeature<IMouseDpiPresetFeature>()) is not null)
+		else if ((dpiPresetFeature = mouseFeatures.GetFeature<IMouseDpiPresetsFeature>()) is not null)
 		{
 			dpiFeature = dynamicDpiFeature = dpiPresetFeature;
 
@@ -374,10 +386,14 @@ internal sealed class MouseService
 		}
 		else
 		{
-			shouldPersistInformation = deviceState.Update(newInformation);
-			deviceState.Driver = notification.Driver;
-			deviceState.CurrentDpi = currentDpi;
-			deviceState.DpiPresets = dpiPresets;
+			// NB: The lock is not necessary from a logical POV, but it will mostly enforce security and avoid triggering weird bugs from external sources. (GRPC)
+			lock (deviceState.Lock)
+			{
+				shouldPersistInformation = deviceState.Update(newInformation);
+				deviceState.Driver = notification.Driver;
+				deviceState.CurrentDpi = currentDpi;
+				deviceState.DpiPresets = dpiPresets;
+			}
 		}
 
 		if (shouldPersistInformation)
@@ -507,7 +523,7 @@ internal sealed class MouseService
 
 		List<DpiWatchNotification>? initialNotifications;
 
-		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		lock (_dpiChangeLock)
 		{
 			initialNotifications = GetInitialNotifications();
 			ArrayExtensions.InterlockedAdd(ref _dpiChangeListeners, channel);
@@ -610,6 +626,21 @@ internal sealed class MouseService
 			}
 
 			return initialNotifications;
+		}
+	}
+
+	public async Task SetDpiPresetsAsync(Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets, CancellationToken cancellationToken)
+	{
+		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			if (deviceState.GetConfigurableDpiPresetsFeature() is { } configurableDpiPresetsFeature)
+			{
+				using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					await configurableDpiPresetsFeature.SetDpiPresetsAsync(activePresetIndex, presets, cancellationToken).ConfigureAwait(false);
+					_dpiPresetChangeListeners.TryWrite(new() { DeviceId = deviceId, ActivePresetIndex = activePresetIndex, DpiPresets = presets });
+				}
+			}
 		}
 	}
 }

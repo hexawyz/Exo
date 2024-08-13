@@ -15,7 +15,7 @@ public enum MouseDpiCapabilities : byte
 	[EnumMember]
 	DpiPresets = 0x04,
 	[EnumMember]
-	DpiPresetsChange = 0x08,
+	DpiPresetChange = 0x08,
 	[EnumMember]
 	ConfigurableDpi = 0x10,
 	[EnumMember]

@@ -1,13 +1,14 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using Exo.Contracts.Ui.Settings;
-using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MouseDeviceFeaturesViewModel : BindableObject
+internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindableObject
 {
 	private readonly DeviceViewModel _device;
+	private readonly IMouseService _mouseService;
 	private bool _isAvailable;
 	private MouseDpiCapabilities _dpiCapabilities;
 	private DpiViewModel? _currentDpi;
@@ -20,8 +21,9 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 	private readonly ObservableCollection<MouseDpiPresetViewModel> _dpiPresets;
 	private ImmutableArray<DotsPerInch> _initialDpiPresets;
 
-	public MouseDeviceFeaturesViewModel(DeviceViewModel device)
+	public MouseDeviceFeaturesViewModel(IMouseService mouseService, DeviceViewModel device)
 	{
+		_mouseService = mouseService;
 		_device = device;
 		_initialDpiPresets = [];
 		_dpiPresets = new();
@@ -64,7 +66,7 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 		get => _selectedDpiPresetIndex;
 		set
 		{
-			if (SetValue(ref _selectedDpiPresetIndex, value, ChangedProperty.SelectedDpiPresetIndex))
+			if (SetChangeableValue(ref _selectedDpiPresetIndex, value, ChangedProperty.SelectedDpiPresetIndex))
 			{
 				NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
 			}
@@ -75,8 +77,23 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 
 	public ReadOnlyObservableCollection<MouseDpiPresetViewModel> DpiPresets => _readOnlyDpiPresets;
 
+	public override bool IsChanged
+		=> _dpiPresets.Count != _initialDpiPresets.Length ||
+		_selectedDpiPresetIndex != (_activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1);
+
+	// This determines whether we can apply the current settings.
+	// It is based on IsChanged but does additional validity checks to avoid errors and notify the user that something is not correct.
+	protected override bool CanApply
+		=> IsChanged &&
+			(_dpiCapabilities & (MouseDpiCapabilities.ConfigurableDpiPresets | MouseDpiCapabilities.DpiPresetChange)) != 0 &&
+			_selectedDpiPresetIndex >= 0 && _selectedDpiPresetIndex < _dpiPresets.Count &&
+			_dpiPresets.Count >= MinimumPresetCount && _dpiPresets.Count <= MaximumPresetCount;
+
 	internal void UpdateInformation(MouseDeviceInformation information)
 	{
+		bool wasChanged = false;
+		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
+		var oldSelectedPreset = SelectedDpiPreset;
 		bool hadPresets = HasPresets;
 		bool allowedIndependentDpi = AllowsIndependentDpi;
 		_dpiCapabilities = information.DpiCapabilities;
@@ -84,6 +101,8 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 		if (AllowsIndependentDpi != allowedIndependentDpi) NotifyPropertyChanged(nameof(AllowsIndependentDpi));
 		IsAvailable = information.IsConnected;
 		MaximumDpi = (information.DpiCapabilities & MouseDpiCapabilities.DynamicDpi) != 0 ? new(information.MaximumDpi) : null;
+		MinimumPresetCount = information.MinimumDpiPresetCount;
+		MaximumPresetCount = information.MaximumDpiPresetCount;
 		if (HasPresets)
 		{
 			while (_dpiPresets.Count > MaximumPresetCount)
@@ -96,10 +115,14 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 			_initialDpiPresets = [];
 			_dpiPresets.Clear();
 		}
+		if (_selectedDpiPresetIndex != oldSelectedPresetIndex) NotifyPropertyChanged(ChangedProperty.SelectedDpiPresetIndex);
+		if (!ReferenceEquals(SelectedDpiPreset, oldSelectedPreset)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
+		OnChangeStateChange(wasChanged);
 	}
 
 	internal void UpdatePresets(ImmutableArray<DotsPerInch> presets)
 	{
+		bool wasChanged = false;
 		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 		_initialDpiPresets = presets;
@@ -119,10 +142,12 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 		}
 		if (_selectedDpiPresetIndex != oldSelectedPresetIndex) NotifyPropertyChanged(ChangedProperty.SelectedDpiPresetIndex);
 		if (!ReferenceEquals(SelectedDpiPreset, oldSelectedPreset)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
+		OnChangeStateChange(wasChanged);
 	}
 
 	internal void UpdateCurrentDpi(byte? activePresetIndex, DotsPerInch dpi)
 	{
+		bool wasChanged = false;
 		int oldSelectedPresetIndex = _selectedDpiPresetIndex;
 		var oldSelectedPreset = SelectedDpiPreset;
 
@@ -141,6 +166,36 @@ internal sealed class MouseDeviceFeaturesViewModel : BindableObject
 		}
 		if (_selectedDpiPresetIndex != oldSelectedPresetIndex) NotifyPropertyChanged(ChangedProperty.SelectedDpiPresetIndex);
 		if (!ReferenceEquals(SelectedDpiPreset, oldSelectedPreset)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
+		OnChangeStateChange(wasChanged);
+	}
+
+	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
+	{
+		if (!CanApply) return;
+		if ((_dpiCapabilities & MouseDpiCapabilities.ConfigurableDpiPresets) != 0)
+		{
+			var presets = new DotsPerInch[_dpiPresets.Count];
+			for (int i = 0; i < _dpiPresets.Count; i++)
+			{
+				var src = _dpiPresets[i];
+				presets[i] = new() { Horizontal = src.Horizontal, Vertical = src.Vertical };
+			}
+			await _mouseService.SetDpiPresetsAsync
+			(
+				new()
+				{
+					DeviceId = _device.Id,
+					ActivePresetIndex = (byte)_selectedDpiPresetIndex,
+					DpiPresets = ImmutableCollectionsMarshal.AsImmutableArray(presets)
+				},
+				cancellationToken
+			);
+		}
+	}
+
+	protected override void Reset()
+	{
+		SelectedDpiPresetIndex = _activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1;
 	}
 }
 
@@ -171,8 +226,11 @@ internal sealed class MouseDpiPresetViewModel : ChangeableBindableObject
 		get => _horizontal;
 		set
 		{
-			if (!IsIndependent) SetChangeableValue(ref _vertical, value, ChangedProperty.Vertical);
-			SetChangeableValue(ref _horizontal, value, ChangedProperty.Horizontal);
+			if (_mouse.MaximumDpi is { } maxDpi && value <= maxDpi.Horizontal)
+			{
+				if (!IsIndependent) SetChangeableValue(ref _vertical, value, ChangedProperty.Vertical);
+				SetChangeableValue(ref _horizontal, value, ChangedProperty.Horizontal);
+			}
 		}
 	}
 
@@ -181,8 +239,11 @@ internal sealed class MouseDpiPresetViewModel : ChangeableBindableObject
 		get => _vertical;
 		set
 		{
-			if (!IsIndependent) SetChangeableValue(ref _horizontal, value, ChangedProperty.Horizontal);
-			SetChangeableValue(ref _vertical, value, ChangedProperty.Vertical);
+			if (_mouse.MaximumDpi is { } maxDpi && value <= maxDpi.Vertical)
+			{
+				if (!IsIndependent) SetChangeableValue(ref _horizontal, value, ChangedProperty.Horizontal);
+				SetChangeableValue(ref _vertical, value, ChangedProperty.Vertical);
+			}
 		}
 	}
 
