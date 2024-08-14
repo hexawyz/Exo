@@ -560,6 +560,8 @@ internal sealed class MouseService
 				MouseDpiStatus currentDpi;
 				lock (deviceState.Lock)
 				{
+					if (deviceState.Driver is null) continue;
+
 					currentDpi = deviceState.CurrentDpi;
 				}
 				initialNotifications.Add
@@ -621,7 +623,10 @@ internal sealed class MouseService
 			{
 				lock (kvp.Value.Lock)
 				{
-					initialNotifications.Add(new() { DeviceId = kvp.Key, ActivePresetIndex = kvp.Value.CurrentDpi.PresetIndex, DpiPresets = kvp.Value.DpiPresets });
+					if (kvp.Value.Driver is not null)
+					{
+						initialNotifications.Add(new() { DeviceId = kvp.Key, ActivePresetIndex = kvp.Value.CurrentDpi.PresetIndex, DpiPresets = kvp.Value.DpiPresets });
+					}
 				}
 			}
 
