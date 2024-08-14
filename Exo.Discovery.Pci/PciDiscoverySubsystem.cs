@@ -105,6 +105,8 @@ public sealed class PciDiscoverySubsystem :
 
 				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
 				{
+					if (IsBasicDisplayDevice(deviceName)) continue;
+
 					_logger.DisplayAdapterDeviceArrival(deviceName);
 					sink?.HandleArrival(new(this, deviceName));
 				}
@@ -251,8 +253,15 @@ public sealed class PciDiscoverySubsystem :
 		return true;
 	}
 
+	// This is a quick hack to avoid "BasicDisplay" devices generating errors as they are not real monitors.
+	// Proper detection would require querying the device class of the parent node and eliminating all "System" devices, but this should be good enough.
+	// (Although devices (interface) names are supposed to be somewhat undocumented, they are relatively stable)
+	private static bool IsBasicDisplayDevice(string deviceName) => deviceName.StartsWith(@"\\?\ROOT#BasicDisplay#", StringComparison.OrdinalIgnoreCase);
+
 	void IDeviceNotificationSink.OnDeviceArrival(Guid deviceInterfaceClassGuid, string deviceName)
 	{
+		if (IsBasicDisplayDevice(deviceName)) return;
+
 		lock (_lock)
 		{
 			_logger.DisplayAdapterDeviceArrival(deviceName);
@@ -262,6 +271,8 @@ public sealed class PciDiscoverySubsystem :
 
 	void IDeviceNotificationSink.OnDeviceRemovePending(Guid deviceInterfaceClassGuid, string deviceName)
 	{
+		if (IsBasicDisplayDevice(deviceName)) return;
+
 		lock (_lock)
 		{
 			TryGetSink()?.HandleRemoval(deviceName);
@@ -270,6 +281,8 @@ public sealed class PciDiscoverySubsystem :
 
 	void IDeviceNotificationSink.OnDeviceRemoveComplete(Guid deviceInterfaceClassGuid, string deviceName)
 	{
+		if (IsBasicDisplayDevice(deviceName)) return;
+
 		lock (_lock)
 		{
 			_logger.DisplayAdapterDeviceRemoval(deviceName);
