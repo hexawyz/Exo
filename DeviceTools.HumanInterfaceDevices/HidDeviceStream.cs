@@ -178,4 +178,11 @@ public class HidDeviceStream : DeviceStream
 	/// <param name="cancellationToken"></param>
 	public async ValueTask ReceiveFeatureReportAsync(Memory<byte> buffer, CancellationToken cancellationToken)
 		=> await IoControlAsync(NativeMethods.IoCtlHidGetFeature, buffer, cancellationToken).ConfigureAwait(false);
+
+	/// <summary>Receives an input report from the HID device.</summary>
+	/// <remarks>Before calling this method, the first byte of the buffer must be initialized with the report ID.</remarks>
+	/// <param name="buffer">The buffer containing the feature report, including the report ID byte.</param>
+	/// <param name="cancellationToken"></param>
+	public async ValueTask ReceiveInputReportAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+		=> await IoControlAsync(NativeMethods.IoCtlHidGetInputReport, buffer, cancellationToken).ConfigureAwait(false);
 }
