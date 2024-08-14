@@ -88,12 +88,26 @@ public sealed class UninterruptiblePowerSupplyDriver :
 			throw new InvalidOperationException("One of the expected device interfaces was not found.");
 		}
 
-		var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
+		var hidStream = new HidDeviceStream(Device.OpenHandle(hidDeviceInterfaceName, DeviceAccess.Read, FileShare.ReadWrite), FileAccess.Read, 0, true);
 		uint batteryState;
 		try
 		{
 			// Do a sanity check on the HID collection to ensure that it is conform to what is programmed in the driver.
+			// NB: For now, we don't support dynamic parsing of HID descriptors, so we need to verify that the actual reports match what is hardcoded in our implementation.
 			var collectionDescriptor = await hidStream.GetCollectionDescriptorAsync(cancellationToken).ConfigureAwait(false);
+
+			foreach (var featureReport in collectionDescriptor.FeatureReports)
+			{
+				if (featureReport.ReportId == 0x01 && featureReport.ReportSize != 4 ||
+					featureReport.ReportId == 0x06 && featureReport.ReportSize != 6 ||
+					featureReport.ReportId == 0x0B && featureReport.ReportSize != 11 ||
+					featureReport.ReportId == 0x0C && featureReport.ReportSize != 8 ||
+					featureReport.ReportId == 0x0D && featureReport.ReportSize != 4 ||
+					featureReport.ReportId == 0x10 && featureReport.ReportSize != 9)
+				{
+					throw new InvalidOperationException("This device is not yet supported.");
+				}
+			}
 
 			var buffer = ArrayPool<byte>.Shared.Rent(128);
 			try
@@ -179,7 +193,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	public static readonly Guid PercentLoadSensorId = new(0xD9CA6694, 0x7514, 0x429C, 0x86, 0x53, 0x66, 0x55, 0xC4, 0x30, 0x73, 0xB2);
 	public static readonly Guid OutputVoltageSensorId = new(0xD8C1E0F2, 0x1712, 0x4709, 0x8B, 0x81, 0x3C, 0x2D, 0x2F, 0x77, 0xD6, 0x34);
 
-	private readonly HidFullDuplexStream _stream;
+	private readonly HidDeviceStream _hidStream;
 	private readonly byte[] _buffer;
 	private uint _batteryState;
 	private readonly ImmutableArray<ISensor> _sensors;
@@ -211,7 +225,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	private UninterruptiblePowerSupplyDriver
 	(
 		ILogger<UninterruptiblePowerSupplyDriver> logger,
-		HidFullDuplexStream stream,
+		HidDeviceStream hidStream,
 		uint batteryState,
 		ushort productId,
 		ushort versionNumber,
@@ -220,7 +234,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	) : base(friendlyName, configurationKey)
 	{
 		_logger = logger;
-		_stream = stream;
+		_hidStream = hidStream;
 		_buffer = GC.AllocateUninitializedArray<byte>(256, true);
 		_batteryState = batteryState;
 		_productId = productId;
@@ -239,7 +253,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	public override async ValueTask DisposeAsync()
 	{
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
-		await _stream.DisposeAsync().ConfigureAwait(false);
+		await _hidStream.DisposeAsync().ConfigureAwait(false);
 	}
 
 	private async Task ReadAsync(CancellationToken cancellationToken)
@@ -247,40 +261,34 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffer, 0, 6);
 		try
 		{
+			// Apparently, those statuses are not sent as notifications (stream reads throw an exception), so we need to do polling ☹️
 			while (true)
 			{
-				await _stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+				buffer.Span[0] = 6;
+				await _hidStream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+				(byte capacity, uint remainingTime) = ProcessCapacityReport(buffer.Span.Slice(1, 5));
+				buffer.Span[0] = 1;
+				await _hidStream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+				ProcessBatteryStatusReport(buffer.Span.Slice(1, 3), capacity);
 
-				ProcessReport(buffer.Span);
+				await Task.Delay(60, cancellationToken).ConfigureAwait(false);
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 		}
-	}
-
-	private void ProcessReport(Span<byte> span)
-	{
-		switch (span[0])
+		catch (Exception)
 		{
-		case 0x01: ProcessBatteryStatusReport(span.Slice(1, 3)); break;
-		case 0x02: break;
-		case 0x03: break;
-		case 0x06: ProcessCapacityReport(span.Slice(1, 5)); break;
 		}
 	}
 
-	private void ProcessBatteryStatusReport(Span<byte> span)
+	private void ProcessBatteryStatusReport(ReadOnlySpan<byte> span, byte capacity)
 	{
 		uint oldBatteryState = _batteryState;
-		UpdateBatteryState(oldBatteryState, oldBatteryState & 0xFF | (uint)span[0] << 8 | (uint)span[1] << 16 | (uint)span[2] << 24);
+		UpdateBatteryState(oldBatteryState, capacity | (uint)span[0] << 8 | (uint)span[1] << 16 | (uint)span[2] << 24);
 	}
 
-	private void ProcessCapacityReport(Span<byte> span)
-	{
-		uint oldBatteryState = _batteryState;
-		UpdateBatteryState(oldBatteryState, oldBatteryState & ~(uint)0xFF | span[0]);
-	}
+	private (byte Capacity, uint RemainingTime) ProcessCapacityReport(ReadOnlySpan<byte> span) => (span[0], LittleEndian.ReadUInt32(in span[1]));
 
 	private void UpdateBatteryState(uint oldValue, uint newValue)
 	{
@@ -387,7 +395,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_driver._buffer, _bufferOffset, 1 + Unsafe.SizeOf<T>());
 			buffer.Span[0] = _reportId;
-			await _driver._stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+			await _driver._hidStream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 			return Unsafe.ReadUnaligned<T>(ref buffer.Span[1]);
 		}
 	}
@@ -429,7 +437,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 		{
 			var buffer = MemoryMarshal.CreateFromPinnedArray(_driver._buffer, _bufferOffset, _reportLength);
 			buffer.Span[0] = _reportId;
-			await _driver._stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+			await _driver._hidStream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
 			return Unsafe.ReadUnaligned<T>(ref buffer.Span[_dataOffset]);
 		}
 	}
