@@ -14,7 +14,9 @@ public sealed class HidFullDuplexStream : Stream
 	private readonly HidDeviceStream _readStream;
 	private readonly HidDeviceStream _writeStream;
 
-	public HidFullDuplexStream(string deviceName)
+	public HidFullDuplexStream(string deviceName) : this(deviceName, 4096) { }
+
+	public HidFullDuplexStream(string deviceName, int readBufferSize)
 	{
 		SafeFileHandle? readHandle = null;
 		SafeFileHandle? writeHandle = null;
@@ -24,7 +26,7 @@ public sealed class HidFullDuplexStream : Stream
 		{
 			readHandle = Device.OpenHandle(deviceName, DeviceAccess.Read);
 			writeHandle = Device.OpenHandle(deviceName, DeviceAccess.Write);
-			readStream = new HidDeviceStream(readHandle, FileAccess.Read, 4096, true);
+			readStream = new HidDeviceStream(readHandle, FileAccess.Read, readBufferSize, true);
 			writeStream = new HidDeviceStream(writeHandle, FileAccess.Write, 0, true);
 		}
 		catch
