@@ -23,6 +23,6 @@ public interface IMouseService
 	[OperationContract(Name = "WatchPollingFrequencies")]
 	IAsyncEnumerable<MousePollingFrequencyUpdate> WatchPollingFrequenciesAsync(CancellationToken cancellationToken);
 
-	[OperationContract(Name = "SetPollingFrequencies")]
-	ValueTask SetPollingFrequenciesAsync(MousePollingFrequencyUpdate request, CancellationToken cancellationToken);
+	[OperationContract(Name = "SetPollingFrequency")]
+	ValueTask SetPollingFrequencyAsync(MousePollingFrequencyUpdate request, CancellationToken cancellationToken);
 }

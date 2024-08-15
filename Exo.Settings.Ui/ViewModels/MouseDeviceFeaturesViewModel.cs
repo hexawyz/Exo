@@ -20,7 +20,11 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	private int _changedPresetCount;
 	private readonly ReadOnlyObservableCollection<MouseDpiPresetViewModel> _readOnlyDpiPresets;
 	private readonly ObservableCollection<MouseDpiPresetViewModel> _dpiPresets;
+	private readonly Dictionary<ushort, PollingFrequencyViewModel> _supportedPollingFrequencies;
+	private ReadOnlyCollection<PollingFrequencyViewModel> _supportedPollingFrequencyCollection;
 	private ImmutableArray<DotsPerInch> _initialDpiPresets;
+	private PollingFrequencyViewModel? _initialPollingFrequency;
+	private PollingFrequencyViewModel? _selectedPollingFrequency;
 
 	public MouseDeviceFeaturesViewModel(IMouseService mouseService, DeviceViewModel device)
 	{
@@ -30,6 +34,8 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		_dpiPresets = new();
 		_selectedDpiPresetIndex = -1;
 		_readOnlyDpiPresets = new(_dpiPresets);
+		_supportedPollingFrequencies = new();
+		_supportedPollingFrequencyCollection = ReadOnlyCollection<PollingFrequencyViewModel>.Empty;
 	}
 
 	public DpiViewModel? CurrentDpi => _currentDpi;
@@ -76,12 +82,22 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 
 	public bool CanEditPresets => (_dpiCapabilities & MouseCapabilities.ConfigurableDpiPresets) != 0;
 	public bool HasPresets => (_dpiCapabilities & MouseCapabilities.DpiPresets) != 0;
+	public bool CanChangePollingFrequency => (_dpiCapabilities & MouseCapabilities.ConfigurablePollingFrequency) != 0 && _supportedPollingFrequencies.Count > 0;
 
 	public ReadOnlyObservableCollection<MouseDpiPresetViewModel> DpiPresets => _readOnlyDpiPresets;
+
+	public ReadOnlyCollection<PollingFrequencyViewModel> SupportedPollingFrequencies => _supportedPollingFrequencyCollection;
+
+	public PollingFrequencyViewModel? SelectedPollingFrequency
+	{
+		get => _selectedPollingFrequency;
+		set => SetChangeableValue(ref _selectedPollingFrequency, value);
+	}
 
 	public override bool IsChanged
 		=> _dpiPresets.Count != _initialDpiPresets.Length ||
 		_changedPresetCount != 0 ||
+		_initialPollingFrequency != _selectedPollingFrequency ||
 		_selectedDpiPresetIndex != (_activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1);
 
 	// This determines whether we can apply the current settings.
@@ -99,6 +115,9 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		var oldSelectedPreset = SelectedDpiPreset;
 		bool hadPresets = HasPresets;
 		bool allowedIndependentDpi = AllowsIndependentDpi;
+		var oldSelectedPollingFrequency = SelectedPollingFrequency;
+		var oldPollingFrequencies = SupportedPollingFrequencies;
+		var couldChangePollingFrequencies = CanChangePollingFrequency;
 		_dpiCapabilities = information.DpiCapabilities;
 		if (HasPresets != hadPresets) NotifyPropertyChanged(nameof(HasPresets));
 		if (AllowsIndependentDpi != allowedIndependentDpi) NotifyPropertyChanged(nameof(AllowsIndependentDpi));
@@ -120,8 +139,65 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 			_initialDpiPresets = [];
 			_dpiPresets.Clear();
 		}
+		if (information.SupportedPollingFrequencies.IsDefaultOrEmpty)
+		{
+			_supportedPollingFrequencies.Clear();
+			_initialPollingFrequency = null;
+			_selectedPollingFrequency = null;
+		}
+		else
+		{
+			// Lazily build a new frequency array as soon as a single frequency is new.
+			PollingFrequencyViewModel[]? newPollingFrequencies = null;
+			for (int i = 0; i < information.SupportedPollingFrequencies.Length; i++)
+			{
+				ushort pollingFrequency = information.SupportedPollingFrequencies[i];
+				if (_supportedPollingFrequencies.TryGetValue(pollingFrequency, out var vm))
+				{
+					if (newPollingFrequencies is not null)
+					{
+						newPollingFrequencies[i] = vm;
+					}
+				}
+				else
+				{
+					if (newPollingFrequencies is null)
+					{
+						newPollingFrequencies = new PollingFrequencyViewModel[information.SupportedPollingFrequencies.Length];
+						for (int j = 0; j < i; j++)
+						{
+							newPollingFrequencies[j] = _supportedPollingFrequencies[information.SupportedPollingFrequencies[j]];
+						}
+					}
+					newPollingFrequencies[i] = new(pollingFrequency);
+				}
+			}
+			// If a new array was initialized, reset the dictionary with only the in-use frequencies.
+			// (As always with these things, we should expect changes to never happen after initialization, but we cannot 100% trust the backend, as it will rely on many different drivers)
+			if (newPollingFrequencies is not null)
+			{
+				_supportedPollingFrequencies.Clear();
+				foreach (var vm in newPollingFrequencies)
+				{
+					_supportedPollingFrequencies.Add(vm.Frequency, vm);
+				}
+				// Because the list of frequencies was reset, it is necessary to refresh the selected frequencies.
+				if (_initialPollingFrequency is not null && !_supportedPollingFrequencies.ContainsKey(_initialPollingFrequency.Frequency))
+				{
+					_initialPollingFrequency = null;
+				}
+				if (_selectedPollingFrequency is not null && !_supportedPollingFrequencies.ContainsKey(_selectedPollingFrequency.Frequency))
+				{
+					_selectedPollingFrequency = null;
+				}
+				_supportedPollingFrequencyCollection = Array.AsReadOnly(newPollingFrequencies);
+			}
+		}
 		if (_selectedDpiPresetIndex != oldSelectedPresetIndex) NotifyPropertyChanged(ChangedProperty.SelectedDpiPresetIndex);
 		if (!ReferenceEquals(SelectedDpiPreset, oldSelectedPreset)) NotifyPropertyChanged(ChangedProperty.SelectedDpiPreset);
+		if (!ReferenceEquals(SupportedPollingFrequencies, oldPollingFrequencies)) NotifyPropertyChanged(ChangedProperty.SupportedPollingFrequencies);
+		if (!ReferenceEquals(SelectedPollingFrequency, oldSelectedPollingFrequency)) NotifyPropertyChanged(ChangedProperty.SelectedPollingFrequency);
+		if (couldChangePollingFrequencies != CanChangePollingFrequency) NotifyPropertyChanged(ChangedProperty.CanChangePollingFrequency);
 		OnChangeStateChange(wasChanged);
 	}
 
@@ -199,6 +275,11 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		else if (_changedPresetCount == 0 && _selectedDpiPresetIndex != (_activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1))
 		{
 			await _mouseService.SetActiveDpiPresetAsync(new() { DeviceId = _device.Id, ActivePresetIndex = (byte)_selectedDpiPresetIndex }, cancellationToken);
+		}
+
+		if (_selectedPollingFrequency is not null && _selectedPollingFrequency != _initialPollingFrequency)
+		{
+			await _mouseService.SetPollingFrequencyAsync(new() { DeviceId = _device.Id, PollingFrequency = _selectedPollingFrequency.Frequency }, cancellationToken);
 		}
 	}
 

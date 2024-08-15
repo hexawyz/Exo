@@ -25,7 +25,9 @@ public abstract partial class RazerDeviceDriver :
 
 	private const ushort MaximumPollingFrequency = 1000;
 
-	private static readonly ImmutableArray<byte> SupportedPollingFrequencyDividers = [1, 2, 8];
+	// These values express the frequency dividers in the Log2 form.
+	// e.g. [0, 1, 3] correspond to dividers [1, 2, 8]
+	private static readonly ImmutableArray<byte> SupportedPollingFrequencyDividerPowers = [0, 1, 3];
 
 	// It does not seem we can retrieve enough metadata from the devices themselves, so we need to have some manually entered data here.
 	private readonly struct DeviceInformation
@@ -471,7 +473,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.MaximumDpi,
 				MaximumPollingFrequency,
-				SupportedPollingFrequencyDividers,
+				SupportedPollingFrequencyDividerPowers,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -562,7 +564,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.MaximumDpi,
 				MaximumPollingFrequency,
-				SupportedPollingFrequencyDividers,
+				SupportedPollingFrequencyDividerPowers,
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,

@@ -48,6 +48,9 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs MaximumDpi = new (nameof(MaximumDpi));
 	public static readonly PropertyChangedEventArgs SelectedDpiPreset = new (nameof(SelectedDpiPreset));
 	public static readonly PropertyChangedEventArgs SelectedDpiPresetIndex = new (nameof(SelectedDpiPresetIndex));
+	public static readonly PropertyChangedEventArgs CanChangePollingFrequency = new (nameof(CanChangePollingFrequency));
+	public static readonly PropertyChangedEventArgs SelectedPollingFrequency = new (nameof(SelectedPollingFrequency));
+	public static readonly PropertyChangedEventArgs SupportedPollingFrequencies = new (nameof(SupportedPollingFrequencies));
 	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
 	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
 	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));

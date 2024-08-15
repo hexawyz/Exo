@@ -70,6 +70,6 @@ internal sealed class GrpcMouseService : IMouseService
 		}
 	}
 
-	public ValueTask SetPollingFrequenciesAsync(MousePollingFrequencyUpdate request, CancellationToken cancellationToken)
+	public ValueTask SetPollingFrequencyAsync(MousePollingFrequencyUpdate request, CancellationToken cancellationToken)
 		=> new(_mouseService.SetPollingFrequencyAsync(request.DeviceId, request.PollingFrequency, cancellationToken));
 }

@@ -59,7 +59,17 @@ public abstract partial class RazerDeviceDriver
 			Array.Sort(supportedPollingFrequencies);
 			_supportedPollingFrequencyToDividerMapping = supportedPollingFrequencyToDividerMapping;
 			_supportedPollingFrequencies = ImmutableCollectionsMarshal.AsImmutableArray(supportedPollingFrequencies);
-			_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature, IMouseConfigurableDpiPresetsFeature>(this);
+			_mouseFeatures = FeatureSet.Create
+			<
+				IMouseDeviceFeature,
+				Mouse,
+				IMouseDpiFeature,
+				IMouseDynamicDpiFeature,
+				IMouseDpiPresetsFeature,
+				IMouseConfigurableDpiPresetsFeature,
+				IMouseConfigurablePollingFrequencyFeature
+			>
+			(this);
 		}
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
