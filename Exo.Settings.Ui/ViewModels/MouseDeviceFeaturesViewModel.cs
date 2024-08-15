@@ -250,6 +250,23 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		OnChangeStateChange(wasChanged);
 	}
 
+	internal void UpdateCurrentPollingFrequency(ushort pollingFrequency)
+	{
+		bool wasChanged = IsChanged;
+		var oldSelectedPollingFrequency = SelectedPollingFrequency;
+
+		_supportedPollingFrequencies.TryGetValue(pollingFrequency, out var newFrequency);
+
+		if (_initialPollingFrequency != newFrequency)
+		{
+			if (_selectedPollingFrequency == _initialPollingFrequency) _selectedPollingFrequency = newFrequency;
+			_initialPollingFrequency = newFrequency;
+		}
+
+		if (!ReferenceEquals(SelectedPollingFrequency, oldSelectedPollingFrequency)) NotifyPropertyChanged(ChangedProperty.SelectedPollingFrequency);
+		OnChangeStateChange(wasChanged);
+	}
+
 	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
 		if (!CanApply) return;

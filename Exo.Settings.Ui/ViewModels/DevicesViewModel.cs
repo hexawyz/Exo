@@ -62,6 +62,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	// Used to store DPI changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, (byte? ActivePresetIndex, DotsPerInch Dpi)> _pendingMouseDpiChanges;
 
+	// Used to store polling frequency changes when the device view model is not accessible.
+	private readonly Dictionary<Guid, ushort> _pendingPollingFrequencyChanges;
+
 	// Used to store monitor informations when the device view model is not accessible.
 	private readonly Dictionary<Guid, MonitorInformation> _pendingMonitorInformations;
 
@@ -88,6 +91,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingMouseInformations = new();
 		_pendingMouseDpiChanges = new();
 		_pendingDpiPresetChanges = new();
+		_pendingPollingFrequencyChanges = new();
 		_pendingMonitorInformations = new();
 		_pendingMonitorSettingChanges = new();
 		_metadataService = metadataService;
@@ -115,12 +119,25 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var mouseWatchTask = WatchMouseDevicesAsync(cts.Token);
 			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(cts.Token);
 			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(cts.Token);
+			var mouseDpiPollingFrequencyWatchTask = WatchMousePollingFrequencyChangesAsync(cts.Token);
 			var monitorWatchTask = WatchMonitorsAsync(cts.Token);
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
 
 			try
 			{
-				await Task.WhenAll([deviceWatchTask, batteryWatchTask, mouseWatchTask, mouseDpiWatchTask, mouseDpiPresetWatchTask, monitorWatchTask, monitorSettingWatchTask]);
+				await Task.WhenAll
+				(
+					[
+						deviceWatchTask,
+						batteryWatchTask,
+						mouseWatchTask,
+						mouseDpiWatchTask,
+						mouseDpiPresetWatchTask,
+						mouseDpiPollingFrequencyWatchTask,
+						monitorWatchTask,
+						monitorSettingWatchTask
+					]
+				);
 			}
 			catch (Exception)
 			{
@@ -256,6 +273,13 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				mouseFeatures.UpdateCurrentDpi(dpiUpdate.ActivePresetIndex, dpiUpdate.Dpi);
 			}
 		}
+		if (_pendingPollingFrequencyChanges.Remove(device.Id, out var pollingFrequency))
+		{
+			if (device.MouseFeatures is { } mouseFeatures)
+			{
+				mouseFeatures.UpdateCurrentPollingFrequency(pollingFrequency);
+			}
+		}
 		if (_pendingMonitorInformations.Remove(device.Id, out var monitorInformation))
 		{
 			if (device.MonitorFeatures is { } monitorFeatures)
@@ -375,6 +399,31 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				else
 				{
 					_pendingMouseDpiChanges[notification.DeviceId] = (notification.PresetIndex, notification.Dpi);
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchMousePollingFrequencyChangesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
+			await foreach (var notification in mouseService.WatchPollingFrequenciesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
+				{
+					if (device.MouseFeatures is { } mouseFeatures)
+					{
+						mouseFeatures.UpdateCurrentPollingFrequency(notification.PollingFrequency);
+					}
+				}
+				else
+				{
+					_pendingPollingFrequencyChanges[notification.DeviceId] = notification.PollingFrequency;
 				}
 			}
 		}
