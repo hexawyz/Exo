@@ -589,6 +589,12 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
+	public ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken)
+		=> throw new NotImplementedException();
+
+	public ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
+		=> throw new NotImplementedException();
+
 	public async ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic)

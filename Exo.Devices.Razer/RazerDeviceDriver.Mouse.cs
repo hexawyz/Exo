@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using Exo.Features;
@@ -14,20 +15,28 @@ public abstract partial class RazerDeviceDriver
 		IMouseDpiFeature,
 		IMouseDynamicDpiFeature,
 		IMouseConfigurableDpiPresetsFeature,
-		IMouseDpiPresetsFeature
+		IMouseDpiPresetsFeature,
+		IMouseConfigurablePollingFrequency
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
 		private DotsPerInch[] _dpiProfiles;
 		private ulong _currentDpi;
 		private readonly ushort _maximumDpi;
+		private readonly ushort _maximumPollingFrequency;
+		private byte _currentPollingFrequencyDivider;
 
+		private readonly Dictionary<ushort, byte> _supportedPollingFrequencyToDividerMapping;
+		private readonly ImmutableArray<ushort> _supportedPollingFrequencies;
 		private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
 
-		public Mouse(
+		public Mouse
+		(
 			IRazerProtocolTransport transport,
 			Guid lightingZoneId,
 			ushort maximumDpi,
+			ushort maximumPollingFrequency,
+			ImmutableArray<byte> supportedPollingFrequencyDividerPowers,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
@@ -37,6 +46,19 @@ public abstract partial class RazerDeviceDriver
 		{
 			_dpiProfiles = [];
 			_maximumDpi = maximumDpi;
+			_maximumPollingFrequency = maximumPollingFrequency;
+			var supportedPollingFrequencyToDividerMapping = new Dictionary<ushort, byte>();
+			var supportedPollingFrequencies = new ushort[supportedPollingFrequencyDividerPowers.Length];
+			for (int i = 0; i < supportedPollingFrequencyDividerPowers.Length; i++)
+			{
+				byte power = supportedPollingFrequencyDividerPowers[i];
+				ushort frequency = (ushort)(maximumPollingFrequency >> power);
+				supportedPollingFrequencies[i] = frequency;
+				supportedPollingFrequencyToDividerMapping.Add(frequency, (byte)(1 << power));
+			}
+			Array.Sort(supportedPollingFrequencies);
+			_supportedPollingFrequencyToDividerMapping = supportedPollingFrequencyToDividerMapping;
+			_supportedPollingFrequencies = ImmutableCollectionsMarshal.AsImmutableArray(supportedPollingFrequencies);
 			_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, Mouse, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature, IMouseConfigurableDpiPresetsFeature>(this);
 		}
 
@@ -48,6 +70,7 @@ public abstract partial class RazerDeviceDriver
 			_dpiProfiles = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!, p => new DotsPerInch(p.X, p.Y));
 			var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
 			_currentDpi = GetRawDpiValue(_dpiProfiles, dpi.Horizontal, dpi.Vertical);
+			_currentPollingFrequencyDivider = await _transport.GetPollingFrequencyDivider(cancellationToken).ConfigureAwait(false);
 		}
 
 		IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
@@ -138,6 +161,17 @@ public abstract partial class RazerDeviceDriver
 				new RazerMouseDpiProfileConfiguration((byte)(activePresetIndex + 1), ImmutableArray.CreateRange(dpiPresets, dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0))),
 				cancellationToken
 			).ConfigureAwait(false);
+		}
+
+		ushort IMouseConfigurablePollingFrequency.PollingFrequency => (ushort)(_maximumPollingFrequency >>> BitOperations.Log2(_currentPollingFrequencyDivider));
+
+		ImmutableArray<ushort> IMouseConfigurablePollingFrequency.SupportedPollingFrequencies => _supportedPollingFrequencies;
+
+		async ValueTask IMouseConfigurablePollingFrequency.SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken)
+		{
+			if (!_supportedPollingFrequencyToDividerMapping.TryGetValue(pollingFrequency, out byte divider)) throw new ArgumentOutOfRangeException(nameof(pollingFrequency), pollingFrequency, $"Unsupported polling frequency: {pollingFrequency}.");
+
+			await _transport.SetPollingFrequencyDivider(divider, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }

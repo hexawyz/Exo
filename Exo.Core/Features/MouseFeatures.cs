@@ -79,17 +79,17 @@ public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetsFeature
 }
 
 /// <summary>This feature enables retrieving and configuring the polling rate used by a mouse device.</summary>
-public interface IMouseConfigurablePollingRate : IMouseDeviceFeature
+public interface IMouseConfigurablePollingFrequency : IMouseDeviceFeature
 {
 	/// <summary>Gets the current polling rate of the device.</summary>
-	ushort PollingRate { get; }
+	ushort PollingFrequency { get; }
 
 	/// <summary>Gets a list of supported polling rates.</summary>
-	ImmutableArray<ushort> SupportedPollingRates { get; }
+	ImmutableArray<ushort> SupportedPollingFrequencies { get; }
 
 	/// <summary>Sets the polling rate of the device.</summary>
-	/// <param name="pollingRate">The polling rate to use.</param>
+	/// <param name="pollingFrequency">The polling rate to use.</param>
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
-	ValueTask SetPollingRateAsync(ushort pollingRate, CancellationToken cancellationToken);
+	ValueTask SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken);
 }

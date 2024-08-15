@@ -768,6 +768,84 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
+
+	public async ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x01;
+				buffer[7] = (byte)RazerDeviceFeature.General;
+				buffer[8] = 0x85;
+
+				UpdateChecksum(buffer);
+			}
+
+			static byte ParseResponse(ReadOnlySpan<byte> buffer)
+				=> buffer[9];
+
+			try
+			{
+				FillBuffer(buffer.Span);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.General, 0x85, 0, cancellationToken).ConfigureAwait(false);
+
+				return ParseResponse(buffer.Span);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, byte divider)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x01;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
+				buffer[8] = 0x05;
+
+				buffer[9] = divider;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, divider);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.General, 0x05, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
 	public async ValueTask<bool> IsConnectedToExternalPowerAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
