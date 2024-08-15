@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings;
@@ -12,9 +13,11 @@ public sealed class MouseDeviceInformation
 	[DataMember(Order = 3)]
 	public required DotsPerInch MaximumDpi { get; init; }
 	[DataMember(Order = 4)]
-	public required MouseDpiCapabilities DpiCapabilities { get; init; }
+	public required MouseCapabilities DpiCapabilities { get; init; }
 	[DataMember(Order = 5)]
 	public byte MinimumDpiPresetCount { get; init; }
 	[DataMember(Order = 6)]
 	public byte MaximumDpiPresetCount { get; init; }
+	[DataMember(Order = 7)]
+	public required ImmutableArray<ushort> SupportedPollingFrequencies { get; init; }
 }

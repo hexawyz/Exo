@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Exo.Contracts.Ui.Settings;
 using Exo.Features.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
 using DeviceId = DeviceTools.DeviceId;
@@ -18,8 +17,9 @@ using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCat
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
-using GrpcMouseDpiCapabilities = Exo.Contracts.Ui.Settings.MouseDpiCapabilities;
+using GrpcMouseDpiCapabilities = Exo.Contracts.Ui.Settings.MouseCapabilities;
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
+using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
@@ -54,6 +54,7 @@ internal static class GrpcConvert
 			MaximumDpi = mouseDeviceInformation.MaximumDpi.ToGrpc(),
 			MinimumDpiPresetCount = mouseDeviceInformation.MinimumDpiPresetCount,
 			MaximumDpiPresetCount = mouseDeviceInformation.MaximumDpiPresetCount,
+			SupportedPollingFrequencies = mouseDeviceInformation.SupportedPollingFrequencies,
 		};
 
 	public static GrpcMouseDpiPresets ToGrpc(this MouseDpiPresetsInformation mouseDpiPresets)
@@ -63,7 +64,14 @@ internal static class GrpcConvert
 			DpiPresets = ImmutableArray.CreateRange(mouseDpiPresets.DpiPresets, ToGrpc),
 		};
 
-	public static GrpcMouseDpiCapabilities ToGrpc(this MouseDpiCapabilities mouseDpiCapabilities)
+	public static GrpcMousePollingFrequencyUpdate ToGrpc(this MousePollingFrequencyNotification mousePollingFrequencyNotification)
+		=> new()
+		{
+			DeviceId = mousePollingFrequencyNotification.DeviceId,
+			PollingFrequency = mousePollingFrequencyNotification.PollingFrequency,
+		};
+
+	public static GrpcMouseDpiCapabilities ToGrpc(this MouseCapabilities mouseDpiCapabilities)
 		=> (GrpcMouseDpiCapabilities)mouseDpiCapabilities;
 
 	public static GrpcDotsPerInch ToGrpc(this DotsPerInch dpi)

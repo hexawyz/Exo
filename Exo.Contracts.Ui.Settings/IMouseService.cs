@@ -16,4 +16,10 @@ public interface IMouseService
 
 	[OperationContract(Name = "SetDpiPresets")]
 	ValueTask SetDpiPresetsAsync(MouseDpiPresetUpdate request, CancellationToken cancellationToken);
+
+	[OperationContract(Name = "WatchPollingFrequencies")]
+	IAsyncEnumerable<MousePollingFrequencyUpdate> WatchPollingFrequenciesAsync(CancellationToken cancellationToken);
+
+	[OperationContract(Name = "SetPollingFrequencies")]
+	ValueTask SetPollingFrequenciesAsync(MousePollingFrequencyUpdate request, CancellationToken cancellationToken);
 }
