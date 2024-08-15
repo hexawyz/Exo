@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace Exo;
 
+[DebuggerDisplay("{Horizontal,d}x{Vertical,d}")]
 public readonly struct DotsPerInch : IEquatable<DotsPerInch>
 {
 	public DotsPerInch(ushort value) : this(value, value) { }

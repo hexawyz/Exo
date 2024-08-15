@@ -1,5 +1,8 @@
-﻿namespace Exo.Devices.Razer;
+using System.Diagnostics;
 
+namespace Exo.Devices.Razer;
+
+[DebuggerDisplay("{X,d}x{Y,d}x{Z,d}")]
 public record struct RazerMouseDpiProfile
 {
 	public RazerMouseDpiProfile(ushort x, ushort y, ushort z)
