@@ -79,9 +79,17 @@ public abstract partial class RazerDeviceDriver
 		{
 			var profiles = Volatile.Read(ref _dpiProfiles);
 			ulong newDpi = GetRawDpiValue(profiles, dpiX, dpiY);
-			ulong oldDpi = Interlocked.Exchange(ref _currentDpi, newDpi);
+			OnDeviceDpiChange(newDpi);
+		}
 
-			if (newDpi != oldDpi)
+		private void OnDeviceDpiChange(byte rawProfileIndex, DotsPerInch dpi)
+			=> OnDeviceDpiChange(GetRawDpiValue(rawProfileIndex, dpi.Horizontal, dpi.Vertical));
+
+		private void OnDeviceDpiChange(ulong rawDpi)
+		{
+			ulong oldDpi = Interlocked.Exchange(ref _currentDpi, rawDpi);
+
+			if (rawDpi != oldDpi)
 			{
 				if (DpiChanged is { } dpiChanged)
 				{
@@ -91,7 +99,7 @@ public abstract partial class RazerDeviceDriver
 						{
 							try
 							{
-								dpiChanged(this, GetDpi(newDpi));
+								dpiChanged(this, GetDpi(rawDpi));
 							}
 							catch (Exception ex)
 							{
@@ -155,11 +163,23 @@ public abstract partial class RazerDeviceDriver
 			if (dpiPresets.Length is < 1 or > 5) throw new ArgumentException();
 			if (activePresetIndex >= (uint)dpiPresets.Length) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
 
+			foreach (var preset in dpiPresets)
+			{
+				if (preset.Horizontal == 0 || preset.Horizontal > _maximumDpi || preset.Vertical == 0 || preset.Vertical > _maximumDpi)
+				{
+					throw new ArgumentException("Invalid DPI specified.");
+				}
+			}
+
+			// Remember: The index we receive as input of this method is zero-based, but the devices use 1-based indices.
+			byte newPresetIndex = (byte)(activePresetIndex + 1);
 			await _transport.SetDpiProfilesAsync
 			(
-				new RazerMouseDpiProfileConfiguration((byte)(activePresetIndex + 1), ImmutableArray.CreateRange(dpiPresets, dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0))),
+				new RazerMouseDpiProfileConfiguration(newPresetIndex, ImmutableArray.CreateRange(dpiPresets, dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0))),
 				cancellationToken
 			).ConfigureAwait(false);
+
+			OnDeviceDpiChange(newPresetIndex, dpiPresets[activePresetIndex]);
 		}
 
 		ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => (ushort)(_maximumPollingFrequency >>> BitOperations.Log2(_currentPollingFrequencyDivider));

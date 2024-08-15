@@ -59,7 +59,8 @@ public sealed partial class MousePerformanceSettingsControl : UserControl
 	private void ProcessSelectedDpiPresetIndexPropertyChange(MouseDeviceFeaturesViewModel vm)
 	{
 		int newIndex = vm.SelectedDpiPresetIndex;
-		if (DpiPresetsItemView.CurrentItemIndex != newIndex)
+		var selectedItem = vm.SelectedDpiPreset;
+		if (DpiPresetsItemView.SelectedItem != selectedItem)
 		{
 			_shouldIgnoreSelectionChangeBecauseItemsViewSucks++;
 			try
@@ -80,10 +81,26 @@ public sealed partial class MousePerformanceSettingsControl : UserControl
 		}
 	}
 
+	//private int GetSelectedItemIndex()
+	//{
+	//	int newIndex = -1;
+	//	if (_viewModel is not null && DpiPresetsItemView.SelectedItem is MouseDpiPresetViewModel selectedPreset)
+	//	{
+	//		newIndex = _viewModel.DpiPresets.IndexOf(selectedPreset);
+	//	}
+	//	return newIndex;
+	//}
+
 	private void OnDpiPresetsItemsViewSelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
 	{
 		if (sender.ItemsSource is null || _shouldIgnoreSelectionChangeBecauseItemsViewSucks > 0 || sender.DataContext is not MouseDeviceFeaturesViewModel mouseFeatures) return;
 
-		mouseFeatures.SelectedDpiPresetIndex = sender.CurrentItemIndex;
+		int newIndex = -1;
+		if (DpiPresetsItemView.SelectedItem is MouseDpiPresetViewModel selectedPreset)
+		{
+			newIndex = mouseFeatures.DpiPresets.IndexOf(selectedPreset);
+		}
+
+		mouseFeatures.SelectedDpiPresetIndex = newIndex;
 	}
 }
