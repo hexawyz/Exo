@@ -57,33 +57,71 @@
                         <DataTemplate>
                             <ItemContainer Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Width="100" Height="100">
                                 <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="12" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="12" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="12" />
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="12" />
-                                    </Grid.RowDefinitions>
-                                    <NumberBox
-                                        Grid.Row="2"
-                                        Grid.Column="1"
-                                        HorizontalAlignment="Stretch"
-                                        PlaceholderText="{Binding HorizontalInitialValue}"
-                                        Value="{Binding Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}" />
-                                    <NumberBox
-                                        Grid.Row="3"
-                                        Grid.Column="1"
-                                        Margin="0,6,0,0"
-                                        HorizontalAlignment="Stretch"
-                                        PlaceholderText="{Binding VerticalInitialValue}"
-                                        Value="{Binding Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                                        Visibility="{Binding IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <!-- Depending on whether presets are editable, we will display one grid or the other. -->
+                                    <Grid Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="12" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="12" />
+                                        </Grid.RowDefinitions>
+                                        <NumberBox
+                                            Grid.Row="2"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            PlaceholderText="{Binding HorizontalInitialValue}"
+                                            Minimum="1"
+                                            Maximum="{Binding MaximumDpi.Horizontal, Converter={StaticResource UInt16ToDoubleConverter}}"
+                                            Value="{Binding Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+                                            Style="{StaticResource NumberBoxWithoutDeleteButton}" />
+                                        <NumberBox
+                                            Grid.Row="3"
+                                            Grid.Column="1"
+                                            Margin="0,6,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            PlaceholderText="{Binding VerticalInitialValue}"
+                                            Minimum="1"
+                                            Maximum="{Binding MaximumDpi.Vertical, Converter={StaticResource UInt16ToDoubleConverter}}"
+                                            Value="{Binding Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+                                            Visibility="{Binding IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                            Style="{StaticResource NumberBoxWithoutDeleteButton}" />
+                                    </Grid>
+                                    <Grid Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="12" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="12" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalTextAlignment="Center"
+                                            Text="{Binding Horizontal, Mode=OneWay, Converter={StaticResource UInt16ToDoubleConverter}}" />
+                                        <TextBlock
+                                            Grid.Row="3"
+                                            Grid.Column="1"
+                                            Margin="0,6,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalTextAlignment="Center"
+                                            Text="{Binding Vertical, Mode=OneWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+                                            Visibility="{Binding IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    </Grid>
                                 </Grid>
                             </ItemContainer>
                         </DataTemplate>

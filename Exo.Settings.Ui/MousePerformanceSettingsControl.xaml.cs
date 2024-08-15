@@ -81,16 +81,6 @@ public sealed partial class MousePerformanceSettingsControl : UserControl
 		}
 	}
 
-	//private int GetSelectedItemIndex()
-	//{
-	//	int newIndex = -1;
-	//	if (_viewModel is not null && DpiPresetsItemView.SelectedItem is MouseDpiPresetViewModel selectedPreset)
-	//	{
-	//		newIndex = _viewModel.DpiPresets.IndexOf(selectedPreset);
-	//	}
-	//	return newIndex;
-	//}
-
 	private void OnDpiPresetsItemsViewSelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
 	{
 		if (sender.ItemsSource is null || _shouldIgnoreSelectionChangeBecauseItemsViewSucks > 0 || sender.DataContext is not MouseDeviceFeaturesViewModel mouseFeatures) return;
