@@ -375,7 +375,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetDpiProfilesAsync(RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -400,7 +400,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			try
 			{
-				FillBuffer(true, buffer.Span, configuration);
+				FillBuffer(persist, buffer.Span, configuration);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x06, 0, cancellationToken).ConfigureAwait(false);

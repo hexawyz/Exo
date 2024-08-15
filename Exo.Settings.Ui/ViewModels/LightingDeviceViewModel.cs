@@ -191,7 +191,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		{
 			if (!AreZonesChanged)
 			{
-				OnChanged();
+				OnChanged(true);
 			}
 		}
 	}
@@ -202,7 +202,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		{
 			if ((((LightingZoneViewModel)sender!).IsChanged ? _changedZoneCount++ : --_changedZoneCount) == 0 && !IsBrightnessChanged)
 			{
-				OnChanged();
+				OnChanged(true);
 			}
 		}
 		else if (e.PropertyName == nameof(LightingZoneViewModel.IsNotBusy))
@@ -291,7 +291,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		}
 	}
 
-	protected override void OnChanged()
+	protected override void OnChanged(bool isChanged)
 	{
 		_applyChangesCommand.OnChanged();
 		_resetChangesCommand.OnChanged();

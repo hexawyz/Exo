@@ -154,8 +154,33 @@ public abstract partial class RazerDeviceDriver
 
 		public DotsPerInch MaximumDpi => new(_maximumDpi);
 
-		ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
-			=> _transport.SetDpiAsync(false, _dpiProfiles[activePresetIndex], cancellationToken);
+		async ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
+		{
+			if (activePresetIndex >= (uint)_dpiProfiles.Length) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
+			await _transport.SetDpiAsync(false, _dpiProfiles[activePresetIndex], cancellationToken).ConfigureAwait(false);
+
+			// Remember: The index we receive as input of this method is zero-based, but the devices use 1-based indices.
+			byte newPresetIndex = (byte)(activePresetIndex + 1);
+			// NB: I don't know if we want to persist stuff here.
+			// It seems that reading volatile profile data might not always be possible, but writing is, somehow?
+			// Downside of this is that the selected profile will not be persisted, but that might help preserve the storage. (Is it flash or NVRAM ?)
+			await _transport.SetDpiProfilesAsync
+			(
+				false,
+				new RazerMouseDpiProfileConfiguration
+				(
+					newPresetIndex,
+					ImmutableArray.CreateRange
+					(
+						ImmutableCollectionsMarshal.AsImmutableArray(_dpiProfiles),
+						dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0)
+					)
+				),
+				cancellationToken
+			).ConfigureAwait(false);
+
+			OnDeviceDpiChange(newPresetIndex, _dpiProfiles[activePresetIndex]);
+		}
 
 		async ValueTask IMouseConfigurableDpiPresetsFeature.SetDpiPresetsAsync(byte activePresetIndex, ImmutableArray<DotsPerInch> dpiPresets, CancellationToken cancellationToken)
 		{
@@ -175,6 +200,7 @@ public abstract partial class RazerDeviceDriver
 			byte newPresetIndex = (byte)(activePresetIndex + 1);
 			await _transport.SetDpiProfilesAsync
 			(
+				true,
 				new RazerMouseDpiProfileConfiguration(newPresetIndex, ImmutableArray.CreateRange(dpiPresets, dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0))),
 				cancellationToken
 			).ConfigureAwait(false);

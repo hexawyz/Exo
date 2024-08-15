@@ -8,10 +8,10 @@ internal abstract class ResettableBindableObject : ChangeableBindableObject, IRe
 
 	protected abstract void Reset();
 
-	protected override void OnChanged()
+	protected override void OnChanged(bool isChanged)
 	{
 		IResettable.NotifyCanExecuteChanged();
-		base.OnChanged();
+		base.OnChanged(isChanged);
 	}
 
 	void IResettable.Reset() => Reset();

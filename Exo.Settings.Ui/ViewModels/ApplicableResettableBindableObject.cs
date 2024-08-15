@@ -10,10 +10,10 @@ internal abstract class ApplicableResettableBindableObject : ResettableBindableO
 
 	protected abstract Task ApplyChangesAsync(CancellationToken cancellationToken);
 
-	protected override void OnChanged()
+	protected override void OnChanged(bool isChanged)
 	{
 		IApplicable.NotifyCanExecuteChanged();
-		base.OnChanged();
+		base.OnChanged(isChanged);
 	}
 
 	bool IApplicable.CanApply => CanApply;

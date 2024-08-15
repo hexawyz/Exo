@@ -17,6 +17,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	private byte _maximumPresetCount;
 	private byte? _activeDpiPresetIndex;
 	private int _selectedDpiPresetIndex;
+	private int _changedPresetCount;
 	private readonly ReadOnlyObservableCollection<MouseDpiPresetViewModel> _readOnlyDpiPresets;
 	private readonly ObservableCollection<MouseDpiPresetViewModel> _dpiPresets;
 	private ImmutableArray<DotsPerInch> _initialDpiPresets;
@@ -79,6 +80,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 
 	public override bool IsChanged
 		=> _dpiPresets.Count != _initialDpiPresets.Length ||
+		_changedPresetCount != 0 ||
 		_selectedDpiPresetIndex != (_activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1);
 
 	// This determines whether we can apply the current settings.
@@ -107,7 +109,9 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		{
 			while (_dpiPresets.Count > MaximumPresetCount)
 			{
-				_dpiPresets.RemoveAt(_dpiPresets.Count - 1);
+				int index = _dpiPresets.Count - 1;
+				if (_dpiPresets[index].IsChanged) _changedPresetCount--;
+				_dpiPresets.RemoveAt(index);
 			}
 		}
 		else
@@ -172,7 +176,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
 		if (!CanApply) return;
-		if ((_dpiCapabilities & MouseCapabilities.ConfigurableDpiPresets) != 0)
+		if (_changedPresetCount != 0 && (_dpiCapabilities & MouseCapabilities.ConfigurableDpiPresets) != 0)
 		{
 			var presets = new DotsPerInch[_dpiPresets.Count];
 			for (int i = 0; i < _dpiPresets.Count; i++)
@@ -191,11 +195,21 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 				cancellationToken
 			);
 		}
+		else if (_changedPresetCount == 0 && _selectedDpiPresetIndex != (_activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1))
+		{
+			await _mouseService.SetActiveDpiPresetAsync(new() { DeviceId = _device.Id, ActivePresetIndex = (byte)_selectedDpiPresetIndex }, cancellationToken);
+		}
 	}
 
 	protected override void Reset()
 	{
 		SelectedDpiPresetIndex = _activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1;
+	}
+
+	internal void OnPresetChanged(MouseDpiPresetViewModel preset, bool isChanged)
+	{
+		if (isChanged) _changedPresetCount++;
+		else _changedPresetCount--;
 	}
 }
 
@@ -316,5 +330,11 @@ internal sealed class MouseDpiPresetViewModel : ChangeableBindableObject
 		}
 
 		OnChangeStateChange(wasChanged);
+	}
+
+	protected override void OnChanged(bool isChanged)
+	{
+		_mouse.OnPresetChanged(this, isChanged);
+		base.OnChanged(isChanged);
 	}
 }

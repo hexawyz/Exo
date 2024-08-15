@@ -131,10 +131,10 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 	public abstract void SetInitialValue(DataValue value);
 	public abstract DataValue GetDataValue();
 
-	protected sealed override void OnChanged()
+	protected sealed override void OnChanged(bool isChanged)
 	{
 		_resetCommand.OnChanged();
-		base.OnChanged();
+		base.OnChanged(isChanged);
 	}
 
 	private static class Commands

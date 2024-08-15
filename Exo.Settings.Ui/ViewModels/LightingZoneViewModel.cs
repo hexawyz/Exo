@@ -318,10 +318,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	internal void OnBeforeApplyingChanges() => IsNotBusy = false;
 	internal void OnAfterApplyingChangesCancellation() => IsNotBusy = true;
 
-	protected sealed override void OnChanged()
+	protected sealed override void OnChanged(bool isChanged)
 	{
 		_resetCommand.OnChanged();
-		base.OnChanged();
+		base.OnChanged(isChanged);
 	}
 
 	private static class Commands

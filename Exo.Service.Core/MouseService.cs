@@ -170,6 +170,19 @@ internal sealed class MouseService
 			}
 		}
 
+		public IMouseDpiPresetsFeature? GetDpiPresetsFeature()
+		{
+			lock (Lock)
+			{
+				if ((Capabilities & (MouseCapabilities.ConfigurableDpiPresets | MouseCapabilities.DpiPresets)) != 0 &&
+					_dynamicDpiFeature is IMouseDpiPresetsFeature dpiPresetsFeature)
+				{
+					return dpiPresetsFeature;
+				}
+			}
+			return null;
+		}
+
 		public IMouseConfigurableDpiPresetsFeature? GetConfigurableDpiPresetsFeature()
 		{
 			lock (Lock)
@@ -755,6 +768,20 @@ internal sealed class MouseService
 			}
 
 			return initialNotifications;
+		}
+	}
+
+	public async Task SetActiveDpiPresetAsync(Guid deviceId, byte activePresetIndex, CancellationToken cancellationToken)
+	{
+		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			if (deviceState.GetDpiPresetsFeature() is { } dpiPresetsFeature)
+			{
+				using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					await dpiPresetsFeature.ChangeCurrentPresetAsync(activePresetIndex, cancellationToken).ConfigureAwait(false);
+				}
+			}
 		}
 	}
 

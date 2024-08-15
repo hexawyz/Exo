@@ -534,9 +534,9 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask SetDpiProfilesAsync(RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
-		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, RazerMouseDpiProfileConfiguration configuration)
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, RazerMouseDpiProfileConfiguration configuration)
 		{
 			// The length is hardcoded to a maximum length of 5 profiles for now. The maximum might need to be made configurable in the future.
 			Span<byte> profilesBuffer = stackalloc byte[2 * 5 * 7];
@@ -549,7 +549,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			((uint*)buffer)[1] = 0x_00_00_00_0f;
 			buffer[4 + 1] = (byte)remainingLength;
 			*(ushort*)&((uint*)buffer)[2] = 0x_04_0b;
-			buffer[4 + 6] = persisted ? (byte)1 : (byte)0;
+			buffer[4 + 6] = persist ? (byte)1 : (byte)0;
 			buffer[4 + 7] = 0;
 			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
 			int offset = 0;

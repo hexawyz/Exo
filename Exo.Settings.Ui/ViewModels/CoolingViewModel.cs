@@ -685,7 +685,7 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 			}
 			else if (_currentPower == value)
 			{
-				OnChanged();
+				OnChanged(true);
 			}
 		}
 	}
@@ -694,10 +694,10 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 
 	protected override void Reset() => ResetPower();
 
-	protected override void OnChanged()
+	protected override void OnChanged(bool isChanged)
 	{
 		Commands.ResetPowerCommand.NotifyCanExecuteChanged();
-		base.OnChanged();
+		base.OnChanged(isChanged);
 	}
 
 	public ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
@@ -849,7 +849,7 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 			}
 			else if (_currentFallbackPower == value)
 			{
-				OnChanged();
+				OnChanged(true);
 			}
 		}
 	}
@@ -862,10 +862,10 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 		ResetFallbackPower();
 	}
 
-	protected override void OnChanged()
+	protected override void OnChanged(bool isChanged)
 	{
 		Commands.ResetFallbackPowerCommand.NotifyCanExecuteChanged();
-		base.OnChanged();
+		base.OnChanged(isChanged);
 	}
 
 	public ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
