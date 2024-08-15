@@ -12,8 +12,8 @@ internal interface IRazerProtocolTransport : IDisposable
 
 	ValueTask<DotsPerInch> GetDpiAsync(bool persisted, CancellationToken cancellationToken);
 	ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken);
-	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken);
-	ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
+	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(CancellationToken cancellationToken);
+	ValueTask SetDpiProfilesAsync(RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
 
 	ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken);
 	ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken);

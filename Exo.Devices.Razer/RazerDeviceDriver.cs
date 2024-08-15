@@ -23,6 +23,10 @@ public abstract partial class RazerDeviceDriver :
 {
 	private const ushort RazerVendorId = 0x1532;
 
+	private const ushort MaximumPollingFrequency = 1000;
+
+	private static readonly ImmutableArray<byte> SupportedPollingFrequencyDividers = [1, 2, 8];
+
 	// It does not seem we can retrieve enough metadata from the devices themselves, so we need to have some manually entered data here.
 	private readonly struct DeviceInformation
 	{
@@ -466,6 +470,8 @@ public abstract partial class RazerDeviceDriver :
 				notificationOptions,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.MaximumDpi,
+				MaximumPollingFrequency,
+				SupportedPollingFrequencyDividers,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -555,6 +561,8 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
 				deviceInfo.MaximumDpi,
+				MaximumPollingFrequency,
+				SupportedPollingFrequencyDividers,
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,

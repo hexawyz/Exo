@@ -2818,7 +2818,8 @@ But, what could be the two previous bytes ?
 85 00 00 00 05 85 00 00 // Read external power status
 0f 01 00 00 05 0b 01 00 // ??? (One byte; values `00` or `02` ?)
 0b 06 00 00 0b 01 00 00 // Set Mouse DPI
-0f 25 00 00 0b 04 01 00 // Set DPI values ?
+8b 25 00 00 0b 82 00 00 // Read DPI values without profile index or anything else, 5 * 6 bytes. (Is it an older version of the command to read profiles? That one isn't truncated at least)
+0f 25 00 00 0b 04 01 00 // Set DPI values
 90 00 00 00 10 80 00 00 // ??? (Returns 6 bytes)
 92 00 00 00 10 82 00 00 // ??? (Returns 6 bytes)
 13 0a 00 00 10 03 01 00 // Set (persisted) lighting effect

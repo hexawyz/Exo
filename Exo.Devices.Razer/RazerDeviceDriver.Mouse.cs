@@ -16,7 +16,7 @@ public abstract partial class RazerDeviceDriver
 		IMouseDynamicDpiFeature,
 		IMouseConfigurableDpiPresetsFeature,
 		IMouseDpiPresetsFeature,
-		IMouseConfigurablePollingFrequency
+		IMouseConfigurablePollingFrequencyFeature
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
@@ -66,7 +66,7 @@ public abstract partial class RazerDeviceDriver
 		{
 			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
-			var dpiLevels = await _transport.GetDpiProfilesAsync(false, cancellationToken).ConfigureAwait(false);
+			var dpiLevels = await _transport.GetDpiProfilesAsync(cancellationToken).ConfigureAwait(false);
 			_dpiProfiles = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!, p => new DotsPerInch(p.X, p.Y));
 			var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
 			_currentDpi = GetRawDpiValue(_dpiProfiles, dpi.Horizontal, dpi.Vertical);
@@ -157,17 +157,16 @@ public abstract partial class RazerDeviceDriver
 
 			await _transport.SetDpiProfilesAsync
 			(
-				true,
 				new RazerMouseDpiProfileConfiguration((byte)(activePresetIndex + 1), ImmutableArray.CreateRange(dpiPresets, dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0))),
 				cancellationToken
 			).ConfigureAwait(false);
 		}
 
-		ushort IMouseConfigurablePollingFrequency.PollingFrequency => (ushort)(_maximumPollingFrequency >>> BitOperations.Log2(_currentPollingFrequencyDivider));
+		ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => (ushort)(_maximumPollingFrequency >>> BitOperations.Log2(_currentPollingFrequencyDivider));
 
-		ImmutableArray<ushort> IMouseConfigurablePollingFrequency.SupportedPollingFrequencies => _supportedPollingFrequencies;
+		ImmutableArray<ushort> IMouseConfigurablePollingFrequencyFeature.SupportedPollingFrequencies => _supportedPollingFrequencies;
 
-		async ValueTask IMouseConfigurablePollingFrequency.SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken)
+		async ValueTask IMouseConfigurablePollingFrequencyFeature.SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken)
 		{
 			if (!_supportedPollingFrequencyToDividerMapping.TryGetValue(pollingFrequency, out byte divider)) throw new ArgumentOutOfRangeException(nameof(pollingFrequency), pollingFrequency, $"Unsupported polling frequency: {pollingFrequency}.");
 

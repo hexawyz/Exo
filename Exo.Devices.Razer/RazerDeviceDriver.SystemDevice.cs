@@ -303,12 +303,14 @@ public abstract partial class RazerDeviceDriver
 				DeviceNotificationOptions deviceNotificationOptions,
 				Guid lightingZoneId,
 				ushort maximumDpi,
+				ushort maximumPollingFrequency,
+				ImmutableArray<byte> supportedPollingFrequencyDividerPowers,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, lightingZoneId, maximumDpi, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, lightingZoneId, maximumDpi, maximumPollingFrequency, supportedPollingFrequencyDividerPowers, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}

@@ -495,7 +495,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted)
 		{
@@ -534,7 +534,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask SetDpiProfilesAsync(bool persisted, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async ValueTask SetDpiProfilesAsync(RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, RazerMouseDpiProfileConfiguration configuration)
 		{
@@ -570,7 +570,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			Volatile.Write(ref _waitState, waitState);
 			try
 			{
-				WriteData(_serviceHandle, in _writeCharacteristic, persisted, configuration);
+				WriteData(_serviceHandle, in _writeCharacteristic, true, configuration);
 				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 				{
 					cts.CancelAfter(_operationTimeout);
@@ -589,11 +589,13 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
+	// NB: I don't think there is a way to read or configure through Bluetooth. (At least I didn't find it yet)
+	// As such, we return an arbitrary value here, but we will forbid any tentative to update.
 	public ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken)
-		=> throw new NotImplementedException();
+		=> new(1);
 
 	public ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
-		=> throw new NotImplementedException();
+		=> throw new NotSupportedException();
 
 	public async ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken)
 	{

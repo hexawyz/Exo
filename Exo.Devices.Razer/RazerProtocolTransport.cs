@@ -334,7 +334,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		return expectedDataLength;
 	}
 
-	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(bool persisted, CancellationToken cancellationToken)
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -360,7 +360,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			try
 			{
-				FillBuffer(persisted, buffer.Span);
+				FillBuffer(true, buffer.Span);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x86, 0, cancellationToken).ConfigureAwait(false);
@@ -375,7 +375,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetDpiProfilesAsync(bool persisted, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async ValueTask SetDpiProfilesAsync(RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -400,7 +400,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			try
 			{
-				FillBuffer(persisted, buffer.Span, configuration);
+				FillBuffer(true, buffer.Span, configuration);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x06, 0, cancellationToken).ConfigureAwait(false);
@@ -822,7 +822,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				buffer[2] = 0x1f;
 
 				buffer[6] = 0x01;
-				buffer[7] = (byte)RazerDeviceFeature.Mouse;
+				buffer[7] = (byte)RazerDeviceFeature.General;
 				buffer[8] = 0x05;
 
 				buffer[9] = divider;

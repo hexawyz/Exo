@@ -79,7 +79,7 @@ public interface IMouseConfigurableDpiPresetsFeature : IMouseDpiPresetsFeature
 }
 
 /// <summary>This feature enables retrieving and configuring the polling rate used by a mouse device.</summary>
-public interface IMouseConfigurablePollingFrequency : IMouseDeviceFeature
+public interface IMouseConfigurablePollingFrequencyFeature : IMouseDeviceFeature
 {
 	/// <summary>Gets the current polling rate of the device.</summary>
 	ushort PollingFrequency { get; }

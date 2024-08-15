@@ -2,9 +2,9 @@ using System.Collections.Immutable;
 
 namespace Exo.Service;
 
-public readonly record struct DpiWatchNotification
+public readonly record struct MouseDpiNotification
 {
-	public DpiWatchNotification(WatchNotificationKind notificationKind, Guid deviceId, MouseDpiStatus newValue, MouseDpiStatus oldValue, ImmutableArray<DotsPerInch> presets)
+	public MouseDpiNotification(WatchNotificationKind notificationKind, Guid deviceId, MouseDpiStatus newValue, MouseDpiStatus oldValue, ImmutableArray<DotsPerInch> presets)
 	{
 		NotificationKind = notificationKind;
 		DeviceId = deviceId;
