@@ -62,7 +62,7 @@ internal sealed class GrpcMouseService : IMouseService
 	public ValueTask SetActiveDpiPresetAsync(MouseActiveDpiPresetUpdate request, CancellationToken cancellationToken)
 		=> new(_mouseService.SetActiveDpiPresetAsync(request.DeviceId, request.ActivePresetIndex, cancellationToken));
 
-	public async IAsyncEnumerable<MousePollingFrequencyUpdate> WatchPollingFrequenciesAsync(CancellationToken cancellationToken)
+	public async IAsyncEnumerable<MousePollingFrequencyUpdate> WatchPollingFrequenciesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		await foreach (var notification in _mouseService.WatchPollingFrequenciesAsync(cancellationToken).ConfigureAwait(false))
 		{
