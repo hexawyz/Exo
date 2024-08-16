@@ -116,7 +116,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken)
+	public async Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -375,7 +375,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -541,7 +541,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
+	public async Task SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -729,7 +729,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken)
+	public async Task SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -809,7 +809,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
+	public async Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -1025,7 +1025,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	private async ValueTask ReadResponseAsync(Memory<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount, CancellationToken cancellationToken)
+	private async Task ReadResponseAsync(Memory<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount, CancellationToken cancellationToken)
 	{
 		if (!await TryReadResponseAsync(buffer, commandByte1, feature, commandByte3, errorResponseRetryCount, cancellationToken).ConfigureAwait(false))
 		{

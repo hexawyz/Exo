@@ -319,7 +319,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	}
 
 
-	public async ValueTask SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
+	public async Task SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2)
 		{
@@ -370,7 +370,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	// TODO
 	public ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken) => throw new NotImplementedException();
 
-	public async ValueTask SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken)
+	public async Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, byte value)
 		{
@@ -452,7 +452,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken)
+	public async Task SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, DotsPerInch dpi)
 		{
@@ -534,7 +534,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, RazerMouseDpiProfileConfiguration configuration)
 		{
@@ -594,7 +594,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	public ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken)
 		=> new(1);
 
-	public ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
+	public Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
 		=> throw new NotSupportedException();
 
 	public async ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken)

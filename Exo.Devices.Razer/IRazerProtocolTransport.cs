@@ -11,17 +11,17 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<bool> IsConnectedToExternalPowerAsync(CancellationToken cancellationToken);
 
 	ValueTask<DotsPerInch> GetDpiAsync(bool persisted, CancellationToken cancellationToken);
-	ValueTask SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken);
+	Task SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken);
 	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(CancellationToken cancellationToken);
-	ValueTask SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
+	Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
 
 	ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken);
-	ValueTask SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken);
+	Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken);
 
 	ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken);
-	ValueTask SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken);
+	Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken);
 	ValueTask<ILightingEffect?> GetSavedEffectAsync(byte flag, CancellationToken cancellationToken);
-	ValueTask SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+	Task SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
 	ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken);
 
 	ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken);
