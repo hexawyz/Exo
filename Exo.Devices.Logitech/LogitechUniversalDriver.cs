@@ -6,6 +6,7 @@ using DeviceTools.Logitech.HidPlusPlus;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Keyboards;
+using Exo.Features.PowerManagement;
 using Microsoft.Extensions.Logging;
 using BacklightState = Exo.Features.Keyboards.BacklightState;
 using FeatureAccessDeviceType = DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.DeviceType;
@@ -17,6 +18,7 @@ namespace Exo.Devices.Logitech;
 public abstract class LogitechUniversalDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
+	IDeviceDriver<IPowerManagementDeviceFeature>,
 	IDeviceSerialNumberFeature,
 	IDeviceIdFeature
 {
@@ -299,8 +301,10 @@ public abstract class LogitechUniversalDriver :
 	// The logger will use the category of the derived class… I don't believe we want to have one logger reference for each class in the class hierarchy.
 	private readonly ILogger<LogitechUniversalDriver> _logger;
 	private readonly ushort _versionNumber;
+	private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 
+	IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	private bool HasSerialNumber => ConfigurationKey.UniqueId is { Length: not 0 };
@@ -324,8 +328,12 @@ public abstract class LogitechUniversalDriver :
 		_device = device;
 		_logger = logger;
 		_versionNumber = versionNumber;
+		_powerManagementFeatures = CreatePowerManagementDeviceFeatures();
 		_genericFeatures = CreateGenericFeatures();
 	}
+
+	protected virtual IDeviceFeatureSet<IPowerManagementDeviceFeature> CreatePowerManagementDeviceFeatures()
+		=> FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
 	// NB: Called from the main constructor, so derived classes need to make sure they are not missing any information at that point.
 	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
@@ -356,14 +364,10 @@ public abstract class LogitechUniversalDriver :
 			if (HasLockKeys) device.LockKeysChanged += OnLockKeysChanged;
 		}
 
-		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
-			=> HasSerialNumber ?
-				HasBattery ?
-					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-				HasBattery ?
-					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureSet.Create<IGenericDeviceFeature, FeatureAccess, IDeviceIdFeature>(this);
+		protected override IDeviceFeatureSet<IPowerManagementDeviceFeature> CreatePowerManagementDeviceFeatures()
+			=> HasBattery ?
+				FeatureSet.Create<IPowerManagementDeviceFeature, FeatureAccess, IBatteryStateDeviceFeature>(this) :
+				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
 		public override ValueTask DisposeAsync()
 		{

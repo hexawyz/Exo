@@ -3,6 +3,7 @@ using DeviceTools;
 using Exo.Devices.Razer.LightingEffects;
 using Exo.Features;
 using Exo.Features.Lighting;
+using Exo.Features.PowerManagement;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 
@@ -12,6 +13,7 @@ public abstract partial class RazerDeviceDriver
 {
 	private abstract class BaseDevice :
 		RazerDeviceDriver,
+		IDeviceDriver<IPowerManagementDeviceFeature>,
 		IDeviceDriver<ILightingDeviceFeature>,
 		IBatteryStateDeviceFeature
 	{
@@ -109,6 +111,7 @@ public abstract partial class RazerDeviceDriver
 		private byte _currentBrightness;
 		private readonly AsyncLock _lightingLock;
 		private readonly AsyncLock _batteryStateLock;
+		private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 		// How do we use this ?
 		private readonly byte _deviceIndex;
@@ -134,6 +137,10 @@ public abstract partial class RazerDeviceDriver
 			_lightingLock = new();
 			_batteryStateLock = new();
 			_currentBrightness = 0x54; // 33%
+
+			_powerManagementFeatures = HasBattery ?
+				FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature>(this) :
+				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
 			_lightingFeatures = HasReactiveLighting ?
 				FeatureSet.Create<
@@ -173,15 +180,6 @@ public abstract partial class RazerDeviceDriver
 
 			_currentEffect = _appliedEffect;
 		}
-
-		protected override IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures()
-			=> HasSerialNumber ?
-				HasBattery ?
-					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-				HasBattery ?
-					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature, IBatteryStateDeviceFeature>(this) :
-					FeatureSet.Create<IGenericDeviceFeature, BaseDevice, IDeviceIdFeature>(this);
 
 		protected override void OnDeviceExternalPowerChange(bool isCharging)
 			=> ApplyBatteryLevelAndChargeStatusUpdate(2, 0, isCharging);
@@ -241,7 +239,7 @@ public abstract partial class RazerDeviceDriver
 			}
 		}
 
-		protected IDeviceFeatureSet<ILightingDeviceFeature> LightingFeatures => _lightingFeatures;
+		IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
 		IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 		private byte CurrentBrightness

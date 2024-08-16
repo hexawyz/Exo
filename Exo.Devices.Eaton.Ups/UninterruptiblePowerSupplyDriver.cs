@@ -7,6 +7,7 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.PowerManagement;
 using Exo.Features.Sensors;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ namespace Exo.Devices.Eaton.Ups;
 public sealed class UninterruptiblePowerSupplyDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
+	IDeviceDriver<IPowerManagementDeviceFeature>,
 	IDeviceDriver<ISensorDeviceFeature>,
 	IDeviceIdFeature,
 	ISensorsFeature,
@@ -200,6 +202,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 	private event Action<Driver, BatteryState>? BatteryStateChanged;
 	private readonly ILogger<UninterruptiblePowerSupplyDriver> _logger;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
+	private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _readTask;
@@ -210,6 +213,7 @@ public sealed class UninterruptiblePowerSupplyDriver :
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.PowerSupply;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
+	IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 
 	event Action<Driver, BatteryState> IBatteryStateDeviceFeature.BatteryStateChanged
@@ -245,7 +249,8 @@ public sealed class UninterruptiblePowerSupplyDriver :
 			new SimpleSensor<ushort>(this, 0x0E, 7, OutputVoltageSensorId, SensorUnit.Volts, 0, null),
 		];
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, UninterruptiblePowerSupplyDriver, ISensorsFeature>(this);
-		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, UninterruptiblePowerSupplyDriver, IDeviceIdFeature, IBatteryStateDeviceFeature>(this);
+		_powerManagementFeatures = FeatureSet.Create<IPowerManagementDeviceFeature, UninterruptiblePowerSupplyDriver, IBatteryStateDeviceFeature>(this);
+		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, UninterruptiblePowerSupplyDriver, IDeviceIdFeature>(this);
 		_cancellationTokenSource = new();
 		_readTask = ReadAsync(_cancellationTokenSource.Token);
 	}

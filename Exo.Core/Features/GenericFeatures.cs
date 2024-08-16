@@ -10,16 +10,6 @@ public interface IDeviceSerialNumberFeature : IGenericDeviceFeature
 	string SerialNumber { get; }
 }
 
-/// <summary>Devices can allow access to their battery level by providing this feature.</summary>
-public interface IBatteryStateDeviceFeature : IGenericDeviceFeature
-{
-	/// <summary>This event is raised when the battery level of the device has changed.</summary>
-	event Action<Driver, BatteryState> BatteryStateChanged;
-
-	/// <summary>Gets the current battery level.</summary>
-	BatteryState BatteryState { get; }
-}
-
 /// <summary>Devices can expose their standard device ID by providing this feature.</summary>
 /// <remarks>
 /// <para>
