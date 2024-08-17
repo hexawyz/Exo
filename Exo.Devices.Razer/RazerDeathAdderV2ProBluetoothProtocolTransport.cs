@@ -135,6 +135,14 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			=> data[0];
 	}
 
+	private sealed class UInt16WaitState : WaitState<ushort>
+	{
+		public UInt16WaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
+
+		protected override ushort ProcessData(ReadOnlySpan<byte> data)
+			=> LittleEndian.ReadUInt16(in data[0]);
+	}
+
 	private sealed class BooleanWaitState : WaitState<bool>
 	{
 		public BooleanWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
@@ -620,6 +628,162 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 				{
 					cts.CancelAfter(_operationTimeout);
 					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
+	public async ValueTask<byte> GetLowPowerThresholdAsync(CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 87 00 00 00 05 82 00 01 (NB: Not sure about last parameter, could need to be 0 ?)
+			((uint*)buffer)[1] = 0x_00_00_00_87;
+			((uint*)buffer)[2] = 0x_01_00_82_05;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new ByteWaitState(_readBuffer, 0x87);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
+	public async Task SetLowPowerThresholdAsync(byte value, CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, byte value)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 07 01 00 00 05 02 00 01
+			((uint*)buffer)[1] = 0x_00_00_01_07;
+			((uint*)buffer)[2] = 0x_01_00_02_05;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+			((uint*)buffer)[0] = 1;
+			buffer[4] = value;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new SimpleWaitState(0x07);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic, value);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+					return;
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
+	public async ValueTask<ushort> GetIdleTimerAsync(CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 85 00 00 00 05 84 00 00
+			((uint*)buffer)[1] = 0x_00_00_00_85;
+			((uint*)buffer)[2] = 0x_00_00_84_05;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new UInt16WaitState(_readBuffer, 0x85);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
+	public async Task SetIdleTimerAsync(ushort value, CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, ushort value)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 05 02 00 00 05 04 00 00
+			((uint*)buffer)[1] = 0x_00_00_02_05;
+			((uint*)buffer)[2] = 0x_00_00_04_05;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+			((uint*)buffer)[0] = 2;
+			LittleEndian.Write(ref buffer[4], value);
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new SimpleWaitState(0x05);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic, value);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+					return;
 				}
 			}
 			catch (OperationCanceledException ex)

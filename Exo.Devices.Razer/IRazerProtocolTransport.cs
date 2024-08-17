@@ -24,6 +24,12 @@ internal interface IRazerProtocolTransport : IDisposable
 	Task SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
 	ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken);
 
+	ValueTask<ushort> GetIdleTimerAsync(CancellationToken cancellationToken);
+	Task SetIdleTimerAsync(ushort value, CancellationToken cancellationToken);
+
+	ValueTask<byte> GetLowPowerThresholdAsync(CancellationToken cancellationToken);
+	Task SetLowPowerThresholdAsync(byte value, CancellationToken cancellationToken);
+
 	ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken);
 	ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken);
 }

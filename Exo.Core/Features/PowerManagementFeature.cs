@@ -13,18 +13,29 @@ public interface IBatteryStateDeviceFeature : IPowerManagementDeviceFeature
 /// <summary>This feature is exposed by devices that can sleep when idle for some configurable amount of time.</summary>
 public interface IIdleSleepTimerFeature : IPowerManagementDeviceFeature
 {
-	TimeSpan MinimumIdleTime { get; }
+	/// <summary>Gets a value indicating the minimum idle time.</summary>
+	TimeSpan MinimumIdleTime => TimeSpan.FromTicks(TimeSpan.TicksPerSecond);
+
+	/// <summary>Gets a value indicating the maximum idle time.</summary>
 	TimeSpan MaximumIdleTime { get; }
 
+	/// <summary>Gets a value indicating the current idle time before device goes to sleep.</summary>
 	TimeSpan IdleTime { get; }
 
+	/// <summary>Sets the idle time before device goes to sleep.</summary>
+	/// <param name="idleTime"></param>
+	/// <param name="cancellationToken"></param>
 	Task SetIdleTimeAsync(TimeSpan idleTime, CancellationToken cancellationToken);
 }
 
 /// <summary>This feature is exposed by devices that feature a low-power mode with a configurable battery threshold.</summary>
 public interface ILowPowerModeBatteryThresholdFeature : IPowerManagementDeviceFeature
 {
+	/// <summary>Gets the current low power threshold.</summary>
 	byte LowPowerThreshold { get; }
 
-	Task SetLowPowerThresholdAsync(byte lowPowerThreshold, CancellationToken cancellationToken);
+	/// <summary>Sets battery threshold below which the device will switch to low power mode.</summary>
+	/// <param name="lowPowerThreshold">The new battery threshold.</param>
+	/// <param name="cancellationToken"></param>
+	Task SetLowPowerBatteryThresholdAsync(byte lowPowerThreshold, CancellationToken cancellationToken);
 }

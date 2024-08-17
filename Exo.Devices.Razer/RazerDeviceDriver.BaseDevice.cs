@@ -15,7 +15,9 @@ public abstract partial class RazerDeviceDriver
 		RazerDeviceDriver,
 		IDeviceDriver<IPowerManagementDeviceFeature>,
 		IDeviceDriver<ILightingDeviceFeature>,
-		IBatteryStateDeviceFeature
+		IBatteryStateDeviceFeature,
+		IIdleSleepTimerFeature,
+		ILowPowerModeBatteryThresholdFeature
 	{
 		private abstract class LightingZone :
 			ILightingZone,
@@ -107,15 +109,17 @@ public abstract partial class RazerDeviceDriver
 
 		private ILightingEffect _appliedEffect;
 		private ILightingEffect _currentEffect;
+		// How do we use this ?
+		private readonly byte _deviceIndex;
 		private byte _appliedBrightness;
 		private byte _currentBrightness;
+		private byte _lowPowerBatteryThreshold;
+		private ushort _batteryLevelAndChargingStatus;
+		private ushort _idleTimer;
 		private readonly AsyncLock _lightingLock;
 		private readonly AsyncLock _batteryStateLock;
 		private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
-		// How do we use this ?
-		private readonly byte _deviceIndex;
-		private ushort _batteryLevelAndChargingStatus;
 
 		private bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
 		private bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
@@ -137,9 +141,11 @@ public abstract partial class RazerDeviceDriver
 			_lightingLock = new();
 			_batteryStateLock = new();
 			_currentBrightness = 0x54; // 33%
+			_lowPowerBatteryThreshold = 1;
+			_idleTimer = 1;
 
 			_powerManagementFeatures = HasBattery ?
-				FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature>(this) :
+				FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature>(this) :
 				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
 			_lightingFeatures = HasReactiveLighting ?
@@ -161,6 +167,7 @@ public abstract partial class RazerDeviceDriver
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
 		{
 			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
+
 			if (HasBattery)
 			{
 				ApplyBatteryLevelAndChargeStatusUpdate
@@ -169,6 +176,9 @@ public abstract partial class RazerDeviceDriver
 					await _transport.GetBatteryLevelAsync(cancellationToken).ConfigureAwait(false),
 					await _transport.IsConnectedToExternalPowerAsync(cancellationToken).ConfigureAwait(false)
 				);
+
+				_lowPowerBatteryThreshold = await _transport.GetLowPowerThresholdAsync(cancellationToken).ConfigureAwait(false);
+				_idleTimer = await _transport.GetIdleTimerAsync(cancellationToken).ConfigureAwait(false);
 			}
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
@@ -359,5 +369,19 @@ public abstract partial class RazerDeviceDriver
 				ExternalPowerStatus = isWired || isCharging ? ExternalPowerStatus.IsConnected : ExternalPowerStatus.IsDisconnected,
 			};
 		}
+
+		TimeSpan IIdleSleepTimerFeature.MaximumIdleTime => TimeSpan.FromTicks(65535 * TimeSpan.TicksPerSecond);
+		TimeSpan IIdleSleepTimerFeature.IdleTime => TimeSpan.FromTicks(_idleTimer * TimeSpan.TicksPerSecond);
+
+		async Task IIdleSleepTimerFeature.SetIdleTimeAsync(TimeSpan idleTime, CancellationToken cancellationToken)
+		{
+			if (idleTime < TimeSpan.FromTicks(TimeSpan.TicksPerSecond) || idleTime > TimeSpan.FromTicks(65535 * TimeSpan.TicksPerSecond)) throw new ArgumentOutOfRangeException(nameof(idleTime));
+			await _transport.SetIdleTimerAsync(checked((ushort)idleTime.TotalSeconds), cancellationToken).ConfigureAwait(false);
+		}
+
+		byte ILowPowerModeBatteryThresholdFeature.LowPowerThreshold => _lowPowerBatteryThreshold;
+
+		Task ILowPowerModeBatteryThresholdFeature.SetLowPowerBatteryThresholdAsync(byte lowPowerThreshold, CancellationToken cancellationToken)
+			=> _transport.SetLowPowerThresholdAsync(lowPowerThreshold, cancellationToken);
 	}
 }

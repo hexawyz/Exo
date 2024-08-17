@@ -531,7 +531,7 @@ Write:
 <BatteryLevel:P8>
 ```
 
-The low power mode is entered after when the device's battery level goes below the specified percentage.
+The low power mode is entered when the device's battery level goes below the specified percentage.
 
 ###### `03` - Power Saving
 
