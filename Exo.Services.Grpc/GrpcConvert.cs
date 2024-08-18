@@ -17,7 +17,6 @@ using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCat
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
-using GrpcMouseDpiCapabilities = Exo.Contracts.Ui.Settings.MouseCapabilities;
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
 using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
@@ -50,7 +49,7 @@ internal static class GrpcConvert
 		{
 			DeviceId = mouseDeviceInformation.DeviceId,
 			IsConnected = mouseDeviceInformation.IsConnected,
-			DpiCapabilities = mouseDeviceInformation.DpiCapabilities.ToGrpc(),
+			Capabilities = mouseDeviceInformation.Capabilities,
 			MaximumDpi = mouseDeviceInformation.MaximumDpi.ToGrpc(),
 			MinimumDpiPresetCount = mouseDeviceInformation.MinimumDpiPresetCount,
 			MaximumDpiPresetCount = mouseDeviceInformation.MaximumDpiPresetCount,
@@ -70,9 +69,6 @@ internal static class GrpcConvert
 			DeviceId = mousePollingFrequencyNotification.DeviceId,
 			PollingFrequency = mousePollingFrequencyNotification.PollingFrequency,
 		};
-
-	public static GrpcMouseDpiCapabilities ToGrpc(this MouseCapabilities mouseDpiCapabilities)
-		=> (GrpcMouseDpiCapabilities)mouseDpiCapabilities;
 
 	public static GrpcDotsPerInch ToGrpc(this DotsPerInch dpi)
 		=> new()

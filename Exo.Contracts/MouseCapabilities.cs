@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Exo.Contracts.Ui.Settings;
+namespace Exo.Contracts;
 
 [Flags]
 [DataContract]

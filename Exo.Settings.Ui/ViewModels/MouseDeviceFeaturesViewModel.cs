@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -10,7 +11,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	private readonly DeviceViewModel _device;
 	private readonly IMouseService _mouseService;
 	private bool _isAvailable;
-	private MouseCapabilities _dpiCapabilities;
+	private MouseCapabilities _capabilities;
 	private DpiViewModel? _currentDpi;
 	private DpiViewModel? _maximumDpi;
 	private byte _minimumPresetCount;
@@ -58,7 +59,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		private set => SetValue(ref _maximumPresetCount, value);
 	}
 
-	public bool AllowsIndependentDpi => (_dpiCapabilities & MouseCapabilities.SeparateXYDpi) != 0;
+	public bool AllowsIndependentDpi => (_capabilities & MouseCapabilities.SeparateXYDpi) != 0;
 
 	public bool IsAvailable
 	{
@@ -80,9 +81,9 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		}
 	}
 
-	public bool CanEditPresets => (_dpiCapabilities & MouseCapabilities.ConfigurableDpiPresets) != 0;
-	public bool HasPresets => (_dpiCapabilities & MouseCapabilities.DpiPresets) != 0;
-	public bool CanChangePollingFrequency => (_dpiCapabilities & MouseCapabilities.ConfigurablePollingFrequency) != 0 && _supportedPollingFrequencies.Count > 0;
+	public bool CanEditPresets => (_capabilities & MouseCapabilities.ConfigurableDpiPresets) != 0;
+	public bool HasPresets => (_capabilities & MouseCapabilities.DpiPresets) != 0;
+	public bool CanChangePollingFrequency => (_capabilities & MouseCapabilities.ConfigurablePollingFrequency) != 0 && _supportedPollingFrequencies.Count > 0;
 
 	public ReadOnlyObservableCollection<MouseDpiPresetViewModel> DpiPresets => _readOnlyDpiPresets;
 
@@ -104,7 +105,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	// It is based on IsChanged but does additional validity checks to avoid errors and notify the user that something is not correct.
 	protected override bool CanApply
 		=> IsChanged &&
-			(_dpiCapabilities & (MouseCapabilities.ConfigurableDpiPresets | MouseCapabilities.DpiPresetChange)) != 0 &&
+			(_capabilities & (MouseCapabilities.ConfigurableDpiPresets | MouseCapabilities.DpiPresetChange)) != 0 &&
 			_selectedDpiPresetIndex >= 0 && _selectedDpiPresetIndex < _dpiPresets.Count &&
 			_dpiPresets.Count >= MinimumPresetCount && _dpiPresets.Count <= MaximumPresetCount;
 
@@ -118,11 +119,11 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		var oldSelectedPollingFrequency = SelectedPollingFrequency;
 		var oldPollingFrequencies = SupportedPollingFrequencies;
 		var couldChangePollingFrequencies = CanChangePollingFrequency;
-		_dpiCapabilities = information.DpiCapabilities;
+		_capabilities = information.Capabilities;
 		if (HasPresets != hadPresets) NotifyPropertyChanged(nameof(HasPresets));
 		if (AllowsIndependentDpi != allowedIndependentDpi) NotifyPropertyChanged(nameof(AllowsIndependentDpi));
 		IsAvailable = information.IsConnected;
-		MaximumDpi = (information.DpiCapabilities & MouseCapabilities.DynamicDpi) != 0 ? new(information.MaximumDpi) : null;
+		MaximumDpi = (information.Capabilities & MouseCapabilities.DynamicDpi) != 0 ? new(information.MaximumDpi) : null;
 		MinimumPresetCount = information.MinimumDpiPresetCount;
 		MaximumPresetCount = information.MaximumDpiPresetCount;
 		if (HasPresets)
@@ -270,7 +271,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
 		if (!CanApply) return;
-		if (_changedPresetCount != 0 && (_dpiCapabilities & MouseCapabilities.ConfigurableDpiPresets) != 0)
+		if (_changedPresetCount != 0 && (_capabilities & MouseCapabilities.ConfigurableDpiPresets) != 0)
 		{
 			var presets = new DotsPerInch[_dpiPresets.Count];
 			for (int i = 0; i < _dpiPresets.Count; i++)

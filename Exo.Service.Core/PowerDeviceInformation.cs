@@ -1,3 +1,5 @@
+using Exo.Contracts;
+
 namespace Exo.Service;
 
 internal readonly struct PowerDeviceInformation

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Configuration;
+using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.PowerManagement;
 using Exo.Programming;

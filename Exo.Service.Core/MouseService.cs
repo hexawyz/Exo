@@ -213,7 +213,7 @@ internal sealed class MouseService
 				DeviceId = DeviceId,
 				IsConnected = IsConnected,
 				MaximumDpi = MaximumDpi,
-				DpiCapabilities = Capabilities,
+				Capabilities = Capabilities,
 				MinimumDpiPresetCount = MinimumDpiPresetCount,
 				MaximumDpiPresetCount = MaximumDpiPresetCount,
 				SupportedPollingFrequencies = SupportedPollingFrequencies,
