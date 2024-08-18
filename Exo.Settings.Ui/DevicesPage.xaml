@@ -37,6 +37,7 @@
                         <FontIcon
                             Grid.Column="2"
                             Margin="12,0,0,0"
+                            DataContext="{Binding PowerFeatures}"
                             Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
                             Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
                             ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />

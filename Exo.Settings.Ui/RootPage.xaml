@@ -156,7 +156,7 @@
                     </StackPanel>
                     <FontIcon
                         Grid.Column="4"
-                        DataContext="{Binding Devices.SelectedDevice, Mode=TwoWay}"
+                        DataContext="{Binding Devices.SelectedDevice.PowerFeatures, Mode=TwoWay}"
                         Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
                         Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
                         ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />

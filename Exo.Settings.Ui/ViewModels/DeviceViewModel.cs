@@ -8,7 +8,14 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal class DeviceViewModel : BindableObject
 {
-	public DeviceViewModel(SettingsServiceConnectionManager connectionManager, ISettingsMetadataService metadataService, IMouseService mouseService, DeviceInformation deviceInformation)
+	public DeviceViewModel
+	(
+		SettingsServiceConnectionManager connectionManager,
+		ISettingsMetadataService metadataService,
+		IPowerService powerService,
+		IMouseService mouseService,
+		DeviceInformation deviceInformation
+	)
 	{
 		Id = deviceInformation.Id;
 		_friendlyName = deviceInformation.FriendlyName;
@@ -19,12 +26,15 @@ internal class DeviceViewModel : BindableObject
 		_deviceIds = GenerateDeviceIds(_rawDeviceIds, _mainDeviceIdIndex);
 		_serialNumber = deviceInformation.SerialNumber;
 
-		//_extendedDeviceInformation = extendedDeviceInformation;
 		if (deviceInformation.FeatureIds is not null)
 		{
+			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.PowerDeviceFeature))
+			{
+				PowerFeatures = new(this, powerService);
+			}
 			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
 			{
-				MouseFeatures = new(mouseService, this);
+				MouseFeatures = new(this, mouseService);
 			}
 			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MonitorDeviceFeature))
 			{
@@ -104,12 +114,8 @@ internal class DeviceViewModel : BindableObject
 		set => SetValue(ref _serialNumber, value, ChangedProperty.SerialNumber);
 	}
 
-	private BatteryStateViewModel? _batteryState;
-	public BatteryStateViewModel? BatteryState
-	{
-		get => _batteryState;
-		set => SetValue(ref _batteryState, value, ChangedProperty.BatteryState);
-	}
+	// If the device has battery or other power management features, this hosts the power-related features.
+	public PowerFeaturesViewModel? PowerFeatures { get; }
 
 	// If the device is a mouse, this hosts the mouse-related features.
 	public MouseDeviceFeaturesViewModel? MouseFeatures { get; }

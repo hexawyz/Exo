@@ -36,21 +36,26 @@
                             <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource ControlCornerRadius}">
                                 <Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}" Width="150">
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
-                                        <lc:Gauge.ForegroundArcStroke>
-                                            <SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
-                                        </lc:Gauge.ForegroundArcStroke>
-                                    </lc:Gauge>
-                                    <FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
-                                    <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Margin="0,6,0,0" Text="{Binding FriendlyName}" ToolTipService.ToolTip="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <Grid DataContext="{Binding PowerFeatures}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
+                                            <lc:Gauge.ForegroundArcStroke>
+                                                <SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
+                                            </lc:Gauge.ForegroundArcStroke>
+                                        </lc:Gauge>
+                                        <FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" ToolTipService.ToolTip="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

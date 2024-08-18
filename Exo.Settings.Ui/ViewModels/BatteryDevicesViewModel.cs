@@ -36,12 +36,16 @@ internal sealed class BatteryDevicesViewModel : IDisposable
 			{
 				foreach (DeviceViewModel device in newItems)
 				{
-					if (_knownDevices.Add(device))
+					if (device.PowerFeatures is { } powerFeatures)
 					{
-						device.PropertyChanged += OnDevicePropertyChanged;
-						if (device.IsAvailable && device.BatteryState is not null && _availableDevices.Add(device))
+						if (_knownDevices.Add(device))
 						{
-							ConnectedBatteryDevices.Add(device);
+							device.PropertyChanged += OnDevicePropertyChanged;
+							powerFeatures.PropertyChanged += OnDevicePowerPropertyChanged;
+							if (device.IsAvailable && powerFeatures.BatteryState is not null && _availableDevices.Add(device))
+							{
+								ConnectedBatteryDevices.Add(device);
+							}
 						}
 					}
 				}
@@ -50,14 +54,15 @@ internal sealed class BatteryDevicesViewModel : IDisposable
 		case NotifyCollectionChangedAction.Remove:
 			if (e.OldItems is { } oldItems)
 			{
-				foreach (DeviceViewModel item in oldItems)
+				foreach (DeviceViewModel device in oldItems)
 				{
-					if (_knownDevices.Remove(item))
+					if (_knownDevices.Remove(device))
 					{
-						item.PropertyChanged += OnDevicePropertyChanged;
-						if (_availableDevices.Remove(item))
+						device.PropertyChanged += OnDevicePropertyChanged;
+						if (device.PowerFeatures is { } powerFeatures) powerFeatures.PropertyChanged -= OnDevicePowerPropertyChanged;
+						if (_availableDevices.Remove(device))
 						{
-							ConnectedBatteryDevices.Remove(item);
+							ConnectedBatteryDevices.Remove(device);
 						}
 					}
 				}
@@ -69,6 +74,7 @@ internal sealed class BatteryDevicesViewModel : IDisposable
 			foreach (var device in _knownDevices)
 			{
 				device.PropertyChanged += OnDevicePropertyChanged;
+				if (device.PowerFeatures is { } powerFeatures) powerFeatures.PropertyChanged -= OnDevicePowerPropertyChanged;
 			}
 			_knownDevices.Clear();
 			_availableDevices.Clear();
@@ -80,7 +86,7 @@ internal sealed class BatteryDevicesViewModel : IDisposable
 					if (_knownDevices.Add(device))
 					{
 						device.PropertyChanged += OnDevicePropertyChanged;
-						if (device.IsAvailable && device.BatteryState is not null && _availableDevices.Add(device))
+						if (device.IsAvailable && device.PowerFeatures is not null && device.PowerFeatures.BatteryState is not null && _availableDevices.Add(device))
 						{
 							ConnectedBatteryDevices.Add(device);
 						}
@@ -95,9 +101,28 @@ internal sealed class BatteryDevicesViewModel : IDisposable
 
 	private void OnDevicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
-		if (sender is DeviceViewModel device && (BindableObject.Equals(e, ChangedProperty.IsAvailable) || BindableObject.Equals(e, ChangedProperty.BatteryState)))
+		if (sender is DeviceViewModel device && BindableObject.Equals(e, ChangedProperty.IsAvailable))
 		{
-			if (device.IsAvailable && device.BatteryState is not null)
+			if (device.IsAvailable && device.PowerFeatures?.BatteryState is not null)
+			{
+				if (_availableDevices.Add(device))
+				{
+					ConnectedBatteryDevices.Add(device);
+				}
+			}
+			else if (_availableDevices.Remove(device))
+			{
+				ConnectedBatteryDevices.Remove(device);
+			}
+		}
+	}
+
+	private void OnDevicePowerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (sender is PowerFeaturesViewModel powerFeatures && BindableObject.Equals(e, ChangedProperty.BatteryState))
+		{
+			var device = powerFeatures.Device;
+			if (device.IsAvailable && powerFeatures.BatteryState is not null)
 			{
 				if (_availableDevices.Add(device))
 				{

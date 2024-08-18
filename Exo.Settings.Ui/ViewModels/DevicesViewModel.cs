@@ -114,12 +114,16 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		if (_cancellationTokenSource.IsCancellationRequested) return;
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
-			var deviceWatchTask = WatchDevicesAsync(cts.Token);
-			var batteryWatchTask = WatchBatteryChangesAsync(cts.Token);
-			var mouseWatchTask = WatchMouseDevicesAsync(cts.Token);
-			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(cts.Token);
-			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(cts.Token);
-			var mouseDpiPollingFrequencyWatchTask = WatchMousePollingFrequencyChangesAsync(cts.Token);
+			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken).ConfigureAwait(false);
+			var powerService = await _connectionManager.GetPowerServiceAsync(cancellationToken).ConfigureAwait(false);
+			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken).ConfigureAwait(false);
+
+			var deviceWatchTask = WatchDevicesAsync(deviceService, powerService, mouseService, cts.Token);
+			var batteryWatchTask = WatchBatteryChangesAsync(powerService, cts.Token);
+			var mouseWatchTask = WatchMouseDevicesAsync(mouseService, cts.Token);
+			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(mouseService, cts.Token);
+			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(mouseService, cts.Token);
+			var mouseDpiPollingFrequencyWatchTask = WatchMousePollingFrequencyChangesAsync(mouseService, cts.Token);
 			var monitorWatchTask = WatchMonitorsAsync(cts.Token);
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
 
@@ -163,12 +167,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_devices.Clear();
 	}
 
-	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
+	private async Task WatchDevicesAsync(IDeviceService deviceService, IPowerService powerService, IMouseService mouseService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken);
-			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
 			await foreach (var notification in deviceService.WatchDevicesAsync(cancellationToken))
 			{
 				var id = notification.Details.Id;
@@ -178,18 +180,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Addition:
 					{
-						//ExtendedDeviceInformation extendedDeviceInformation;
-						//try
-						//{
-						//	extendedDeviceInformation = await _deviceService.GetExtendedDeviceInformationAsync(new() { Id = notification.Details.Id }, cancellationToken);
-						//}
-						//catch (Exception ex) when (ex is not OperationCanceledException)
-						//{
-						//	// Exceptions here would likely be caused by a driver removal.
-						//	// Disconnection from the service is not yet handled.
-						//	continue;
-						//}
-						var device = new DeviceViewModel(_connectionManager, _metadataService, mouseService, notification.Details);
+						var device = new DeviceViewModel(_connectionManager, _metadataService, powerService, mouseService, notification.Details);
 						await HandleDeviceArrivalAsync(device, cancellationToken);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
@@ -250,7 +241,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	{
 		if (_pendingBatteryChanges.Remove(device.Id, out var batteryStatus))
 		{
-			device.BatteryState = batteryStatus;
+			if (device.PowerFeatures is { } powerFeatures)
+			{
+				powerFeatures.BatteryState = batteryStatus;
+			}
 		}
 		if (_pendingMouseInformations.Remove(device.Id, out var mouseInformation))
 		{
@@ -301,21 +295,26 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	private void HandleDeviceRemoval(DeviceViewModel device)
 	{
-		device.BatteryState = null;
+		if (device.PowerFeatures is { } powerFeatures)
+		{
+			powerFeatures.BatteryState = null;
+		}
 		_pendingBatteryChanges.Remove(device.Id, out _);
 	}
 
-	private async Task WatchBatteryChangesAsync(CancellationToken cancellationToken)
+	private async Task WatchBatteryChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var deviceService = await _connectionManager.GetPowerServiceAsync(cancellationToken);
-			await foreach (var notification in deviceService.WatchBatteryChangesAsync(cancellationToken))
+			await foreach (var notification in powerService.WatchBatteryChangesAsync(cancellationToken))
 			{
 				var status = new BatteryStateViewModel(notification);
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
 				{
-					device.BatteryState = status;
+					if (device.PowerFeatures is { } powerFeatures)
+					{
+						powerFeatures.BatteryState = status;
+					}
 				}
 				else
 				{
@@ -332,12 +331,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMouseDevicesAsync(CancellationToken cancellationToken)
+	private async Task WatchMouseDevicesAsync(IMouseService mouseService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var monitorService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
-			await foreach (var mouseDevice in monitorService.WatchMouseDevicesAsync(cancellationToken))
+			await foreach (var mouseDevice in mouseService.WatchMouseDevicesAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(mouseDevice.DeviceId, out var device))
 				{
@@ -357,12 +355,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMouseDpiPresetsAsync(CancellationToken cancellationToken)
+	private async Task WatchMouseDpiPresetsAsync(IMouseService mouseService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var monitorService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
-			await foreach (var dpiPresets in monitorService.WatchDpiPresetsAsync(cancellationToken))
+			await foreach (var dpiPresets in mouseService.WatchDpiPresetsAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(dpiPresets.DeviceId, out var device))
 				{
@@ -382,11 +379,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMouseDpiChangesAsync(CancellationToken cancellationToken)
+	private async Task WatchMouseDpiChangesAsync(IMouseService mouseService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
 			await foreach (var notification in mouseService.WatchDpiChangesAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
@@ -407,11 +403,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMousePollingFrequencyChangesAsync(CancellationToken cancellationToken)
+	private async Task WatchMousePollingFrequencyChangesAsync(IMouseService mouseService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
 			await foreach (var notification in mouseService.WatchPollingFrequenciesAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
