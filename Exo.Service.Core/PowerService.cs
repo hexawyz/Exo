@@ -377,6 +377,7 @@ internal sealed class PowerService : IAsyncDisposable
 		if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var deviceState))
 		{
 			deviceState = new(this, _devicesConfigurationContainer.GetContainer(notification.DeviceInformation.Id), notification.DeviceInformation.Id, default);
+			_deviceStates.TryAdd(notification.DeviceInformation.Id, deviceState);
 			shouldPersistInformation = true;
 		}
 
