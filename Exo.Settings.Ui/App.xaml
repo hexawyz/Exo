@@ -64,6 +64,9 @@
             <lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />
             <lconverters:BatteryLevelToColorConverter x:Key="BatteryLevelToColorConverter" />
             <lconverters:BatteryStateToExternalPowerVisibilityConverter x:Key="BatteryStateToExternalPowerVisibilityConverter" />
+            <lconverters:HalfProbabilityToDoublePercentageConverter x:Key="HalfProbabilityToDoublePercentageConverter" />
+            <lconverters:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
+            <lconverters:SecondsToStringConverter x:Key="SecondsToStringConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

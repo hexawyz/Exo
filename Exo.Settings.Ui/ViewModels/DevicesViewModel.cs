@@ -50,25 +50,16 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
 
-	// Used to store battery changes when the device view model is not accessible.
+	// Various storages for pending changes for when the device view model is not available at reception.
+	private readonly Dictionary<Guid, PowerDeviceInformation> _pendingPowerDeviceInformations;
 	private readonly Dictionary<Guid, BatteryStateViewModel> _pendingBatteryChanges;
-
-	// Used to store mouse informations when the device view model is not accessible.
+	private readonly Dictionary<Guid, TimeSpan> _pendingIdleSleepTimerChanges;
+	private readonly Dictionary<Guid, Half> _pendingLowPowerModeBatteryThresholdChanges;
 	private readonly Dictionary<Guid, MouseDeviceInformation> _pendingMouseInformations;
-
-	// Used to store DPI changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, ImmutableArray<DotsPerInch>> _pendingDpiPresetChanges;
-
-	// Used to store DPI changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, (byte? ActivePresetIndex, DotsPerInch Dpi)> _pendingMouseDpiChanges;
-
-	// Used to store polling frequency changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, ushort> _pendingPollingFrequencyChanges;
-
-	// Used to store monitor informations when the device view model is not accessible.
 	private readonly Dictionary<Guid, MonitorInformation> _pendingMonitorInformations;
-
-	// Used to store monitor setting changes when the device view model is not accessible.
 	private readonly Dictionary<Guid, List<MonitorSettingValue>> _pendingMonitorSettingChanges;
 
 	// The selected device is the device currently being observed.
@@ -87,7 +78,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_removedDeviceIds = new();
 		_connectionManager = connectionManager;
 		_devicesById = new();
+		_pendingPowerDeviceInformations = new();
 		_pendingBatteryChanges = new();
+		_pendingIdleSleepTimerChanges = new();
+		_pendingLowPowerModeBatteryThresholdChanges = new();
 		_pendingMouseInformations = new();
 		_pendingMouseDpiChanges = new();
 		_pendingDpiPresetChanges = new();
@@ -119,11 +113,17 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken).ConfigureAwait(false);
 
 			var deviceWatchTask = WatchDevicesAsync(deviceService, powerService, mouseService, cts.Token);
+
+			var powerWatchTask = WatchPowerDevicesAsync(powerService, cts.Token);
 			var batteryWatchTask = WatchBatteryChangesAsync(powerService, cts.Token);
+			var lowPowerModeBatteryThresholdWatchTask = WatchLowPowerModeBatteryThresholdChangesAsync(powerService, cts.Token);
+			var idleSleepTimerWatchTask = WatchIdleSleepTimerChangesAsync(powerService, cts.Token);
+
 			var mouseWatchTask = WatchMouseDevicesAsync(mouseService, cts.Token);
 			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(mouseService, cts.Token);
 			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(mouseService, cts.Token);
 			var mouseDpiPollingFrequencyWatchTask = WatchMousePollingFrequencyChangesAsync(mouseService, cts.Token);
+
 			var monitorWatchTask = WatchMonitorsAsync(cts.Token);
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
 
@@ -133,7 +133,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				(
 					[
 						deviceWatchTask,
+						powerWatchTask,
 						batteryWatchTask,
+						lowPowerModeBatteryThresholdWatchTask,
+						idleSleepTimerWatchTask,
 						mouseWatchTask,
 						mouseDpiWatchTask,
 						mouseDpiPresetWatchTask,
@@ -153,8 +156,18 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	{
 		_removedDeviceIds.Clear();
 		_devicesById.Clear();
+
+		_pendingPowerDeviceInformations.Clear();
 		_pendingBatteryChanges.Clear();
+		_pendingIdleSleepTimerChanges.Clear();
+		_pendingLowPowerModeBatteryThresholdChanges.Clear();
+
+		_pendingMouseInformations.Clear();
 		_pendingMouseDpiChanges.Clear();
+		_pendingDpiPresetChanges.Clear();
+		_pendingPollingFrequencyChanges.Clear();
+
+		_pendingMonitorInformations.Clear();
 		_pendingMonitorSettingChanges.Clear();
 
 		SelectedDevice = null;
@@ -239,51 +252,51 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	private async Task HandleDeviceArrivalAsync(DeviceViewModel device, CancellationToken cancellationToken)
 	{
-		if (_pendingBatteryChanges.Remove(device.Id, out var batteryStatus))
+		if (device.PowerFeatures is { } powerFeatures)
 		{
-			if (device.PowerFeatures is { } powerFeatures)
+			if (_pendingPowerDeviceInformations.Remove(device.Id, out var powerDeviceInformation))
+			{
+				powerFeatures.UpdateInformation(powerDeviceInformation);
+			}
+			if (_pendingBatteryChanges.Remove(device.Id, out var batteryStatus))
 			{
 				powerFeatures.BatteryState = batteryStatus;
 			}
+			if (_pendingLowPowerModeBatteryThresholdChanges.Remove(device.Id, out var batteryThreshold))
+			{
+				powerFeatures.UpdateLowPowerModeBatteryThreshold(batteryThreshold);
+			}
+			if (_pendingIdleSleepTimerChanges.Remove(device.Id, out var idleSleepDelay))
+			{
+				powerFeatures.UpdateIdleSleepTimer(idleSleepDelay);
+			}
 		}
-		if (_pendingMouseInformations.Remove(device.Id, out var mouseInformation))
+		if (device.MouseFeatures is { } mouseFeatures)
 		{
-			if (device.MouseFeatures is { } mouseFeatures)
+			if (_pendingMouseInformations.Remove(device.Id, out var mouseInformation))
 			{
 				mouseFeatures.UpdateInformation(mouseInformation);
 			}
-		}
-		if (_pendingDpiPresetChanges.Remove(device.Id, out var mouseDpiPresets))
-		{
-			if (device.MouseFeatures is { } mouseFeatures)
+			if (_pendingDpiPresetChanges.Remove(device.Id, out var mouseDpiPresets))
 			{
 				mouseFeatures.UpdatePresets(mouseDpiPresets);
 			}
-		}
-		if (_pendingMouseDpiChanges.Remove(device.Id, out var dpiUpdate))
-		{
-			if (device.MouseFeatures is { } mouseFeatures)
+			if (_pendingMouseDpiChanges.Remove(device.Id, out var dpiUpdate))
 			{
 				mouseFeatures.UpdateCurrentDpi(dpiUpdate.ActivePresetIndex, dpiUpdate.Dpi);
 			}
-		}
-		if (_pendingPollingFrequencyChanges.Remove(device.Id, out var pollingFrequency))
-		{
-			if (device.MouseFeatures is { } mouseFeatures)
+			if (_pendingPollingFrequencyChanges.Remove(device.Id, out var pollingFrequency))
 			{
 				mouseFeatures.UpdateCurrentPollingFrequency(pollingFrequency);
 			}
 		}
-		if (_pendingMonitorInformations.Remove(device.Id, out var monitorInformation))
+		if (device.MonitorFeatures is { } monitorFeatures)
 		{
-			if (device.MonitorFeatures is { } monitorFeatures)
+			if (_pendingMonitorInformations.Remove(device.Id, out var monitorInformation))
 			{
 				await monitorFeatures.UpdateInformationAsync(monitorInformation, cancellationToken);
 			}
-		}
-		if (_pendingMonitorSettingChanges.Remove(device.Id, out var monitorSettings))
-		{
-			if (device.MonitorFeatures is { } monitorFeatures)
+			if (_pendingMonitorSettingChanges.Remove(device.Id, out var monitorSettings))
 			{
 				foreach (var setting in monitorSettings)
 				{
@@ -300,6 +313,47 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			powerFeatures.BatteryState = null;
 		}
 		_pendingBatteryChanges.Remove(device.Id, out _);
+
+		_pendingPowerDeviceInformations.Remove(device.Id, out _);
+		_pendingBatteryChanges.Remove(device.Id, out _);
+		_pendingIdleSleepTimerChanges.Remove(device.Id, out _);
+		_pendingLowPowerModeBatteryThresholdChanges.Remove(device.Id, out _);
+
+		_pendingMouseInformations.Remove(device.Id, out _);
+		_pendingMouseDpiChanges.Remove(device.Id, out _);
+		_pendingDpiPresetChanges.Remove(device.Id, out _);
+		_pendingPollingFrequencyChanges.Remove(device.Id, out _);
+
+		_pendingMonitorInformations.Remove(device.Id, out _);
+		_pendingMonitorSettingChanges.Remove(device.Id, out _);
+	}
+
+	private async Task WatchPowerDevicesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var information in powerService.WatchPowerDevicesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(information.DeviceId, out var device))
+				{
+					if (device.PowerFeatures is { } powerFeatures)
+					{
+						powerFeatures.UpdateInformation(information);
+					}
+				}
+				else
+				{
+					_pendingPowerDeviceInformations[information.DeviceId] = information;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (Exception)
+		{
+		}
 	}
 
 	private async Task WatchBatteryChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
@@ -319,6 +373,62 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				else
 				{
 					_pendingBatteryChanges[notification.DeviceId] = status;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	private async Task WatchLowPowerModeBatteryThresholdChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var update in powerService.WatchLowPowerModeBatteryThresholdChangesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(update.DeviceId, out var device))
+				{
+					if (device.PowerFeatures is { } powerFeatures)
+					{
+						powerFeatures.UpdateLowPowerModeBatteryThreshold(update.BatteryThreshold);
+					}
+				}
+				else
+				{
+					_pendingLowPowerModeBatteryThresholdChanges[update.DeviceId] = update.BatteryThreshold;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	private async Task WatchIdleSleepTimerChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var update in powerService.WatchIdleSleepTimerChangesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(update.DeviceId, out var device))
+				{
+					if (device.PowerFeatures is { } powerFeatures)
+					{
+						powerFeatures.UpdateIdleSleepTimer(update.IdleTime);
+					}
+				}
+				else
+				{
+					_pendingIdleSleepTimerChanges[update.DeviceId] = update.IdleTime;
 				}
 			}
 		}

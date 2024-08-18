@@ -10,11 +10,6 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:MouseDeviceFeaturesViewModel, IsDesignTimeCreatable=False}">
     <Grid HorizontalAlignment="Stretch">
-        <Grid.Resources>
-            <Style TargetType="TextBlock">
-                <Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
-            </Style>
-        </Grid.Resources>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
             <ColumnDefinition Width="*" />
@@ -26,8 +21,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Text="Current DPI" />
-        <TextBlock Grid.Column="1" Text="{Binding Path=CurrentDpi}" />
+        <TextBlock Margin="{StaticResource RowLabelMargin}" Text="Current DPI" />
+        <TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding Path=CurrentDpi}" />
         <Grid
             Grid.ColumnSpan="2"
             Grid.Row="1"
@@ -38,7 +33,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <TextBlock Text="Presets" Margin="0,6,0,6" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+            <TextBlock Text="Presets" Margin="{StaticResource RowLabelMargin}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
             <Border
                 Grid.Row="1"
                 Padding="6"
@@ -149,6 +144,7 @@
                     Visibility="{Binding AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <TextBlock
                     Grid.Row="1"
+                    Margin="{StaticResource RowLabelMargin}"
                     Text="Horizontal" />
                 <Slider
                     Grid.Row="1"
@@ -158,6 +154,7 @@
                     Maximum="{Binding MaximumDpi.Horizontal}" />
                 <TextBlock
                     Grid.Row="2"
+                    Margin="{StaticResource RowLabelMargin}"
                     Text="Vertical"
                     Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <Slider
@@ -169,7 +166,7 @@
                     Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </Grid>
         </Grid>
-        <TextBlock Grid.Row="2" Text="Polling Rate" Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        <TextBlock Grid.Row="2" Margin="{StaticResource RowLabelMargin}" Text="Polling Rate" Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <ComboBox
             Grid.Column="1"
             Grid.Row="2"

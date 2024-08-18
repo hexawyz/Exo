@@ -6,6 +6,9 @@ namespace Exo.Settings.Ui;
 // While this is more useful for properties that are updated often, all properties can be registered in there with the only overhead of a permanent object instance.
 internal static class ChangedProperty
 {
+	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
+	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
+	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));
 	public static readonly PropertyChangedEventArgs Color = new(nameof(Color));
 	public static readonly PropertyChangedEventArgs ShowToolbar = new(nameof(ShowToolbar));
 	public static readonly PropertyChangedEventArgs Value = new(nameof(Value));
@@ -51,7 +54,10 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs CanChangePollingFrequency = new (nameof(CanChangePollingFrequency));
 	public static readonly PropertyChangedEventArgs SelectedPollingFrequency = new (nameof(SelectedPollingFrequency));
 	public static readonly PropertyChangedEventArgs SupportedPollingFrequencies = new (nameof(SupportedPollingFrequencies));
-	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
-	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
-	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));
+	public static readonly PropertyChangedEventArgs IdleSleepDelay = new (nameof(IdleSleepDelay));
+	public static readonly PropertyChangedEventArgs MinimumIdleSleepDelay = new (nameof(MinimumIdleSleepDelay));
+	public static readonly PropertyChangedEventArgs MaximumIdleSleepDelay = new (nameof(MaximumIdleSleepDelay));
+	public static readonly PropertyChangedEventArgs LowPowerModeBatteryThreshold = new (nameof(LowPowerModeBatteryThreshold));
+	public static readonly PropertyChangedEventArgs HasLowPowerBatteryThreshold = new (nameof(HasLowPowerBatteryThreshold));
+	public static readonly PropertyChangedEventArgs HasIdleTimer = new (nameof(HasIdleTimer));
 }

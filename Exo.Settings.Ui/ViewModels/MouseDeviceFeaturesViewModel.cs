@@ -26,6 +26,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	private ImmutableArray<DotsPerInch> _initialDpiPresets;
 	private PollingFrequencyViewModel? _initialPollingFrequency;
 	private PollingFrequencyViewModel? _selectedPollingFrequency;
+	private bool _isExpanded;
 
 	public MouseDeviceFeaturesViewModel(DeviceViewModel device, IMouseService mouseService)
 	{
@@ -37,6 +38,12 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 		_readOnlyDpiPresets = new(_dpiPresets);
 		_supportedPollingFrequencies = new();
 		_supportedPollingFrequencyCollection = ReadOnlyCollection<PollingFrequencyViewModel>.Empty;
+	}
+
+	public bool IsExpanded
+	{
+		get => _isExpanded;
+		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
 	}
 
 	public DpiViewModel? CurrentDpi => _currentDpi;

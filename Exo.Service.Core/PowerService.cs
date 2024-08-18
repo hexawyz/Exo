@@ -90,7 +90,7 @@ internal sealed class PowerService : IAsyncDisposable
 					hasChanged |= _minimumIdleTime != idleSleepTimerFeature.MinimumIdleTime;
 					_minimumIdleTime = idleSleepTimerFeature.MinimumIdleTime;
 					hasChanged |= _maximumIdleTime != idleSleepTimerFeature.MaximumIdleTime;
-					_maximumIdleTime = idleSleepTimerFeature.MinimumIdleTime;
+					_maximumIdleTime = idleSleepTimerFeature.MaximumIdleTime;
 				}
 
 				hasChanged |= capabilities != _capabilities;
