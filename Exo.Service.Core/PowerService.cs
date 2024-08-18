@@ -164,9 +164,9 @@ internal sealed class PowerService : IAsyncDisposable
 			{
 				if (_batteryState != state)
 				{
-					var notification = new ChangeWatchNotification<Guid, BatteryState>(WatchNotificationKind.Update, _deviceId, _batteryState, state);
+					var notification = new ChangeWatchNotification<Guid, BatteryState>(WatchNotificationKind.Update, _deviceId, state, _batteryState);
 					_batteryState = state;
-					_powerService.ProcessBatteryChangeNotification(notification);
+					_powerService.NotifyBatteryStateChange(notification);
 				}
 			}
 		}
