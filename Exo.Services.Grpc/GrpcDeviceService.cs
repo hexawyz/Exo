@@ -44,43 +44,4 @@ internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
 			_logger.GrpcDeviceServiceWatchStop();
 		}
 	}
-
-	public async IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		_logger.GrpcBatteryServiceWatchStart();
-		try
-		{
-			await foreach (var notification in _powerService.WatchBatteryChangesAsync(cancellationToken))
-			{
-				if (_logger.IsEnabled(LogLevel.Trace))
-				{
-					_logger.GrpcBatteryServiceWatchNotification
-					(
-						notification.NotificationKind,
-						notification.Key,
-						notification.OldValue.Level,
-						notification.NewValue.Level,
-						notification.OldValue.BatteryStatus,
-						notification.NewValue.BatteryStatus,
-						notification.OldValue.ExternalPowerStatus,
-						notification.NewValue.ExternalPowerStatus
-					);
-				}
-
-				if (notification.NotificationKind == WatchNotificationKind.Removal) continue;
-
-				yield return new()
-				{
-					DeviceId = notification.Key,
-					Level = notification.NewValue.Level,
-					BatteryStatus = (BatteryStatus)notification.NewValue.BatteryStatus,
-					ExternalPowerStatus = (ExternalPowerStatus)notification.NewValue.ExternalPowerStatus
-				};
-			}
-		}
-		finally
-		{
-			_logger.GrpcBatteryServiceWatchStop();
-		}
-	}
 }

@@ -20,6 +20,7 @@ using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformat
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
 using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
+using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
@@ -42,6 +43,16 @@ internal static class GrpcConvert
 			MainDeviceIdIndex = deviceInformation.MainDeviceIdIndex,
 			SerialNumber = deviceInformation.SerialNumber,
 			IsAvailable = deviceInformation.IsAvailable,
+		};
+
+	public static GrpcPowerDeviceInformation ToGrpc(this PowerDeviceInformation powerDeviceInformation)
+		=> new()
+		{
+			DeviceId = powerDeviceInformation.DeviceId,
+			IsConnected = powerDeviceInformation.IsConnected,
+			Capabilities = powerDeviceInformation.Capabilities,
+			MinimumIdleTime = powerDeviceInformation.MinimumIdleTime,
+			MaximumIdleTime = powerDeviceInformation.MaximumIdleTime,
 		};
 
 	public static GrpcMouseDeviceInformation ToGrpc(this MouseDeviceInformation mouseDeviceInformation)

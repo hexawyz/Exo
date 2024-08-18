@@ -309,7 +309,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	{
 		try
 		{
-			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken);
+			var deviceService = await _connectionManager.GetPowerServiceAsync(cancellationToken);
 			await foreach (var notification in deviceService.WatchBatteryChangesAsync(cancellationToken))
 			{
 				var status = new BatteryStateViewModel(notification);
