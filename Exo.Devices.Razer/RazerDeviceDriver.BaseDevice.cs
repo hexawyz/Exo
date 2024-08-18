@@ -370,7 +370,9 @@ public abstract partial class RazerDeviceDriver
 			};
 		}
 
-		TimeSpan IIdleSleepTimerFeature.MaximumIdleTime => TimeSpan.FromTicks(65535 * TimeSpan.TicksPerSecond);
+		// The device should actually allow anything from 0 to 65535 seconds (although not tested), but Razer Synapse 3 only show 1 to 15 minutes ranges, which seems a reasonable limitation.
+		TimeSpan IIdleSleepTimerFeature.MinimumIdleTime => TimeSpan.FromTicks(1 * TimeSpan.TicksPerMinute);
+		TimeSpan IIdleSleepTimerFeature.MaximumIdleTime => TimeSpan.FromTicks(15 * TimeSpan.TicksPerMinute);
 		TimeSpan IIdleSleepTimerFeature.IdleTime => TimeSpan.FromTicks(_idleTimer * TimeSpan.TicksPerSecond);
 
 		async Task IIdleSleepTimerFeature.SetIdleTimeAsync(TimeSpan idleTime, CancellationToken cancellationToken)
