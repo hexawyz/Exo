@@ -143,7 +143,7 @@ internal sealed class MouseService
 				_mouseService.NotifyDeviceConnection(CreateMouseInformation());
 				if (_currentDpi != default)
 				{
-					_mouseService.OnDpiChanged(new(WatchNotificationKind.Addition, DeviceId, CurrentDpi, CurrentDpi, DpiPresets));
+					_mouseService.OnDpiChanged(new(WatchNotificationKind.Addition, DeviceId, CurrentDpi, default, DpiPresets));
 				}
 				if ((_capabilities & MouseCapabilities.DpiPresets) != 0)
 				{

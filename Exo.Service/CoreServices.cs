@@ -15,7 +15,7 @@ internal sealed class CoreServices : IHostedService
 #endif
 		MotherboardService motherboardService,
 		LightingService lightingService,
-		BatteryService batteryService,
+		PowerService batteryService,
 		KeyboardService keyboardService,
 		MouseService mouseService,
 		DisplayAdapterService displayAdapterService,

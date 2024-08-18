@@ -91,7 +91,6 @@ public class Startup
 		services.AddSingleton<SystemManagementBusRegistry>();
 		services.AddSingleton<ISystemManagementBusRegistry>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
 		services.AddSingleton<ISystemManagementBusProvider>(sp => sp.GetRequiredService<SystemManagementBusRegistry>());
-		services.AddSingleton<BatteryWatcher>();
 		services.AddSingleton<LockedKeysWatcher>();
 		services.AddSingleton<BacklightWatcher>();
 		services.AddSingleton
@@ -114,7 +113,17 @@ public class Startup
 				default
 			).GetAwaiter().GetResult()
 		);
-		services.AddSingleton<BatteryService>();
+		services.AddSingleton
+		(
+			sp => PowerService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<PowerService>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
+				sp.GetRequiredService<IDeviceWatcher>(),
+				sp.GetRequiredService<ChannelWriter<Programming.Event>>(),
+				default
+			).GetAwaiter().GetResult()
+		);
 		services.AddSingleton<KeyboardService>();
 		services.AddSingleton<DisplayAdapterService>();
 		services.AddSingleton<MotherboardService>();

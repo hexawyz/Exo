@@ -199,7 +199,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 
 			// Battery
 			{
-				BatteryService.BatteryDeviceConnectedEventGuid,
+				PowerService.BatteryDeviceConnectedEventGuid,
 				p =>
 				{
 					var e = (BatteryEventParameters)p!;
@@ -210,7 +210,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 			{
-				BatteryService.BatteryExternalPowerConnectedEventGuid,
+				PowerService.BatteryExternalPowerConnectedEventGuid,
 				p =>
 				{
 					var e = (BatteryEventParameters)p!;
@@ -231,7 +231,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 			{
-				BatteryService.BatteryExternalPowerDisconnectedEventGuid,
+				PowerService.BatteryExternalPowerDisconnectedEventGuid,
 				p =>
 				{
 					var e = (BatteryEventParameters)p!;
@@ -252,7 +252,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 			{
-				BatteryService.BatteryChargingCompleteEventGuid,
+				PowerService.BatteryChargingCompleteEventGuid,
 				p =>
 				{
 					var e = (BatteryEventParameters)p!;
@@ -260,7 +260,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 			{
-				BatteryService.BatteryErrorEventGuid,
+				PowerService.BatteryErrorEventGuid,
 				p =>
 				{
 					var e = (BatteryEventParameters)p!;
@@ -268,7 +268,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 			{
-				BatteryService.BatteryDischargingEventGuid,
+				PowerService.BatteryDischargingEventGuid,
 				p =>
 				{
 					var e = (BatteryEventParameters)p!;

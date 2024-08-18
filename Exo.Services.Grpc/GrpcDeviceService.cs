@@ -9,17 +9,17 @@ internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
 	private readonly ConfigurationService _configurationService;
 	private readonly ILogger<GrpcDeviceService> _logger;
 	private readonly DeviceRegistry _driverRegistry;
-	private readonly BatteryWatcher _batteryWatcher;
+	private readonly PowerService _powerService;
 
-	public GrpcDeviceService(ConfigurationService configurationService, DeviceRegistry driverRegistry, ILogger<GrpcDeviceService> logger)
+	public GrpcDeviceService(ILogger<GrpcDeviceService> logger, ConfigurationService configurationService, DeviceRegistry driverRegistry, PowerService powerService)
 	{
+		_logger = logger;
 		_configurationService = configurationService;
 		_driverRegistry = driverRegistry;
-		_logger = logger;
-		_batteryWatcher = new BatteryWatcher(driverRegistry);
+		_powerService = powerService;
 	}
 
-	public ValueTask DisposeAsync() => _batteryWatcher.DisposeAsync();
+	public ValueTask DisposeAsync() => _powerService.DisposeAsync();
 
 	public async IAsyncEnumerable<WatchNotification<Contracts.Ui.Settings.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
@@ -50,7 +50,7 @@ internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
 		_logger.GrpcBatteryServiceWatchStart();
 		try
 		{
-			await foreach (var notification in _batteryWatcher.WatchAsync(cancellationToken))
+			await foreach (var notification in _powerService.WatchBatteryChangesAsync(cancellationToken))
 			{
 				if (_logger.IsEnabled(LogLevel.Trace))
 				{

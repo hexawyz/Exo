@@ -379,9 +379,9 @@ public abstract partial class RazerDeviceDriver
 			await _transport.SetIdleTimerAsync(checked((ushort)idleTime.TotalSeconds), cancellationToken).ConfigureAwait(false);
 		}
 
-		byte ILowPowerModeBatteryThresholdFeature.LowPowerThreshold => _lowPowerBatteryThreshold;
+		Half ILowPowerModeBatteryThresholdFeature.LowPowerThreshold => (Half)(_lowPowerBatteryThreshold / 255f);
 
-		Task ILowPowerModeBatteryThresholdFeature.SetLowPowerBatteryThresholdAsync(byte lowPowerThreshold, CancellationToken cancellationToken)
-			=> _transport.SetLowPowerThresholdAsync(lowPowerThreshold, cancellationToken);
+		Task ILowPowerModeBatteryThresholdFeature.SetLowPowerBatteryThresholdAsync(Half lowPowerThreshold, CancellationToken cancellationToken)
+			=> _transport.SetLowPowerThresholdAsync((byte)(255 * lowPowerThreshold), cancellationToken);
 	}
 }

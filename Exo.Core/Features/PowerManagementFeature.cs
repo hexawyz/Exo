@@ -32,10 +32,11 @@ public interface IIdleSleepTimerFeature : IPowerManagementDeviceFeature
 public interface ILowPowerModeBatteryThresholdFeature : IPowerManagementDeviceFeature
 {
 	/// <summary>Gets the current low power threshold.</summary>
-	byte LowPowerThreshold { get; }
+	Half LowPowerThreshold { get; }
 
 	/// <summary>Sets battery threshold below which the device will switch to low power mode.</summary>
+	/// <remarks>The value should be between <c>0</c> and <c>100</c> included.</remarks>
 	/// <param name="lowPowerThreshold">The new battery threshold.</param>
 	/// <param name="cancellationToken"></param>
-	Task SetLowPowerBatteryThresholdAsync(byte lowPowerThreshold, CancellationToken cancellationToken);
+	Task SetLowPowerBatteryThresholdAsync(Half lowPowerThreshold, CancellationToken cancellationToken);
 }

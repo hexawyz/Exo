@@ -1153,7 +1153,7 @@ So the value is actually two bytes in big-endian that represent a number of seco
 
 The command is quite easy to understand here, as it seems to take a single byte (unlike Power Saving ?).
 Similar to brightness, the value is expressed from 0% to 100% in the UI, but from 0 to 255 in the commands.
-e.g. The last iteration has byte `0C`, which was obtained by setting low power mode back to 5 minutes. 100*12/255 = 4.70, which is close to 5.
+e.g. The last iteration has byte `0C`, which was obtained by setting low power mode back to 5 percent. 100*12/255 = 4.70, which is close to 5.
 
 ### Brightness
 
