@@ -26,6 +26,7 @@
             </XamlUICommand.IconSource>
         </XamlUICommand>
         <StandardUICommand x:Key="DeleteSelectedItemCommand" x:Uid="CustomMenuDeleteSelectedItemCommand" Kind="Delete" Command="{Binding CustomMenu.DeleteSelectedItemCommand}" />
+        <StandardUICommand x:Key="SaveMenuCommand" x:Uid="CustomMenuSaveCommand" Kind="Save" Command="{Binding CustomMenu.ApplyCommand}" />
     </Page.Resources>
 
     <Grid DataContext="{Binding CustomMenu}">
@@ -58,6 +59,8 @@
                 </AppBarButton.Flyout>
             </AppBarButton>
             <AppBarButton Command="{StaticResource DeleteSelectedItemCommand}" />
+            <AppBarSeparator />
+            <AppBarButton Command="{StaticResource SaveMenuCommand}" CommandParameter="{Binding}" />
         </CommandBar>
         <ListView
             Grid.Row="2"

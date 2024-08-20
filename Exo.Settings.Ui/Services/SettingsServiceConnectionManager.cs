@@ -156,6 +156,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private TaskCompletionSource<ISensorService> _sensorServiceTaskCompletionSource;
 	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
+	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
 	private TaskCompletionSource<IMetadataService> _metadataServiceTaskCompletionSource;
 	private CancellationToken _disconnectionToken;
 	private ConnectionStatus _connectionStatus;
@@ -176,6 +177,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_lightingServiceTaskCompletionSource = new();
 		_sensorServiceTaskCompletionSource = new();
 		_coolingServiceTaskCompletionSource = new();
+		_customMenuServiceTaskCompletionSource = new();
 		_programmingServiceTaskCompletionSource = new();
 		_metadataServiceTaskCompletionSource = new();
 		_synchronizationContext = SynchronizationContext.Current;
@@ -202,6 +204,9 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public Task<ICoolingService> GetCoolingServiceAsync(CancellationToken cancellationToken)
 		=> _coolingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
+
+	public Task<ISettingsCustomMenuService> GetCustomMenuServiceAsync(CancellationToken cancellationToken)
+		=> _customMenuServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<IProgrammingService> GetProgrammingServiceAsync(CancellationToken cancellationToken)
 		=> _programmingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -243,6 +248,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Connect(channel, _lightingServiceTaskCompletionSource);
 		Connect(channel, _sensorServiceTaskCompletionSource);
 		Connect(channel, _coolingServiceTaskCompletionSource);
+		Connect(channel, _customMenuServiceTaskCompletionSource);
 		Connect(channel, _programmingServiceTaskCompletionSource);
 		Connect(channel, _metadataServiceTaskCompletionSource);
 
@@ -266,6 +272,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Reset(ref _lightingServiceTaskCompletionSource);
 		Reset(ref _sensorServiceTaskCompletionSource);
 		Reset(ref _coolingServiceTaskCompletionSource);
+		Reset(ref _customMenuServiceTaskCompletionSource);
 		Reset(ref _programmingServiceTaskCompletionSource);
 		Reset(ref _metadataServiceTaskCompletionSource);
 

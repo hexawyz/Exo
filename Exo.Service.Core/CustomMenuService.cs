@@ -68,13 +68,13 @@ internal sealed class CustomMenuService
 		_lock = new();
 	}
 
-	public ValueTask UpdateMenuAsync(ImmutableArray<MenuItem> menuItems)
+	public ValueTask UpdateMenuAsync(ImmutableArray<MenuItem> menuItems, CancellationToken cancellationToken)
 	{
 		if (menuItems.IsDefault) throw new ArgumentNullException(nameof(menuItems));
-		return UpdateMenuAsync(ImmutableCollectionsMarshal.AsArray(menuItems)!);
+		return UpdateMenuAsync(ImmutableCollectionsMarshal.AsArray(menuItems)!, cancellationToken);
 	}
 
-	private async ValueTask UpdateMenuAsync(MenuItem[] menuItems)
+	private async ValueTask UpdateMenuAsync(MenuItem[] menuItems, CancellationToken cancellationToken)
 	{
 		if (menuItems is null) throw new ArgumentNullException(nameof(menuItems));
 
@@ -93,6 +93,7 @@ internal sealed class CustomMenuService
 			{
 				var (parentItemId, oldItems, newItems) = t;
 				currentMenuItemsById.Clear();
+				updatedItemPositions.Clear();
 
 				// First reference the new items.
 				// This is important because it will allow us to detect potentially removed items afterwards:
@@ -107,7 +108,7 @@ internal sealed class CustomMenuService
 				// In this next loop, we identify removed items and track the new indices after removals, then prepare the removal notifications.
 				// Notifications for items that have been moved or changed will be sent afterwards, because they will need to be sorted by position.
 				int runningIndex = 0;
-				for (int i = 0; i < newItems.Length; i++)
+				for (int i = 0; i < oldItems.Length; i++)
 				{
 					var oldItem = oldItems[i];
 					if (!currentMenuItemsById.Remove(oldItem.ItemId, out var newItemPosition))
@@ -180,7 +181,7 @@ internal sealed class CustomMenuService
 			}
 		}
 
-		await _configurationContainer.WriteValueAsync(new MenuConfiguration { MenuItems = ImmutableCollectionsMarshal.AsImmutableArray(menuItems) }, default).ConfigureAwait(false);
+		await _configurationContainer.WriteValueAsync(new MenuConfiguration { MenuItems = ImmutableCollectionsMarshal.AsImmutableArray(menuItems) }, cancellationToken).ConfigureAwait(false);
 
 		static MenuItem[] GetSubMenuItems(MenuItem menuItem) => (menuItem is SubMenuMenuItem smmi ? ImmutableCollectionsMarshal.AsArray(smmi.MenuItems) : null) ?? [];
 	}

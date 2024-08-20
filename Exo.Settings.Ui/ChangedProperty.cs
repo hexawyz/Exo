@@ -9,6 +9,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
 	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
 	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));
+	public static readonly PropertyChangedEventArgs Text = new(nameof(Text));
 	public static readonly PropertyChangedEventArgs Color = new(nameof(Color));
 	public static readonly PropertyChangedEventArgs ShowToolbar = new(nameof(ShowToolbar));
 	public static readonly PropertyChangedEventArgs Value = new(nameof(Value));

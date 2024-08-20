@@ -101,7 +101,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);
-		_customMenuViewModel = new();
+		_customMenuViewModel = new(ConnectionManager);
 		_navigationStack = new();
 		HomePage = new("Home", "\uE80F");
 		DevicesPage = new("Devices", "\uE772");
