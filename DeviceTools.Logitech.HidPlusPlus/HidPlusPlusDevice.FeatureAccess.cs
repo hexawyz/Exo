@@ -112,9 +112,9 @@ public abstract partial class HidPlusPlusDevice
 			// Only setup the "Color LED Effects" feature if it is indicated as public. Otherwise, it could be something else, but it is locked behind some unknown access mechanism.
 			if (features.TryGetInformation(HidPlusPlusFeature.ColorLedEffects, out info) && (info.Type & (HidPlusPlusFeatureTypes.Engineering | HidPlusPlusFeatureTypes.Hidden)) == 0)
 			{
-				var colorLedEffectState = new ColorLedEffectFeatureHandler(this, index);
+				var colorLedEffectState = new ColorLedEffectFeatureHandler(this, info.Index);
 				Volatile.Write(ref _colorLedEffectState, colorLedEffectState);
-				Volatile.Write(ref _featureHandlers![index], colorLedEffectState);
+				Volatile.Write(ref _featureHandlers![info.Index], colorLedEffectState);
 			}
 		}
 
