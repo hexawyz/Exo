@@ -702,8 +702,19 @@ public abstract partial class HidPlusPlusDevice
 		// Can be called multiple times. It can be called on a disconnected device.
 		private protected override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 		{
+			Logger.FeatureAccessDeviceConnected(MainDeviceId.ProductId, FriendlyName, SerialNumber!);
+
 			if (_featureHandlers is { } handlers)
 			{
+				if (CachedFeatures is { } cachedFeatures)
+				{
+					foreach (var feature in cachedFeatures)
+					{
+						if (Enum.IsDefined(feature.Feature)) Logger.FeatureAccessDeviceKnownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
+						else Logger.FeatureAccessDeviceUnknownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
+					}
+				}
+
 				for (int i = 0; i < handlers.Length; i++)
 				{
 					if (_featureHandlers[i] is { } handler)
@@ -712,6 +723,7 @@ public abstract partial class HidPlusPlusDevice
 					}
 				}
 			}
+				
 		}
 
 		public ValueTask<HidPlusPlusFeatureCollection> GetFeaturesAsync(CancellationToken cancellationToken)

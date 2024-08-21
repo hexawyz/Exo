@@ -742,7 +742,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	// The initialize method is called immediately after device creation if the device is connected.
 	// For devices connected to a receiver, it will be called every time the device is connected, to allow refreshing the cached status.
 	// NB: For child devices, calls to this method are handled as part of the lifecycle.
-	private protected virtual Task InitializeAsync(int retryCount, CancellationToken cancellationToken) => Task.CompletedTask;
+	private protected abstract Task InitializeAsync(int retryCount, CancellationToken cancellationToken);
 
 	// The below methods are used to raise connect/disconnect events on receivers and receiver-connected devices.
 	// They won't be called on devices that are not of the appropriate kind.

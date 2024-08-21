@@ -65,5 +65,11 @@ public abstract partial class HidPlusPlusDevice
 			where TRequestParameters : struct, IMessageGetParameters, IShortMessageParameters
 			where TResponseParameters : struct, IVeryLongMessageParameters
 			=> Transport.RegisterAccessGetVeryLongRegisterWithRetryAsync<TRequestParameters, TResponseParameters>(DeviceIndex, address, parameters, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
+
+		private protected override Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
+		{
+			Logger.RegisterAccessDeviceConnected(MainDeviceId.ProductId, FriendlyName, SerialNumber!);
+			return Task.CompletedTask;
+		}
 	}
 }
