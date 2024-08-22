@@ -20,7 +20,7 @@ public abstract partial class HidPlusPlusDevice
 			byte deviceIndex,
 			DeviceConnectionInfo deviceConnectionInfo,
 			FeatureAccessProtocol.DeviceType deviceType,
-			HidPlusPlusFeatureCollection? cachedFeatures,
+			HidPlusPlusFeatureCollection cachedFeatures,
 			string? friendlyName,
 			string? serialNumber
 		)

@@ -493,7 +493,7 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		}
 
 		HidPlusPlusDevice device = parent is null ?
-			new FeatureAccessDirect(transport, loggerFactory.CreateLogger<FeatureAccessDirect>(), deviceIds, mainDeviceIdIndex, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber) :
+			new FeatureAccessDirect(transport, loggerFactory.CreateLogger<FeatureAccessDirect>(), deviceIds, mainDeviceIdIndex, deviceIndex, deviceInfo, deviceType, features!, friendlyName, serialNumber) :
 			new FeatureAccessThroughReceiver(parent, loggerFactory.CreateLogger<FeatureAccessThroughReceiver>(), deviceIds, mainDeviceIdIndex, deviceIndex, deviceInfo, deviceType, features, friendlyName, serialNumber);
 
 		return device;
