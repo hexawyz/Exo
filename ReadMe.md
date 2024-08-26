@@ -12,8 +12,9 @@ As such, the goal of Exo is to replace all of these tools in a single service th
 To support this vision, Exo is designed to be as modular as possible, and device support is provided through dynamically-loaded plugins that you can add or remove as you need.
 
 ⚠️ The project is still in the development phase, so some features are not implemented yet. It does nonetheless provide support for quite a few devices already, exposing some or all of their features in the UI.
-Some devices are based on the same protocol, so it is possible that the current code already support a specific device, but it does not "recognize" it because most devices need to be explicitly allowed in the service.
-This is done in order to avoid communicating with a device that is incompatible.
+
+ℹ️ Some devices are based on the same protocol as those already supported. It is possible that the current code already support a specific device, but does not "recognize" it.
+In order to avoid communicating with a device that is incompatible, the code of the various device plugins will generally have an explicit list of each supported device.
 
 💡 If you want to request support for a device, or if you believe one of your devices should already be supported by the code, please make this known by opening an issue.
 
@@ -120,10 +121,10 @@ You are free to decide whether to keep them or not. (Drivers can be uninstalled 
 
 If you want to get the kernel drivers, (e.g. for preservation), the simplest way to get the drivers is to actually rely on a Synapse 3 installation:
 
-	1. Install or launch Razer Synapse 3 with your device(s) connected
-	2. Drivers will already be installed, but you can find the drivers in `C:\Program Files (x86)\Razer`.
-	3. Save the drivers somewhere else.
-	4. Either uninstall Razer Synapse (and reinstall the drivers if necessary) or disable and stop the Razer services (Setting them to manual startup is enough to disable them)
+1. Install or launch Razer Synapse 3 with your device(s) connected
+2. Drivers will already be installed, but you can find the drivers in `C:\Program Files (x86)\Razer`.
+3. Save the drivers somewhere else.
+4. Either uninstall Razer Synapse (and reinstall the drivers if necessary) or disable and stop the Razer services (Setting them to manual startup is enough to disable them)
 
 NB: It is also possible to obtain those drivers without a completing a full installation of Synapse 3, as there are multiple steps in the install.
 
