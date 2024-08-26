@@ -164,11 +164,12 @@ From within Visual Studio, you can start `Exo.Service` to run the service, `Exo.
 
 ## Generating a publish release
 
-From the VS developer command prompt, you can run the `Publish.ps1` script that is at the root of the repository:
+Releases are generated using the WiX project `Exo.InstallerPackage`. Building this project in release mode will produce an MSI installer releasing the current code.
 
-````PowerShell
-pwsh -ExecutionPolicy Bypass -File .\Publish.ps1
-````
+The WiX project will automatically request a publish build of each of three main projects, and bundle them into the installer.
+
+While it is still possible to build and publish the three main projects manually, it requires more work and is unlikely to provide much extra value.
+As such, this approach is not recommended, unless you have a very specific need in mind.
 
 # Architecture
 
