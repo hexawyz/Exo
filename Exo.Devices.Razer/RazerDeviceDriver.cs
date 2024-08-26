@@ -244,6 +244,8 @@ public abstract partial class RazerDeviceDriver :
 		{ 0x007D, 1 },
 		{ 0x007E, 2 },
 		{ 0x008E, 0 },
+		{ 0x00B6, 3 },
+		{ 0x0087, 4 },
 	};
 
 	private static ref readonly DeviceInformation GetDeviceInformation(ushort productId)
