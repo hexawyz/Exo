@@ -134,7 +134,8 @@ public abstract partial class RazerDeviceDriver :
 		None = 0x00,
 		HasBattery = 0x01,
 
-		HasReactiveLighting = 0x02,
+		HasLighting = 0x02,
+		HasReactiveLighting = 0x04,
 
 		HasWiredProductId = 0x08,
 		HasDongleProductId = 0x10,
@@ -163,6 +164,7 @@ public abstract partial class RazerDeviceDriver :
 		(
 			RazerDeviceCategory.Mouse,
 			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasReactiveLighting |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
@@ -179,6 +181,7 @@ public abstract partial class RazerDeviceDriver :
 		(
 			RazerDeviceCategory.UsbReceiver,
 			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasReactiveLighting |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
@@ -195,7 +198,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Dock,
-			RazerDeviceFlags.HasWiredProductId,
+			RazerDeviceFlags.HasWiredProductId | RazerDeviceFlags.HasLighting,
 			0x007E,
 			0xFFFF,
 			0xFFFF,
@@ -203,6 +206,35 @@ public abstract partial class RazerDeviceDriver :
 			DockLightingZoneGuid,
 			0,
 			"Razer Mouse Dock"
+		),
+		new
+		(
+			RazerDeviceCategory.Mouse,
+			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId,
+			0x00B6,
+			0x00B7,
+			0xFFFF,
+			0xFFFF,
+			null,
+			30_000,
+			"Razer DeathAdder V3 Pro"
+		),
+		new
+		(
+			RazerDeviceCategory.UsbReceiver,
+			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId |
+				RazerDeviceFlags.IsDongle,
+			0x00B6,
+			0x00B7,
+			0xFFFF,
+			0xFFFF,
+			null,
+			0,
+			"Razer DeathAdder V3 Pro HyperSpeed Dongle"
 		)
 	];
 
@@ -237,6 +269,8 @@ public abstract partial class RazerDeviceDriver :
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x008E)] // DeathAdder V2 Pro Mouse BLE
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x00B6)] // DeathAdder V3 Pro Mouse Wired
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x00B7)] // DeathAdder V3 Pro Mouse via Dongle
 	public static async Task<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,

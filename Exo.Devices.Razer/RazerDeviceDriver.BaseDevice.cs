@@ -122,6 +122,7 @@ public abstract partial class RazerDeviceDriver
 		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 
 		private bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
+		private bool HasLighting => (_deviceFlags & RazerDeviceFlags.HasLighting) != 0;
 		private bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
 		private bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
 
@@ -148,20 +149,22 @@ public abstract partial class RazerDeviceDriver
 				FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature>(this) :
 				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
-			_lightingFeatures = HasReactiveLighting ?
-				FeatureSet.Create<
-					ILightingDeviceFeature,
-					UnifiedReactiveLightingZone,
-					ILightingDeferredChangesFeature,
-					IPersistentLightingFeature,
-					IUnifiedLightingFeature,
-					ILightingBrightnessFeature>(new(this, lightingZoneId)) :
-				FeatureSet.Create<ILightingDeviceFeature,
-					UnifiedBasicLightingZone,
-					ILightingDeferredChangesFeature,
-					IPersistentLightingFeature,
-					IUnifiedLightingFeature,
-					ILightingBrightnessFeature>(new(this, lightingZoneId));
+			_lightingFeatures = HasLighting ?
+				HasReactiveLighting ?
+					FeatureSet.Create<
+						ILightingDeviceFeature,
+						UnifiedReactiveLightingZone,
+						ILightingDeferredChangesFeature,
+						IPersistentLightingFeature,
+						IUnifiedLightingFeature,
+						ILightingBrightnessFeature>(new(this, lightingZoneId)) :
+					FeatureSet.Create<ILightingDeviceFeature,
+						UnifiedBasicLightingZone,
+						ILightingDeferredChangesFeature,
+						IPersistentLightingFeature,
+						IUnifiedLightingFeature,
+						ILightingBrightnessFeature>(new(this, lightingZoneId)) :
+				FeatureSet.Empty<ILightingDeviceFeature>();
 		}
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
