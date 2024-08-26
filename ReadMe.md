@@ -2,17 +2,18 @@
 
 # Exo
 
-Exo is the exoskeleton for your Windows computer (Or at least it aims to be ☺️)
+Exo is the exoskeleton for your Windows computer and its connected devices.
 
-You can use it to manage your Mouses, Keyboards, Monitors, RGB lighting, etc.
+You can use it to control or monitor your Mouses, Keyboards, Monitors, RGB lighting, etc.
 
 The project was started out of spite for all the client-side "drivers" for devices, that consume unimaginable amounts of RAM and CPU.
 As such, the goal of Exo is to replace all of these tools in a single service that will be more stable, consume a relatively small memory footprint, with a low CPU overhead.
 
-To support this vision, Exo is designed to be as modular as possible, and device support will be provided through dynamically-loaded plugins that you can add or remove as you need.
+To support this vision, Exo is designed to be as modular as possible, and device support is provided through dynamically-loaded plugins that you can add or remove as you need.
 
-⚠️ The project is still in the development phase, but it does run and already provides working drivers for quite a few devices.
-As the author, I generally try to be conservative relative to the supported devices, but some of the code is probably already compatible with more devices than it declares.
+⚠️ The project is still in the development phase, so some features are not implemented yet. It does nonetheless provide support for quite a few devices already, exposing some or all of their features in the UI.
+Some devices are based on the same protocol, so it is possible that the current code already support a specific device, but it does not "recognize" it because most devices need to be explicitly allowed in the service.
+This is done in order to avoid communicating with a device that is incompatible.
 
 💡 If you want to request support for a device, or if you believe one of your devices should already be supported by the code, please make this known by opening an issue.
 
@@ -26,7 +27,7 @@ When these apps exist, they are more often than not presented as client-side app
 Other than being slow and consuming a huge chunk of your RAM for nothing, those applications are more often than not somewhat unstable, and can have undesired behavior such as random updates or invisible crashes. (Do you really need 5 unstable chrome processes to manage a mouse?)
 
 As the author of Exo, I believe (and by now, have mostly proven 😄) that it is possible to do a much better job than this on all aspects.
-Exo is designed and architected with this in mind, and aims to provide a Windows service that will detect and operate on your device by being mindful of system resources. (Currently about 30 MB and mostly no CPU usage)
+Exo is designed and architected with this in mind, and aims to provide a Windows service that will detect and operate on your device by being mindful of system resources. (Expect between 20 and 40 MB depending on your configuration, and mostly no CPU usage)
 
 # Supported features
 
@@ -34,10 +35,10 @@ Exo currently support the following features, provided that there is a custom dr
 
 * Overlay notifications: Some of the other features will push notifications that will be displayed on screen.
 * RGB Lighting: Setting hardware effects is supported, dynamic ARGB lighting not yet ready.
-* Device battery status: The service will be aware of, and display the battery charge of your device, as well as show notifications for low battery, etc.
+* Device battery status: The service will be aware of, and display the battery charge of your device, as well as show notifications for low battery, etc. Also supports idle timer and low power mode for wireless devices that support it. (e.g. Razer)
 * Monitor control: Brightness, Contrast, Audio Volume, Input Select and various settings, if supported by the monitor. (A configuration system for overriding monitor details is available)
 * Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
-* Mouse: The service can observe and display DPI changes.
+* Mouse: DPI change notifications, Configuration of DPI presets and polling frequency, and manual DPI changes from the UI.
 * GPU: Provide support for accessing connected monitors in non-interactive (service) mode. (May rely on fallback using the Windows API if necessary)
 * Sensors: For devices that provide data readings, expose sensors that can be read periodically and displayed in the UI.
 * Coolers: For cooling devices, or devices equipped with a fan, expose controllable coolers and allow setting custom software cooling curves based on sensors.
@@ -50,8 +51,9 @@ NB: Support of a device does not mean that all of its features will be exposed i
 
 * Logitech
 	* All HID++ devices (with some possible exceptions), including through USB receivers: Battery level and keyboard reporting features.
-* Razer (⚠️ For wired mode and dongle, requires the official *kernel* drivers from Razer to be installed)
-	* DeathAdder V2 Pro (USB, Dongle, Bluetooth LE): Battery Level, RGB lighting, DPI changes. (NB: Push notifications are not working yet over Bluetooth)
+* Razer
+	* DeathAdder V2 Pro (USB, Dongle, Bluetooth LE): Battery Level, Charge status, RGB lighting, DPI changes, DPI Presets, Low Power mode, Idle Sleep Timer
+	* DeathAdder V3 Pro (USB, Dongle): Battery Level, Charge status, DPI changes, DPI Presets, Low Power mode, Idle Sleep Timer (NB: This device has not been tested, but shares most features of the V2, so it is expected to work fine)
 	* Mouse Dock Chroma: RGB
 * Asus & Various RAM manufacturers:
 	* Aura compatible RAM: RGB lighting (Provided that there is a SMBus driver for your motherboard or chipset, and that the RAM module ID is added to the list of supported module IDs is updated in the code)
@@ -86,7 +88,7 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 
 * dns-sd/mdns/bonjour service discovery (for Elgato lights, etc)
 * Support for a "Light" feature, slightly different than "Lighting" feature, in that lights are independent entities that can be turned on and off externally.
-* (Temporary?) support for persisting lighting and cooling settings between service restarts. This will probably be partially superseeded by the programming system.
+* (Temporary?) support for persisting cooling settings between service restarts. This will probably be partially superseeded by the programming system. (NB: Persistence of lighting effects is implemented)
 * Programming system that will allow creating customized complex setups to fit any user need, with predictable state transitions.
 * CPU temperature sensor (Sadly requires a Kernel driver)
 
@@ -111,7 +113,7 @@ In any case, manufacturer drivers can't be bundled with Exo, for obvious reasons
 
 #### Razer kernel drivers
 
-⚠️ Razer kernel drivers are not required anymore, and Exo should run fine **without** them.
+⚠️ Razer kernel drivers are not required anymore, and Exo should run fine **without** them. This section is kept for information only.
 
 If you have installed and used Razer Synapse 3 with your device at one point, it is likely that those drivers are installed on your system.
 You are free to decide whether to keep them or not. (Drivers can be uninstalled from the Windows device manager, using the driver view)
@@ -138,12 +140,12 @@ e.g.:
 
 ## Getting a binary release
 
-You can a binary release either from the [Releases page](https://github.com/hexawyz/Exo/releases) or a build artifact from a recent [GitHub actions build](https://github.com/hexawyz/Exo/actions).
+Exo is now released through a prebuild MSI installer, which you just need to run to get everything running.
 
-Exo is now released through a prebuild MSI installer.
-You just need to run this installer to get Exo running.
+You can grab a binary release either from the [Releases page](https://github.com/hexawyz/Exo/releases) or a build artifact from a recent [GitHub actions build](https://github.com/hexawyz/Exo/actions).
+Depending on the situation it might be better to grab a release directly from a recent build, as preview releases may contain some bugs that have been fixed afterwards. Refer to the commit list for more details.
 
-⚠️ You may still need to manually install the Windows App SDK from Microsoft if you haven't already done so. This is required to run the UI, but the service will properly start without it.
+⚠️ You may still need to manually install the Windows App SDK from Microsoft if you haven't already done so. This is required to run the UI, but the service will always properly start without it.
 
 # Developing and building Exo
 
