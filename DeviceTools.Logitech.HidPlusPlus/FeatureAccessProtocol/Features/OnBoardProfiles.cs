@@ -305,6 +305,8 @@ public static class OnBoardProfiles
 		public ButtonConfigurationCollection Buttons;
 		public ButtonConfigurationCollection AlternateButtons;
 		public ProfileName Name;
+		public LedConfigurationCollection Leds;
+		public LedConfigurationCollection AlternateLeds;
 	}
 
 	[InlineArray(48)]
@@ -662,6 +664,62 @@ public static class OnBoardProfiles
 		MiddleButton = 0x0004,
 		Button4 = 0x0008,
 		Button5 = 0x0010,
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 11)]
+	public readonly struct LedConfiguration
+	{
+	}
+
+
+	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 22)]
+	[DebuggerDisplay("Count = {Count}")]
+	public readonly struct LedConfigurationCollection : IReadOnlyList<LedConfiguration>
+	{
+		public struct Enumerator : IEnumerator<LedConfiguration>
+		{
+			private int _index;
+			private readonly LedConfigurationCollection _collection;
+
+			internal Enumerator(in LedConfigurationCollection collection)
+			{
+				_index = -1;
+				_collection = collection;
+			}
+
+			void IDisposable.Dispose() { }
+
+			public LedConfiguration Current => _collection[_index];
+			object IEnumerator.Current => Current;
+
+			public bool MoveNext() => (uint)++_index < (uint)_collection.Count;
+			void IEnumerator.Reset() => _index = -1;
+		}
+
+		private readonly LedConfiguration _led0;
+		private readonly LedConfiguration _led1;
+
+		public LedConfiguration this[int index]
+		{
+			get
+			{
+				if ((uint)index > 2) throw new ArgumentOutOfRangeException(nameof(index));
+
+				return Unsafe.ReadUnaligned<LedConfiguration>(in Unsafe.AddByteOffset(ref Unsafe.As<LedConfiguration, byte>(ref Unsafe.AsRef(in _led0)), 4 * index));
+			}
+			init
+			{
+				if ((uint)index > 2) throw new ArgumentOutOfRangeException(nameof(index));
+
+				Unsafe.WriteUnaligned(ref Unsafe.AddByteOffset(ref Unsafe.As<LedConfiguration, byte>(ref Unsafe.AsRef(in _led0)), 4 * index), value);
+			}
+		}
+
+		public int Count => 2;
+
+		public Enumerator GetEnumerator() => new(in this);
+		IEnumerator<LedConfiguration> IEnumerable<LedConfiguration>.GetEnumerator() => GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 }
 #pragma warning restore IDE0044 // Add readonly modifier
