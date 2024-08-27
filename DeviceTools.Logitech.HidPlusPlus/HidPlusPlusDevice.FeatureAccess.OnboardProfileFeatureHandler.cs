@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
@@ -14,11 +15,11 @@ public abstract partial class HidPlusPlusDevice
 			private OnBoardProfiles.GetInfo.Response _information;
 			private DeviceMode _deviceMode;
 			private bool _isDeviceSupported;
-			private byte[] _sectorReadBuffer;
+			private byte[] _sectorBuffer;
 
 			public OnboardProfileFeatureHandler(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
 			{
-				_sectorReadBuffer = [];
+				_sectorBuffer = [];
 			}
 
 			public bool IsSupported => _isDeviceSupported;
@@ -52,9 +53,12 @@ public abstract partial class HidPlusPlusDevice
 					).ConfigureAwait(false)
 				).Mode;
 
-				if (_sectorReadBuffer.Length < _information.SectorSize)
+				// Round-up the buffer size to the closest multiple of 16. This is done to ease up write operations.
+				int bufferSize = (_information.SectorSize + 0xF) & ~0xF;
+
+				if (_sectorBuffer.Length < bufferSize)
 				{
-					_sectorReadBuffer = GC.AllocateUninitializedArray<byte>(_information.SectorSize, true);
+					_sectorBuffer = GC.AllocateUninitializedArray<byte>(bufferSize, true);
 				}
 
 				try
@@ -76,13 +80,36 @@ public abstract partial class HidPlusPlusDevice
 				{
 					await ReadAndValidateSectorAsync(activeProfileIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
-					ParseProfile(_sectorReadBuffer);
+					var profile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
 				}
 			}
 
-			private static void ParseProfile(byte[] buffer)
+			private static OnBoardProfiles.Profile ParseProfile(ReadOnlySpan<byte> buffer)
+				=> buffer.Length >= Unsafe.SizeOf<OnBoardProfiles.Profile>() ?
+					Unsafe.As<byte, OnBoardProfiles.Profile>(ref Unsafe.AsRef(in buffer[0])) :
+					ParseTruncatedProfile(buffer);
+
+			[SkipLocalsInit]
+			private static OnBoardProfiles.Profile ParseTruncatedProfile(ReadOnlySpan<byte> buffer)
 			{
-				ref readonly var profile = ref Unsafe.As<byte, OnBoardProfiles.Profile>(ref buffer[0]);
+				OnBoardProfiles.Profile profile;
+				Unsafe.SkipInit(out profile);
+				var span = MemoryMarshal.CreateSpan(ref Unsafe.As<OnBoardProfiles.Profile, byte>(ref profile), Unsafe.SizeOf<OnBoardProfiles.Profile>());
+				buffer.CopyTo(span);
+				span.Slice(buffer.Length).Fill(0xFF);
+				return profile;
+			}
+
+			private Task WriteProfileAsync(byte profileIndex, in OnBoardProfiles.Profile profile, CancellationToken cancellationToken)
+			{
+				int dataLength = _information.SectorSize - 2;
+				MemoryMarshal.CreateSpan(ref Unsafe.As<OnBoardProfiles.Profile, byte>(ref Unsafe.AsRef(in profile)), dataLength).CopyTo(_sectorBuffer);
+				if (Unsafe.SizeOf<OnBoardProfiles.Profile>() < dataLength)
+				{
+					_sectorBuffer.AsSpan(Unsafe.SizeOf<OnBoardProfiles.Profile>(), dataLength - Unsafe.SizeOf<OnBoardProfiles.Profile>()).Clear();
+				}
+
+				return WriteSectorAsync(profileIndex, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
 			}
 
 			public Task SwitchToHostModeAsync(CancellationToken cancellationToken)
@@ -126,8 +153,7 @@ public abstract partial class HidPlusPlusDevice
 
 			private async Task ReadSectorAsync(ushort sectorIndex, int retryCount, CancellationToken cancellationToken)
 			{
-				var buffer = _sectorReadBuffer;
-
+				var buffer = _sectorBuffer;
 				int length = _information.SectorSize;
 
 				var readRequest = new OnBoardProfiles.ReadMemory.Request() { SectorIndex = sectorIndex };
@@ -163,10 +189,49 @@ public abstract partial class HidPlusPlusDevice
 				}
 			}
 
+			private async Task WriteSectorAsync(byte sectorIndex, int retryCount, CancellationToken cancellationToken)
+			{
+				var buffer = _sectorBuffer;
+				int length = _information.SectorSize;
+
+				UpdateCrc(buffer.AsSpan(0, length));
+
+				var response = await Device.SendWithRetryAsync<OnBoardProfiles.StartWrite.Request, OnBoardProfiles.ReadMemory.Response>
+				(
+					FeatureIndex,
+					OnBoardProfiles.StartWrite.FunctionId,
+					new() { SectorIndex = sectorIndex, Offset = 0, Count = (ushort)length },
+					retryCount,
+					cancellationToken
+				).ConfigureAwait(false);
+
+				for (int offset = 0; offset < length; offset += 16)
+				{
+					await Device.SendWithRetryAsync
+					(
+						FeatureIndex,
+						OnBoardProfiles.ReadMemory.FunctionId,
+						in Unsafe.As<byte, OnBoardProfiles.WriteMemory.Request>(ref _sectorBuffer[offset]),
+						retryCount,
+						cancellationToken
+					).ConfigureAwait(false);
+					response.CopyTo(buffer.AsSpan(offset, 16));
+				}
+
+				await Device.SendWithRetryAsync<HidPlusPlusEmptyParameters>
+				(
+					FeatureIndex,
+					OnBoardProfiles.EndWrite.FunctionId,
+					default,
+					retryCount,
+					cancellationToken
+				).ConfigureAwait(false);
+			}
+
 			private async Task ReadAndValidateSectorAsync(ushort sectorIndex, int retryCount, CancellationToken cancellationToken)
 			{
 				await ReadSectorAsync(sectorIndex, retryCount, cancellationToken).ConfigureAwait(false);
-				ValidateSector(_sectorReadBuffer.AsSpan(0, _information.SectorSize));
+				ValidateSector(_sectorBuffer.AsSpan(0, _information.SectorSize));
 			}
 
 			private static void ValidateSector(ReadOnlySpan<byte> data)
@@ -176,6 +241,12 @@ public abstract partial class HidPlusPlusDevice
 				{
 					throw new InvalidDataException("Invalid CRC.");
 				}
+			}
+
+			private static void UpdateCrc(Span<byte> data)
+			{
+				int length = data.Length - 2;
+				BigEndian.Write(ref data[length], CcittCrc(data.Slice(0, length)));
 			}
 		}
 	}

@@ -308,6 +308,8 @@ public static class OnBoardProfiles
 		public ProfileName Name;
 		public LedEffectCollection Leds;
 		public LedEffectCollection AlternateLeds;
+		private byte _reservedA;
+		private byte _reservedB;
 	}
 
 	[DebuggerDisplay("{ToString()}")]
