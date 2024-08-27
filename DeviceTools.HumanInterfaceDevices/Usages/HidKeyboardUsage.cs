@@ -5,7 +5,7 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		// Error "keys"
 		NoEvent = 0x00,
 		Rollover = 0x01,
-		Postfail = 0x02,
+		PostFail = 0x02,
 		Undefined = 0x03,
 
 		// Letters
@@ -249,8 +249,8 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		DecimalSeparator = 0xB3,
 		CurrencyUnit = 0xB4,
 		CurrencySubUnit = 0xB5,
-		NumpadOpenParenthese = 0xB6,
-		NumpadCloseParenthese = 0xB7,
+		NumpadOpenParenthesis = 0xB6,
+		NumpadCloseParenthesis = 0xB7,
 		NumpadOpenBrace = 0xB8,
 		NumpadCloseBrace = 0xB9,
 		NumpadTab = 0xBA,
@@ -282,7 +282,7 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		NumpadMemorySubtract = 0xD4,
 		NumpadMemoryMultiply = 0xD5,
 		NumpadMemoryDivide = 0xD6,
-		NumapdPlusMinus = 0xD7,
+		NumpadPlusMinus = 0xD7,
 		NumpadClear = 0xD8,
 		NumpadClearEntry = 0xD9,
 		NumpadBinary = 0xDA,
