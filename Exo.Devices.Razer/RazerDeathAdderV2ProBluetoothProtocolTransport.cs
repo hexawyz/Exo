@@ -597,13 +597,13 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	// NB: I don't think there is a way to read or configure through Bluetooth. (At least I didn't find it yet)
-	// As such, we return an arbitrary value here, but we will forbid any tentative to update.
+	// NB: I don't think there is a way to read or configure through Bluetooth because Bluetooth doesn't allow a variable polling rate.
+	// As such, we return the frequency divider corresponding to 125 Hz, which should be what is used in Bluetooth mode.
 	public ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken)
-		=> new(1);
+		=> new(8);
 
 	public Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
-		=> throw new NotSupportedException();
+		=> throw new NotSupportedException("Cannot set polling frequency on Bluetooth devices.");
 
 	public async ValueTask<byte> GetBatteryLevelAsync(CancellationToken cancellationToken)
 	{
