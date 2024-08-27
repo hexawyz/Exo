@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -9,6 +9,17 @@ namespace DeviceTools.Logitech.HidPlusPlus.LedEffects;
 public readonly struct LedEffect
 {
 	private readonly byte _effect;
+	private readonly byte _parameter0;
+	private readonly byte _parameter1;
+	private readonly byte _parameter2;
+	private readonly byte _parameter3;
+	private readonly byte _parameter4;
+	private readonly byte _parameter5;
+	private readonly byte _parameter6;
+	private readonly byte _parameter7;
+	private readonly byte _parameter8;
+	private readonly byte _parameter9;
+
 	public PredefinedEffect Effect => (PredefinedEffect)_effect;
 
 	public FixedEffect AsFixed() => Effect == PredefinedEffect.Fixed ? Unsafe.BitCast<LedEffect, FixedEffect>(this) : throw new InvalidCastException();
