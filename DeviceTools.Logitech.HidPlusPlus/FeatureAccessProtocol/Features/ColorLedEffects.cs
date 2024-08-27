@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using DeviceTools.Logitech.HidPlusPlus.LedEffects;
 
 namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 
@@ -195,23 +196,6 @@ public static class ColorLedEffects
 		None = 0,
 		AlwaysOn = 1,
 		AlwaysOff = 2,
-
-	}
-
-	public enum PredefinedEffect : ushort
-	{
-		Disabled = 0,
-		Fixed = 1,
-		LegacyPulse = 2,
-		ColorCycle = 3,
-		ColorWave = 4,
-		Starlight = 5,
-		LightOnPress = 6,
-		AudioVisualizer = 7,
-		BootUp = 8,
-		DemoMode = 9,
-		Pulse = 10,
-		Ripple = 11,
 	}
 
 	[Flags]
