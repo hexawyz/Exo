@@ -310,19 +310,30 @@ public static class OnBoardProfiles
 		public LedEffectCollection AlternateLeds;
 	}
 
-	[InlineArray(48)]
-	public struct ProfileName
+	[DebuggerDisplay("{ToString()}")]
+	[StructLayout(LayoutKind.Sequential)]
+	public readonly struct ProfileName
 	{
-		private byte _element0;
+		private readonly ProfileNameData _value;
 
-		private static string ToString(ReadOnlySpan<byte> span)
+		public ProfileName(string value) => Encoding.UTF8.GetBytes(value, _value);
+
+		private static string? ToString(ReadOnlySpan<byte> span)
 		{
+			if (span.TrimStart((byte)0xFF).Length == 0) return null;
+
 			int endIndex = span.IndexOf((byte)0);
 			return Encoding.UTF8.GetString(endIndex >= 0 ? span[..endIndex] : span);
 		}
 
-		public override string ToString()
-			=> ToString(this);
+		public override string? ToString()
+			=> ToString(_value);
+	}
+
+	[InlineArray(48)]
+	private struct ProfileNameData
+	{
+		private byte _element0;
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 10)]
