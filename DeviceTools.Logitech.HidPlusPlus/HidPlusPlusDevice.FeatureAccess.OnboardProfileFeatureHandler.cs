@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
+using DeviceTools.Logitech.HidPlusPlus.Profiles;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 
@@ -88,29 +89,29 @@ public abstract partial class HidPlusPlusDevice
 				}
 			}
 
-			private static OnBoardProfiles.Profile ParseProfile(ReadOnlySpan<byte> buffer)
-				=> buffer.Length >= Unsafe.SizeOf<OnBoardProfiles.Profile>() ?
-					Unsafe.As<byte, OnBoardProfiles.Profile>(ref Unsafe.AsRef(in buffer[0])) :
+			private static Profile ParseProfile(ReadOnlySpan<byte> buffer)
+				=> buffer.Length >= Unsafe.SizeOf<Profile>() ?
+					Unsafe.As<byte, Profile>(ref Unsafe.AsRef(in buffer[0])) :
 					ParseTruncatedProfile(buffer);
 
 			[SkipLocalsInit]
-			private static OnBoardProfiles.Profile ParseTruncatedProfile(ReadOnlySpan<byte> buffer)
+			private static Profile ParseTruncatedProfile(ReadOnlySpan<byte> buffer)
 			{
-				OnBoardProfiles.Profile profile;
+				Profile profile;
 				Unsafe.SkipInit(out profile);
-				var span = MemoryMarshal.CreateSpan(ref Unsafe.As<OnBoardProfiles.Profile, byte>(ref profile), Unsafe.SizeOf<OnBoardProfiles.Profile>());
+				var span = MemoryMarshal.CreateSpan(ref Unsafe.As<Profile, byte>(ref profile), Unsafe.SizeOf<Profile>());
 				buffer.CopyTo(span);
 				span.Slice(buffer.Length).Fill(0xFF);
 				return profile;
 			}
 
-			private Task WriteProfileAsync(byte profileIndex, in OnBoardProfiles.Profile profile, CancellationToken cancellationToken)
+			private Task WriteProfileAsync(byte profileIndex, in Profile profile, CancellationToken cancellationToken)
 			{
 				int dataLength = _information.SectorSize - 2;
-				MemoryMarshal.CreateSpan(ref Unsafe.As<OnBoardProfiles.Profile, byte>(ref Unsafe.AsRef(in profile)), dataLength).CopyTo(_sectorBuffer);
-				if (Unsafe.SizeOf<OnBoardProfiles.Profile>() < dataLength)
+				MemoryMarshal.CreateSpan(ref Unsafe.As<Profile, byte>(ref Unsafe.AsRef(in profile)), dataLength).CopyTo(_sectorBuffer);
+				if (Unsafe.SizeOf<Profile>() < dataLength)
 				{
-					_sectorBuffer.AsSpan(Unsafe.SizeOf<OnBoardProfiles.Profile>(), dataLength - Unsafe.SizeOf<OnBoardProfiles.Profile>()).Clear();
+					_sectorBuffer.AsSpan(Unsafe.SizeOf<Profile>(), dataLength - Unsafe.SizeOf<Profile>()).Clear();
 				}
 
 				return WriteSectorAsync(profileIndex, HidPlusPlusTransportExtensions.DefaultRetryCount, cancellationToken);
