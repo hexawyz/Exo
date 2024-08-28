@@ -743,7 +743,7 @@ public abstract class LogitechUniversalDriver :
 		}
 	}
 
-	// Root drivers, all implementing ISystemDeviceDriver.
+	// Root drivers
 	private static class SystemDrivers
 	{
 		internal class Receiver : RegisterAccess
@@ -867,8 +867,6 @@ public abstract class LogitechUniversalDriver :
 
 		internal class RegisterAccessDirectKeyboard : BaseDrivers.RegisterAccessDirectKeyboard
 		{
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public RegisterAccessDirectKeyboard(HidPlusPlusDevice.RegisterAccessDirect device, ILogger<RegisterAccessDirectKeyboard> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
 			{
@@ -885,8 +883,6 @@ public abstract class LogitechUniversalDriver :
 
 		internal class RegisterAccessThroughReceiverGeneric : BaseDrivers.RegisterAccessThroughReceiverGeneric
 		{
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public RegisterAccessThroughReceiverGeneric(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ILogger<RegisterAccessThroughReceiverGeneric> logger, DeviceConfigurationKey configurationKey, ushort versionNumber, DeviceCategory category)
 				: base(device, logger, configurationKey, versionNumber, category)
 			{
@@ -903,8 +899,6 @@ public abstract class LogitechUniversalDriver :
 
 		internal class RegisterAccessThroughReceiverMouse : BaseDrivers.RegisterAccessThroughReceiverMouse
 		{
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public RegisterAccessThroughReceiverMouse(HidPlusPlusDevice.RegisterAccessThroughReceiver device, ILogger<RegisterAccessThroughReceiverMouse> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
 			{
@@ -913,8 +907,6 @@ public abstract class LogitechUniversalDriver :
 
 		internal class FeatureAccessDirectGeneric : BaseDrivers.FeatureAccessDirectGeneric
 		{
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public FeatureAccessDirectGeneric(HidPlusPlusDevice.FeatureAccessDirect device, ILogger<FeatureAccessDirectGeneric> logger, DeviceConfigurationKey configurationKey, ushort versionNumber, DeviceCategory category)
 				: base(device, logger, configurationKey, versionNumber, category)
 			{
@@ -923,8 +915,6 @@ public abstract class LogitechUniversalDriver :
 
 		internal class FeatureAccessDirectKeyboard : BaseDrivers.FeatureAccessDirectKeyboard
 		{
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public FeatureAccessDirectKeyboard(HidPlusPlusDevice.FeatureAccessDirect device, ILogger<FeatureAccessDirectKeyboard> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
 			{
@@ -933,8 +923,6 @@ public abstract class LogitechUniversalDriver :
 
 		internal class FeatureAccessDirectMouse : BaseDrivers.FeatureAccessDirectMouse
 		{
-			public ImmutableArray<string> DeviceNames { get; }
-
 			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, ILogger<FeatureAccessDirectMouse> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
 			{
