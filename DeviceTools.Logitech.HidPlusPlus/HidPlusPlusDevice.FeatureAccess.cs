@@ -137,6 +137,9 @@ public abstract partial class HidPlusPlusDevice
 		public bool HasLockKeys => HasFeature(_lockKeyFeatureHandler);
 		public LockKeys LockKeys => GetFeature(in _lockKeyFeatureHandler).LockKeys;
 
+		public bool HasAdjustableDpi => HasFeature(_dpiState);
+		public ushort CurrentDpi => GetFeature(in _dpiState).CurrentDpi;
+
 		public bool HasAdjustableReportInterval => HasFeature(_reportRateState);
 		public ReportIntervals SupportedReportIntervals => GetFeature(in _reportRateState).SupportedReportIntervals;
 		public byte ReportInterval => GetFeature(in _reportRateState).ReportInterval;

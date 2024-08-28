@@ -360,6 +360,7 @@ public abstract class LogitechUniversalDriver :
 		IBatteryStateDeviceFeature,
 		IKeyboardBacklightFeature,
 		IKeyboardLockKeysFeature,
+		IMouseDpiFeature,
 		IMouseConfigurablePollingFrequencyFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, ILogger<FeatureAccess> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
@@ -384,9 +385,13 @@ public abstract class LogitechUniversalDriver :
 		}
 
 		protected IDeviceFeatureSet<IMouseDeviceFeature> CreateMouseFeatures()
-			=> HasAdjustableReportInterval ?
-				FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseConfigurablePollingFrequencyFeature>(this) :
-				FeatureSet.Empty<IMouseDeviceFeature>();
+			=> HasAdjustableDpi ?
+				HasAdjustableReportInterval ?
+					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
+					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature>(this) :
+				HasAdjustableReportInterval ?
+					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseConfigurablePollingFrequencyFeature>(this) :
+					FeatureSet.Empty<IMouseDeviceFeature>();
 
 		private static BatteryState BuildBatteryState(BatteryPowerState batteryPowerState)
 			=> new()
@@ -483,6 +488,7 @@ public abstract class LogitechUniversalDriver :
 		protected bool HasBattery => Device.HasBatteryInformation;
 		protected bool HasBacklight => Device.HasBacklight;
 		protected bool HasLockKeys => Device.HasLockKeys;
+		protected bool HasAdjustableDpi => Device.HasAdjustableDpi;
 		protected bool HasAdjustableReportInterval => Device.HasAdjustableReportInterval;
 
 		private event Action<Driver, BatteryState>? BatteryStateChanged;
@@ -512,6 +518,8 @@ public abstract class LogitechUniversalDriver :
 		}
 
 		LockKeys IKeyboardLockKeysFeature.LockedKeys => (LockKeys)(byte)Device.LockKeys;
+
+		MouseDpiStatus IMouseDpiFeature.CurrentDpi => new() { Dpi = new(Device.CurrentDpi) };
 
 		ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => (ushort)(1000 / Device.ReportInterval);
 

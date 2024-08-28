@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.Logitech.HidPlusPlus;
+namespace DeviceTools.Logitech.HidPlusPlus;
 
 [Flags]
 public enum ReportIntervals : byte

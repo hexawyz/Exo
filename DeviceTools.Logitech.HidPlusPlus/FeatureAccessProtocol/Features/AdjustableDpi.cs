@@ -19,7 +19,7 @@ public static class AdjustableDpi
 		}
 	}
 
-	public static class GetSensorDpiList
+	public static class GetSensorDpiRanges
 	{
 		public const byte FunctionId = 1;
 
@@ -32,79 +32,37 @@ public static class AdjustableDpi
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 16)]
 		public struct Response : IMessageResponseParameters, ILongMessageParameters
 		{
-			private byte _dpi00;
-			private byte _dpi01;
-			private byte _dpi10;
-			private byte _dpi11;
-			private byte _dpi20;
-			private byte _dpi21;
-			private byte _dpi30;
-			private byte _dpi31;
-			private byte _dpi40;
-			private byte _dpi41;
-			private byte _dpi50;
-			private byte _dpi51;
-			private byte _dpi60;
-			private byte _dpi61;
-			private byte _dpi70;
-			private byte _dpi71;
+			public byte SensorIndex;
+			private byte _item00;
+			private byte _item01;
+			private byte _item10;
+			private byte _item11;
+			private byte _item20;
+			private byte _item21;
+			private byte _item30;
+			private byte _item31;
+			private byte _item40;
+			private byte _item41;
+			private byte _item50;
+			private byte _item51;
+			private byte _item60;
+			private byte _item61;
 
 			public ushort this[int index]
 			{
-				get => Unsafe.ReadUnaligned<ushort>(ref Unsafe.As<ushort, byte>(ref GetSpan(ref this)[index]));
-				set => Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref GetSpan(ref this)[index]), value);
+				readonly get
+				{
+					if ((uint)index >= (uint)ItemCount) throw new ArgumentOutOfRangeException(nameof(index));
+					return BigEndian.ReadUInt16(in Unsafe.AddByteOffset(ref Unsafe.AsRef(in _item00), 2 * index));
+				}
+				set
+				{
+					if ((uint)index >= (uint)ItemCount) throw new ArgumentOutOfRangeException(nameof(index));
+					BigEndian.Write(ref Unsafe.AddByteOffset(ref _item00, 2 * index), value);
+				}
 			}
 
-			public ushort Dpi0
-			{
-				get => BigEndian.ReadUInt16(_dpi00);
-				set => BigEndian.Write(ref _dpi00, value);
-			}
-
-			public ushort Dpi1
-			{
-				get => BigEndian.ReadUInt16(_dpi10);
-				set => BigEndian.Write(ref _dpi10, value);
-			}
-
-			public ushort Dpi2
-			{
-				get => BigEndian.ReadUInt16(_dpi20);
-				set => BigEndian.Write(ref _dpi20, value);
-			}
-
-			public ushort Dpi3
-			{
-				get => BigEndian.ReadUInt16(_dpi30);
-				set => BigEndian.Write(ref _dpi30, value);
-			}
-
-			public ushort Dpi4
-			{
-				get => BigEndian.ReadUInt16(_dpi40);
-				set => BigEndian.Write(ref _dpi40, value);
-			}
-
-			public ushort Dpi5
-			{
-				get => BigEndian.ReadUInt16(_dpi50);
-				set => BigEndian.Write(ref _dpi50, value);
-			}
-
-			public ushort Dpi6
-			{
-				get => BigEndian.ReadUInt16(_dpi60);
-				set => BigEndian.Write(ref _dpi60, value);
-			}
-
-			public ushort Dpi7
-			{
-				get => BigEndian.ReadUInt16(_dpi70);
-				set => BigEndian.Write(ref _dpi70, value);
-			}
-
-			private static Span<ushort> GetSpan(ref Response response)
-				=> MemoryMarshal.CreateSpan(ref Unsafe.As<byte, ushort>(ref response._dpi00), 16);
+			public readonly int ItemCount => 7;
 		}
 	}
 
