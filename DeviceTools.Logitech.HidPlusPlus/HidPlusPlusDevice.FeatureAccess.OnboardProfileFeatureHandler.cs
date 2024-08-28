@@ -81,6 +81,10 @@ public abstract partial class HidPlusPlusDevice
 					await ReadAndValidateSectorAsync(activeProfileIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
 					var profile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
+
+					profile.ProfileColor = new(255, 0, 255);
+
+					await WriteProfileAsync(activeProfileIndex, in profile, cancellationToken).ConfigureAwait(false);
 				}
 			}
 

@@ -1,11 +1,14 @@
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.Logitech.HidPlusPlus;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Keyboards;
+using Exo.Features.Mouses;
 using Exo.Features.PowerManagement;
 using Microsoft.Extensions.Logging;
 using BacklightState = Exo.Features.Keyboards.BacklightState;
@@ -352,7 +355,12 @@ public abstract class LogitechUniversalDriver :
 		}
 	}
 
-	private abstract class FeatureAccess : LogitechUniversalDriver, IBatteryStateDeviceFeature, IKeyboardBacklightFeature, IKeyboardLockKeysFeature
+	private abstract class FeatureAccess :
+		LogitechUniversalDriver,
+		IBatteryStateDeviceFeature,
+		IKeyboardBacklightFeature,
+		IKeyboardLockKeysFeature,
+		IMouseConfigurablePollingFrequencyFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, ILogger<FeatureAccess> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 			: base(device, logger, configurationKey, versionNumber)
@@ -374,6 +382,11 @@ public abstract class LogitechUniversalDriver :
 			Device.BatteryChargeStateChanged -= OnBatteryChargeStateChanged;
 			return base.DisposeAsync();
 		}
+
+		protected IDeviceFeatureSet<IMouseDeviceFeature> CreateMouseFeatures()
+			=> HasAdjustableReportInterval ?
+				FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseConfigurablePollingFrequencyFeature>(this) :
+				FeatureSet.Empty<IMouseDeviceFeature>();
 
 		private static BatteryState BuildBatteryState(BatteryPowerState batteryPowerState)
 			=> new()
@@ -468,10 +481,9 @@ public abstract class LogitechUniversalDriver :
 		protected HidPlusPlusDevice.FeatureAccess Device => Unsafe.As<HidPlusPlusDevice.FeatureAccess>(_device);
 
 		protected bool HasBattery => Device.HasBatteryInformation;
-
 		protected bool HasBacklight => Device.HasBacklight;
-
 		protected bool HasLockKeys => Device.HasLockKeys;
+		protected bool HasAdjustableReportInterval => Device.HasAdjustableReportInterval;
 
 		private event Action<Driver, BatteryState>? BatteryStateChanged;
 		private event Action<Driver, BacklightState>? BacklightStateChanged;
@@ -500,6 +512,34 @@ public abstract class LogitechUniversalDriver :
 		}
 
 		LockKeys IKeyboardLockKeysFeature.LockedKeys => (LockKeys)(byte)Device.LockKeys;
+
+		ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => (ushort)(1000 / Device.ReportInterval);
+
+		ImmutableArray<ushort> IMouseConfigurablePollingFrequencyFeature.SupportedPollingFrequencies
+		{
+			get
+			{
+				var supportedReportIntervals = Device.SupportedReportIntervals;
+				var frequencies = new ushort[BitOperations.PopCount((byte)supportedReportIntervals)];
+				int i = 0;
+				for (int j = 128; j != 0; j >>>= 1)
+				{
+					if (((byte)supportedReportIntervals & j) != 0) frequencies[i++] = (ushort)(1000 / ((uint)BitOperations.Log2((uint)j) + 1));
+				}
+				return ImmutableCollectionsMarshal.AsImmutableArray(frequencies);
+			}
+		}
+
+		async ValueTask IMouseConfigurablePollingFrequencyFeature.SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken)
+		{
+			if (pollingFrequency is < 125 or > 1000) throw new ArgumentOutOfRangeException(nameof(pollingFrequency));
+			// NB: As long as we work with integers and the allowed polling intervals, (1000 / frequency) is a perfect reverse of (1000 / interval).
+			// This is however an imperfect solution, but I don't see a perfect solution to this anyway.
+			// While migrating the feature to use µs intervals instead might seem like a good idea,
+			// it will be problematic as soon as somebody comes up with hardware that has a 16KHz frequency. (Which is 62.5µs interval)
+			byte interval = (byte)(1000 / pollingFrequency);
+			await Device.SetReportIntervalAsync(interval, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	private abstract class RegisterAccessDirect : RegisterAccess
@@ -642,14 +682,17 @@ public abstract class LogitechUniversalDriver :
 
 		internal class FeatureAccessDirectMouse : FeatureAccessDirect, IDeviceDriver<IMouseDeviceFeature>
 		{
+			private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
+
 			public FeatureAccessDirectMouse(HidPlusPlusDevice.FeatureAccessDirect device, ILogger<FeatureAccessDirectMouse> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
 			{
+				_mouseFeatures = CreateMouseFeatures();
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureSet.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
 		}
 
 		internal sealed class FeatureAccessThroughReceiverGeneric : FeatureAccessThroughReceiver
@@ -686,14 +729,17 @@ public abstract class LogitechUniversalDriver :
 
 		internal sealed class FeatureAccessThroughReceiverMouse : FeatureAccessThroughReceiver, IDeviceDriver<IMouseDeviceFeature>
 		{
+			private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
+
 			public FeatureAccessThroughReceiverMouse(HidPlusPlusDevice.FeatureAccessThroughReceiver device, ILogger<FeatureAccessThroughReceiverMouse> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 				: base(device, logger, configurationKey, versionNumber)
 			{
+				_mouseFeatures = CreateMouseFeatures();
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => FeatureSet.Empty<IMouseDeviceFeature>();
+			IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
 		}
 	}
 

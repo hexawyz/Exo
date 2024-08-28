@@ -282,7 +282,7 @@ public static class OnBoardProfiles
 
 	public struct Profile
 	{
-		public byte PollingRateDivider;
+		public byte ReportRate;
 		public byte DefaultDpiIndex;
 		public byte SwitchedDpiIndex;
 		public ProfileDpiCollection DpiPresets;

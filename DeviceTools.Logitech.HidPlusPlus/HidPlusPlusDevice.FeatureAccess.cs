@@ -17,6 +17,7 @@ public abstract partial class HidPlusPlusDevice
 		private FeatureHandler[]? _featureHandlers;
 		private BatteryFeatureHandler? _batteryState;
 		private DpiFeatureHandler? _dpiState;
+		private ReportRateFeatureHandler? _reportRateState;
 		private BacklightV2FeatureHandler? _backlightState;
 		private ColorLedEffectFeatureHandler? _colorLedEffectState;
 		private LockKeyFeatureHandler? _lockKeyFeatureHandler;
@@ -88,6 +89,13 @@ public abstract partial class HidPlusPlusDevice
 				Volatile.Write(ref _featureHandlers![index], dpiState);
 			}
 
+			if (features.TryGetIndex(HidPlusPlusFeature.ReportRate, out index))
+			{
+				var reportRate = new ReportRateFeatureHandler(this, index);
+				Volatile.Write(ref _reportRateState, reportRate);
+				Volatile.Write(ref _featureHandlers![index], reportRate);
+			}
+
 			if (features.TryGetIndex(HidPlusPlusFeature.BacklightV2, out index))
 			{
 				var backlightState = new BacklightV2FeatureHandler(this, index);
@@ -120,35 +128,33 @@ public abstract partial class HidPlusPlusDevice
 
 		public override HidPlusPlusProtocolFlavor ProtocolFlavor => HidPlusPlusProtocolFlavor.FeatureAccess;
 
-		public bool HasBatteryInformation
+		public bool HasBatteryInformation => HasFeature(_batteryState);
+		public BatteryPowerState BatteryPowerState => GetFeature(in _batteryState).PowerState;
+
+		public bool HasBacklight => HasFeature(_backlightState);
+		public BacklightState BacklightState => GetFeature(in _backlightState).BacklightState;
+
+		public bool HasLockKeys => HasFeature(_lockKeyFeatureHandler);
+		public LockKeys LockKeys => GetFeature(in _lockKeyFeatureHandler).LockKeys;
+
+		public bool HasAdjustableReportInterval => HasFeature(_reportRateState);
+		public ReportIntervals SupportedReportIntervals => GetFeature(in _reportRateState).SupportedReportIntervals;
+		public byte ReportInterval => GetFeature(in _reportRateState).ReportInterval;
+
+		public async Task SetReportIntervalAsync(byte reportInterval, CancellationToken cancellationToken)
+		{
+			var feature = GetFeature(in _reportRateState);
+			if (reportInterval > 8 || ((byte)feature.SupportedReportIntervals & (1 << reportInterval)) != 0) throw new ArgumentOutOfRangeException(nameof(reportInterval));
+			await feature.SetReportIntervalAsync(reportInterval, cancellationToken).ConfigureAwait(false);
+		}
+
+		private bool HasFeature(object? featureHandler)
 			=> CachedFeatures is not null ?
-				_batteryState is not null :
+				featureHandler is not null :
 				throw new InvalidOperationException("The device has not yet been connected.");
 
-		public BatteryPowerState BatteryPowerState
-			=> _batteryState is not null ?
-				_batteryState.PowerState :
-				throw new InvalidOperationException("The device has no battery support.");
-
-		public bool HasBacklight
-			=> CachedFeatures is not null ?
-				_backlightState is not null :
-				throw new InvalidOperationException("The device has not yet been connected.");
-
-		public BacklightState BacklightState
-			=> _backlightState is not null ?
-				_backlightState.BacklightState :
-				throw new InvalidOperationException("The device has no backlight support.");
-
-		public bool HasLockKeys
-			=> CachedFeatures is not null ?
-				_lockKeyFeatureHandler is not null :
-				throw new InvalidOperationException("The device has not yet been connected.");
-
-		public LockKeys LockKeys
-			=> _lockKeyFeatureHandler is not null ?
-				_lockKeyFeatureHandler.LockKeys :
-				throw new InvalidOperationException("The device has no backlight support.");
+		private static T GetFeature<T>(in T? featureHandler) where T : FeatureHandler
+			=> featureHandler ?? throw new InvalidOperationException("The device does not support this feature.");
 
 		protected virtual void HandleNotification(ReadOnlySpan<byte> message)
 		{
