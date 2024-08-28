@@ -147,7 +147,7 @@ public abstract partial class HidPlusPlusDevice
 		public async Task SetReportIntervalAsync(byte reportInterval, CancellationToken cancellationToken)
 		{
 			var feature = GetFeature(in _reportRateState);
-			if (reportInterval > 8 || ((byte)feature.SupportedReportIntervals & (1 << reportInterval)) != 0) throw new ArgumentOutOfRangeException(nameof(reportInterval));
+			if (reportInterval > 8 || ((byte)feature.SupportedReportIntervals & (1 << (reportInterval - 1))) == 0) throw new ArgumentOutOfRangeException(nameof(reportInterval));
 			await feature.SetReportIntervalAsync(reportInterval, cancellationToken).ConfigureAwait(false);
 		}
 
