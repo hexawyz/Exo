@@ -362,6 +362,8 @@ public abstract class LogitechUniversalDriver :
 		IKeyboardLockKeysFeature,
 		IMouseDpiFeature,
 		IMouseDynamicDpiFeature,
+		IMouseDpiPresetsFeature,
+		IMouseConfigurableDpiPresetsFeature,
 		IMouseConfigurablePollingFrequencyFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, ILogger<FeatureAccess> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
@@ -387,9 +389,13 @@ public abstract class LogitechUniversalDriver :
 
 		protected IDeviceFeatureSet<IMouseDeviceFeature> CreateMouseFeatures()
 			=> HasAdjustableDpi ?
-				HasAdjustableReportInterval ?
-					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
-					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature>(this) :
+				HasOnBoardProfiles ?
+					HasAdjustableReportInterval ?
+						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
+						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature>(this) :
+					HasAdjustableReportInterval ?
+						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
+						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature>(this) :
 				HasAdjustableReportInterval ?
 					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseConfigurablePollingFrequencyFeature>(this) :
 					FeatureSet.Empty<IMouseDeviceFeature>();
@@ -491,6 +497,7 @@ public abstract class LogitechUniversalDriver :
 		protected bool HasLockKeys => Device.HasLockKeys;
 		protected bool HasAdjustableDpi => Device.HasAdjustableDpi;
 		protected bool HasAdjustableReportInterval => Device.HasAdjustableReportInterval;
+		protected bool HasOnBoardProfiles => Device.HasOnBoardProfiles;
 
 		private event Action<Driver, BatteryState>? BatteryStateChanged;
 		private event Action<Driver, BacklightState>? BacklightStateChanged;
@@ -520,8 +527,6 @@ public abstract class LogitechUniversalDriver :
 
 		LockKeys IKeyboardLockKeysFeature.LockedKeys => (LockKeys)(byte)Device.LockKeys;
 
-		MouseDpiStatus IMouseDpiFeature.CurrentDpi => new() { Dpi = new(Device.CurrentDpi) };
-
 		ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => (ushort)(1000 / Device.ReportInterval);
 
 		ImmutableArray<ushort> IMouseConfigurablePollingFrequencyFeature.SupportedPollingFrequencies
@@ -550,6 +555,18 @@ public abstract class LogitechUniversalDriver :
 			await Device.SetReportIntervalAsync(interval, cancellationToken).ConfigureAwait(false);
 		}
 
+		private static DotsPerInch Convert(DeviceTools.Logitech.HidPlusPlus.DotsPerInch dpi)
+			=> new(dpi.Horizontal, dpi.Vertical);
+
+		MouseDpiStatus IMouseDpiFeature.CurrentDpi
+		{
+			get
+			{
+				var currentDpi = Device.CurrentDpi;
+				return new() { PresetIndex = currentDpi.PresetIndex, Dpi = Convert(currentDpi.Dpi) };
+			}
+		}
+
 		DotsPerInch IMouseDynamicDpiFeature.MaximumDpi => new(Device.DpiRanges[^1].Maximum);
 
 		bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => false;
@@ -559,6 +576,15 @@ public abstract class LogitechUniversalDriver :
 			add { }
 			remove { }
 		}
+
+		ImmutableArray<DotsPerInch> IMouseDpiPresetsFeature.DpiPresets => ImmutableArray.CreateRange(Device.GetCurrentDpiPresets(), Convert);
+
+		ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
+			=> new(Device.SetCurrentDpiPresetAsync(activePresetIndex, cancellationToken));
+
+		byte IMouseConfigurableDpiPresetsFeature.MaxPresetCount => 5;
+
+		ValueTask IMouseConfigurableDpiPresetsFeature.SetDpiPresetsAsync(byte activePresetIndex, ImmutableArray<DotsPerInch> dpiPresets, CancellationToken cancellationToken) => throw new NotImplementedException();
 	}
 
 	private abstract class RegisterAccessDirect : RegisterAccess

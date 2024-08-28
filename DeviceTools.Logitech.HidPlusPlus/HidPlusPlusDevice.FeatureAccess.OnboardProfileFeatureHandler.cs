@@ -16,7 +16,9 @@ public abstract partial class HidPlusPlusDevice
 			private OnBoardProfiles.GetInfo.Response _information;
 			private DeviceMode _deviceMode;
 			private bool _isDeviceSupported;
+			private byte _currentDpiIndex;
 			private byte[] _sectorBuffer;
+			private Profile _currentProfile;
 
 			public OnboardProfileFeatureHandler(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
 			{
@@ -26,6 +28,10 @@ public abstract partial class HidPlusPlusDevice
 			public bool IsSupported => _isDeviceSupported;
 
 			public DeviceMode DeviceMode => _deviceMode;
+
+			public ref readonly Profile CurrentProfile => ref _currentProfile;
+
+			public byte CurrentDpiIndex => _currentDpiIndex;
 
 			private void EnsureSupport()
 			{
@@ -81,11 +87,9 @@ public abstract partial class HidPlusPlusDevice
 				{
 					await ReadAndValidateSectorAsync(activeProfileIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
-					var profile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
+					_currentProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
 
-					profile.ProfileColor = new(255, 0, 255);
-
-					await WriteProfileAsync(activeProfileIndex, in profile, cancellationToken).ConfigureAwait(false);
+					_currentDpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
 				}
 			}
 
@@ -127,20 +131,38 @@ public abstract partial class HidPlusPlusDevice
 			{
 				EnsureSupport();
 				await Device.SendAsync(FeatureIndex, OnBoardProfiles.SetDeviceMode.FunctionId, new OnBoardProfiles.SetDeviceMode.Request { Mode = DeviceMode.Host }, cancellationToken).ConfigureAwait(false);
+				_deviceMode = mode;
+				if (mode == DeviceMode.OnBoardMemory)
+				{
+					// TODO: Ensure that current profile is loaded.
+				}
 			}
 
-			private async ValueTask<DeviceMode> GetDeviceModeAsync(CancellationToken cancellationToken)
+			public async ValueTask<DeviceMode> GetDeviceModeAsync(CancellationToken cancellationToken)
 			{
 				EnsureSupport();
 				var response = await Device.SendAsync<OnBoardProfiles.GetDeviceMode.Response>(FeatureIndex, OnBoardProfiles.GetDeviceMode.FunctionId, cancellationToken).ConfigureAwait(false);
 				return response.Mode;
 			}
 
-			private async ValueTask<byte> GetActiveProfileIndexAsync(CancellationToken cancellationToken)
+			public async ValueTask<byte> GetActiveProfileIndexAsync(CancellationToken cancellationToken)
 			{
 				EnsureSupport();
 				var response = await Device.SendAsync<OnBoardProfiles.GetCurrentProfile.Response>(FeatureIndex, OnBoardProfiles.GetCurrentProfile.FunctionId, cancellationToken).ConfigureAwait(false);
 				return response.ActiveProfileIndex;
+			}
+
+			public async ValueTask<byte> GetActiveDpiIndex(CancellationToken cancellationToken)
+			{
+				EnsureSupport();
+				var response = await Device.SendAsync<OnBoardProfiles.GetCurrentDpiIndex.Response>(FeatureIndex, OnBoardProfiles.GetCurrentDpiIndex.FunctionId, cancellationToken).ConfigureAwait(false);
+				return response.ActivePresetIndex;
+			}
+
+			public async Task SetActiveDpiIndex(byte dpiIndex, CancellationToken cancellationToken)
+			{
+				EnsureSupport();
+				await Device.SendAsync(FeatureIndex, OnBoardProfiles.SetCurrentDpiIndex.FunctionId, new OnBoardProfiles.SetCurrentDpiIndex.Request { ActivePresetIndex = dpiIndex }, cancellationToken).ConfigureAwait(false);
 			}
 
 			private static ushort CcittCrc(ReadOnlySpan<byte> bytes)

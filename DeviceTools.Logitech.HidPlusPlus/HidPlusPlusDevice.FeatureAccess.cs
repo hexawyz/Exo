@@ -22,7 +22,7 @@ public abstract partial class HidPlusPlusDevice
 		private BacklightV2FeatureHandler? _backlightState;
 		private ColorLedEffectFeatureHandler? _colorLedEffectState;
 		private LockKeyFeatureHandler? _lockKeyFeatureHandler;
-		private OnboardProfileFeatureHandler? _onboardProfileState;
+		private OnboardProfileFeatureHandler? _onBoardProfileState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
 		// NB: We probably don't need Volatile reads here, as this data isn't supposed to be updated often, and we expect it to be read as a response to a connection notification.
@@ -114,7 +114,7 @@ public abstract partial class HidPlusPlusDevice
 			if (features.TryGetIndex(HidPlusPlusFeature.OnboardProfiles, out index))
 			{
 				var onboardProfileState = new OnboardProfileFeatureHandler(this, index);
-				Volatile.Write(ref _onboardProfileState, onboardProfileState);
+				Volatile.Write(ref _onBoardProfileState, onboardProfileState);
 				Volatile.Write(ref _featureHandlers![index], onboardProfileState);
 			}
 
@@ -139,7 +139,24 @@ public abstract partial class HidPlusPlusDevice
 		public LockKeys LockKeys => GetFeature(in _lockKeyFeatureHandler).LockKeys;
 
 		public bool HasAdjustableDpi => HasFeature(_dpiState);
-		public ushort CurrentDpi => GetFeature(in _dpiState).CurrentDpi;
+		public DpiStatus CurrentDpi
+		{
+			get
+			{
+				var dpiFeature = GetFeature(in _dpiState);
+				if (HasOnBoardProfiles)
+				{
+					var onBoardProfileFeature = GetFeature(in _onBoardProfileState);
+					if (onBoardProfileFeature.DeviceMode == DeviceMode.OnBoardMemory)
+					{
+						byte presetIndex = onBoardProfileFeature.CurrentDpiIndex;
+						return new(presetIndex, new(onBoardProfileFeature.CurrentProfile.DpiPresets[presetIndex]));
+					}
+				}
+				return new(new(dpiFeature.CurrentDpi));
+			}
+		}
+
 		public ImmutableArray<DpiRange> DpiRanges => GetFeature(in _dpiState).DpiRanges;
 
 		public bool HasAdjustableReportInterval => HasFeature(_reportRateState);
@@ -151,6 +168,35 @@ public abstract partial class HidPlusPlusDevice
 			var feature = GetFeature(in _reportRateState);
 			if (reportInterval > 8 || ((byte)feature.SupportedReportIntervals & (1 << (reportInterval - 1))) == 0) throw new ArgumentOutOfRangeException(nameof(reportInterval));
 			await feature.SetReportIntervalAsync(reportInterval, cancellationToken).ConfigureAwait(false);
+		}
+
+		public bool HasOnBoardProfiles => HasFeature(_onBoardProfileState);
+
+		public ImmutableArray<DotsPerInch> GetCurrentDpiPresets()
+		{
+			var onBoardProfileFeature = GetFeature(in _onBoardProfileState);
+			var rawPresets = onBoardProfileFeature.CurrentProfile.DpiPresets;
+
+			int i = 0;
+			while (i < rawPresets.Count)
+			{
+				if (rawPresets[i] == 0xFFFF) break;
+				i++;
+			}
+
+			var presets = new DotsPerInch[i];
+			for (i = 0; i < presets.Length; i++)
+			{
+				presets[i] = new(rawPresets[i]);
+			}
+
+			return ImmutableCollectionsMarshal.AsImmutableArray(presets);
+		}
+
+		public async Task SetCurrentDpiPresetAsync(byte dpiPresetIndex, CancellationToken cancellationToken)
+		{
+			var feature = GetFeature(in _onBoardProfileState);
+			await feature.SetActiveDpiIndex(dpiPresetIndex, cancellationToken).ConfigureAwait(false);
 		}
 
 		private bool HasFeature(object? featureHandler)
@@ -219,7 +265,7 @@ public abstract partial class HidPlusPlusDevice
 					}
 				}
 			}
-				
+
 		}
 
 		public ValueTask<HidPlusPlusFeatureCollection> GetFeaturesAsync(CancellationToken cancellationToken)

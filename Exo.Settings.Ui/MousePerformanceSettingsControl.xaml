@@ -127,43 +127,45 @@
                     </ItemsView.Layout>
                 </ItemsView>
             </Border>
-            <Grid Grid.Row="2" Visibility="{Binding SelectedDpiPreset, Converter={StaticResource NullabilityToVisibilityConverter}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <CheckBox
-                    Grid.ColumnSpan="2"
-                    Content="Independent X-Y DPI"
-                    IsChecked="{Binding SelectedDpiPreset.IsIndependent, Mode=TwoWay}"
-                    Visibility="{Binding AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBlock
-                    Grid.Row="1"
-                    Margin="{StaticResource RowLabelMargin}"
-                    Text="Horizontal" />
-                <Slider
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    Value="{Binding SelectedDpiPreset.Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                    Minimum="1"
-                    Maximum="{Binding MaximumDpi.Horizontal}" />
-                <TextBlock
-                    Grid.Row="2"
-                    Margin="{StaticResource RowLabelMargin}"
-                    Text="Vertical"
-                    Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <Slider
-                    Grid.Row="2"
-                    Grid.Column="1"
-                    Value="{Binding SelectedDpiPreset.Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                    Minimum="1"
-                    Maximum="{Binding MaximumDpi.Vertical}"
-                    Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <Grid Grid.Row="2" Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
+                <Grid Visibility="{Binding SelectedDpiPreset, Converter={StaticResource NullabilityToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <CheckBox
+                        Grid.ColumnSpan="2"
+                        Content="Independent X-Y DPI"
+                        IsChecked="{Binding SelectedDpiPreset.IsIndependent, Mode=TwoWay}"
+                        Visibility="{Binding AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <TextBlock
+                        Grid.Row="1"
+                        Margin="{StaticResource RowLabelMargin}"
+                        Text="Horizontal" />
+                    <Slider
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Value="{Binding SelectedDpiPreset.Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+                        Minimum="1"
+                        Maximum="{Binding MaximumDpi.Horizontal}" />
+                    <TextBlock
+                        Grid.Row="2"
+                        Margin="{StaticResource RowLabelMargin}"
+                        Text="Vertical"
+                        Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Slider
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Value="{Binding SelectedDpiPreset.Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+                        Minimum="1"
+                        Maximum="{Binding MaximumDpi.Vertical}"
+                        Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </Grid>
             </Grid>
         </Grid>
         <TextBlock Grid.Row="2" Margin="{StaticResource RowLabelMargin}" Text="Polling Rate" Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />

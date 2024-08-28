@@ -219,7 +219,7 @@ public static class OnBoardProfiles
 		public const byte FunctionId = 11;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
-		public struct Request : IMessageRequestParameters, IShortMessageParameters
+		public struct Response : IMessageResponseParameters, IShortMessageParameters
 		{
 			public byte ActivePresetIndex;
 		}
@@ -230,7 +230,7 @@ public static class OnBoardProfiles
 		public const byte FunctionId = 12;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
-		public struct Response : IMessageResponseParameters, IShortMessageParameters
+		public struct Request : IMessageRequestParameters, IShortMessageParameters
 		{
 			public byte ActivePresetIndex;
 		}
