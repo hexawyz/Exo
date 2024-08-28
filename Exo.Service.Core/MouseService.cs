@@ -3,7 +3,6 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
-using System.Transactions;
 using Exo.Configuration;
 using Exo.Contracts;
 using Exo.Features;
@@ -58,7 +57,7 @@ internal sealed class MouseService
 		public readonly object Lock;
 		private readonly Action<Driver, MouseDpiStatus> _dpiChangedHandler;
 		private ImmutableArray<DotsPerInch> _dpiPresets;
-		public ImmutableArray<ushort> SupportedPollingFrequencies;
+		private ImmutableArray<ushort> _supportedPollingFrequencies;
 		private MouseDpiStatus _currentDpi;
 		public readonly Guid DeviceId;
 		public DotsPerInch MaximumDpi;
@@ -72,7 +71,7 @@ internal sealed class MouseService
 			_mouseService = mouseService;
 			ConfigurationContainer = configurationContainer;
 			Lock = new();
-			SupportedPollingFrequencies = [];
+			_supportedPollingFrequencies = persistedInformation.SupportedPollingFrequencies;
 			_dpiChangedHandler = OnDpiChanged;
 			DeviceId = deviceId;
 			MaximumDpi = persistedInformation.MaximumDpi;
@@ -90,6 +89,7 @@ internal sealed class MouseService
 		public ImmutableArray<DotsPerInch> DpiPresets => _dpiPresets;
 		public MouseDpiStatus CurrentDpi => _currentDpi;
 		public ushort CurrentPollingFrequency => _currentPollingFrequency;
+		public ImmutableArray<ushort> SupportedPollingFrequencies => _supportedPollingFrequencies;
 
 		public bool Update(PersistedMouseInformation persistedInformation)
 		{
@@ -108,7 +108,7 @@ internal sealed class MouseService
 			if (!SupportedPollingFrequencies.SequenceEqual(persistedInformation.SupportedPollingFrequencies))
 			{
 				isChanged = true;
-				SupportedPollingFrequencies = persistedInformation.SupportedPollingFrequencies;
+				_supportedPollingFrequencies = persistedInformation.SupportedPollingFrequencies;
 			}
 			return isChanged;
 		}
