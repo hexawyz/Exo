@@ -240,6 +240,15 @@ public abstract partial class HidPlusPlusDevice
 		public Task<byte> GetFeatureIndexAsync(HidPlusPlusFeature feature, CancellationToken cancellationToken)
 			=> Transport.GetFeatureIndexAsync(DeviceIndex, feature, cancellationToken);
 
+		public Task SendWithRetryAsync
+		(
+			byte featureIndex,
+			byte functionId,
+			int retryCount,
+			CancellationToken cancellationToken
+		)
+			=> Transport.FeatureAccessSendWithRetryAsync(DeviceIndex, featureIndex, functionId, retryCount, cancellationToken);
+
 		public Task<TResponseParameters> SendWithRetryAsync<TResponseParameters>
 		(
 			byte featureIndex,

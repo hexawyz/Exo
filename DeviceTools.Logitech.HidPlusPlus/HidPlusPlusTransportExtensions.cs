@@ -904,6 +904,59 @@ public static class HidPlusPlusTransportExtensions
 
 	private static byte ForFunctionId(this HidPlusPlusTransport transport, byte functionId) => (byte)(functionId << 4 | transport.FeatureAccessSoftwareId);
 
+	public static Task FeatureAccessSendAsync
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		byte featureIndex,
+		byte functionId,
+		CancellationToken cancellationToken
+	)
+		=>
+			transport.SendAsync
+			(
+				deviceIndex,
+				featureIndex,
+				transport.ForFunctionId(functionId),
+				default,
+				PendingOperationFactory.Empty,
+				cancellationToken
+			);
+
+	public static async Task FeatureAccessSendWithRetryAsync
+	(
+		this HidPlusPlusTransport transport,
+		byte deviceIndex,
+		byte featureIndex,
+		byte functionId,
+		int retryCount,
+		CancellationToken cancellationToken
+	)
+	{
+		while (true)
+		{
+			try
+			{
+				await transport.FeatureAccessSendAsync(deviceIndex, featureIndex, functionId, cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch (TimeoutException) when (retryCount > 0)
+			{
+				retryCount--;
+			}
+			catch (HidPlusPlus2Exception ex) when (ex.ErrorCode == FeatureAccessProtocol.ErrorCode.Busy && retryCount > 0)
+			{
+				await Task.Delay(DefaultDeviceBusyRetryDelayInMilliseconds, cancellationToken).ConfigureAwait(false);
+				retryCount--;
+			}
+			catch (HidPlusPlus1Exception ex) when (ex.ErrorCode == RegisterAccessProtocol.ErrorCode.Busy && retryCount > 0)
+			{
+				await Task.Delay(DefaultDeviceBusyRetryDelayInMilliseconds, cancellationToken).ConfigureAwait(false);
+				retryCount--;
+			}
+		}
+	}
+
 	public static Task<TResponseParameters> FeatureAccessSendAsync<TResponseParameters>
 	(
 		this HidPlusPlusTransport transport,

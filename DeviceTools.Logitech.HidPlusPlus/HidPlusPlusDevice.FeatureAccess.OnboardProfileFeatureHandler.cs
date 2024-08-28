@@ -210,7 +210,7 @@ public abstract partial class HidPlusPlusDevice
 					await Device.SendWithRetryAsync
 					(
 						FeatureIndex,
-						OnBoardProfiles.ReadMemory.FunctionId,
+						OnBoardProfiles.WriteMemory.FunctionId,
 						in Unsafe.As<byte, OnBoardProfiles.WriteMemory.Request>(ref _sectorBuffer[offset]),
 						retryCount,
 						cancellationToken
@@ -218,11 +218,10 @@ public abstract partial class HidPlusPlusDevice
 					response.CopyTo(buffer.AsSpan(offset, 16));
 				}
 
-				await Device.SendWithRetryAsync<HidPlusPlusEmptyParameters>
+				await Device.SendWithRetryAsync
 				(
 					FeatureIndex,
 					OnBoardProfiles.EndWrite.FunctionId,
-					default,
 					retryCount,
 					cancellationToken
 				).ConfigureAwait(false);
