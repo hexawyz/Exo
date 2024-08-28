@@ -112,9 +112,11 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	// It is based on IsChanged but does additional validity checks to avoid errors and notify the user that something is not correct.
 	protected override bool CanApply
 		=> IsChanged &&
-			(_capabilities & (MouseCapabilities.ConfigurableDpiPresets | MouseCapabilities.DpiPresetChange)) != 0 &&
-			_selectedDpiPresetIndex >= 0 && _selectedDpiPresetIndex < _dpiPresets.Count &&
-			_dpiPresets.Count >= MinimumPresetCount && _dpiPresets.Count <= MaximumPresetCount;
+			((_capabilities & (MouseCapabilities.ConfigurableDpiPresets | MouseCapabilities.DpiPresetChange)) == 0 ||
+			_selectedDpiPresetIndex >= 0 &&
+			_selectedDpiPresetIndex < _dpiPresets.Count &&
+			_dpiPresets.Count >= MinimumPresetCount &&
+			_dpiPresets.Count <= MaximumPresetCount);
 
 	internal void UpdateInformation(MouseDeviceInformation information)
 	{
