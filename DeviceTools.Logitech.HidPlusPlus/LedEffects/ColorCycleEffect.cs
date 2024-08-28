@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace DeviceTools.Logitech.HidPlusPlus.LedEffects;
@@ -17,7 +18,16 @@ public readonly struct ColorCycleEffect
 	private readonly byte _speedOrPeriod1;
 	private readonly byte _intensity;
 
+	public ColorCycleEffect(ushort speedOrPeriodInMilliseconds, byte intensity)
+	{
+		_effect = (byte)PredefinedEffect.ColorCycle;
+		BigEndian.Write(ref _speedOrPeriod0, speedOrPeriodInMilliseconds);
+		_intensity = intensity;
+	}
+
 	public PredefinedEffect Effect => (PredefinedEffect)_effect;
 	public ushort SpeedOrPeriodInMilliseconds => BigEndian.ReadUInt16(in _speedOrPeriod0);
 	public byte Intensity => _intensity;
+
+	public static implicit operator LedEffect(in ColorCycleEffect effect) => Unsafe.As<ColorCycleEffect, LedEffect>(ref Unsafe.AsRef(in effect));
 }

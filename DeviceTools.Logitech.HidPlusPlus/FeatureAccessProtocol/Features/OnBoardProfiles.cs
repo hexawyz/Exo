@@ -682,7 +682,7 @@ public static class OnBoardProfiles
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 22)]
 	[DebuggerDisplay("Count = {Count}")]
-	public readonly struct LedEffectCollection : IReadOnlyList<LedEffect>
+	public struct LedEffectCollection : IReadOnlyList<LedEffect>
 	{
 		public struct Enumerator : IEnumerator<LedEffect>
 		{
@@ -713,13 +713,13 @@ public static class OnBoardProfiles
 			{
 				if ((uint)index > 2) throw new ArgumentOutOfRangeException(nameof(index));
 
-				return Unsafe.ReadUnaligned<LedEffect>(in Unsafe.AddByteOffset(ref Unsafe.As<LedEffect, byte>(ref Unsafe.AsRef(in _led0)), 4 * index));
+				return Unsafe.ReadUnaligned<LedEffect>(in Unsafe.AddByteOffset(ref Unsafe.As<LedEffect, byte>(ref Unsafe.AsRef(in _led0)), 11 * index));
 			}
-			init
+			set
 			{
 				if ((uint)index > 2) throw new ArgumentOutOfRangeException(nameof(index));
 
-				Unsafe.WriteUnaligned(ref Unsafe.AddByteOffset(ref Unsafe.As<LedEffect, byte>(ref Unsafe.AsRef(in _led0)), 4 * index), value);
+				Unsafe.WriteUnaligned(ref Unsafe.AddByteOffset(ref Unsafe.As<LedEffect, byte>(ref Unsafe.AsRef(in _led0)), 11 * index), value);
 			}
 		}
 
