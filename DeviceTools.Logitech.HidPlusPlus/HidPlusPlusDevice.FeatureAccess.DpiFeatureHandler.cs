@@ -13,12 +13,14 @@ public abstract partial class HidPlusPlusDevice
 
 			private byte _sensorCount;
 			private ushort _currentDpi;
+			private ImmutableArray<DpiRange> _dpiRanges;
 
 			public DpiFeatureHandler(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
 			{
 			}
 
 			public ushort CurrentDpi => _currentDpi;
+			public ImmutableArray<DpiRange> DpiRanges => _dpiRanges;
 
 			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 			{
@@ -43,9 +45,11 @@ public abstract partial class HidPlusPlusDevice
 
 					var dpiRanges = await GetDpiRangesAsync((byte)i, cancellationToken).ConfigureAwait(false);
 
+					// Don't know what to do with multiple sensors, so let's ignore the extra ones for now.
 					if (i == 0)
 					{
 						_currentDpi = dpiInformation.CurrentDpi;
+						_dpiRanges = dpiRanges;
 					}
 				}
 

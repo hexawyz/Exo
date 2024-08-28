@@ -361,6 +361,7 @@ public abstract class LogitechUniversalDriver :
 		IKeyboardBacklightFeature,
 		IKeyboardLockKeysFeature,
 		IMouseDpiFeature,
+		IMouseDynamicDpiFeature,
 		IMouseConfigurablePollingFrequencyFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, ILogger<FeatureAccess> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
@@ -387,8 +388,8 @@ public abstract class LogitechUniversalDriver :
 		protected IDeviceFeatureSet<IMouseDeviceFeature> CreateMouseFeatures()
 			=> HasAdjustableDpi ?
 				HasAdjustableReportInterval ?
-					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
-					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature>(this) :
+					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
+					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature>(this) :
 				HasAdjustableReportInterval ?
 					FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseConfigurablePollingFrequencyFeature>(this) :
 					FeatureSet.Empty<IMouseDeviceFeature>();
@@ -547,6 +548,16 @@ public abstract class LogitechUniversalDriver :
 			// it will be problematic as soon as somebody comes up with hardware that has a 16KHz frequency. (Which is 62.5µs interval)
 			byte interval = (byte)(1000 / pollingFrequency);
 			await Device.SetReportIntervalAsync(interval, cancellationToken).ConfigureAwait(false);
+		}
+
+		DotsPerInch IMouseDynamicDpiFeature.MaximumDpi => new(Device.DpiRanges[^1].Maximum);
+
+		bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => false;
+
+		event Action<Driver, MouseDpiStatus> IMouseDynamicDpiFeature.DpiChanged
+		{
+			add { }
+			remove { }
 		}
 	}
 

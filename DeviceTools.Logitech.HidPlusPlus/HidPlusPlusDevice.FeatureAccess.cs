@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol;
@@ -139,6 +140,7 @@ public abstract partial class HidPlusPlusDevice
 
 		public bool HasAdjustableDpi => HasFeature(_dpiState);
 		public ushort CurrentDpi => GetFeature(in _dpiState).CurrentDpi;
+		public ImmutableArray<DpiRange> DpiRanges => GetFeature(in _dpiState).DpiRanges;
 
 		public bool HasAdjustableReportInterval => HasFeature(_reportRateState);
 		public ReportIntervals SupportedReportIntervals => GetFeature(in _reportRateState).SupportedReportIntervals;
