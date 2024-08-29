@@ -555,32 +555,33 @@ public abstract class LogitechUniversalDriver :
 			await Device.SetReportIntervalAsync(interval, cancellationToken).ConfigureAwait(false);
 		}
 
+		private static MouseDpiStatus Convert(DpiStatus dpiStatus)
+			=> new() { PresetIndex = dpiStatus.PresetIndex, Dpi = Convert(dpiStatus.Dpi) };
+
 		private static DotsPerInch Convert(DeviceTools.Logitech.HidPlusPlus.DotsPerInch dpi)
 			=> new(dpi.Horizontal, dpi.Vertical);
 
-		MouseDpiStatus IMouseDpiFeature.CurrentDpi
-		{
-			get
-			{
-				var currentDpi = Device.CurrentDpi;
-				return new() { PresetIndex = currentDpi.PresetIndex, Dpi = Convert(currentDpi.Dpi) };
-			}
-		}
+		MouseDpiStatus IMouseDpiFeature.CurrentDpi => Convert(Device.CurrentDpi);
 
 		DotsPerInch IMouseDynamicDpiFeature.MaximumDpi => new(Device.DpiRanges[^1].Maximum);
 
 		bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => false;
 
+		private event Action<Driver, MouseDpiStatus> DpiChanged;
+
 		event Action<Driver, MouseDpiStatus> IMouseDynamicDpiFeature.DpiChanged
 		{
-			add { }
-			remove { }
+			add => DpiChanged += value;
+			remove => DpiChanged -= value;
 		}
 
 		ImmutableArray<DotsPerInch> IMouseDpiPresetsFeature.DpiPresets => ImmutableArray.CreateRange(Device.GetCurrentDpiPresets(), Convert);
 
-		ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
-			=> new(Device.SetCurrentDpiPresetAsync(activePresetIndex, cancellationToken));
+		async ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
+		{
+			await Device.SetCurrentDpiPresetAsync(activePresetIndex, cancellationToken).ConfigureAwait(false);
+			DpiChanged?.Invoke(this, Convert(Device.CurrentDpi));
+		}
 
 		byte IMouseConfigurableDpiPresetsFeature.MaxPresetCount => 5;
 

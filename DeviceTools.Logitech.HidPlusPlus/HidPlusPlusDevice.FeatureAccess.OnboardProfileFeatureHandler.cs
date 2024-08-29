@@ -162,7 +162,9 @@ public abstract partial class HidPlusPlusDevice
 			public async Task SetActiveDpiIndex(byte dpiIndex, CancellationToken cancellationToken)
 			{
 				EnsureSupport();
+				if (dpiIndex > 4) throw new ArgumentOutOfRangeException(nameof(dpiIndex));
 				await Device.SendAsync(FeatureIndex, OnBoardProfiles.SetCurrentDpiIndex.FunctionId, new OnBoardProfiles.SetCurrentDpiIndex.Request { ActivePresetIndex = dpiIndex }, cancellationToken).ConfigureAwait(false);
+				_currentDpiIndex = dpiIndex;
 			}
 
 			private static ushort CcittCrc(ReadOnlySpan<byte> bytes)
