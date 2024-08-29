@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 using DeviceTools.Logitech.HidPlusPlus.Profiles;
 
@@ -22,23 +24,75 @@ public abstract partial class HidPlusPlusDevice
 				public Profile RawProfile;
 			}
 
+			private enum MessageKind
+			{
+				Initialize,
+				Reset,
+				ProfileChange,
+				DpiChange,
+				SwitchDeviceMode,
+			}
+
+			private readonly struct Message(MessageKind message, byte payload, object? taskCompletionSource, CancellationToken cancellationToken)
+			{
+				public readonly MessageKind Kind = message;
+				public readonly byte Payload = payload;
+				public readonly object? TaskCompletionSource = taskCompletionSource;
+				public readonly CancellationToken CancellationToken = cancellationToken;
+			}
+
+			[Flags]
+			private enum FeatureState : byte
+			{
+				None = 0x00,
+				Initialized = 0x01,
+				Supported = 0x02,
+			}
+
+			private static readonly UnboundedChannelOptions UnboundedChannelOptions = new() { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false };
+
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.OnboardProfiles;
 
 			private OnBoardProfiles.GetInfo.Response _information;
+			private ProfileState[] _profileStates;
+			private readonly ChannelWriter<Message> _messageWriter;
+			private byte[] _sectorBuffer;
 			private DeviceMode _deviceMode;
-			private bool _isDeviceSupported;
+			private FeatureState _state;
 			private byte _currentDpiIndex;
 			private sbyte _currentProfileIndex;
-			private byte[] _sectorBuffer;
-			private ProfileState[] _profileStates;
+			private CancellationTokenSource? _cancellationTokenSource;
+			private readonly Task _runTask;
 
 			public OnboardProfileFeatureHandler(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
 			{
 				_sectorBuffer = [];
 				_profileStates = [];
+				var channel = Channel.CreateUnbounded<Message>();
+				_messageWriter = channel;
+				_cancellationTokenSource = new();
+				_runTask = RunAsync(channel, HidPlusPlusTransportExtensions.DefaultRetryCount, _cancellationTokenSource.Token);
 			}
 
-			public bool IsSupported => _isDeviceSupported;
+			public override async ValueTask DisposeAsync()
+			{
+				if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
+				{
+					_messageWriter.TryComplete();
+					cts.Cancel();
+					await _runTask.ConfigureAwait(false);
+					cts.Dispose();
+				}
+			}
+
+			private FeatureState State
+			{
+				get => (FeatureState)Volatile.Read(ref Unsafe.As<FeatureState, byte>(ref _state));
+				set => Volatile.Write(ref Unsafe.As<FeatureState, byte>(ref _state), (byte)value);
+			}
+
+			public bool IsInitialized => (State & FeatureState.Initialized) != 0;
+			public bool IsSupported => (State & FeatureState.Supported) != 0;
 
 			public DeviceMode DeviceMode => _deviceMode;
 
@@ -58,12 +112,138 @@ public abstract partial class HidPlusPlusDevice
 				if (!IsSupported) throw new InvalidOperationException("The device is currently unsupported.");
 			}
 
-			public override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
+			private async Task RunAsync(ChannelReader<Message> messageReader, int retryCount, CancellationToken cancellationToken)
 			{
+				try
+				{
+					await foreach (var message in messageReader.ReadAllAsync().ConfigureAwait(false))
+					{
+						// When the instance is disposed, the writer will be completed, so we quickly consume all remaining messages and propagate exceptions if needed.
+						if (cancellationToken.IsCancellationRequested)
+						{
+							if (message.TaskCompletionSource is not null)
+							{
+								switch (message.Kind)
+								{
+								case MessageKind.Initialize:
+								case MessageKind.SwitchDeviceMode:
+									(message.TaskCompletionSource as TaskCompletionSource)?.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(GetType().FullName)));
+									break;
+								}
+							}
+							continue;
+						}
+
+						// If the CancellationToken associated with the message is canceled, we should skip execution of the message.
+						if (message.CancellationToken.IsCancellationRequested)
+						{
+							switch (message.Kind)
+							{
+							case MessageKind.Initialize:
+							case MessageKind.SwitchDeviceMode:
+								(message.TaskCompletionSource as TaskCompletionSource)?.TrySetCanceled(message.CancellationToken);
+								break;
+							}
+							continue;
+						}
+
+						switch (message.Kind)
+						{
+						case MessageKind.Initialize:
+							try
+							{
+								if (message.CancellationToken.CanBeCanceled)
+								{
+									using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, message.CancellationToken);
+									await InitializeStateAsync(retryCount, cts.Token).ConfigureAwait(false);
+								}
+								else
+								{
+									await InitializeStateAsync(retryCount, cancellationToken).ConfigureAwait(false);
+								}
+								(message.TaskCompletionSource as TaskCompletionSource)?.TrySetResult();
+							}
+							catch (Exception ex)
+							{
+								(message.TaskCompletionSource as TaskCompletionSource)?.TrySetException(ex);
+							}
+							break;
+						case MessageKind.Reset:
+							ResetState();
+							break;
+						case MessageKind.ProfileChange:
+							if (!IsInitialized) continue;
+							await HandleProfileChangeAsync((sbyte)message.Payload, retryCount, cancellationToken).ConfigureAwait(false);
+							break;
+						case MessageKind.DpiChange:
+							if (!IsInitialized) continue;
+							HandleDpiChange(message.Payload);
+							break;
+						case MessageKind.SwitchDeviceMode:
+							if (!IsInitialized) continue;
+							try
+							{
+								// NB: This operation should not be interrupted by anything else than device dispose.
+								await InitializeStateAsync(retryCount, cancellationToken).ConfigureAwait(false);
+								(message.TaskCompletionSource as TaskCompletionSource)?.TrySetResult();
+							}
+							catch (Exception ex)
+							{
+								(message.TaskCompletionSource as TaskCompletionSource)?.TrySetException(ex);
+							}
+							break;
+						}
+					}
+				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+				{
+				}
+				catch
+				{
+					// TODO: Log
+				}
+			}
+
+			public override Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+				_messageWriter.TryWrite(new(MessageKind.Initialize, 0, tcs, cancellationToken));
+				return tcs.Task.WaitAsync(cancellationToken);
+			}
+
+			public override void Reset() => _messageWriter.TryWrite(new(MessageKind.Reset, 0, null, default));
+
+			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
+			{
+				if (response.Length < 3) return;
+
+				// These events will be generated if a change is initiated by the device itself.
+				// On many devices, those events will never be generated out of the box, but it is possible to bind special actions for changing profiles or dpi on mouse buttons.
+				// In that case, one of the two events can be generated, indicating applications that something changed on the device.
+				if (eventId == OnBoardProfiles.GetCurrentProfile.EventId)
+				{
+					HandleProfileChange(Unsafe.As<byte, OnBoardProfiles.GetCurrentProfile.Response>(ref Unsafe.AsRef(in response[0])));
+				}
+				else if (eventId == OnBoardProfiles.GetCurrentDpiIndex.EventId)
+				{
+					HandleDpiChange(Unsafe.As<byte, OnBoardProfiles.GetCurrentDpiIndex.Response>(ref Unsafe.AsRef(in response[0])));
+				}
+			}
+
+			private void HandleProfileChange(in OnBoardProfiles.GetCurrentProfile.Response response)
+				=> _messageWriter.TryWrite(new(MessageKind.ProfileChange, (byte)(response.ActiveProfileIndex - 1), null, default));
+
+			private void HandleDpiChange(in OnBoardProfiles.GetCurrentDpiIndex.Response response)
+				=> _messageWriter.TryWrite(new(MessageKind.DpiChange, response.ActivePresetIndex, null, default));
+
+			private async Task InitializeStateAsync(int retryCount, CancellationToken cancellationToken)
+			{
+				State = FeatureState.None;
+
 				_information = await Device.SendWithRetryAsync<OnBoardProfiles.GetInfo.Response>(FeatureIndex, OnBoardProfiles.GetInfo.FunctionId, retryCount, cancellationToken).ConfigureAwait(false);
 
 				// Same as in libratbag, this will prevent messing up with unsupported devices.
-				_isDeviceSupported = _information.MemoryType is OnBoardProfiles.MemoryType.G402 &&
+				bool isSupported = _information.MemoryType is OnBoardProfiles.MemoryType.G402 &&
 					_information.ProfileFormat is OnBoardProfiles.ProfileFormat.G402 or OnBoardProfiles.ProfileFormat.G303 or OnBoardProfiles.ProfileFormat.G900 or OnBoardProfiles.ProfileFormat.G915 &&
 					_information.MacroFormat is OnBoardProfiles.MacroFormat.G402 &&
 					_information.SectorSize >= 16;
@@ -73,7 +253,13 @@ public abstract partial class HidPlusPlusDevice
 					Array.Resize(ref _profileStates, _information.ProfileCount);
 				}
 
-				if (!IsSupported) return;
+				if (!isSupported)
+				{
+					State = FeatureState.Initialized;
+					return;
+				}
+
+				State = FeatureState.Supported;
 
 				_deviceMode = (
 					await Device.SendWithRetryAsync<OnBoardProfiles.GetDeviceMode.Response>
@@ -100,10 +286,9 @@ public abstract partial class HidPlusPlusDevice
 				}
 				catch
 				{
-					_isDeviceSupported = false;
+					State = FeatureState.Initialized;
+					return;
 				}
-
-				if (!_isDeviceSupported) return;
 
 				var mode = await GetDeviceModeAsync(cancellationToken).ConfigureAwait(false);
 
@@ -111,13 +296,20 @@ public abstract partial class HidPlusPlusDevice
 
 				if ((uint)(int)_currentProfileIndex < (uint)_profileStates.Length)
 				{
-					await ReadAndValidateSectorAsync((byte)(_currentProfileIndex + 1), retryCount, cancellationToken).ConfigureAwait(false);
-
-					_profileStates[(int)(uint)_currentProfileIndex].RawProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
-					_profileStates[(int)(uint)_currentProfileIndex].IsLoaded = true;
+					if (!_profileStates[(int)(uint)_currentProfileIndex].IsLoaded)
+					{
+						await LoadProfileAsync(_currentProfileIndex, retryCount, cancellationToken).ConfigureAwait(false);
+					}
 
 					_currentDpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
 				}
+
+				State = FeatureState.Initialized | FeatureState.Supported;
+			}
+
+			private void ResetState()
+			{
+				State = _state & ~FeatureState.Initialized;
 			}
 
 			private void ReadProfilesDirectory()
@@ -134,31 +326,20 @@ public abstract partial class HidPlusPlusDevice
 				}
 			}
 
-			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
+			private async Task EnsureProfileLoadedAsync(sbyte profileIndex, int retryCount, CancellationToken cancellationToken)
 			{
-				if (response.Length < 3) return;
-
-				// These events will be generated if a change is initiated by the device itself.
-				// On many devices, those events will never be generated out of the box, but it is possible to bind special actions for changing profiles or dpi on mouse buttons.
-				// In that case, one of the two events can be generated, indicating applications that something changed on the device.
-				if (eventId == OnBoardProfiles.GetCurrentProfile.EventId)
+				if ((uint)(int)profileIndex < (uint)_profileStates.Length && !_profileStates[(int)(uint)profileIndex].IsLoaded)
 				{
-					HandleProfileChange(Unsafe.As<byte, OnBoardProfiles.GetCurrentProfile.Response>(ref Unsafe.AsRef(in response[0])));
-				}
-				else if (eventId == OnBoardProfiles.GetCurrentDpiIndex.EventId)
-				{
-					HandleDpiChange(Unsafe.As<byte, OnBoardProfiles.GetCurrentDpiIndex.Response>(ref Unsafe.AsRef(in response[0])));
+					await LoadProfileAsync(profileIndex, retryCount, cancellationToken).ConfigureAwait(false);
 				}
 			}
 
-			private void HandleProfileChange(in OnBoardProfiles.GetCurrentProfile.Response response)
-				=> HandleProfileChange((sbyte)(response.ActiveProfileIndex - 1));
-
-			private void HandleDpiChange(in OnBoardProfiles.GetCurrentDpiIndex.Response response)
-				=> HandleDpiChange(response.ActivePresetIndex);
-
-			private async void HandleProfileChange(sbyte profileIndex)
-				=> await HandleProfileChangeAsync(profileIndex, HidPlusPlusTransportExtensions.DefaultRetryCount, default).ConfigureAwait(false);
+			private async Task LoadProfileAsync(sbyte profileIndex, int retryCount, CancellationToken cancellationToken)
+			{
+				await ReadSectorAsync((byte)(profileIndex + 1), retryCount, cancellationToken).ConfigureAwait(false);
+				_profileStates[(int)(uint)profileIndex].RawProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
+				_profileStates[(int)(uint)profileIndex].IsLoaded = true;
+			}
 
 			private async Task HandleProfileChangeAsync(sbyte profileIndex, int retryCount, CancellationToken cancellationToken)
 			{
@@ -166,12 +347,7 @@ public abstract partial class HidPlusPlusDevice
 
 				if ((uint)(int)profileIndex >= _profileStates.Length) throw new InvalidOperationException("Invalid profile index.");
 
-				if (!_profileStates[(int)(uint)profileIndex].IsLoaded)
-				{
-					await ReadSectorAsync((byte)(profileIndex + 1), retryCount, cancellationToken).ConfigureAwait(false);
-					_profileStates[(int)(uint)profileIndex].RawProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
-					_profileStates[(int)(uint)profileIndex].IsLoaded = true;
-				}
+				await EnsureProfileLoadedAsync(profileIndex, retryCount, cancellationToken).ConfigureAwait(false);
 
 				var dpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
 
@@ -215,19 +391,37 @@ public abstract partial class HidPlusPlusDevice
 			}
 
 			public Task SwitchToHostModeAsync(CancellationToken cancellationToken)
-				=> SwitchToModeAsync(DeviceMode.Host, cancellationToken);
+				=> PrepareSwitchToModeAsync(DeviceMode.Host, cancellationToken);
 
 			public Task SwitchToOnBoardModeAsync(CancellationToken cancellationToken)
-				=> SwitchToModeAsync(DeviceMode.OnBoardMemory, cancellationToken);
+				=> PrepareSwitchToModeAsync(DeviceMode.OnBoardMemory, cancellationToken);
 
-			private async Task SwitchToModeAsync(DeviceMode mode, CancellationToken cancellationToken)
+			private Task PrepareSwitchToModeAsync(DeviceMode mode, CancellationToken cancellationToken)
+			{
+				var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+				_messageWriter.TryWrite(new(MessageKind.SwitchDeviceMode, (byte)mode, tcs, cancellationToken));
+				return tcs.Task.WaitAsync(cancellationToken);
+			}
+
+			private async Task SwitchToModeAsync(DeviceMode mode, int retryCount, CancellationToken cancellationToken)
 			{
 				EnsureSupport();
-				await Device.SendAsync(FeatureIndex, OnBoardProfiles.SetDeviceMode.FunctionId, new OnBoardProfiles.SetDeviceMode.Request { Mode = DeviceMode.Host }, cancellationToken).ConfigureAwait(false);
+				await Device.SendWithRetryAsync
+				(
+					FeatureIndex,
+					OnBoardProfiles.SetDeviceMode.FunctionId,
+					new OnBoardProfiles.SetDeviceMode.Request { Mode = mode },
+					retryCount,
+					cancellationToken
+				).ConfigureAwait(false);
 				_deviceMode = mode;
 				if (mode == DeviceMode.OnBoardMemory)
 				{
-					// TODO: Ensure that current profile is loaded.
+					var profileIndex = (sbyte)(await GetActiveProfileIndexAsync(cancellationToken).ConfigureAwait(false) - 1);
+					await EnsureProfileLoadedAsync(profileIndex, retryCount, cancellationToken).ConfigureAwait(false);
+					var dpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
+					_currentProfileIndex = profileIndex;
+					HandleDpiChange(dpiIndex);
 				}
 			}
 
