@@ -9,27 +9,47 @@ public abstract partial class HidPlusPlusDevice
 {
 	public abstract partial class FeatureAccess
 	{
+		// TODO: Refactor so that operations are serialized. Current code could be problematic in multiple (rare) situations.
+		// Likely, everything can be done with a single queue, but an AsyncLock primitive could be useful for some read accesses.
+		// Maybe a serialization mechanism is needed for the whole device though (not just that feature). Or maybe not. We'll see about that later. One step at a time.
 		private sealed class OnboardProfileFeatureHandler : FeatureHandler
 		{
+			private struct ProfileState
+			{
+				public byte Index;
+				public bool IsEnabled;
+				public bool IsLoaded;
+				public Profile RawProfile;
+			}
+
 			public override HidPlusPlusFeature Feature => HidPlusPlusFeature.OnboardProfiles;
 
 			private OnBoardProfiles.GetInfo.Response _information;
 			private DeviceMode _deviceMode;
 			private bool _isDeviceSupported;
 			private byte _currentDpiIndex;
+			private sbyte _currentProfileIndex;
 			private byte[] _sectorBuffer;
-			private Profile _currentProfile;
+			private ProfileState[] _profileStates;
 
 			public OnboardProfileFeatureHandler(FeatureAccess device, byte featureIndex) : base(device, featureIndex)
 			{
 				_sectorBuffer = [];
+				_profileStates = [];
 			}
 
 			public bool IsSupported => _isDeviceSupported;
 
 			public DeviceMode DeviceMode => _deviceMode;
 
-			public ref readonly Profile CurrentProfile => ref _currentProfile;
+			public ref readonly Profile CurrentProfile
+			{
+				get
+				{
+					if ((uint)(int)_currentProfileIndex < (uint)_profileStates.Length) return ref _profileStates[(int)(uint)_currentProfileIndex].RawProfile;
+					throw new InvalidOperationException("There is no active profile.");
+				}
+			}
 
 			public byte CurrentDpiIndex => _currentDpiIndex;
 
@@ -47,6 +67,11 @@ public abstract partial class HidPlusPlusDevice
 					_information.ProfileFormat is OnBoardProfiles.ProfileFormat.G402 or OnBoardProfiles.ProfileFormat.G303 or OnBoardProfiles.ProfileFormat.G900 or OnBoardProfiles.ProfileFormat.G915 &&
 					_information.MacroFormat is OnBoardProfiles.MacroFormat.G402 &&
 					_information.SectorSize >= 16;
+
+				if (_profileStates.Length < _information.ProfileCount)
+				{
+					Array.Resize(ref _profileStates, _information.ProfileCount);
+				}
 
 				if (!IsSupported) return;
 
@@ -71,6 +96,7 @@ public abstract partial class HidPlusPlusDevice
 				try
 				{
 					await ReadAndValidateSectorAsync(0, retryCount, cancellationToken).ConfigureAwait(false);
+					ReadProfilesDirectory();
 				}
 				catch
 				{
@@ -81,15 +107,30 @@ public abstract partial class HidPlusPlusDevice
 
 				var mode = await GetDeviceModeAsync(cancellationToken).ConfigureAwait(false);
 
-				byte activeProfileIndex = await GetActiveProfileIndexAsync(cancellationToken).ConfigureAwait(false);
+				_currentProfileIndex = (sbyte)(await GetActiveProfileIndexAsync(cancellationToken).ConfigureAwait(false) - 1);
 
-				if (activeProfileIndex > 0)
+				if ((uint)(int)_currentProfileIndex < (uint)_profileStates.Length)
 				{
-					await ReadAndValidateSectorAsync(activeProfileIndex, retryCount, cancellationToken).ConfigureAwait(false);
+					await ReadAndValidateSectorAsync((byte)(_currentProfileIndex + 1), retryCount, cancellationToken).ConfigureAwait(false);
 
-					_currentProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
+					_profileStates[(int)(uint)_currentProfileIndex].RawProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
+					_profileStates[(int)(uint)_currentProfileIndex].IsLoaded = true;
 
 					_currentDpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
+				}
+			}
+
+			private void ReadProfilesDirectory()
+			{
+				var entries = MemoryMarshal.Cast<byte, OnBoardProfiles.ProfileEntry>(_sectorBuffer.AsSpan(0, (_information.SectorSize - 2) & ~3));
+
+				for (int i = 0; i < _information.ProfileCount; i++)
+				{
+					ref readonly var entry = ref entries[i];
+					ref var state = ref _profileStates[i];
+					if (entry.ProfileIndex != i + 1) throw new InvalidDataException("Invalid profile index.");
+					state.Index = entry.ProfileIndex;
+					state.IsEnabled = entry.IsEnabled;
 				}
 			}
 
@@ -111,14 +152,38 @@ public abstract partial class HidPlusPlusDevice
 			}
 
 			private void HandleProfileChange(in OnBoardProfiles.GetCurrentProfile.Response response)
-			{
-				// TODO: We NEED to make sure to have the profile loaded at this point.
-			}
+				=> HandleProfileChange((sbyte)(response.ActiveProfileIndex - 1));
 
 			private void HandleDpiChange(in OnBoardProfiles.GetCurrentDpiIndex.Response response)
+				=> HandleDpiChange(response.ActivePresetIndex);
+
+			private async void HandleProfileChange(sbyte profileIndex)
+				=> await HandleProfileChangeAsync(profileIndex, HidPlusPlusTransportExtensions.DefaultRetryCount, default).ConfigureAwait(false);
+
+			private async Task HandleProfileChangeAsync(sbyte profileIndex, int retryCount, CancellationToken cancellationToken)
 			{
-				_currentDpiIndex = response.ActivePresetIndex;
-				Device.OnDpiChanged(new DpiStatus(_currentDpiIndex, new(_currentProfile.DpiPresets[_currentDpiIndex])));
+				if (profileIndex == _currentProfileIndex) return;
+
+				if ((uint)(int)profileIndex >= _profileStates.Length) throw new InvalidOperationException("Invalid profile index.");
+
+				if (!_profileStates[(int)(uint)profileIndex].IsLoaded)
+				{
+					await ReadSectorAsync((byte)(profileIndex + 1), retryCount, cancellationToken).ConfigureAwait(false);
+					_profileStates[(int)(uint)profileIndex].RawProfile = ParseProfile(_sectorBuffer.AsSpan(0, _information.SectorSize - 2));
+					_profileStates[(int)(uint)profileIndex].IsLoaded = true;
+				}
+
+				var dpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
+
+				_currentProfileIndex = profileIndex;
+
+				HandleDpiChange(dpiIndex);
+			}
+
+			private void HandleDpiChange(byte dpiIndex)
+			{
+				_currentDpiIndex = dpiIndex;
+				Device.OnDpiChanged(new DpiStatus(_currentDpiIndex, new(CurrentProfile.DpiPresets[_currentDpiIndex])));
 			}
 
 			private static Profile ParseProfile(ReadOnlySpan<byte> buffer)
