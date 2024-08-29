@@ -122,8 +122,7 @@ public sealed class ProgrammingService : IAsyncDisposable
 
 	// These hardcoded event handlers should be translated and included in the default program once the user-programing code logic is ready.
 	private Dictionary<Guid, Action<object?>> CreateHardcodedEventHandlers()
-	{
-		return new()
+		=> new()
 		{
 			// Caps Lock
 			{
@@ -285,9 +284,9 @@ public sealed class ProgrammingService : IAsyncDisposable
 				p =>
 				{
 					var e = (MouseDpiEventParameters)p!;
-					if (e.LevelCount > 0 && e.CurrentLevel is not null and > 0)
+					if (e.LevelCount > 0 && e.CurrentLevel is not null)
 					{
-						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount, e.Horizontal);
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiDown, e.DeviceId, (uint)e.CurrentLevel.GetValueOrDefault() + 1, e.LevelCount, e.Horizontal);
 					}
 					else
 					{
@@ -300,9 +299,9 @@ public sealed class ProgrammingService : IAsyncDisposable
 				p =>
 				{
 					var e = (MouseDpiEventParameters)p!;
-					if (e.LevelCount > 0 && e.CurrentLevel is not null and > 0)
+					if (e.LevelCount > 0 && e.CurrentLevel is not null)
 					{
-						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, e.CurrentLevel.GetValueOrDefault(), e.LevelCount, e.Horizontal);
+						_overlayNotificationService.PostRequest(OverlayNotificationKind.MouseDpiUp, e.DeviceId, (uint)e.CurrentLevel.GetValueOrDefault() + 1, e.LevelCount, e.Horizontal);
 					}
 					else
 					{
@@ -311,7 +310,6 @@ public sealed class ProgrammingService : IAsyncDisposable
 				}
 			},
 		};
-	}
 
 	private static uint GetBatteryLevel(float level)
 	{
