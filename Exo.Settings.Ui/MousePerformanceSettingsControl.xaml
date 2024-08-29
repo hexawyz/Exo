@@ -37,6 +37,7 @@
             <Border
                 Grid.Row="1"
                 Padding="6"
+                Margin="0,0,0,6"
                 HorizontalAlignment="Stretch"
                 Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}"
@@ -127,7 +128,7 @@
                     </ItemsView.Layout>
                 </ItemsView>
             </Border>
-            <Grid Grid.Row="2" Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
+            <Grid Grid.Row="2" Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Visibility="{Binding SelectedDpiPreset, Converter={StaticResource NullabilityToVisibilityConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
@@ -172,8 +173,8 @@
         <ComboBox
             Grid.Column="1"
             Grid.Row="2"
-            ItemsSource="{Binding SupportedPollingFrequencies, Mode=OneWay}"
             SelectedItem="{Binding SelectedPollingFrequency, Mode=TwoWay}"
+            ItemsSource="{Binding SupportedPollingFrequencies, Mode=OneWay}"
             DisplayMemberPath="DisplayText"
             Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <StackPanel Grid.ColumnSpan="2" Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
