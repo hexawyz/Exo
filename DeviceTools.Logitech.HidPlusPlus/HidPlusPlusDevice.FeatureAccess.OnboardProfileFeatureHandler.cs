@@ -11,9 +11,6 @@ public abstract partial class HidPlusPlusDevice
 {
 	public abstract partial class FeatureAccess
 	{
-		// TODO: Refactor so that operations are serialized. Current code could be problematic in multiple (rare) situations.
-		// Likely, everything can be done with a single queue, but an AsyncLock primitive could be useful for some read accesses.
-		// Maybe a serialization mechanism is needed for the whole device though (not just that feature). Or maybe not. We'll see about that later. One step at a time.
 		private sealed class OnboardProfileFeatureHandler : FeatureHandler
 		{
 			private struct ProfileState
