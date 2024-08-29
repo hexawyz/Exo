@@ -15,6 +15,6 @@ public abstract partial class HidPlusPlusDevice
 		{
 		}
 
-		public override ValueTask DisposeAsync() => Transport.DisposeAsync();
+		public override ValueTask DisposeAsync(bool parentDisposed) => Transport.DisposeAsync();
 	}
 }

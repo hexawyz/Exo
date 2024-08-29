@@ -158,6 +158,6 @@ public abstract partial class HidPlusPlusDevice
 			Volatile.Write(ref device.CustomState, null);
 		}
 
-		public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+		public override ValueTask DisposeAsync(bool parentDisposed) => ValueTask.CompletedTask;
 	}
 }

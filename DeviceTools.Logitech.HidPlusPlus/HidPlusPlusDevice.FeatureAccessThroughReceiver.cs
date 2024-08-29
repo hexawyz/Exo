@@ -112,12 +112,12 @@ public abstract partial class HidPlusPlusDevice
 			// Once we create the device object, it will automatically process the notifications.
 			if (header.SubId == SubId.DeviceConnect)
 			{
-				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
+				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(in message[3]));
 
 				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
 				if (parameters.WirelessProductId != MainProductId)
 				{
-					DisposeInternal(true);
+					_ = DisposeAsync(true);
 					Receiver.HandleNotification(message);
 					return;
 				}
@@ -198,7 +198,18 @@ public abstract partial class HidPlusPlusDevice
 			Receiver.OnDeviceConnected(this, version);
 		}
 
+		private void HandleDeviceDisconnection()
+		{
+			try
+			{
+				Reset();
+			}
+			catch
+			{
+			}
+		}
+
 		// Instances of this class should not be disposed externally. The DisposeAsync method does nothing.
-		public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+		public override ValueTask DisposeAsync(bool parentDisposed) => ValueTask.CompletedTask;
 	}
 }

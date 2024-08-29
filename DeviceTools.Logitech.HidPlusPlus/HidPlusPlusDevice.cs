@@ -724,7 +724,9 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 		DeviceConnectionInfo = deviceConnectionInfo;
 	}
 
-	public abstract ValueTask DisposeAsync();
+	public ValueTask DisposeAsync() => DisposeAsync(ParentOrTransport is HidPlusPlusTransport);
+
+	public abstract ValueTask DisposeAsync(bool parentDisposed);
 
 	private protected void SetDeviceIds(HidPlusPlusDeviceId[] deviceIds, byte mainDeviceIdIndex)
 	{
@@ -743,6 +745,9 @@ public abstract partial class HidPlusPlusDevice : IAsyncDisposable
 	// For devices connected to a receiver, it will be called every time the device is connected, to allow refreshing the cached status.
 	// NB: For child devices, calls to this method are handled as part of the lifecycle.
 	private protected abstract Task InitializeAsync(int retryCount, CancellationToken cancellationToken);
+	// This is the opposite of InitializeAsync. This method will be called on device disconnection so that the code can update internal state if necessary.
+	// This method does not need to clear every device states, but it can help preserving a consistent state where needed.
+	private protected virtual void Reset() { }
 
 	// The below methods are used to raise connect/disconnect events on receivers and receiver-connected devices.
 	// They won't be called on devices that are not of the appropriate kind.

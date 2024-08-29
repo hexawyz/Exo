@@ -177,6 +177,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 			public DeviceConfiguration Current => new(_transport, (byte)_index);
 			object IEnumerator.Current => Current;
 
+			// TODO: Improve this so we can skip the rarely used, if ever, variable segment.
 			public bool MoveNext() => unchecked((uint)++_index) < 256;
 
 			public void Reset() => _index = -1;
@@ -427,8 +428,8 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 	{
 		if (Interlocked.Exchange(ref _disposeCancellationTokenSource, null) is { } cts)
 		{
-			cts.Cancel();
 			cts.Dispose();
+			cts.Cancel();
 			if (_shortMessageStream is not null)
 			{
 				await _shortMessageStream.DisposeAsync().ConfigureAwait(false);
@@ -446,6 +447,17 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 				await _readTask.ConfigureAwait(false);
 			}
 			catch { }
+			DisposeStates();
+		}
+	}
+
+	private void DisposeStates()
+	{
+		var enumerator = new DeviceStates<DeviceState>.Enumerator(ref _deviceStates);
+		while (enumerator.MoveNext())
+		{
+			if (enumerator.Current is not { } state) continue;
+			state.Dispose();
 		}
 	}
 

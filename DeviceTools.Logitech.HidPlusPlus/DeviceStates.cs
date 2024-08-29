@@ -97,9 +97,9 @@ internal struct DeviceStates<T>
 		private ref DeviceStates<T> _states;
 		private int _index;
 
-		public Enumerator(DeviceStates<T> states)
+		public Enumerator(ref DeviceStates<T> states)
 		{
-			_states = states;
+			_states = ref states;
 			_index = -1;
 		}
 
@@ -125,6 +125,4 @@ internal struct DeviceStates<T>
 			return true;
 		}
 	}
-
-	public Enumerator GetEnumerator() => throw new NotImplementedException();
 }

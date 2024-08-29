@@ -229,19 +229,28 @@ public abstract partial class HidPlusPlusDevice
 			}
 		}
 
-		public override ValueTask DisposeAsync()
+		public override async ValueTask DisposeAsync(bool parentDisposed)
 		{
-			DisposeInternal(false);
-			return ValueTask.CompletedTask;
-		}
-
-		private protected void DisposeInternal(bool clearState)
-		{
+			// NB: This is called internally in synchronous code, so it is important that the synchronous part comes first.
+			// The asynchronous part only concerns the feature handlers, which may need to shutdown when the device object is not used anymore.
 			var device = Transport.Devices[DeviceIndex];
 			device.NotificationReceived -= HandleNotification;
-			if (clearState)
+			if (parentDisposed)
 			{
 				Volatile.Write(ref device.CustomState, null);
+				if (_featureHandlers is { } handlers)
+				{
+					foreach (var handler in handlers)
+					{
+						try
+						{
+							await handler.DisposeAsync().ConfigureAwait(false);
+						}
+						catch
+						{
+						}
+					}
+				}
 			}
 		}
 
@@ -252,13 +261,10 @@ public abstract partial class HidPlusPlusDevice
 
 			if (_featureHandlers is { } handlers)
 			{
-				if (CachedFeatures is { } cachedFeatures)
+				foreach (var feature in CachedFeatures!)
 				{
-					foreach (var feature in cachedFeatures)
-					{
-						if (Enum.IsDefined(feature.Feature)) Logger.FeatureAccessDeviceKnownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
-						else Logger.FeatureAccessDeviceUnknownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
-					}
+					if (Enum.IsDefined(feature.Feature)) Logger.FeatureAccessDeviceKnownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
+					else Logger.FeatureAccessDeviceUnknownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
 				}
 
 				for (int i = 0; i < handlers.Length; i++)
@@ -269,7 +275,20 @@ public abstract partial class HidPlusPlusDevice
 					}
 				}
 			}
+		}
 
+		private protected override void Reset()
+		{
+			if (_featureHandlers is { } handlers)
+			{
+				for (int i = 0; i < handlers.Length; i++)
+				{
+					if (_featureHandlers[i] is { } handler)
+					{
+						handler.Reset();
+					}
+				}
+			}
 		}
 
 		public ValueTask<HidPlusPlusFeatureCollection> GetFeaturesAsync(CancellationToken cancellationToken)

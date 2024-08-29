@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -9,11 +9,13 @@ namespace DeviceTools.Logitech.HidPlusPlus.Profiles;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct ProfileName
 {
+#pragma warning disable IDE0044 // Add readonly modifier
 	[InlineArray(48)]
 	private struct ProfileNameData
 	{
 		private byte _element0;
 	}
+#pragma warning restore IDE0044 // Add readonly modifier
 
 	private readonly ProfileNameData _value;
 

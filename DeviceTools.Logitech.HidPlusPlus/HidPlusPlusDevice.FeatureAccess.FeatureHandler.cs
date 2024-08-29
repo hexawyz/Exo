@@ -1,4 +1,4 @@
-﻿namespace DeviceTools.Logitech.HidPlusPlus;
+namespace DeviceTools.Logitech.HidPlusPlus;
 
 public abstract partial class HidPlusPlusDevice
 {
@@ -7,7 +7,7 @@ public abstract partial class HidPlusPlusDevice
 		// NB: This would probably be exposed somehow so that notifications can be registered externally, but the API needs to be reworked.
 		// Notably, there is the problem of matching the notification handler with the device and getting the proper feature index.
 		// Internally, this is handled by providing the information in the constructor, but externally, that would be a weird thing to do.
-		private abstract class FeatureHandler
+		private abstract class FeatureHandler : IAsyncDisposable
 		{
 			protected FeatureAccess Device { get; }
 			protected byte FeatureIndex { get; }
@@ -18,6 +18,8 @@ public abstract partial class HidPlusPlusDevice
 				Device = device;
 				FeatureIndex = featureIndex;
 			}
+
+			public virtual ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
 			internal void HandleNotificationInternal(byte eventId, ReadOnlySpan<byte> response)
 			{
@@ -32,6 +34,8 @@ public abstract partial class HidPlusPlusDevice
 			}
 
 			public virtual Task InitializeAsync(int retryCount, CancellationToken cancellationToken) => Task.CompletedTask;
+
+			public virtual void Reset() { }
 
 			protected virtual void HandleNotification(byte eventId, ReadOnlySpan<byte> response) { }
 		}

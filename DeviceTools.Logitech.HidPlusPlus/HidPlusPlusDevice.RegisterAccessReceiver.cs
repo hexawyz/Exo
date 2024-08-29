@@ -34,11 +34,35 @@ public abstract partial class HidPlusPlusDevice
 		}
 
 		// NB: We don't need to unregister our notification handler here, since the transport is owned by the current instance.
-		public override async ValueTask DisposeAsync()
+		public override async ValueTask DisposeAsync(bool parentDisposed)
 		{
 			await Transport.DisposeAsync().ConfigureAwait(false);
 			_deviceOperationTaskQueue.Dispose();
 			_eventQueue.Dispose();
+			foreach (var deviceState in Transport.Devices)
+			{
+				if (deviceState.IsDefault) continue;
+				var state = deviceState.CustomState;
+				if (state is not HidPlusPlusDevice device)
+				{
+					if (state is not Task<HidPlusPlusDevice> task) continue;
+					try
+					{
+						device = await task.ConfigureAwait(false);
+					}
+					catch
+					{
+						continue;
+					}
+				}
+				try
+				{
+					await device.DisposeAsync().ConfigureAwait(false);
+				}
+				catch
+				{
+				}
+			}
 			await _deviceWatcherTask.ConfigureAwait(false);
 			await _eventProcessingTask.ConfigureAwait(false);
 		}
