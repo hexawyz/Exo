@@ -374,6 +374,8 @@ public abstract class LogitechUniversalDriver :
 			if (HasBacklight) device.BacklightStateChanged += OnBacklightStateChanged;
 
 			if (HasLockKeys) device.LockKeysChanged += OnLockKeysChanged;
+
+			if (HasAdjustableDpi) device.DpiChanged += OnDpiChanged;
 		}
 
 		protected override IDeviceFeatureSet<IPowerManagementDeviceFeature> CreatePowerManagementDeviceFeatures()
@@ -480,6 +482,27 @@ public abstract class LogitechUniversalDriver :
 						try
 						{
 							backlightStateChanged.Invoke(this, BuildBacklightState(backlightState));
+						}
+						catch (Exception ex)
+						{
+							_logger.LogitechUniversalDriverBacklightStateChangedError(ex);
+						}
+					}
+				);
+			}
+		}
+
+		private void OnDpiChanged(HidPlusPlusDevice device, DpiStatus status)
+		{
+			if (DpiChanged is { } dpiChanged)
+			{
+				_ = Task.Run
+				(
+					() =>
+					{
+						try
+						{
+							dpiChanged.Invoke(this, Convert(status));
 						}
 						catch (Exception ex)
 						{

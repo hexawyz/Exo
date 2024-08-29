@@ -80,6 +80,7 @@ public static class OnBoardProfiles
 
 	public static class GetCurrentProfile
 	{
+		public const byte EventId = 0;
 		public const byte FunctionId = 4;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
@@ -216,6 +217,7 @@ public static class OnBoardProfiles
 
 	public static class GetCurrentDpiIndex
 	{
+		public const byte EventId = 1;
 		public const byte FunctionId = 11;
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]

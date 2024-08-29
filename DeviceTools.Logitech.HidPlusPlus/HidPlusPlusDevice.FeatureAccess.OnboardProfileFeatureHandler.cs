@@ -93,6 +93,34 @@ public abstract partial class HidPlusPlusDevice
 				}
 			}
 
+			protected override void HandleNotification(byte eventId, ReadOnlySpan<byte> response)
+			{
+				if (response.Length < 3) return;
+
+				// These events will be generated if a change is initiated by the device itself.
+				// On many devices, those events will never be generated out of the box, but it is possible to bind special actions for changing profiles or dpi on mouse buttons.
+				// In that case, one of the two events can be generated, indicating applications that something changed on the device.
+				if (eventId == OnBoardProfiles.GetCurrentProfile.EventId)
+				{
+					HandleProfileChange(Unsafe.As<byte, OnBoardProfiles.GetCurrentProfile.Response>(ref Unsafe.AsRef(in response[0])));
+				}
+				else if (eventId == OnBoardProfiles.GetCurrentDpiIndex.EventId)
+				{
+					HandleDpiChange(Unsafe.As<byte, OnBoardProfiles.GetCurrentDpiIndex.Response>(ref Unsafe.AsRef(in response[0])));
+				}
+			}
+
+			private void HandleProfileChange(in OnBoardProfiles.GetCurrentProfile.Response response)
+			{
+				// TODO: We NEED to make sure to have the profile loaded at this point.
+			}
+
+			private void HandleDpiChange(in OnBoardProfiles.GetCurrentDpiIndex.Response response)
+			{
+				_currentDpiIndex = response.ActivePresetIndex;
+				Device.OnDpiChanged(new DpiStatus(_currentDpiIndex, new(_currentProfile.DpiPresets[_currentDpiIndex])));
+			}
+
 			private static Profile ParseProfile(ReadOnlySpan<byte> buffer)
 				=> buffer.Length >= Unsafe.SizeOf<Profile>() ?
 					Unsafe.As<byte, Profile>(ref Unsafe.AsRef(in buffer[0])) :

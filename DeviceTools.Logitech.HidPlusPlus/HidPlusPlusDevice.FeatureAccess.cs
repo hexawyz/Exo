@@ -35,6 +35,7 @@ public abstract partial class HidPlusPlusDevice
 		public event Action<FeatureAccess, BatteryPowerState>? BatteryChargeStateChanged;
 		public event Action<FeatureAccess, BacklightState>? BacklightStateChanged;
 		public event Action<FeatureAccess, LockKeys>? LockKeysChanged;
+		public event Action<FeatureAccess, DpiStatus>? DpiChanged;
 
 		private protected FeatureAccess
 		(
@@ -170,6 +171,9 @@ public abstract partial class HidPlusPlusDevice
 			await feature.SetReportIntervalAsync(reportInterval, cancellationToken).ConfigureAwait(false);
 		}
 
+		internal void OnDpiChanged(DpiStatus dpi)
+			=> DpiChanged?.Invoke(this, dpi);
+
 		public bool HasOnBoardProfiles => HasFeature(_onBoardProfileState);
 
 		public ImmutableArray<DotsPerInch> GetCurrentDpiPresets()
@@ -180,7 +184,7 @@ public abstract partial class HidPlusPlusDevice
 			int i = 0;
 			while (i < rawPresets.Count)
 			{
-				if (rawPresets[i] == 0xFFFF) break;
+				if (rawPresets[i] == 0) break;
 				i++;
 			}
 
