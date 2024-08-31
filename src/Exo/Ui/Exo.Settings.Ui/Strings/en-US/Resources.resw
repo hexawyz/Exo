@@ -141,6 +141,9 @@
   <data name="CoolingPowerLabel.Text" xml:space="preserve">
     <value>Power</value>
   </data>
+  <data name="CurrentDpiLabel.Text" xml:space="preserve">
+    <value>Current DPI</value>
+  </data>
   <data name="CustomMenuAddNewItemButton.Label" xml:space="preserve">
     <value>Add</value>
   </data>
@@ -182,6 +185,9 @@
   </data>
   <data name="DeviceIdVersion.Text" xml:space="preserve">
     <value>Version</value>
+  </data>
+  <data name="DpiPresetsLabel.Text" xml:space="preserve">
+    <value>DPI presets</value>
   </data>
   <data name="LightingEffectLabel.Text" xml:space="preserve">
     <value>Effect</value>
@@ -293,6 +299,30 @@
   </data>
   <data name="MonitorYellowSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>6 Axis Saturation (Yellow)</value>
+  </data>
+  <data name="PollingRateLabel.Text" xml:space="preserve">
+    <value>Polling Rate</value>
+  </data>
+  <data name="PresetHorizontalDpiLabel.Text" xml:space="preserve">
+    <value>Horizontal DPI</value>
+  </data>
+  <data name="PresetIndependentDpiCheckbox.Content" xml:space="preserve">
+    <value>Independent X-Y DPI</value>
+  </data>
+  <data name="PresetItemHorizontalDpiLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Horizontal DPI Value assigned to this preset.</value>
+  </data>
+  <data name="PresetItemHorizontalDpiNumberBox.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Horizontal DPI Value assigned to this preset.</value>
+  </data>
+  <data name="PresetItemVerticalDpiLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Vertical DPI Value assigned to this preset.</value>
+  </data>
+  <data name="PresetItemVerticalDpiNumberBox.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Vertical DPI Value assigned to this preset.</value>
+  </data>
+  <data name="PresetVerticalDpiLabel.Text" xml:space="preserve">
+    <value>Vertical DPI</value>
   </data>
   <data name="RefreshButton.Content" xml:space="preserve">
     <value>Refresh</value>

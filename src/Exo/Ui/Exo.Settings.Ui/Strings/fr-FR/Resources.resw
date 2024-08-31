@@ -141,6 +141,9 @@
   <data name="CoolingPowerLabel.Text" xml:space="preserve">
     <value>Puissance</value>
   </data>
+  <data name="CurrentDpiLabel.Text" xml:space="preserve">
+    <value>PPP actuel</value>
+  </data>
   <data name="CustomMenuAddNewItemButton.Label" xml:space="preserve">
     <value>Ajouter</value>
   </data>
@@ -182,6 +185,9 @@
   </data>
   <data name="DeviceIdVersion.Text" xml:space="preserve">
     <value>Version</value>
+  </data>
+  <data name="DpiPresetsLabel.Text" xml:space="preserve">
+    <value>Préréglages PPP</value>
   </data>
   <data name="LightingEffectLabel.Text" xml:space="preserve">
     <value>Effet</value>
@@ -293,6 +299,30 @@
   </data>
   <data name="MonitorYellowSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Saturation jaune</value>
+  </data>
+  <data name="PollingRateLabel.Text" xml:space="preserve">
+    <value>Fréquence d'actualisation</value>
+  </data>
+  <data name="PresetHorizontalDpiLabel.Text" xml:space="preserve">
+    <value>PPP horizontal</value>
+  </data>
+  <data name="PresetIndependentDpiCheckbox.Content" xml:space="preserve">
+    <value>PPP X-Y Indépendant</value>
+  </data>
+  <data name="PresetItemHorizontalDpiLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Valeur PPP horizontale du préréglage.</value>
+  </data>
+  <data name="PresetItemHorizontalDpiNumberBox.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Valeur PPP horizontale du préréglage.</value>
+  </data>
+  <data name="PresetItemVerticalDpiLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Valeur PPP verticale du préréglage.</value>
+  </data>
+  <data name="PresetItemVerticalDpiNumberBox.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Valeur PPP verticale du préréglage.</value>
+  </data>
+  <data name="PresetVerticalDpiLabel.Text" xml:space="preserve">
+    <value>PPP vertical</value>
   </data>
   <data name="RefreshButton.Content" xml:space="preserve">
     <value>Rafraîchir</value>

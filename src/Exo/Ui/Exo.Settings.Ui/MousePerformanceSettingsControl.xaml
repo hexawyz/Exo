@@ -21,7 +21,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Margin="{StaticResource RowLabelMargin}" Text="Current DPI" />
+        <TextBlock x:Uid="CurrentDpiLabel" Margin="{StaticResource RowLabelMargin}" />
         <TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding Path=CurrentDpi}" />
         <Grid
             Grid.ColumnSpan="2"
@@ -33,7 +33,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <TextBlock Text="Presets" Margin="{StaticResource RowLabelMargin}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+            <TextBlock x:Uid="DpiPresetsLabel" Margin="{StaticResource RowLabelMargin}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
             <Border
                 Grid.Row="1"
                 Padding="6"
@@ -72,6 +72,7 @@
                                         <NumberBox
                                             Grid.Row="2"
                                             Grid.Column="1"
+                                            x:Uid="PresetItemHorizontalDpiNumberBox"
                                             HorizontalAlignment="Stretch"
                                             PlaceholderText="{Binding HorizontalInitialValue}"
                                             Minimum="1"
@@ -81,6 +82,7 @@
                                         <NumberBox
                                             Grid.Row="3"
                                             Grid.Column="1"
+                                            x:Uid="PresetItemVerticalDpiNumberBox"
                                             Margin="0,6,0,0"
                                             HorizontalAlignment="Stretch"
                                             PlaceholderText="{Binding VerticalInitialValue}"
@@ -107,12 +109,14 @@
                                         <TextBlock
                                             Grid.Row="2"
                                             Grid.Column="1"
+                                            x:Uid="PresetItemHorizontalDpiLabel"
                                             HorizontalAlignment="Stretch"
                                             HorizontalTextAlignment="Center"
                                             Text="{Binding Horizontal, Mode=OneWay, Converter={StaticResource UInt16ToDoubleConverter}}" />
                                         <TextBlock
                                             Grid.Row="3"
                                             Grid.Column="1"
+                                            x:Uid="PresetItemVerticalDpiLabel"
                                             Margin="0,6,0,0"
                                             HorizontalAlignment="Stretch"
                                             HorizontalTextAlignment="Center"
@@ -141,13 +145,13 @@
                     </Grid.RowDefinitions>
                     <CheckBox
                         Grid.ColumnSpan="2"
-                        Content="Independent X-Y DPI"
+                        x:Uid="PresetIndependentDpiCheckbox"
                         IsChecked="{Binding SelectedDpiPreset.IsIndependent, Mode=TwoWay}"
                         Visibility="{Binding AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     <TextBlock
                         Grid.Row="1"
-                        Margin="{StaticResource RowLabelMargin}"
-                        Text="Horizontal" />
+                        x:Uid="PresetHorizontalDpiLabel"
+                        Margin="{StaticResource RowLabelMargin}" />
                     <Slider
                         Grid.Row="1"
                         Grid.Column="1"
@@ -156,8 +160,8 @@
                         Maximum="{Binding MaximumDpi.Horizontal}" />
                     <TextBlock
                         Grid.Row="2"
+                        x:Uid="PresetVerticalDpiLabel"
                         Margin="{StaticResource RowLabelMargin}"
-                        Text="Vertical"
                         Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     <Slider
                         Grid.Row="2"
@@ -169,7 +173,7 @@
                 </Grid>
             </Grid>
         </Grid>
-        <TextBlock Grid.Row="2" Margin="{StaticResource RowLabelMargin}" Text="Polling Rate" Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        <TextBlock Grid.Row="2" x:Uid="PollingRateLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <ComboBox
             Grid.Column="1"
             Grid.Row="2"
