@@ -43,7 +43,7 @@ jobs:
 
     # Build the WiX project, which depends on the main projects
     - name: Build the installer
-      run: msbuild Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:OutputName="$env:ARTIFACT_NAME"
+      run: msbuild src\Exo\Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:OutputName="$env:ARTIFACT_NAME"
       env:
         Configuration: ${{ matrix.configuration }}
 
@@ -52,5 +52,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ARTIFACT_NAME }}
-        path: Exo.InstallerPackage\bin\x64\Release\en-US\${{ env.ARTIFACT_NAME }}.msi
+        path: src\Exo\Exo.InstallerPackage\bin\x64\Release\en-US\${{ env.ARTIFACT_NAME }}.msi
 
