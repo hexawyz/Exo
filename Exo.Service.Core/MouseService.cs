@@ -28,6 +28,7 @@ internal sealed class MouseService
 		(
 			DotsPerInch maximumDpi,
 			MouseCapabilities capabilities,
+			byte profileCount,
 			byte minimumDpiPresetCount,
 			byte maximumDpiPresetCount,
 			ImmutableArray<ushort> supportedPollingFrequencies
@@ -35,6 +36,7 @@ internal sealed class MouseService
 		{
 			MaximumDpi = maximumDpi;
 			Capabilities = capabilities;
+			ProfileCount = profileCount;
 			MinimumDpiPresetCount = minimumDpiPresetCount;
 			MaximumDpiPresetCount = maximumDpiPresetCount;
 			SupportedPollingFrequencies = supportedPollingFrequencies.NotNull();
@@ -42,6 +44,7 @@ internal sealed class MouseService
 
 		public DotsPerInch MaximumDpi { get; }
 		public MouseCapabilities Capabilities { get; }
+		public byte ProfileCount { get; }
 		public byte MinimumDpiPresetCount { get; }
 		public byte MaximumDpiPresetCount { get; }
 		public ImmutableArray<ushort> SupportedPollingFrequencies { get; }
@@ -53,17 +56,21 @@ internal sealed class MouseService
 		private bool _isConnected;
 		private IMouseDynamicDpiFeature? _dynamicDpiFeature;
 		private IMouseConfigurablePollingFrequencyFeature? _pollingFrequencyFeature;
+		private IMouseProfilesFeature? _profilesFeature;
 		public readonly IConfigurationContainer ConfigurationContainer;
 		public readonly object Lock;
-		private readonly Action<Driver, MouseDpiStatus> _dpiChangedHandler;
+		private Action<Driver, MouseDpiStatus>? _dpiChangedHandler;
+		private Action<Driver, MouseProfileStatus>? _profileChangedHandler;
 		private ImmutableArray<DotsPerInch> _dpiPresets;
 		private ImmutableArray<ushort> _supportedPollingFrequencies;
 		private MouseDpiStatus _currentDpi;
+		private byte? _currentProfileIndex;
 		public readonly Guid DeviceId;
 		public DotsPerInch MaximumDpi;
 		public byte MinimumDpiPresetCount;
 		public byte MaximumDpiPresetCount;
 		private ushort _currentPollingFrequency;
+		private byte _profileCount;
 		private MouseCapabilities _capabilities;
 
 		public DeviceState(MouseService mouseService, IConfigurationContainer configurationContainer, Guid deviceId, PersistedMouseInformation persistedInformation)
@@ -72,9 +79,9 @@ internal sealed class MouseService
 			ConfigurationContainer = configurationContainer;
 			Lock = new();
 			_supportedPollingFrequencies = persistedInformation.SupportedPollingFrequencies;
-			_dpiChangedHandler = OnDpiChanged;
 			DeviceId = deviceId;
 			MaximumDpi = persistedInformation.MaximumDpi;
+			_profileCount = persistedInformation.ProfileCount;
 			MinimumDpiPresetCount = persistedInformation.MinimumDpiPresetCount;
 			MaximumDpiPresetCount = persistedInformation.MaximumDpiPresetCount;
 			_capabilities = persistedInformation.Capabilities;
@@ -88,6 +95,8 @@ internal sealed class MouseService
 		public MouseCapabilities Capabilities => _capabilities;
 		public ImmutableArray<DotsPerInch> DpiPresets => _dpiPresets;
 		public MouseDpiStatus CurrentDpi => _currentDpi;
+		public byte ProfileCount => _profileCount;
+		public byte? CurrentProfileIndex => _currentProfileIndex;
 		public ushort CurrentPollingFrequency => _currentPollingFrequency;
 		public ImmutableArray<ushort> SupportedPollingFrequencies => _supportedPollingFrequencies;
 
@@ -101,6 +110,8 @@ internal sealed class MouseService
 			MaximumDpiPresetCount = persistedInformation.MaximumDpiPresetCount;
 			isChanged |= _capabilities != persistedInformation.Capabilities;
 			_capabilities = persistedInformation.Capabilities;
+			isChanged |= _profileCount != persistedInformation.ProfileCount;
+			_profileCount = persistedInformation.ProfileCount;
 			isChanged |= MinimumDpiPresetCount != persistedInformation.MinimumDpiPresetCount;
 			MinimumDpiPresetCount = persistedInformation.MinimumDpiPresetCount;
 			isChanged |= MaximumDpiPresetCount != persistedInformation.MaximumDpiPresetCount;
@@ -114,9 +125,17 @@ internal sealed class MouseService
 		}
 
 		public PersistedMouseInformation CreatePersistedInformation()
-			=> new(MaximumDpi, Capabilities, MinimumDpiPresetCount, MaximumDpiPresetCount, SupportedPollingFrequencies);
+			=> new(MaximumDpi, Capabilities, ProfileCount, MinimumDpiPresetCount, MaximumDpiPresetCount, SupportedPollingFrequencies);
 
-		public void OnConnected(ImmutableArray<DotsPerInch> dpiPresets, MouseDpiStatus currentDpi, ushort currentPollingFrequency, IMouseDynamicDpiFeature? dpiFeature, IMouseConfigurablePollingFrequencyFeature? pollingFrequencyFeature)
+		public void OnConnected
+		(
+			ImmutableArray<DotsPerInch> dpiPresets,
+			MouseDpiStatus currentDpi,
+			ushort currentPollingFrequency,
+			IMouseDynamicDpiFeature? dpiFeature,
+			IMouseConfigurablePollingFrequencyFeature? pollingFrequencyFeature,
+			IMouseProfilesFeature? profilesFeature
+		)
 		{
 			lock (Lock)
 			{
@@ -127,12 +146,18 @@ internal sealed class MouseService
 				if (dpiFeature is not null)
 				{
 					_dynamicDpiFeature = dpiFeature;
-					dpiFeature.DpiChanged += _dpiChangedHandler;
+					dpiFeature.DpiChanged += (_dpiChangedHandler ??= OnDpiChanged);
 					_currentDpi = dpiFeature.CurrentDpi;
 				}
 				if (pollingFrequencyFeature is not null)
 				{
 					_pollingFrequencyFeature = pollingFrequencyFeature;
+				}
+				if (profilesFeature is not null)
+				{
+					_profilesFeature = profilesFeature;
+					profilesFeature.ProfileChanged += (_profileChangedHandler ??= OnProfileChanged);
+					_currentProfileIndex = profilesFeature.CurrentProfileIndex;
 				}
 
 				// Send all notifications in order.
@@ -167,6 +192,11 @@ internal sealed class MouseService
 				}
 				_dynamicDpiFeature = null;
 				_pollingFrequencyFeature = null;
+				if (_profilesFeature is not null)
+				{
+					_profilesFeature.ProfileChanged -= _profileChangedHandler;
+				}
+				_profilesFeature = null;
 			}
 		}
 
@@ -174,7 +204,7 @@ internal sealed class MouseService
 		{
 			lock (Lock)
 			{
-				if ((Capabilities & (MouseCapabilities.ConfigurableDpiPresets | MouseCapabilities.DpiPresets)) != 0 &&
+				if ((Capabilities & MouseCapabilities.DpiPresets) != 0 &&
 					_dynamicDpiFeature is IMouseDpiPresetsFeature dpiPresetsFeature)
 				{
 					return dpiPresetsFeature;
@@ -219,6 +249,40 @@ internal sealed class MouseService
 				SupportedPollingFrequencies = SupportedPollingFrequencies,
 			};
 
+		private void OnProfileChanged(Driver driver, MouseProfileStatus profile)
+		{
+			// NB: Locking could potentially mess event ordering , so we might want to migrate to channels at some point.
+			// Locking could still be necessary for the event registration and initial value update.
+			MouseDpiStatus mouseDpiStatus = default;
+			lock (Lock)
+			{
+				var oldProfile = CurrentProfileIndex;
+				_currentProfileIndex = profile.ProfileIndex;
+
+				if (CurrentProfileIndex != oldProfile)
+				{
+					if (GetDpiPresetsFeature() is { } dpiPresetsFeature)
+					{
+						_dpiPresets = dpiPresetsFeature.DpiPresets;
+						mouseDpiStatus = dpiPresetsFeature.CurrentDpi;
+					}
+					else if (_dynamicDpiFeature is not null)
+					{
+						mouseDpiStatus = _dynamicDpiFeature.CurrentDpi;
+					}
+
+					_mouseService.OnProfileChanged(this);
+				}
+			}
+
+			// NB: Although the driver should (will?) send a DPI change notification, we do so forcefully here because it is not unreasonable to do.
+			// This bit of code may go away in the future.
+			if (_dynamicDpiFeature is not null)
+			{
+				OnDpiChanged(driver, mouseDpiStatus);
+			}
+		}
+
 		private void OnDpiChanged(Driver driver, MouseDpiStatus dpi)
 		{
 			// NB: Locking could potentially mess event ordering , so we might want to migrate to channels at some point.
@@ -226,7 +290,7 @@ internal sealed class MouseService
 			lock (Lock)
 			{
 				var oldDpi = CurrentDpi;
-				_currentDpi = new MouseDpiStatus() { PresetIndex = dpi.PresetIndex, Dpi = dpi.Dpi };
+				_currentDpi = dpi;
 
 				if (CurrentDpi != oldDpi)
 				{
@@ -378,6 +442,8 @@ internal sealed class MouseService
 		MouseCapabilities capabilities = 0;
 		byte minimumDpiPresetCount = 0;
 		byte maximumDpiPresetCount = 0;
+		byte profileCount = 0;
+		byte? currentProfileIndex = null;
 		ImmutableArray<DotsPerInch> dpiPresets = [];
 		ImmutableArray<ushort> supportedPollingFrequencies = [];
 
@@ -386,6 +452,7 @@ internal sealed class MouseService
 		IMouseDynamicDpiFeature? dynamicDpiFeature;
 		IMouseDpiFeature? dpiFeature;
 		IMouseConfigurablePollingFrequencyFeature? configurablePollingFrequencyFeature;
+		IMouseProfilesFeature? profilesFeature;
 
 		if ((configurableDpiPresetsFeature = mouseFeatures.GetFeature<IMouseConfigurableDpiPresetsFeature>()) is not null)
 		{
@@ -437,6 +504,13 @@ internal sealed class MouseService
 			currentPollingFrequency = configurablePollingFrequencyFeature.PollingFrequency;
 		}
 
+		if ((profilesFeature = mouseFeatures.GetFeature<IMouseProfilesFeature>()) is not null)
+		{
+			capabilities |= MouseCapabilities.HardwareProfiles;
+			profileCount = profilesFeature.ProfileCount;
+			currentProfileIndex = profilesFeature.CurrentProfileIndex;
+		}
+
 		// If any of the information received from the device is incoherent, we entirely disable related features.
 		if (dpiPresets.IsDefault ||
 			dpiPresets.Length > 255 ||
@@ -469,7 +543,7 @@ internal sealed class MouseService
 			return;
 		}
 
-		var newInformation = new PersistedMouseInformation(maximumDpi, capabilities, minimumDpiPresetCount, maximumDpiPresetCount, supportedPollingFrequencies);
+		var newInformation = new PersistedMouseInformation(maximumDpi, capabilities, profileCount, minimumDpiPresetCount, maximumDpiPresetCount, supportedPollingFrequencies);
 		bool shouldPersistInformation;
 		if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out deviceState))
 		{
@@ -492,7 +566,7 @@ internal sealed class MouseService
 		}
 
 		// This will update the live state of the mouse, setup change handlers, and send out initial notifications.
-		deviceState.OnConnected(dpiPresets, currentDpi, currentPollingFrequency, dynamicDpiFeature, configurablePollingFrequencyFeature);
+		deviceState.OnConnected(dpiPresets, currentDpi, currentPollingFrequency, dynamicDpiFeature, configurablePollingFrequencyFeature, profilesFeature);
 	}
 
 	private void HandleRemoval(DeviceWatchNotification notification)
@@ -507,6 +581,14 @@ internal sealed class MouseService
 	private void NotifyDeviceConnection(MouseDeviceInformation information) => _deviceChangeListeners.TryWrite(information);
 	private void NotifyDpiPresets(MouseDpiPresetsInformation information) => _dpiPresetChangeListeners.TryWrite(information);
 	private void NotifyPollingFrequency(MousePollingFrequencyNotification notification) => _pollingFrequencyChangeListeners.TryWrite(notification);
+
+	private void OnProfileChanged(DeviceState state)
+	{
+		lock (_dpiChangeLock)
+		{
+			NotifyDpiPresets(new() { DeviceId = state.DeviceId, ActivePresetIndex = state.CurrentDpi.PresetIndex, DpiPresets = state.DpiPresets });
+		}
+	}
 
 	private void OnDpiChanged(MouseDpiNotification notification)
 	{

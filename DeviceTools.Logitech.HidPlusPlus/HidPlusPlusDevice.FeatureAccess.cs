@@ -36,6 +36,7 @@ public abstract partial class HidPlusPlusDevice
 		public event Action<FeatureAccess, BacklightState>? BacklightStateChanged;
 		public event Action<FeatureAccess, LockKeys>? LockKeysChanged;
 		public event Action<FeatureAccess, DpiStatus>? DpiChanged;
+		public event Action<FeatureAccess, byte?>? ProfileChanged;
 
 		private protected FeatureAccess
 		(
@@ -174,7 +175,13 @@ public abstract partial class HidPlusPlusDevice
 		internal void OnDpiChanged(DpiStatus dpi)
 			=> DpiChanged?.Invoke(this, dpi);
 
+		internal void OnProfileChanged(byte? profileIndex)
+			=> ProfileChanged?.Invoke(this, profileIndex);
+
 		public bool HasOnBoardProfiles => HasFeature(_onBoardProfileState);
+
+		public byte ProfileCount => GetFeature(in _onBoardProfileState).ProfileCount;
+		public byte? CurrentProfileIndex => GetFeature(in _onBoardProfileState).CurrentProfileIndex;
 
 		public ImmutableArray<DotsPerInch> GetCurrentDpiPresets()
 		{

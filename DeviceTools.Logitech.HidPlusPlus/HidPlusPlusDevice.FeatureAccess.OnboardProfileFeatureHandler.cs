@@ -93,6 +93,16 @@ public abstract partial class HidPlusPlusDevice
 
 			public DeviceMode DeviceMode => _deviceMode;
 
+			public byte ProfileCount => _information.ProfileCount;
+
+			public byte? CurrentProfileIndex
+			{
+				get
+				{
+					var currentProfileIndex = _currentProfileIndex;
+					return (uint)(int)currentProfileIndex < (uint)_profileStates.Length ? (byte)currentProfileIndex : null;
+				}
+			}
 			public ref readonly Profile CurrentProfile
 			{
 				get
@@ -349,6 +359,8 @@ public abstract partial class HidPlusPlusDevice
 				var dpiIndex = await GetActiveDpiIndex(cancellationToken).ConfigureAwait(false);
 
 				_currentProfileIndex = profileIndex;
+
+				Device.OnProfileChanged((byte)_currentProfileIndex);
 
 				HandleDpiChange(dpiIndex);
 			}

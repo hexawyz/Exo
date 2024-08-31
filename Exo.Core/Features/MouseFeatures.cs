@@ -93,3 +93,18 @@ public interface IMouseConfigurablePollingFrequencyFeature : IMouseDeviceFeature
 	/// <returns></returns>
 	ValueTask SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken);
 }
+
+// NB: Mouse profiles is a complex feature to implement. This is far from complete, but it should allow basic operations.
+// I'm not sure yet how to implement all of this, as the mouse profiles feature is likely to vary a lot between mouse models.
+// The most important thing is the ability to receive a notification when a profile is changed, so that we can at least update the current DPI presets.
+/// <summary>This feature enables working with mouses supporting multiple profiles.</summary>
+public interface IMouseProfilesFeature : IMouseDeviceFeature
+{
+	event Action<Driver, MouseProfileStatus> ProfileChanged;
+
+	byte ProfileCount { get; }
+
+	byte? CurrentProfileIndex { get; }
+
+	//Task ChangeCurrentProfileAsync(byte profileIndex, CancellationToken cancellationToken);
+}

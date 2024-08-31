@@ -23,17 +23,16 @@ public abstract partial class LogitechUniversalDriver
 		IMouseDynamicDpiFeature,
 		IMouseDpiPresetsFeature,
 		IMouseConfigurableDpiPresetsFeature,
-		IMouseConfigurablePollingFrequencyFeature
+		IMouseConfigurablePollingFrequencyFeature,
+		IMouseProfilesFeature
 	{
 		public FeatureAccess(HidPlusPlusDevice.FeatureAccess device, ILogger<FeatureAccess> logger, DeviceConfigurationKey configurationKey, ushort versionNumber)
 			: base(device, logger, configurationKey, versionNumber)
 		{
 			if (HasBattery) device.BatteryChargeStateChanged += OnBatteryChargeStateChanged;
-
 			if (HasBacklight) device.BacklightStateChanged += OnBacklightStateChanged;
-
 			if (HasLockKeys) device.LockKeysChanged += OnLockKeysChanged;
-
+			if (HasOnBoardProfiles) device.ProfileChanged += OnProfileChanged;
 			if (HasAdjustableDpi) device.DpiChanged += OnDpiChanged;
 		}
 
@@ -52,8 +51,8 @@ public abstract partial class LogitechUniversalDriver
 			=> HasAdjustableDpi ?
 				HasOnBoardProfiles ?
 					HasAdjustableReportInterval ?
-						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
-						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature>(this) :
+						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature, IMouseConfigurablePollingFrequencyFeature, IMouseProfilesFeature>(this) :
+						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseDpiPresetsFeature, IMouseProfilesFeature>(this) :
 					HasAdjustableReportInterval ?
 						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature, IMouseConfigurablePollingFrequencyFeature>(this) :
 						FeatureSet.Create<IMouseDeviceFeature, FeatureAccess, IMouseDpiFeature, IMouseDynamicDpiFeature>(this) :
@@ -151,6 +150,27 @@ public abstract partial class LogitechUniversalDriver
 			}
 		}
 
+		private void OnProfileChanged(HidPlusPlusDevice device, byte? profileIndex)
+		{
+			if (ProfileChanged is { } profileChanged)
+			{
+				_ = Task.Run
+				(
+					() =>
+					{
+						try
+						{
+							profileChanged.Invoke(this, new() { ProfileIndex = profileIndex });
+						}
+						catch (Exception ex)
+						{
+							_logger.LogitechUniversalDriverProfileChangedError(ex);
+						}
+					}
+				);
+			}
+		}
+
 		private void OnDpiChanged(HidPlusPlusDevice device, DpiStatus status)
 		{
 			if (DpiChanged is { } dpiChanged)
@@ -165,7 +185,7 @@ public abstract partial class LogitechUniversalDriver
 						}
 						catch (Exception ex)
 						{
-							_logger.LogitechUniversalDriverBacklightStateChangedError(ex);
+							_logger.LogitechUniversalDriverDpiChangedError(ex);
 						}
 					}
 				);
@@ -184,6 +204,8 @@ public abstract partial class LogitechUniversalDriver
 		private event Action<Driver, BatteryState>? BatteryStateChanged;
 		private event Action<Driver, BacklightState>? BacklightStateChanged;
 		private event Action<Driver, LockKeys>? LockKeysChanged;
+		private event Action<Driver, MouseProfileStatus>? ProfileChanged;
+		private event Action<Driver, MouseDpiStatus>? DpiChanged;
 
 		event Action<Driver, BatteryState> IBatteryStateDeviceFeature.BatteryStateChanged
 		{
@@ -249,8 +271,6 @@ public abstract partial class LogitechUniversalDriver
 
 		bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => false;
 
-		private event Action<Driver, MouseDpiStatus> DpiChanged;
-
 		event Action<Driver, MouseDpiStatus> IMouseDynamicDpiFeature.DpiChanged
 		{
 			add => DpiChanged += value;
@@ -268,6 +288,15 @@ public abstract partial class LogitechUniversalDriver
 		byte IMouseConfigurableDpiPresetsFeature.MaxPresetCount => 5;
 
 		ValueTask IMouseConfigurableDpiPresetsFeature.SetDpiPresetsAsync(byte activePresetIndex, ImmutableArray<DotsPerInch> dpiPresets, CancellationToken cancellationToken) => throw new NotImplementedException();
+
+		event Action<Driver, MouseProfileStatus> IMouseProfilesFeature.ProfileChanged
+		{
+			add => ProfileChanged += value;
+			remove => ProfileChanged -= value;
+		}
+
+		byte IMouseProfilesFeature.ProfileCount => Device.ProfileCount;
+		byte? IMouseProfilesFeature.CurrentProfileIndex => Device.CurrentProfileIndex;
 	}
 
 	private abstract class FeatureAccessDirect : FeatureAccess
