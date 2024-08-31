@@ -21,6 +21,8 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 
 	private readonly Dictionary<Guid, LightingZoneViewModel> _lightingZoneById;
 
+	private readonly LightingPersistenceMode _persistenceMode;
+
 	private int _changedZoneCount;
 	private int _busyZoneCount;
 	private bool _useUnifiedLighting;
@@ -94,6 +96,8 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		}
 	}
 
+	public bool CanPersistChanges => _persistenceMode == LightingPersistenceMode.CanPersist;
+
 	public Guid Id => _deviceViewModel.Id;
 
 	public string FriendlyName => _deviceViewModel.FriendlyName;
@@ -132,6 +136,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			);
 			return viewModels;
 		}
+		_persistenceMode = lightingDeviceInformation.PersistenceMode;
 		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? CreateZoneViewModel(lightingDeviceInformation.UnifiedLightingZone) : null;
 		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
 			ReadOnlyCollection<LightingZoneViewModel>.Empty :

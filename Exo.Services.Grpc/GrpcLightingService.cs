@@ -34,6 +34,7 @@ internal sealed class GrpcLightingService : ILightingService
 				yield return new()
 				{
 					DeviceId = lightingDevice.DeviceId,
+					PersistenceMode = lightingDevice.PersistenceMode.ToGrpc(),
 					BrightnessCapabilities = lightingDevice.BrightnessCapabilities is { } brightnessCapabilities ?
 						new() { MinimumBrightness = brightnessCapabilities.MinimumValue, MaximumBrightness = brightnessCapabilities.MaximumValue } :
 						null,

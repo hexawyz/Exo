@@ -26,6 +26,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		public IConfigurationContainer DeviceConfigurationContainer { get; }
 		public IConfigurationContainer<Guid> LightingZonesConfigurationContainer { get; }
 		public BrightnessCapabilities? BrightnessCapabilities { get; set; }
+		public LightingPersistenceMode PersistenceMode { get; set; }
 
 		public Guid UnifiedLightingZoneId { get; set; }
 
@@ -41,6 +42,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			IConfigurationContainer deviceConfigurationContainer,
 			IConfigurationContainer<Guid> lightingZonesConfigurationContainer,
 			BrightnessCapabilities? brightnessCapabilities,
+			LightingPersistenceMode persistenceMode,
 			Guid unifiedLightingZoneId,
 			Dictionary<Guid, LightingZoneState> lightingZones
 		)
@@ -48,6 +50,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			DeviceConfigurationContainer = deviceConfigurationContainer;
 			LightingZonesConfigurationContainer = lightingZonesConfigurationContainer;
 			BrightnessCapabilities = brightnessCapabilities;
+			PersistenceMode = persistenceMode;
 			LightingZones = lightingZones;
 			UnifiedLightingZoneId = unifiedLightingZoneId;
 		}
@@ -71,6 +74,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	{
 		public BrightnessCapabilities? BrightnessCapabilities { get; init; }
 		public Guid? UnifiedLightingZoneId { get; init; }
+		public LightingPersistenceMode PersistenceMode { get; init; }
 	}
 
 	[TypeId(0xB6677089, 0x77FE, 0x467A, 0x8C, 0x23, 0x87, 0x8C, 0x80, 0x71, 0x03, 0x19)]
@@ -144,6 +148,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			byte? brightness = null;
 			BrightnessCapabilities? brightnessCapabilities = null;
 			bool isUnifiedLightingEnabled = false;
+			LightingPersistenceMode persistenceMode = LightingPersistenceMode.NeverPersisted;
 
 			{
 				var result = await deviceConfigurationContainer.ReadValueAsync<PersistedLightingDeviceInformation>(cancellationToken).ConfigureAwait(false);
@@ -152,6 +157,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					var info = result.Value;
 					unifiedLightingZoneId = info.UnifiedLightingZoneId;
 					brightnessCapabilities = info.BrightnessCapabilities;
+					persistenceMode = info.PersistenceMode;
 				}
 			}
 
@@ -213,6 +219,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 						deviceConfigurationContainer,
 						lightingZoneConfigurationConfigurationContainer,
 						brightnessCapabilities,
+						persistenceMode,
 						unifiedLightingZoneId.GetValueOrDefault(),
 						lightingZones
 					)
@@ -346,6 +353,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		return new
 		(
 			deviceId,
+			deviceState.PersistenceMode,
 			deviceState.BrightnessCapabilities,
 			unifiedLightingZoneInfo,
 			ImmutableCollectionsMarshal.AsImmutableArray(lightingZoneInfos)
@@ -366,6 +374,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		Tuple<Type[], Guid[]>? supportedEffectsAndIds = null;
 		byte? brightness = null;
 		bool isUnifiedLightingEnabled = false;
+		LightingPersistenceMode persistenceMode;
 
 		var lightingFeatures = (IDeviceFeatureSet<ILightingDeviceFeature>)notification.FeatureSet!;
 
@@ -386,6 +395,8 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			// TODO: Log a warning.
 			return;
 		}
+
+		persistenceMode = lightingFeatures.GetFeature<ILightingDeferredChangesFeature>()?.PersistenceMode ?? LightingPersistenceMode.NeverPersisted;
 
 		var brightnessFeature = lightingFeatures.GetFeature<ILightingBrightnessFeature>();
 		if (brightnessFeature is not null)
@@ -446,7 +457,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				);
 			}
 
-			deviceState = new(deviceContainer, lightingZonesContainer, brightnessCapabilities, unifiedLightingZoneId, lightingZoneStates)
+			deviceState = new(deviceContainer, lightingZonesContainer, brightnessCapabilities, persistenceMode, unifiedLightingZoneId, lightingZoneStates)
 			{
 				Driver = notification.Driver,
 				IsUnifiedLightingEnabled = isUnifiedLightingEnabled,
@@ -458,7 +469,8 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				new PersistedLightingDeviceInformation
 				{
 					UnifiedLightingZoneId = unifiedLightingFeature is not null ? unifiedLightingZoneId : null,
-					BrightnessCapabilities = brightnessCapabilities
+					BrightnessCapabilities = brightnessCapabilities,
+					PersistenceMode = persistenceMode
 				},
 				cancellationToken
 			).ConfigureAwait(false);
@@ -642,8 +654,9 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 						}
 					}
 
-					if (deviceState.UnifiedLightingZoneId != unifiedLightingZoneId || deviceState.BrightnessCapabilities != brightnessCapabilities)
+					if (deviceState.PersistenceMode != persistenceMode || deviceState.UnifiedLightingZoneId != unifiedLightingZoneId || deviceState.BrightnessCapabilities != brightnessCapabilities)
 					{
+						deviceState.PersistenceMode = persistenceMode;
 						deviceState.UnifiedLightingZoneId = unifiedLightingZoneId;
 						deviceState.BrightnessCapabilities = brightnessCapabilities;
 						shouldUpdateDeviceInformation = true;

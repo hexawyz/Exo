@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Exo.Features.Monitors;
+using Exo.Lighting;
 using CoolerType = Exo.Cooling.CoolerType;
 using DeviceId = DeviceTools.DeviceId;
 using DeviceIdSource = DeviceTools.DeviceIdSource;
@@ -12,6 +13,7 @@ using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
 using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
 using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
+using GrpcLightingPersistenceMode = Exo.Contracts.Ui.Settings.LightingPersistenceMode;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
@@ -90,6 +92,15 @@ internal static class GrpcConvert
 
 	public static DotsPerInch FromGrpc(this GrpcDotsPerInch dpi)
 		=> new(dpi.Horizontal, dpi.Vertical);
+
+	public static GrpcLightingPersistenceMode ToGrpc(this LightingPersistenceMode persistenceMode)
+		=> persistenceMode switch
+		{
+			LightingPersistenceMode.NeverPersisted => GrpcLightingPersistenceMode.NeverPersisted,
+			LightingPersistenceMode.CanPersist => GrpcLightingPersistenceMode.CanPersist,
+			LightingPersistenceMode.AlwaysPersisted => GrpcLightingPersistenceMode.AlwaysPersisted,
+			_ => throw new NotImplementedException(),
+		};
 
 	public static GrpcLightingZoneInformation ToGrpc(this LightingZoneInformation zoneInformation)
 		=> new()

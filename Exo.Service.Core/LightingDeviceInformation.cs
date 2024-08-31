@@ -1,17 +1,27 @@
 using System.Collections.Immutable;
+using Exo.Lighting;
 
 namespace Exo.Service;
 
 public readonly struct LightingDeviceInformation : IEquatable<LightingDeviceInformation>
 {
 	public Guid DeviceId { get; }
+	public LightingPersistenceMode PersistenceMode { get; }
 	public BrightnessCapabilities? BrightnessCapabilities { get; }
 	public LightingZoneInformation? UnifiedLightingZone { get; }
 	public ImmutableArray<LightingZoneInformation> LightingZones { get; }
 
-	public LightingDeviceInformation(Guid deviceId, BrightnessCapabilities? brightnessCapabilities, LightingZoneInformation? unifiedLightingZone, ImmutableArray<LightingZoneInformation> lightingZones)
+	public LightingDeviceInformation
+	(
+		Guid deviceId,
+		LightingPersistenceMode persistenceMode,
+		BrightnessCapabilities? brightnessCapabilities,
+		LightingZoneInformation? unifiedLightingZone,
+		ImmutableArray<LightingZoneInformation> lightingZones
+	)
 	{
 		DeviceId = deviceId;
+		PersistenceMode = persistenceMode;
 		BrightnessCapabilities = brightnessCapabilities;
 		UnifiedLightingZone = unifiedLightingZone;
 		LightingZones = lightingZones;

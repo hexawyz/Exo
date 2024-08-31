@@ -82,7 +82,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{Binding ShouldPersistChanges, Mode=TwoWay}">
+                            <CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{Binding ShouldPersistChanges, Mode=TwoWay}" Visibility="{Binding CanPersistChanges, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <CheckBox.ContentTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
