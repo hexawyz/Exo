@@ -186,6 +186,9 @@ public abstract partial class HidPlusPlusDevice
 		public ImmutableArray<DotsPerInch> GetCurrentDpiPresets()
 		{
 			var onBoardProfileFeature = GetFeature(in _onBoardProfileState);
+
+			if (onBoardProfileFeature.DeviceMode == DeviceMode.Host) return [];
+
 			var rawPresets = onBoardProfileFeature.CurrentProfile.DpiPresets;
 
 			int i = 0;
