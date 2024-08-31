@@ -120,8 +120,14 @@
   <data name="ApplyButton.Content" xml:space="preserve">
     <value>Apply</value>
   </data>
+  <data name="BatteryLevelLabel.Text" xml:space="preserve">
+    <value>Battery Level</value>
+  </data>
   <data name="BatteryLevelsTitleTextBlock.Text" xml:space="preserve">
     <value>Battery Levels</value>
+  </data>
+  <data name="BatteryStatusLabel.Text" xml:space="preserve">
+    <value>Battery status</value>
   </data>
   <data name="CoolerCoolingModeLabel.Text" xml:space="preserve">
     <value>Mode</value>
@@ -189,6 +195,12 @@
   <data name="DpiPresetsLabel.Text" xml:space="preserve">
     <value>DPI presets</value>
   </data>
+  <data name="ExternalPowerStatusLabel.Text" xml:space="preserve">
+    <value>External power</value>
+  </data>
+  <data name="IdleSleepTimerLabel.Text" xml:space="preserve">
+    <value>Sleep timer</value>
+  </data>
   <data name="LightingEffectLabel.Text" xml:space="preserve">
     <value>Effect</value>
   </data>
@@ -200,6 +212,9 @@
   </data>
   <data name="LightingZoneUnifiedLightingToggle.ToolTipService.ToolTip" xml:space="preserve">
     <value>Unified Lighting</value>
+  </data>
+  <data name="LowPowerModeThresholdLabel.Text" xml:space="preserve">
+    <value>Low power mode %</value>
   </data>
   <data name="MonitorAudioVolumeLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Audio Volume</value>

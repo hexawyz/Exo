@@ -22,13 +22,13 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Margin="{StaticResource RowLabelMargin}" Text="Battery level" />
+        <TextBlock x:Uid="BatteryLevelLabel" Margin="{StaticResource RowLabelMargin}" />
         <TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.Level, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
-        <TextBlock Grid.Row="1" Margin="{StaticResource RowLabelMargin}" Text="Battery status" />
+        <TextBlock Grid.Row="1" x:Uid="BatteryStatusLabel" Margin="{StaticResource RowLabelMargin}" />
         <TextBlock Grid.Row="1" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.BatteryStatus, Mode=OneWay}" />
-        <TextBlock Grid.Row="2" Margin="{StaticResource RowLabelMargin}" Text="External power" />
+        <TextBlock Grid.Row="2" x:Uid="ExternalPowerStatusLabel" Margin="{StaticResource RowLabelMargin}" />
         <TextBlock Grid.Row="2" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.ExternalPowerStatus, Mode=OneWay}" />
-        <TextBlock Grid.Row="3" Margin="{StaticResource RowLabelMargin}" Text="Low power mode %" Visibility="{Binding HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        <TextBlock Grid.Row="3" x:Uid="LowPowerModeThresholdLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <Slider
             Grid.Row="3"
             Grid.Column="1"
@@ -37,7 +37,7 @@
             Minimum="0"
             ThumbToolTipValueConverter="{StaticResource PercentConverter}"
             Visibility="{Binding HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}}" />
-        <TextBlock Grid.Row="4" Margin="{StaticResource RowLabelMargin}" Text="Sleep timer" Visibility="{Binding HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        <TextBlock x:Uid="IdleSleepTimerLabel" Grid.Row="4" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <Slider
             Grid.Row="4"
             Grid.Column="1"
