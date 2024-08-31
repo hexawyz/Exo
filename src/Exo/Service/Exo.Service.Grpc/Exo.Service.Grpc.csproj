@@ -18,8 +18,8 @@
 	
 	<ItemGroup>
 		<ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
-		<ProjectReference Include="..\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
-		<ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
+		<ProjectReference Include="..\..\Ui\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
+		<ProjectReference Include="..\..\Ui\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -14,10 +14,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Include="..\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 
 </Project>

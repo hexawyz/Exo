@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
+    <ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" />
     <ProjectReference Include="..\Exo.DeviceNotifications\Exo.DeviceNotifications.csproj" />
   </ItemGroup>
 

@@ -14,11 +14,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
-		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
-		<ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
-		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" />
-		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" />
 	</ItemGroup>
 
 </Project>

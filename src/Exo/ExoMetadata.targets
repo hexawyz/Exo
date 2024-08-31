@@ -1,7 +1,7 @@
 <Project>
 	<ItemGroup>
 		<ProjectReference
-			Include="$(MSBuildThisFileDirectory)Exo.MetadataCompiler\Exo.MetadataCompiler.csproj"
+			Include="$(MSBuildThisFileDirectory)Core\Exo.MetadataCompiler\Exo.MetadataCompiler.csproj"
 			Private="false"
 			ExcludeAssets="all"
 			ReferenceOutputAssembly="false"
@@ -56,7 +56,7 @@
 	</Target>
 	<Target Name="LocateExoMetadataCompiler">
 		<PropertyGroup>
-			<_ExoMetadataCompilerPath>$(MSBuildThisFileDirectory)Exo.MetadataCompiler\bin\$(Configuration)\net8.0\Exo.MetadataCompiler.dll</_ExoMetadataCompilerPath>
+			<_ExoMetadataCompilerPath>$(MSBuildThisFileDirectory)Core\Exo.MetadataCompiler\bin\$(Configuration)\net8.0\Exo.MetadataCompiler.dll</_ExoMetadataCompilerPath>
 		</PropertyGroup>
 	</Target>
 	<Target Name="BuildStringsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedStringMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" Condition="'@(_CollectedStringMetadata)' != ''">

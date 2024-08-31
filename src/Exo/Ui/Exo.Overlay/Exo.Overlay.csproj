@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<PublishSingleFile>true</PublishSingleFile>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
+		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
 	</PropertyGroup>
 
   <ItemGroup>
@@ -23,10 +23,10 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
-		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>

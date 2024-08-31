@@ -4,9 +4,9 @@
     <OutputName Condition="'$(OutputName)' == ''">Exo Installer</OutputName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Exo.Service\Exo.Service.csproj" Publish="true" />
-    <ProjectReference Include="..\Exo.Overlay\Exo.Overlay.csproj" Publish="true" />
-    <ProjectReference Include="..\Exo.Settings.Ui\Exo.Settings.Ui.csproj" Publish="true" />
+    <ProjectReference Include="..\Service\Exo.Service\Exo.Service.csproj" Publish="true" />
+    <ProjectReference Include="..\Ui\Exo.Overlay\Exo.Overlay.csproj" Publish="true" />
+    <ProjectReference Include="..\Ui\Exo.Settings.Ui\Exo.Settings.Ui.csproj" Publish="true" />
   </ItemGroup>
   <ItemGroup>
     <HarvestDirectory Include="$(IntermediateOutputPath)publish\Exo.Service">

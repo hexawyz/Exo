@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Exo.Contracts\Exo.Contracts.csproj" />
+    <ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
-    <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
+    <ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

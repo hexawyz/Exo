@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Exo.Archive\Exo.Archive.csproj" />
+	  <ProjectReference Include="..\..\Core\Exo.Archive\Exo.Archive.csproj" />
 	</ItemGroup>
 
 </Project>

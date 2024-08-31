@@ -1,6 +1,6 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Package Name="Exo" Manufacturer="Hexawyz" Version="0.1.0.0" Scope="perMachine" UpgradeStrategy="majorUpgrade" UpgradeCode="07dd3181-64aa-475b-8787-b8a89e6420b5">
-        <Icon Id="Exo.ico" SourceFile="..\exo-icon.ico"/>
+        <Icon Id="Exo.ico" SourceFile="..\..\..\exo-icon.ico"/>
 
         <MediaTemplate EmbedCab="yes" />
 

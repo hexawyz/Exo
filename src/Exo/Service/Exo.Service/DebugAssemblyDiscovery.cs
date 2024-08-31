@@ -12,7 +12,8 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 
 	public DebugAssemblyDiscovery()
 	{
-		const string Placeholder = "?ASSEMBLY_NAME?";
+		const string CategoryPlaceholder = "?CATEGORY?";
+		const string AssemblyNamePlaceholder = "?ASSEMBLY_NAME?";
 
 		var assembly = typeof(DebugAssemblyDiscovery).Assembly;
 
@@ -22,34 +23,34 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 		string separator = Path.DirectorySeparatorChar.ToString();
 
 		string template = location.Replace("-windows" + separator, separator)
-			.Replace(separator + baseName + separator, separator + Placeholder + separator)
-			.Replace(separator + baseName + ".", separator + Placeholder + ".")[..^3] + "dll";
+			.Replace(separator + "Service" + separator + baseName + separator, separator + CategoryPlaceholder + separator + AssemblyNamePlaceholder + separator)
+			.Replace(separator + baseName + ".", separator + AssemblyNamePlaceholder + ".")[..^3] + "dll";
 
-		var plugins = new[]
+		var plugins = new (string Category, string AssemblyName)[]
 		{
-			"Exo.Discovery.Hid",
-			"Exo.Discovery.Pci",
-			"Exo.Discovery.Monitor",
-			"Exo.Discovery.System",
-			"Exo.Discovery.SmBios",
-			"Exo.Devices.Logitech",
-			"Exo.Devices.Gigabyte",
-			"Exo.Devices.Apple.Keyboard",
-			"Exo.Devices.Lg.Monitors",
-			"Exo.Devices.Monitors",
-			"Exo.Devices.Razer",
-			"Exo.Devices.Eaton.Ups",
-			"Exo.Devices.Elgato.StreamDeck",
-			"Exo.Devices.Intel",
-			"Exo.Devices.NVidia",
-			"Exo.Devices.Asus.Aura",
-			"Exo.Devices.Corsair.PowerSupplies",
-			"Exo.Devices.Nzxt.Kraken",
+			("Discovery", @"Exo.Discovery.Hid"),
+			("Discovery", @"Exo.Discovery.Pci"),
+			("Discovery", @"Exo.Discovery.Monitor"),
+			("Discovery", @"Exo.Discovery.System"),
+			("Discovery", @"Exo.Discovery.SmBios"),
+			("Devices", @"Exo.Devices.Logitech"),
+			("Devices", @"Exo.Devices.Gigabyte"),
+			("Devices", @"Exo.Devices.Apple.Keyboard"),
+			("Devices", @"Exo.Devices.Lg.Monitors"),
+			("Devices", @"Exo.Devices.Monitors"),
+			("Devices", @"Exo.Devices.Razer"),
+			("Devices", @"Exo.Devices.Eaton.Ups"),
+			("Devices", @"Exo.Devices.Elgato.StreamDeck"),
+			("Devices", @"Exo.Devices.Intel"),
+			("Devices", @"Exo.Devices.NVidia"),
+			("Devices", @"Exo.Devices.Asus.Aura"),
+			("Devices", @"Exo.Devices.Corsair.PowerSupplies"),
+			("Devices", @"Exo.Devices.Nzxt.Kraken"),
 #if WITH_FAKE_DEVICES
-			"Exo.Debug",
+			("Discovery", "Exo.Debug"),
 #endif
 		};
 
-		AssemblyPaths = plugins.Select(p => template.Replace(Placeholder, p)).ToImmutableArray();
+		AssemblyPaths = plugins.Select(p => template.Replace(CategoryPlaceholder, p.Category).Replace(AssemblyNamePlaceholder, p.AssemblyName)).ToImmutableArray();
 	}
 }

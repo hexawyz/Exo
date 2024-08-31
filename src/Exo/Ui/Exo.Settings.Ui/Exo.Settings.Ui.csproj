@@ -15,7 +15,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
-		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
+		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
@@ -78,11 +78,11 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <ProjectReference Include="..\Exo.Metadata\Exo.Metadata.csproj" />
-    <ProjectReference Include="..\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
+    <ProjectReference Include="..\..\Core\Exo.Metadata\Exo.Metadata.csproj" />
+    <ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
-		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
   </ItemGroup>
 	
   <ItemGroup>

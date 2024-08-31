@@ -14,7 +14,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DeviceTools.Firmware\DeviceTools.Firmware.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Firmware\DeviceTools.Firmware.csproj" />
 		<ProjectReference Include="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
 	</ItemGroup>
 

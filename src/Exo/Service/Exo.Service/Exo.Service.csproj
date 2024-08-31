@@ -9,7 +9,7 @@
 		<EnableFakeDevices Condition="'$(Configuration)' == 'Debug'">true</EnableFakeDevices>
 		<DefineConstants Condition="'$(EnableFakeDevices)' == 'true'">$(DefineConstants);WITH_FAKE_DEVICES</DefineConstants>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<ApplicationIcon>..\exo-icon.ico</ApplicationIcon>
+		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
   </PropertyGroup>
 	
 	<ItemGroup>
@@ -29,29 +29,31 @@
 	We can revisit this later if needed, but for now this is way simpler.
 	-->
 	<ItemGroup>
-		<ProjectReference Include="..\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" />
-		<ProjectReference Include="..\DeviceTools.Core\DeviceTools.Core.csproj" />
-		<ProjectReference Include="..\DeviceTools.Firmware\DeviceTools.Firmware.csproj" />
-		<ProjectReference Include="..\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
-		<ProjectReference Include="..\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
-		<ProjectReference Include="..\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
-		<ProjectReference Include="..\DeviceTools.Numerics\DeviceTools.Numerics.csproj" />
-		<ProjectReference Include="..\Exo.Archive\Exo.Archive.csproj" />
-		<ProjectReference Include="..\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Firmware\DeviceTools.Firmware.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Numerics\DeviceTools.Numerics.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Archive\Exo.Archive.csproj" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />
 		<ProjectReference Include="..\Exo.Extensions.Hosting.WindowsServices\Exo.Extensions.Hosting.WindowsServices.csproj" />
     <ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
     <ProjectReference Include="..\Exo.Service.ImageService\Exo.Service.ImageService.csproj" />
-		<ProjectReference Condition="'$(EnableFakeDevices)' == 'true'" Include="..\Exo.Debug\Exo.Debug.csproj" />
-		<ProjectReference Include="..\Exo.Services.Grpc\Exo.Service.Grpc.csproj" />
-		<ProjectReference Include="..\Exo.Utils\Exo.Utils.csproj" />
+		<ProjectReference Condition="'$(EnableFakeDevices)' == 'true'" Include="..\..\Discovery\Exo.Debug\Exo.Debug.csproj" />
+		<ProjectReference Include="..\Exo.Service.Grpc\Exo.Service.Grpc.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
   </ItemGroup>
 
 	<!-- Detect plugin project names. -->
 	<ItemGroup>
-		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Devices.*'))" />
-		<PluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..', 'Exo.Discovery.*'))" Exclude="..\Exo.Discovery.Root" />
-		<PluginProject Include="@(PluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
-		<PluginProjectReference Include="@(PluginProject-&gt;'..\%(Identity)\%(Identity).csproj'-&gt;ClearMetadata())" />
+		<DevicePluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..\..\Devices', 'Exo.Devices.*'))" />
+		<DiscoveryPluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..\..\Discovery', 'Exo.Discovery.*'))" Exclude="..\..\Discovery\Exo.Discovery.Root" />
+		<DevicePluginProject Include="@(DevicePluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
+		<DiscoveryPluginProject Include="@(DiscoveryPluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
+		<PluginProjectReference Include="@(DevicePluginProject-&gt;'..\..\Devices\%(Identity)\%(Identity).csproj'-&gt;ClearMetadata())" />
+		<PluginProjectReference Include="@(DiscoveryPluginProject-&gt;'..\..\Discovery\%(Identity)\%(Identity).csproj'-&gt;ClearMetadata())" />
 	</ItemGroup>
 
 	<!-- Automatically reference plugin projects. -->
@@ -61,24 +63,24 @@
 	</ItemGroup>
 	<!-- When running in visual studio, manually reference some plugin projects, because Visual Studio would ignore the automatic stuff above. -->
 	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
-		<ProjectReference Include="..\Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Monitors\Exo.Devices.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Razer\Exo.Devices.Razer.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Eaton.Ups\Exo.Devices.Eaton.Ups.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Intel\Exo.Devices.Intel.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.NVidia\Exo.Devices.NVidia.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Asus.Aura\Exo.Devices.Asus.Aura.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Corsair.PowerSupplies\Exo.Devices.Corsair.PowerSupplies.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Devices.Nzxt.Kraken\Exo.Devices.Nzxt.Kraken.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Apple.Keyboard\Exo.Devices.Apple.Keyboard.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Logitech\Exo.Devices.Logitech.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Gigabyte\Exo.Devices.Gigabyte.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Monitors\Exo.Devices.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Lg.Monitors\Exo.Devices.Lg.Monitors.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Razer\Exo.Devices.Razer.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Eaton.Ups\Exo.Devices.Eaton.Ups.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Intel\Exo.Devices.Intel.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.NVidia\Exo.Devices.NVidia.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Asus.Aura\Exo.Devices.Asus.Aura.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Corsair.PowerSupplies\Exo.Devices.Corsair.PowerSupplies.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Devices\Exo.Devices.Nzxt.Kraken\Exo.Devices.Nzxt.Kraken.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" Private="false" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">
@@ -110,6 +112,6 @@
 		</ItemGroup>
 	</Target>
 
-	<Import Project="../ExoMetadata.targets" />
+	<Import Project="..\..\ExoMetadata.targets" />
 
 </Project>
