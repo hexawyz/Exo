@@ -19,14 +19,16 @@ public readonly struct ProfileName
 
 	private readonly ProfileNameData _value;
 
-	public ProfileName(string value) => Encoding.UTF8.GetBytes(value, _value);
+	public ProfileName() => ((Span<byte>)_value).Fill(0xFF);
+
+	public ProfileName(string value) => Encoding.Unicode.GetBytes(value, _value);
 
 	private static string? ToString(ReadOnlySpan<byte> span)
 	{
 		if (span.TrimStart((byte)0xFF).Length == 0) return null;
 
-		int endIndex = span.IndexOf((byte)0);
-		return Encoding.UTF8.GetString(endIndex >= 0 ? span[..endIndex] : span);
+		int endIndex = MemoryMarshal.Cast<byte, ushort>(span).IndexOf((ushort)0);
+		return Encoding.Unicode.GetString(endIndex >= 0 ? span[..(2 * endIndex)] : span);
 	}
 
 	public override string? ToString()
