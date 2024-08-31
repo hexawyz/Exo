@@ -315,8 +315,14 @@
   <data name="MonitorYellowSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>6 Axis Saturation (Yellow)</value>
   </data>
+  <data name="MousePerformanceSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Mouse Performance</value>
+  </data>
   <data name="PollingRateLabel.Text" xml:space="preserve">
     <value>Polling Rate</value>
+  </data>
+  <data name="PowerManagementSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Power Management</value>
   </data>
   <data name="PresetHorizontalDpiLabel.Text" xml:space="preserve">
     <value>Horizontal DPI</value>

@@ -315,8 +315,14 @@
   <data name="MonitorYellowSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>Saturation jaune</value>
   </data>
+  <data name="MousePerformanceSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Performance de la souris</value>
+  </data>
   <data name="PollingRateLabel.Text" xml:space="preserve">
     <value>Fréquence d'actualisation</value>
+  </data>
+  <data name="PowerManagementSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Gestion d'énergie</value>
   </data>
   <data name="PresetHorizontalDpiLabel.Text" xml:space="preserve">
     <value>PPP horizontal</value>

@@ -58,7 +58,7 @@
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon Glyph="&#xE7C9;" />
-                    <TextBlock Text="Mouse Performance" Margin="{StaticResource TitleTextIconMargin}" />
+                    <TextBlock x:Uid="MousePerformanceSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
             <local:MousePerformanceSettingsControl DataContext="{Binding MouseFeatures, Mode=OneWay}" />
@@ -72,7 +72,7 @@
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon Glyph="&#xE7F8;" />
-                    <TextBlock x:Uid="MonitorSettingsSectionHeader" Text="Monitor" Margin="{StaticResource TitleTextIconMargin}" />
+                    <TextBlock x:Uid="MonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
             <local:MonitorSettingsControl DataContext="{Binding MonitorFeatures, Mode=OneWay}" />
@@ -86,7 +86,7 @@
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon Glyph="&#xE8BE;" />
-                    <TextBlock Text="Power Management" Margin="{StaticResource TitleTextIconMargin}" />
+                    <TextBlock x:Uid="PowerManagementSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
             <local:PowerManagementSettingsControl DataContext="{Binding PowerFeatures, Mode=OneWay}" />
