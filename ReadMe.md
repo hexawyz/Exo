@@ -51,7 +51,15 @@ All text in the application can be localized, and in addition to the default Eng
 NB: Support of a device does not mean that all of its features will be exposed in the application. It will be recognized and connected to the application, but the bricks may not yet be in place to expose the features.
 
 * Logitech
-	* All HID++ devices (with some possible exceptions), including through USB receivers: Battery level and keyboard reporting features.
+	* All HID++ devices (with some possible exceptions), including through USB receivers: Battery level, keyboard reporting features, support for displaying dpi presets of mouse profiles, dpi change notifications.
+	* Tested on:
+		* Unifying Receiver 
+		* Bolt Receiver
+		* Lightspeed Receiver
+		* G Pro X Superlight
+		* MX Keys Mac
+		* MX Keys Mac Mini
+	* ⚠️ There is limited to no support for mouses in host mode. Reading onboard profiles is supported, but only dpi settings are used at the moment.
 * Razer
 	* DeathAdder V2 Pro (USB, Dongle, Bluetooth LE): Battery Level, Charge status, RGB lighting, DPI changes, DPI Presets, Low Power mode, Idle Sleep Timer
 	* DeathAdder V3 Pro (USB, Dongle): Battery Level, Charge status, DPI changes, DPI Presets, Low Power mode, Idle Sleep Timer (NB: This device has not been tested, but shares most features of the V2, so it is expected to work fine)
