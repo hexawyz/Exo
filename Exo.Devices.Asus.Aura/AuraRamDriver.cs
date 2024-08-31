@@ -17,8 +17,7 @@ public partial class AuraRamDriver :
 	Driver,
 	IDeviceDriver<ILightingDeviceFeature>,
 	ILightingControllerFeature,
-	ILightingDeferredChangesFeature,
-	IPersistentLightingFeature
+	ILightingDeferredChangesFeature
 {
 	// A list of common addresses where the SMBus devices RAM sticks can be assigned.
 	// I've put the 0x39+ addresses first here because that seems to be what is used on my computer, but this can always be changed later on.
@@ -381,12 +380,14 @@ public partial class AuraRamDriver :
 		_lightingZones = ImmutableCollectionsMarshal.AsImmutableArray(lightingZones);
 		_deferredChangesBuffer = new FinalPendingChanges[lightingZones.Length];
 		_lightingZoneCollection = new ReadOnlyCollection<ILightingZone>(lightingZones);
-		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingDeferredChangesFeature, IPersistentLightingFeature>(this);
+		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-	async ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync()
+	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+
+	async ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{
 		await using (await _smBus.AcquireMutexAsync())
 		{
@@ -405,16 +406,13 @@ public partial class AuraRamDriver :
 				var zone = _lightingZones[i];
 				await zone.ApplyChangesAsync(pendingChanges[i]);
 			}
-		}
-	}
-
-	async ValueTask IPersistentLightingFeature.PersistCurrentConfigurationAsync()
-	{
-		await using (await _smBus.AcquireMutexAsync())
-		{
-			for (int i = 0; i < _lightingZones.Length; i++)
+			// TODO: See if persistance also applies changes, and if yes, merge with the above loop. Otherwise, keep things this way so that changes are applied the quickest way possible.
+			if (shouldPersist)
 			{
-				await _lightingZones[i].PersistChangesAsync();
+				for (int i = 0; i < _lightingZones.Length; i++)
+				{
+					await _lightingZones[i].PersistChangesAsync();
+				}
 			}
 		}
 	}

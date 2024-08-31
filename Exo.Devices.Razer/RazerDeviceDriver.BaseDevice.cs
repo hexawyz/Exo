@@ -23,7 +23,6 @@ public abstract partial class RazerDeviceDriver
 			ILightingZone,
 			ILightingZoneEffect<DisabledEffect>,
 			ILightingDeferredChangesFeature,
-			IPersistentLightingFeature,
 			ILightingBrightnessFeature
 		{
 			protected BaseDevice Device { get; }
@@ -41,8 +40,8 @@ public abstract partial class RazerDeviceDriver
 			void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => Device.SetCurrentEffect(DisabledEffect.SharedInstance);
 			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => Device._currentEffect.TryGetEffect(out effect);
 
-			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync() => Device.ApplyChangesAsync(false, default);
-			ValueTask IPersistentLightingFeature.PersistCurrentConfigurationAsync() => Device.ApplyChangesAsync(true, default);
+			LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => Device.ApplyChangesAsync(shouldPersist, default);
 
 			byte ILightingBrightnessFeature.MaximumBrightness => 255;
 			byte ILightingBrightnessFeature.CurrentBrightness
@@ -155,13 +154,11 @@ public abstract partial class RazerDeviceDriver
 						ILightingDeviceFeature,
 						UnifiedReactiveLightingZone,
 						ILightingDeferredChangesFeature,
-						IPersistentLightingFeature,
 						IUnifiedLightingFeature,
 						ILightingBrightnessFeature>(new(this, lightingZoneId)) :
 					FeatureSet.Create<ILightingDeviceFeature,
 						UnifiedBasicLightingZone,
 						ILightingDeferredChangesFeature,
-						IPersistentLightingFeature,
 						IUnifiedLightingFeature,
 						ILightingBrightnessFeature>(new(this, lightingZoneId)) :
 				FeatureSet.Empty<ILightingDeviceFeature>();

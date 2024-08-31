@@ -25,7 +25,6 @@ public sealed class RgbFusionIT5702Driver :
 	IDeviceIdFeature,
 	ILightingControllerFeature,
 	ILightingDeferredChangesFeature,
-	IPersistentLightingFeature,
 	IUnifiedLightingFeature,
 	ILightingBrightnessFeature,
 	ILightingZoneEffect<DisabledEffect>,
@@ -592,8 +591,7 @@ public sealed class RgbFusionIT5702Driver :
 			ILightingControllerFeature,
 			ILightingBrightnessFeature,
 			IUnifiedLightingFeature,
-			ILightingDeferredChangesFeature,
-			IPersistentLightingFeature>(this);
+			ILightingDeferredChangesFeature>(this);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
 
 		_unifiedLightingZone = new WaveLightingZone(0xFF /*(byte)((1 << ledCount) - 1)*/, Z490MotherboardUnifiedZoneId, this);
@@ -645,7 +643,7 @@ public sealed class RgbFusionIT5702Driver :
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorDoubleFlashEffect>).ApplyEffect(new ColorDoubleFlashEffect(new(255, 0, 255)));
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorCycleEffect>).ApplyEffect(new ColorCycleEffect());
 		//(_unifiedLightingZone as ILightingZoneEffect<ColorWaveEffect>).ApplyEffect(new ColorWaveEffect());
-		ApplyChangesAsync(default).GetAwaiter().GetResult();
+		ApplyChangesAsync(false, default).GetAwaiter().GetResult();
 		//ApplyPaletteColors();
 	}
 
@@ -653,9 +651,11 @@ public sealed class RgbFusionIT5702Driver :
 
 	private Memory<byte> Buffer => MemoryMarshal.CreateFromPinnedArray(_buffer, 0, ReportLength);
 
-	public ValueTask ApplyChangesAsync() => ApplyChangesAsync(default);
+	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
 
-	private async ValueTask ApplyChangesAsync(CancellationToken cancellationToken)
+	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => ApplyChangesAsync(shouldPersist, default);
+
+	private async ValueTask ApplyChangesAsync(bool shouldPersist, CancellationToken cancellationToken)
 	{
 		var buffer = _buffer;
 		var bufferMemory = MemoryMarshal.CreateFromPinnedArray(buffer, 0, buffer.Length);
@@ -725,6 +725,15 @@ public sealed class RgbFusionIT5702Driver :
 
 			// Clear all the status bits that we consumed during this update.
 			_state &= ~(StatePendingChangeLedMask | StatePendingChangeAddressable | StatePendingChangeUnifiedLighting);
+
+			if (shouldPersist)
+			{
+				buffer[0] = ReportId;
+				buffer[1] = PersistSettingsCommandId;
+				buffer.AsSpan(2).Clear();
+
+				await _stream.SendFeatureReportAsync(Buffer, cancellationToken).ConfigureAwait(false);
+			}
 		}
 	}
 
@@ -743,22 +752,6 @@ public sealed class RgbFusionIT5702Driver :
 	}
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
-
-	// TODO: Determine if it should apply settings first.
-	public ValueTask PersistCurrentConfigurationAsync() => PersistCurrentConfigurationAsync(default);
-
-	private async ValueTask PersistCurrentConfigurationAsync(CancellationToken cancellationToken)
-	{
-		var buffer = _buffer;
-		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			buffer[0] = ReportId;
-			buffer[1] = PersistSettingsCommandId;
-			buffer.AsSpan(2).Clear();
-
-			await _stream.SendFeatureReportAsync(Buffer, cancellationToken).ConfigureAwait(false);
-		}
-	}
 
 	bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => _unifiedLightingZone.GetCurrentEffect() is not NotApplicableEffect;
 

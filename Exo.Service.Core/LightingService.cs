@@ -660,7 +660,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					{
 						if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
 						{
-							applyChangesTask = ApplyChangesAsync(dcf, notification.DeviceInformation.Id);
+							applyChangesTask = ApplyRestoredChangesAsync(dcf, notification.DeviceInformation.Id);
 						}
 					}
 				}
@@ -738,11 +738,11 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 	}
 
-	private async ValueTask ApplyChangesAsync(ILightingDeferredChangesFeature deferredChangesFeature, Guid deviceId)
+	private async ValueTask ApplyRestoredChangesAsync(ILightingDeferredChangesFeature deferredChangesFeature, Guid deviceId)
 	{
 		try
 		{
-			await deferredChangesFeature.ApplyChangesAsync().ConfigureAwait(false);
+			await deferredChangesFeature.ApplyChangesAsync(false).ConfigureAwait(false);
 		}
 		catch (Exception ex)
 		{
@@ -1043,13 +1043,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	{
 		if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } deferredChangesFeature)
 		{
-			await deferredChangesFeature.ApplyChangesAsync().ConfigureAwait(false);
-		}
-
-		// TODO: Should probably be refactored so that persistance is a parameter of ApplyChanges async. (Parameter would then be ignored if the device does not support change persistance) 
-		if (shouldPersist && lightingFeatures.GetFeature<IPersistentLightingFeature>() is { } persistentLightingFeature)
-		{
-			await persistentLightingFeature.PersistCurrentConfigurationAsync().ConfigureAwait(false);
+			await deferredChangesFeature.ApplyChangesAsync(shouldPersist).ConfigureAwait(false);
 		}
 	}
 

@@ -419,7 +419,9 @@ public partial class NVidiaGpuDriver :
 
 	public override ValueTask DisposeAsync() => _utilizationWatcher.DisposeAsync();
 
-	public ValueTask ApplyChangesAsync()
+	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.NeverPersisted;
+
+	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{
 		try
 		{

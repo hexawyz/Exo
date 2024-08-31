@@ -26,8 +26,17 @@ public interface ILightingControllerFeature : ILightingDeviceFeature
 /// </remarks>
 public interface ILightingDeferredChangesFeature : ILightingDeviceFeature
 {
+	/// <summary>Indicates how the device will persist the lighting changes.</summary>
+	/// <remarks>Availability of on-demand lighting persistence is not guaranteed. This property will indicate the capabilities of the device regarding this.</remarks>
+	LightingPersistenceMode PersistenceMode { get; }
+
 	/// <summary>Applies changes to the current lighting effects.</summary>
-	ValueTask ApplyChangesAsync();
+	/// <remarks>
+	/// This can optionally persist the applied lighting settings on the device.
+	/// The parameter <paramref name="shouldPersist"/> will be silently ignored if persistence can not be chosen on the device.
+	/// </remarks>
+	/// <param name="shouldPersist">Indicates if the driver should try to persist the changes in device non-volatile memory.</param>
+	ValueTask ApplyChangesAsync(bool shouldPersist);
 }
 
 /// <summary>A feature that allows controlling a device as a single unified lighting zone.</summary>
@@ -46,13 +55,6 @@ public interface IUnifiedLightingFeature : ILightingDeviceFeature, ILightingZone
 {
 	/// <summary>Gets a value indicating whether lighting is currently unified on the device.</summary>
 	bool IsUnifiedLightingEnabled { get; }
-}
-
-/// <summary>A feature allowing to persist the applied lighting configuration on the device.</summary>
-/// <remarks>Availability of this feature is not guaranteed.</remarks>
-public interface IPersistentLightingFeature : ILightingDeviceFeature
-{
-	ValueTask PersistCurrentConfigurationAsync();
 }
 
 /// <summary>A feature allowing to update the brightness level used for lighting effects.</summary>
