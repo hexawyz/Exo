@@ -1,6 +1,6 @@
 [![Build Status](https://github.com/hexawyz/Exo/actions/workflows/build.yml/badge.svg)](https://github.com/hexawyz/Exo/actions/workflows/build.yml)
 
-# Exo
+# [Exo](https://exo-app.io)
 
 Exo is the exoskeleton for your Windows computer and its connected devices.
 
@@ -17,6 +17,8 @@ To support this vision, Exo is designed to be as modular as possible, and device
 In order to avoid communicating with a device that is incompatible, the code of the various device plugins will generally have an explicit list of each supported device.
 
 💡 If you want to request support for a device, or if you believe one of your devices should already be supported by the code, please make this known by opening an issue.
+
+For screenshots of the UI, go to https://exo-app.io
 
 # Why
 
