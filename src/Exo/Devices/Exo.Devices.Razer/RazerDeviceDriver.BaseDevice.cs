@@ -182,13 +182,16 @@ public abstract partial class RazerDeviceDriver
 			}
 
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
-			byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
-			_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
+			if (HasLighting)
+			{
+				byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
+				_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
 
-			// Reapply the persisted effect. (In case it was overridden by a temporary effect)
-			await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
+				// Reapply the persisted effect. (In case it was overridden by a temporary effect)
+				await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
 
-			_currentEffect = _appliedEffect;
+				_currentEffect = _appliedEffect;
+			}
 		}
 
 		protected override void OnDeviceExternalPowerChange(bool isCharging)
