@@ -105,11 +105,14 @@ internal static class NativeMethods
 	public const int WmNull = 0x0000;
 	public const int WmCreate = 0x0001;
 	public const int WmDestroy = 0x0002;
+	public const int WmSettingChange = 0x001A;
 	public const int WmWindowsPosChanging = 0x0046;
 	public const int WmClose = 0x0010;
 	public const int WmContextMenu = 0x007B;
 	public const int WmCommand = 0x0111;
+	public const int WmTimer = 0x0113;
 	public const int WmMenuCommand = 0x0126;
+	public const int WmLeftButtonUp = 0x0202;
 	public const int WmRightButtonUp = 0x0205;
 
 	[DllImport("user32", EntryPoint = "GetWindowLongW", ExactSpelling = true, SetLastError = true)]
@@ -448,4 +451,13 @@ internal static class NativeMethods
 
 	[DllImport("uxtheme", EntryPoint = "#135", SetLastError = true, CharSet = CharSet.Unicode)]
 	public static extern int SetPreferredAppMode(int preferredAppMode);
+
+	[DllImport("user32", EntryPoint = "SetTimer", SetLastError = true)]
+	public static extern nuint SetTimer(nint windowHandle, nuint eventId, uint time, nint timerCallback);
+
+	[DllImport("user32", EntryPoint = "KillTimer", SetLastError = true)]
+	public static extern uint KillTimer(nint windowHandle, nuint eventId);
+
+	[DllImport("user32", EntryPoint = "GetDoubleClickTime", SetLastError = true)]
+	public static extern uint GetDoubleClickTime();
 }

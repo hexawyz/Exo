@@ -220,6 +220,9 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 	private readonly Dictionary<nint, WeakReference<PopupMenu>> _registeredMenus;
 	private nint _handle;
 	private int _isDisposed;
+	private int _doubleClickDelay;
+	private int _clickTimerNotifyIconId;
+	private uint _clickTimerClickPosition;
 
 	public nint Handle => _handle;
 
@@ -363,6 +366,7 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 	{
 		var previous = Current;
 		SetSynchronizationContext(this);
+		_doubleClickDelay = (int)GetDoubleClickTime();
 		try
 		{
 			if (!TryCreateWindow(taskCompletionSource)) return;
@@ -422,34 +426,75 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 
 	private unsafe nint WindowProcedure(uint message, nint wParam, nint lParam)
 	{
+		WeakReference<NotifyIcon>? wr;
+		NotifyIcon? icon;
 		switch (message)
 		{
+		case WmSettingChange:
+			_doubleClickDelay = (int)GetDoubleClickTime();
+			goto MessageProcessed;
+		case WmTimer:
+			if (wParam == _clickTimerNotifyIconId)
+			{
+				if (!_registeredIcons.TryGetValue((ushort)wParam, out wr) || !wr.TryGetTarget(out icon)) break;
+				_clickTimerNotifyIconId = -1;
+				wParam = (nint)(nuint)_clickTimerClickPosition;
+				_clickTimerClickPosition = 0;
+				goto HandleMenu;
+			}
+			goto MessageProcessed;
 		case WmMenuCommand:
 			HandleMenuCommand(lParam, (int)wParam);
-			return 0;
+			goto MessageProcessed;
 		case IconMessageId:
-			if (!_registeredIcons.TryGetValue((ushort)(lParam >>> 16), out var wr) || !wr.TryGetTarget(out var icon)) break;
+			if (!_registeredIcons.TryGetValue((ushort)(lParam >>> 16), out wr) || !wr.TryGetTarget(out icon)) break;
 			switch ((ushort)lParam)
 			{
+			case WmLeftButtonUp:
+				if (_clickTimerNotifyIconId >= 0)
+				{
+					KillTimer(_handle, (uint)_clickTimerNotifyIconId);
+					if (icon.IconId == _clickTimerNotifyIconId)
+					{
+						_clickTimerNotifyIconId = -1;
+						_clickTimerClickPosition = 0;
+						icon.OnDoubleClick();
+						goto MessageProcessed;
+					}
+				}
+				_clickTimerNotifyIconId = icon.IconId;
+				_clickTimerClickPosition = (uint)wParam;
+				SetTimer(_handle, (uint)_clickTimerNotifyIconId, (uint)_doubleClickDelay, 0);
+				goto MessageProcessed;
 			case WmContextMenu:
 			case WmRightButtonUp:
-				SetForegroundWindow(_handle);
-				var result = TrackPopupMenuEx
-				(
-					icon.ContextMenu.Handle,
-					TrackPopupMenuOptions.RightAlign | TrackPopupMenuOptions.BottomAlign | TrackPopupMenuOptions.RightButton,
-					(short)(ushort)wParam,
-					(short)(ushort)(wParam >>> 16),
-					_handle,
-					null
-				);
-				PostMessage(_handle, WmNull, 0, 0);
-				return 0;
+				if (_clickTimerNotifyIconId >= 0)
+				{
+					KillTimer(_handle, (uint)_clickTimerNotifyIconId);
+					_clickTimerNotifyIconId = -1;
+					_clickTimerClickPosition = 0;
+				}
+				goto HandleMenu;
 			}
-			return 0;
+			goto MessageProcessed;
 		}
-
 		return DefWindowProc(_handle, message, wParam, lParam);
+
+	HandleMenu:;
+		SetForegroundWindow(_handle);
+		var result = TrackPopupMenuEx
+		(
+			icon.ContextMenu.Handle,
+			TrackPopupMenuOptions.RightAlign | TrackPopupMenuOptions.BottomAlign | TrackPopupMenuOptions.RightButton,
+			(short)(ushort)wParam,
+			(short)(ushort)(wParam >>> 16),
+			_handle,
+			null
+		);
+		PostMessage(_handle, WmNull, 0, 0);
+
+	MessageProcessed:;
+		return 0;
 	}
 
 	private void HandleMenuCommand(nint menuHandle, int itemIndex)

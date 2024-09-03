@@ -20,6 +20,8 @@ internal sealed class NotifyIcon : NotificationControl
 #pragma warning restore IDE0044 // Add readonly modifier
 	private bool _isCreated;
 
+	public event EventHandler DoubleClick;
+
 	internal ushort IconId => _iconId;
 
 	internal NotifyIcon(NotificationWindow notificationWindow, ushort iconId, int iconResourceId, string tooltipText)
@@ -120,4 +122,6 @@ internal sealed class NotifyIcon : NotificationControl
 			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 		}
 	}
+
+	internal void OnDoubleClick() => DoubleClick?.Invoke(this, EventArgs.Empty);
 }

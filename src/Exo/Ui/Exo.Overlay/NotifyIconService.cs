@@ -38,6 +38,7 @@ internal sealed class NotifyIconService : IAsyncDisposable
 		_window = window;
 		_icon = window.CreateNotifyIcon(0, 32512, "Exo");
 		var menu = _icon.ContextMenu;
+		_icon.DoubleClick += OnSettingsMenuItemClick;
 		var settingsMenuItem = new TextMenuItem("&Settings…");
 		settingsMenuItem.Click += OnSettingsMenuItemClick;
 		settingsMenuItem.IsEnabled = App.SettingsUiExecutablePath is not null;
