@@ -73,7 +73,7 @@ namespace DeviceTools.FilterExpressions
 
 		private protected abstract ReadOnlySpan<DeviceFilterExpression> GetSpan();
 
-		internal override int GetFilterElementCount(bool isRoot) => isRoot ? Count : Count + 2;
+		internal override int GetFilterElementCount(bool isRoot) => isRoot && LogicalOperator != LogicalOperator.Or ? Count : Count + 2;
 
 		internal override void FillExpressions(Span<NativeMethods.DevicePropertyFilterExpression> expressions, bool isRoot, out int count)
 		{
