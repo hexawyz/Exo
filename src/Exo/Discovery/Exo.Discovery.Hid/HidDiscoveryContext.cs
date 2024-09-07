@@ -37,6 +37,8 @@ public sealed class HidDiscoveryContext : IComponentDiscoveryContext<SystemDevic
 		Properties.System.Devices.ClassGuid,
 		Properties.System.Devices.EnumeratorName,
 		Properties.System.Devices.Parent,
+		Properties.System.Devices.Address,
+		Properties.System.Devices.LowerFilters,
 	];
 
 	private readonly HidDiscoverySubsystem _discoverySubsystem;
