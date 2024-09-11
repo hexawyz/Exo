@@ -17,8 +17,14 @@ jobs:
     runs-on: windows-latest  
 
     steps:
-    - name: Prepare artifact name
-      run: Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_NAME=Exo Installer $(Get-Date -Format yyyy-MM-dd)-$env:GITHUB_SHA"
+    - name: Identify artifact version
+      run: Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_VERSION=$(Get-Date -Format yyyy-MM-dd)-$env:GITHUB_SHA"
+
+    - name: Prepare MSI artifact name
+      run: Add-Content -Path $env:GITHUB_ENV -Value "MSI_ARTIFACT_NAME=Exo Installer $env:ARTIFACT_VERSION"
+
+    - name: Prepare binaries artifact name
+      run: Add-Content -Path $env:GITHUB_ENV -Value "BINARIES_ARTIFACT_NAME=Exo Binaries $env:ARTIFACT_VERSION"
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -43,14 +49,22 @@ jobs:
 
     # Build the WiX project, which depends on the main projects
     - name: Build the installer
-      run: msbuild src\Exo\Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:OutputName="$env:ARTIFACT_NAME"
+      run: msbuild src\Exo\Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:OutputName="$env:MSI_ARTIFACT_NAME"
       env:
         Configuration: ${{ matrix.configuration }}
 
-    # Publish the artifact
-    - name: Upload Artifact
+    # Publish the artifact containing the MSI installer
+    - name: Upload MSI Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.ARTIFACT_NAME }}
-        path: src\Exo\Exo.InstallerPackage\bin\x64\Release\en-US\${{ env.ARTIFACT_NAME }}.msi
+        name: ${{ env.MSI_ARTIFACT_NAME }}
+        path: src\Exo\Exo.InstallerPackage\bin\x64\Release\en-US\${{ env.MSI_ARTIFACT_NAME }}.msi
+
+    # Publish the artifact containing the binaries
+    - name: Upload Binaries Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.BINARIES_ARTIFACT_NAME }}
+        path: src\Exo\Exo.InstallerPackage\obj\x64\Release\publish\
+        compression-level: 9
 
