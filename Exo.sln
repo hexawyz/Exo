@@ -181,6 +181,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Exo", "Exo", "{DDDF07E1-D79
 		src\Exo\ExoMetadata.targets = src\Exo\ExoMetadata.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Razer.Legacy", "src\Exo\Devices\Exo.Devices.Razer.Legacy\Exo.Devices.Razer.Legacy.csproj", "{A00F0142-5832-4873-8944-874B918419ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1225,6 +1227,22 @@ Global
 		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x64.Build.0 = Release|Any CPU
 		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x86.ActiveCfg = Release|Any CPU
 		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F}.Release|x86.Build.0 = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|arm64.Build.0 = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|x64.Build.0 = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Debug|x86.Build.0 = Debug|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|arm64.ActiveCfg = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|arm64.Build.0 = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|x64.ActiveCfg = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|x64.Build.0 = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|x86.ActiveCfg = Release|Any CPU
+		{A00F0142-5832-4873-8944-874B918419ED}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1299,6 +1317,7 @@ Global
 		{8B863FA5-F652-4A76-AD43-9D9E22B9A83F} = {59B8EF45-EA19-477D-B57C-5783B7B1C5CF}
 		{062C0665-616A-4FB4-B0DA-2EEBE7FDA7B9} = {DDDF07E1-D796-4821-AF60-74E655366233}
 		{F25C31A1-5D36-46E4-AE9B-9059FA393F4C} = {DDDF07E1-D796-4821-AF60-74E655366233}
+		{A00F0142-5832-4873-8944-874B918419ED} = {B93F3F85-DA80-48CF-A549-9217DD34DD11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9FEED7F-27EC-4720-9CAB-C2E6FDD8556D}

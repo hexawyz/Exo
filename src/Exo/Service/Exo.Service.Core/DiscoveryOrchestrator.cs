@@ -238,6 +238,14 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 						return;
 					}
 
+					// Quickly exit if there are no applicable factories.
+					if (creationParameters.FactoryIds.IsDefaultOrEmpty)
+					{
+						_states.Remove(context.DiscoveredKeys, state);
+						await creationParameters.DisposeAsync().ConfigureAwait(false);
+						return;
+					}
+
 					// Validate that all initial keys are still present in the returned keys.
 					foreach (var key in creationParameters.AssociatedKeys)
 					{

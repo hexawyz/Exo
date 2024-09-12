@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnableDynamicLoading>true</EnableDynamicLoading>
+		<IsExoPluginAssembly>true</IsExoPluginAssembly>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
+	</ItemGroup>
+
+</Project>
