@@ -25,7 +25,8 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	IDeviceIdFeature,
 	IMouseConfigurablePollingFrequencyFeature,
 	ILightingControllerFeature,
-	ILightingDeferredChangesFeature
+	ILightingDeferredChangesFeature,
+	IMouseDpiPresetsFeature
 {
 	// I believe the original intent in the driver was for us to send the whole URB contents,
 	// but this data will actually be entirely discarded and recreated by the driver, which is likely safer.
@@ -43,6 +44,9 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 	private static readonly Guid WheelLightingZoneGuid = new(0xEF92DD34, 0x3DE7, 0x4D22, 0xB4, 0x6E, 0x02, 0x34, 0xCD, 0x86, 0xFF, 0x25);
 	private static readonly Guid LogoLightingZoneGuid = new(0x531208F2, 0x499B, 0x4779, 0x82, 0xEE, 0x8E, 0x8A, 0xD2, 0xAA, 0xE4, 0xC6);
+
+	private static readonly ImmutableArray<DotsPerInch> DpiPresets3500 = [new(450), new(900), new(3500)];
+	private static readonly ImmutableArray<DotsPerInch> DpiPresets1800 = [new(450), new(900), new(1800)];
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[ProductId(VendorIdSource.Usb, RazerVendorId, DeathAdder35GProductId)]
@@ -165,6 +169,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		var driver = new RazerDeathAdder35GDeviceDriver
 		(
 			razerDevice,
+			DpiPresets3500,
 			version,
 			friendlyName,
 			topLevelDeviceName
@@ -181,8 +186,9 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	private readonly ushort _versionNumber;
 	// The whole mouse state should fit in a single byte, but we'll separate it between lighting and non-lighting for atomicity of updates.
 	private byte _lightingState;
-	private byte _otherState;
+	private byte _performanceState;
 
+	private readonly ImmutableArray<DotsPerInch> _dpiPresets;
 	private readonly IReadOnlyCollection<ILightingZone> _lightingZones;
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
@@ -200,9 +206,12 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
+	private event Action<Driver, MouseDpiStatus> DpiChanged;
+
 	private RazerDeathAdder35GDeviceDriver
 	(
 		HidDeviceStream controlDevice,
+		ImmutableArray<DotsPerInch> dpiPresets,
 		ushort versionNumber,
 		string friendlyName,
 		string topLevelDeviceName
@@ -214,10 +223,11 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		UrbSetupData.CopyTo(_buffer);
 		_versionNumber = versionNumber;
 		_lightingState = 0x0F;
-		_otherState = 0x01;
+		_performanceState = 0x05;
+		_dpiPresets = dpiPresets;
 		_lightingZones = Array.AsReadOnly<ILightingZone>([new WheelLightingZone(this), new LogoLightingZone(this)]);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RazerDeathAdder35GDeviceDriver, IDeviceIdFeature>(this);
-		_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, RazerDeathAdder35GDeviceDriver, IMouseConfigurablePollingFrequencyFeature>(this);
+		_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, RazerDeathAdder35GDeviceDriver, IMouseConfigurablePollingFrequencyFeature, IMouseDpiPresetsFeature>(this);
 		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, RazerDeathAdder35GDeviceDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
 		_cancellationTokenSource = new();
 		_eventProcessingTask = ReceiveDriverEventsAsync(_cancellationTokenSource.Token);
@@ -241,7 +251,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZones;
 
-	ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => PollingFrequencies[3 - (_otherState & 3)];
+	ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => PollingFrequencies[3 - (_performanceState & 3)];
 
 	ImmutableArray<ushort> IMouseConfigurablePollingFrequencyFeature.SupportedPollingFrequencies => PollingFrequencies;
 
@@ -280,16 +290,62 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 			1000 => 1,
 			_ => throw new ArgumentOutOfRangeException(nameof(pollingFrequency)),
 		};
-		if ((_otherState & 3) == newPollingState) return;
+		if ((_performanceState & 3) == newPollingState) return;
 		using (await _lock.WaitAsync(default).ConfigureAwait(false))
 		{
-			await ApplySettingsAsync(newPollingState, (byte)((_lightingState >> 2) & 3), cancellationToken).ConfigureAwait(false);
+			await ApplySettingsAsync(newPollingState, (byte)((_performanceState >> 2) & 0x3), (byte)((_lightingState >> 2) & 3), cancellationToken).ConfigureAwait(false);
 
-			Volatile.Write(ref _otherState, (byte)(_otherState & 0xFC | newPollingState));
+			Volatile.Write(ref _performanceState, (byte)(_performanceState & 0xFC | newPollingState));
 		}
 	}
 
-	private async Task ApplySettingsAsync(byte pollingRate, byte lightingState, CancellationToken cancellationToken)
+	ImmutableArray<DotsPerInch> IMouseDpiPresetsFeature.DpiPresets => _dpiPresets;
+
+	async ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
+	{
+		if (activePresetIndex > 2) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
+
+		byte newDpiState = (byte)(3 - activePresetIndex);
+
+		if (((_performanceState >> 2) & 3) == newDpiState) return;
+
+		Action<Driver, MouseDpiStatus>? dpiChanged;
+		MouseDpiStatus newStatus;
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			await ApplySettingsAsync((byte)(_performanceState & 0x3), newDpiState, (byte)((_lightingState >> 2) & 3), cancellationToken).ConfigureAwait(false);
+
+			Volatile.Write(ref _performanceState, (byte)(_performanceState & 0xF3 | (newDpiState << 2)));
+
+			dpiChanged = DpiChanged;
+			newStatus = new() { PresetIndex = activePresetIndex, Dpi = _dpiPresets[activePresetIndex] };
+		}
+		dpiChanged?.Invoke(this, newStatus);
+	}
+
+	DotsPerInch IMouseDynamicDpiFeature.MaximumDpi => _dpiPresets[^1];
+
+	bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => false;
+
+	event Action<Driver, MouseDpiStatus> IMouseDynamicDpiFeature.DpiChanged
+	{
+		add => DpiChanged += value;
+		remove => DpiChanged -= value;
+	}
+
+	MouseDpiStatus IMouseDpiFeature.CurrentDpi
+	{
+		get
+		{
+			var state = Volatile.Read(ref _performanceState);
+
+			byte dpiIndex = (byte)(3 - ((state >> 2) & 3));
+
+			return new() { PresetIndex = dpiIndex, Dpi = _dpiPresets[dpiIndex] };
+		}
+	}
+
+	private async Task ApplySettingsAsync(byte pollingRate, byte dpiIndex, byte lightingState, CancellationToken cancellationToken)
 	{
 		var buffer = _buffer;
 		buffer[8] = pollingRate;
@@ -313,7 +369,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		{
 			if (oldLightingState == newLightingState) return;
 
-			await ApplySettingsAsync((byte)(_otherState & 3), newLightingState, cancellationToken).ConfigureAwait(false);
+			await ApplySettingsAsync((byte)(_performanceState & 3), (byte)((_performanceState >> 2) & 0x3), newLightingState, cancellationToken).ConfigureAwait(false);
 
 			Volatile.Write(ref _lightingState, (byte)(newLightingState << 2 | newLightingState));
 		}
