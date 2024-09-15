@@ -238,7 +238,6 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
 
 		cts.Cancel();
-		await _controlDevice.DisposeAsync();
 		try
 		{
 			await _eventProcessingTask;
@@ -246,6 +245,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		catch
 		{
 		}
+		await _controlDevice.DisposeAsync();
 		cts.Dispose();
 	}
 
