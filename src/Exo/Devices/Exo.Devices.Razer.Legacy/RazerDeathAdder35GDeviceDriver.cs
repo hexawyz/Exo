@@ -31,8 +31,9 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	// but this data will actually be entirely discarded and recreated by the driver, which is likely safer.
 	private static ReadOnlySpan<byte> UrbSetupData => [0x21, 0x09, 0x10, 0x00, 0x00, 0x00, 0x04, 0x00];
 
-	private const int DeviceEnumerationIoControlCode = unchecked((int)0x88883000);
+	private const int RazerDeviceEnumerationIoControlCode = unchecked((int)0x88883000);
 	private const int RazerSpecialFunctionsIoControlCode = unchecked((int)0x88883004);
+	private const int RazerDriverEventIoControlCode = unchecked((int)0x88883008);
 	private const int RazerUrbIoControlCode = unchecked((int)0x88883020);
 
 	private const ushort RazerVendorId = 0x1532;
@@ -43,8 +44,8 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	private static readonly Guid WheelLightingZoneGuid = new(0xEF92DD34, 0x3DE7, 0x4D22, 0xB4, 0x6E, 0x02, 0x34, 0xCD, 0x86, 0xFF, 0x25);
 	private static readonly Guid LogoLightingZoneGuid = new(0x531208F2, 0x499B, 0x4779, 0x82, 0xEE, 0x8E, 0x8A, 0xD2, 0xAA, 0xE4, 0xC6);
 
-	//[DiscoverySubsystem<HidDiscoverySubsystem>]
-	//[ProductId(VendorIdSource.Usb, RazerVendorId, DeathAdder35GProductId)]
+	[DiscoverySubsystem<HidDiscoverySubsystem>]
+	[ProductId(VendorIdSource.Usb, RazerVendorId, DeathAdder35GProductId)]
 	public static async Task<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ImmutableArray<SystemDevicePath> keys,
@@ -130,7 +131,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 			while (true)
 			{
 				Unsafe.As<byte, int>(ref inputBuffer.Span[16]) = index;
-				await razerUddDevice.IoControlAsync(DeviceEnumerationIoControlCode, inputBuffer, outputBuffer, cancellationToken).ConfigureAwait(false);
+				await razerUddDevice.IoControlAsync(RazerDeviceEnumerationIoControlCode, inputBuffer, outputBuffer, cancellationToken).ConfigureAwait(false);
 				if (Unsafe.As<byte, ushort>(ref outputBuffer.Span[16]) == productId)
 				{
 					razerDriverDeviceName = string.Create(CultureInfo.InvariantCulture, @$"\\.\Razer_00000000{Unsafe.As<byte, int>(ref outputBuffer.Span[8]):X8}");
@@ -188,6 +189,9 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	private readonly IDeviceFeatureSet<IMouseDeviceFeature> _mouseFeatures;
 	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 
+	private CancellationTokenSource? _cancellationTokenSource;
+	private readonly Task _eventProcessingTask;
+
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
 	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
@@ -206,7 +210,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	{
 		_controlDevice = controlDevice;
 		_lock = new();
-		_buffer = GC.AllocateUninitializedArray<byte>(24, true);
+		_buffer = GC.AllocateUninitializedArray<byte>(24 + 640, true);
 		UrbSetupData.CopyTo(_buffer);
 		_versionNumber = versionNumber;
 		_lightingState = 0x0F;
@@ -215,15 +219,57 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RazerDeathAdder35GDeviceDriver, IDeviceIdFeature>(this);
 		_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, RazerDeathAdder35GDeviceDriver, IMouseConfigurablePollingFrequencyFeature>(this);
 		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, RazerDeathAdder35GDeviceDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
+		_cancellationTokenSource = new();
+		_eventProcessingTask = ReceiveDriverEventsAsync(_cancellationTokenSource.Token);
 	}
 
-	public override ValueTask DisposeAsync() => _controlDevice.DisposeAsync();
+	public override async ValueTask DisposeAsync()
+	{
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
+
+		cts.Cancel();
+		await _controlDevice.DisposeAsync();
+		try
+		{
+			await _eventProcessingTask;
+		}
+		catch
+		{
+		}
+		cts.Dispose();
+	}
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZones;
 
 	ushort IMouseConfigurablePollingFrequencyFeature.PollingFrequency => PollingFrequencies[3 - (_otherState & 3)];
 
 	ImmutableArray<ushort> IMouseConfigurablePollingFrequencyFeature.SupportedPollingFrequencies => PollingFrequencies;
+
+	private Task ReceiveDriverEventsAsync(CancellationToken cancellationToken)
+	{
+		var tasks = new Task[10];
+		for (int i = 0; i < tasks.Length; i++)
+		{
+			tasks[i] = ReceiveDriverEventsAsync(i, cancellationToken);
+		}
+		return Task.WhenAll(tasks);
+	}
+
+	private async Task ReceiveDriverEventsAsync(int index, CancellationToken cancellationToken)
+	{
+		var buffer = MemoryMarshal.CreateFromPinnedArray(_buffer, 24 + index * 64, 64);
+		while (true)
+		{
+			buffer.Span.Clear();
+			try
+			{
+				await _controlDevice.IoControlAsync(RazerDriverEventIoControlCode, buffer, buffer, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+	}
 
 	async ValueTask IMouseConfigurablePollingFrequencyFeature.SetPollingFrequencyAsync(ushort pollingFrequency, CancellationToken cancellationToken)
 	{

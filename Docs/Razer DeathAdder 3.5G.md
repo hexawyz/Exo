@@ -131,19 +131,19 @@ Functions:
 | `03` | `03` |         `18` |          `10` | ? |           ? |             |
 | `03` | `06` |         `28` |         `1b0` | ? |           ? |          ?+ |
 | `03` | `06` |         `28` |          `10` | ? |           ? |          ?+ |
-| `03` | `07` |         `18` |          `10` | ? |             |             |
-| `03` | `08` |         `18` |          `10` | ? |             |             |
+| `03` | `07` |         `18` |          `10` | CMapping ? |             |             |
+| `03` | `08` |         `18` |          `10` | CMapping ? |             |             |
 | `03` | `0B` |         `18` |          `10` | CSensitivityScaler::Enable |             |             |
 | `03` | `0C` |         `18` |          `10` | CSensitivityScaler::Disable |             |             |
 | `03` | `0D` |         `18` |          `10` | CSensitivityScaler::SetActiveLevel |           X |           Y |
 | `03` | `0E` |         `18` |          `10` | CSensitivityScaler::? (GetActiveLevel?) |             |             |
-| `03` | `0F` |         `18` |          `10` | ? |             |             |
+| `03` | `0F` |         `18` |          `10` | CMapping ? |             |             |
 | `03` | `11` |         `18` |          `10` | ? |             |             |
 | `03` | `12` |         `18` |          `10` | ? |             |             |
 | `03` | `13` |         `18` |          `10` | ? If flag = 1 / Enable ? |             |             |
 | `03` | `14` |         `18` |          `10` | ? If flag = 0 / Disable ? |             |             |
 | `03` | `15` |         `18` |          `10` | ? |             |             |
-| `03` | `16` |         `18` |          `20` | ? |             |             |
+| `03` | `16` |         `18` |          `10` | ? |             |             |
 | `03` | `17` |         `18` |          `10` | ? |             |             |
 | `03` | `18` |         `28` |          `10` | ? |           ? |          ?+ |
 | `03` | `1C` |         `18` |          `10` | ? |             |             |
@@ -183,14 +183,14 @@ Functions:
 | `03` | `40` |   (Var) `18` |    (Var) `10` | CUsageMapInfoEx::GetUsage |           ? |          ?+ |
 | `03` | `41` |       `1018` |        `1010` | GetFromDriverStore, CKeyBoardLayout::GetEditionInfo |             |             |
 | `03` | `42` |       `1018` |          `10` | CEventManager::SetToDriverStore, CStoreData::SetStoreData |             |             |
-| `03` | `43` |         `18` |          `10` | ? |           ? |             |
+| `03` | `43` |         `18` |          `10` | Sets or unsets a timer ? |           ? |             |
 | `03` | `44` |         `10` |          `10` | CRzFrameEngine::IsEnable |             |             |
 | `03` | `45` |         `10` |          `10` | CRzFrameEngine::GetRefreshRate |             |             |
 | `03` | `46` |         `18` |          `10` | ? |             |             |
 | `03` | `48` |        `858` |          `10` | (Two message sizes possible) ? |             |             |
 | `03` | `48` |        `b18` |          `10` | (Two message sizes possible) ? |             |             |
 | `03` | `4A` |        `858` |          `10` | (Two message sizes possible) ? |             |             |
-| `03` | `4A` |        `b18` |          `10` | (Two message sizes possible) ? |             |             |
+| `03` | `4A` |        `b18` |          `10` | (Maybe send a manual mouse input) (Two message sizes possible) ? |             |             |
 | `03` | `4B` |         `18` |          `18` | CRzEffectMgr::EnumRzEffect |             |             |
 | `03` | `4C` |         `20` |          `10` | CRzEffectMgr::NewRzEffect |             |             |
 | `03` | `4D` |         `20` |          `10` | CRzEffectMgr::DeleteRzEffect |           ? |          ?+ |
@@ -210,6 +210,7 @@ Functions:
 | `03` | `5F` |       `7C28` |          `10` | ? |           ? |          ?+ |
 | `03` | `61` |        `2E8` |          `10` | (Calls of `41`, `53`, `61` are related) ? |           ? |          ?+ |
 | `03` | `66` |         `18` |        `7C08` | CSensorConfig::GetQResult |             |             |
+| `07` | `03` |        `190` |          `10` | ? |           1 |          ?+ |
 | `07` | `05` |         `28` |         `1B0` | ? |           1 |          ?+ |
 | `07` | `05` |         `28` |         `1B0` | CMultipleKeyManager::EnumMultipleKey |           2 |           ? |
 | `07` | `06` |         `28` |         `1A8` | ? |           1 |             |
@@ -222,3 +223,40 @@ From what I understand, the client side will send out 10 concurrent IOCTLs to th
 Each of those IOCTL calls uses a 64 bytes buffer, presumably the same for input and output. I'm unsure of what would be needed for initialization, but maybe an empty buffer is enough.
 
 Could also be the key to unlock the features of the driver, although I didn't find any confirmation of that and didn't try to use it yet.
+
+Razer Synapse initialization sequence:
+
+IOCTL `88883000` IN `0018` OUT `0020` 2x
+
+IOCTL `88883008` IN `0040` OUT `0040` 10x
+
+IOCTL `88883000` IN `0018` OUT `0020` 2x
+
+IOCTL `88883004` IN `0018` OUT `0010`
+
+IOCTL `88883000` IN `0018` OUT `0020` 4x
+
+IOCTL `88883004` IN `1018` OUT `0010` (03:42 only one possible?)
+
+IOCTL `88883000` IN `0018` OUT `0020` 4x
+
+IOCTL `88883004` IN `0018` OUT `0010`
+
+IOCTL `88883000` IN `0018` OUT `0020` 46x
+
+IOCTL `88883004` IN `0018` OUT `0010`
+IOCTL `88883004` IN `0018` OUT `0010`
+IOCTL `88883004` IN `8018` OUT `0010` 7x (03:01 or 03:5C)
+
+IOCTL `88883020` IN `000C` OUT `000C` 3x
+
+DriverStore values
+
+`00`(`02`) EditionInfo
+`02`(`16`) Serial Number ?
+`18`(`04`) P3 Firmware Version ?
+`39`(`04`) ??? Set to zero during initialization, 0 or 1 after HidD_SetFeature (for devices that support this call)
+`42`(`01`) Active DPI Stage
+`3D`(`05`) ???
+`43`(`15`) DPI Stages
+`58`(`04`) ???
