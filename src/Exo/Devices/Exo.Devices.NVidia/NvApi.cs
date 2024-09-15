@@ -10,8 +10,19 @@ namespace Exo.Devices.NVidia;
 internal sealed class NvApi
 {
 	private static readonly NvApi Instance = new();
+	public static readonly uint DriverVersion;
+	public static readonly string DriverBranch;
 
-	static NvApi() { }
+	public static bool HasI2c => DriverVersion >= 85_00;
+	public static bool HasThermals => DriverVersion >= 85_00;
+	public static bool HasIllumination => DriverVersion >= 400_00;
+	public static bool HasClockFrequencies => DriverVersion >= 285_00;
+	public static bool HasUtilizationSamples => DriverVersion >= 455_00;
+
+	static NvApi()
+	{
+		(DriverVersion, DriverBranch) = System.GetDriverAndBranchVersion();
+	}
 
 	private unsafe NvApi()
 	{
@@ -72,6 +83,7 @@ internal sealed class NvApi
 
 		public static class System
 		{
+			public static readonly delegate* unmanaged[Cdecl]<uint*, ShortString*, uint> GetDriverAndBranchVersion = (delegate* unmanaged[Cdecl]<uint*, ShortString*, uint>)QueryInterface(0x2926aaad);
 			public static readonly delegate* unmanaged[Cdecl]<uint, nint*, uint*, uint> GetGpuAndOutputIdFromDisplayId = (delegate* unmanaged[Cdecl]<uint, nint*, uint*, uint>)QueryInterface(0x112ba1a5);
 		}
 	}
@@ -959,6 +971,14 @@ internal sealed class NvApi
 
 	public static class System
 	{
+		public static unsafe (uint DriverVersion, string BuildBranch) GetDriverAndBranchVersion()
+		{
+			uint driverVersion = 0;
+			ShortString buildBranch = default;
+			ValidateResult(Functions.System.GetDriverAndBranchVersion(&driverVersion, &buildBranch));
+			return (driverVersion, buildBranch.ToString());
+		}
+
 		public static unsafe void GetGpuAndOutputIdFromDisplayId(uint displayId, out PhysicalGpu physicalGpu, out uint outputId)
 		{
 			nint gpu = 0;
@@ -1049,6 +1069,8 @@ internal sealed class NvApi
 		// Actually assuming that I2C speed in KHz this is what the API returns, because I have limited information and that's what looks like the most realistic.
 		public unsafe uint[] GetI2cPortSpeeds()
 		{
+			if (!HasI2c) return [];
+
 			var infos = stackalloc Gpu.I2cPortInfo[16];
 			infos[0].Version = StructVersion<Gpu.I2cPortInfo>(1);
 
@@ -1100,6 +1122,8 @@ internal sealed class NvApi
 
 		public unsafe void I2CMonitorWrite(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
 		{
+			if (!HasI2c) throw new NotSupportedException();
+
 			using var handle = data.Pin();
 			var info = new I2CInfo
 			{
@@ -1119,6 +1143,8 @@ internal sealed class NvApi
 
 		public unsafe void I2CMonitorWrite(uint outputId, byte address, ReadOnlyMemory<byte> data)
 		{
+			if (!HasI2c) throw new NotSupportedException();
+
 			using var handle = data.Pin();
 			var info = new I2CInfo
 			{
@@ -1136,6 +1162,8 @@ internal sealed class NvApi
 
 		public unsafe void I2CMonitorRead(uint outputId, byte address, byte register, ReadOnlyMemory<byte> data)
 		{
+			if (!HasI2c) throw new NotSupportedException();
+
 			using var handle = data.Pin();
 			var info = new I2CInfo
 			{
@@ -1155,6 +1183,8 @@ internal sealed class NvApi
 
 		public unsafe void I2CMonitorRead(uint outputId, byte address, ReadOnlyMemory<byte> data)
 		{
+			if (!HasI2c) throw new NotSupportedException();
+
 			using var handle = data.Pin();
 			var info = new I2CInfo
 			{
@@ -1172,6 +1202,7 @@ internal sealed class NvApi
 
 		public unsafe bool SupportsIllumination(Gpu.IlluminationZone zone)
 		{
+			if (!HasIllumination) return false;
 			var query = new Gpu.IlluminationQuery { Version = StructVersion<Gpu.IlluminationQuery>(1), PhysicalGpuHandle = _handle, Attribute = (Gpu.IlluminationAttribute)zone };
 			ValidateResult(Functions.Gpu.QueryIlluminationSupport(&query));
 			return query.Value != 0;
@@ -1179,6 +1210,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.Client.IlluminationDeviceInfo[] GetIlluminationDevices()
 		{
+			if (!HasIllumination) return [];
 			var query = new Gpu.Client.IlluminationDeviceInfoQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceInfoQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumDevicesGetInfo(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationDeviceInfo>)query.Devices)[..query.DeviceCount].ToArray();
@@ -1186,6 +1218,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.Client.IlluminationDeviceControl[] GetIlluminationDeviceControls()
 		{
+			if (!HasIllumination) return [];
 			var query = new Gpu.Client.IlluminationDeviceControlQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceControlQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumDevicesGetControl(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationDeviceControl>)query.Devices)[..query.DeviceCount].ToArray();
@@ -1194,6 +1227,7 @@ internal sealed class NvApi
 		public unsafe void SetIlluminationDeviceControls(Gpu.Client.IlluminationDeviceControl[] controls)
 		{
 			ArgumentNullException.ThrowIfNull(controls);
+			if (!HasIllumination) throw new NotSupportedException();
 			if (controls.Length > 32) throw new ArgumentException();
 			var query = new Gpu.Client.IlluminationDeviceControlQuery { Version = StructVersion<Gpu.Client.IlluminationDeviceControlQuery>(1), DeviceCount = controls.Length };
 			controls.AsSpan().CopyTo(query.Devices);
@@ -1202,6 +1236,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.Client.IlluminationZoneInfo[] GetIlluminationZones()
 		{
+			if (!HasIllumination) return [];
 			var query = new Gpu.Client.IlluminationZoneInfoQuery { Version = StructVersion<Gpu.Client.IlluminationZoneInfoQuery>(1) };
 			ValidateResult(Functions.Gpu.ClientIllumZonesGetInfo(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationZoneInfo>)query.Zones)[..query.ZoneCount].ToArray();
@@ -1209,6 +1244,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.Client.IlluminationZoneControl[] GetIlluminationZoneControls(bool shouldReturnPersisted)
 		{
+			if (!HasIllumination) return [];
 			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1), DefaultValues = shouldReturnPersisted };
 			ValidateResult(Functions.Gpu.ClientIllumZonesGetControl(_handle, &query));
 			return ((Span<Gpu.Client.IlluminationZoneControl>)query.Zones)[..query.ZoneCount].ToArray();
@@ -1217,6 +1253,7 @@ internal sealed class NvApi
 		public unsafe void SetIlluminationZoneControls(Gpu.Client.IlluminationZoneControl[] controls, bool shouldPersist)
 		{
 			ArgumentNullException.ThrowIfNull(controls);
+			if (!HasIllumination) throw new NotSupportedException();
 			if (controls.Length > 32) throw new ArgumentException();
 			var query = new Gpu.Client.IlluminationZoneControlQuery { Version = StructVersion<Gpu.Client.IlluminationZoneControlQuery>(1), DefaultValues = shouldPersist };
 			controls.AsSpan().CopyTo(query.Zones);
@@ -1225,6 +1262,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.ThermalSensor GetThermalSettings(uint sensorIndex)
 		{
+			if (!HasThermals) throw new NotSupportedException();
 			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(Gpu.ThermalSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, sensorIndex, &thermalSettings));
 			if (thermalSettings.Count != 1) throw new InvalidOperationException("Invalid thermal reading count.");
@@ -1233,6 +1271,7 @@ internal sealed class NvApi
 
 		public unsafe int GetThermalSettings(Span<Gpu.ThermalSensor> thermalSensors)
 		{
+			if (!HasThermals) return 0;
 			var thermalSettings = new Gpu.ThermalSettings { Version = StructVersion<Gpu.ThermalSettings>(Gpu.ThermalSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetThermalSettings(_handle, 15, &thermalSettings));
 			if (thermalSettings.Count > 3) throw new InvalidOperationException("Invalid thermal reading count.");
@@ -1259,6 +1298,7 @@ internal sealed class NvApi
 
 		public unsafe int GetClockFrequencies(Gpu.ClockType clockType, Span<GpuClockFrequency> clockFrequencies)
 		{
+			if (!HasClockFrequencies) return 0;
 			var apiClockFrequencies = new Gpu.ClockFrequencies { Version = StructVersion<Gpu.ClockFrequencies>(3), ClockType = clockType };
 			ValidateResult(Functions.Gpu.GetAllClockFrequencies(_handle, &apiClockFrequencies));
 			int count = 0;
@@ -1320,6 +1360,8 @@ internal sealed class NvApi
 
 		private static async IAsyncEnumerable<GpuClientUtilizationData> WatchUtilizationAsync(nint handle, uint period, [EnumeratorCancellation] CancellationToken cancellationToken)
 		{
+			if (!HasUtilizationSamples) throw new NotSupportedException();
+
 			var channel = Channel.CreateBounded<GpuClientUtilizationData>(SharedOptions.ChannelOptions);
 			var gcHandle = GCHandle.Alloc(channel.Writer);
 			try
