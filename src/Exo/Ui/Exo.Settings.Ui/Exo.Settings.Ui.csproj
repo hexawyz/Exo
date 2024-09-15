@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <WindowsSdkPackageVersion>10.0.22621.38</WindowsSdkPackageVersion>		
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Exo.Settings.Ui</RootNamespace>
 		<Nullable>enable</Nullable>
@@ -57,12 +58,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.1.240328-rc" />
-		<PackageReference Include="CommunityToolkit.WinUI.Extensions" Version="8.1.240328-rc" />
-		<PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.1.240328-rc" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.1.240821" />
+		<PackageReference Include="CommunityToolkit.WinUI.Extensions" Version="8.1.240821" />
+		<PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.1.240821" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240607001" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.240829007" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1" />
     <PackageReference Include="protobuf-net.Grpc" Version="1.1.1" />
     <Manifest Include="$(ApplicationManifest)" />

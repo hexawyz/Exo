@@ -111,8 +111,8 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 
 Exo relies on these runtimes, that you can download from the official websites:
 
-* .NET 8.0 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/8.0
-* Windows App SDK 1.5 Runtime: https://aka.ms/windowsappsdk/1.5/1.5.240607001/windowsappruntimeinstall-x64.exe
+* .NET 8.0.8 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/8.0
+* Windows App SDK 1.6 Runtime: https://aka.ms/windowsappsdk/1.6/1.6.240829007/windowsappruntimeinstall-x64.exe
 
 ### Optional
 
