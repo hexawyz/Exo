@@ -7,6 +7,10 @@
     "6b972c66-0987-4a0f-a20f-cbfc1b0f3d4b": {
         "nameStringId": "36218033-ff96-41f1-b01c-f9fbefa4bcc3"
     },
+    // Exo.Lighting.Effects.EnabledEffect
+    "78bf8ae8-f08e-44b5-b8fb-e9dee92630f4": {
+        "nameStringId": "e965c6f5-3d24-42ed-9182-31f48b5248a6"
+    },
     // Exo.Lighting.Effects.StaticColorEffect
     "2a30cb46-8bf2-4f0e-9835-774eb02d248d": {
         "nameStringId": "bfa5b721-db96-47a5-9e69-5dd0ae943275"
