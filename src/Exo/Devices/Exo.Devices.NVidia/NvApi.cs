@@ -15,8 +15,8 @@ internal sealed class NvApi
 
 	public static bool HasI2c => DriverVersion >= 85_00;
 	public static bool HasThermals => DriverVersion >= 85_00;
-	public static bool HasIllumination => DriverVersion >= 400_00;
 	public static bool HasClockFrequencies => DriverVersion >= 285_00;
+	public static bool HasIllumination => DriverVersion >= 400_00;
 	public static bool HasUtilizationSamples => DriverVersion >= 455_00;
 
 	static NvApi()
@@ -1281,6 +1281,7 @@ internal sealed class NvApi
 
 		public unsafe Gpu.CoolerInformation GetCoolerSettings(Gpu.CoolerTarget coolerTarget)
 		{
+			if (Functions.Gpu.GetCoolerSettings == null) throw new NotSupportedException();
 			var coolerSettings = new Gpu.CoolerSettings { Version = StructVersion<Gpu.CoolerSettings>(Gpu.CoolerSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetCoolerSettings(_handle, (uint)coolerTarget, &coolerSettings));
 			if (coolerSettings.Count != 1) throw new InvalidOperationException("Invalid cooler count.");
@@ -1289,6 +1290,7 @@ internal sealed class NvApi
 
 		public unsafe int GetCoolerSettings(Span<Gpu.CoolerInformation> coolers)
 		{
+			if (Functions.Gpu.GetCoolerSettings == null) throw new NotSupportedException();
 			var coolerSettings = new Gpu.CoolerSettings { Version = StructVersion<Gpu.CoolerSettings>(Gpu.CoolerSettingsVersion) };
 			ValidateResult(Functions.Gpu.GetCoolerSettings(_handle, (uint)Gpu.CoolerTarget.All, &coolerSettings));
 			if (coolerSettings.Count > 3) throw new InvalidOperationException("Invalid cooler count.");
@@ -1315,6 +1317,7 @@ internal sealed class NvApi
 
 		public unsafe uint GetTachReading()
 		{
+			if (Functions.Gpu.GetTachReading == null) throw new NotSupportedException();
 			uint reading;
 			ValidateResult(Functions.Gpu.GetTachReading(_handle, &reading));
 			return reading;
@@ -1322,6 +1325,7 @@ internal sealed class NvApi
 
 		public unsafe int GetFanCoolersStatus(Span<GpuFanStatus> fanCoolers)
 		{
+			if (Functions.Gpu.ClientFanCoolersGetStatus == null) return 0;
 			var status = new Gpu.Client.FanCoolersStatus { Version = StructVersion<Gpu.Client.FanCoolersStatus>(1) };
 			ValidateResult(Functions.Gpu.ClientFanCoolersGetStatus(_handle, &status));
 			if (status.Count > 32) throw new InvalidOperationException("Invalid fan cooler count.");
