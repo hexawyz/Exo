@@ -1,0 +1,12 @@
+{
+    // Mouse wheel
+    "ef92dd34-3de7-4d22-b46e-0234cd86ff25": {
+        "nameStringId": "014ef66f-12c2-48eb-8350-7bbcd7efab1f",
+        "displayOrder": 0
+    },
+    // Logo
+    "179c675c-f48b-4a95-885e-542ddb4e3412": {
+        "nameStringId": "531208f2-499b-4779-82ee-8e8ad2aae4c6",
+        "displayOrder": 1
+    }
+}

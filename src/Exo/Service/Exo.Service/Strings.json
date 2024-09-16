@@ -163,6 +163,14 @@
 		"en": "Memory Module 8",
 		"fr": "Module mémoire 8"
 	},
+	"014ef66f-12c2-48eb-8350-7bbcd7efab1f": {
+		"en": "Mouse wheel",
+		"fr": "Molette de la souris"
+	},
+	"179c675c-f48b-4a95-885e-542ddb4e3412": {
+		"en": "Logo",
+		"fr": "Logo"
+	},
 	// Lighting Effect Names
 	"72324394-b58d-41e3-a4fe-aa17342b0036": {
 		"en": "(Not Applicable)",
