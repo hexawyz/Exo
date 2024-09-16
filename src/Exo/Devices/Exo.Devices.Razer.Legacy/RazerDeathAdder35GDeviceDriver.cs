@@ -349,7 +349,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	{
 		var buffer = _buffer;
 		buffer[8] = pollingRate;
-		buffer[9] = 1;
+		buffer[9] = dpiIndex;
 		buffer[10] = 1;
 		buffer[11] = lightingState;
 		await _controlDevice.IoControlAsync(RazerUrbIoControlCode, MemoryMarshal.CreateFromPinnedArray(buffer, 0, 12), MemoryMarshal.CreateFromPinnedArray(buffer, 12, 12), cancellationToken).ConfigureAwait(false);
