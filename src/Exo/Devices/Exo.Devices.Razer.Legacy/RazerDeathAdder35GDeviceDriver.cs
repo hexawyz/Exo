@@ -115,6 +115,8 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 		//string endPointDeviceName = @$"\\.\RzEpt_Pid0016&{deviceAddress:X8}";
 
+		if (usbDeviceInterfaceName is null && mouseDeviceInterfaceName is null) return null;
+
 		if (usbDeviceInterfaceName is null || mouseDeviceInterfaceName is null)
 		{
 			throw new InvalidOperationException("The devices interface for the device were not found.");
@@ -171,7 +173,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 			razerDevice,
 			DpiPresets3500,
 			version,
-			friendlyName,
+			"Razer DeathAdder 3.5G",
 			topLevelDeviceName
 		);
 
