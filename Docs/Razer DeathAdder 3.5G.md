@@ -24,6 +24,18 @@ Judging by the protocol, there are two other settings that can be adjusted, but 
 
 ## Protocol
 
+### Read firmware version
+
+The legacy driver does a GET_REPORT on report ID `05`.
+
+It returns two bytes indicating the major and minor version.
+
+e.g. Mine is 2.45:
+
+`02 2D`
+
+### Write settings
+
 Synapse 2 sends the output report `10`, which contain 4 bytes.
 
 Example:
@@ -35,16 +47,38 @@ Example:
 01 01 01 03
 03 01 01 03
 
-RR DD 01 LL
+RR DD PP LL
 
 RR is the polling rate, where `01` is 1000Hz, `02` is 500Hz and `03` is 125Hz.
 DD is a value indicating the DPI. `01` is either 1800 or 3500 (depending on the mouse model). `02` is 900. `03` is 450.
+PP is a value representing a profile index (in the legacy driver). I have no idea what actual purpose it serves, as the whole settings are sent everytime. Values go from `01` to `05`.
 LL is a bitfield indicating the active lighting zones. `01` is the logo, and `02` is the wheel.
 
 It seems that the report used is not published in the HID descriptor, though.
 So the proprietary driver might be strictly required to work with this mouse 🙁
 
 ## Communicating with the device
+
+### Legacy driver
+
+After fighting with the current driver, and installing Synapse 2 on my dev computer, it became apparent that the driver provided with Synapse 2 was completely broken on some setups.
+I don't know if that could have been caused by something I did, but it seems unlikely as Synapse forcefully uninstalls and reinstalls all drivers.
+
+Luckily enough, there was a legacy driver for the DeathAdder (3.5G), predating Synapse 2, and I had completely forgotten about it although I clearly remember seeing it.
+But some forums mentioned its existence, so I finally gave up on Synapse 2 and started looking for that old driver…
+
+It can be downloaded from cnet: https://download.cnet.com/razer-deathadder-3-5g-windows-driver/3000-18491_4-77542908.html
+
+This installed fine despite the old age (yes, x64 was already available), and after a restart… tada, it actually worked.
+
+The interface provided with the driver works fine and does exactly what it needs to do, but our goal here is to replace it. (NB: It is possible to find the raw drivers in the installation folder, which I recommend backing up)
+
+Thankfully, this time, the driver is very lean compared to the mess of the newer drivers. It also helps that it is a raw WDF driver instead of a KMDF driver. (Also it might actually predate KMDF)
+
+What appears obvious from the get-go is that this driver can actually read the firmware version, something that I never observed with Synapse.
+This is done via a get report URB.
+
+### Synapse 2 Driver
 
 Razer, as always, installs a lot of system drivers for their devices. This made things a bit more complicated to find out, but one driver was seemingly "pre-installed" on my computer, presumably from an connection of the mouse a few years ago.
 Others were not installed, so I went and installed them
