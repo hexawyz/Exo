@@ -78,6 +78,8 @@ Thankfully, this time, the driver is very lean compared to the mess of the newer
 What appears obvious from the get-go is that this driver can actually read the firmware version, something that I never observed with Synapse.
 This is done via a get report URB.
 
+From a quick search through the driver, the IOCTL to use to send report `10` should be `222528`. A naive test sending only the raw 4 byte payload yielded the correct results, so… it works.
+
 ### Synapse 2 Driver
 
 Razer, as always, installs a lot of system drivers for their devices. This made things a bit more complicated to find out, but one driver was seemingly "pre-installed" on my computer, presumably from an connection of the mouse a few years ago.

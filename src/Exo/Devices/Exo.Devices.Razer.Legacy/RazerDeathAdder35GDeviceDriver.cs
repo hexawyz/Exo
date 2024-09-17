@@ -130,9 +130,9 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 			throw new InvalidOperationException("The devices interface for the device were not found.");
 		}
 
-		var transport = driverType switch
+		DeathAdderTransport transport = driverType switch
 		{
-			KernelDriverType.DeathAdderNew => throw new NotImplementedException("Legacy driver is not implemented yet."),
+			KernelDriverType.DeathAdderNew => new DeathAdderNewTransport(),
 			KernelDriverType.RzUdd => await RzUddTransport.CreateAsync(productId, cancellationToken).ConfigureAwait(false),
 			_ => throw new NotImplementedException("This device requires a kernel driver to work."),
 		};
@@ -356,6 +356,27 @@ internal abstract class DeathAdderTransport : IAsyncDisposable
 	public virtual ValueTask DisposeAsync() => _controlDevice.DisposeAsync();
 
 	public abstract Task UpdateSettingsAsync(byte pollingRate, byte dpiIndex, byte profileIndex, byte lightingState, CancellationToken cancellationToken);
+}
+
+internal sealed class DeathAdderNewTransport : DeathAdderTransport
+{
+	private const int UpdateSettingsIoControlCode = 0x222528;
+
+	private readonly byte[] _buffer;
+
+	public DeathAdderNewTransport() : base(new(Device.OpenHandle(@"\\.\DANew", DeviceAccess.None, FileShare.ReadWrite), FileAccess.ReadWrite, 0, true))
+	{
+		_buffer = GC.AllocateUninitializedArray<byte>(4, true);
+	}
+
+	public override async Task UpdateSettingsAsync(byte pollingRate, byte dpiIndex, byte profileIndex, byte lightingState, CancellationToken cancellationToken)
+	{
+		_buffer[0] = pollingRate;
+		_buffer[1] = dpiIndex;
+		_buffer[2] = profileIndex;
+		_buffer[3] = lightingState;
+		await ControlDevice.IoControlAsync(UpdateSettingsIoControlCode, (ReadOnlyMemory<byte>)MemoryMarshal.CreateFromPinnedArray(_buffer, 0, 4), cancellationToken).ConfigureAwait(false);
+	}
 }
 
 internal sealed class RzUddTransport : DeathAdderTransport
