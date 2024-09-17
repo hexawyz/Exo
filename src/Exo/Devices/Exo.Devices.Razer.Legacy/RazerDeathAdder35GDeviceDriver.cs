@@ -137,6 +137,17 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 			_ => throw new NotImplementedException("This device requires a kernel driver to work."),
 		};
 
+		try
+		{
+			// Push the default settings to the device, so that we are in sync.
+			await transport.UpdateSettingsAsync(2, 1, 1, 3, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+			await transport.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
+
 		var driver = new RazerDeathAdder35GDeviceDriver
 		(
 			transport,
@@ -174,7 +185,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-	private event Action<Driver, MouseDpiStatus> DpiChanged;
+	private event Action<Driver, MouseDpiStatus>? DpiChanged;
 
 	private RazerDeathAdder35GDeviceDriver
 	(
@@ -189,7 +200,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		_lock = new();
 		_versionNumber = versionNumber;
 		_lightingState = 0x0F;
-		_performanceState = 0x05;
+		_performanceState = 0x02;
 		_dpiPresets = dpiPresets;
 		_lightingZones = Array.AsReadOnly<ILightingZone>([new WheelLightingZone(this), new LogoLightingZone(this)]);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RazerDeathAdder35GDeviceDriver, IDeviceIdFeature>(this);
@@ -227,7 +238,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 	async ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
 	{
-		if (activePresetIndex > 2) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
+		if (activePresetIndex > _dpiPresets.Length) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
 
 		byte newDpiState = (byte)(_dpiPresets.Length - 1 - activePresetIndex);
 
@@ -263,7 +274,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		{
 			var state = Volatile.Read(ref _performanceState);
 
-			byte dpiIndex = (byte)(3 - ((state >> 2) & 3));
+			byte dpiIndex = (byte)(_dpiPresets.Length - 1 - ((state >> 2) & 3));
 
 			return new() { PresetIndex = dpiIndex, Dpi = _dpiPresets[dpiIndex] };
 		}
