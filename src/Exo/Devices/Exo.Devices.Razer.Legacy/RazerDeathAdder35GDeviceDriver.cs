@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
@@ -139,6 +140,11 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 		try
 		{
+			if (driverType is KernelDriverType.DeathAdderNew)
+			{
+				var (major, minor) = await transport.GetFirmwareVersionAsync(cancellationToken).ConfigureAwait(false);
+			}
+
 			// Push the default settings to the device, so that we are in sync.
 			await transport.UpdateSettingsAsync(2, 1, 1, 3, cancellationToken).ConfigureAwait(false);
 		}
@@ -367,10 +373,14 @@ internal abstract class DeathAdderTransport : IAsyncDisposable
 	public virtual ValueTask DisposeAsync() => _controlDevice.DisposeAsync();
 
 	public abstract Task UpdateSettingsAsync(byte pollingRate, byte dpiIndex, byte profileIndex, byte lightingState, CancellationToken cancellationToken);
+
+	public virtual Task<(byte Major, byte Minor)> GetFirmwareVersionAsync(CancellationToken cancellationToken)
+		=> Task.FromException<(byte, byte)>(ExceptionDispatchInfo.SetCurrentStackTrace(new NotSupportedException()));
 }
 
 internal sealed class DeathAdderNewTransport : DeathAdderTransport
 {
+	private const int ReadFirmwareVersionIoControlCode = 0x222510;
 	private const int UpdateSettingsIoControlCode = 0x222528;
 
 	private readonly byte[] _buffer;
@@ -387,6 +397,13 @@ internal sealed class DeathAdderNewTransport : DeathAdderTransport
 		_buffer[2] = profileIndex;
 		_buffer[3] = lightingState;
 		await ControlDevice.IoControlAsync(UpdateSettingsIoControlCode, (ReadOnlyMemory<byte>)MemoryMarshal.CreateFromPinnedArray(_buffer, 0, 4), cancellationToken).ConfigureAwait(false);
+	}
+
+	public override async Task<(byte Major, byte Minor)> GetFirmwareVersionAsync(CancellationToken cancellationToken)
+	{
+		Array.Clear(_buffer);
+		await ControlDevice.IoControlAsync(ReadFirmwareVersionIoControlCode, MemoryMarshal.CreateFromPinnedArray(_buffer, 0, 2), cancellationToken).ConfigureAwait(false);
+		return (_buffer[0], _buffer[1]);
 	}
 }
 
