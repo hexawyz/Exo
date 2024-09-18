@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -133,9 +132,10 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 		DeathAdderTransport transport = driverType switch
 		{
+			KernelDriverType.DeathAdder => throw new NotImplementedException("Support for this device is not implemented yet."),
 			KernelDriverType.DeathAdderNew => new DeathAdderNewTransport(),
 			KernelDriverType.RzUdd => await RzUddTransport.CreateAsync(productId, cancellationToken).ConfigureAwait(false),
-			_ => throw new NotImplementedException("This device requires a kernel driver to work."),
+			_ => throw new MissingKernelDriverException("Razer DeathAdder 3.5G"),
 		};
 
 		try
