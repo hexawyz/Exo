@@ -1,8 +1,8 @@
-using System;
-
 namespace DeviceTools.FilterExpressions;
 
+#pragma warning disable CS0660, CS0661
 public sealed class FileTimeProperty : Property<DateTime?>, IComparableProperty<long>
+#pragma warning restore CS0661, CS0660
 {
 	internal FileTimeProperty(Guid categoryId, uint propertyId) : base(categoryId, propertyId) { }
 
