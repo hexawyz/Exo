@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using DeviceTools.FilterExpressions;
 
@@ -34,6 +33,22 @@ public abstract class Property
 	public bool TryGetName(out string? name) =>
 #endif
 		Properties.TryGetName(_key, out name);
+
+#if !NETSTANDARD2_0
+	public override int GetHashCode() => HashCode.Combine(Type, _key);
+#else
+		public override int GetHashCode()
+		{
+			int hashCode = -553669671;
+			hashCode = hashCode * -1521134295 + Type.GetHashCode();
+			hashCode = hashCode * -1521134295 + _key.GetHashCode();
+			return hashCode;
+		}
+#endif
+
+	public override bool Equals(object? obj) => obj is Property p && Equals(p);
+
+	private bool Equals(Property other) => Type == other.Type && _key == other._key;
 }
 
 public abstract class Property<TValue> : Property
