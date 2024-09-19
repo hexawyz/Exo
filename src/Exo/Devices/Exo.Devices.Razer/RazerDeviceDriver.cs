@@ -129,20 +129,25 @@ public abstract partial class RazerDeviceDriver :
 	}
 
 	[Flags]
-	private enum RazerDeviceFlags : byte
+	private enum RazerDeviceFlags : ushort
 	{
 		None = 0x00,
-		HasBattery = 0x01,
 
-		HasLighting = 0x02,
-		HasReactiveLighting = 0x04,
+		HasWiredProductId = 0x01,
+		HasDongleProductId = 0x02,
+		HasBluetoothProductId = 0x04,
+		HasBluetoothLowEnergyProductId = 0x08,
 
-		HasWiredProductId = 0x08,
-		HasDongleProductId = 0x10,
-		HasBluetoothProductId = 0x20,
-		HasBluetoothLowEnergyProductId = 0x40,
+		IsDongle = 0x10,
 
-		IsDongle = 0x80,
+		HasBattery = 0x20,
+
+		HasLighting = 0x40,
+		HasLightingV2 = 0x80,
+		HasReactiveLighting = 0x100,
+
+		HasDpi = 0x200,
+		HasDpiPresets = 0x400,
 	}
 
 	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
@@ -153,6 +158,7 @@ public abstract partial class RazerDeviceDriver :
 
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
 	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
+	private static readonly Guid MambaChromaLightingZoneGuid = new(0x16D0353A, 0xBBB9, 0x4993, 0x92, 0x3E, 0x1D, 0x09, 0x09, 0xF8, 0x96, 0xDD);
 
 	// Stores the device informations in a linear table that allow deduplicating information and accessing it by reference.
 	// The indices into this table will be built into the dictionary.
@@ -164,11 +170,46 @@ public abstract partial class RazerDeviceDriver :
 		(
 			RazerDeviceCategory.Mouse,
 			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasLighting |
+				RazerDeviceFlags.HasReactiveLighting |
+				RazerDeviceFlags.HasDpi,
+			0x0044,
+			0x0045,
+			0xFFFF,
+			0xFFFF,
+			MambaChromaLightingZoneGuid,
+			16_000,
+			"Razer Mamba Chroma"
+		),
+		//new
+		//(
+		//	RazerDeviceCategory.Mouse,
+		//	RazerDeviceFlags.HasBattery |
+		//		RazerDeviceFlags.HasWiredProductId |
+		//		RazerDeviceFlags.HasDongleProductId |
+		//		RazerDeviceFlags.IsDongle,
+		//	0x0044,
+		//	0x0045,
+		//	0xFFFF,
+		//	0xFFFF,
+		//	null,
+		//	16_000,
+		//	"Razer Mamba Chroma Dock"
+		//),
+		new
+		(
+			RazerDeviceCategory.Mouse,
+			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasLighting |
+				RazerDeviceFlags.HasLightingV2 |
 				RazerDeviceFlags.HasReactiveLighting |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
-				RazerDeviceFlags.HasBluetoothLowEnergyProductId,
+				RazerDeviceFlags.HasBluetoothLowEnergyProductId |
+				RazerDeviceFlags.HasDpi |
+				RazerDeviceFlags.HasDpiPresets,
 			0x007C,
 			0x007D,
 			0xFFFF,
@@ -182,11 +223,14 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.UsbReceiver,
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasLighting |
+				RazerDeviceFlags.HasLightingV2 |
 				RazerDeviceFlags.HasReactiveLighting |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasBluetoothLowEnergyProductId |
-				RazerDeviceFlags.IsDongle,
+				RazerDeviceFlags.IsDongle |
+				RazerDeviceFlags.HasDpi |
+				RazerDeviceFlags.HasDpiPresets,
 			0x007C,
 			0x007D,
 			0xFFFF,
@@ -198,7 +242,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Dock,
-			RazerDeviceFlags.HasWiredProductId | RazerDeviceFlags.HasLighting,
+			RazerDeviceFlags.HasWiredProductId | RazerDeviceFlags.HasLighting | RazerDeviceFlags.HasLightingV2,
 			0x007E,
 			0xFFFF,
 			0xFFFF,
@@ -212,7 +256,9 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse,
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
-				RazerDeviceFlags.HasDongleProductId,
+				RazerDeviceFlags.HasDongleProductId |
+				RazerDeviceFlags.HasDpi |
+				RazerDeviceFlags.HasDpiPresets,
 			0x00B6,
 			0x00B7,
 			0xFFFF,
@@ -227,7 +273,9 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
-				RazerDeviceFlags.IsDongle,
+				RazerDeviceFlags.IsDongle |
+				RazerDeviceFlags.HasDpi |
+				RazerDeviceFlags.HasDpiPresets,
 			0x00B6,
 			0x00B7,
 			0xFFFF,
@@ -240,12 +288,14 @@ public abstract partial class RazerDeviceDriver :
 
 	private static readonly Dictionary<ushort, ushort> DeviceInformationIndices = new()
 	{
-		{ 0x007C, 0 },
-		{ 0x007D, 1 },
-		{ 0x007E, 2 },
-		{ 0x008E, 0 },
-		{ 0x00B6, 3 },
-		{ 0x0087, 4 },
+		{ 0x0044, 0 },
+		{ 0x0045, 0 },
+		{ 0x007C, 1 },
+		{ 0x007D, 2 },
+		{ 0x007E, 3 },
+		{ 0x008E, 1 },
+		{ 0x00B6, 4 },
+		{ 0x0087, 5 },
 	};
 
 	private static ref readonly DeviceInformation GetDeviceInformation(ushort productId)
@@ -267,6 +317,8 @@ public abstract partial class RazerDeviceDriver :
 	}
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x0044)] // Mamba Chroma Mouse Wired
+	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x0045)] // Mamba Chroma Mouse Wireless
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007C)] // DeathAdder V2 Pro Mouse Wired
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007D)] // DeathAdder V2 Pro Mouse via Dongle
 	[ProductId(VendorIdSource.Usb, RazerVendorId, 0x007E)] // DeathAdder V2 Pro Dock

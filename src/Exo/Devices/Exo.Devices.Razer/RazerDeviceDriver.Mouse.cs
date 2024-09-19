@@ -20,7 +20,7 @@ public abstract partial class RazerDeviceDriver
 	{
 		public override DeviceCategory DeviceCategory => DeviceCategory.Mouse;
 
-		private DotsPerInch[] _dpiProfiles;
+		private DotsPerInch[] _dpiPresets;
 		private ulong _currentDpi;
 		private readonly ushort _maximumDpi;
 		private readonly ushort _maximumPollingFrequency;
@@ -44,7 +44,7 @@ public abstract partial class RazerDeviceDriver
 			byte mainDeviceIdIndex
 		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
-			_dpiProfiles = [];
+			_dpiPresets = [];
 			_maximumDpi = maximumDpi;
 			_maximumPollingFrequency = maximumPollingFrequency;
 			var supportedPollingFrequencyToDividerMapping = new Dictionary<ushort, byte>();
@@ -59,27 +59,56 @@ public abstract partial class RazerDeviceDriver
 			Array.Sort(supportedPollingFrequencies);
 			_supportedPollingFrequencyToDividerMapping = supportedPollingFrequencyToDividerMapping;
 			_supportedPollingFrequencies = ImmutableCollectionsMarshal.AsImmutableArray(supportedPollingFrequencies);
-			_mouseFeatures = FeatureSet.Create
-			<
-				IMouseDeviceFeature,
-				Mouse,
-				IMouseDpiFeature,
-				IMouseDynamicDpiFeature,
-				IMouseDpiPresetsFeature,
-				IMouseConfigurableDpiPresetsFeature,
-				IMouseConfigurablePollingFrequencyFeature
-			>
-			(this);
+			_mouseFeatures = HasDpi ?
+				HasDpiPresets ?
+					FeatureSet.Create
+					<
+						IMouseDeviceFeature,
+						Mouse,
+						IMouseDpiFeature,
+						IMouseDynamicDpiFeature,
+						IMouseDpiPresetsFeature,
+						IMouseConfigurableDpiPresetsFeature,
+						IMouseConfigurablePollingFrequencyFeature
+					>
+					(this) :
+					FeatureSet.Create
+					<
+						IMouseDeviceFeature,
+						Mouse,
+						IMouseDpiFeature,
+						IMouseDynamicDpiFeature,
+						IMouseConfigurablePollingFrequencyFeature
+					>
+					(this) :
+				FeatureSet.Create
+					<
+						IMouseDeviceFeature,
+						Mouse,
+						IMouseConfigurableDpiPresetsFeature,
+						IMouseConfigurablePollingFrequencyFeature
+					>
+					(this);
 		}
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
 		{
 			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
-			var dpiLevels = await _transport.GetDpiProfilesAsync(cancellationToken).ConfigureAwait(false);
-			_dpiProfiles = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiLevels.Profiles)!, p => new DotsPerInch(p.X, p.Y));
-			var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
-			_currentDpi = GetRawDpiValue(_dpiProfiles, dpi.Horizontal, dpi.Vertical);
+			if (HasDpi)
+			{
+				if (HasDpiPresets)
+				{
+					var dpiPresets = await _transport.GetDpiPresetsAsync(cancellationToken).ConfigureAwait(false);
+					_dpiPresets = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(dpiPresets.Profiles)!, p => new DotsPerInch(p.X, p.Y));
+				}
+				else
+				{
+					_dpiPresets = [];
+				}
+				var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
+				_currentDpi = GetRawDpiValue(_dpiPresets, dpi.Horizontal, dpi.Vertical);
+			}
 			_currentPollingFrequencyDivider = await _transport.GetPollingFrequencyDivider(cancellationToken).ConfigureAwait(false);
 		}
 
@@ -87,7 +116,7 @@ public abstract partial class RazerDeviceDriver
 
 		protected override void OnDeviceDpiChange(ushort dpiX, ushort dpiY)
 		{
-			var profiles = Volatile.Read(ref _dpiProfiles);
+			var profiles = Volatile.Read(ref _dpiPresets);
 			ulong newDpi = GetRawDpiValue(profiles, dpiX, dpiY);
 			OnDeviceDpiChange(newDpi);
 		}
@@ -157,7 +186,7 @@ public abstract partial class RazerDeviceDriver
 			remove => DpiChanged -= value;
 		}
 
-		ImmutableArray<DotsPerInch> IMouseDpiPresetsFeature.DpiPresets => ImmutableCollectionsMarshal.AsImmutableArray(Volatile.Read(ref _dpiProfiles));
+		ImmutableArray<DotsPerInch> IMouseDpiPresetsFeature.DpiPresets => ImmutableCollectionsMarshal.AsImmutableArray(Volatile.Read(ref _dpiPresets));
 
 		bool IMouseDynamicDpiFeature.AllowsSeparateXYDpi => true;
 		byte IMouseConfigurableDpiPresetsFeature.MaxPresetCount => 5;
@@ -166,8 +195,8 @@ public abstract partial class RazerDeviceDriver
 
 		async ValueTask IMouseDpiPresetsFeature.ChangeCurrentPresetAsync(byte activePresetIndex, CancellationToken cancellationToken)
 		{
-			if (activePresetIndex >= (uint)_dpiProfiles.Length) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
-			await _transport.SetDpiAsync(false, _dpiProfiles[activePresetIndex], cancellationToken).ConfigureAwait(false);
+			if (activePresetIndex >= (uint)_dpiPresets.Length) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
+			await _transport.SetDpiAsync(false, _dpiPresets[activePresetIndex], cancellationToken).ConfigureAwait(false);
 
 			// Remember: The index we receive as input of this method is zero-based, but the devices use 1-based indices.
 			byte newPresetIndex = (byte)(activePresetIndex + 1);
@@ -182,14 +211,14 @@ public abstract partial class RazerDeviceDriver
 					newPresetIndex,
 					ImmutableArray.CreateRange
 					(
-						ImmutableCollectionsMarshal.AsImmutableArray(_dpiProfiles),
+						ImmutableCollectionsMarshal.AsImmutableArray(_dpiPresets),
 						dpi => new RazerMouseDpiProfile(dpi.Horizontal, dpi.Vertical, 0)
 					)
 				),
 				cancellationToken
 			).ConfigureAwait(false);
 
-			OnDeviceDpiChange(newPresetIndex, _dpiProfiles[activePresetIndex]);
+			OnDeviceDpiChange(newPresetIndex, _dpiPresets[activePresetIndex]);
 		}
 
 		async ValueTask IMouseConfigurableDpiPresetsFeature.SetDpiPresetsAsync(byte activePresetIndex, ImmutableArray<DotsPerInch> dpiPresets, CancellationToken cancellationToken)

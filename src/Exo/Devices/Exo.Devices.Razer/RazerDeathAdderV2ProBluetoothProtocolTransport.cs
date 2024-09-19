@@ -503,7 +503,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(CancellationToken cancellationToken)
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted)
 		{
@@ -839,4 +839,9 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 
 	ValueTask<PairedDeviceInformation> IRazerProtocolTransport.GetDeviceInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<PairedDeviceInformation[]> IRazerProtocolTransport.GetDevicePairingInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+	ValueTask<ILightingEffect?> IRazerProtocolTransport.GetSavedLegacyEffectAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetLegacyEffectAsync(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetLegacyBrightnessAsync(byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<byte> IRazerProtocolTransport.GetLegacyBrightnessAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 }

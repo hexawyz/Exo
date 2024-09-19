@@ -120,10 +120,13 @@ public abstract partial class RazerDeviceDriver
 		private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 
-		private bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
-		private bool HasLighting => (_deviceFlags & RazerDeviceFlags.HasLighting) != 0;
-		private bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
-		private bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
+		protected bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
+		protected bool HasLighting => (_deviceFlags & RazerDeviceFlags.HasLighting) != 0;
+		protected bool HasLightingV2 => (_deviceFlags & RazerDeviceFlags.HasLightingV2) != 0;
+		protected bool HasDpi => (_deviceFlags & RazerDeviceFlags.HasDpi) != 0;
+		protected bool HasDpiPresets => (_deviceFlags & RazerDeviceFlags.HasDpiPresets) != 0;
+		protected bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
+		protected bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
 
 		protected BaseDevice
 		(
@@ -184,12 +187,20 @@ public abstract partial class RazerDeviceDriver
 			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
 			if (HasLighting)
 			{
-				byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
-				_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
+				if (!HasLightingV2)
+				{
+					_currentBrightness = await _transport.GetLegacyBrightnessAsync(cancellationToken).ConfigureAwait(false);
+					//_appliedEffect = await _transport.GetSavedLegacyEffectAsync(cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
+					_appliedEffect = DisabledEffect.SharedInstance;
+				}
+				else
+				{
+					byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
+					_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
 
-				// Reapply the persisted effect. (In case it was overridden by a temporary effect)
-				await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
-
+					// Reapply the persisted effect. (In case it was overridden by a temporary effect)
+					await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
+				}
 				_currentEffect = _appliedEffect;
 			}
 		}
@@ -273,7 +284,14 @@ public abstract partial class RazerDeviceDriver
 			{
 				if (shouldPersist || !ReferenceEquals(_appliedEffect, _currentEffect))
 				{
-					await ApplyEffectAsync(_currentEffect, _currentBrightness, shouldPersist, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
+					if (!HasLightingV2)
+					{
+						await ApplyLegacyEffectAsync(_currentEffect, _currentBrightness, shouldPersist, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
+					}
+					else
+					{
+						await ApplyEffectAsync(_currentEffect, _currentBrightness, shouldPersist, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
+					}
 					_appliedEffect = _currentEffect;
 				}
 				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
@@ -281,6 +299,48 @@ public abstract partial class RazerDeviceDriver
 					await _transport.SetBrightnessAsync(shouldPersist, _currentBrightness, cancellationToken).ConfigureAwait(false);
 				}
 				_appliedBrightness = _currentBrightness;
+			}
+		}
+
+		private async ValueTask ApplyLegacyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
+		{
+			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
+			{
+				await _transport.SetLegacyEffectAsync(0, 0, default, default, cancellationToken).ConfigureAwait(false);
+				await _transport.SetLegacyBrightnessAsync(0, cancellationToken);
+				return;
+			}
+
+			// It seems brightness must be restored from zero first before setting a color effect.
+			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
+			if (forceBrightnessUpdate)
+			{
+				await _transport.SetLegacyBrightnessAsync(brightness, cancellationToken);
+			}
+
+			switch (effect)
+			{
+			case StaticColorEffect staticColorEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
+				break;
+			case RandomColorPulseEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Breathing, 3, default, default, cancellationToken);
+				break;
+			case ColorPulseEffect colorPulseEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
+				break;
+			case TwoColorPulseEffect twoColorPulseEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
+				break;
+			case SpectrumCycleEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
+				break;
+			case SpectrumWaveEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Wave, 1, default, default, cancellationToken);
+				break;
+			case ReactiveEffect reactiveEffect:
+				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
+				break;
 			}
 		}
 
@@ -332,12 +392,6 @@ public abstract partial class RazerDeviceDriver
 			{
 				_currentEffect = effect;
 			}
-		}
-
-		// TODO: Determine how this should be exposed.
-		public void SetDefaultBrightness(byte brightness)
-		{
-			_currentBrightness = brightness;
 		}
 
 		private event Action<Driver, BatteryState>? BatteryStateChanged;

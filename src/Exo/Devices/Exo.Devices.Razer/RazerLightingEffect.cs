@@ -9,3 +9,13 @@ public enum RazerLightingEffect : byte
 	Wave = 4,
 	Reactive = 5,
 }
+
+public enum RazerLegacyLightingEffect : byte
+{
+	Disabled = 0,
+	Wave = 1,
+	Reactive = 2,
+	Breathing = 3,
+	SpectrumCycle = 4,
+	Static = 6,
+}

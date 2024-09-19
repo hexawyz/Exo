@@ -116,6 +116,85 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
+	public async Task SetLegacyBrightnessAsync(byte value, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, byte value)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x03;
+				buffer[7] = (byte)RazerDeviceFeature.LightingLegacy;
+				buffer[8] = 0x03;
+
+				// Maybe persistence ? Or wired flag ?
+				buffer[9] = 0x01;
+				// ?
+				buffer[10] = 0x05;
+
+				buffer[11] = value;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, value);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingLegacy, 0x03, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<byte> GetLegacyBrightnessAsync(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x01;
+				buffer[7] = (byte)RazerDeviceFeature.LightingLegacy;
+				buffer[8] = 0x83;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingLegacy, 0x83, 0, cancellationToken).ConfigureAwait(false);
+
+				return buffer.Span[11];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
 	public async Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
@@ -334,7 +413,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		return expectedDataLength;
 	}
 
-	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiProfilesAsync(CancellationToken cancellationToken)
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -442,6 +521,142 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x80, 0, cancellationToken).ConfigureAwait(false);
 
 				return buffer.Span[9];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public static ILightingEffect? ParseLegacyEffect(ReadOnlySpan<byte> buffer)
+	{
+		var effect = (RazerLegacyLightingEffect)buffer[0];
+		byte parameter = buffer[1];
+		RgbColor color1 = parameter > 0 && effect is RazerLegacyLightingEffect.Static or RazerLegacyLightingEffect.Breathing or RazerLegacyLightingEffect.Reactive ? new(buffer[2], buffer[3], buffer[4]) : default;
+		RgbColor color2 = parameter > 1 && effect is RazerLegacyLightingEffect.Breathing ? new(buffer[5], buffer[6], buffer[7]) : default;
+
+		return effect switch
+		{
+			RazerLegacyLightingEffect.Disabled => DisabledEffect.SharedInstance,
+			RazerLegacyLightingEffect.Static => new StaticColorEffect(color1),
+			RazerLegacyLightingEffect.Breathing => parameter switch
+			{
+				0 => RandomColorPulseEffect.SharedInstance,
+				1 => new ColorPulseEffect(color1),
+				_ => new TwoColorPulseEffect(color1, color2),
+			},
+			RazerLegacyLightingEffect.SpectrumCycle => SpectrumCycleEffect.SharedInstance,
+			RazerLegacyLightingEffect.Wave => SpectrumWaveEffect.SharedInstance,
+			RazerLegacyLightingEffect.Reactive => new ReactiveEffect(color1),
+			_ => null,
+		};
+	}
+
+	// TODO: That was written a bit hastily. Because each effect actually requires a slightly different structure, rework this later.
+	public static byte WriteLegacyEffect(Span<byte> buffer, RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2)
+	{
+		buffer[0] = (byte)effect;
+
+		if (effect is RazerLegacyLightingEffect.Disabled or RazerLegacyLightingEffect.SpectrumCycle) return 1;
+
+		if (effect is RazerLegacyLightingEffect.Static)
+		{
+			buffer[1] = color1.R;
+			buffer[2] = color1.G;
+			buffer[3] = color1.B;
+			return 4;
+		}
+
+		buffer[1] = parameter;
+
+		if (parameter > 0 && effect is RazerLegacyLightingEffect.Static or RazerLegacyLightingEffect.Breathing or RazerLegacyLightingEffect.Reactive)
+		{
+			if (parameter > 2 && effect is RazerLegacyLightingEffect.Breathing) return 2;
+
+			buffer[2] = color1.R;
+			buffer[3] = color1.G;
+			buffer[4] = color1.B;
+			if (parameter > 1 && effect is RazerLegacyLightingEffect.Breathing)
+			{
+				buffer[5] = color2.R;
+				buffer[6] = color2.G;
+				buffer[7] = color2.B;
+				return 8;
+			}
+			return 5;
+		}
+		return 2;
+	}
+
+	// NB: Reading does not seem to be actually possible ?
+	public async ValueTask<ILightingEffect?> GetSavedLegacyEffectAsync(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x08;
+				buffer[7] = (byte)RazerDeviceFeature.LightingLegacy;
+				buffer[8] = 0x8a;
+
+				UpdateChecksum(buffer);
+			}
+
+			static ILightingEffect? ParseResponse(ReadOnlySpan<byte> buffer) => ParseEffect(buffer[9..]);
+
+			try
+			{
+				FillBuffer(buffer.Span);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingLegacy, 0x8a, 0, cancellationToken).ConfigureAwait(false);
+
+				return ParseResponse(buffer.Span);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async Task SetLegacyEffectAsync(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[7] = (byte)RazerDeviceFeature.LightingLegacy;
+				buffer[8] = 0x0a;
+
+				buffer[6] = WriteLegacyEffect(buffer[9..], effect, parameter, color1, color2);
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, effect, parameter, color1, color2);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingLegacy, 0x0a, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
@@ -1177,9 +1392,9 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	private async Task ReadResponseAsync(Memory<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount, CancellationToken cancellationToken)
+	private async Task ReadResponseAsync(Memory<byte> buffer, byte id, RazerDeviceFeature feature, byte function, int errorResponseRetryCount, CancellationToken cancellationToken)
 	{
-		if (!await TryReadResponseAsync(buffer, commandByte1, feature, commandByte3, errorResponseRetryCount, cancellationToken).ConfigureAwait(false))
+		if (!await TryReadResponseAsync(buffer, id, feature, function, errorResponseRetryCount, cancellationToken).ConfigureAwait(false))
 		{
 			throw new InvalidOperationException("The device did not return a valid response.");
 		}
@@ -1193,11 +1408,11 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		DeviceNotConnected = 3,
 	}
 
-	private async ValueTask<bool> TryReadResponseAsync(Memory<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3, int errorResponseRetryCount, CancellationToken cancellationToken)
+	private async ValueTask<bool> TryReadResponseAsync(Memory<byte> buffer, byte id, RazerDeviceFeature feature, byte function, int errorResponseRetryCount, CancellationToken cancellationToken)
 	{
-		static ResponseState ValidateResponse(Span<byte> buffer, byte commandByte1, RazerDeviceFeature feature, byte commandByte3)
+		static ResponseState ValidateResponse(Span<byte> buffer, byte id, RazerDeviceFeature feature, byte function)
 		{
-			if (buffer[2] == commandByte1 && buffer[7] == (byte)feature && buffer[8] == commandByte3)
+			if (buffer[2] == id && buffer[7] == (byte)feature && buffer[8] == function)
 			{
 				switch (buffer[1])
 				{
@@ -1224,7 +1439,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 
 		// Try to wait for about 4ms. Hopefully this will not be too broken with Windows' internal timer. (But with chrome running on everyone's computer, I assume resolution is always 1ms)
-		// For my testing, waiting this delay make most read succeed on the first try, which is what we want. (NB: Using Wireshark "time delta from previous displayed frame" feature is useful)
+		// For my testing, waiting this delay make most reads succeed on the first try, which is what we want. (NB: Using Wireshark "time delta from previous displayed frame" feature is useful)
 		await Task.Delay(4, cancellationToken).ConfigureAwait(false);
 
 		while (true)
@@ -1233,7 +1448,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			await GetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 
-			switch (ValidateResponse(buffer.Span, commandByte1, feature, commandByte3))
+			switch (ValidateResponse(buffer.Span, id, feature, function))
 			{
 			case ResponseState.Success:
 				return true;
