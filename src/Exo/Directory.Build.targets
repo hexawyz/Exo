@@ -5,22 +5,23 @@
 	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 	<Import Condition="'$(IsExoPluginAssembly)' == 'true'" Project="ExoMetadata.targets" />
 	<ItemGroup Condition="'$(IsExoPluginAssembly)' == 'true'">
-		<ProjectReference Update="$(MSBuildThisFileDirectory)Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)Discovery\Exo.Discovery.Root\Exo.Discovery.Root.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)Discovery\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)Discovery\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.Numerics\DeviceTools.Numerics.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.DeviceIds.Databases\DeviceTools.DeviceIds.Databases.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.Firmware\DeviceTools.Firmware.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.RawInput\DeviceTools.RawInput.csproj" Private="false" ExcludeAssets="runtime" />
-		<ProjectReference Update="$(MSBuildThisFileDirectory)..\DeviceTools\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" Private="false" ExcludeAssets="runtime" />
+		<!-- NB: Projects are expected to be rooted in either Devices or Discovery directories. The paths below are relative to this. -->
+		<ProjectReference Update="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Root\Exo.Discovery.Root.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\Discovery\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Numerics\DeviceTools.Numerics.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.DeviceIds.Databases\DeviceTools.DeviceIds.Databases.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Firmware\DeviceTools.Firmware.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.RawInput\DeviceTools.RawInput.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 	<Target Name="_MakeTransitiveProjectRefsNonPrivate" AfterTargets="IncludeTransitiveProjectReferences" Condition="'$(IsExoPluginAssembly)' == 'true'">
 		<ItemGroup>
