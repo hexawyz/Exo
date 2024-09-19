@@ -18,7 +18,13 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken);
 	Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken);
 
+	ValueTask<ILightingEffect?> GetSavedLegacyEffectAsync(CancellationToken cancellationToken);
+	Task SetLegacyEffectAsync(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+	Task SetLegacyBrightnessAsync(byte value, CancellationToken cancellationToken);
+	ValueTask<byte> GetLegacyBrightnessAsync(CancellationToken cancellationToken);
+
 	ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken);
+	ValueTask<byte> GetBrightnessAsync(bool persisted, byte flag, CancellationToken cancellationToken);
 	Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken);
 	ValueTask<ILightingEffect?> GetSavedEffectAsync(byte flag, CancellationToken cancellationToken);
 	Task SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
@@ -32,9 +38,4 @@ internal interface IRazerProtocolTransport : IDisposable
 
 	ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken);
 	ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken);
-
-	ValueTask<ILightingEffect?> GetSavedLegacyEffectAsync(CancellationToken cancellationToken);
-	Task SetLegacyEffectAsync(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
-	Task SetLegacyBrightnessAsync(byte value, CancellationToken cancellationToken);
-	ValueTask<byte> GetLegacyBrightnessAsync(CancellationToken cancellationToken);
 }

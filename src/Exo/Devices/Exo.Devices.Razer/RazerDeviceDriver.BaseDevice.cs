@@ -196,6 +196,7 @@ public abstract partial class RazerDeviceDriver
 				else
 				{
 					byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
+					_currentBrightness = await _transport.GetBrightnessAsync(true, flag, cancellationToken).ConfigureAwait(false);
 					_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
 
 					// Reapply the persisted effect. (In case it was overridden by a temporary effect)

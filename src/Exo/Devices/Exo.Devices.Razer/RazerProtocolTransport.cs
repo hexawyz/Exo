@@ -234,44 +234,45 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	//public async ValueTask<byte> GetBrightnessAsync(CancellationToken cancellationToken)
-	//{
-	//	var @lock = Volatile.Read(ref _lock);
-	//	ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
-	//	using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-	//	{
-	//		var buffer = Buffer;
+	public async ValueTask<byte> GetBrightnessAsync(bool persisted, byte flag, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
 
-	//		static void FillBuffer(Span<byte> buffer)
-	//		{
-	//			buffer[2] = 0x1f;
+			static void FillBuffer(Span<byte> buffer, bool persisted, byte flag)
+			{
+				buffer[2] = 0x1f;
 
-	//			buffer[6] = 0x01;
-	//			buffer[7] = (byte)RazerDeviceFeature.Lighting;
-	//			buffer[8] = 0x84;
+				buffer[6] = 0x01;
+				buffer[7] = (byte)RazerDeviceFeature.Lighting;
+				buffer[8] = 0x84;
 
-	//			//buffer[9] = 0x01;
+				buffer[9] = persisted ? (byte)0x01 : (byte)0x00;
+				buffer[10] = flag;
 
-	//			UpdateChecksum(buffer);
-	//		}
+				UpdateChecksum(buffer);
+			}
 
-	//		try
-	//		{
-	//			FillBuffer(buffer.Span);
+			try
+			{
+				FillBuffer(buffer.Span, persisted, flag);
 
-	//			await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 
-	//			await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x84, 0, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Lighting, 0x84, 0, cancellationToken).ConfigureAwait(false);
 
-	//			return buffer.Span[11];
-	//		}
-	//		finally
-	//		{
-	//			// TODO: Improve computations to take into account the written length.
-	//			buffer.Span.Clear();
-	//		}
-	//	}
-	//}
+				return buffer.Span[11];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
 
 	[StructLayout(LayoutKind.Explicit, Size = 7)]
 	private struct RawDpiProfileBigEndian

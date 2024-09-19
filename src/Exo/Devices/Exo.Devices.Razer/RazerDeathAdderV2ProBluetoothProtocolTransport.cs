@@ -378,6 +378,45 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	// TODO
 	public ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken) => throw new NotImplementedException();
 
+	public async ValueTask<byte> GetBrightnessAsync(bool persisted, byte flag, CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, byte flag)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 95 00 00 00 10 85 <persisted> <magic>
+			((uint*)buffer)[1] = 0x_00_00_00_95;
+			*(ushort*)&((uint*)buffer)[2] = 0x_00_00_85_10;
+			buffer[4 + 6] = persisted ? (byte)1 : (byte)0;
+			buffer[4 + 7] = flag;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new ByteWaitState(_readBuffer, 0x95);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic, true, flag);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
 	public async Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, byte value)
