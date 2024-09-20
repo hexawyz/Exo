@@ -189,15 +189,15 @@ public abstract partial class RazerDeviceDriver
 			{
 				if (!HasLightingV2)
 				{
-					_currentBrightness = await _transport.GetLegacyBrightnessAsync(cancellationToken).ConfigureAwait(false);
+					_currentBrightness = await _transport.GetBrightnessV1Async(cancellationToken).ConfigureAwait(false);
 					//_appliedEffect = await _transport.GetSavedLegacyEffectAsync(cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
 					_appliedEffect = DisabledEffect.SharedInstance;
 				}
 				else
 				{
 					byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
-					_currentBrightness = await _transport.GetBrightnessAsync(true, flag, cancellationToken).ConfigureAwait(false);
-					_appliedEffect = await _transport.GetSavedEffectAsync(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
+					_currentBrightness = await _transport.GetBrightnessV2Async(true, flag, cancellationToken).ConfigureAwait(false);
+					_appliedEffect = await _transport.GetSavedEffectV2Async(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
 
 					// Reapply the persisted effect. (In case it was overridden by a temporary effect)
 					await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
@@ -297,7 +297,7 @@ public abstract partial class RazerDeviceDriver
 				}
 				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
 				{
-					await _transport.SetBrightnessAsync(shouldPersist, _currentBrightness, cancellationToken).ConfigureAwait(false);
+					await _transport.SetBrightnessV2Async(shouldPersist, _currentBrightness, cancellationToken).ConfigureAwait(false);
 				}
 				_appliedBrightness = _currentBrightness;
 			}
@@ -307,8 +307,8 @@ public abstract partial class RazerDeviceDriver
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
-				await _transport.SetLegacyEffectAsync(0, 0, default, default, cancellationToken).ConfigureAwait(false);
-				await _transport.SetLegacyBrightnessAsync(0, cancellationToken);
+				await _transport.SetEffectV1Async(0, 0, default, default, cancellationToken).ConfigureAwait(false);
+				await _transport.SetBrightnessV1Async(0, cancellationToken);
 				return;
 			}
 
@@ -316,31 +316,31 @@ public abstract partial class RazerDeviceDriver
 			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
 			if (forceBrightnessUpdate)
 			{
-				await _transport.SetLegacyBrightnessAsync(brightness, cancellationToken);
+				await _transport.SetBrightnessV1Async(brightness, cancellationToken);
 			}
 
 			switch (effect)
 			{
 			case StaticColorEffect staticColorEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
 				break;
 			case RandomColorPulseEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Breathing, 3, default, default, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 3, default, default, cancellationToken);
 				break;
 			case ColorPulseEffect colorPulseEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
 				break;
 			case TwoColorPulseEffect twoColorPulseEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
 				break;
 			case SpectrumCycleEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
 				break;
 			case SpectrumWaveEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Wave, 1, default, default, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Wave, 1, default, default, cancellationToken);
 				break;
 			case ReactiveEffect reactiveEffect:
-				await _transport.SetLegacyEffectAsync(RazerLegacyLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
+				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
 				break;
 			}
 		}
@@ -349,8 +349,8 @@ public abstract partial class RazerDeviceDriver
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
-				await _transport.SetEffectAsync(shouldPersist, 0, 0, default, default, cancellationToken).ConfigureAwait(false);
-				await _transport.SetBrightnessAsync(shouldPersist, 0, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, 0, 0, default, default, cancellationToken).ConfigureAwait(false);
+				await _transport.SetBrightnessV2Async(shouldPersist, 0, cancellationToken);
 				return;
 			}
 
@@ -358,31 +358,31 @@ public abstract partial class RazerDeviceDriver
 			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
 			if (forceBrightnessUpdate)
 			{
-				await _transport.SetBrightnessAsync(shouldPersist, brightness, cancellationToken);
+				await _transport.SetBrightnessV2Async(shouldPersist, brightness, cancellationToken);
 			}
 
 			switch (effect)
 			{
 			case StaticColorEffect staticColorEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
 				break;
 			case RandomColorPulseEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 0, default, default, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Breathing, 0, default, default, cancellationToken);
 				break;
 			case ColorPulseEffect colorPulseEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
 				break;
 			case TwoColorPulseEffect twoColorPulseEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
 				break;
 			case SpectrumCycleEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
 				break;
 			case SpectrumWaveEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Wave, 0, default, default, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Wave, 0, default, default, cancellationToken);
 				break;
 			case ReactiveEffect reactiveEffect:
-				await _transport.SetEffectAsync(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
+				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
 				break;
 			}
 		}

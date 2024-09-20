@@ -18,16 +18,16 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken);
 	Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken);
 
-	ValueTask<ILightingEffect?> GetSavedLegacyEffectAsync(CancellationToken cancellationToken);
-	Task SetLegacyEffectAsync(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
-	Task SetLegacyBrightnessAsync(byte value, CancellationToken cancellationToken);
-	ValueTask<byte> GetLegacyBrightnessAsync(CancellationToken cancellationToken);
+	ValueTask<ILightingEffect?> GetSavedEffectV1Async(CancellationToken cancellationToken);
+	Task SetEffectV1Async(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+	Task SetBrightnessV1Async(byte value, CancellationToken cancellationToken);
+	ValueTask<byte> GetBrightnessV1Async(CancellationToken cancellationToken);
 
 	ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken);
-	ValueTask<byte> GetBrightnessAsync(bool persisted, byte flag, CancellationToken cancellationToken);
-	Task SetBrightnessAsync(bool persist, byte value, CancellationToken cancellationToken);
-	ValueTask<ILightingEffect?> GetSavedEffectAsync(byte flag, CancellationToken cancellationToken);
-	Task SetEffectAsync(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+	ValueTask<byte> GetBrightnessV2Async(bool persisted, byte flag, CancellationToken cancellationToken);
+	Task SetBrightnessV2Async(bool persist, byte value, CancellationToken cancellationToken);
+	ValueTask<ILightingEffect?> GetSavedEffectV2Async(byte flag, CancellationToken cancellationToken);
+	Task SetEffectV2Async(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
 	ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken);
 
 	ValueTask<ushort> GetIdleTimerAsync(CancellationToken cancellationToken);
