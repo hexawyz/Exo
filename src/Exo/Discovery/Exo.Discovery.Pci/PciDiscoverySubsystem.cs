@@ -103,7 +103,11 @@ public sealed class PciDiscoverySubsystem :
 				_displayAdapterNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.DisplayAdapter, this);
 				_displayDeviceArrivalDeviceNotificationRegistration = _deviceNotificationService.RegisterDeviceNotifications(DeviceInterfaceClassGuids.DisplayDeviceArrival, this);
 
-				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayAdapter))
+				// NB: Not very intuitive, but GUID_DISPLAY_DEVICE_ARRIVAL will actually return all GPUs,
+				// while GUID_DEVINTERFACE_DISPLAY_ADAPTER would return only those with display connections.
+				// This is actually explained here, but I missed it the first time I investigated which one to use:
+				// https://learn.microsoft.com/en-us/windows-hardware/drivers/install/guid-devinterface-display-adapter
+				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayDeviceArrival))
 				{
 					if (IsBasicDisplayDevice(deviceName)) continue;
 
