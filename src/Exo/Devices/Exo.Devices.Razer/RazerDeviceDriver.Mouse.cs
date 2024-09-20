@@ -109,7 +109,7 @@ public abstract partial class RazerDeviceDriver
 				var dpi = await _transport.GetDpiAsync(false, cancellationToken).ConfigureAwait(false);
 				_currentDpi = GetRawDpiValue(_dpiPresets, dpi.Horizontal, dpi.Vertical);
 			}
-			_currentPollingFrequencyDivider = await _transport.GetPollingFrequencyDivider(cancellationToken).ConfigureAwait(false);
+			_currentPollingFrequencyDivider = await _transport.GetPollingIntervalAsync(cancellationToken).ConfigureAwait(false);
 		}
 
 		IDeviceFeatureSet<IMouseDeviceFeature> IDeviceDriver<IMouseDeviceFeature>.Features => _mouseFeatures;
@@ -255,7 +255,7 @@ public abstract partial class RazerDeviceDriver
 		{
 			if (!_supportedPollingFrequencyToDividerMapping.TryGetValue(pollingFrequency, out byte divider)) throw new ArgumentOutOfRangeException(nameof(pollingFrequency), pollingFrequency, $"Unsupported polling frequency: {pollingFrequency}.");
 
-			await _transport.SetPollingFrequencyDivider(divider, cancellationToken).ConfigureAwait(false);
+			await _transport.SetPollingIntervalAsync(divider, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }

@@ -15,8 +15,8 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(CancellationToken cancellationToken);
 	Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
 
-	ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken);
-	Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken);
+	ValueTask<byte> GetPollingIntervalAsync(CancellationToken cancellationToken);
+	Task SetPollingIntervalAsync(byte divider, CancellationToken cancellationToken);
 
 	ValueTask<ILightingEffect?> GetSavedEffectV1Async(CancellationToken cancellationToken);
 	Task SetEffectV1Async(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);

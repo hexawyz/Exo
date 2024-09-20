@@ -985,7 +985,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 	}
 
 
-	public async ValueTask<byte> GetPollingFrequencyDivider(CancellationToken cancellationToken)
+	public async ValueTask<byte> GetPollingIntervalAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -1025,7 +1025,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async Task SetPollingFrequencyDivider(byte divider, CancellationToken cancellationToken)
+	public async Task SetPollingIntervalAsync(byte interval, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -1048,7 +1048,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			try
 			{
-				FillBuffer(buffer.Span, divider);
+				FillBuffer(buffer.Span, interval);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 
