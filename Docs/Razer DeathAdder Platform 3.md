@@ -1,0 +1,599 @@
+# Razer Platform 3
+
+Platform 3 is the name given by Razer for this protocol used for Chroma devices and newer.
+This protocol uses 90 byte packets sent and received through HID Feature GET/SET on report ID `00`.
+
+Razer generally installs kernel drivers to access those devices, although their use does not seem to be strictly necessary.
+When the driver is installed, it is necessary to access the device through the driver, as it will hide the 90 bytes report ID `00` from the OS.
+
+Working with Razer drivers is possible, and newer drivers seem to use a very simple layout with IOCTLs serving as drop-in replacements of GET/SET Feature.
+
+# Protocol details
+
+## General observations
+
+Data larger than one byte in the protocol tend to use the Big Endian byte order.
+
+Percentages are generally expressed as byte values from 0 to 255 instead of 0 to 100. (e.g. 33% will be the value 84 or 0x54)
+
+## Format used in message structures below
+
+<NAME:TYPE> => This is an element of the message named NAME with the following TYPE.
+
+TYPE:
+U8: 8-bit unsigned integer
+U16: 16-bit unsigned integer
+RGB: <R:U8> <G:U8> <B:U8>
+P8: percentage scaled from 0 to 255, expressed as a 8-bit unsigned integer.
+X[N]: Array of N items of type X
+
+## Device notifications
+
+Because the core protocol is based on raw get/set feature calls on the root device itself and does not actually follows the standard HID operation mode, hence requiring specific drivers,
+notifications are emitted on a separate and much more standard channel. They will use standard HID output reports accessible through standard ReadFile calls (FileStream in .NET).
+
+These HID reports are exposed on Device Interface 5.
+The report ID `05` is used to transmit notifications from the connected device or its child devices, as packets of exactly 16 bytes including the report ID.
+Other report IDs with the same structure exist, but I've not observed them in any trace yet.
+Because notifications do not always contain a device ID, I suspect these other reports could be used in this case?
+
+There are also notifications on other report IDs, whose meaning is yeat to be determined.
+
+### Structure of a notification.
+
+All notifications follow a very simple format:
+
+``` 
+<Report ID:U8> <ID:U8> <Data:U8[14]>
+```
+
+The HID report ID is part of the HID protocol and will be `05`.
+
+The ID is a notification ID.
+
+The rest is message data associated with the notification ID.
+
+### Known notifications
+
+#### 02 - Device DPI
+
+Structure:
+
+```
+<DPI X:U16> <DPI Y:U16>
+```
+
+This notification will be sent when a DPI change request has been processed by the device as the result of clicking one of the DPI buttons.
+It will always be sent, even if the DPI did not actually change, for example if it was already at the minimum or maximum setting.
+
+#### 09 - Device Connection Status Change
+
+Structure:
+
+```
+<Status:U8> <Device Index:U8>
+```
+
+This notification is sent when a device connected to a receiver changes from being offline to online, or from being online to offline.
+
+The Status will be `02` if the device is now offline, and `03` if the device is now online. (Or `00` if unspecified; see below)
+
+The device index seems like a fair interpretation, but it stills need to be confirmed.
+
+⚠️ On older devices, this notification contains no parameter. This can be identified from the value `00` in the status.
+
+#### 0C - External Power
+
+Structure:
+
+```
+<Status:U8>
+```
+
+This notification is sent when the device is connected to or disconnected from external power.
+
+Status will be `00` if the device is not connected and `01` if the device is connected.
+
+NB: Just thinking about it, but maybe the format of the notification explained above is entirely wrong and that the contents of this notification are actually the connected device IDs?
+It is impossible to tell without observing a dongle with two devices appaired.
+
+#### 10 - ??? (KeepAlive?)
+
+This notification is seen (only?) when the device is in BLE mode, and seems to actually spam when the device is put on the dock.
+
+#### 31 - Battery Level
+
+Structure:
+
+```
+<BatteryLevel:U8> <Unknown:U8> <Unknown:U8> <Device Index?:U8>
+```
+
+````
+31 BB 01 01 01 - Wired / Charging`
+31 BD 01 01 01 - Wired / Charging
+31 C0 01 01 01 - Wired / Charging
+31 C2 01 01 01 - Wired / Charging
+31 C5 01 01 01 - Wired / Charging
+31 CA 00 00 01 - Dongle / Discharging
+31 CA 01 01 01 - Dongle / Docked / Charging
+31 FF 01 01 01 - Dongle / Docked / Charge complete
+````
+
+This notification contains the current battery level as well as three other bytes of data, whose meaning is not yet known.
+It also does not trigger very often, but it seems that it does trigger periodically for a data refresh. (With a very long period, explaining why it is so easy to miss)
+Occurrences of this notification can be followed by the external power notification (which can also happen alone, more often?), indicating that none of the bytes here might be related to external power.
+
+Also, it seems that the value can quickly fluctuate sometimes (e.g. `ca` to `c7` to `ca`).
+Given the values observed, I'm assuming that the [0..255] values are actually [0..100] scaled up to [0..255] for some reason.
+The last byte could be the device index maybe, however, it is weird that the device index does not seem to exist on the external power notification.
+The two bytes before seem to be correlated with external power, but it is difficult to know what they mean exactly, as one byte would be enough for external power status.
+
+## Function/Register based protocol
+
+The core protocol is composed of SET/GET feature calls to the root device itself.
+On Windows, Razer install a special driver to communicate with the device.
+The official Razer driver will expose a new "Razer control" device interface to communicate.
+
+For the newer drivers (at the time of writing), the following IO Control Codes are used to implement the GET and SET feature calls:
+
+- SetFeature: 0x88883010
+- GetFeature: 0x88883014
+
+Packets are always 91 bytes long, including the report ID which is `00`.
+This means that commands themselves are 90 bytes long.
+
+Without the driver, the feature report #00 will be exposed on the Mouse device interface (the same one that is opened in exclusive mode by Windows).
+This might be the reason why Razer felt the need to install a custom driver (that, or maybe some more obscure features?),
+however it is possible to send ioctl on devices opened without any R/W access.
+This means that the driver is actually not needed to communicate.
+
+All messages follow a common pattern:
+
+```
+<Status:U8> <CommunicationID:U8> <Zero:U8[3]> <Length:U8> <Feature:U8> <Read:U1> <Function:U7> <Data:U8[80]> <Checksum:U8> <Zero:U8>
+```
+
+The Status byte will be as follows:
+
+- `00` Request
+- `01` Retry again
+- `02` Success
+- `03` Error (Invalid Parameter ?)
+- `04` Device Not Available
+- `05` Error (Invalid Parameter ?)
+
+The following byte, labelled as CommunicationID here, is likely indicating a device or internal sub-device to communicate with.
+I suspect this indicates the device to communicate. Maybe a channel ID or internal chip ID.
+Observed values for this field are `08`, `1F`, `3F`, `88` and `9F`. (Depending on the device)
+For some reason, the devices do not seem to be too picky about which value is used, but it can be important in some cases.
+(e.g. Synapse uses `3F` to communicate with Mamba Chroma and `1F` for the few "management" calls if that's what they are, but `1F` somehow seems to just always work ?)
+
+These are followed by three bytes seemingly always zero.
+
+The next three bytes form the actual command:
+
+The first byte indicates the data length. For writes, it is simply the data length following the function ID.
+For read requests, it is a bit more unclear, and it could indicate the expected maximum length of the response.
+
+The second byte is a feature category ID that we can compare to what is used by logitech HID++.
+
+The third byte's MSB indicates if the operation is a read operation. (`1` is a read; `0` is a write)
+The 7 remaining bits indicate the register or function ID.
+
+e.g. `80` means "Read register 0", and `00` means "Write register 0"
+
+⚠️ Still needs confirmation for values such as `bb`: Is it paired with `ab`, or is it something else ?
+
+All the bytes following this, up to the last two, represent the command data.
+
+This data is followed by a checksum byte which is a XOR checksum of all previous bytes but the first two bytes. It is followed by a null byte.
+
+Unless the command was a successful read, status responses seem to always include the whole original command, meaning the checksum is also unchanged in that case.
+
+### Features
+
+#### Category `00` - General
+
+##### Function `00`:`01` - ???
+
+##### Function `00`:`02` - Serial Number
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Serial Number:U8[]>
+```
+
+The serial number is a null-terminated string. (If less long than the response buffer)
+
+This function does not work when the device is offline.
+
+##### Function `00`:`04` - ???
+
+Read:
+
+Write:
+
+```
+<Unknown:U8> <Unknown:U8>
+```
+
+The only values observed across devices I own are `03 00` and `00 00`.
+
+This function works when the device is offline.
+
+##### Function `00`:`05` - Polling Frequency
+
+Read Response:
+
+```
+<Divider:U8>
+```
+
+Write:
+
+```
+<Divider:U8>
+```
+
+The parameter to this command is a frequency divider from the maximum frequency. (How do we know the maximum frequency then ?)
+
+e.g. 1000Hz is 1, 500Hz is 2, 125Hz is 8
+
+
+##### Function `00`:`06` - ???
+
+Some devices return information here.
+
+Data length can be `02` or `03` at least? (`03` for Mamba Chroma when ID is `1F` but `03` when ID is `3F` ?)
+
+Read Response:
+
+```
+<Unknown:U8> <Unknown:U8>
+```
+
+##### Function `00`:`07` - Firmware Version ?
+
+* Mamba Chroma: `01 00 08 00`
+* DeathAdder V2 Pro: `02 02 01 00`
+
+See here: https://mysupport.razer.com/app/answers/detail/a_id/4557/~/razer-deathadder-v2-pro-firmware-updater-%7C-rz01-03350
+
+The latest firmware for DeathAdder V2 Pro is 2.05.01, so this is likely it.
+
+This function works when the device is offline. (Returns the dock/dongle FW version?)
+
+##### Function `00`:`3B` - ???
+
+##### Function `00`:`3C` - ???
+
+```
+001f0000000300bc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf00
+021f0000000300bc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf00
+```
+
+##### Function `00`:`3F` - Pairing information
+
+Read Request:
+
+```
+<DeviceCount:U8>
+```
+
+Read Response:
+
+```
+<DeviceCount:U8> <DeviceInfo:<Status:U8> <ProductID:U16>[]>
+```
+
+It seems that for the input, the device count, is the requested maximum count ?
+Some requests have the value `02` and some have the value `10`, but all the responses have `02`.
+The value `10` makes sense, as the message length `31` could fit exactly 16 device information structures. (Each is 3 bytes long)
+
+For each device, the connection status is either `01` if the device is online, or `00` if the device is offline.
+The product ID is the USB product ID. However there is a quirk there, as receivers share the same product ID as their associated product.
+
+##### Function `00`:`45` - Device ID ?
+
+Read Request: Empty
+
+Read Response:
+
+```
+<DeviceCount:U8> <ProductID:U16[]>
+```
+
+This returns similar information to the pairing information stuff.
+
+Maybe this is used to confirm the ID of the connected device ? It would be useful for multiple device stuff, I guess.
+
+#### Category `03` - Lighting V1
+
+This feature is used by older Chroma devices. Newer ones like DeathAdder V2 Pro will use `0F`.
+
+##### Function `03`:`01` - Lighting effect?
+
+IIRC I also observed this one, but I have not investigated yet.
+
+##### Function `03`:`03` - Brightness
+
+Read Request:
+
+```
+<Persist?:U8> <Magic:U8>
+```
+
+Read Response:
+
+```
+<Persist:U8> <Magic:U8> <Brightness:P8>
+```
+
+Write:
+
+```
+<Persist?:U8> <Zero:U8> <Brightness:P8>
+```
+
+This writes the lighting level used for all lighting on the device.
+
+##### Function `03`:`0A` - Lighting effect
+
+This one will set the lighting effect on the mouse.
+
+Format of the command is dependent on the effect, however, the first byte is always the effect ID.
+
+###### Read Response and Write
+
+```
+<Effect:U8>
+```
+
+##### Function `03`:`0E` - Lighting effect?
+
+To be investigated but IIRC, I observed this one when setting effect on the dock instead of the mouse.
+
+#### Category `04` - Mouse
+
+##### Function `04`:`05` - DPI Level
+
+Read Request:
+
+```
+<Persisted:U8>
+```
+
+Read Response:
+
+```
+<???:U8> <DpiX:U16> <DpiY:U16>
+```
+
+The first byte has been observed to be both `00` and `01` depending on the situation.
+Logically, it would either indicate that the setting must be or is persisted, or that the horizontal and vertical DPIs are linked.
+The first possibility might be the most likely.
+
+##### Function `04`:`06` - Predefined DPI levels
+
+Read Request:
+
+```
+<Persisted:U8>
+```
+
+Read Response/Write Request:
+
+```
+<Persisted:U8> <ActiveProfile:U8> <ProfileCount:U8> <DpiPresetList:<DpiPreset:<Index:U8> <DpiX:U16> <DpiY:U16> <DpiZ:U16>>[]>
+```
+
+This is still guesswork, but assuming the format of the packets we received it makes sense that each profile would define three DPI values for X, Y and Z, with Z being zero if unsupported.
+The meaning of the first byte is assumed to be the persistance state, and should be `00` for volatile memory and `01` for non-volatile memory. This could be wrong, though.
+The Razer Synapse software only seems to write values where the first byte is set to `01`.
+The second byte has been confirmed by simple testing to be the active profile index (e.g. `04` is the 4th profile on a mouse with `05` profiles).
+It follows logically that the following byte should be the number of profiles.
+
+#### Category `05` - ???
+
+##### Function `05`:`00` - ???
+
+```
+<Unknown:U8>
+```
+
+This returns one byte, whose value is `01` for DeathAdder V2 Pro.
+For DeathStalker V2 Pro and Naga V2 Pro, the response seems to be `05`?
+
+##### Function `05`:`01` - ???
+
+```
+<Unknown:U8> <Unknown:U8> [<Unknown:U8> […]]
+```
+
+This command returns at least 2 bytes, but the request indicates 65 bytes.
+
+* DeathAdder V2 Pro: `05 01`.
+* DeathStalker V2 Pro and Naga V2 Pro: `05 01 02 03 04 05`?
+
+##### Function `05`:`0A` - ???
+
+```
+<Unknown:U8>
+```
+
+This returns one byte, whose value is `05` for DeathAdder V2 Pro, and apparently the same for DeathStalker V2 Pro and Naga V2 Pro.
+
+##### Function `05`:`00` - ???
+
+```
+<Unknown:U8> <Unknown:U8>
+```
+
+Returns `00 00` on DeathAdder V2 Pro.
+Returns `00 01` on DeathStalker V2 Pro and Naga V2 Pro.
+
+##### Function `05`:`0E` - ???
+
+This command returns 15 bytes.
+
+```
+DA V2 Pro:   00 64 00 05 e0 00 00 05 e0 00 00 00 00 00 00
+DS V2 Pro:   00 64 00 05 f0 00 00 05 e6 00 00 00 08 00 00
+Naga V2 Pro: 00 64 00 01 f0 00 00 01 e6 00 00 00 04 00 00
+```
+
+#### Category `06` - ???
+
+#### Category `07` - Power
+
+##### Function `07`:`00` - Battery Level
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Zero:U8> <BatteryLevel:P8>
+```
+
+##### Function `07`:`01` - Low Power Mode
+
+Write:
+
+```
+<BatteryLevel:P8>
+```
+
+The low power mode is entered when the device's battery level goes below the specified percentage.
+
+##### Function `07`:`03` - Power Saving
+
+Write:
+
+```
+<Duration:U16>
+```
+
+The duration before the device enters sleep mode is expressed in seconds.
+
+##### Function `07`:`04` - External Power Status
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Status:U8>
+```
+
+Status is `01` if external power is connected, and `00` otherwise.
+
+#### Category `0B` - Lighting V2
+
+##### Function `0B`:`03` - ???
+
+Write:
+
+```
+<Unknown:U8> <Unknown:U8> <Unknown:U8>
+```
+
+This command is emitted by Synapse for some reason.
+Middle value on Mamba Chroma is `05`, and `04` on Razer DeathAdder V2 Pro and Razer Mouse Dock.
+
+If the device is offline (in wireless mode), the receiver will return an error.
+This is seemingly what Synapse 2.0 uses to determine if the device is online when the dock is connected,
+however I would not be confident in using a write command for that. (It has to do something else too)
+Also, it is worth noting that handling of online/offline status for older device seems completely broken, both in hardware and in software.
+(Synapse will not always properly address the device if it was not online when the dock was connected?!)
+
+##### Function `0B`:`0B` - ???
+
+This is used by Synapse 3 (DA V2 Pro here):
+
+```
+00 1f 000000 040b0b 00 04 01 01 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+```
+
+#### Category `0F` - Lighting V2
+
+This lighting feature is for newer Razer devices. Older ones might use `03`.
+
+Both features offer similar capabilities but there are actual differences.
+
+##### Function `0F`:`00` - Lighting device information ??
+
+Read Response:
+
+```
+<Magic:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8>
+```
+
+The meaning of the bytes is not certain, but the first byte returned seems to be important for other commands.
+It could very well be a "RGB Lighting feature version" thing.
+
+Typical response examples:
+
+04 19 03 02 02 (Razer DeathAdder V2 Pro)
+05 19 03 01 02 (Razer Mouse Dock)
+
+##### Function `0F`:`02` - Current Lighting Effect
+
+Read Request:
+
+```
+<Persist?:U8> <Magic:U8>
+```
+
+Read Response:
+
+```
+<Zero:U8> <Magic:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
+```
+
+Write:
+
+```
+<Persist:U8> <Zero:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
+```
+
+The parameters passed to read commands are usually `01` followed by the "magic" byte read from the device information earlier.
+This value seems to be important, and *can* be passed at the same place in write responses, but it does not seem necessary.
+Passing another value than this or zero in a write may result in weird behavior of the device.
+
+##### Function `0F`:`03` - Current Color
+
+Write:
+
+```
+<Zero:U8[5]> <Color:RGB>
+```
+
+This sets the current color of the device, in "streamable"/addressable mode.
+It ignores the current effect and overrides it.
+
+##### Function `0F`:`04` - Brightness
+
+Read Request:
+
+```
+<Persist?:U8> <Magic:U8>
+```
+
+Read Response:
+
+```
+<Persist:U8> <Magic:U8> <Brightness:P8>
+```
+
+Write:
+
+```
+<Persist?:U8> <Zero:U8> <Brightness:P8>
+```
+
+This writes the lighting level used for all lighting on the device.

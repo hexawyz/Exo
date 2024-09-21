@@ -37,6 +37,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 		Docs\Logitech MX Keys.md = Docs\Logitech MX Keys.md
 		Docs\NZXT Kraken Z63.md = Docs\NZXT Kraken Z63.md
 		Docs\Razer DeathAdder 3.5G.md = Docs\Razer DeathAdder 3.5G.md
+		Docs\Razer DeathAdder Platform 3.md = Docs\Razer DeathAdder Platform 3.md
 		Docs\Razer DeathAdder V2 Pro.md = Docs\Razer DeathAdder V2 Pro.md
 		Docs\Razer Mamba Chroma.md = Docs\Razer Mamba Chroma.md
 		Docs\Useful Bits.md = Docs\Useful Bits.md
@@ -181,7 +182,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Exo", "Exo", "{DDDF07E1-D79
 		src\Exo\ExoMetadata.targets = src\Exo\ExoMetadata.targets
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.Devices.Razer.Legacy", "src\Exo\Devices\Exo.Devices.Razer.Legacy\Exo.Devices.Razer.Legacy.csproj", "{A00F0142-5832-4873-8944-874B918419ED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exo.Devices.Razer.Legacy", "src\Exo\Devices\Exo.Devices.Razer.Legacy\Exo.Devices.Razer.Legacy.csproj", "{A00F0142-5832-4873-8944-874B918419ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
