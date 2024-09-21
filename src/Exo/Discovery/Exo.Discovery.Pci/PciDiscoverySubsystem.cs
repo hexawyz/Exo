@@ -109,7 +109,7 @@ public sealed class PciDiscoverySubsystem :
 				// https://learn.microsoft.com/en-us/windows-hardware/drivers/install/guid-devinterface-display-adapter
 				foreach (string deviceName in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.DisplayDeviceArrival))
 				{
-					if (IsBasicDisplayDevice(deviceName)) continue;
+					if (IsBasicDisplayDevice(deviceName) || IsBasicRender(deviceName)) continue;
 
 					_logger.DisplayAdapterDeviceArrival(deviceName);
 					sink?.HandleArrival(new(this, deviceName));
@@ -257,14 +257,15 @@ public sealed class PciDiscoverySubsystem :
 		return true;
 	}
 
-	// This is a quick hack to avoid "BasicDisplay" devices generating errors as they are not real monitors.
+	// This is a quick hack to avoid "BasicDisplay" and "BasicRender" devices generating errors as they are not real monitors.
 	// Proper detection would require querying the device class of the parent node and eliminating all "System" devices, but this should be good enough.
 	// (Although devices (interface) names are supposed to be somewhat undocumented, they are relatively stable)
 	private static bool IsBasicDisplayDevice(string deviceName) => deviceName.StartsWith(@"\\?\ROOT#BasicDisplay#", StringComparison.OrdinalIgnoreCase);
+	private static bool IsBasicRender(string deviceName) => deviceName.StartsWith(@"\\?\ROOT#BasicRender#", StringComparison.OrdinalIgnoreCase);
 
 	void IDeviceNotificationSink.OnDeviceArrival(Guid deviceInterfaceClassGuid, string deviceName)
 	{
-		if (IsBasicDisplayDevice(deviceName)) return;
+		if (IsBasicDisplayDevice(deviceName) || IsBasicRender(deviceName)) return;
 
 		lock (_lock)
 		{
@@ -275,7 +276,7 @@ public sealed class PciDiscoverySubsystem :
 
 	void IDeviceNotificationSink.OnDeviceRemovePending(Guid deviceInterfaceClassGuid, string deviceName)
 	{
-		if (IsBasicDisplayDevice(deviceName)) return;
+		if (IsBasicDisplayDevice(deviceName) || IsBasicRender(deviceName)) return;
 
 		lock (_lock)
 		{
@@ -285,7 +286,7 @@ public sealed class PciDiscoverySubsystem :
 
 	void IDeviceNotificationSink.OnDeviceRemoveComplete(Guid deviceInterfaceClassGuid, string deviceName)
 	{
-		if (IsBasicDisplayDevice(deviceName)) return;
+		if (IsBasicDisplayDevice(deviceName) || IsBasicRender(deviceName)) return;
 
 		lock (_lock)
 		{
