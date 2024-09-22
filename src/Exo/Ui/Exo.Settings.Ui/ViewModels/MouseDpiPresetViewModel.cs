@@ -125,6 +125,25 @@ internal sealed class MouseDpiPresetViewModel : ChangeableBindableObject
 		OnChangeStateChange(wasChanged);
 	}
 
+	public void Reset()
+	{
+		if (IsChanged)
+		{
+			if (_horizontal != _horizontalInitialValue)
+			{
+				_horizontal = _horizontalInitialValue;
+				NotifyPropertyChanged(ChangedProperty.Horizontal);
+			}
+			if (_vertical != _verticalInitialValue)
+			{
+				_vertical = _verticalInitialValue;
+				NotifyPropertyChanged(ChangedProperty.Vertical);
+			}
+			OnChanged(false);
+		}
+		IsIndependent = _horizontal != _vertical;
+	}
+
 	protected override void OnChanged(bool isChanged)
 	{
 		_mouse.OnPresetChanged(this, isChanged);

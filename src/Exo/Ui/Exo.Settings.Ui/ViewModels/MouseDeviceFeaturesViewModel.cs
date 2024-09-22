@@ -313,11 +313,17 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	protected override void Reset()
 	{
 		SelectedDpiPresetIndex = _activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1;
+		foreach (var preset in _dpiPresets)
+		{
+			preset.Reset();
+		}
 	}
 
 	internal void OnPresetChanged(MouseDpiPresetViewModel preset, bool isChanged)
 	{
+		bool wasChanged = IsChanged;
 		if (isChanged) _changedPresetCount++;
 		else _changedPresetCount--;
+		OnChangeStateChange(wasChanged);
 	}
 }
