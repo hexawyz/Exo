@@ -211,19 +211,24 @@ The serial number is a null-terminated string. (If less long than the response b
 
 This function does not work when the device is offline.
 
-##### Function `00`:`04` - ???
+##### Function `00`:`04` - Mode
 
 Read:
 
 Write:
 
 ```
-<Unknown:U8> <Unknown:U8>
+<Mode:U8> <Unknown:U8>
 ```
 
 The only values observed across devices I own are `03 00` and `00 00`.
 
 This function works when the device is offline.
+
+Valid values seem to be `00`, `01`, `03`, `04`, `05`, `06`. (`02` is apparently invalid)
+
+`00` would be the "normal" mode ?
+`01` might be DFU mode ? (Observed when the FW updater was launched)
 
 ##### Function `00`:`05` - Polling Frequency
 
@@ -244,7 +249,7 @@ The parameter to this command is a frequency divider from the maximum frequency.
 e.g. 1000Hz is 1, 500Hz is 2, 125Hz is 8
 
 
-##### Function `00`:`06` - ???
+##### Function `00`:`06` - Keyboard Layout
 
 Some devices return information here.
 
@@ -266,6 +271,56 @@ See here: https://mysupport.razer.com/app/answers/detail/a_id/4557/~/razer-death
 The latest firmware for DeathAdder V2 Pro is 2.05.01, so this is likely it.
 
 This function works when the device is offline. (Returns the dock/dongle FW version?)
+
+##### Function `00`:`08` - Game Mode / Key Cover - On / Off
+
+```
+<Boolean:U8> <Zero:U8[3]>
+```
+
+##### Function `00`:`12` - Dock Serial Number
+
+Read Request: Empty
+
+Read Response:
+
+```
+<Serial Number:U8[16]>
+```
+
+This will return the S/N of a mouse dock, as written on the sticker.
+It does however not return the S/N for USB dongles.
+
+##### Function `00`:`13` - Receiver Firmware Version
+
+```
+00 00 000000 080093 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009b00
+02 00 000000 080093 02 02 01 00 00 00 00 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009a00
+```
+
+Observed by launching the DA V2 Pro FW Updater. Sent on ID zero though. (Does it actually matter?)
+
+##### Function `00`:`15` - ???
+
+7 values (Last might be a boolean)
+
+##### Function `00`:`22` - Wireless Connection Status
+
+```
+<Boolean:U8>
+```
+
+##### Function `00`:`23` - Bluetooth Signal
+
+```
+<Value:U16>
+```
+
+##### Function `00`:`1F` - ???
+
+```
+<Value1:U8> <Value2:U8> <Value3:U8> <Value4:U8>
+```
 
 ##### Function `00`:`3B` - ???
 
@@ -311,26 +366,78 @@ This returns similar information to the pairing information stuff.
 
 Maybe this is used to confirm the ID of the connected device ? It would be useful for multiple device stuff, I guess.
 
+#### Category `02` - Keyboard
+
+##### Function `02`:`00` - Mappings
+
+(Length 9, with one parameter)
+
+##### Function `02`:`06` - Function Key Alternate State
+
+```
+<Parameter:U8> <Value:U8> <Value?:U8>
+```
+
+Value might be a boolean.
+
 #### Category `03` - Lighting V1
 
 This feature is used by older Chroma devices. Newer ones like DeathAdder V2 Pro will use `0F`.
 
-##### Function `03`:`01` - Lighting effect?
+##### Function `03`:`00` - LED On/Off
 
-IIRC I also observed this one, but I have not investigated yet.
+Read Request:
+
+```
+<Persist:U8> <LedId:U8>
+```
+
+Write:
+
+```
+<Persist:U8> <LedId:U8> <Boolean:U8>
+```
+
+##### Function `03`:`01` - LED Color
+
+Read Request:
+
+```
+<Persist:U8> <LedId:U8>
+```
+
+Write:
+
+```
+<Persist:U8> <LedId:U8> <Color:RGB>
+```
+
+##### Function `03`:`02` - Lighting effect V1
+
+Read Request:
+
+```
+<Persist:U8> <LedId:U8>
+```
+
+Write:
+
+```
+<Persist:U8> <LedId:U8> <Effect:U8>
+```
 
 ##### Function `03`:`03` - Brightness
 
 Read Request:
 
 ```
-<Persist?:U8> <Magic:U8>
+<Persist?:U8> <LedId:U8>
 ```
 
 Read Response:
 
 ```
-<Persist:U8> <Magic:U8> <Brightness:P8>
+<Persist:U8> <LedId:U8> <Brightness:P8>
 ```
 
 Write:
@@ -341,11 +448,63 @@ Write:
 
 This writes the lighting level used for all lighting on the device.
 
-##### Function `03`:`0A` - Lighting effect
+##### Function `03`:`04` - Period
+
+Read Request:
+
+```
+<Persist:U8> <LedId:U8>
+```
+
+Write:
+
+```
+<Persist:U8> <LedId:U8> <Value1:U8> <Value2:U8>
+```
+
+##### Function `03`:`05` - Parameter
+
+Read Request:
+
+```
+<Persist:U8> <LedId:U8>
+```
+
+Write:
+
+```
+<Persist:U8> <LedId:U8> <Values:U6[9]>
+```
+
+##### Function `03`:`07` - ???
+
+Read Request:
+
+```
+<Persist:U8> <LedId:U8>
+```
+
+Write:
+
+```
+<Persist:U8> <LedId:U8> <Value1:U16> <Value2:U16>
+```
+
+##### Function `03`:`0A` - Lighting effect V2
 
 This one will set the lighting effect on the mouse.
 
 Format of the command is dependent on the effect, however, the first byte is always the effect ID.
+
+##### Function `03`:`0B` - LED Matrix Custom V1 ?
+
+##### Function `03`:`0C` - LED Matrix Custom V2 ?
+
+```
+<Offset:U8> <Count:U8> <Colors:RGB[]>
+```
+
+##### Function `03`:`0D` - Lighting effect V3 ?
 
 ###### Read Response and Write
 
@@ -357,9 +516,43 @@ Format of the command is dependent on the effect, however, the first byte is alw
 
 To be investigated but IIRC, I observed this one when setting effect on the dock instead of the mouse.
 
+##### Function `03`:`0F` - LED Sync
+
+```
+<Boolean:U8>
+```
+
+##### Function `03`:`10` - Charging Effect
+
+```
+<Boolean:U8>
+```
+
+#### Category `05` - Buttons ?
+
+(From what I found from Synapse)
+
 #### Category `04` - Mouse
 
-##### Function `04`:`05` - DPI Level
+##### Function `04`:`01` - DPI Level V1
+
+Write:
+
+```
+<DpiX:U8> <DpiY:U8> <DpiZ:U8>
+```
+
+The DPI is represented using bytes that represent the DPI by increments of 25, starting at DPI 0 representing value 100.
+
+Like all DPI calls, this seems to include a Z value which is never used.
+
+##### Function `04`:`03` - Predefined DPI levels V1
+
+##### Function `04`:`04` - Active DPI preset V1
+
+Obsoleted by function `06` in devices that support it.
+
+##### Function `04`:`05` - DPI Level V2
 
 Read Request:
 
@@ -377,7 +570,7 @@ The first byte has been observed to be both `00` and `01` depending on the situa
 Logically, it would either indicate that the setting must be or is persisted, or that the horizontal and vertical DPIs are linked.
 The first possibility might be the most likely.
 
-##### Function `04`:`06` - Predefined DPI levels
+##### Function `04`:`06` - Predefined DPI levels V2
 
 Read Request:
 
@@ -397,27 +590,152 @@ The Razer Synapse software only seems to write values where the first byte is se
 The second byte has been confirmed by simple testing to be the active profile index (e.g. `04` is the 4th profile on a mouse with `05` profiles).
 It follows logically that the following byte should be the number of profiles.
 
-#### Category `05` - ???
+##### Function `04`:`09` - Sensor Parameter
 
-##### Function `05`:`00` - ???
+Read Request:
 
 ```
-<Unknown:U8>
+<Parameter:U8>
+```
+
+Read Response:
+
+```
+<Parameter:U8> <Value1:U16> <Value2:U16> <Value3:U8> <Value4:U8>
+```
+
+Write:
+
+```
+<Parameter:U8> <Value1:U16> <Value2:U16> <Value3:U8> <Value4:U8>
+```
+
+##### Function `04`:`09` - Sensor Control
+
+Read Request:
+
+```
+<Parameter:U8>
+```
+
+Read Response:
+
+```
+<Parameter:U8> <Value1:U8> <Value2:U8> <Value3:U8>
+```
+
+Write:
+
+```
+<Parameter:U8> <Value1:U8> <Value2:U8> <Value3:U8>
+```
+
+##### Function `04`:`0A` - Raw ADC value
+
+Read Request:
+
+```
+<Parameter:U8>
+```
+
+Read Response:
+
+```
+<Parameter:U8> <Value1:U16>
+```
+
+##### Function `04`:`10` - ???
+
+Read Request:
+
+```
+<Parameter:U8>
+```
+
+Read Response:
+
+```
+<Parameter:U8> <Value1:U8> <Value2:U8> 
+```
+
+Write:
+
+```
+<Parameter:U8> <Value1:U8> <Value2:U8>
+```
+
+##### Function `04`:`11` - ???
+
+Read Request:
+
+```
+<Parameter:U8>
+```
+
+Read Response:
+
+```
+<Parameter:U8> <Value1:U8> <Value2:U8> 
+```
+
+Write:
+
+```
+<Parameter:U8> <Value1:U8> <Value2:U8>
+```
+
+#### Category `05` - Profiles
+
+##### Function `05`:`00` - Number of profiles
+
+```
+<Count:U8>
 ```
 
 This returns one byte, whose value is `01` for DeathAdder V2 Pro.
 For DeathStalker V2 Pro and Naga V2 Pro, the response seems to be `05`?
 
-##### Function `05`:`01` - ???
+##### Function `05`:`01` - List of Profiles
 
 ```
-<Unknown:U8> <Unknown:U8> [<Unknown:U8> […]]
+<Count:U8> [<Index:U8> […]]
 ```
 
 This command returns at least 2 bytes, but the request indicates 65 bytes.
 
 * DeathAdder V2 Pro: `05 01`.
 * DeathStalker V2 Pro and Naga V2 Pro: `05 01 02 03 04 05`?
+
+To investigate:
+
+* Can the list be non-contiguous ?
+* Are deleted profiles shifting the list or just leaving their spot empty
+
+##### Function `05`:`02` - Create Profile
+
+```
+<Index:U8>
+```
+
+##### Function `05`:`03` - Delete Profile
+
+```
+<Index:U8>
+```
+
+##### Function `05`:`05` - Current Profile
+
+```
+<Index:U8>
+```
+
+##### Function `05`:`2C` - Profile Name
+
+```
+<Index:U8> <Length:U8> <Name:U16[21]>
+```
+
+Interesting that as for Logitech, the profile names are encoded using UTF-16 rather than UTF-8.
 
 ##### Function `05`:`0A` - ???
 
@@ -470,6 +788,10 @@ Write:
 
 The low power mode is entered when the device's battery level goes below the specified percentage.
 
+##### Function `07`:`02` - Maximum Brightness
+
+
+
 ##### Function `07`:`03` - Power Saving
 
 Write:
@@ -492,24 +814,147 @@ Read Response:
 
 Status is `01` if external power is connected, and `00` otherwise.
 
-#### Category `0B` - Lighting V2
+#### Category `08` - External GPU
 
-##### Function `0B`:`03` - ???
+##### Function `09`:`00` - Light Control
+
+#### Category `09` - Display
+
+##### Function `09`:`00` - Information
+
+##### Function `09`:`01` - Brightness
+
+#### Category `0B` - Sensor
+
+The functions in this category are mainly what is used by Synapse in the mouse calibration tab, which I never dared to use on my own mouse.
+
+##### Function `0B`:`01` - Calibration Result
+
+Length: 8
+
+##### Function `0B`:`02` - Sensor Threshold
 
 Write:
 
 ```
-<Unknown:U8> <Unknown:U8> <Unknown:U8>
+<Parameter1:U16> <Parameter2:U16> <Zero:U8[4]>
+```
+
+##### Function `0B`:`03` - Sensor State
+
+Read request:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Zero:U8>
+```
+
+Write:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Parameter3:U8>
 ```
 
 This command is emitted by Synapse for some reason.
 Middle value on Mamba Chroma is `05`, and `04` on Razer DeathAdder V2 Pro and Razer Mouse Dock.
 
-If the device is offline (in wireless mode), the receiver will return an error.
-This is seemingly what Synapse 2.0 uses to determine if the device is online when the dock is connected,
-however I would not be confident in using a write command for that. (It has to do something else too)
-Also, it is worth noting that handling of online/offline status for older device seems completely broken, both in hardware and in software.
-(Synapse will not always properly address the device if it was not online when the dock was connected?!)
+##### Function `0B`:`04` - Sensor Hardware
+
+Read request and Write:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Zero:U8[4]>
+```
+
+##### Function `0B`:`05` - Sensor Configuration
+
+(Up to length 22, min length 3, including two byte parameters)
+
+##### Function `0B`:`05` - Manual Calibration
+
+(Length 7, two parameters)
+
+##### Function `04`:`07` - Accuracy
+
+Read Request:
+
+```
+<Parameter1:U8> <Parameter2:U8>
+```
+
+Read Response:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Boolean:U8>
+```
+
+Write:
+
+```
+<Zero:U8> <Parameter2:U8> <Boolean:U8>
+```
+
+##### Function `0B`:`08` - Calibration Data
+
+Read Request:
+
+```
+<Parameter1:U8> <Parameter2:U8>
+```
+
+Read Response:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Values:U32[12]>
+```
+
+Write:
+
+```
+<Zero:U8> <Parameter2:U8> <Values:U32[12]>
+```
+
+Values should be in order:
+
+* Offset_X
+* Swing_X
+* TIAGain_X
+* RefHeightA_X
+* RefHeightB_X
+* TempVar_A
+* TempVar_B
+* Offset_Y
+* Swing_Y
+* TIAGain_Y
+* RefHeightA_Y
+* RefHeightB_Y
+
+##### Function `0B`:`09` - Control / Start Calibration
+
+```
+<Parameter1:U8> <Parameter2:U8> <Parameter3:U8> <Zero:U8>
+```
+
+##### Function `0B`:`0A` - Lifted Indicator
+
+Read Request:
+
+```
+<Parameter1:U8> <Parameter2:U8>
+```
+
+Read Response:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Value:U8>
+```
+
+Write:
+
+```
+<Parameter1:U8> <Parameter2:U8> <Value:U8>
+```
+
+Value might be a boolean (it would make sense), will have to test.
 
 ##### Function `0B`:`0B` - ???
 
@@ -519,7 +964,69 @@ This is used by Synapse 3 (DA V2 Pro here):
 00 1f 000000 040b0b 00 04 01 01 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ```
 
-#### Category `0F` - Lighting V2
+#### Category `0C` - Controller
+
+##### Function `0C`:`00` - Control ID List
+
+Length 11
+
+##### Function `0C`:`01` - Analog Control
+
+2 parameters; 2 values
+
+##### Function `0C`:`02` - Analog Control Sensitivity
+
+2 parameters; 1 value
+
+##### Function `0C`:`03` - Analog Control Threshold
+
+2 parameters; U16 value
+
+##### Function `0C`:`04` - Analog Control Polarity
+
+2 parameters; 1 value
+
+##### Function `0C`:`05` - Analog Control Zones
+
+2 parameters; 3 U16 value
+
+##### Function `0C`:`06` - Analog Control Motor Scaling
+
+2 parameters; 1 value
+
+#### Category `0D` - Sensors
+
+##### Function `0D`:`01` - Speed
+
+2 parameters; U16 value
+
+##### Function `0D`:`01` - Thermal Mode
+
+2 parameters; 1 value
+
+#### Category `0E` - Lighting V2
+
+##### Function `0E`:`04` - Brightness
+
+Read Request:
+
+```
+<Persist?:U8>
+```
+
+Read Response:
+
+```
+<Persist:U8> <Brightness:P8>
+```
+
+Write:
+
+```
+<Persist?:U8> <Brightness:P8>
+```
+
+#### Category `0F` - Lighting V3
 
 This lighting feature is for newer Razer devices. Older ones might use `03`.
 
@@ -538,8 +1045,8 @@ It could very well be a "RGB Lighting feature version" thing.
 
 Typical response examples:
 
-04 19 03 02 02 (Razer DeathAdder V2 Pro)
-05 19 03 01 02 (Razer Mouse Dock)
+* `04 19 03 02 02` (Razer DeathAdder V2 Pro)
+* `05 19 03 01 02` (Razer Mouse Dock)
 
 ##### Function `0F`:`02` - Current Lighting Effect
 
@@ -581,13 +1088,13 @@ It ignores the current effect and overrides it.
 Read Request:
 
 ```
-<Persist?:U8> <Magic:U8>
+<Persist?:U8> <LedId:U8>
 ```
 
 Read Response:
 
 ```
-<Persist:U8> <Magic:U8> <Brightness:P8>
+<Persist:U8> <LedId:U8> <Brightness:P8>
 ```
 
 Write:
@@ -597,3 +1104,43 @@ Write:
 ```
 
 This writes the lighting level used for all lighting on the device.
+
+#### Category `10` - Firmware Update
+
+##### Function `10`:`00` - Read some info
+
+9 bytes; Seemingly contains the PID at the end
+
+```
+02 00 000000 091080 07 17 00 00 00 00 00 007c 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f500
+```
+
+##### Function `10`:`01` - Update start ?
+
+```
+00 00 000000 081001 00 02 60 00 00 05 6e 14 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400
+```
+
+##### Function `10`:`02` - Write packet
+
+Contains a data length and an offset; Writes are donc by 64 bytes packet.
+
+```
+00 00 000000 081002 40 00 02 6c c0 007858b93a480078012807d10020384908700120354908702af036fe354800783549097888425bd03448007830b10020324908704ff4fa60314908602f48007800000000000000000000004700
+```
+
+Unsure about all the bytes; The command declares 8 bytes length so there might be 8 bytes of parameters.
+
+First byte is the data length
+Four following bytes is the memory offset ?
+
+As we can see in the captured packet `10`:`01`, the transfer might start at `00 02 60 00`. We see data packets increasing from this value by steps of 64.
+
+##### Function `10`:`03` - Read packet
+
+Format similar to the write command. Would logically be used to verify the integrity of a firmware update.
+Can maybe be used to dump the firmware of a device.
+
+##### Function `10`:`05` - Device restart ?
+
+This command is emitted at the very end of the update, just before the USB communication is cut. (It is actually cut in the middle of a second run of the command)
