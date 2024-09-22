@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
@@ -42,7 +43,8 @@ public abstract partial class RazerDeviceDriver :
 			ushort bluetoothLowEnergyDeviceProductId,
 			Guid? lightingZoneGuid,
 			ushort maximumDpi,
-			string friendlyName
+			string friendlyName,
+			ImmutableArray<ushort> defaultDpiPresets
 		)
 		{
 			DeviceCategory = deviceCategory;
@@ -54,6 +56,7 @@ public abstract partial class RazerDeviceDriver :
 			BluetoothLowEnergyDeviceProductId = bluetoothLowEnergyDeviceProductId;
 			LightingZoneGuid = lightingZoneGuid;
 			FriendlyName = friendlyName;
+			DefaultDpiPresets = defaultDpiPresets;
 		}
 
 		public RazerDeviceCategory DeviceCategory { get; }
@@ -78,15 +81,19 @@ public abstract partial class RazerDeviceDriver :
 
 		public string FriendlyName { get; }
 
+		// DPI presets for when the device does not support reading them 😓
+		// Unless I've made a mistake in the read command, this is necessary to avoid weird behavior.
+		public ImmutableArray<ushort> DefaultDpiPresets { get; }
+
 		public bool HasWiredDeviceProductId => (Flags & RazerDeviceFlags.HasWiredProductId) != 0;
 		public bool HasDongleProductId => (Flags & RazerDeviceFlags.HasDongleProductId) != 0;
 		public bool HasBluetoothProductId => (Flags & RazerDeviceFlags.HasBluetoothProductId) != 0;
 		public bool HasBluetoothLowEnergyProductId => (Flags & RazerDeviceFlags.HasBluetoothLowEnergyProductId) != 0;
 
-		public bool IsDongle => (Flags & RazerDeviceFlags.IsDongle) != 0;
+		public bool IsReceiver => (Flags & RazerDeviceFlags.IsReceiver) != 0;
 
 		public ushort GetMainProductId()
-			=> (Flags & (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsDongle)) == (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsDongle) ?
+			=> (Flags & (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsReceiver)) == (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsReceiver) ?
 				DongleDeviceProductId :
 				(Flags & RazerDeviceFlags.HasWiredProductId) == 0 ?
 					(Flags & RazerDeviceFlags.HasBluetoothLowEnergyProductId) == 0 ?
@@ -98,7 +105,7 @@ public abstract partial class RazerDeviceDriver :
 
 		public ImmutableArray<DeviceId> GetDeviceIds(ushort versionNumber)
 		{
-			if (IsDongle) return [new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, DongleDeviceProductId, versionNumber)];
+			if (IsReceiver) return [new DeviceId(DeviceIdSource.Usb, VendorIdSource.Usb, RazerVendorId, DongleDeviceProductId, versionNumber)];
 
 			const RazerDeviceFlags ProductIdFlags = RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
@@ -116,6 +123,12 @@ public abstract partial class RazerDeviceDriver :
 
 			return Unsafe.As<DeviceId[], ImmutableArray<DeviceId>>(ref productIds);
 		}
+
+		public DotsPerInch[] GetDefaultDpiPresets()
+			=> !DefaultDpiPresets.IsDefaultOrEmpty ?
+				Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(DefaultDpiPresets)!, dpi => new DotsPerInch(dpi, dpi)) :
+				[];
+
 	}
 
 	// This is a purely internal enum to provide metadata about the devices.
@@ -126,8 +139,15 @@ public abstract partial class RazerDeviceDriver :
 		Mouse = 2,
 		UsbReceiver = 3,
 		Dock = 4,
+		DockReceiver = 5,
 	}
 
+	// TODO: I hacked this a bit for implementing Mamba Chroma but this can probably be tweaked to recover the byte lost. (as the config will be replicated for all devices, this can help)
+	// Basically, we should be able to infer the "IsDongle" property from the category, which would free up one bit.
+	// The "reactive lighting" can perhaps be inferred from the "mouse" category (at least it can for now)
+	// We could just read the PIDs and compare them to 0xFFFF to replace the various HasXxxProductId flags, freeing 4 bits.
+	// All these would leave more bits to indicate battery & lighting capabilities + some category-specific features (e.g. a mouse does have DPI features but a keyboard doesn't)
+	// TODO: Also, the data structure should probably be migrated into an in-memory database similarly to what is done for monitors
 	[Flags]
 	private enum RazerDeviceFlags : ushort
 	{
@@ -138,7 +158,7 @@ public abstract partial class RazerDeviceDriver :
 		HasBluetoothProductId = 0x04,
 		HasBluetoothLowEnergyProductId = 0x08,
 
-		IsDongle = 0x10,
+		IsReceiver = 0x10,
 
 		HasBattery = 0x20,
 
@@ -148,6 +168,12 @@ public abstract partial class RazerDeviceDriver :
 
 		HasDpi = 0x200,
 		HasDpiPresets = 0x400,
+		HasDpiPresetsRead = 0x800,
+		HasDpiPresetsV2 = 0x1000,
+
+		// Added for Mamba Chroma but maybe nor necessary ?
+		MustSetDeviceMode3 = 0x2000,
+		MustSetSensorState5 = 0x4000,
 	}
 
 	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
@@ -159,6 +185,7 @@ public abstract partial class RazerDeviceDriver :
 	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
 	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
 	private static readonly Guid MambaChromaLightingZoneGuid = new(0x16D0353A, 0xBBB9, 0x4993, 0x92, 0x3E, 0x1D, 0x09, 0x09, 0xF8, 0x96, 0xDD);
+	private static readonly Guid MambaChromaDockLightingZoneGuid = new(0x810A8E83, 0xA7A2, 0x4BAE, 0x8C, 0xC8, 0xFE, 0x87, 0xDD, 0x3C, 0x8F, 0xB7);
 
 	// Stores the device informations in a linear table that allow deduplicating information and accessing it by reference.
 	// The indices into this table will be built into the dictionary.
@@ -174,30 +201,34 @@ public abstract partial class RazerDeviceDriver :
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasReactiveLighting |
-				RazerDeviceFlags.HasDpi,
+				RazerDeviceFlags.HasDpi/* |
+				RazerDeviceFlags.MustSetDeviceMode3 |
+				RazerDeviceFlags.MustSetSensorState5*/,
 			0x0044,
 			0x0045,
 			0xFFFF,
 			0xFFFF,
 			MambaChromaLightingZoneGuid,
 			16_000,
-			"Razer Mamba Chroma"
+			"Razer Mamba Chroma",
+			[800, 1_800, 4_500, 9_000, 16_000]
 		),
-		//new
-		//(
-		//	RazerDeviceCategory.Mouse,
-		//	RazerDeviceFlags.HasBattery |
-		//		RazerDeviceFlags.HasWiredProductId |
-		//		RazerDeviceFlags.HasDongleProductId |
-		//		RazerDeviceFlags.IsDongle,
-		//	0x0044,
-		//	0x0045,
-		//	0xFFFF,
-		//	0xFFFF,
-		//	null,
-		//	16_000,
-		//	"Razer Mamba Chroma Dock"
-		//),
+		new
+		(
+			RazerDeviceCategory.DockReceiver,
+			RazerDeviceFlags.HasWiredProductId |
+				RazerDeviceFlags.HasDongleProductId |
+				RazerDeviceFlags.HasLighting |
+				RazerDeviceFlags.IsReceiver,
+			0x0044,
+			0x0045,
+			0xFFFF,
+			0xFFFF,
+			MambaChromaDockLightingZoneGuid,
+			16_000,
+			"Razer Mamba Chroma Dock",
+			[]
+		),
 		new
 		(
 			RazerDeviceCategory.Mouse,
@@ -209,18 +240,22 @@ public abstract partial class RazerDeviceDriver :
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasBluetoothLowEnergyProductId |
 				RazerDeviceFlags.HasDpi |
-				RazerDeviceFlags.HasDpiPresets,
+				RazerDeviceFlags.HasDpiPresets |
+				RazerDeviceFlags.HasDpiPresetsRead |
+				RazerDeviceFlags.HasDpiPresetsV2,
 			0x007C,
 			0x007D,
 			0xFFFF,
 			0x008E,
 			DeathAdderV2ProLightingZoneGuid,
 			20_000,
-			"Razer DeathAdder V2 Pro"
+			"Razer DeathAdder V2 Pro",
+			[]
 		),
 		new
 		(
 			RazerDeviceCategory.UsbReceiver,
+			// TODO: Remove the non-dongle flags (the device has its own config ID), and make it so that it works fine in case it doesn't.
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasLightingV2 |
@@ -228,16 +263,19 @@ public abstract partial class RazerDeviceDriver :
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasBluetoothLowEnergyProductId |
-				RazerDeviceFlags.IsDongle |
+				RazerDeviceFlags.IsReceiver |
 				RazerDeviceFlags.HasDpi |
-				RazerDeviceFlags.HasDpiPresets,
+				RazerDeviceFlags.HasDpiPresets |
+				RazerDeviceFlags.HasDpiPresetsRead |
+				RazerDeviceFlags.HasDpiPresetsV2,
 			0x007C,
 			0x007D,
 			0xFFFF,
 			0x008E,
 			null,
 			0,
-			"Razer DeathAdder V2 Pro HyperSpeed Dongle"
+			"Razer DeathAdder V2 Pro HyperSpeed Dongle",
+			[]
 		),
 		new
 		(
@@ -249,7 +287,8 @@ public abstract partial class RazerDeviceDriver :
 			0xFFFF,
 			DockLightingZoneGuid,
 			0,
-			"Razer Mouse Dock"
+			"Razer Mouse Dock",
+			[]
 		),
 		new
 		(
@@ -258,14 +297,17 @@ public abstract partial class RazerDeviceDriver :
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasDpi |
-				RazerDeviceFlags.HasDpiPresets,
+				RazerDeviceFlags.HasDpiPresets |
+				RazerDeviceFlags.HasDpiPresetsRead |
+				RazerDeviceFlags.HasDpiPresetsV2,
 			0x00B6,
 			0x00B7,
 			0xFFFF,
 			0xFFFF,
 			null,
 			30_000,
-			"Razer DeathAdder V3 Pro"
+			"Razer DeathAdder V3 Pro",
+			[]
 		),
 		new
 		(
@@ -273,29 +315,32 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
-				RazerDeviceFlags.IsDongle |
+				RazerDeviceFlags.IsReceiver |
 				RazerDeviceFlags.HasDpi |
-				RazerDeviceFlags.HasDpiPresets,
+				RazerDeviceFlags.HasDpiPresets |
+				RazerDeviceFlags.HasDpiPresetsRead |
+				RazerDeviceFlags.HasDpiPresetsV2,
 			0x00B6,
 			0x00B7,
 			0xFFFF,
 			0xFFFF,
 			null,
 			0,
-			"Razer DeathAdder V3 Pro HyperSpeed Dongle"
+			"Razer DeathAdder V3 Pro HyperSpeed Dongle",
+			[]
 		)
 	];
 
 	private static readonly Dictionary<ushort, ushort> DeviceInformationIndices = new()
 	{
 		{ 0x0044, 0 },
-		{ 0x0045, 0 },
-		{ 0x007C, 1 },
-		{ 0x007D, 2 },
-		{ 0x007E, 3 },
-		{ 0x008E, 1 },
-		{ 0x00B6, 4 },
-		{ 0x0087, 5 },
+		{ 0x0045, 1 },
+		{ 0x007C, 2 },
+		{ 0x007D, 3 },
+		{ 0x007E, 4 },
+		{ 0x008E, 2 },
+		{ 0x00B6, 5 },
+		{ 0x0087, 6 },
 	};
 
 	private static ref readonly DeviceInformation GetDeviceInformation(ushort productId)
@@ -472,7 +517,11 @@ public abstract partial class RazerDeviceDriver :
 
 		string? serialNumber = null;
 
-		if (deviceInfo.DeviceCategory != RazerDeviceCategory.UsbReceiver)
+		if (deviceInfo.DeviceCategory is RazerDeviceCategory.DockReceiver)
+		{
+			serialNumber = await transport.GetDockSerialNumberAsync(cancellationToken).ConfigureAwait(false);
+		}
+		else if (deviceInfo.DeviceCategory is not (RazerDeviceCategory.UsbReceiver or RazerDeviceCategory.DockReceiver))
 		{
 			serialNumber = await transport.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 		}
@@ -508,7 +557,7 @@ public abstract partial class RazerDeviceDriver :
 		).ConfigureAwait(false);
 
 		// Get rid of the nested driver registry if we don't need it.
-		if (device is not SystemDevice.UsbReceiver)
+		if (device is not (SystemDevice.UsbReceiver or SystemDevice.DockReceiver))
 		{
 			driverRegistry.Dispose();
 		}
@@ -562,6 +611,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.MaximumDpi,
 				MaximumPollingFrequency,
 				SupportedPollingFrequencyDividerPowers,
+				deviceInfo.GetDefaultDpiPresets(),
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -593,6 +643,19 @@ public abstract partial class RazerDeviceDriver :
 				configurationKey,
 				deviceIds,
 				mainDeviceIdIndex
+			),
+			RazerDeviceCategory.DockReceiver => new SystemDevice.DockReceiver
+			(
+				transport,
+				notificationStream,
+				notificationOptions,
+				driverRegistry.GetOrCreateValue(),
+				MambaChromaDockLightingZoneGuid,
+				deviceInfo.FriendlyName ?? friendlyName,
+				configurationKey,
+				deviceIds,
+				mainDeviceIdIndex,
+				deviceInfo.Flags
 			),
 			_ => throw new InvalidOperationException("Unsupported device."),
 		};
@@ -653,6 +716,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.MaximumDpi,
 				MaximumPollingFrequency,
 				SupportedPollingFrequencyDividerPowers,
+				deviceInfo.GetDefaultDpiPresets(),
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -742,6 +806,8 @@ public abstract partial class RazerDeviceDriver :
 			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, RazerDeviceDriver, IDeviceIdFeature, IDeviceIdsFeature>(this);
 
+	void IRazerDeviceNotificationSink.OnDeviceAvailabilityChange(byte notificationStreamIndex) => OnDeviceAvailabilityChange(notificationStreamIndex);
+
 	void IRazerDeviceNotificationSink.OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex) => OnDeviceArrival(notificationStreamIndex, deviceIndex);
 	void IRazerDeviceNotificationSink.OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex, ushort productId) => OnDeviceArrival(notificationStreamIndex, deviceIndex, productId);
 
@@ -751,6 +817,8 @@ public abstract partial class RazerDeviceDriver :
 	void IRazerDeviceNotificationSink.OnDeviceDpiChange(byte notificationStreamIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(notificationStreamIndex, dpiX, dpiY);
 	void IRazerDeviceNotificationSink.OnDeviceExternalPowerChange(byte notificationStreamIndex, bool isConnectedToExternalPower) => OnDeviceExternalPowerChange(notificationStreamIndex, isConnectedToExternalPower);
 	void IRazerDeviceNotificationSink.OnDeviceBatteryLevelChange(byte notificationStreamIndex, byte deviceIndex, byte batteryLevel) => OnDeviceBatteryLevelChange(deviceIndex, batteryLevel);
+
+	protected virtual void OnDeviceAvailabilityChange(byte notificationStreamIndex) => throw new NotSupportedException();
 
 	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex) => throw new NotSupportedException();
 	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex, ushort productId) => throw new NotSupportedException();

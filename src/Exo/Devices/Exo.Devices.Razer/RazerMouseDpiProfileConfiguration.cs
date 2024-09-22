@@ -4,16 +4,16 @@ namespace Exo.Devices.Razer;
 
 public readonly struct RazerMouseDpiProfileConfiguration
 {
-	public RazerMouseDpiProfileConfiguration(byte activeProfileIndex, ImmutableArray<RazerMouseDpiProfile> profiles)
+	public RazerMouseDpiProfileConfiguration(byte activePresetIndex, ImmutableArray<RazerMouseDpiPreset> presets)
 	{
 		// NB: We'll do some argument validation here, but we'll tolerate 0 as a valid active profile just in case. (e.g. what if DPI is set manually to a non-profile value ?)
-		if (profiles.IsDefault) throw new ArgumentNullException(nameof(profiles));
-		if (activeProfileIndex > profiles.Length) throw new ArgumentOutOfRangeException(nameof(activeProfileIndex));
+		if (presets.IsDefault) throw new ArgumentNullException(nameof(presets));
+		if (activePresetIndex > presets.Length) throw new ArgumentOutOfRangeException(nameof(activePresetIndex));
 
-		ActiveProfileIndex = activeProfileIndex;
-		Profiles = profiles;
+		ActivePresetIndex = activePresetIndex;
+		Presets = presets;
 	}
 
-	public byte ActiveProfileIndex { get; }
-	public ImmutableArray<RazerMouseDpiProfile> Profiles { get;}
+	public byte ActivePresetIndex { get; }
+	public ImmutableArray<RazerMouseDpiPreset> Presets { get;}
 }

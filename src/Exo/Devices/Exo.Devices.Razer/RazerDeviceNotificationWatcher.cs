@@ -85,6 +85,7 @@ internal sealed class RazerDeviceNotificationWatcher : IAsyncDisposable
 			// The second one is very likely a one-based device index, so we'll use it as such for now.
 			switch (span[1])
 			{
+			case 0: sink.OnDeviceAvailabilityChange(streamIndex); break;
 			case 2: sink.OnDeviceRemoval(streamIndex, span[2]); break;
 			case 3: sink.OnDeviceArrival(streamIndex, span[2]); break;
 			}

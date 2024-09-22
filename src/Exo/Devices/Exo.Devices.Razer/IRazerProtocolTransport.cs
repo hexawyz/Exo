@@ -12,8 +12,12 @@ internal interface IRazerProtocolTransport : IDisposable
 
 	ValueTask<DotsPerInch> GetDpiAsync(bool persisted, CancellationToken cancellationToken);
 	Task SetDpiAsync(bool persist, DotsPerInch dpi, CancellationToken cancellationToken);
-	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(CancellationToken cancellationToken);
-	Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
+	ValueTask<byte> GetCurrentDpiPresetAsync(bool persisted, CancellationToken cancellationToken);
+	Task SetCurrentDpiPresetAsync(bool persist, byte index, CancellationToken cancellationToken);
+	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV1Async(CancellationToken cancellationToken);
+	Task SetDpiPresetsV1Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
+	ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV2Async(CancellationToken cancellationToken);
+	Task SetDpiPresetsV2Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken);
 
 	ValueTask<byte> GetPollingIntervalAsync(CancellationToken cancellationToken);
 	Task SetPollingIntervalAsync(byte divider, CancellationToken cancellationToken);
@@ -38,4 +42,10 @@ internal interface IRazerProtocolTransport : IDisposable
 
 	ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken);
 	ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken);
+	ValueTask<Version> GetFirmwareVersionAsync(CancellationToken cancellationToken);
+	ValueTask<string> GetDockSerialNumberAsync(CancellationToken cancellationToken);
+	ValueTask<byte> GetSensorStateAsync(byte parameter1, byte parameter2, CancellationToken cancellationToken);
+	ValueTask<byte> GetDeviceModeAsync(CancellationToken cancellationToken);
+	ValueTask SetDeviceModeAsync(byte mode, CancellationToken cancellationToken);
+	ValueTask SetSensorStateAsync(byte parameter1, byte parameter2, byte value, CancellationToken cancellationToken);
 }

@@ -127,6 +127,14 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			=> Encoding.UTF8.GetString(data.TrimEnd((byte)0));
 	}
 
+	private sealed class VersionWaitState : WaitState<Version>
+	{
+		public VersionWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
+
+		protected override Version ProcessData(ReadOnlySpan<byte> data)
+			=> new Version(data[0], data[1], data[2], data[3]);
+	}
+
 	private sealed class ByteWaitState : WaitState<byte>
 	{
 		public ByteWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
@@ -169,7 +177,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	{
 		public DpiProfilesWaitState(byte[] buffer, byte commandId) : base(buffer, commandId) { }
 
-		protected override RazerMouseDpiProfileConfiguration ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpiProfileConfiguration(data, false);
+		protected override RazerMouseDpiProfileConfiguration ProcessData(ReadOnlySpan<byte> data) => RazerProtocolTransport.ParseDpiPresetConfiguration(data, false, true);
 	}
 
 	private const int MaximumWritePacketLength = 20;
@@ -284,7 +292,44 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	// TODO: Should find a way to make this return the information that we nneed. The value is currently hardcoded.
+	public async ValueTask<Version> GetFirmwareVersionAsync(CancellationToken cancellationToken)
+	{
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic)
+		{
+			byte* buffer = stackalloc byte[4 + 8];
+			((uint*)buffer)[0] = 8;
+			// 81 00 00 00 00 81 00 00
+			((uint*)buffer)[1] = 0x_00_00_00_81;
+			((uint*)buffer)[2] = 0x_00_00_81_00;
+			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
+		}
+
+		using (await GetLock().WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var waitState = new VersionWaitState(_readBuffer, 0x81);
+			Volatile.Write(ref _waitState, waitState);
+			try
+			{
+				WriteData(_serviceHandle, in _writeCharacteristic);
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+				{
+					cts.CancelAfter(_operationTimeout);
+					return await waitState.WaitAsync(cts.Token).ConfigureAwait(false);
+				}
+			}
+			catch (OperationCanceledException ex)
+			{
+				waitState.TrySetCanceled(ex.CancellationToken);
+				throw;
+			}
+			finally
+			{
+				Volatile.Write(ref _waitState, null);
+			}
+		}
+	}
+
+	// TODO: Should find a way to make this return the information that we need. The value is currently hardcoded.
 	public ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken) => ValueTask.FromResult<byte>(4);
 
 	public async ValueTask<ILightingEffect?> GetSavedEffectV2Async(byte flag, CancellationToken cancellationToken)
@@ -542,7 +587,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(CancellationToken cancellationToken)
+	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV2Async(CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted)
 		{
@@ -581,7 +626,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	public async Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	public async Task SetDpiPresetsV2Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, RazerMouseDpiProfileConfiguration configuration)
 		{
@@ -589,7 +634,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			Span<byte> profilesBuffer = stackalloc byte[2 * 5 * 7];
 			byte* buffer = stackalloc byte[4 + MaximumWritePacketLength];
 
-			uint remainingLength = (uint)RazerProtocolTransport.WriteProfileConfiguration(profilesBuffer, false, configuration);
+			uint remainingLength = (uint)RazerProtocolTransport.WritePresetConfiguration(profilesBuffer, false, true, configuration);
 
 			((uint*)buffer)[0] = 8;
 			// 0f <length> 00 00 0b 04 <persisted> 00
@@ -883,4 +928,16 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	Task IRazerProtocolTransport.SetEffectV1Async(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetBrightnessV1Async(byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<byte> IRazerProtocolTransport.GetBrightnessV1Async(CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<RazerMouseDpiProfileConfiguration> IRazerProtocolTransport.GetDpiPresetsV1Async(CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetDpiPresetsV1Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<byte> IRazerProtocolTransport.GetCurrentDpiPresetAsync(bool persisted, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetCurrentDpiPresetAsync(bool persist, byte index, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<string> IRazerProtocolTransport.GetDockSerialNumberAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+	ValueTask IRazerProtocolTransport.SetSensorStateAsync(byte parameter1, byte parameter2, byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<byte> IRazerProtocolTransport.GetSensorStateAsync(byte parameter1, byte parameter2, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+	// TODO ?
+	public ValueTask<byte> GetDeviceModeAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+	public ValueTask SetDeviceModeAsync(byte mode, CancellationToken cancellationToken) => throw new NotImplementedException();
 }

@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace Exo.Devices.Razer;
 
 [DebuggerDisplay("{X,d}x{Y,d}x{Z,d}")]
-public record struct RazerMouseDpiProfile
+public record struct RazerMouseDpiPreset
 {
-	public RazerMouseDpiProfile(ushort x, ushort y, ushort z)
+	public RazerMouseDpiPreset(ushort x, ushort y, ushort z)
 	{
 		X = x;
 		Y = y;

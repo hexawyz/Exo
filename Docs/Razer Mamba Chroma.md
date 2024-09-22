@@ -21,6 +21,8 @@ As soon as the device becomes online the first time, the dock will cache most de
 Sending the lighting effect `0A` command to the dock when the mouse is not connected will update the lighting effect on both the mouse and the dock as soon as the mouse becomes online.
 It seems however that the dock has little intelligence on its own. (Maybe it is possible to update the dock with the other commands though, I just havent't tested that yet.)
 
+It seems that the best way to handle the mouse is to consider it always on *after* it has been seen alive once. While not perfect, this should allow working with it mostly correctly.
+
 # Protocol
 
 The mouse seem to e based on a older version of the protocol (Likely also why it is not compatible with Synapse 3. That and because they would have needed to write another set of kernel drivers I guess)
@@ -136,6 +138,12 @@ This won't change much as we will ignore this value.
 Testing will indicate how well this goes 😁
 
 NB: Reading does not seem possible.
+
+NB2: It seems that this command does not immediately work. Maybe some initialization is required, in this case, the command `0b`:`03`… (Whose "magic" parameter's meaning is unknown)
+
+NB3: I actually got heavily baited by Synapse. Seemingly, this command never worked at all.
+
+The device will return a status `03` instead of `02` as a response to setting the DPI presets… 😓
 
 ### Active DPI Preset
 

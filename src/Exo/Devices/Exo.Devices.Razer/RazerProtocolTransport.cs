@@ -274,6 +274,85 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
+
+	public async Task SetCurrentDpiPresetAsync(bool persist, byte index, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, bool persist, byte index)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x02;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
+				buffer[8] = 0x04;
+
+				buffer[9] = persist ? (byte)0x01 : (byte)0x00;
+
+				buffer[10] = index;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, persist, index);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x04, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<byte> GetCurrentDpiPresetAsync(bool persisted, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, bool persisted)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x02;
+				buffer[7] = (byte)RazerDeviceFeature.Mouse;
+				buffer[8] = 0x84;
+
+				buffer[9] = persisted ? (byte)0x01 : (byte)0x00;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, persisted);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x84, 0, cancellationToken).ConfigureAwait(false);
+
+				return buffer.Span[10];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
 	[StructLayout(LayoutKind.Explicit, Size = 7)]
 	private struct RawDpiProfileBigEndian
 	{
@@ -338,14 +417,14 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public static RazerMouseDpiProfileConfiguration ParseDpiProfileConfiguration(ReadOnlySpan<byte> buffer, bool bigEndian)
+	public static RazerMouseDpiProfileConfiguration ParseDpiPresetConfiguration(ReadOnlySpan<byte> buffer, bool bigEndian, bool validateProfileIndices)
 	{
 		byte profileCount = buffer[1];
 
 		// In the 80 available bytes, we could only retrieve up to 11 profiles exactly.
 		if (profileCount > 11) throw new InvalidDataException("Returned profile count is too big.");
 
-		var profiles = new RazerMouseDpiProfile[profileCount];
+		var profiles = new RazerMouseDpiPreset[profileCount];
 
 		// In the Bluetooth protocol, it seems that the data can be truncated by one byte if we assume profiles to be 7 bytes.
 		// Maybe the command I reverse-engineered is wrong somehow, or it is an expected behavior.
@@ -363,13 +442,13 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			if (bigEndian)
 			{
 				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in currentRawProfile));
-				if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
+				if (validateProfileIndices && rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
 				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, Unsafe.ByteOffset(in currentRawProfile, in bufferEnd) >= 7 ? rawProfile.DpiZ : (ushort)0);
 			}
 			else
 			{
 				ref readonly var rawProfile = ref Unsafe.As<byte, RawDpiProfileLittleEndian>(ref Unsafe.AsRef(in currentRawProfile));
-				if (rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
+				if (validateProfileIndices && rawProfile.Index != i + 1) throw new InvalidDataException("Unexpected profile index. Expected a contiguous sequence starting from 1.");
 				profiles[i] = new(rawProfile.DpiX, rawProfile.DpiY, Unsafe.ByteOffset(in currentRawProfile, in bufferEnd) >= 7 ? rawProfile.DpiZ : (ushort)0);
 			}
 			currentRawProfile = ref Unsafe.Add(ref Unsafe.AsRef(in currentRawProfile), 7);
@@ -378,17 +457,17 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		return new(buffer[0], ImmutableCollectionsMarshal.AsImmutableArray(profiles));
 	}
 
-	public static int WriteProfileConfiguration(Span<byte> buffer, bool bigEndian, RazerMouseDpiProfileConfiguration configuration)
+	public static int WritePresetConfiguration(Span<byte> buffer, bool bigEndian, bool emitProfileIndices, RazerMouseDpiProfileConfiguration configuration)
 	{
-		int expectedDataLength = 2 + 7 * configuration.Profiles.Length;
+		int expectedDataLength = 2 + 7 * configuration.Presets.Length;
 
-		if (configuration.Profiles.Length > 11 || expectedDataLength > buffer.Length) throw new ArgumentException("Too many profiles specified.");
-		if (configuration.ActiveProfileIndex == 0 | configuration.ActiveProfileIndex > configuration.Profiles.Length) throw new ArgumentException("Active profile index is out of range.");
+		if (configuration.Presets.Length > 11 || expectedDataLength > buffer.Length) throw new ArgumentException("Too many profiles specified.");
+		if (configuration.ActivePresetIndex == 0 | configuration.ActivePresetIndex > configuration.Presets.Length) throw new ArgumentException("Active profile index is out of range.");
 
-		buffer[0] = configuration.ActiveProfileIndex;
-		buffer[1] = (byte)configuration.Profiles.Length;
+		buffer[0] = emitProfileIndices ? configuration.ActivePresetIndex : (byte)0;
+		buffer[1] = (byte)configuration.Presets.Length;
 
-		var profiles = configuration.Profiles;
+		var profiles = configuration.Presets;
 		ref byte currentRawProfile = ref buffer[2];
 		for (int i = 0; i < profiles.Length; i++)
 		{
@@ -396,7 +475,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			if (bigEndian)
 			{
 				ref var rawProfile = ref Unsafe.As<byte, RawDpiProfileBigEndian>(ref Unsafe.AsRef(in currentRawProfile));
-				rawProfile.Index = (byte)(i + 1);
+				rawProfile.Index = emitProfileIndices ? (byte)(i + 1) : (byte)0;
 				rawProfile.DpiX = profile.X;
 				rawProfile.DpiY = profile.Y;
 				rawProfile.DpiZ = profile.Z;
@@ -404,7 +483,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			else
 			{
 				ref var rawProfile = ref Unsafe.As<byte, RawDpiProfileLittleEndian>(ref Unsafe.AsRef(in currentRawProfile));
-				rawProfile.Index = (byte)(i + 1);
+				rawProfile.Index = emitProfileIndices ? (byte)(i + 1) : (byte)0;
 				rawProfile.DpiX = profile.X;
 				rawProfile.DpiY = profile.Y;
 				rawProfile.DpiZ = profile.Z;
@@ -414,7 +493,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		return expectedDataLength;
 	}
 
-	public async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(CancellationToken cancellationToken)
+	private async ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsAsync(byte communicationId, byte functionId, bool validatePresetIndices, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -422,30 +501,30 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		{
 			var buffer = Buffer;
 
-			static void FillBuffer(bool persisted, Span<byte> buffer)
+			static void FillBuffer(Span<byte> buffer, byte communicationId, byte functionId, bool persisted)
 			{
-				buffer[2] = 0x1f;
+				buffer[2] = communicationId;
 
 				buffer[6] = 0x26;
 				buffer[7] = (byte)RazerDeviceFeature.Mouse;
-				buffer[8] = 0x86;
+				buffer[8] = functionId;
 
 				buffer[9] = persisted ? (byte)0x01 : (byte)0x00;
 
 				UpdateChecksum(buffer);
 			}
 
-			static RazerMouseDpiProfileConfiguration ReadResponse(Span<byte> buffer)
-				=> ParseDpiProfileConfiguration(buffer[10..], true);
+			static RazerMouseDpiProfileConfiguration ReadResponse(Span<byte> buffer, bool validatePresetIndices)
+				=> ParseDpiPresetConfiguration(buffer[10..], true, validatePresetIndices);
 
 			try
 			{
-				FillBuffer(true, buffer.Span);
+				FillBuffer(buffer.Span, communicationId, functionId, true);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x86, 0, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, communicationId, RazerDeviceFeature.Mouse, functionId, 0, cancellationToken).ConfigureAwait(false);
 
-				return ReadResponse(buffer.Span);
+				return ReadResponse(buffer.Span, validatePresetIndices);
 			}
 			finally
 			{
@@ -455,7 +534,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async Task SetDpiProfilesAsync(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+	private async Task SetDpiPresetsAsync(byte communicationId, byte functionId, bool persist, bool emitProfileIndices, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -463,27 +542,27 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		{
 			var buffer = Buffer;
 
-			static void FillBuffer(bool persisted, Span<byte> buffer, RazerMouseDpiProfileConfiguration configuration)
+			static void FillBuffer(Span<byte> buffer, byte communicationId, byte functionId, bool persisted, bool emitProfileIndices, RazerMouseDpiProfileConfiguration configuration)
 			{
-				buffer[2] = 0x1f;
+				buffer[2] = communicationId;
 
 				buffer[6] = 0x26;
 				buffer[7] = (byte)RazerDeviceFeature.Mouse;
-				buffer[8] = 0x06;
+				buffer[8] = functionId;
 
 				buffer[9] = persisted ? (byte)0x01 : (byte)0x00;
 
-				WriteProfileConfiguration(buffer[10..^2], true, configuration);
+				WritePresetConfiguration(buffer[10..^2], true, emitProfileIndices, configuration);
 
 				UpdateChecksum(buffer);
 			}
 
 			try
 			{
-				FillBuffer(persist, buffer.Span, configuration);
+				FillBuffer(buffer.Span, communicationId, functionId, persist, emitProfileIndices, configuration);
 
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Mouse, 0x06, 0, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, communicationId, RazerDeviceFeature.Mouse, functionId, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
@@ -492,6 +571,18 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			}
 		}
 	}
+
+	public ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV1Async(CancellationToken cancellationToken)
+		=> GetDpiPresetsAsync(0x3F, 0x83, false, cancellationToken);
+
+	public Task SetDpiPresetsV1Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+		=> SetDpiPresetsAsync(0x3F, 0x03, persist, false, configuration, cancellationToken);
+
+	public ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV2Async(CancellationToken cancellationToken)
+		=> GetDpiPresetsAsync(0x1F, 0x86, false, cancellationToken);
+
+	public Task SetDpiPresetsV2Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
+		=> SetDpiPresetsAsync(0x1F, 0x06, persist, true, configuration, cancellationToken);
 
 	// NB: I'm really unsure about this one. It could be used entirely wrong, but it seems to return an info we need?
 	public async ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken)
@@ -871,6 +962,54 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
 
 				await ReadResponseAsync(buffer, 0x08, (byte)RazerDeviceFeature.General, 0x82, 0, cancellationToken).ConfigureAwait(false);
+
+				return ParseResponse(buffer.Span);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<string> GetDockSerialNumberAsync(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				buffer[2] = 0x08;
+
+				buffer[6] = 0x16;
+				buffer[7] = (byte)RazerDeviceFeature.General;
+				buffer[8] = 0x92;
+
+				UpdateChecksum(buffer);
+			}
+
+			static string ParseResponse(ReadOnlySpan<byte> buffer)
+			{
+				var value = buffer[9..^2];
+
+				int length = value.IndexOf((byte)0);
+
+				if (length < 0) length = value.Length;
+
+				return Encoding.ASCII.GetString(value[..length]);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x08, (byte)RazerDeviceFeature.General, 0x92, 0, cancellationToken).ConfigureAwait(false);
 
 				return ParseResponse(buffer.Span);
 			}
@@ -1292,6 +1431,46 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
+	public async ValueTask<Version> GetFirmwareVersionAsync(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x31;
+				buffer[7] = (byte)RazerDeviceFeature.General;
+				buffer[8] = 0x87;
+
+				UpdateChecksum(buffer);
+			}
+
+			static Version ParseResponse(ReadOnlySpan<byte> buffer)
+				=> new Version(buffer[0], buffer[1], buffer[2], buffer[3]);
+
+			try
+			{
+				FillBuffer(buffer.Span);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.General, 0x87, 0, cancellationToken).ConfigureAwait(false);
+
+				return ParseResponse(buffer.Span.Slice(9, 4));
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
 	public async ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
@@ -1384,6 +1563,159 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				await ReadResponseAsync(buffer, 0x08, RazerDeviceFeature.General, 0xbf, 0, cancellationToken).ConfigureAwait(false);
 
 				return ParseResponse(buffer.Span);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<byte> GetSensorStateAsync(byte parameter1, byte parameter2, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, byte parameter1, byte parameter2)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x03;
+				buffer[7] = (byte)RazerDeviceFeature.Sensor;
+				buffer[8] = 0x83;
+
+				buffer[9] = parameter1;
+				buffer[10] = parameter2;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, parameter1, parameter2);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Sensor, 0x83, 0, cancellationToken).ConfigureAwait(false);
+
+				return buffer.Span[11];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask SetSensorStateAsync(byte parameter1, byte parameter2, byte value, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, byte parameter1, byte parameter2, byte value)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x03;
+				buffer[7] = (byte)RazerDeviceFeature.Sensor;
+				buffer[8] = 0x03;
+
+				buffer[9] = parameter1;
+				buffer[10] = parameter2;
+				buffer[11] = value;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, parameter1, parameter2, value);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Sensor, 0x03, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<byte> GetDeviceModeAsync(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x02;
+				buffer[7] = (byte)RazerDeviceFeature.General;
+				buffer[8] = 0x84;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.General, 0x84, 0, cancellationToken).ConfigureAwait(false);
+
+				return buffer.Span[9];
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask SetDeviceModeAsync(byte mode, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, byte mode)
+			{
+				buffer[2] = 0x1f;
+
+				buffer[6] = 0x02;
+				buffer[7] = (byte)RazerDeviceFeature.General;
+				buffer[8] = 0x04;
+
+				buffer[9] = mode;
+
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, mode);
+
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.General, 0x04, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{

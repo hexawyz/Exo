@@ -125,7 +125,11 @@ public abstract partial class RazerDeviceDriver
 		protected bool HasLightingV2 => (_deviceFlags & RazerDeviceFlags.HasLightingV2) != 0;
 		protected bool HasDpi => (_deviceFlags & RazerDeviceFlags.HasDpi) != 0;
 		protected bool HasDpiPresets => (_deviceFlags & RazerDeviceFlags.HasDpiPresets) != 0;
+		protected bool HasDpiPresetsRead => (_deviceFlags & RazerDeviceFlags.HasDpiPresetsRead) != 0;
+		protected bool HasDpiPresetsV2 => (_deviceFlags & RazerDeviceFlags.HasDpiPresetsV2) != 0;
 		protected bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
+		protected bool MustSetDeviceMode3 => (_deviceFlags & RazerDeviceFlags.MustSetDeviceMode3) != 0;
+		protected bool MustSetSensorState5 => (_deviceFlags & RazerDeviceFlags.MustSetSensorState5) != 0;
 		protected bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
 
 		protected BaseDevice
@@ -169,6 +173,11 @@ public abstract partial class RazerDeviceDriver
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
 		{
+			if (MustSetDeviceMode3)
+			{
+				await _transport.SetDeviceModeAsync(0x03, cancellationToken).ConfigureAwait(false);
+			}
+
 			await base.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
 			if (HasBattery)
