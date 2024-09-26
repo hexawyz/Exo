@@ -17,13 +17,14 @@ public abstract partial class RazerDeviceDriver
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				DeviceCategory deviceCategory,
-				Guid lightingZoneId,
+				in DeviceInformation deviceInformation,
+				ImmutableArray<byte> ledIds,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, deviceCategory, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, deviceCategory, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -47,7 +48,8 @@ public abstract partial class RazerDeviceDriver
 				IRazerProtocolTransport transport,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
-				Guid lightingZoneId,
+				in DeviceInformation deviceInformation,
+				ImmutableArray<byte> ledIds,
 				ushort maximumDpi,
 				ushort maximumPollingFrequency,
 				ImmutableArray<byte> supportedPollingFrequencyDividerPowers,
@@ -57,7 +59,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, lightingZoneId, maximumDpi, maximumPollingFrequency, supportedPollingFrequencyDividerPowers, initialDpiPresets, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, deviceInformation, ledIds, maximumDpi, maximumPollingFrequency, supportedPollingFrequencyDividerPowers, initialDpiPresets, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -80,13 +82,14 @@ public abstract partial class RazerDeviceDriver
 				IRazerProtocolTransport transport,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
-				Guid lightingZoneId,
+				in DeviceInformation deviceInformation,
+				ImmutableArray<byte> ledIds,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}

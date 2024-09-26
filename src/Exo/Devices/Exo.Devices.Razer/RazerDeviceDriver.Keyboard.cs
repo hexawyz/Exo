@@ -11,13 +11,14 @@ public abstract partial class RazerDeviceDriver
 
 		public Keyboard(
 			IRazerProtocolTransport transport,
-			Guid lightingZoneId,
+			in DeviceInformation deviceInformation,
+			ImmutableArray<byte> ledIds,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 		}
 	}

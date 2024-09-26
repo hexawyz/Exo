@@ -1,6 +1,9 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
+using Exo.Features.Lighting;
+using Exo.Lighting;
+using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Razer;
 
@@ -18,6 +21,7 @@ public abstract partial class RazerDeviceDriver
 			private readonly IDriverRegistry _driverRegistry;
 			private RazerDeviceDriver? _pairedDevice;
 			private readonly AsyncLock _childDeviceLock;
+			private readonly ILightingEffect _currentEffect;
 
 			public DockReceiver
 			(

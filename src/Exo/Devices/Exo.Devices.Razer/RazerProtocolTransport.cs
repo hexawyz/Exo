@@ -585,7 +585,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		=> SetDpiPresetsAsync(0x1F, 0x06, persist, true, configuration, cancellationToken);
 
 	// NB: I'm really unsure about this one. It could be used entirely wrong, but it seems to return an info we need?
-	public async ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken)
+	public async ValueTask<ImmutableArray<byte>> GetLightingZoneIdsAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -604,6 +604,17 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				UpdateChecksum(buffer);
 			}
 
+			static ImmutableArray<byte> ParseResponse(Span<byte> buffer)
+			{
+				uint itemCount = (uint)buffer.Length / 5;
+				var ledIds = new byte[(int)itemCount];
+				for (int i = 0; i < ledIds.Length; i++)
+				{
+					ledIds[i] = buffer[5 * i];
+				}
+				return ImmutableCollectionsMarshal.AsImmutableArray(ledIds);
+			}
+
 			try
 			{
 				FillBuffer(buffer.Span);
@@ -612,7 +623,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV2, 0x80, 0, cancellationToken).ConfigureAwait(false);
 
-				return buffer.Span[9];
+				return ParseResponse(buffer.Span.Slice(9, buffer.Span[6]));
 			}
 			finally
 			{

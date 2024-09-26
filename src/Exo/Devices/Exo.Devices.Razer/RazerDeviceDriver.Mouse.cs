@@ -33,7 +33,8 @@ public abstract partial class RazerDeviceDriver
 		public Mouse
 		(
 			IRazerProtocolTransport transport,
-			Guid lightingZoneId,
+			in DeviceInformation deviceInformation,
+			ImmutableArray<byte> ledIds,
 			ushort maximumDpi,
 			ushort maximumPollingFrequency,
 			ImmutableArray<byte> supportedPollingFrequencyDividerPowers,
@@ -43,7 +44,7 @@ public abstract partial class RazerDeviceDriver
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, lightingZoneId, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_dpiPresets = initialDpiPresets;
 			_maximumDpi = maximumDpi;

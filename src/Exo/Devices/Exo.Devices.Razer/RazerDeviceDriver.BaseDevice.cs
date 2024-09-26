@@ -1,4 +1,8 @@
+using System.Collections;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using DeviceTools;
 using Exo.Devices.Razer.LightingEffects;
 using Exo.Features;
@@ -15,43 +19,171 @@ public abstract partial class RazerDeviceDriver
 		RazerDeviceDriver,
 		IDeviceDriver<IPowerManagementDeviceFeature>,
 		IDeviceDriver<ILightingDeviceFeature>,
+		ILightingControllerFeature,
+		ILightingDeferredChangesFeature,
+		ILightingBrightnessFeature,
 		IBatteryStateDeviceFeature,
 		IIdleSleepTimerFeature,
 		ILowPowerModeBatteryThresholdFeature
 	{
-		private abstract class LightingZone :
+		protected abstract class LightingZone :
 			ILightingZone,
-			ILightingZoneEffect<DisabledEffect>,
-			ILightingDeferredChangesFeature,
-			ILightingBrightnessFeature
+			ILightingZoneEffect<DisabledEffect>
 		{
-			protected BaseDevice Device { get; }
+			private readonly BaseDevice _device;
+			private ILightingEffect _appliedEffect;
+			private ILightingEffect _currentEffect;
+			private byte _appliedBrightness;
+			private byte _currentBrightness;
+			private readonly Guid _zoneId;
 
-			public Guid ZoneId { get; }
+			protected BaseDevice Device => _device;
+			protected IRazerProtocolTransport Transport => Device._transport;
+			public Guid ZoneId => _zoneId;
+			private bool IsUnifiedLightingZone => ReferenceEquals(this, _device._unifiedLightingZone);
+			protected ILightingEffect CurrentEffect => Device._isUnifiedLightingEnabled == IsUnifiedLightingZone ? _currentEffect : NotApplicableEffect.SharedInstance;
 
 			public LightingZone(BaseDevice device, Guid zoneId)
 			{
-				Device = device;
-				ZoneId = zoneId;
+				_device = device;
+				_appliedEffect = DisabledEffect.SharedInstance;
+				_currentEffect = DisabledEffect.SharedInstance;
+				_zoneId = zoneId;
 			}
 
-			public ILightingEffect GetCurrentEffect() => Device._currentEffect;
-
-			void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => Device.SetCurrentEffect(DisabledEffect.SharedInstance);
-			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-
-			LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
-			ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => Device.ApplyChangesAsync(shouldPersist, default);
-
-			byte ILightingBrightnessFeature.MaximumBrightness => 255;
-			byte ILightingBrightnessFeature.CurrentBrightness
+			internal async Task InitializeAsync(byte profileId, CancellationToken cancellationToken)
 			{
-				get => Device.CurrentBrightness;
-				set => Device.CurrentBrightness = value;
+				var effect = await ReadEffectAsync(profileId, cancellationToken).ConfigureAwait(false);
+				byte brightness = await ReadBrightnessAsync(profileId, cancellationToken).ConfigureAwait(false);
+				_currentEffect = _appliedEffect = effect ?? DisabledEffect.SharedInstance;
+				_currentBrightness = _appliedBrightness = brightness;
+			}
+
+			protected abstract ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken);
+			protected abstract ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken);
+
+			internal async Task ApplyAsync(byte profileId, CancellationToken cancellationToken)
+			{
+				// The code below implement the common logic that we should not need to override, based on the other blocks, that we will want to implement differently for different devices.
+				// This is especially important, as there are multiple different ways to set lighting effects depending on which feature and feature version the device supports.
+				// e.g. Lighting initially used category `03`, but the newest ones use category `0F`. (Likely in part because it replaces the persistence flag by a profile ID)
+				if (profileId != 0 || !ReferenceEquals(_appliedEffect, _currentEffect))
+				{
+					if (profileId != 0 || _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness)
+					{
+						await ApplyBrightnessAsync(profileId, _currentBrightness, cancellationToken).ConfigureAwait(false);
+						_appliedBrightness = _currentBrightness;
+					}
+					await ApplyEffectAsync(profileId, _currentEffect, cancellationToken).ConfigureAwait(false);
+					_appliedEffect = _currentEffect;
+					if (_appliedEffect is DisabledEffect && (_appliedBrightness != 0 || profileId != 0))
+					{
+						await ApplyBrightnessAsync(profileId, 0, cancellationToken).ConfigureAwait(false);
+					}
+				}
+				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
+				{
+					await ApplyBrightnessAsync(profileId, _currentBrightness, cancellationToken).ConfigureAwait(false);
+					_appliedBrightness = _currentBrightness;
+				}
+			}
+
+			protected abstract Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken);
+
+			protected abstract Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken);
+
+			public ILightingEffect GetCurrentEffect() => CurrentEffect;
+
+			// NB: We don't have a way to do an asynchronous lock here, and locking is likely not needed anyway as the effect write is atomic.
+			protected void SetCurrentEffect(ILightingEffect effect)
+			{
+				_currentEffect = effect;
+				Volatile.Write(ref Device._isUnifiedLightingEnabled, IsUnifiedLightingZone);
+			}
+
+			internal byte GetBrightness() => _currentBrightness;
+
+			internal void SetBrightness(byte brightness)
+			{
+				_currentBrightness = brightness;
+			}
+
+			void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect) => SetCurrentEffect(DisabledEffect.SharedInstance);
+			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class LightingZoneV1 : LightingZone
+		{
+			public LightingZoneV1(BaseDevice device, Guid zoneId) : base(device, zoneId)
+			{
+			}
+
+			protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
+				=> Transport.GetBrightnessV1Async(cancellationToken);
+
+			protected override ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
+				=> Transport.GetSavedEffectV1Async(cancellationToken);
+
+			protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
+				=> Transport.SetBrightnessV1Async(brightness, cancellationToken);
+
+			protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)
+			{
+				var transport = Transport;
+
+				await (effect switch
+				{
+					DisabledEffect staticColorEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Disabled, 0, default, default, cancellationToken),
+					StaticColorEffect staticColorEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
+					RandomColorPulseEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 3, default, default, cancellationToken),
+					ColorPulseEffect colorPulseEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
+					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
+					SpectrumCycleEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.SpectrumCycle, 0, default, default, cancellationToken),
+					SpectrumWaveEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Wave, 1, default, default, cancellationToken),
+					ReactiveEffect reactiveEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
+					_ => Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentException("Unsupported effect")))
+				}).ConfigureAwait(false);
 			}
 		}
 
-		private class BasicLightingZone : LightingZone,
+		protected class LightingZoneV2 : LightingZone
+		{
+			private readonly byte _ledId;
+
+			public LightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId)
+			{
+				_ledId = ledId;
+			}
+
+			protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
+				=> Transport.GetBrightnessV2Async(profileId != 0, _ledId, cancellationToken);
+
+			protected override ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
+				=> Transport.GetSavedEffectV2Async(_ledId, cancellationToken);
+
+			protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
+				=> Transport.SetBrightnessV2Async(profileId != 0, brightness, cancellationToken);
+
+			protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)
+			{
+				var transport = Transport;
+
+				await (effect switch
+				{
+					DisabledEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Disabled, 0, default, default, cancellationToken),
+					StaticColorEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
+					RandomColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Breathing, 3, default, default, cancellationToken),
+					ColorPulseEffect colorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
+					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
+					SpectrumCycleEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken),
+					SpectrumWaveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Wave, 1, default, default, cancellationToken),
+					ReactiveEffect reactiveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
+					_ => Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentException("Unsupported effect")))
+				}).ConfigureAwait(false);
+			}
+		}
+
+		protected class BasicLightingZoneV2 : LightingZoneV2,
 			ILightingZoneEffect<StaticColorEffect>,
 			ILightingZoneEffect<ColorPulseEffect>,
 			ILightingZoneEffect<TwoColorPulseEffect>,
@@ -59,66 +191,194 @@ public abstract partial class RazerDeviceDriver
 			ILightingZoneEffect<SpectrumCycleEffect>,
 			ILightingZoneEffect<SpectrumWaveEffect>
 		{
-			public BasicLightingZone(BaseDevice device, Guid zoneId) : base(device, zoneId)
+			public BasicLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
 			{
 			}
 
-			void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => Device.SetCurrentEffect(effect);
-			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => Device.SetCurrentEffect(effect);
-			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => Device.SetCurrentEffect(effect);
-			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => Device.SetCurrentEffect(RandomColorPulseEffect.SharedInstance);
-			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => Device.SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
-			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => Device.SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
+			void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
+			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
+			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
+			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => SetCurrentEffect(RandomColorPulseEffect.SharedInstance);
+			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
+			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
 
-			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => Device._currentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => Device._currentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}
 
-		private class ReactiveLightingZone : BasicLightingZone, ILightingZoneEffect<ReactiveEffect>
+		protected class ReactiveLightingZoneV2 : BasicLightingZoneV2, ILightingZoneEffect<ReactiveEffect>
 		{
-			public ReactiveLightingZone(BaseDevice device, Guid zoneId) : base(device, zoneId)
+			public ReactiveLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
 			{
 			}
 
-			void ILightingZoneEffect<ReactiveEffect>.ApplyEffect(in ReactiveEffect effect) => Device.SetCurrentEffect(effect);
-			bool ILightingZoneEffect<ReactiveEffect>.TryGetCurrentEffect(out ReactiveEffect effect) => Device._currentEffect.TryGetEffect(out effect);
+			void ILightingZoneEffect<ReactiveEffect>.ApplyEffect(in ReactiveEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<ReactiveEffect>.TryGetCurrentEffect(out ReactiveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}
 
-		private class UnifiedBasicLightingZone : BasicLightingZone, IUnifiedLightingFeature
-		{
-			public bool IsUnifiedLightingEnabled => true;
-
-			public UnifiedBasicLightingZone(BaseDevice device, Guid zoneId) : base(device, zoneId)
-			{
-			}
-		}
-
-		private class UnifiedReactiveLightingZone : ReactiveLightingZone, IUnifiedLightingFeature
+		protected class UnifiedBasicLightingZoneV2 : BasicLightingZoneV2, IUnifiedLightingFeature
 		{
 			public bool IsUnifiedLightingEnabled => true;
 
-			public UnifiedReactiveLightingZone(BaseDevice device, Guid zoneId) : base(device, zoneId)
+			public UnifiedBasicLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
 			{
 			}
 		}
 
-		private ILightingEffect _appliedEffect;
-		private ILightingEffect _currentEffect;
+		protected class UnifiedReactiveLightingZoneV2 : ReactiveLightingZoneV2, IUnifiedLightingFeature
+		{
+			public bool IsUnifiedLightingEnabled => true;
+
+			public UnifiedReactiveLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
+		protected class BasicLightingZoneV1 : LightingZoneV1,
+			ILightingZoneEffect<StaticColorEffect>,
+			ILightingZoneEffect<ColorPulseEffect>,
+			ILightingZoneEffect<TwoColorPulseEffect>,
+			ILightingZoneEffect<RandomColorPulseEffect>,
+			ILightingZoneEffect<SpectrumCycleEffect>,
+			ILightingZoneEffect<SpectrumWaveEffect>
+		{
+			public BasicLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId)
+			{
+			}
+
+			void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
+			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
+			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
+			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => SetCurrentEffect(RandomColorPulseEffect.SharedInstance);
+			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
+			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
+
+			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class ReactiveLightingZoneV1 : BasicLightingZoneV1, ILightingZoneEffect<ReactiveEffect>
+		{
+			public ReactiveLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			{
+			}
+
+			void ILightingZoneEffect<ReactiveEffect>.ApplyEffect(in ReactiveEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<ReactiveEffect>.TryGetCurrentEffect(out ReactiveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class UnifiedBasicLightingZoneV1 : BasicLightingZoneV1, IUnifiedLightingFeature
+		{
+			public bool IsUnifiedLightingEnabled => true;
+
+			public UnifiedBasicLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
+		protected class UnifiedReactiveLightingZoneV1 : ReactiveLightingZoneV1, IUnifiedLightingFeature
+		{
+			public bool IsUnifiedLightingEnabled => true;
+
+			public UnifiedReactiveLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
+		private sealed class LightingFeatureSet : IDeviceFeatureSet<ILightingDeviceFeature>
+		{
+			private readonly BaseDevice _device;
+
+			public LightingFeatureSet(BaseDevice device) => _device = device;
+
+			public ILightingDeviceFeature? this[Type type]
+			{
+				get
+				{
+					if (type == typeof(IUnifiedLightingFeature) && _device.HasUnifiedLighting)
+					{
+						return _device._unifiedLightingZone as IUnifiedLightingFeature;
+					}
+
+					return type == typeof(ILightingControllerFeature) && _device.HasLightingZones ||
+						type == typeof(ILightingBrightnessFeature) && _device.HasUnifiedLighting ||
+						type == typeof(ILightingDeferredChangesFeature) ?
+							_device :
+							null;
+				}
+			}
+
+			T? IDeviceFeatureSet<ILightingDeviceFeature>.GetFeature<T>() where T : class => Unsafe.As<T>(GetFeature<T>());
+
+			private ILightingDeviceFeature? GetFeature<T>() where T : class
+			{
+				if (typeof(T) == typeof(IUnifiedLightingFeature) && _device.HasUnifiedLighting)
+				{
+					return _device._unifiedLightingZone as IUnifiedLightingFeature;
+				}
+
+				return typeof(T) == typeof(ILightingControllerFeature) && _device.HasLightingZones ||
+					typeof(T) == typeof(ILightingBrightnessFeature) && _device.HasUnifiedLighting ||
+					typeof(T) == typeof(ILightingDeferredChangesFeature) ?
+						_device :
+						null;
+			}
+
+			public bool IsEmpty => false;
+
+			public int Count
+			{
+				get
+				{
+					int count = 1;
+
+					if (_device.HasUnifiedLighting) count += 2;
+					if (_device.HasLightingZones) count++;
+
+					return count;
+				}
+			}
+
+			public IEnumerator<KeyValuePair<Type, ILightingDeviceFeature>> GetEnumerator()
+			{
+				if (_device.HasUnifiedLighting)
+				{
+					yield return new(typeof(IUnifiedLightingFeature), (IUnifiedLightingFeature)_device._unifiedLightingZone!);
+					yield return new(typeof(IBrightnessLightingEffect), _device);
+				}
+				if (_device.HasLightingZones)
+				{
+					yield return new(typeof(ILightingControllerFeature), _device);
+				}
+				yield return new(typeof(ILightingDeferredChangesFeature), _device);
+			}
+
+			IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+		}
+
 		// How do we use this ?
 		private readonly byte _deviceIndex;
-		private byte _appliedBrightness;
-		private byte _currentBrightness;
 		private byte _lowPowerBatteryThreshold;
 		private ushort _batteryLevelAndChargingStatus;
 		private ushort _idleTimer;
 		private readonly AsyncLock _lightingLock;
 		private readonly AsyncLock _batteryStateLock;
+		private readonly LightingZone? _unifiedLightingZone;
+		private readonly ImmutableArray<LightingZone> _lightingZones;
 		private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
+		private bool _isUnifiedLightingEnabled;
+
+		protected bool HasUnifiedLighting => _unifiedLightingZone is not null;
+		protected bool HasLightingZones => !_lightingZones.IsDefaultOrEmpty;
 
 		protected bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
 		protected bool HasLighting => (_deviceFlags & RazerDeviceFlags.HasLighting) != 0;
@@ -135,7 +395,8 @@ public abstract partial class RazerDeviceDriver
 		protected BaseDevice
 		(
 			IRazerProtocolTransport transport,
-			Guid lightingZoneId,
+			in DeviceInformation deviceInformation,
+			ImmutableArray<byte> ledIds,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			ImmutableArray<DeviceId> deviceIds,
@@ -143,32 +404,57 @@ public abstract partial class RazerDeviceDriver
 			RazerDeviceFlags deviceFlags
 		) : base(transport, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
-			_appliedEffect = DisabledEffect.SharedInstance;
-			_currentEffect = DisabledEffect.SharedInstance;
 			_lightingLock = new();
 			_batteryStateLock = new();
-			_currentBrightness = 0x54; // 33%
 			_lowPowerBatteryThreshold = 1;
 			_idleTimer = 1;
+
+			(_unifiedLightingZone, _lightingZones) = CreateLightingZones(in deviceInformation, ledIds);
+
+			// TODO: Better (No devices with proper multiple zones at the moment)
+			_isUnifiedLightingEnabled = _unifiedLightingZone is not null && _lightingZones.Length == 0;
 
 			_powerManagementFeatures = HasBattery ?
 				FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature>(this) :
 				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
-			_lightingFeatures = HasLighting ?
-				HasReactiveLighting ?
-					FeatureSet.Create<
-						ILightingDeviceFeature,
-						UnifiedReactiveLightingZone,
-						ILightingDeferredChangesFeature,
-						IUnifiedLightingFeature,
-						ILightingBrightnessFeature>(new(this, lightingZoneId)) :
-					FeatureSet.Create<ILightingDeviceFeature,
-						UnifiedBasicLightingZone,
-						ILightingDeferredChangesFeature,
-						IUnifiedLightingFeature,
-						ILightingBrightnessFeature>(new(this, lightingZoneId)) :
-				FeatureSet.Empty<ILightingDeviceFeature>();
+			_lightingFeatures = CreateLightingFeatures();
+		}
+
+		protected virtual IDeviceFeatureSet<ILightingDeviceFeature> CreateLightingFeatures()
+			=> HasLighting ? new LightingFeatureSet(this) : FeatureSet.Empty<ILightingDeviceFeature>();
+
+		protected virtual (LightingZone? UnifiedLightingZone, ImmutableArray<LightingZone> LightingZones) CreateLightingZones(in DeviceInformation deviceInformation, ImmutableArray<byte> ledIds)
+		{
+			LightingZone? unifiedLightingZone = null;
+
+			if (deviceInformation.HasLighting && deviceInformation.LightingZoneGuid is not null)
+			{
+				// NB: We don't support anything other than the unified lighting zone for now.
+				// This code will need to be adapted to support multi zone devices if needed.
+				// (NB: Mamba Chroma is technically a multi zone device, as its support is fused with the dock, but we expose the dock separately from the mouse)
+				var lightingZoneGuid = deviceInformation.LightingZoneGuid.GetValueOrDefault();
+				if (deviceInformation.HasLightingV2)
+				{
+					if (!ledIds.IsDefaultOrEmpty)
+					{
+						//var ledIds = await transport.GetLightingZoneIdsAsync(cancellationToken).ConfigureAwait(false);
+
+						byte ledId = ledIds[0];
+
+						unifiedLightingZone = deviceInformation.HasReactiveLighting ?
+							new UnifiedReactiveLightingZoneV2(this, lightingZoneGuid, ledId) :
+							new UnifiedBasicLightingZoneV2(this, lightingZoneGuid, ledId);
+					}
+				}
+				else
+				{
+					unifiedLightingZone = deviceInformation.HasReactiveLighting ?
+						new UnifiedReactiveLightingZoneV1(this, lightingZoneGuid, 0) :
+						new UnifiedBasicLightingZoneV1(this, lightingZoneGuid, 0);
+				}
+			}
+			return (unifiedLightingZone, []);
 		}
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
@@ -193,25 +479,13 @@ public abstract partial class RazerDeviceDriver
 				_idleTimer = await _transport.GetIdleTimerAsync(cancellationToken).ConfigureAwait(false);
 			}
 
-			// No idea if that's the right thing to do but it seem to produce some valid good results. (Might just be by coincidence)
-			if (HasLighting)
+			if (_unifiedLightingZone is { })
 			{
-				if (!HasLightingV2)
-				{
-					_currentBrightness = await _transport.GetBrightnessV1Async(cancellationToken).ConfigureAwait(false);
-					//_appliedEffect = await _transport.GetSavedLegacyEffectAsync(cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
-					_appliedEffect = DisabledEffect.SharedInstance;
-				}
-				else
-				{
-					byte flag = await _transport.GetDeviceInformationXxxxxAsync(cancellationToken).ConfigureAwait(false);
-					_currentBrightness = await _transport.GetBrightnessV2Async(true, flag, cancellationToken).ConfigureAwait(false);
-					_appliedEffect = await _transport.GetSavedEffectV2Async(flag, cancellationToken).ConfigureAwait(false) ?? DisabledEffect.SharedInstance;
-
-					// Reapply the persisted effect. (In case it was overridden by a temporary effect)
-					await ApplyEffectAsync(_appliedEffect, _currentBrightness, false, true, cancellationToken).ConfigureAwait(false);
-				}
-				_currentEffect = _appliedEffect;
+				await _unifiedLightingZone.InitializeAsync(1, cancellationToken).ConfigureAwait(false);
+			}
+			foreach (var zone in _lightingZones)
+			{
+				await zone.InitializeAsync(1, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -276,43 +550,42 @@ public abstract partial class RazerDeviceDriver
 		IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
 		IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
-		private byte CurrentBrightness
+		IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => ImmutableCollectionsMarshal.AsArray(_lightingZones)!;
+
+		LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+		ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => ApplyChangesAsync(shouldPersist, default);
+
+		byte ILightingBrightnessFeature.MaximumBrightness => 255;
+		byte ILightingBrightnessFeature.CurrentBrightness
 		{
-			get => Volatile.Read(ref _currentBrightness);
-			set
-			{
-				lock (_lightingLock)
-				{
-					_currentBrightness = value;
-				}
-			}
+			get => (_unifiedLightingZone as LightingZone)?.GetBrightness() ?? 0;
+			set { if (_unifiedLightingZone is LightingZone lz) lz.SetBrightness(value); }
 		}
 
 		private async ValueTask ApplyChangesAsync(bool shouldPersist, CancellationToken cancellationToken)
 		{
 			using (await _lightingLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				if (shouldPersist || !ReferenceEquals(_appliedEffect, _currentEffect))
-				{
-					if (!HasLightingV2)
-					{
-						await ApplyLegacyEffectAsync(_currentEffect, _currentBrightness, shouldPersist, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
-					}
-					else
-					{
-						await ApplyEffectAsync(_currentEffect, _currentBrightness, shouldPersist, _appliedEffect is DisabledEffect || _appliedBrightness != _currentBrightness, cancellationToken).ConfigureAwait(false);
-					}
-					_appliedEffect = _currentEffect;
-				}
-				else if (!ReferenceEquals(_currentEffect, DisabledEffect.SharedInstance) && _appliedBrightness != _currentBrightness)
-				{
-					await _transport.SetBrightnessV2Async(shouldPersist, _currentBrightness, cancellationToken).ConfigureAwait(false);
-				}
-				_appliedBrightness = _currentBrightness;
+				await ApplyLightingChangesAsync(shouldPersist, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
-		private async ValueTask ApplyLegacyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
+		protected virtual async ValueTask ApplyLightingChangesAsync(bool shouldPersist, CancellationToken cancellationToken)
+		{
+			if (_isUnifiedLightingEnabled)
+			{
+				await _unifiedLightingZone!.ApplyAsync(shouldPersist ? (byte)1 : (byte)0, cancellationToken).ConfigureAwait(false);
+			}
+			else
+			{
+				foreach (var zone in _lightingZones)
+				{
+					await zone.ApplyAsync(shouldPersist ? (byte)1 : (byte)0, cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
+
+		protected async ValueTask ApplyLegacyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
@@ -354,7 +627,7 @@ public abstract partial class RazerDeviceDriver
 			}
 		}
 
-		private async ValueTask ApplyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
+		protected async ValueTask ApplyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
 		{
 			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
 			{
@@ -393,14 +666,6 @@ public abstract partial class RazerDeviceDriver
 			case ReactiveEffect reactiveEffect:
 				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
 				break;
-			}
-		}
-
-		private void SetCurrentEffect(ILightingEffect effect)
-		{
-			lock (_lightingLock)
-			{
-				_currentEffect = effect;
 			}
 		}
 

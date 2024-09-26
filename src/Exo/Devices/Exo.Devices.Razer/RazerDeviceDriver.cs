@@ -90,6 +90,10 @@ public abstract partial class RazerDeviceDriver :
 		public bool HasBluetoothProductId => (Flags & RazerDeviceFlags.HasBluetoothProductId) != 0;
 		public bool HasBluetoothLowEnergyProductId => (Flags & RazerDeviceFlags.HasBluetoothLowEnergyProductId) != 0;
 
+		public bool HasLighting => (Flags & RazerDeviceFlags.HasLighting) != 0;
+		public bool HasLightingV2 => (Flags & RazerDeviceFlags.HasLightingV2) != 0;
+		public bool HasReactiveLighting => (Flags & RazerDeviceFlags.HasReactiveLighting) != 0;
+
 		public bool IsReceiver => (Flags & RazerDeviceFlags.IsReceiver) != 0;
 
 		public ushort GetMainProductId()
@@ -581,6 +585,12 @@ public abstract partial class RazerDeviceDriver :
 		CancellationToken cancellationToken
 	)
 	{
+		ImmutableArray<byte> ledIds = [];
+		if (deviceInfo.HasLighting && deviceInfo.HasLightingV2)
+		{
+			ledIds = await transport.GetLightingZoneIdsAsync(cancellationToken).ConfigureAwait(false);
+		}
+
 		// Determine the main device ID using priority rules.
 		ushort mainProductId = deviceInfo.GetMainProductId();
 		var deviceIds = deviceInfo.GetDeviceIds(versionNumber);
@@ -595,7 +605,8 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				notificationStream,
 				notificationOptions,
-				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				in deviceInfo,
+				ledIds,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -607,7 +618,8 @@ public abstract partial class RazerDeviceDriver :
 				transport,
 				notificationStream,
 				notificationOptions,
-				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				in deviceInfo,
+				ledIds,
 				deviceInfo.MaximumDpi,
 				MaximumPollingFrequency,
 				SupportedPollingFrequencyDividerPowers,
@@ -624,7 +636,8 @@ public abstract partial class RazerDeviceDriver :
 				notificationStream,
 				notificationOptions,
 				DeviceCategory.MouseDock,
-				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				in deviceInfo,
+				ledIds,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -684,6 +697,12 @@ public abstract partial class RazerDeviceDriver :
 		CancellationToken cancellationToken
 	)
 	{
+		ImmutableArray<byte> ledIds = [];
+		if (deviceInfo.HasLighting && deviceInfo.HasLightingV2)
+		{
+			ledIds = await transport.GetLightingZoneIdsAsync(cancellationToken).ConfigureAwait(false);
+		}
+
 		// Determine the main device ID using priority rules.
 		ushort mainProductId = deviceInfo.GetMainProductId();
 		var deviceIds = deviceInfo.GetDeviceIds(versionNumber);
@@ -702,7 +721,8 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Keyboard => new Keyboard
 			(
 				transport,
-				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				in deviceInfo,
+				ledIds,
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
@@ -712,7 +732,8 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse => new Mouse
 			(
 				transport,
-				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				in deviceInfo,
+				ledIds,
 				deviceInfo.MaximumDpi,
 				MaximumPollingFrequency,
 				SupportedPollingFrequencyDividerPowers,
@@ -727,7 +748,8 @@ public abstract partial class RazerDeviceDriver :
 			(
 				transport,
 				DeviceCategory.MouseDock,
-				deviceInfo.LightingZoneGuid.GetValueOrDefault(),
+				in deviceInfo,
+				ledIds,
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,

@@ -1,6 +1,6 @@
 # Razer Platform 3
 
-Platform 3 is the name given by Razer for this protocol used for Chroma devices and newer.
+Platform 2 and Platform 3 are the names given by Razer for this protocol used for Chroma devices and newer. (Also saw a reference to "Protocol 2.5" in the files 🤷)
 This protocol uses 90 byte packets sent and received through HID Feature GET/SET on report ID `00`.
 
 Razer generally installs kernel drivers to access those devices, although their use does not seem to be strictly necessary.
@@ -372,6 +372,12 @@ Maybe this is used to confirm the ID of the connected device ? It would be usefu
 
 (Length 9, with one parameter)
 
+##### Function `02`:`01` - Single Hard Switch Status
+
+```
+<Parameter:U8> <Boolean:U8>
+```
+
 ##### Function `02`:`06` - Function Key Alternate State
 
 ```
@@ -383,6 +389,9 @@ Value might be a boolean.
 #### Category `03` - Lighting V1
 
 This feature is used by older Chroma devices. Newer ones like DeathAdder V2 Pro will use `0F`.
+
+Apparently, persistence is supposed to be disabled by default for LedIds `03`, `07` and `09`, whatever the meaning is.
+Also disabled for device PID `0118` (USB ID Database: RZ03-0080, Gaming Keyboard [Deathstalker Essential])
 
 ##### Function `03`:`00` - LED On/Off
 
@@ -512,15 +521,24 @@ Format of the command is dependent on the effect, however, the first byte is alw
 <Effect:U8>
 ```
 
-##### Function `03`:`0E` - Lighting effect?
+##### Function `03`:`0E` - LED Pulsating Extended Param
 
-To be investigated but IIRC, I observed this one when setting effect on the dock instead of the mouse.
-
-##### Function `03`:`0F` - LED Sync
+When setting an effect on the Mamba Chroma Dock:
 
 ```
-<Boolean:U8>
+00 3f 000000 09030e 01 0f 02 00ffff ff00ff 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800
 ```
+
+This is setting the breathing effect with two colors.
+
+
+##### Function `03`:`0F` - Dock Lighting Synchronization
+
+```
+<Persist:U8> <LedId:U8> <Boolean:U8>
+```
+
+This would be the command used to synchronize the dock lighting effect with the mouse's lighting effect.
 
 ##### Function `03`:`10` - Charging Effect
 
@@ -822,7 +840,11 @@ Status is `01` if external power is connected, and `00` otherwise.
 
 ##### Function `09`:`00` - Information
 
+Length 22
+
 ##### Function `09`:`01` - Brightness
+
+Length 3; 2 parameters
 
 #### Category `0B` - Sensor
 
@@ -1032,16 +1054,22 @@ This lighting feature is for newer Razer devices. Older ones might use `03`.
 
 Both features offer similar capabilities but there are actual differences.
 
-##### Function `0F`:`00` - Lighting device information ??
+For example, the persist flag is replaced by a profile id. This does however not make an actual difference for devices supporting a single profile.
+
+##### Function `0F`:`00` - Lighting device information
 
 Read Response:
 
 ```
-<Magic:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8>
+[<LedId:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8> <Unknown:U8> […]]
 ```
 
-The meaning of the bytes is not certain, but the first byte returned seems to be important for other commands.
-It could very well be a "RGB Lighting feature version" thing.
+This returns informations items about a lighting device. Maximum (requested) length is 50 bytes (`32`), and returned length is 5 * number of items.
+
+Presumably, the first byte of these packets is the LedID.
+This call should return the list of LEDs or lighting zones supported by the device, up to 10.
+
+Meaning of values other than the first byte are unknown (but they do have a meaning for sure) and Synapse does not seem to use them either 🤷
 
 Typical response examples:
 
@@ -1053,19 +1081,19 @@ Typical response examples:
 Read Request:
 
 ```
-<Persist?:U8> <Magic:U8>
+<ProfileId?:U8> <Magic:U8>
 ```
 
 Read Response:
 
 ```
-<Zero:U8> <Magic:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
+<ProfileId?:U8> <Magic:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
 ```
 
 Write:
 
 ```
-<Persist:U8> <Zero:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
+<ProfileId:U8> <Zero:U8> <Effect:U8> <Parameter0:U8> <Parameter1:U8> <ColorCount:U8> <Color0:RGB> <Color1:RGB>
 ```
 
 The parameters passed to read commands are usually `01` followed by the "magic" byte read from the device information earlier.
@@ -1088,19 +1116,19 @@ It ignores the current effect and overrides it.
 Read Request:
 
 ```
-<Persist?:U8> <LedId:U8>
+<ProfileId?:U8> <LedId:U8>
 ```
 
 Read Response:
 
 ```
-<Persist:U8> <LedId:U8> <Brightness:P8>
+<ProfileId:U8> <LedId:U8> <Brightness:P8>
 ```
 
 Write:
 
 ```
-<Persist?:U8> <Zero:U8> <Brightness:P8>
+<ProfileId?:U8> <Zero:U8> <Brightness:P8>
 ```
 
 This writes the lighting level used for all lighting on the device.

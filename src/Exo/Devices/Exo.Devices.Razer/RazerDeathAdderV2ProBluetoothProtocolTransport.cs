@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -329,8 +330,10 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
+	private static readonly ImmutableArray<byte> LedIds = [4];
+
 	// TODO: Should find a way to make this return the information that we need. The value is currently hardcoded.
-	public ValueTask<byte> GetDeviceInformationXxxxxAsync(CancellationToken cancellationToken) => ValueTask.FromResult<byte>(4);
+	public ValueTask<ImmutableArray<byte>> GetLightingZoneIdsAsync(CancellationToken cancellationToken) => ValueTask.FromResult(LedIds);
 
 	public async ValueTask<ILightingEffect?> GetSavedEffectV2Async(byte flag, CancellationToken cancellationToken)
 	{
