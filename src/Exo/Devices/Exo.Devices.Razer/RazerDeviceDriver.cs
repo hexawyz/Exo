@@ -36,6 +36,7 @@ public abstract partial class RazerDeviceDriver :
 		public DeviceInformation
 		(
 			RazerDeviceCategory deviceCategory,
+			RazerLedId mainLedId,
 			RazerDeviceFlags flags,
 			ushort wiredDeviceProductId,
 			ushort dongleDeviceProductId,
@@ -48,6 +49,7 @@ public abstract partial class RazerDeviceDriver :
 		)
 		{
 			DeviceCategory = deviceCategory;
+			MainLedId = mainLedId;
 			Flags = flags;
 			MaximumDpi = maximumDpi;
 			WiredDeviceProductId = wiredDeviceProductId;
@@ -60,6 +62,8 @@ public abstract partial class RazerDeviceDriver :
 		}
 
 		public RazerDeviceCategory DeviceCategory { get; }
+
+		public RazerLedId MainLedId { get; }
 
 		public RazerDeviceFlags Flags { get; }
 
@@ -93,6 +97,7 @@ public abstract partial class RazerDeviceDriver :
 		public bool HasLighting => (Flags & RazerDeviceFlags.HasLighting) != 0;
 		public bool HasLightingV2 => (Flags & RazerDeviceFlags.HasLightingV2) != 0;
 		public bool HasReactiveLighting => (Flags & RazerDeviceFlags.HasReactiveLighting) != 0;
+		public bool UseNonUnifiedLightingAsUnified => (Flags & RazerDeviceFlags.UseNonUnifiedLightingAsUnified) != 0;
 
 		public bool IsReceiver => (Flags & RazerDeviceFlags.IsReceiver) != 0;
 
@@ -169,15 +174,16 @@ public abstract partial class RazerDeviceDriver :
 		HasLighting = 0x40,
 		HasLightingV2 = 0x80,
 		HasReactiveLighting = 0x100,
+		UseNonUnifiedLightingAsUnified = 0x200,
 
-		HasDpi = 0x200,
-		HasDpiPresets = 0x400,
-		HasDpiPresetsRead = 0x800,
-		HasDpiPresetsV2 = 0x1000,
+		HasDpi = 0x400,
+		HasDpiPresets = 0x800,
+		HasDpiPresetsRead = 0x1000,
+		HasDpiPresetsV2 = 0x2000,
 
 		// Added for Mamba Chroma but maybe nor necessary ?
-		MustSetDeviceMode3 = 0x2000,
-		MustSetSensorState5 = 0x4000,
+		MustSetDeviceMode3 = 0x4000,
+		MustSetSensorState5 = 0x8000,
 	}
 
 	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
@@ -200,11 +206,13 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Mouse,
+			RazerLedId.Backlight,
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasReactiveLighting |
+				//RazerDeviceFlags.UseNonUnifiedLightingAsUnified |
 				RazerDeviceFlags.HasDpi/* |
 				RazerDeviceFlags.MustSetDeviceMode3 |
 				RazerDeviceFlags.MustSetSensorState5*/,
@@ -220,9 +228,11 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.DockReceiver,
+			RazerLedId.Dongle,
 			RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasLighting |
+				RazerDeviceFlags.UseNonUnifiedLightingAsUnified |
 				RazerDeviceFlags.IsReceiver,
 			0x0044,
 			0x0045,
@@ -236,6 +246,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Mouse,
+			RazerLedId.Logo,
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasLightingV2 |
@@ -259,6 +270,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.UsbReceiver,
+			RazerLedId.None,
 			// TODO: Remove the non-dongle flags (the device has its own config ID), and make it so that it works fine in case it doesn't.
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasLighting |
@@ -284,6 +296,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Dock,
+			RazerLedId.Backlight,
 			RazerDeviceFlags.HasWiredProductId | RazerDeviceFlags.HasLighting | RazerDeviceFlags.HasLightingV2,
 			0x007E,
 			0xFFFF,
@@ -297,6 +310,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.Mouse,
+			RazerLedId.Logo,
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
@@ -316,6 +330,7 @@ public abstract partial class RazerDeviceDriver :
 		new
 		(
 			RazerDeviceCategory.UsbReceiver,
+			RazerLedId.None,
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |

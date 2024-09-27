@@ -948,10 +948,10 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 	}
 
 	public ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV1Async(CancellationToken cancellationToken)
-		=> GetDpiPresetsAsync(0x3F, 0x83, false, cancellationToken);
+		=> GetDpiPresetsAsync(0x1f, 0x83, false, cancellationToken);
 
 	public Task SetDpiPresetsV1Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken)
-		=> SetDpiPresetsAsync(0x3F, 0x03, persist, false, configuration, cancellationToken);
+		=> SetDpiPresetsAsync(0x1f, 0x03, persist, false, configuration, cancellationToken);
 
 	public ValueTask<RazerMouseDpiProfileConfiguration> GetDpiPresetsV2Async(CancellationToken cancellationToken)
 		=> GetDpiPresetsAsync(0x1F, 0x86, false, cancellationToken);

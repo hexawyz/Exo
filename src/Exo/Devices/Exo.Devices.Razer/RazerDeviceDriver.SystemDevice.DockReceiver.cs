@@ -19,119 +19,6 @@ public abstract partial class RazerDeviceDriver
 		// TODO: Implement the lighting for the dock. (As a technical "children" of the mouse device)
 		public sealed class DockReceiver : BaseDevice
 		{
-			private sealed class DockLightingZone : LightingZone,
-				ILightingZoneEffect<StaticColorEffect>,
-				ILightingZoneEffect<RandomColorPulseEffect>,
-				ILightingZoneEffect<ColorPulseEffect>,
-				ILightingZoneEffect<TwoColorPulseEffect>,
-				ILightingZoneEffect<SpectrumCycleEffect>,
-				ILightingZoneEffect<SynchronizedEffect>,
-				IUnifiedLightingFeature
-			{
-				private readonly RazerLedId _ledId;
-
-				public DockLightingZone(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId)
-				{
-					_ledId = ledId;
-				}
-
-				protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
-					=> Transport.GetBrightnessV1Async(_ledId, cancellationToken);
-
-				protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
-					=> Transport.SetBrightnessV1Async(_ledId, brightness, cancellationToken);
-
-				protected override async ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
-				{
-					if (await Transport.IsSynchronizedLightingEnabledV1Async(_ledId, cancellationToken).ConfigureAwait(false))
-					{
-						return SynchronizedEffect.SharedInstance;
-					}
-					else return DisabledEffect.SharedInstance;
-				}
-
-				protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)
-				{
-					var transport = Transport;
-
-					// TODO: Refactor to have better state management.
-					// Need to entirely split out the logic from the base class, as it turns out.
-					// Basically, with this feature, the effects parameters are set using different functions, which may or may not override eachother.
-					// We do not need to overwrite settings that already have the correct value and as such, we can save I/O.
-					bool shouldEnableLed = true;
-					bool shouldDisableSynchronization = true;
-					bool shouldChangeCurrentEffect = true;
-
-					RazerLightingEffectV1 effectId = RazerLightingEffectV1.Disabled;
-
-					switch (effect)
-					{
-					case DisabledEffect:
-						await transport.EnableLedV1Async(_ledId, false, cancellationToken);
-						shouldEnableLed = false;
-						break;
-					case StaticColorEffect staticColorEffect:
-						await transport.SetStaticColorV1Async(_ledId, staticColorEffect.Color, cancellationToken);
-						effectId = RazerLightingEffectV1.Static;
-						break;
-					case RandomColorPulseEffect:
-						await transport.SetBreathingEffectParametersV1Async(_ledId, cancellationToken);
-						effectId = RazerLightingEffectV1.Breathing;
-						break;
-					case ColorPulseEffect colorPulseEffect:
-						await transport.SetBreathingEffectParametersV1Async(_ledId, colorPulseEffect.Color, cancellationToken);
-						effectId = RazerLightingEffectV1.Breathing;
-						break;
-					case TwoColorPulseEffect twoColorPulseEffect:
-						await transport.SetBreathingEffectParametersV1Async(_ledId, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
-						effectId = RazerLightingEffectV1.Breathing;
-						break;
-					case SpectrumCycleEffect:
-						effectId = RazerLightingEffectV1.SpectrumCycle;
-						break;
-					case SynchronizedEffect:
-						await transport.SetSynchronizedLightingV1Async(_ledId, true, cancellationToken);
-						shouldEnableLed = false;
-						shouldDisableSynchronization = false;
-						shouldChangeCurrentEffect = false;
-						break;
-					default:
-						throw ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentException("Unsupported effect"));
-					}
-
-					if (shouldChangeCurrentEffect)
-					{
-						await transport.SetEffectV1Async(_ledId, effectId, cancellationToken);
-					}
-					if (shouldEnableLed)
-					{
-						await transport.EnableLedV1Async(_ledId, true, cancellationToken);
-					}
-					if (shouldDisableSynchronization)
-					{
-						await transport.SetSynchronizedLightingV1Async(_ledId, false, cancellationToken).ConfigureAwait(false);
-					}
-				}
-
-				void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
-				bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
-
-				void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => SetCurrentEffect(effect);
-				bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-
-				void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
-				bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-
-				void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
-				bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-
-				void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(effect);
-				bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
-
-				void ILightingZoneEffect<SynchronizedEffect>.ApplyEffect(in SynchronizedEffect effect) => SetCurrentEffect(effect);
-				bool ILightingZoneEffect<SynchronizedEffect>.TryGetCurrentEffect(out SynchronizedEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			}
-
 			private readonly RazerDeviceNotificationWatcher _watcher;
 			private readonly IDriverRegistry _driverRegistry;
 			private RazerDeviceDriver? _pairedDevice;
@@ -160,7 +47,7 @@ public abstract partial class RazerDeviceDriver
 			public override DeviceCategory DeviceCategory => DeviceCategory.MouseDock;
 
 			protected override (LightingZone? UnifiedLightingZone, ImmutableArray<LightingZone> LightingZones) CreateLightingZones(in DeviceInformation deviceInformation, ImmutableArray<RazerLedId> ledIds)
-				=> (new DockLightingZone(this, deviceInformation.LightingZoneGuid.GetValueOrDefault(), RazerLedId.Dongle), []);
+				=> (new DockLightingZoneV1(this, deviceInformation.LightingZoneGuid.GetValueOrDefault(), RazerLedId.Dongle), []);
 
 			protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
 			{

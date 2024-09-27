@@ -114,24 +114,184 @@ public abstract partial class RazerDeviceDriver
 			bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}
 
-		protected class LightingZoneV1 : LightingZone
+		protected class LightingZoneV1 : LightingZone,
+			ILightingZoneEffect<StaticColorEffect>,
+			ILightingZoneEffect<RandomColorPulseEffect>,
+			ILightingZoneEffect<ColorPulseEffect>,
+			ILightingZoneEffect<TwoColorPulseEffect>,
+			ILightingZoneEffect<SpectrumCycleEffect>,
+			IUnifiedLightingFeature
 		{
 			private readonly RazerLedId _ledId;
 
-			public LightingZoneV1(BaseDevice device, Guid zoneId) : base(device, zoneId)
+			public LightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId)
 			{
-				// TODO: Make this non hardcoded.
-				_ledId = RazerLedId.Backlight;
+				_ledId = ledId;
 			}
 
 			protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
 				=> Transport.GetBrightnessV1Async(_ledId, cancellationToken);
 
+			protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
+				=> Transport.SetBrightnessV1Async(_ledId, brightness, cancellationToken);
+
+			protected override async ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
+			{
+				if (this is ILightingZoneEffect<SynchronizedEffect> && await Transport.IsSynchronizedLightingEnabledV1Async(_ledId, cancellationToken).ConfigureAwait(false))
+				{
+					return SynchronizedEffect.SharedInstance;
+				}
+				else return DisabledEffect.SharedInstance;
+			}
+
+			protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)
+			{
+				var transport = Transport;
+
+				// TODO: Refactor to have better state management.
+				// Need to entirely split out the logic from the base class, as it turns out.
+				// Basically, with this feature, the effects parameters are set using different functions, which may or may not override eachother.
+				// We do not need to overwrite settings that already have the correct value and as such, we can save I/O.
+				bool shouldEnableLed = true;
+				bool shouldDisableSynchronization = true;
+				bool shouldChangeCurrentEffect = true;
+
+				RazerLightingEffectV1 effectId = RazerLightingEffectV1.Disabled;
+
+				switch (effect)
+				{
+				case DisabledEffect:
+					await transport.EnableLedV1Async(_ledId, false, cancellationToken);
+					shouldEnableLed = false;
+					break;
+				case StaticColorEffect staticColorEffect:
+					await transport.SetStaticColorV1Async(_ledId, staticColorEffect.Color, cancellationToken);
+					effectId = RazerLightingEffectV1.Static;
+					break;
+				case RandomColorPulseEffect:
+					await transport.SetBreathingEffectParametersV1Async(_ledId, cancellationToken);
+					effectId = RazerLightingEffectV1.Breathing;
+					break;
+				case ColorPulseEffect colorPulseEffect:
+					await transport.SetBreathingEffectParametersV1Async(_ledId, colorPulseEffect.Color, cancellationToken);
+					effectId = RazerLightingEffectV1.Breathing;
+					break;
+				case TwoColorPulseEffect twoColorPulseEffect:
+					await transport.SetBreathingEffectParametersV1Async(_ledId, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
+					effectId = RazerLightingEffectV1.Breathing;
+					break;
+				case SpectrumCycleEffect:
+					effectId = RazerLightingEffectV1.SpectrumCycle;
+					break;
+				case SpectrumWaveEffect:
+					effectId = RazerLightingEffectV1.Wave;
+					break;
+				case ReactiveEffect:
+					effectId = RazerLightingEffectV1.Reactive;
+					break;
+				case SynchronizedEffect:
+					await transport.SetSynchronizedLightingV1Async(_ledId, true, cancellationToken);
+					shouldEnableLed = false;
+					shouldDisableSynchronization = false;
+					shouldChangeCurrentEffect = false;
+					break;
+				default:
+					throw ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentException("Unsupported effect"));
+				}
+
+				if (shouldChangeCurrentEffect)
+				{
+					await transport.SetEffectV1Async(_ledId, effectId, cancellationToken);
+				}
+				if (shouldEnableLed)
+				{
+					await transport.EnableLedV1Async(_ledId, true, cancellationToken);
+				}
+				if (shouldDisableSynchronization)
+				{
+					await transport.SetSynchronizedLightingV1Async(_ledId, false, cancellationToken).ConfigureAwait(false);
+				}
+			}
+
+			void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+
+			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+
+			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+
+			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+
+			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected sealed class DockLightingZoneV1 : LightingZoneV1, ILightingZoneEffect<SynchronizedEffect>
+		{
+			public DockLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+
+			void ILightingZoneEffect<SynchronizedEffect>.ApplyEffect(in SynchronizedEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<SynchronizedEffect>.TryGetCurrentEffect(out SynchronizedEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class WaveLightingZoneV1 : LightingZoneV1, ILightingZoneEffect<ColorWaveEffect>
+		{
+			public WaveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+
+			void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class WaveReactiveLightingZoneV1 : WaveLightingZoneV1, ILightingZoneEffect<ReactiveEffect>
+		{
+			public WaveReactiveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+
+			void ILightingZoneEffect<ReactiveEffect>.ApplyEffect(in ReactiveEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<ReactiveEffect>.TryGetCurrentEffect(out ReactiveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		// NB: Naming sucks, but basically, this and the one below are zones implemented as non-unified, but exposed as unified.
+		// (Because we need to control the lighting of Chroma mamba without affecting the lighting of the dock)
+		protected sealed class SingleWaveLightingZoneV1 : WaveReactiveLightingZoneV1, IUnifiedLightingFeature
+		{
+			public SingleWaveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
+		protected sealed class SingleWaveReactiveLightingZoneV1 : WaveReactiveLightingZoneV1, IUnifiedLightingFeature
+		{
+			public SingleWaveReactiveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
+		protected abstract class UnifiedLightingZoneV1 : LightingZone
+		{
+			private readonly RazerLedId _mainLedId;
+
+			public UnifiedLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId mainLedId) : base(device, zoneId)
+			{
+				_mainLedId = mainLedId;
+			}
+
+			protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
+				=> Transport.GetBrightnessV1Async(_mainLedId, cancellationToken);
+
 			protected override ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
 				=> Transport.GetSavedEffectV1Async(cancellationToken);
 
 			protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
-				=> Transport.SetBrightnessV1Async(_ledId, brightness, cancellationToken);
+				=> Transport.SetBrightnessV1Async(_mainLedId, brightness, cancellationToken);
 
 			protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)
 			{
@@ -240,15 +400,16 @@ public abstract partial class RazerDeviceDriver
 			}
 		}
 
-		protected class BasicLightingZoneV1 : LightingZoneV1,
+		protected class BasicUnifiedLightingZoneV1 : UnifiedLightingZoneV1,
 			ILightingZoneEffect<StaticColorEffect>,
 			ILightingZoneEffect<ColorPulseEffect>,
 			ILightingZoneEffect<TwoColorPulseEffect>,
 			ILightingZoneEffect<RandomColorPulseEffect>,
 			ILightingZoneEffect<SpectrumCycleEffect>,
-			ILightingZoneEffect<SpectrumWaveEffect>
+			ILightingZoneEffect<SpectrumWaveEffect>,
+			IUnifiedLightingFeature
 		{
-			public BasicLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId)
+			public BasicUnifiedLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 
@@ -267,28 +428,14 @@ public abstract partial class RazerDeviceDriver
 			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}
 
-		protected class ReactiveLightingZoneV1 : BasicLightingZoneV1, ILightingZoneEffect<ReactiveEffect>
+		protected class ReactiveUnifiedLightingZoneV1 : BasicUnifiedLightingZoneV1, ILightingZoneEffect<ReactiveEffect>
 		{
-			public ReactiveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			public ReactiveUnifiedLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 
 			void ILightingZoneEffect<ReactiveEffect>.ApplyEffect(in ReactiveEffect effect) => SetCurrentEffect(effect);
 			bool ILightingZoneEffect<ReactiveEffect>.TryGetCurrentEffect(out ReactiveEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		}
-
-		protected class UnifiedBasicLightingZoneV1 : BasicLightingZoneV1, IUnifiedLightingFeature
-		{
-			public UnifiedBasicLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
-			{
-			}
-		}
-
-		protected class UnifiedReactiveLightingZoneV1 : ReactiveLightingZoneV1, IUnifiedLightingFeature
-		{
-			public UnifiedReactiveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
-			{
-			}
 		}
 
 		private sealed class LightingFeatureSet : IDeviceFeatureSet<ILightingDeviceFeature>
@@ -447,10 +594,13 @@ public abstract partial class RazerDeviceDriver
 				}
 				else
 				{
-					// TODO: Do not hardcode the led id.
-					unifiedLightingZone = deviceInformation.HasReactiveLighting ?
-						new UnifiedReactiveLightingZoneV1(this, lightingZoneGuid, RazerLedId.Backlight) :
-						new UnifiedBasicLightingZoneV1(this, lightingZoneGuid, RazerLedId.Backlight);
+					unifiedLightingZone = deviceInformation.UseNonUnifiedLightingAsUnified ?
+						deviceInformation.HasReactiveLighting ?
+							new SingleWaveReactiveLightingZoneV1(this, lightingZoneGuid, deviceInformation.MainLedId) :
+							new SingleWaveLightingZoneV1(this, lightingZoneGuid, deviceInformation.MainLedId) :
+						deviceInformation.HasReactiveLighting ?
+							new ReactiveUnifiedLightingZoneV1(this, lightingZoneGuid, deviceInformation.MainLedId) :
+							new BasicUnifiedLightingZoneV1(this, lightingZoneGuid, deviceInformation.MainLedId);
 				}
 			}
 			return (unifiedLightingZone, []);
