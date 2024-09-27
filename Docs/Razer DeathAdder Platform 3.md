@@ -393,6 +393,63 @@ This feature is used by older Chroma devices. Newer ones like DeathAdder V2 Pro 
 Apparently, persistence is supposed to be disabled by default for LedIds `03`, `07` and `09`, whatever the meaning is.
 Also disabled for device PID `0118` (USB ID Database: RZ03-0080, Gaming Keyboard [Deathstalker Essential])
 
+Most functions here do a very little focused change and, multiple functions need to be called to achieve a specific effect.
+
+Function `0A` is different in that regards, as it will set an effect in a single call.
+It does however seem to override both mouse and dock effects in the same call, as it is the only one not having a Led ID specified.
+
+##### Led IDs
+
+Led IDs are hardcoded values, which we can find a list of (names) in the strings of some DLLs.
+A device will only have a specific set of Led IDs, often only one. Those presumably represent lighting zones composed of one or more LEDs.
+
+0. None
+1. ScrollWheel
+3. Dpi
+4. Battery
+5. Logo
+6. Backlight
+7. Apm
+8. Macro
+9. GameMode
+10. WirelessConnected
+11. UnderGlow
+12. SideStripe
+13. KeyMapRed
+14. KeyMapGreen
+15. KeyMapBlue
+16. Dongle
+17. RightIo
+18. LeftIo
+19. AltLogo
+20. Power
+21. Suspend
+22. Fan
+23. DonglePower
+24. MousePower
+25. Volume
+26. Mute
+27. Port1
+28. Port2
+29. Port3
+30. Port4
+31. Port5
+32. Port6
+33. Charging
+34. FastCharging
+35. FullCharging
+36. IosLedArray
+37. Knob
+
+##### Precedence of individual effect states
+
+For correctly applying an effect using the "normal" functions (per Led ID), it is necessary to have in mind the priorities of various settings.
+
+1. Mouse synchronization effect: Will override everything else. (This effect is for mouse docks only)
+2. LED On/Off state: Disabled state will override everything other than the mouse synchronization effect
+3. Effect ID: Effect parameters can be set at any time, but they won't apply unless the effect ID has been selected.
+4. Effect parameters: Some effects take extra parameters. These can be set at any time and will only be used when applicable.
+
 ##### Function `03`:`00` - LED On/Off
 
 Read Request:
@@ -529,8 +586,7 @@ When setting an effect on the Mamba Chroma Dock:
 00 3f 000000 09030e 01 0f 02 00ffff ff00ff 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800
 ```
 
-This is setting the breathing effect with two colors.
-
+This sets the breathing effect parameters for the specified led. It does not enable the breathing effect, which needs to be enabeld separately.
 
 ##### Function `03`:`0F` - Dock Lighting Synchronization
 
@@ -808,7 +864,13 @@ The low power mode is entered when the device's battery level goes below the spe
 
 ##### Function `07`:`02` - Maximum Brightness
 
+Write:
 
+```
+<Brightness:P8>
+```
+
+This sets the battery level of the mouse when it is wireless.
 
 ##### Function `07`:`03` - Power Saving
 

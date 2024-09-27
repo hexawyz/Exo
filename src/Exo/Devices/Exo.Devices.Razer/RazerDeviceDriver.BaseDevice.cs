@@ -43,6 +43,8 @@ public abstract partial class RazerDeviceDriver
 			private bool IsUnifiedLightingZone => ReferenceEquals(this, _device._unifiedLightingZone);
 			protected ILightingEffect CurrentEffect => Device._isUnifiedLightingEnabled == IsUnifiedLightingZone ? _currentEffect : NotApplicableEffect.SharedInstance;
 
+			public bool IsUnifiedLightingEnabled => Device._isUnifiedLightingEnabled;
+
 			public LightingZone(BaseDevice device, Guid zoneId)
 			{
 				_device = device;
@@ -114,18 +116,22 @@ public abstract partial class RazerDeviceDriver
 
 		protected class LightingZoneV1 : LightingZone
 		{
+			private readonly RazerLedId _ledId;
+
 			public LightingZoneV1(BaseDevice device, Guid zoneId) : base(device, zoneId)
 			{
+				// TODO: Make this non hardcoded.
+				_ledId = RazerLedId.Backlight;
 			}
 
 			protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
-				=> Transport.GetBrightnessV1Async(cancellationToken);
+				=> Transport.GetBrightnessV1Async(_ledId, cancellationToken);
 
 			protected override ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
 				=> Transport.GetSavedEffectV1Async(cancellationToken);
 
 			protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
-				=> Transport.SetBrightnessV1Async(brightness, cancellationToken);
+				=> Transport.SetBrightnessV1Async(_ledId, brightness, cancellationToken);
 
 			protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)
 			{
@@ -133,14 +139,14 @@ public abstract partial class RazerDeviceDriver
 
 				await (effect switch
 				{
-					DisabledEffect staticColorEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Disabled, 0, default, default, cancellationToken),
-					StaticColorEffect staticColorEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
-					RandomColorPulseEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 3, default, default, cancellationToken),
-					ColorPulseEffect colorPulseEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
-					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
-					SpectrumCycleEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.SpectrumCycle, 0, default, default, cancellationToken),
-					SpectrumWaveEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Wave, 1, default, default, cancellationToken),
-					ReactiveEffect reactiveEffect => transport.SetEffectV1Async(RazerLegacyLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
+					DisabledEffect staticColorEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Disabled, 0, default, default, cancellationToken),
+					StaticColorEffect staticColorEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
+					RandomColorPulseEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 3, default, default, cancellationToken),
+					ColorPulseEffect colorPulseEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
+					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
+					SpectrumCycleEffect => transport.SetEffectV1Async(RazerLightingEffectV1.SpectrumCycle, 0, default, default, cancellationToken),
+					SpectrumWaveEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Wave, 1, default, default, cancellationToken),
+					ReactiveEffect reactiveEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
 					_ => Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentException("Unsupported effect")))
 				}).ConfigureAwait(false);
 			}
@@ -148,9 +154,9 @@ public abstract partial class RazerDeviceDriver
 
 		protected class LightingZoneV2 : LightingZone
 		{
-			private readonly byte _ledId;
+			private readonly RazerLedId _ledId;
 
-			public LightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId)
+			public LightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId)
 			{
 				_ledId = ledId;
 			}
@@ -170,14 +176,14 @@ public abstract partial class RazerDeviceDriver
 
 				await (effect switch
 				{
-					DisabledEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Disabled, 0, default, default, cancellationToken),
-					StaticColorEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
-					RandomColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Breathing, 3, default, default, cancellationToken),
-					ColorPulseEffect colorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
-					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
-					SpectrumCycleEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken),
-					SpectrumWaveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Wave, 1, default, default, cancellationToken),
-					ReactiveEffect reactiveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
+					DisabledEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Disabled, 0, default, default, cancellationToken),
+					StaticColorEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
+					RandomColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 3, default, default, cancellationToken),
+					ColorPulseEffect colorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
+					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
+					SpectrumCycleEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.SpectrumCycle, 0, default, default, cancellationToken),
+					SpectrumWaveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Wave, 1, default, default, cancellationToken),
+					ReactiveEffect reactiveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
 					_ => Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentException("Unsupported effect")))
 				}).ConfigureAwait(false);
 			}
@@ -191,7 +197,7 @@ public abstract partial class RazerDeviceDriver
 			ILightingZoneEffect<SpectrumCycleEffect>,
 			ILightingZoneEffect<SpectrumWaveEffect>
 		{
-			public BasicLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public BasicLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 
@@ -212,7 +218,7 @@ public abstract partial class RazerDeviceDriver
 
 		protected class ReactiveLightingZoneV2 : BasicLightingZoneV2, ILightingZoneEffect<ReactiveEffect>
 		{
-			public ReactiveLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public ReactiveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 
@@ -222,18 +228,14 @@ public abstract partial class RazerDeviceDriver
 
 		protected class UnifiedBasicLightingZoneV2 : BasicLightingZoneV2, IUnifiedLightingFeature
 		{
-			public bool IsUnifiedLightingEnabled => true;
-
-			public UnifiedBasicLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public UnifiedBasicLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 		}
 
 		protected class UnifiedReactiveLightingZoneV2 : ReactiveLightingZoneV2, IUnifiedLightingFeature
 		{
-			public bool IsUnifiedLightingEnabled => true;
-
-			public UnifiedReactiveLightingZoneV2(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public UnifiedReactiveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 		}
@@ -246,7 +248,7 @@ public abstract partial class RazerDeviceDriver
 			ILightingZoneEffect<SpectrumCycleEffect>,
 			ILightingZoneEffect<SpectrumWaveEffect>
 		{
-			public BasicLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId)
+			public BasicLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId)
 			{
 			}
 
@@ -267,7 +269,7 @@ public abstract partial class RazerDeviceDriver
 
 		protected class ReactiveLightingZoneV1 : BasicLightingZoneV1, ILightingZoneEffect<ReactiveEffect>
 		{
-			public ReactiveLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public ReactiveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 
@@ -277,18 +279,14 @@ public abstract partial class RazerDeviceDriver
 
 		protected class UnifiedBasicLightingZoneV1 : BasicLightingZoneV1, IUnifiedLightingFeature
 		{
-			public bool IsUnifiedLightingEnabled => true;
-
-			public UnifiedBasicLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public UnifiedBasicLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 		}
 
 		protected class UnifiedReactiveLightingZoneV1 : ReactiveLightingZoneV1, IUnifiedLightingFeature
 		{
-			public bool IsUnifiedLightingEnabled => true;
-
-			public UnifiedReactiveLightingZoneV1(BaseDevice device, Guid zoneId, byte ledId) : base(device, zoneId, ledId)
+			public UnifiedReactiveLightingZoneV1(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 		}
@@ -396,7 +394,7 @@ public abstract partial class RazerDeviceDriver
 		(
 			IRazerProtocolTransport transport,
 			in DeviceInformation deviceInformation,
-			ImmutableArray<byte> ledIds,
+			ImmutableArray<RazerLedId> ledIds,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			ImmutableArray<DeviceId> deviceIds,
@@ -424,7 +422,7 @@ public abstract partial class RazerDeviceDriver
 		protected virtual IDeviceFeatureSet<ILightingDeviceFeature> CreateLightingFeatures()
 			=> HasLighting ? new LightingFeatureSet(this) : FeatureSet.Empty<ILightingDeviceFeature>();
 
-		protected virtual (LightingZone? UnifiedLightingZone, ImmutableArray<LightingZone> LightingZones) CreateLightingZones(in DeviceInformation deviceInformation, ImmutableArray<byte> ledIds)
+		protected virtual (LightingZone? UnifiedLightingZone, ImmutableArray<LightingZone> LightingZones) CreateLightingZones(in DeviceInformation deviceInformation, ImmutableArray<RazerLedId> ledIds)
 		{
 			LightingZone? unifiedLightingZone = null;
 
@@ -440,7 +438,7 @@ public abstract partial class RazerDeviceDriver
 					{
 						//var ledIds = await transport.GetLightingZoneIdsAsync(cancellationToken).ConfigureAwait(false);
 
-						byte ledId = ledIds[0];
+						RazerLedId ledId = ledIds[0];
 
 						unifiedLightingZone = deviceInformation.HasReactiveLighting ?
 							new UnifiedReactiveLightingZoneV2(this, lightingZoneGuid, ledId) :
@@ -449,9 +447,10 @@ public abstract partial class RazerDeviceDriver
 				}
 				else
 				{
+					// TODO: Do not hardcode the led id.
 					unifiedLightingZone = deviceInformation.HasReactiveLighting ?
-						new UnifiedReactiveLightingZoneV1(this, lightingZoneGuid, 0) :
-						new UnifiedBasicLightingZoneV1(this, lightingZoneGuid, 0);
+						new UnifiedReactiveLightingZoneV1(this, lightingZoneGuid, RazerLedId.Backlight) :
+						new UnifiedBasicLightingZoneV1(this, lightingZoneGuid, RazerLedId.Backlight);
 				}
 			}
 			return (unifiedLightingZone, []);
@@ -582,90 +581,6 @@ public abstract partial class RazerDeviceDriver
 				{
 					await zone.ApplyAsync(shouldPersist ? (byte)1 : (byte)0, cancellationToken).ConfigureAwait(false);
 				}
-			}
-		}
-
-		protected async ValueTask ApplyLegacyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
-		{
-			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
-			{
-				await _transport.SetEffectV1Async(0, 0, default, default, cancellationToken).ConfigureAwait(false);
-				await _transport.SetBrightnessV1Async(0, cancellationToken);
-				return;
-			}
-
-			// It seems brightness must be restored from zero first before setting a color effect.
-			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
-			if (forceBrightnessUpdate)
-			{
-				await _transport.SetBrightnessV1Async(brightness, cancellationToken);
-			}
-
-			switch (effect)
-			{
-			case StaticColorEffect staticColorEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
-				break;
-			case RandomColorPulseEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 3, default, default, cancellationToken);
-				break;
-			case ColorPulseEffect colorPulseEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
-				break;
-			case TwoColorPulseEffect twoColorPulseEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
-				break;
-			case SpectrumCycleEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
-				break;
-			case SpectrumWaveEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Wave, 1, default, default, cancellationToken);
-				break;
-			case ReactiveEffect reactiveEffect:
-				await _transport.SetEffectV1Async(RazerLegacyLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
-				break;
-			}
-		}
-
-		protected async ValueTask ApplyEffectAsync(ILightingEffect effect, byte brightness, bool shouldPersist, bool forceBrightnessUpdate, CancellationToken cancellationToken)
-		{
-			if (ReferenceEquals(effect, DisabledEffect.SharedInstance))
-			{
-				await _transport.SetEffectV2Async(shouldPersist, 0, 0, default, default, cancellationToken).ConfigureAwait(false);
-				await _transport.SetBrightnessV2Async(shouldPersist, 0, cancellationToken);
-				return;
-			}
-
-			// It seems brightness must be restored from zero first before setting a color effect.
-			// Otherwise, the device might restore to its saved effect. (e.g. Color Cycle)
-			if (forceBrightnessUpdate)
-			{
-				await _transport.SetBrightnessV2Async(shouldPersist, brightness, cancellationToken);
-			}
-
-			switch (effect)
-			{
-			case StaticColorEffect staticColorEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken);
-				break;
-			case RandomColorPulseEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Breathing, 0, default, default, cancellationToken);
-				break;
-			case ColorPulseEffect colorPulseEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Breathing, 1, colorPulseEffect.Color, default, cancellationToken);
-				break;
-			case TwoColorPulseEffect twoColorPulseEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
-				break;
-			case SpectrumCycleEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.SpectrumCycle, 0, default, default, cancellationToken);
-				break;
-			case SpectrumWaveEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Wave, 0, default, default, cancellationToken);
-				break;
-			case ReactiveEffect reactiveEffect:
-				await _transport.SetEffectV2Async(shouldPersist, RazerLightingEffect.Reactive, 1, reactiveEffect.Color, default, cancellationToken);
-				break;
 			}
 		}
 

@@ -13,7 +13,7 @@ public abstract partial class RazerDeviceDriver
 			IRazerProtocolTransport transport,
 			DeviceCategory deviceCategory,
 			in DeviceInformation deviceInformation,
-			ImmutableArray<byte> ledIds,
+			ImmutableArray<RazerLedId> ledIds,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,

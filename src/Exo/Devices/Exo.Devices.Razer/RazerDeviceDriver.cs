@@ -585,7 +585,7 @@ public abstract partial class RazerDeviceDriver :
 		CancellationToken cancellationToken
 	)
 	{
-		ImmutableArray<byte> ledIds = [];
+		ImmutableArray<RazerLedId> ledIds = [];
 		if (deviceInfo.HasLighting && deviceInfo.HasLightingV2)
 		{
 			ledIds = await transport.GetLightingZoneIdsAsync(cancellationToken).ConfigureAwait(false);
@@ -663,7 +663,8 @@ public abstract partial class RazerDeviceDriver :
 				notificationStream,
 				notificationOptions,
 				driverRegistry.GetOrCreateValue(),
-				MambaChromaDockLightingZoneGuid,
+				in deviceInfo,
+				ledIds,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceIds,
@@ -697,7 +698,7 @@ public abstract partial class RazerDeviceDriver :
 		CancellationToken cancellationToken
 	)
 	{
-		ImmutableArray<byte> ledIds = [];
+		ImmutableArray<RazerLedId> ledIds = [];
 		if (deviceInfo.HasLighting && deviceInfo.HasLightingV2)
 		{
 			ledIds = await transport.GetLightingZoneIdsAsync(cancellationToken).ConfigureAwait(false);

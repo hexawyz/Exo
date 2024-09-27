@@ -12,7 +12,7 @@ public abstract partial class RazerDeviceDriver
 		public Keyboard(
 			IRazerProtocolTransport transport,
 			in DeviceInformation deviceInformation,
-			ImmutableArray<byte> ledIds,
+			ImmutableArray<RazerLedId> ledIds,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,

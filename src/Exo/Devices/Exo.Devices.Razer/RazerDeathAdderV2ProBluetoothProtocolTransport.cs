@@ -229,7 +229,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			in readCharacteristic,
 			static (attributeHandle, data, state) => (state as RazerDeathAdderV2ProBluetoothProtocolTransport)?.HandleNotification(attributeHandle, data),
 			this
-		); 
+		);
 	}
 
 	public void Dispose()
@@ -330,14 +330,14 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 		}
 	}
 
-	private static readonly ImmutableArray<byte> LedIds = [4];
+	private static readonly ImmutableArray<RazerLedId> LedIds = [RazerLedId.Logo];
 
 	// TODO: Should find a way to make this return the information that we need. The value is currently hardcoded.
-	public ValueTask<ImmutableArray<byte>> GetLightingZoneIdsAsync(CancellationToken cancellationToken) => ValueTask.FromResult(LedIds);
+	public ValueTask<ImmutableArray<RazerLedId>> GetLightingZoneIdsAsync(CancellationToken cancellationToken) => ValueTask.FromResult(LedIds);
 
-	public async ValueTask<ILightingEffect?> GetSavedEffectV2Async(byte flag, CancellationToken cancellationToken)
+	public async ValueTask<ILightingEffect?> GetSavedEffectV2Async(RazerLedId ledId, CancellationToken cancellationToken)
 	{
-		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, byte flag)
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, RazerLedId ledId)
 		{
 			byte* buffer = stackalloc byte[4 + 8];
 			((uint*)buffer)[0] = 8;
@@ -345,7 +345,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			((uint*)buffer)[1] = 0x93;
 			*(ushort*)&((uint*)buffer)[2] = 0x8310;
 			buffer[4 + 6] = persisted ? (byte)1 : (byte)0;
-			buffer[4 + 7] = flag;
+			buffer[4 + 7] = (byte)ledId;
 			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
 		}
 
@@ -355,7 +355,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			Volatile.Write(ref _waitState, waitState);
 			try
 			{
-				WriteData(_serviceHandle, in _writeCharacteristic, true, flag);
+				WriteData(_serviceHandle, in _writeCharacteristic, true, ledId);
 				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 				{
 					cts.CancelAfter(_operationTimeout);
@@ -375,9 +375,9 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	}
 
 
-	public async Task SetEffectV2Async(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
+	public async Task SetEffectV2Async(bool persist, RazerLightingEffectV2 effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken)
 	{
-		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2)
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persist, RazerLightingEffectV2 effect, byte colorCount, RgbColor color1, RgbColor color2)
 		{
 			// Here we prepare the two data packets before sending them.
 			// This allows relying on a shared implementation of the effect serialization code.
@@ -426,9 +426,9 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	// TODO
 	public ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken) => throw new NotImplementedException();
 
-	public async ValueTask<byte> GetBrightnessV2Async(bool persisted, byte flag, CancellationToken cancellationToken)
+	public async ValueTask<byte> GetBrightnessV2Async(bool persisted, RazerLedId ledId, CancellationToken cancellationToken)
 	{
-		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, byte flag)
+		static unsafe void WriteData(SafeFileHandle serviceHandle, in BluetoothLeCharacteristicInformation writeCharacteristic, bool persisted, RazerLedId ledId)
 		{
 			byte* buffer = stackalloc byte[4 + 8];
 			((uint*)buffer)[0] = 8;
@@ -436,7 +436,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			((uint*)buffer)[1] = 0x_00_00_00_95;
 			*(ushort*)&((uint*)buffer)[2] = 0x_00_00_85_10;
 			buffer[4 + 6] = persisted ? (byte)1 : (byte)0;
-			buffer[4 + 7] = flag;
+			buffer[4 + 7] = (byte)ledId;
 			BluetoothLeDevice.UnsafeWrite(serviceHandle, in writeCharacteristic, buffer);
 		}
 
@@ -446,7 +446,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 			Volatile.Write(ref _waitState, waitState);
 			try
 			{
-				WriteData(_serviceHandle, in _writeCharacteristic, true, flag);
+				WriteData(_serviceHandle, in _writeCharacteristic, true, ledId);
 				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 				{
 					cts.CancelAfter(_operationTimeout);
@@ -928,9 +928,9 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	ValueTask<PairedDeviceInformation[]> IRazerProtocolTransport.GetDevicePairingInformationAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 
 	ValueTask<ILightingEffect?> IRazerProtocolTransport.GetSavedEffectV1Async(CancellationToken cancellationToken) => throw new NotSupportedException();
-	Task IRazerProtocolTransport.SetEffectV1Async(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken) => throw new NotSupportedException();
-	Task IRazerProtocolTransport.SetBrightnessV1Async(byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
-	ValueTask<byte> IRazerProtocolTransport.GetBrightnessV1Async(CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetEffectV1Async(RazerLightingEffectV1 effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetBrightnessV1Async(RazerLedId ledId, byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<byte> IRazerProtocolTransport.GetBrightnessV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<RazerMouseDpiProfileConfiguration> IRazerProtocolTransport.GetDpiPresetsV1Async(CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetDpiPresetsV1Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<byte> IRazerProtocolTransport.GetCurrentDpiPresetAsync(bool persisted, CancellationToken cancellationToken) => throw new NotSupportedException();
@@ -941,6 +941,16 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	ValueTask<byte> IRazerProtocolTransport.GetSensorStateAsync(byte parameter1, byte parameter2, CancellationToken cancellationToken) => throw new NotSupportedException();
 
 	// TODO ?
-	public ValueTask<byte> GetDeviceModeAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
-	public ValueTask SetDeviceModeAsync(byte mode, CancellationToken cancellationToken) => throw new NotImplementedException();
+	public ValueTask<byte> GetDeviceModeAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+	public ValueTask SetDeviceModeAsync(byte mode, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+	Task IRazerProtocolTransport.EnableLedV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<bool> IRazerProtocolTransport.IsLedEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetStaticColorV1Async(RazerLedId ledId, RgbColor color, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetEffectV1Async(RazerLedId ledId, RazerLightingEffectV1 effect, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetBreathingEffectParametersV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetBreathingEffectParametersV1Async(RazerLedId ledId, RgbColor color, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetBreathingEffectParametersV1Async(RazerLedId ledId, RgbColor color1, RgbColor color2, CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetSynchronizedLightingV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<bool> IRazerProtocolTransport.IsSynchronizedLightingEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 }

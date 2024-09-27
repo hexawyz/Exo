@@ -34,7 +34,7 @@ public abstract partial class RazerDeviceDriver
 		(
 			IRazerProtocolTransport transport,
 			in DeviceInformation deviceInformation,
-			ImmutableArray<byte> ledIds,
+			ImmutableArray<RazerLedId> ledIds,
 			ushort maximumDpi,
 			ushort maximumPollingFrequency,
 			ImmutableArray<byte> supportedPollingFrequencyDividerPowers,

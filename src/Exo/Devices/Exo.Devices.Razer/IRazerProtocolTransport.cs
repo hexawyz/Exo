@@ -23,16 +23,26 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<byte> GetPollingIntervalAsync(CancellationToken cancellationToken);
 	Task SetPollingIntervalAsync(byte divider, CancellationToken cancellationToken);
 
-	ValueTask<ILightingEffect?> GetSavedEffectV1Async(CancellationToken cancellationToken);
-	Task SetEffectV1Async(RazerLegacyLightingEffect effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
-	Task SetBrightnessV1Async(byte value, CancellationToken cancellationToken);
-	ValueTask<byte> GetBrightnessV1Async(CancellationToken cancellationToken);
+	Task EnableLedV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken);
+	ValueTask<bool> IsLedEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken);
+	Task SetStaticColorV1Async(RazerLedId ledId, RgbColor color, CancellationToken cancellationToken);
+	Task SetBrightnessV1Async(RazerLedId ledId, byte value, CancellationToken cancellationToken);
+	ValueTask<byte> GetBrightnessV1Async(RazerLedId ledId, CancellationToken cancellationToken);
+	Task SetEffectV1Async(RazerLedId ledId, RazerLightingEffectV1 effect, CancellationToken cancellationToken);
+	Task SetBreathingEffectParametersV1Async(RazerLedId ledId, CancellationToken cancellationToken);
+	Task SetBreathingEffectParametersV1Async(RazerLedId ledId, RgbColor color, CancellationToken cancellationToken);
+	Task SetBreathingEffectParametersV1Async(RazerLedId ledId, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+	Task SetSynchronizedLightingV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken);
+	ValueTask<bool> IsSynchronizedLightingEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken);
 
-	ValueTask<ImmutableArray<byte>> GetLightingZoneIdsAsync(CancellationToken cancellationToken);
-	ValueTask<byte> GetBrightnessV2Async(bool persisted, byte ledId, CancellationToken cancellationToken);
+	ValueTask<ILightingEffect?> GetSavedEffectV1Async(CancellationToken cancellationToken);
+	Task SetEffectV1Async(RazerLightingEffectV1 effect, byte parameter, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+
+	ValueTask<ImmutableArray<RazerLedId>> GetLightingZoneIdsAsync(CancellationToken cancellationToken);
+	ValueTask<byte> GetBrightnessV2Async(bool persisted, RazerLedId ledId, CancellationToken cancellationToken);
 	Task SetBrightnessV2Async(bool persist, byte value, CancellationToken cancellationToken);
-	ValueTask<ILightingEffect?> GetSavedEffectV2Async(byte ledId, CancellationToken cancellationToken);
-	Task SetEffectV2Async(bool persist, RazerLightingEffect effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
+	ValueTask<ILightingEffect?> GetSavedEffectV2Async(RazerLedId ledId, CancellationToken cancellationToken);
+	Task SetEffectV2Async(bool persist, RazerLightingEffectV2 effect, byte colorCount, RgbColor color1, RgbColor color2, CancellationToken cancellationToken);
 	ValueTask SetDynamicColorAsync(RgbColor color, CancellationToken cancellationToken);
 
 	ValueTask<ushort> GetIdleTimerAsync(CancellationToken cancellationToken);
