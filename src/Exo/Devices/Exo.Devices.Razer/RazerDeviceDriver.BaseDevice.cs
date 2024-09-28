@@ -141,7 +141,32 @@ public abstract partial class RazerDeviceDriver
 				{
 					return SynchronizedEffect.SharedInstance;
 				}
-				else return DisabledEffect.SharedInstance;
+				if (!await Transport.IsLedEnabledV1Async(_ledId, cancellationToken).ConfigureAwait(false)) return DisabledEffect.SharedInstance;
+
+				switch (await Transport.GetEffectV1Async(_ledId, cancellationToken).ConfigureAwait(false))
+				{
+				case RazerLightingEffectV1.Disabled: return DisabledEffect.SharedInstance;
+				case RazerLightingEffectV1.Wave: return SpectrumWaveEffect.SharedInstance;
+				case RazerLightingEffectV1.Reactive: /* TODO*/ break;
+				case RazerLightingEffectV1.Breathing:
+					try
+					{
+						var (colorCount, color1, color2) = await Transport.GetBreathingEffectParametersV1Async(_ledId, cancellationToken).ConfigureAwait(false);
+						if (colorCount == 2) return new TwoColorPulseEffect(color1, color2);
+						else if (colorCount == 1) return new ColorPulseEffect(color1);
+						else return RandomColorPulseEffect.SharedInstance;
+					}
+					catch
+					{
+						// It might not always be possible read back this parameter for some reason?? (Or I made a mistake in the read method maybe?)
+						return RandomColorPulseEffect.SharedInstance;
+					}
+				case RazerLightingEffectV1.Static:
+					return new StaticColorEffect(await Transport.GetStaticColorV1Async(_ledId, cancellationToken).ConfigureAwait(false));
+				}
+
+				// This is a lie, but default to reporting the disabled effect when read an effect that we don't support.
+				return DisabledEffect.SharedInstance;
 			}
 
 			protected override async Task ApplyEffectAsync(byte profileId, ILightingEffect effect, CancellationToken cancellationToken)

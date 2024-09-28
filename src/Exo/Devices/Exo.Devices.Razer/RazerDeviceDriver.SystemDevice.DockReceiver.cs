@@ -1,11 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using DeviceTools;
-using Exo.Devices.Razer.LightingEffects;
-using Exo.Features.Lighting;
-using Exo.Lighting;
-using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Razer;
 

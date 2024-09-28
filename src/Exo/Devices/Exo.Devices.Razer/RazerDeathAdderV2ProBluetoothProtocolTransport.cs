@@ -947,10 +947,13 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	Task IRazerProtocolTransport.EnableLedV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<bool> IRazerProtocolTransport.IsLedEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetStaticColorV1Async(RazerLedId ledId, RgbColor color, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<RgbColor> IRazerProtocolTransport.GetStaticColorV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetEffectV1Async(RazerLedId ledId, RazerLightingEffectV1 effect, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<RazerLightingEffectV1> IRazerProtocolTransport.GetEffectV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetBreathingEffectParametersV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetBreathingEffectParametersV1Async(RazerLedId ledId, RgbColor color, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetBreathingEffectParametersV1Async(RazerLedId ledId, RgbColor color1, RgbColor color2, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<(byte ColorCount, RgbColor Color1, RgbColor Color2)> IRazerProtocolTransport.GetBreathingEffectParametersV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetSynchronizedLightingV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<bool> IRazerProtocolTransport.IsSynchronizedLightingEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 }

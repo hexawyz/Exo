@@ -81,6 +81,15 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 	protected abstract ValueTask SetFeatureAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken);
 	protected abstract ValueTask GetFeatureAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
+	private static void WriteRequestHeader(Span<byte> buffer, byte communicationId, RazerDeviceFeature feature, byte functionId, byte length)
+	{
+		buffer[2] = communicationId;
+
+		buffer[6] = length;
+		buffer[7] = (byte)feature;
+		buffer[8] = functionId;
+	}
+
 	public async ValueTask<bool> HandshakeAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
@@ -91,21 +100,14 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer)
 			{
-				buffer[2] = 0x08;
-
-				buffer[6] = 0x02;
-				buffer[7] = (byte)RazerDeviceFeature.General;
-				buffer[8] = 0x86;
-
+				WriteRequestHeader(buffer, 0x08, RazerDeviceFeature.General, 0x86, 0x02);
 				UpdateChecksum(buffer);
 			}
 
 			try
 			{
 				FillBuffer(buffer.Span);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				return await TryReadResponseAsync(buffer, 0x08, RazerDeviceFeature.General, 0x86, 4, cancellationToken).ConfigureAwait(false);
 			}
 			finally
@@ -126,11 +128,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, byte value)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x03;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x03;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x03, 0x03);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -143,9 +141,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId, value);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x03, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
@@ -166,11 +162,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x03;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x83;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x83, 0x03);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -181,11 +173,8 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x83, 0, cancellationToken).ConfigureAwait(false);
-
 				return buffer.Span[11];
 			}
 			finally
@@ -206,11 +195,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, bool enable)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x03;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x00;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x00, 0x03);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -223,9 +208,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId, enable);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x00, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
@@ -246,11 +229,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x03;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x80;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x80, 0x03);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -261,11 +240,8 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x80, 0, cancellationToken).ConfigureAwait(false);
-
 				return buffer.Span[11] != 0;
 			}
 			finally
@@ -286,11 +262,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, RgbColor color)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x05;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x01;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x01, 0x05);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -305,10 +277,44 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId, color);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x01, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<RgbColor> GetStaticColorV1Async(RazerLedId ledId, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, RazerLedId ledId)
+			{
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x81, 0x05);
+
+				buffer[9] = 0x01;
+				buffer[10] = (byte)ledId;
+
+				UpdateChecksum(buffer);
+			}
+
+			static RgbColor ParseResult(ReadOnlySpan<byte> buffer)
+				=> new(buffer[2], buffer[3], buffer[4]);
+
+			try
+			{
+				FillBuffer(buffer.Span, ledId);
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x81, 0, cancellationToken).ConfigureAwait(false);
+				return ParseResult(buffer.Span.Slice(9, 80));
 			}
 			finally
 			{
@@ -328,11 +334,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, RazerLightingEffectV1 effect)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x03;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x02;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x02, 0x03);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -345,10 +347,44 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId, effect);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x02, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<RazerLightingEffectV1> GetEffectV1Async(RazerLedId ledId, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, RazerLedId ledId)
+			{
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x82, 0x03);
+
+				buffer[9] = 0x01;
+				buffer[10] = (byte)ledId;
+
+				UpdateChecksum(buffer);
+			}
+
+			static RazerLightingEffectV1 ParseResult(ReadOnlySpan<byte> buffer)
+				=> (RazerLightingEffectV1)buffer[2];
+
+			try
+			{
+				FillBuffer(buffer.Span, ledId);
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x82, 0, cancellationToken).ConfigureAwait(false);
+				return ParseResult(buffer.Span.Slice(9, 80));
 			}
 			finally
 			{
@@ -368,11 +404,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x03;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x0E;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x0E, 0x03);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -408,11 +440,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, RgbColor color)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x06;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x0E;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x0E, 0x06);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -429,9 +457,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId, color);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x0E, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
@@ -452,11 +478,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, RgbColor color1, RgbColor color2)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x09;
-				buffer[7] = (byte)RazerDeviceFeature.LightingV1;
-				buffer[8] = 0x0E;
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x0E, 0x09);
 
 				buffer[9] = 0x01;
 				buffer[10] = (byte)ledId;
@@ -477,10 +499,53 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span, ledId, color1, color2);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x0E, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<(byte ColorCount, RgbColor Color1, RgbColor Color2)> GetBreathingEffectParametersV1Async(RazerLedId ledId, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, RazerLedId ledId)
+			{
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x8E, 0x09);
+
+				buffer[9] = 0x01;
+				buffer[10] = (byte)ledId;
+
+				buffer[11] = 0x02;
+
+				UpdateChecksum(buffer);
+			}
+
+			static (byte ColorCount, RgbColor Color1, RgbColor Color2) ParseResult(ReadOnlySpan<byte> buffer)
+			{
+				byte parameter = buffer[2];
+				if (parameter <= 0 || parameter > 3) throw new InvalidDataException("Invalid or unsupported data received when retrieving the breathing effect parameters.");
+				// NB: We always read the two colors for simplicity (less branches, more straightforward), as they are supposed to be zero by default and the buffer will always be big enough.
+				var color1 = new RgbColor(buffer[3], buffer[4], buffer[5]);
+				var color2 = new RgbColor(buffer[6], buffer[7], buffer[8]);
+				return (parameter == 3 ? (byte)0 : parameter, color1, color2);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, ledId);
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x8E, 0, cancellationToken).ConfigureAwait(false);
+				return ParseResult(buffer.Span.Slice(9, 80));
 			}
 			finally
 			{
