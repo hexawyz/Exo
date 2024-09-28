@@ -1,4 +1,4 @@
-﻿namespace Exo.Devices.Razer;
+namespace Exo.Devices.Razer;
 
 public enum RazerLightingEffectV1 : byte
 {
@@ -7,5 +7,6 @@ public enum RazerLightingEffectV1 : byte
 	Reactive = 2,
 	Breathing = 3,
 	SpectrumCycle = 4,
+	Dynamic = 5,
 	Static = 6,
 }

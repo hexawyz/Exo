@@ -1,6 +1,6 @@
 # Razer Platform 3
 
-Platform 2 and Platform 3 are the names given by Razer for this protocol used for Chroma devices and newer. (Also saw a reference to "Protocol 2.5" in the files 🤷)
+Platform 3 (and Platform 2?) is the name given by Razer for this protocol used for Chroma devices and newer. (Also saw a reference to "Protocol 2.5" in the files 🤷)
 This protocol uses 90 byte packets sent and received through HID Feature GET/SET on report ID `00`.
 
 Razer generally installs kernel drivers to access those devices, although their use does not seem to be strictly necessary.
@@ -492,6 +492,26 @@ Write:
 <Persist:U8> <LedId:U8> <Effect:U8>
 ```
 
+This is used to set effects on the Mamba Chroma Dock.
+The effect IDs used here seem (again) different from the other effect IDs ☹️
+
+###### Effect List
+
+0. Static
+1. Blinking with one color (Not visible in Synapse)
+2. Breathing with one color (Buggy)
+3. Breathing starting with static color ? (Not visible in Synapse)
+4. Spectrum Cycle
+5. Breathing with two colors
+
+NB: The single color breathing effect seem to be buggy:
+
+From what I understand, it is supposed to take its color from the LED Color, but it seems like this will be overridden by extended breathing parameters somehow?
+
+i.e. In Synapse, I would see the static color be ignored and the first one from the extended parameters be used. (Might be a result of me twiddling with the device before, but this is weird)
+
+But as such, there is a quick fix: Just also override the extended breathing parameters when choosing the single color breathing.
+
 ##### Function `03`:`03` - Brightness
 
 Read Request:
@@ -539,8 +559,19 @@ Read Request:
 Write:
 
 ```
-<Persist:U8> <LedId:U8> <Values:U6[9]>
+<Persist:U8> <LedId:U8> <Values:U16[9]>
 ```
+
+Not sure about this one, but some of the values might be:
+
+PWMOffTime
+PWMOnTime 
+PWMRiseSteps
+PWMFallSteps
+PWMRiseStepTime
+PWMFallStepTime
+TmpMax
+TmpMin
 
 ##### Function `03`:`07` - ???
 
@@ -586,7 +617,7 @@ When setting an effect on the Mamba Chroma Dock:
 00 3f 000000 09030e 01 0f 02 00ffff ff00ff 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800
 ```
 
-This sets the breathing effect parameters for the specified led. It does not enable the breathing effect, which needs to be enabeld separately.
+This sets the breathing effect parameters for the specified led. It does not enable the breathing effect, which needs to be enabled separately.
 
 ##### Function `03`:`0F` - Dock Lighting Synchronization
 

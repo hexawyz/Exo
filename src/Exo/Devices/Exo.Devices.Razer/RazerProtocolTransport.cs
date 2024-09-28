@@ -324,7 +324,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async Task SetEffectV1Async(RazerLedId ledId, RazerLightingEffectV1 effect, CancellationToken cancellationToken)
+	public async Task SetEffectV1Async(RazerLedId ledId, RazerLightingEffectV0 effect, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -332,7 +332,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		{
 			var buffer = Buffer;
 
-			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, RazerLightingEffectV1 effect)
+			static void FillBuffer(Span<byte> buffer, RazerLedId ledId, RazerLightingEffectV0 effect)
 			{
 				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.LightingV1, 0x02, 0x03);
 
@@ -358,7 +358,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask<RazerLightingEffectV1> GetEffectV1Async(RazerLedId ledId, CancellationToken cancellationToken)
+	public async ValueTask<RazerLightingEffectV0> GetEffectV1Async(RazerLedId ledId, CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -376,8 +376,8 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				UpdateChecksum(buffer);
 			}
 
-			static RazerLightingEffectV1 ParseResult(ReadOnlySpan<byte> buffer)
-				=> (RazerLightingEffectV1)buffer[2];
+			static RazerLightingEffectV0 ParseResult(ReadOnlySpan<byte> buffer)
+				=> (RazerLightingEffectV0)buffer[2];
 
 			try
 			{
