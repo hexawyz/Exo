@@ -858,10 +858,10 @@ public abstract partial class RazerDeviceDriver :
 
 	protected virtual void OnDeviceAvailabilityChange(byte notificationStreamIndex) => throw new NotSupportedException();
 
-	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex) => throw new NotSupportedException();
+	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex) { }
 	protected virtual void OnDeviceArrival(byte notificationStreamIndex, byte deviceIndex, ushort productId) => throw new NotSupportedException();
 
-	protected virtual void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex) => throw new NotSupportedException();
+	protected virtual void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex) { }
 	protected virtual void OnDeviceRemoval(byte notificationStreamIndex, byte deviceIndex, ushort productId) => throw new NotSupportedException();
 
 	protected virtual void OnDeviceDpiChange(byte deviceIndex, ushort dpiX, ushort dpiY) => OnDeviceDpiChange(dpiX, dpiY);
