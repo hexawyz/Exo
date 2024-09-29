@@ -45,7 +45,7 @@ public interface ILowPowerModeBatteryThresholdFeature : IPowerManagementDeviceFe
 
 /// <summary>This feature is exposed by devices that have a lighting brightness setting for wireless mode.</summary>
 /// <remarks>This is related to <see cref="ILightingBrightnessFeature"/>.</remarks>
-public interface IWirelessMaximumBrightnessFeature : IPowerManagementDeviceFeature
+public interface IWirelessBrightnessFeature : IPowerManagementDeviceFeature
 {
 	/// <summary>Get the minimum brightness level.</summary>
 	byte MinimumValue => 1;
@@ -62,10 +62,10 @@ public interface IWirelessMaximumBrightnessFeature : IPowerManagementDeviceFeatu
 	/// <summary>Gets the current maximum brightness brightness level.</summary>
 	/// <remarks>The brightness value must be between <see cref="MinimumBrightness"/> and <see cref="MaximumBrightness"/> inclusive.</remarks>
 	/// <exception cref="ArgumentOutOfRangeException">The <paramref name="brightness"/> parameter is out of range.</exception>
-	byte WirelessMaximumBrightness { get; }
+	byte WirelessBrightness { get; }
 
-	/// <summary>Sets the maximum brightness level of the device in wireless mode.</summary>
+	/// <summary>Sets the (maximum) brightness level of the device in wireless mode.</summary>
 	/// <param name="maximumBrightness">The new maximum brightness.</param>
 	/// <param name="cancellationToken"></param>
-	Task SetWirelessMaximumBrightnessAsync(byte maximumBrightness, CancellationToken cancellationToken);
+	Task SetWirelessBrightnessAsync(byte brightness, CancellationToken cancellationToken);
 }

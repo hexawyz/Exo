@@ -87,9 +87,24 @@ internal sealed class GrpcPowerService : IPowerService
 		}
 	}
 
+	public async IAsyncEnumerable<PowerDeviceWirelessBrightnessUpdate> WatchWirelessBrightnessChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		await foreach (var notification in _powerService.WatchWirelessBrightnessChangesAsync(cancellationToken))
+		{
+			yield return new()
+			{
+				DeviceId = notification.DeviceId,
+				Brightness = notification.Brightness,
+			};
+		}
+	}
+
 	public Task SetLowPowerModeBatteryThresholdAsync(PowerDeviceLowPowerModeBatteryThresholdUpdate request, CancellationToken cancellationToken)
 		=> _powerService.SetLowPowerModeBatteryThresholdAsync(request.DeviceId, request.BatteryThreshold, cancellationToken);
 
 	public Task SetIdleSleepTimerAsync(PowerDeviceIdleSleepTimerUpdate request, CancellationToken cancellationToken)
 		=> _powerService.SetIdleSleepTimerAsync(request.DeviceId, request.IdleTime, cancellationToken);
+
+	public Task SetWirelessBrightnessAsync(PowerDeviceWirelessBrightnessUpdate request, CancellationToken cancellationToken)
+		=> _powerService.SetWirelessBrightnessAsync(request.DeviceId, request.Brightness, cancellationToken);
 }

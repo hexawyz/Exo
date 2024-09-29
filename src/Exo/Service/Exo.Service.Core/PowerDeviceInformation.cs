@@ -9,4 +9,6 @@ internal readonly struct PowerDeviceInformation
 	public required PowerDeviceCapabilities Capabilities { get; init; }
 	public required TimeSpan MinimumIdleTime { get; init; }
 	public required TimeSpan MaximumIdleTime { get; init; }
+	public byte MinimumBrightness { get; init; }
+	public byte MaximumBrightness { get; init; }
 }

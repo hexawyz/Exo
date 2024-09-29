@@ -18,4 +18,3 @@ public sealed class PowerDeviceLowPowerModeBatteryThresholdUpdate
 		init => RawBatteryThreshold = Unsafe.BitCast<Half, ushort>(value);
 	}
 }
-

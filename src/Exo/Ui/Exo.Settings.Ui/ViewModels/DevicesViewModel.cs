@@ -54,6 +54,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private readonly Dictionary<Guid, PowerDeviceInformation> _pendingPowerDeviceInformations;
 	private readonly Dictionary<Guid, BatteryStateViewModel> _pendingBatteryChanges;
 	private readonly Dictionary<Guid, TimeSpan> _pendingIdleSleepTimerChanges;
+	private readonly Dictionary<Guid, byte> _pendingWirelessBrightnessChanges;
 	private readonly Dictionary<Guid, Half> _pendingLowPowerModeBatteryThresholdChanges;
 	private readonly Dictionary<Guid, MouseDeviceInformation> _pendingMouseInformations;
 	private readonly Dictionary<Guid, ImmutableArray<DotsPerInch>> _pendingDpiPresetChanges;
@@ -81,6 +82,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingPowerDeviceInformations = new();
 		_pendingBatteryChanges = new();
 		_pendingIdleSleepTimerChanges = new();
+		_pendingWirelessBrightnessChanges = new();
 		_pendingLowPowerModeBatteryThresholdChanges = new();
 		_pendingMouseInformations = new();
 		_pendingMouseDpiChanges = new();
@@ -118,6 +120,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var batteryWatchTask = WatchBatteryChangesAsync(powerService, cts.Token);
 			var lowPowerModeBatteryThresholdWatchTask = WatchLowPowerModeBatteryThresholdChangesAsync(powerService, cts.Token);
 			var idleSleepTimerWatchTask = WatchIdleSleepTimerChangesAsync(powerService, cts.Token);
+			var wirelessBrightnessWatchTask = WatchWirelessBrightnessChangesAsync(powerService, cts.Token);
 
 			var mouseWatchTask = WatchMouseDevicesAsync(mouseService, cts.Token);
 			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(mouseService, cts.Token);
@@ -137,6 +140,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 						batteryWatchTask,
 						lowPowerModeBatteryThresholdWatchTask,
 						idleSleepTimerWatchTask,
+						wirelessBrightnessWatchTask,
 						mouseWatchTask,
 						mouseDpiWatchTask,
 						mouseDpiPresetWatchTask,
@@ -160,6 +164,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingPowerDeviceInformations.Clear();
 		_pendingBatteryChanges.Clear();
 		_pendingIdleSleepTimerChanges.Clear();
+		_pendingWirelessBrightnessChanges.Clear();
 		_pendingLowPowerModeBatteryThresholdChanges.Clear();
 
 		_pendingMouseInformations.Clear();
@@ -270,6 +275,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			{
 				powerFeatures.UpdateIdleSleepTimer(idleSleepDelay);
 			}
+			if (_pendingWirelessBrightnessChanges.Remove(device.Id, out var brightness))
+			{
+				powerFeatures.UpdateWirelessBrightness(brightness);
+			}
 		}
 		if (device.MouseFeatures is { } mouseFeatures)
 		{
@@ -317,6 +326,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingPowerDeviceInformations.Remove(device.Id, out _);
 		_pendingBatteryChanges.Remove(device.Id, out _);
 		_pendingIdleSleepTimerChanges.Remove(device.Id, out _);
+		_pendingWirelessBrightnessChanges.Remove(device.Id, out _);
 		_pendingLowPowerModeBatteryThresholdChanges.Remove(device.Id, out _);
 
 		_pendingMouseInformations.Remove(device.Id, out _);
@@ -429,6 +439,34 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				else
 				{
 					_pendingIdleSleepTimerChanges[update.DeviceId] = update.IdleTime;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	private async Task WatchWirelessBrightnessChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var update in powerService.WatchWirelessBrightnessChangesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(update.DeviceId, out var device))
+				{
+					if (device.PowerFeatures is { } powerFeatures)
+					{
+						powerFeatures.UpdateWirelessBrightness(update.Brightness);
+					}
+				}
+				else
+				{
+					_pendingWirelessBrightnessChanges[update.DeviceId] = update.Brightness;
 				}
 			}
 		}

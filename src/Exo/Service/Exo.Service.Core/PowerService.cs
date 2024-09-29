@@ -29,6 +29,8 @@ internal sealed class PowerService : IAsyncDisposable
 		public PowerDeviceCapabilities Capabilities { get; init; }
 		public TimeSpan MinimumIdleTime { get; init; }
 		public TimeSpan MaximumIdleTime { get; init; }
+		public byte MinimumBrightness { get; init; }
+		public byte MaximumBrightness { get; init; }
 	}
 
 	private sealed class DeviceState
@@ -39,6 +41,7 @@ internal sealed class PowerService : IAsyncDisposable
 		private IBatteryStateDeviceFeature? _batteryFeatures;
 		private ILowPowerModeBatteryThresholdFeature? _lowPowerModeBatteryThresholdFeature;
 		private IIdleSleepTimerFeature? _idleSleepTimerFeature;
+		private IWirelessBrightnessFeature? _wirelessBrightnessFeature;
 		private readonly Guid _deviceId;
 		private bool _isConnected;
 		private PowerDeviceCapabilities _capabilities;
@@ -47,6 +50,9 @@ internal sealed class PowerService : IAsyncDisposable
 		private BatteryState _batteryState;
 		private TimeSpan _idleTime;
 		private Half _lowPowerBatteryThreshold;
+		private byte _minimumBrightness;
+		private byte _maximumBrightness;
+		private byte _wirelessBrightness;
 
 		public DeviceState(PowerService powerService, IConfigurationContainer configurationContainer, Guid deviceId, PersistedPowerDeviceInformation information)
 		{
@@ -64,12 +70,14 @@ internal sealed class PowerService : IAsyncDisposable
 		public bool HasBattery => (_capabilities & PowerDeviceCapabilities.HasBattery) != 0;
 		public bool HasLowPowerBatteryThreshold => (_capabilities & PowerDeviceCapabilities.HasLowPowerBatteryThreshold) != 0;
 		public bool HasIdleTimer => (_capabilities & PowerDeviceCapabilities.HasIdleTimer) != 0;
+		public bool HasWirelessBrightness => (_capabilities & PowerDeviceCapabilities.HasWirelessBrightness) != 0;
 
 		public bool OnConnected
 		(
 			IBatteryStateDeviceFeature? batteryFeatures,
 			ILowPowerModeBatteryThresholdFeature? lowPowerModeBatteryThresholdFeature,
-			IIdleSleepTimerFeature? idleSleepTimerFeature
+			IIdleSleepTimerFeature? idleSleepTimerFeature,
+			IWirelessBrightnessFeature? wirelessBrightnessFeature
 		)
 		{
 			bool hasChanged = false;
@@ -93,6 +101,15 @@ internal sealed class PowerService : IAsyncDisposable
 					_maximumIdleTime = idleSleepTimerFeature.MaximumIdleTime;
 				}
 
+				if (wirelessBrightnessFeature is not null)
+				{
+					capabilities |= PowerDeviceCapabilities.HasWirelessBrightness;
+					hasChanged |= _minimumBrightness != wirelessBrightnessFeature.MinimumValue;
+					_minimumBrightness = wirelessBrightnessFeature.MinimumValue;
+					hasChanged |= _maximumBrightness != wirelessBrightnessFeature.MaximumValue;
+					_maximumBrightness = wirelessBrightnessFeature.MaximumValue;
+				}
+
 				hasChanged |= capabilities != _capabilities;
 
 				_capabilities = capabilities;
@@ -100,6 +117,7 @@ internal sealed class PowerService : IAsyncDisposable
 				_batteryFeatures = batteryFeatures;
 				_lowPowerModeBatteryThresholdFeature = lowPowerModeBatteryThresholdFeature;
 				_idleSleepTimerFeature = idleSleepTimerFeature;
+				_wirelessBrightnessFeature = wirelessBrightnessFeature;
 
 				_powerService.NotifyDeviceConnection(CreatePowerDeviceInformation());
 
@@ -113,13 +131,19 @@ internal sealed class PowerService : IAsyncDisposable
 				if (lowPowerModeBatteryThresholdFeature is not null)
 				{
 					_lowPowerBatteryThreshold = lowPowerModeBatteryThresholdFeature.LowPowerThreshold;
-					_powerService.NotifyLowPowerBatteryThreshold(new() { DeviceId = DeviceId, BatteryThreshold = lowPowerModeBatteryThresholdFeature.LowPowerThreshold });
+					_powerService.NotifyLowPowerBatteryThreshold(new() { DeviceId = DeviceId, BatteryThreshold = _lowPowerBatteryThreshold });
 				}
 
 				if (idleSleepTimerFeature is not null)
 				{
 					_idleTime = idleSleepTimerFeature.IdleTime;
-					_powerService.NotifyIdleSleepTimer(new() { DeviceId = DeviceId, IdleTime = idleSleepTimerFeature.IdleTime });
+					_powerService.NotifyIdleSleepTimer(new() { DeviceId = DeviceId, IdleTime = _idleTime });
+				}
+
+				if (wirelessBrightnessFeature is not null)
+				{
+					_wirelessBrightness = wirelessBrightnessFeature.WirelessBrightness;
+					_powerService.NotifyWirelessBrightness(new() { DeviceId = DeviceId, Brightness = _wirelessBrightness });
 				}
 			}
 			return hasChanged;
@@ -138,6 +162,7 @@ internal sealed class PowerService : IAsyncDisposable
 				_batteryFeatures = null;
 				_lowPowerModeBatteryThresholdFeature = null;
 				_idleSleepTimerFeature = null;
+				_wirelessBrightnessFeature = null;
 
 				_powerService.NotifyDeviceConnection(CreatePowerDeviceInformation());
 			}
@@ -156,7 +181,16 @@ internal sealed class PowerService : IAsyncDisposable
 			).ConfigureAwait(false);
 
 		public PowerDeviceInformation CreatePowerDeviceInformation()
-			=> new() { DeviceId = _deviceId, IsConnected = _isConnected, Capabilities = _capabilities, MinimumIdleTime = _minimumIdleTime, MaximumIdleTime = _maximumIdleTime };
+			=> new()
+			{
+				DeviceId = _deviceId,
+				IsConnected = _isConnected,
+				Capabilities = _capabilities,
+				MinimumIdleTime = _minimumIdleTime,
+				MaximumIdleTime = _maximumIdleTime,
+				MinimumBrightness = _minimumBrightness,
+				MaximumBrightness = _maximumBrightness,
+			};
 
 		private void OnBatteryStateChanged(Driver driver, BatteryState state)
 		{
@@ -207,6 +241,17 @@ internal sealed class PowerService : IAsyncDisposable
 			return false;
 		}
 
+		public bool TryGetWirelessBrightness(out byte wirelessBrightness)
+		{
+			if (HasWirelessBrightness && IsConnected)
+			{
+				wirelessBrightness = _wirelessBrightness;
+				return true;
+			}
+			wirelessBrightness = default;
+			return false;
+		}
+
 		public async Task SetLowPowerModeBatteryThresholdAsync(Half batteryThreshold, CancellationToken cancellationToken)
 		{
 			if (batteryThreshold < Half.Zero || batteryThreshold > Half.One) throw new ArgumentOutOfRangeException(nameof(batteryThreshold));
@@ -225,6 +270,16 @@ internal sealed class PowerService : IAsyncDisposable
 				await idleSleepTimerFeature.SetIdleTimeAsync(idleTime, cancellationToken).ConfigureAwait(false);
 				_idleTime = idleTime;
 				_powerService.NotifyIdleSleepTimer(new() { DeviceId = DeviceId, IdleTime = idleTime });
+			}
+		}
+
+		public async Task SetWirelessBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+		{
+			if (_wirelessBrightnessFeature is { } wirelessBrightnessFeature)
+			{
+				await wirelessBrightnessFeature.SetWirelessBrightnessAsync(brightness, cancellationToken).ConfigureAwait(false);
+				_wirelessBrightness = brightness;
+				_powerService.NotifyWirelessBrightness(new() { DeviceId = DeviceId, Brightness = brightness });
 			}
 		}
 	}
@@ -289,6 +344,7 @@ internal sealed class PowerService : IAsyncDisposable
 	private ChannelWriter<ChangeWatchNotification<Guid, BatteryState>>[]? _batteryChangeListeners;
 	private ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification>[]? _lowPowerBatteryThresholdListeners;
 	private ChannelWriter<PowerDeviceIdleSleepTimerNotification>[]? _idleTimerListeners;
+	private ChannelWriter<PowerDeviceWirelessBrightnessNotification>[]? _wirelessBrightnessListeners;
 	private readonly ChannelWriter<Event> _eventWriter;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 
@@ -372,6 +428,7 @@ internal sealed class PowerService : IAsyncDisposable
 		var batteryFeature = powerFeatures.GetFeature<IBatteryStateDeviceFeature>();
 		var lowPowerModeBatteryThresholdFeature = powerFeatures.GetFeature<ILowPowerModeBatteryThresholdFeature>();
 		var idleSleepTimerFeature = powerFeatures.GetFeature<IIdleSleepTimerFeature>();
+		var wirelessBrightnessFeature = powerFeatures.GetFeature<IWirelessBrightnessFeature>();
 
 		bool shouldPersistInformation = false;
 		if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var deviceState))
@@ -381,7 +438,7 @@ internal sealed class PowerService : IAsyncDisposable
 			shouldPersistInformation = true;
 		}
 
-		shouldPersistInformation |= deviceState.OnConnected(batteryFeature, lowPowerModeBatteryThresholdFeature, idleSleepTimerFeature);
+		shouldPersistInformation |= deviceState.OnConnected(batteryFeature, lowPowerModeBatteryThresholdFeature, idleSleepTimerFeature, wirelessBrightnessFeature);
 
 		if (shouldPersistInformation)
 		{
@@ -409,6 +466,9 @@ internal sealed class PowerService : IAsyncDisposable
 
 	private void NotifyIdleSleepTimer(PowerDeviceIdleSleepTimerNotification notification)
 		=> _idleTimerListeners.TryWrite(notification);
+
+	private void NotifyWirelessBrightness(PowerDeviceWirelessBrightnessNotification notification)
+		=> _wirelessBrightnessListeners.TryWrite(notification);
 
 	// In this part of the code, we map device arrivals and status updates to sensible events in a way that hopefully leaves enough information for the handlers to make useful decisions.
 	// This means that some of the filtering logic on what to display has to be done on the event handler side.
@@ -745,6 +805,55 @@ internal sealed class PowerService : IAsyncDisposable
 		}
 	}
 
+	public async IAsyncEnumerable<PowerDeviceWirelessBrightnessNotification> WatchWirelessBrightnessChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateChannel<PowerDeviceWirelessBrightnessNotification>();
+
+		List<PowerDeviceWirelessBrightnessNotification>? initialNotifications;
+
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			initialNotifications = GetInitialNotifications();
+			ArrayExtensions.InterlockedAdd(ref _wirelessBrightnessListeners, channel);
+		}
+
+		try
+		{
+			if (initialNotifications is not null)
+			{
+				for (int i = 0; i < initialNotifications.Count; i++)
+				{
+					yield return initialNotifications[i];
+				}
+				initialNotifications = null;
+			}
+
+			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+			{
+				yield return notification;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _wirelessBrightnessListeners, channel);
+		}
+
+		List<PowerDeviceWirelessBrightnessNotification>? GetInitialNotifications()
+		{
+			if (_deviceStates.IsEmpty) return null;
+
+			var initialNotifications = new List<PowerDeviceWirelessBrightnessNotification>();
+			foreach (var deviceState in _deviceStates.Values)
+			{
+				if (!deviceState.TryGetWirelessBrightness(out var brightness)) continue;
+
+				initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, Brightness = brightness });
+			}
+
+			return initialNotifications;
+		}
+	}
+
 	public async Task SetLowPowerModeBatteryThresholdAsync(Guid deviceId, Half threshold, CancellationToken cancellationToken)
 	{
 		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
@@ -763,6 +872,17 @@ internal sealed class PowerService : IAsyncDisposable
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				await deviceState.SetIdleSleepTimerAsync(idleTimer, cancellationToken).ConfigureAwait(false);
+			}
+		}
+	}
+
+	public async Task SetWirelessBrightnessAsync(Guid deviceId, byte brightness, CancellationToken cancellationToken)
+	{
+		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				await deviceState.SetWirelessBrightnessAsync(brightness, cancellationToken).ConfigureAwait(false);
 			}
 		}
 	}

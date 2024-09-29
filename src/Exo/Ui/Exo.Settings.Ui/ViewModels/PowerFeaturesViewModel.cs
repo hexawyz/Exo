@@ -15,6 +15,10 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 	private PowerDeviceCapabilities _capabilities;
 	private Half _initialLowPowerModeBatteryThreshold;
 	private Half _currentLowPowerModeBatteryThreshold;
+	private byte _minimumBrightness;
+	private byte _maximumBrightness;
+	private byte _initialWirelessBrightness;
+	private byte _currentWirelessBrightness;
 	private bool _isExpanded;
 
 	public PowerFeaturesViewModel(DeviceViewModel device, IPowerService powerService)
@@ -29,9 +33,14 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
 	}
 
-	public override bool IsChanged => _currentIdleSleepDelay != _initialIdleSleepDelay || _initialLowPowerModeBatteryThreshold != _currentLowPowerModeBatteryThreshold;
+	public override bool IsChanged
+		=> _currentIdleSleepDelay != _initialIdleSleepDelay ||
+			_initialLowPowerModeBatteryThreshold != _currentLowPowerModeBatteryThreshold ||
+			_initialWirelessBrightness != _currentWirelessBrightness;
+
 	public bool HasLowPowerBatteryThreshold => (_capabilities & PowerDeviceCapabilities.HasLowPowerBatteryThreshold) != 0;
 	public bool HasIdleTimer => (_capabilities & PowerDeviceCapabilities.HasIdleTimer) != 0;
+	public bool HasWirelessBrightness => (_capabilities & PowerDeviceCapabilities.HasWirelessBrightness) != 0;
 
 	public DeviceViewModel Device => _device;
 
@@ -56,12 +65,22 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 		set => SetChangeableValue(ref _currentLowPowerModeBatteryThreshold, value, ChangedProperty.LowPowerModeBatteryThreshold);
 	}
 
+	public byte MinimumBrightness => _minimumBrightness;
+	public byte MaximumBrightness => _maximumBrightness;
+
+	public byte WirelessBrightness
+	{
+		get => _currentWirelessBrightness;
+		set => SetChangeableValue(ref _currentWirelessBrightness, value, ChangedProperty.WirelessBrightness);
+	}
+
 	public void UpdateInformation(PowerDeviceInformation information)
 	{
 		var oldMinimumIdleSleepDelay = _minimumIdleSleepDelay;
 		var oldMaximumIdleSleepDelay = _maximumIdleSleepDelay;
 		bool hadLowPowerBatteryThreshold = HasLowPowerBatteryThreshold;
 		bool hadIdleTimer = HasIdleTimer;
+		bool hadWirelessBrightness = HasWirelessBrightness;
 		bool wasChanged = IsChanged;
 		_capabilities = information.Capabilities;
 		if ((_capabilities & PowerDeviceCapabilities.HasBattery) == 0)
@@ -75,16 +94,28 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 		}
 		else
 		{
-			_currentIdleSleepDelay = _initialIdleSleepDelay = _maximumIdleSleepDelay = _minimumIdleSleepDelay = default;
+			_maximumIdleSleepDelay = _minimumIdleSleepDelay = default;
+			IdleSleepDelay = _initialIdleSleepDelay;
 		}
 		if ((_capabilities & PowerDeviceCapabilities.HasLowPowerBatteryThreshold) == 0)
 		{
-			_currentLowPowerModeBatteryThreshold = _initialLowPowerModeBatteryThreshold;
+			LowPowerModeBatteryThreshold = _initialLowPowerModeBatteryThreshold;
+		}
+		if ((_capabilities & PowerDeviceCapabilities.HasWirelessBrightness) != 0)
+		{
+			_minimumBrightness = information.MinimumBrightness;
+			_maximumBrightness = information.MaximumBrightness;
+		}
+		else
+		{
+			_minimumBrightness = _maximumBrightness = 0;
+			WirelessBrightness = _initialWirelessBrightness;
 		}
 		if (oldMinimumIdleSleepDelay != _minimumIdleSleepDelay) NotifyPropertyChanged(ChangedProperty.MinimumIdleSleepDelay);
 		if (oldMaximumIdleSleepDelay != _maximumIdleSleepDelay) NotifyPropertyChanged(ChangedProperty.MaximumIdleSleepDelay);
 		if (hadLowPowerBatteryThreshold != HasLowPowerBatteryThreshold) NotifyPropertyChanged(ChangedProperty.HasLowPowerBatteryThreshold);
 		if (hadIdleTimer != HasIdleTimer) NotifyPropertyChanged(ChangedProperty.HasIdleTimer);
+		if (hadWirelessBrightness != HasWirelessBrightness) NotifyPropertyChanged(ChangedProperty.HasWirelessBrightness);
 		OnChangeStateChange(wasChanged);
 	}
 
@@ -116,10 +147,25 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 		OnChangeStateChange(wasChanged);
 	}
 
+	public void UpdateWirelessBrightness(byte brightness)
+	{
+		if (brightness == _initialWirelessBrightness) return;
+
+		bool wasChanged = IsChanged;
+		if (_initialWirelessBrightness == _currentWirelessBrightness)
+		{
+			_currentWirelessBrightness = brightness;
+			NotifyPropertyChanged(ChangedProperty.WirelessBrightness);
+		}
+		_initialWirelessBrightness = brightness;
+		OnChangeStateChange(wasChanged);
+	}
+
 	protected override void Reset()
 	{
 		IdleSleepDelay = _initialIdleSleepDelay;
 		LowPowerModeBatteryThreshold = _initialLowPowerModeBatteryThreshold;
+		WirelessBrightness = _initialWirelessBrightness;
 	}
 
 	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
@@ -131,6 +177,10 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 		if (HasIdleTimer && _currentIdleSleepDelay != _initialIdleSleepDelay)
 		{
 			await _powerService.SetIdleSleepTimerAsync(new() { DeviceId = _device.Id, IdleTime = _currentIdleSleepDelay }, cancellationToken);
+		}
+		if (HasWirelessBrightness && _currentWirelessBrightness != _initialWirelessBrightness)
+		{
+			await _powerService.SetWirelessBrightnessAsync(new() { DeviceId = _device.Id, Brightness = _currentWirelessBrightness }, cancellationToken);
 		}
 	}
 }

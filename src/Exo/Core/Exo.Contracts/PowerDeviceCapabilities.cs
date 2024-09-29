@@ -14,4 +14,6 @@ public enum PowerDeviceCapabilities : byte
 	HasLowPowerBatteryThreshold = 0x02,
 	[EnumMember]
 	HasIdleTimer = 0x04,
+	[EnumMember]
+	HasWirelessBrightness = 0x08,
 }

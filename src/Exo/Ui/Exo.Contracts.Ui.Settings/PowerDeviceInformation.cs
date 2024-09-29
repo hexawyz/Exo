@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings;
 
@@ -15,4 +15,8 @@ public sealed class PowerDeviceInformation
 	public required TimeSpan MinimumIdleTime { get; init; }
 	[DataMember(Order = 5)]
 	public required TimeSpan MaximumIdleTime { get; init; }
+	[DataMember(Order = 6)]
+	public byte MinimumBrightness { get; init; }
+	[DataMember(Order = 7)]
+	public byte MaximumBrightness { get; init; }
 }

@@ -25,7 +25,7 @@ public abstract partial class RazerDeviceDriver
 		IBatteryStateDeviceFeature,
 		IIdleSleepTimerFeature,
 		ILowPowerModeBatteryThresholdFeature,
-		IWirelessMaximumBrightnessFeature
+		IWirelessBrightnessFeature
 	{
 		protected abstract class LightingZone :
 			ILightingZone,
@@ -566,7 +566,7 @@ public abstract partial class RazerDeviceDriver
 		protected virtual IDeviceFeatureSet<IPowerManagementDeviceFeature> CreatePowerManagementFeatures()
 			=> HasBattery ?
 				HasWirelessMaximumBrightness ?
-					FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature, IWirelessMaximumBrightnessFeature>(this) :
+					FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature, IWirelessBrightnessFeature>(this) :
 					FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature>(this) :
 				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
@@ -788,11 +788,12 @@ public abstract partial class RazerDeviceDriver
 		Task ILowPowerModeBatteryThresholdFeature.SetLowPowerBatteryThresholdAsync(Half lowPowerThreshold, CancellationToken cancellationToken)
 			=> _transport.SetLowPowerThresholdAsync((byte)(255 * lowPowerThreshold), cancellationToken);
 
-		byte IWirelessMaximumBrightnessFeature.MaximumValue => 255;
+		byte IWirelessBrightnessFeature.MinimumValue => 4;
+		byte IWirelessBrightnessFeature.MaximumValue => 255;
 
-		byte IWirelessMaximumBrightnessFeature.WirelessMaximumBrightness => _wirelessMaximumBrightness;
+		byte IWirelessBrightnessFeature.WirelessBrightness => _wirelessMaximumBrightness;
 
-		async Task IWirelessMaximumBrightnessFeature.SetWirelessMaximumBrightnessAsync(byte maximumBrightness, CancellationToken cancellationToken)
+		async Task IWirelessBrightnessFeature.SetWirelessBrightnessAsync(byte maximumBrightness, CancellationToken cancellationToken)
 		{
 			await _transport.SetWirelessMaximumBrightnessAsync(maximumBrightness, cancellationToken);
 			_wirelessMaximumBrightness = maximumBrightness;

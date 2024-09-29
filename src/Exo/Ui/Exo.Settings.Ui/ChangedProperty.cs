@@ -59,6 +59,8 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs MinimumIdleSleepDelay = new (nameof(MinimumIdleSleepDelay));
 	public static readonly PropertyChangedEventArgs MaximumIdleSleepDelay = new (nameof(MaximumIdleSleepDelay));
 	public static readonly PropertyChangedEventArgs LowPowerModeBatteryThreshold = new (nameof(LowPowerModeBatteryThreshold));
+	public static readonly PropertyChangedEventArgs WirelessBrightness = new (nameof(WirelessBrightness));
 	public static readonly PropertyChangedEventArgs HasLowPowerBatteryThreshold = new (nameof(HasLowPowerBatteryThreshold));
 	public static readonly PropertyChangedEventArgs HasIdleTimer = new (nameof(HasIdleTimer));
+	public static readonly PropertyChangedEventArgs HasWirelessBrightness = new (nameof(HasWirelessBrightness));
 }

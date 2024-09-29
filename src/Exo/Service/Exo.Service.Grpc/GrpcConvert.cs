@@ -55,6 +55,8 @@ internal static class GrpcConvert
 			Capabilities = powerDeviceInformation.Capabilities,
 			MinimumIdleTime = powerDeviceInformation.MinimumIdleTime,
 			MaximumIdleTime = powerDeviceInformation.MaximumIdleTime,
+			MinimumBrightness = powerDeviceInformation.MinimumBrightness,
+			MaximumBrightness = powerDeviceInformation.MaximumBrightness,
 		};
 
 	public static GrpcMouseDeviceInformation ToGrpc(this MouseDeviceInformation mouseDeviceInformation)
