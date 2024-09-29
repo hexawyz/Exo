@@ -11,6 +11,7 @@ public abstract partial class RazerDeviceDriver
 
 		public Generic(
 			IRazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 			DeviceCategory deviceCategory,
 			in DeviceInformation deviceInformation,
 			ImmutableArray<RazerLedId> ledIds,
@@ -19,7 +20,7 @@ public abstract partial class RazerDeviceDriver
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			DeviceCategory = deviceCategory;
 		}

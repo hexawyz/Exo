@@ -14,6 +14,7 @@ public abstract partial class RazerDeviceDriver
 			public Generic
 			(
 				IRazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				DeviceCategory deviceCategory,
@@ -24,7 +25,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, deviceCategory, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, periodicEventGenerator, deviceCategory, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -46,6 +47,7 @@ public abstract partial class RazerDeviceDriver
 			public Mouse
 			(
 				IRazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				in DeviceInformation deviceInformation,
@@ -59,7 +61,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, deviceInformation, ledIds, maximumDpi, maximumPollingFrequency, supportedPollingFrequencyDividerPowers, initialDpiPresets, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, maximumDpi, maximumPollingFrequency, supportedPollingFrequencyDividerPowers, initialDpiPresets, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -80,6 +82,7 @@ public abstract partial class RazerDeviceDriver
 
 			public Keyboard(
 				IRazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				in DeviceInformation deviceInformation,
@@ -89,7 +92,7 @@ public abstract partial class RazerDeviceDriver
 				RazerDeviceFlags deviceFlags,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}

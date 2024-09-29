@@ -33,6 +33,7 @@ public abstract partial class RazerDeviceDriver
 		public Mouse
 		(
 			IRazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 			in DeviceInformation deviceInformation,
 			ImmutableArray<RazerLedId> ledIds,
 			ushort maximumDpi,
@@ -44,7 +45,7 @@ public abstract partial class RazerDeviceDriver
 			RazerDeviceFlags deviceFlags,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_dpiPresets = initialDpiPresets;
 			_maximumDpi = maximumDpi;

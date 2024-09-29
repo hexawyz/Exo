@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
 
@@ -27,8 +27,10 @@ public abstract partial class RazerDeviceDriver
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.UsbWirelessReceiver;
 
-			public UsbReceiver(
+			public UsbReceiver
+			(
 				IRazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				DeviceStream? secondNotificationStream,
@@ -38,7 +40,7 @@ public abstract partial class RazerDeviceDriver
 				DeviceConfigurationKey configurationKey,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
+			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
 			{
 				_driverRegistry = driverRegistry;
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
@@ -178,6 +180,7 @@ public abstract partial class RazerDeviceDriver
 					driver = await CreateChildDeviceAsync
 					(
 						_transport,
+						null,
 						DeviceIdSource.Unknown,
 						0xFFFF,
 						(byte)deviceIndex,

@@ -540,6 +540,7 @@ public abstract partial class RazerDeviceDriver
 		protected BaseDevice
 		(
 			IRazerProtocolTransport transport,
+			RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 			in DeviceInformation deviceInformation,
 			ImmutableArray<RazerLedId> ledIds,
 			string friendlyName,
@@ -547,7 +548,7 @@ public abstract partial class RazerDeviceDriver
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex,
 			RazerDeviceFlags deviceFlags
-		) : base(transport, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_lightingLock = new();
 			_batteryStateLock = new();
@@ -633,6 +634,8 @@ public abstract partial class RazerDeviceDriver
 				_idleTimer = await _transport.GetIdleTimerAsync(cancellationToken).ConfigureAwait(false);
 			}
 
+			_periodicEventGenerator?.Register(this);
+
 			if (_unifiedLightingZone is { })
 			{
 				await _unifiedLightingZone.InitializeAsync(1, cancellationToken).ConfigureAwait(false);
@@ -640,6 +643,25 @@ public abstract partial class RazerDeviceDriver
 			foreach (var zone in _lightingZones)
 			{
 				await zone.InitializeAsync(1, cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		public override ValueTask DisposeAsync()
+		{
+			_periodicEventGenerator?.Unregister(this);
+			return base.DisposeAsync();
+		}
+
+		protected override async ValueTask HandlePeriodicEventAsync()
+		{
+			if (HasBattery)
+			{
+				ApplyBatteryLevelAndChargeStatusUpdate
+				(
+					3,
+					await _transport.GetBatteryLevelAsync(default).ConfigureAwait(false),
+					await _transport.IsConnectedToExternalPowerAsync(default).ConfigureAwait(false)
+				);
 			}
 		}
 

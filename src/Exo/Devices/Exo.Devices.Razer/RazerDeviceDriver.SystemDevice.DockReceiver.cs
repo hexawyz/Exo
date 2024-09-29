@@ -24,6 +24,7 @@ public abstract partial class RazerDeviceDriver
 			public DockReceiver
 			(
 				IRazerProtocolTransport transport,
+				RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 				DeviceStream notificationStream,
 				DeviceNotificationOptions deviceNotificationOptions,
 				IDriverRegistry driverRegistry,
@@ -34,7 +35,7 @@ public abstract partial class RazerDeviceDriver
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex,
 				RazerDeviceFlags deviceFlags
-			) : base(transport, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
 			{
 				_driverRegistry = driverRegistry;
 				_childDeviceLock = new();
@@ -131,6 +132,7 @@ public abstract partial class RazerDeviceDriver
 					driver = await CreateChildDeviceAsync
 					(
 						_transport,
+						_periodicEventGenerator,
 						DeviceIdSource.Unknown,
 						0xFFFF,
 						0,
