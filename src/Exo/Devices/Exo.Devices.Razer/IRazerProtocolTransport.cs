@@ -54,6 +54,9 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<byte> GetLowPowerThresholdAsync(CancellationToken cancellationToken);
 	Task SetLowPowerThresholdAsync(byte value, CancellationToken cancellationToken);
 
+	ValueTask<byte> GetWirelessMaximumBrightnessAsync(CancellationToken cancellationToken);
+	Task SetWirelessMaximumBrightnessAsync(byte value, CancellationToken cancellationToken);
+
 	ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken);
 	ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken);
 	ValueTask<Version> GetFirmwareVersionAsync(CancellationToken cancellationToken);

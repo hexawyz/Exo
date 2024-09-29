@@ -24,7 +24,8 @@ public abstract partial class RazerDeviceDriver
 		ILightingBrightnessFeature,
 		IBatteryStateDeviceFeature,
 		IIdleSleepTimerFeature,
-		ILowPowerModeBatteryThresholdFeature
+		ILowPowerModeBatteryThresholdFeature,
+		IWirelessMaximumBrightnessFeature
 	{
 		protected abstract class LightingZone :
 			ILightingZone,
@@ -508,11 +509,13 @@ public abstract partial class RazerDeviceDriver
 		private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 		private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 		private bool _isUnifiedLightingEnabled;
+		private byte _wirelessMaximumBrightness;
 
 		protected bool HasUnifiedLighting => _unifiedLightingZone is not null;
 		protected bool HasLightingZones => !_lightingZones.IsDefaultOrEmpty;
 
 		protected bool HasBattery => (_deviceFlags & RazerDeviceFlags.HasBattery) != 0;
+		protected bool HasWirelessMaximumBrightness => (_deviceFlags & RazerDeviceFlags.HasWirelessMaximumBrightness) != 0;
 		protected bool HasLighting => (_deviceFlags & RazerDeviceFlags.HasLighting) != 0;
 		protected bool HasLightingV2 => (_deviceFlags & RazerDeviceFlags.HasLightingV2) != 0;
 		protected bool HasDpi => (_deviceFlags & RazerDeviceFlags.HasDpi) != 0;
@@ -546,12 +549,16 @@ public abstract partial class RazerDeviceDriver
 			// TODO: Better (No devices with proper multiple zones at the moment)
 			_isUnifiedLightingEnabled = _unifiedLightingZone is not null && _lightingZones.Length == 0;
 
-			_powerManagementFeatures = HasBattery ?
-				FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature>(this) :
-				FeatureSet.Empty<IPowerManagementDeviceFeature>();
-
+			_powerManagementFeatures = CreatePowerManagementFeatures();
 			_lightingFeatures = CreateLightingFeatures();
 		}
+
+		protected virtual IDeviceFeatureSet<IPowerManagementDeviceFeature> CreatePowerManagementFeatures()
+			=> HasBattery ?
+				HasWirelessMaximumBrightness ?
+					FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature, IWirelessMaximumBrightnessFeature>(this) :
+					FeatureSet.Create<IPowerManagementDeviceFeature, BaseDevice, IBatteryStateDeviceFeature, IIdleSleepTimerFeature, ILowPowerModeBatteryThresholdFeature>(this) :
+				FeatureSet.Empty<IPowerManagementDeviceFeature>();
 
 		protected virtual IDeviceFeatureSet<ILightingDeviceFeature> CreateLightingFeatures()
 			=> HasLighting ? new LightingFeatureSet(this) : FeatureSet.Empty<ILightingDeviceFeature>();
@@ -591,6 +598,11 @@ public abstract partial class RazerDeviceDriver
 
 		protected override async ValueTask InitializeAsync(CancellationToken cancellationToken)
 		{
+			if (HasWirelessMaximumBrightness)
+			{
+				_wirelessMaximumBrightness = await _transport.GetWirelessMaximumBrightnessAsync(cancellationToken).ConfigureAwait(false);
+			}
+
 			if (MustSetDeviceMode3)
 			{
 				await _transport.SetDeviceModeAsync(0x03, cancellationToken).ConfigureAwait(false);
@@ -765,5 +777,15 @@ public abstract partial class RazerDeviceDriver
 
 		Task ILowPowerModeBatteryThresholdFeature.SetLowPowerBatteryThresholdAsync(Half lowPowerThreshold, CancellationToken cancellationToken)
 			=> _transport.SetLowPowerThresholdAsync((byte)(255 * lowPowerThreshold), cancellationToken);
+
+		byte IWirelessMaximumBrightnessFeature.MaximumValue => 255;
+
+		byte IWirelessMaximumBrightnessFeature.WirelessMaximumBrightness => _wirelessMaximumBrightness;
+
+		async Task IWirelessMaximumBrightnessFeature.SetWirelessMaximumBrightnessAsync(byte maximumBrightness, CancellationToken cancellationToken)
+		{
+			await _transport.SetWirelessMaximumBrightnessAsync(maximumBrightness, cancellationToken);
+			_wirelessMaximumBrightness = maximumBrightness;
+		}
 	}
 }

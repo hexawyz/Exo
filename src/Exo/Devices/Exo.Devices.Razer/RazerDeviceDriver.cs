@@ -99,10 +99,10 @@ public abstract partial class RazerDeviceDriver :
 		public bool HasReactiveLighting => (Flags & RazerDeviceFlags.HasReactiveLighting) != 0;
 		public bool UseNonUnifiedLightingAsUnified => (Flags & RazerDeviceFlags.UseNonUnifiedLightingAsUnified) != 0;
 
-		public bool IsReceiver => (Flags & RazerDeviceFlags.IsReceiver) != 0;
+		public bool IsReceiver => DeviceCategory is RazerDeviceCategory.UsbReceiver or RazerDeviceCategory.DockReceiver;
 
 		public ushort GetMainProductId()
-			=> (Flags & (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsReceiver)) == (RazerDeviceFlags.HasDongleProductId | RazerDeviceFlags.IsReceiver) ?
+			=> HasDongleProductId && IsReceiver ?
 				DongleDeviceProductId :
 				(Flags & RazerDeviceFlags.HasWiredProductId) == 0 ?
 					(Flags & RazerDeviceFlags.HasBluetoothLowEnergyProductId) == 0 ?
@@ -167,9 +167,8 @@ public abstract partial class RazerDeviceDriver :
 		HasBluetoothProductId = 0x04,
 		HasBluetoothLowEnergyProductId = 0x08,
 
-		IsReceiver = 0x10,
-
-		HasBattery = 0x20,
+		HasBattery = 0x10,
+		HasWirelessMaximumBrightness = 0x20,
 
 		HasLighting = 0x40,
 		HasLightingV2 = 0x80,
@@ -181,7 +180,7 @@ public abstract partial class RazerDeviceDriver :
 		HasDpiPresetsRead = 0x1000,
 		HasDpiPresetsV2 = 0x2000,
 
-		// Added for Mamba Chroma but maybe nor necessary ?
+		// Added for Mamba Chroma but maybe not necessary ?
 		MustSetDeviceMode3 = 0x4000,
 		MustSetSensorState5 = 0x8000,
 	}
@@ -208,6 +207,7 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceCategory.Mouse,
 			RazerLedId.Backlight,
 			RazerDeviceFlags.HasBattery |
+				RazerDeviceFlags.HasWirelessMaximumBrightness |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasLighting |
@@ -232,8 +232,7 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasLighting |
-				RazerDeviceFlags.UseNonUnifiedLightingAsUnified |
-				RazerDeviceFlags.IsReceiver,
+				RazerDeviceFlags.UseNonUnifiedLightingAsUnified,
 			0x0044,
 			0x0045,
 			0xFFFF,
@@ -279,7 +278,6 @@ public abstract partial class RazerDeviceDriver :
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
 				RazerDeviceFlags.HasBluetoothLowEnergyProductId |
-				RazerDeviceFlags.IsReceiver |
 				RazerDeviceFlags.HasDpi |
 				RazerDeviceFlags.HasDpiPresets |
 				RazerDeviceFlags.HasDpiPresetsRead |
@@ -334,7 +332,6 @@ public abstract partial class RazerDeviceDriver :
 			RazerDeviceFlags.HasBattery |
 				RazerDeviceFlags.HasWiredProductId |
 				RazerDeviceFlags.HasDongleProductId |
-				RazerDeviceFlags.IsReceiver |
 				RazerDeviceFlags.HasDpi |
 				RazerDeviceFlags.HasDpiPresets |
 				RazerDeviceFlags.HasDpiPresetsRead |

@@ -1,3 +1,5 @@
+using Exo.Features.Lighting;
+
 namespace Exo.Features.PowerManagement;
 
 /// <summary>Devices can allow access to their battery level by providing this feature.</summary>
@@ -39,4 +41,31 @@ public interface ILowPowerModeBatteryThresholdFeature : IPowerManagementDeviceFe
 	/// <param name="lowPowerThreshold">The new battery threshold.</param>
 	/// <param name="cancellationToken"></param>
 	Task SetLowPowerBatteryThresholdAsync(Half lowPowerThreshold, CancellationToken cancellationToken);
+}
+
+/// <summary>This feature is exposed by devices that have a lighting brightness setting for wireless mode.</summary>
+/// <remarks>This is related to <see cref="ILightingBrightnessFeature"/>.</remarks>
+public interface IWirelessMaximumBrightnessFeature : IPowerManagementDeviceFeature
+{
+	/// <summary>Get the minimum brightness level.</summary>
+	byte MinimumValue => 1;
+
+	/// <summary>Get the maximum brightness level.</summary>
+	/// <remarks>
+	/// <para>
+	/// Generally, devices will support setting 100 or 255 levels of brightness, but some devices may use more unusual values.
+	/// Brightness values could always be abstracted to <c>100%</c> but it is more helpful to surface the ticks in the UI when possible.
+	/// </para>
+	/// </remarks>
+	byte MaximumValue { get; }
+
+	/// <summary>Gets the current maximum brightness brightness level.</summary>
+	/// <remarks>The brightness value must be between <see cref="MinimumBrightness"/> and <see cref="MaximumBrightness"/> inclusive.</remarks>
+	/// <exception cref="ArgumentOutOfRangeException">The <paramref name="brightness"/> parameter is out of range.</exception>
+	byte WirelessMaximumBrightness { get; }
+
+	/// <summary>Sets the maximum brightness level of the device in wireless mode.</summary>
+	/// <param name="maximumBrightness">The new maximum brightness.</param>
+	/// <param name="cancellationToken"></param>
+	Task SetWirelessMaximumBrightnessAsync(byte maximumBrightness, CancellationToken cancellationToken);
 }

@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using DeviceTools;
+using Exo.Features;
+using Exo.Features.PowerManagement;
 
 namespace Exo.Devices.Razer;
 
@@ -40,6 +42,9 @@ public abstract partial class RazerDeviceDriver
 			}
 
 			public override DeviceCategory DeviceCategory => DeviceCategory.MouseDock;
+
+			//protected override IDeviceFeatureSet<IPowerManagementDeviceFeature> CreatePowerManagementFeatures()
+			//	=> FeatureSet.Create<IPowerManagementDeviceFeature, IWirelessMaximumBrightnessFeature>(this);
 
 			protected override (LightingZone? UnifiedLightingZone, ImmutableArray<LightingZone> LightingZones) CreateLightingZones(in DeviceInformation deviceInformation, ImmutableArray<RazerLedId> ledIds)
 				=> (new DockLightingZoneV1(this, deviceInformation.LightingZoneGuid.GetValueOrDefault(), RazerLedId.Dongle), []);

@@ -956,4 +956,6 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	ValueTask<(byte ColorCount, RgbColor Color1, RgbColor Color2)> IRazerProtocolTransport.GetBreathingEffectParametersV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetSynchronizedLightingV1Async(RazerLedId ledId, bool enable, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<bool> IRazerProtocolTransport.IsSynchronizedLightingEnabledV1Async(RazerLedId ledId, CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<byte> IRazerProtocolTransport.GetWirelessMaximumBrightnessAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+	Task IRazerProtocolTransport.SetWirelessMaximumBrightnessAsync(byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
 }

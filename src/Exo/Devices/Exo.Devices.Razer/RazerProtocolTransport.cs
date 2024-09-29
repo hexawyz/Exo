@@ -1701,12 +1701,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x02;
-				buffer[7] = (byte)RazerDeviceFeature.Power;
-				buffer[8] = 0x80;
-
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x80, 0x02);
 				UpdateChecksum(buffer);
 			}
 
@@ -1715,11 +1710,8 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x80, 0, cancellationToken).ConfigureAwait(false);
-
 				return ParseResponse(buffer.Span);
 			}
 			finally
@@ -1740,12 +1732,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x01;
-				buffer[7] = (byte)RazerDeviceFeature.Power;
-				buffer[8] = 0x81;
-
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x81, 0x01);
 				UpdateChecksum(buffer);
 			}
 
@@ -1754,11 +1741,8 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x81, 0, cancellationToken).ConfigureAwait(false);
-
 				return ParseResponse(buffer.Span);
 			}
 			finally
@@ -1779,23 +1763,15 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, byte value)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x01;
-				buffer[7] = (byte)RazerDeviceFeature.Power;
-				buffer[8] = 0x01;
-
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x01, 0x01);
 				buffer[9] = value;
-
 				UpdateChecksum(buffer);
 			}
 
 			try
 			{
 				FillBuffer(buffer.Span, value);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x01, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
@@ -1816,12 +1792,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x02;
-				buffer[7] = (byte)RazerDeviceFeature.Power;
-				buffer[8] = 0x83;
-
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x83, 0x02);
 				UpdateChecksum(buffer);
 			}
 
@@ -1830,11 +1801,8 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			try
 			{
 				FillBuffer(buffer.Span);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x83, 0, cancellationToken).ConfigureAwait(false);
-
 				return ParseResponse(buffer.Span);
 			}
 			finally
@@ -1855,24 +1823,77 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 
 			static void FillBuffer(Span<byte> buffer, ushort value)
 			{
-				buffer[2] = 0x1f;
-
-				buffer[6] = 0x01;
-				buffer[7] = (byte)RazerDeviceFeature.Power;
-				buffer[8] = 0x03;
-
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x03, 0x02);
 				BigEndian.Write(ref buffer[9], value);
-
 				UpdateChecksum(buffer);
 			}
 
 			try
 			{
 				FillBuffer(buffer.Span, value);
-
 				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
-
 				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x03, 0, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async ValueTask<byte> GetWirelessMaximumBrightnessAsync(CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer)
+			{
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x82, 0x01);
+				UpdateChecksum(buffer);
+			}
+
+			static byte ParseResult(ReadOnlySpan<byte> buffer)
+				=> buffer[0];
+
+			try
+			{
+				FillBuffer(buffer.Span);
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x82, 0, cancellationToken).ConfigureAwait(false);
+				return ParseResult(buffer.Span.Slice(9, 80));
+			}
+			finally
+			{
+				// TODO: Improve computations to take into account the written length.
+				buffer.Span.Clear();
+			}
+		}
+	}
+
+	public async Task SetWirelessMaximumBrightnessAsync(byte value, CancellationToken cancellationToken)
+	{
+		var @lock = Volatile.Read(ref _lock);
+		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
+		using (await @lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = Buffer;
+
+			static void FillBuffer(Span<byte> buffer, byte value)
+			{
+				WriteRequestHeader(buffer, 0x1f, RazerDeviceFeature.Power, 0x02, 0x01);
+				buffer[9] = value;
+				UpdateChecksum(buffer);
+			}
+
+			try
+			{
+				FillBuffer(buffer.Span, value);
+				await SetFeatureAsync(buffer, cancellationToken).ConfigureAwait(false);
+				await ReadResponseAsync(buffer, 0x1f, RazerDeviceFeature.Power, 0x02, 0, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
