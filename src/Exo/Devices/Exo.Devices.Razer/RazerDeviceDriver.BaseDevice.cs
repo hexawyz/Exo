@@ -275,8 +275,18 @@ public abstract partial class RazerDeviceDriver
 			protected override ValueTask<byte> ReadBrightnessAsync(byte profileId, CancellationToken cancellationToken)
 				=> Transport.GetBrightnessV1Async(_mainLedId, cancellationToken);
 
-			protected override ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
-				=> Transport.GetSavedEffectV1Async(cancellationToken);
+			protected override async ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken)
+			{
+				try
+				{
+					// Weird behavior from the Mamba Chroma: Reading does not work but in wireless mode, the request "succeed" and return the disabled effect.
+					return await Transport.GetSavedEffectV1Async(cancellationToken).ConfigureAwait(false);
+				}
+				catch
+				{
+					return DisabledEffect.SharedInstance;
+				}
+			}
 
 			protected override Task ApplyBrightnessAsync(byte profileId, byte brightness, CancellationToken cancellationToken)
 				=> Transport.SetBrightnessV1Async(_mainLedId, brightness, cancellationToken);
