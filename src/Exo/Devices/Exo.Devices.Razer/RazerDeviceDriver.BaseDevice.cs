@@ -336,7 +336,7 @@ public abstract partial class RazerDeviceDriver
 				{
 					DisabledEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Disabled, 0, default, default, cancellationToken),
 					StaticColorEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
-					RandomColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 3, default, default, cancellationToken),
+					RandomColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 0, default, default, cancellationToken),
 					ColorPulseEffect colorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
 					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
 					SpectrumCycleEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.SpectrumCycle, 0, default, default, cancellationToken),
