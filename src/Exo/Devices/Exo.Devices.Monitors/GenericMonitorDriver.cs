@@ -70,6 +70,8 @@ public partial class GenericMonitorDriver
 
 		if (info.Definition.Name is not null) friendlyName = info.Definition.Name;
 
+		if (friendlyName is null && info.Capabilities is not null) friendlyName = info.Capabilities.Model;
+
 		return new DriverCreationResult<SystemDevicePath>
 		(
 			keys,

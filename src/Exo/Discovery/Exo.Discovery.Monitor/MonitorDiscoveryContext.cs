@@ -9,6 +9,8 @@ namespace Exo.Discovery;
 
 public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemDevicePath, MonitorDriverCreationContext>
 {
+	private static readonly Guid RootContainerId = new(0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255);
+
 	private static readonly Property[] RequestedDeviceInterfaceProperties =
 	[
 		Properties.System.Devices.DeviceInstanceId,
@@ -18,6 +20,7 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 
 	private static readonly Property[] RequestedDeviceProperties =
 	[
+		Properties.System.ItemNameDisplay,
 		Properties.System.Devices.BusTypeGuid,
 		Properties.System.Devices.ClassGuid,
 		Properties.System.Devices.EnumeratorName,
@@ -59,9 +62,6 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			throw new ArgumentOutOfRangeException("Could not resolve the container ID for the device.");
 		}
 
-		string? friendlyName = await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
-			await DeviceQuery.GetLocalizedObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false);
-
 		// Get the device name in order to fetch the properties.
 		if (!deviceInterfaceProperties.TryGetValue(Properties.System.Devices.DeviceInstanceId.Key, out string? sourceDeviceName))
 		{
@@ -75,6 +75,18 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 		{
 			throw new InvalidOperationException($"Could not resolve the driver key for {sourceDeviceName}.");
 		}
+
+		// Try our best to recover the device name.
+
+		if (!deviceInterfaceProperties.TryGetValue(Properties.System.ItemNameDisplay.Key, out string? deviceFriendlyName))
+		{
+			deviceFriendlyName = await DeviceQuery.GetLocalizedObjectPropertyAsync(DeviceObjectKind.Device, sourceDeviceName, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false);
+		}
+
+		string? containerFriendlyName = containerId != RootContainerId ?
+			await DeviceQuery.GetObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) ??
+			await DeviceQuery.GetLocalizedObjectPropertyAsync(DeviceObjectKind.DeviceContainer, containerId, Properties.System.ItemNameDisplay, cancellationToken).ConfigureAwait(false) :
+			null;
 
 		// Finish resolving the device ID in case it was not successful earlier.
 		if (!hasDeviceId)
@@ -140,7 +152,7 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 			associatedKeys,
 			deviceId,
 			containerId,
-			friendlyName,
+			containerFriendlyName ?? deviceFriendlyName,
 			edid,
 			i2cBus,
 			[new DeviceObjectInformation(DeviceObjectKind.DeviceInterface, sourceDeviceInterfaceName, deviceInterfaceProperties)],
