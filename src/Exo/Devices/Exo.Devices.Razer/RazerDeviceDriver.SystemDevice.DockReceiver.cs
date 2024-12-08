@@ -32,10 +32,11 @@ public abstract partial class RazerDeviceDriver
 				ImmutableArray<RazerLedId> ledIds,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
+				DeviceConnectionType connectionType,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex,
 				RazerDeviceFlags deviceFlags
-			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, connectionType, deviceIds, mainDeviceIdIndex, deviceFlags)
 			{
 				_driverRegistry = driverRegistry;
 				_childDeviceLock = new();

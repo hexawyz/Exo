@@ -23,9 +23,10 @@ public abstract partial class RazerDeviceDriver
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
+				DeviceConnectionType connectionType,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, deviceCategory, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, periodicEventGenerator, deviceCategory, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, connectionType, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -59,9 +60,26 @@ public abstract partial class RazerDeviceDriver
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
+				DeviceConnectionType connectionType,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, maximumDpi, maximumPollingFrequency, supportedPollingFrequencyDividerPowers, initialDpiPresets, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base
+			(
+				transport,
+				periodicEventGenerator,
+				deviceInformation,
+				ledIds,
+				maximumDpi,
+				maximumPollingFrequency,
+				supportedPollingFrequencyDividerPowers,
+				initialDpiPresets,
+				friendlyName,
+				configurationKey,
+				deviceFlags,
+				connectionType,
+				deviceIds,
+				mainDeviceIdIndex
+			)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}
@@ -90,9 +108,10 @@ public abstract partial class RazerDeviceDriver
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
 				RazerDeviceFlags deviceFlags,
+				DeviceConnectionType connectionType,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, deviceIds, mainDeviceIdIndex)
+			) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceFlags, connectionType, deviceIds, mainDeviceIdIndex)
 			{
 				_watcher = new(notificationStream, this, deviceNotificationOptions);
 			}

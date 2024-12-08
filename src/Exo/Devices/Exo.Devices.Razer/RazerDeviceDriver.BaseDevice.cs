@@ -535,7 +535,7 @@ public abstract partial class RazerDeviceDriver
 		protected bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
 		protected bool MustSetDeviceMode3 => (_deviceFlags & RazerDeviceFlags.MustSetDeviceMode3) != 0;
 		protected bool MustSetSensorState5 => (_deviceFlags & RazerDeviceFlags.MustSetSensorState5) != 0;
-		protected bool IsWired => _deviceIdSource == DeviceIdSource.Usb;
+		protected bool IsWired => _deviceConnection == DeviceConnectionType.Wired;
 
 		protected BaseDevice
 		(
@@ -545,10 +545,11 @@ public abstract partial class RazerDeviceDriver
 			ImmutableArray<RazerLedId> ledIds,
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
+			DeviceConnectionType connectionType,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex,
 			RazerDeviceFlags deviceFlags
-		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, periodicEventGenerator, friendlyName, configurationKey, connectionType, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 			_lightingLock = new();
 			_batteryStateLock = new();

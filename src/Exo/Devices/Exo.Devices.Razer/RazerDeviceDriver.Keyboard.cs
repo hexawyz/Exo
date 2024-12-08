@@ -17,9 +17,10 @@ public abstract partial class RazerDeviceDriver
 			string friendlyName,
 			DeviceConfigurationKey configurationKey,
 			RazerDeviceFlags deviceFlags,
+			DeviceConnectionType connectionType,
 			ImmutableArray<DeviceId> deviceIds,
 			byte mainDeviceIdIndex
-		) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, deviceFlags)
+		) : base(transport, periodicEventGenerator, deviceInformation, ledIds, friendlyName, configurationKey, connectionType, deviceIds, mainDeviceIdIndex, deviceFlags)
 		{
 		}
 	}

@@ -38,9 +38,10 @@ public abstract partial class RazerDeviceDriver
 				IDriverRegistry driverRegistry,
 				string friendlyName,
 				DeviceConfigurationKey configurationKey,
+				DeviceConnectionType connectionType,
 				ImmutableArray<DeviceId> deviceIds,
 				byte mainDeviceIdIndex
-			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
+			) : base(transport, periodicEventGenerator, friendlyName, configurationKey, connectionType, deviceIds, mainDeviceIdIndex, RazerDeviceFlags.None)
 			{
 				_driverRegistry = driverRegistry;
 				_watcher = new(notificationStream, this, deviceNotificationOptions);

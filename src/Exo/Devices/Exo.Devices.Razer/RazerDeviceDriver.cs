@@ -141,6 +141,15 @@ public abstract partial class RazerDeviceDriver :
 			return Unsafe.As<DeviceId[], ImmutableArray<DeviceId>>(ref productIds);
 		}
 
+		public DeviceConnectionType GetConnectionType(ushort productId)
+		{
+			if (HasWiredDeviceProductId && productId == WiredDeviceProductId) return DeviceConnectionType.Wired;
+			if (HasDongleProductId && productId == DongleDeviceProductId) return IsReceiver ? DeviceConnectionType.Wired : DeviceConnectionType.Wireless;
+			if (HasBluetoothProductId && productId == BluetoothDeviceProductId) return DeviceConnectionType.Bluetooth;
+			if (HasBluetoothLowEnergyProductId && productId == BluetoothLowEnergyDeviceProductId) return DeviceConnectionType.BluetoothLowEnergy;
+			return DeviceConnectionType.Wired;
+		}
+
 		public DotsPerInch[] GetDefaultDpiPresets()
 			=> !DefaultDpiPresets.IsDefaultOrEmpty ?
 				Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(DefaultDpiPresets)!, dpi => new DotsPerInch(dpi, dpi)) :
@@ -553,6 +562,7 @@ public abstract partial class RazerDeviceDriver :
 				ReportLength = secondaryNotificationReportLength
 			},
 			driverRegistry,
+			deviceInfo.GetConnectionType(productId),
 			version,
 			deviceInfo,
 			friendlyName,
@@ -578,6 +588,7 @@ public abstract partial class RazerDeviceDriver :
 		DeviceStream? secondNotificationStream,
 		DeviceNotificationOptions secondNotificationOptions,
 		Optional<IDriverRegistry> driverRegistry,
+		DeviceConnectionType connectionType,
 		ushort versionNumber,
 		DeviceInformation deviceInfo,
 		string friendlyName,
@@ -614,6 +625,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
+				connectionType,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -632,6 +644,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
+				connectionType,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -647,6 +660,7 @@ public abstract partial class RazerDeviceDriver :
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
+				connectionType,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -661,6 +675,7 @@ public abstract partial class RazerDeviceDriver :
 				driverRegistry.GetOrCreateValue(),
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
+				connectionType,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -675,6 +690,7 @@ public abstract partial class RazerDeviceDriver :
 				ledIds,
 				deviceInfo.FriendlyName ?? friendlyName,
 				configurationKey,
+				connectionType,
 				deviceIds,
 				mainDeviceIdIndex,
 				deviceInfo.Flags
@@ -742,6 +758,7 @@ public abstract partial class RazerDeviceDriver :
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
+				DeviceConnectionType.Wireless,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -758,6 +775,7 @@ public abstract partial class RazerDeviceDriver :
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
+				DeviceConnectionType.Wireless,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -771,6 +789,7 @@ public abstract partial class RazerDeviceDriver :
 				friendlyName,
 				configurationKey,
 				deviceInfo.Flags,
+				DeviceConnectionType.Wireless,
 				deviceIds,
 				mainDeviceIdIndex
 			),
@@ -795,7 +814,7 @@ public abstract partial class RazerDeviceDriver :
 	// It *could* be merged with the transport for practical reasons but the two features are not related enough.
 	private readonly RazerProtocolPeriodicEventGenerator? _periodicEventGenerator;
 
-	private readonly DeviceIdSource _deviceIdSource;
+	private readonly DeviceConnectionType _deviceConnection;
 	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly byte _mainDeviceIdIndex;
 	private readonly RazerDeviceFlags _deviceFlags;
@@ -822,6 +841,7 @@ public abstract partial class RazerDeviceDriver :
 		RazerProtocolPeriodicEventGenerator? periodicEventGenerator,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
+		DeviceConnectionType connectionType,
 		ImmutableArray<DeviceId> deviceIds,
 		byte mainDeviceIdIndex,
 		RazerDeviceFlags deviceFlags
