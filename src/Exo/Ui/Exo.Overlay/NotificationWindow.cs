@@ -367,6 +367,7 @@ internal sealed class NotificationWindow : SynchronizationContext, IDisposable
 		var previous = Current;
 		SetSynchronizationContext(this);
 		_doubleClickDelay = (int)GetDoubleClickTime();
+		_clickTimerNotifyIconId = -1;
 		try
 		{
 			if (!TryCreateWindow(taskCompletionSource)) return;
