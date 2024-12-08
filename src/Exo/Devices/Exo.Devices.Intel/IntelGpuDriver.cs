@@ -170,7 +170,6 @@ public abstract class IntelGpuDriver : Driver, IDeviceIdFeature
 
 		private readonly IDeviceFeatureSet<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
 		private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
-		private readonly ControlLibrary.DisplayAdapter _gpu;
 
 		IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 		IDeviceFeatureSet<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
