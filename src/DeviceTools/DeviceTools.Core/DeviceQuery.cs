@@ -1,17 +1,9 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
-using DeviceTools;
 using DeviceTools.FilterExpressions;
 
 namespace DeviceTools
@@ -198,10 +190,7 @@ namespace DeviceTools
 			}
 
 			public unsafe void Dispose()
-			{
-				GCHandle.FromIntPtr(((NativeMethods.DevQueryHelperContext*)_helperContext)->Context).Free();
-				Marshal.FreeHGlobal(_helperContext);
-			}
+				=> FreeHelperContext(_helperContext);
 
 			internal IntPtr GetHandle() => _helperContext;
 		}
@@ -858,6 +847,23 @@ namespace DeviceTools
 #endif
 		}
 
+#if NET5_0_OR_GREATER
+		private static unsafe void FreeHelperContext(IntPtr context)
+		{
+			GCHandle.FromIntPtr(((NativeMethods.DevQueryHelperContext*)context)->Context).Free();
+			Marshal.FreeHGlobal(context);
+		}
+#else
+		private static void FreeHelperContext(IntPtr context)
+		{
+			// This is inefficient but also the correct way of freeing the object to avoid a leak…
+			var contextClone = (NativeMethods.DevQueryHelperContext)Marshal.PtrToStructure(context, typeof(NativeMethods.DevQueryHelperContext));
+			Marshal.DestroyStructure(context, typeof(NativeMethods.DevQueryHelperContext));
+			GCHandle.FromIntPtr(contextClone.Context).Free();
+			Marshal.FreeHGlobal(context);
+		}
+#endif
+
 		private static unsafe SafeDeviceQueryHandle CreateObjectQuery(DeviceObjectKind kind, NativeMethods.DeviceQueryFlags flags, Span<NativeMethods.DevicePropertyCompoundKey> properties, Span<NativeMethods.DevicePropertyFilterExpression> filters, IntPtr context)
 		{
 			return NativeMethods.DeviceCreateObjectQuery
@@ -890,7 +896,7 @@ namespace DeviceTools
 			return NativeMethods.DeviceCreateObjectQueryFromId
 			(
 				kind,
-				ref Unsafe.AsRef(objectId),
+				ref Unsafe.AsRef(in objectId),
 				flags,
 				properties.Length,
 				ref MemoryMarshal.GetReference(properties),

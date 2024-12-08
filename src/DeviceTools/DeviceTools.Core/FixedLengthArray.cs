@@ -1,4 +1,3 @@
-﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -25,7 +24,7 @@ namespace DeviceTools
 #else
 		private static ReadOnlySpan<TElement> AsSpan<T, TElement>(in T array, int length)
 			where T : struct =>
-			MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, TElement>(ref Unsafe.AsRef(array)), length);
+			MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, TElement>(ref Unsafe.AsRef(in array)), length);
 #endif
 
 		public static ReadOnlySpan<T> AsSpan<T>(in FixedLengthArray2<T> array) => AsSpan<FixedLengthArray2<T>, T>(array, 2);

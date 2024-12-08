@@ -29,7 +29,7 @@ namespace DeviceTools
 			public IntPtr Context;
 		}
 
-		// TODO: This shouldn't even be needed fot .NET Native. Inestigate how to conditionally avoid this mess.
+		// TODO: This shouldn't even be needed fot .NET Native. Investigate how to conditionally avoid this mess.
 		public static readonly IntPtr NativeDevQueryCallback = GetNativeDevQueryCallback();
 
 		private static IntPtr GetNativeDevQueryCallback()

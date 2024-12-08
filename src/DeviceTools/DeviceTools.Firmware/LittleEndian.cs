@@ -10,7 +10,7 @@ namespace DeviceTools.Firmware;
 internal static class LittleEndian
 {
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static T ReadAt<T>(in T source) where T : unmanaged => ReverseEndiannessIfNeededAndNativeSize(Unsafe.ReadUnaligned<T>(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(source))));
+	public static T ReadAt<T>(in T source) where T : unmanaged => ReverseEndiannessIfNeededAndNativeSize(Unsafe.ReadUnaligned<T>(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in source))));
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
 	public static T Read<T>(ReadOnlySpan<byte> span) where T : unmanaged
@@ -46,7 +46,7 @@ internal static class LittleEndian
 		return value;
 	}
 
-	private static T ReverseEndiannessOfGuid<T>(in T value) => As<Guid, T>(new Guid(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(value)), 16)));
+	private static T ReverseEndiannessOfGuid<T>(in T value) => As<Guid, T>(new Guid(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in value)), 16)));
 
 	private static TTo As<TFrom, TTo>(TFrom value) => Unsafe.As<TFrom, TTo>(ref value);
 }

@@ -204,13 +204,13 @@ namespace DeviceTools
 		public static bool TryGetBluetoothUuid(Guid guid, out BluetoothServiceUuid uuid)
 		{
 			Unsafe.SkipInit(out uuid);
-			return TryGetBluetoothUuid(guid, out Unsafe.As<BluetoothServiceUuid, ushort>(ref Unsafe.AsRef(uuid)));
+			return TryGetBluetoothUuid(guid, out Unsafe.As<BluetoothServiceUuid, ushort>(ref Unsafe.AsRef(in uuid)));
 		}
 
 		public static bool TryGetBluetoothUuid(Guid guid, out BluetoothServiceDiscoveryProtocolServiceClassAndProfileUuid uuid)
 		{
 			Unsafe.SkipInit(out uuid);
-			return TryGetBluetoothUuid(guid, out Unsafe.As<BluetoothServiceDiscoveryProtocolServiceClassAndProfileUuid, ushort>(ref Unsafe.AsRef(uuid)));
+			return TryGetBluetoothUuid(guid, out Unsafe.As<BluetoothServiceDiscoveryProtocolServiceClassAndProfileUuid, ushort>(ref Unsafe.AsRef(in uuid)));
 		}
 
 		/// <summary>Exposes well-know guids for Bluetooth specific services.</summary>

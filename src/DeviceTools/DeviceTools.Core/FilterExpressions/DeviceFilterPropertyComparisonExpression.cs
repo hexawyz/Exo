@@ -140,7 +140,6 @@ namespace DeviceTools.FilterExpressions
 	public abstract class DeviceFilterPropertyComparisonExpression<TValue, TOperator> : DeviceFilterPropertyComparisonExpression
 		where TOperator : struct, Enum
 	{
-
 		// Status of the instance value cache. (Used during interop with DevQuery, when the native filters expressions need to be built and passed to the native code)
 		// Default state: needs to be initialized.
 		private const int StateUninitialized = 0;
@@ -150,7 +149,7 @@ namespace DeviceTools.FilterExpressions
 		private const int StatePinnedObject = 2;
 
 		// TODO: Maybe move these in a separate object ?
-		// Numnber of external references to the value represented by this parameter. (Can be more than one if the expression is cached and used concurrently)
+		// Number of external references to the value represented by this parameter. (Can be more than one if the expression is cached and used concurrently)
 		private int _refCount;
 		// The current state of the value.
 		private int _state;
@@ -158,10 +157,10 @@ namespace DeviceTools.FilterExpressions
 		private IntPtr _gcHandleOrMemoryAddress;
 
 		// TValue or StrongBox<TValue>
-		// We have to box value types in otder to pin the values.
+		// We have to box value types in order to pin the values.
 		// Pinning this instance cannot be done because Property is a reference, and prevents GCHandleType.Pinned from working as we would like to.
 		internal readonly object _value;
-		public TValue Value => typeof(TValue).IsValueType ? Unsafe.As<StrongBox<TValue>>(_value).Value! : Unsafe.As<object, TValue>(ref Unsafe.AsRef(_value));
+		public TValue Value => typeof(TValue).IsValueType ? Unsafe.As<StrongBox<TValue>>(_value)!.Value! : Unsafe.As<object, TValue>(ref Unsafe.AsRef(in _value));
 
 		internal static NativeMethods.DevPropertyOperator ConvertOperator(TOperator @operator) => Unsafe.As<TOperator, NativeMethods.DevPropertyOperator>(ref @operator);
 		internal static TOperator ConvertOperator(NativeMethods.DevPropertyOperator @operator) => Unsafe.As<NativeMethods.DevPropertyOperator, TOperator>(ref @operator);
@@ -244,7 +243,7 @@ namespace DeviceTools.FilterExpressions
 			}
 			else if (typeof(TValue) == typeof(string))
 			{
-				dataLength = (Unsafe.As<string>(_value).Length + 1) * 2;
+				dataLength = (Unsafe.As<string>(_value)!.Length + 1) * 2;
 			}
 			else if (Property.Type.IsFixedLength())
 			{
@@ -279,7 +278,7 @@ namespace DeviceTools.FilterExpressions
 			}
 			else if (typeof(TValue).IsValueType)
 			{
-				return (IntPtr)Unsafe.AsPointer(ref Unsafe.As<StrongBox<TValue>>(_value).Value!);
+				return (IntPtr)Unsafe.AsPointer(ref Unsafe.As<StrongBox<TValue>>(_value)!.Value!);
 			}
 
 			throw new NotSupportedException($"The support for data type {typeof(TValue)} is missing.");
@@ -357,7 +356,7 @@ namespace DeviceTools.FilterExpressions
 		where TProperty : Property, IComparableProperty<TValue>
 		where TOperator : struct, Enum
 	{
-		public new TProperty Property => Unsafe.As<TProperty>(base.Property);
+		public new TProperty Property => Unsafe.As<TProperty>(base.Property)!;
 
 		internal DeviceFilterPropertyComparisonExpression(Property property, TValue value, TOperator @operator)
 			: base(property, value, @operator)
