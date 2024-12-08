@@ -19,7 +19,12 @@ internal sealed class SettingsViewModel : BindableObject
 
 			public bool CanExecute(object? parameter) => _viewModel.CanNavigateBack;
 
-			public event EventHandler? CanExecuteChanged;
+			// TODO: See if it is worth implementing.
+			public event EventHandler? CanExecuteChanged
+			{
+				add { }
+				remove { }
+			}
 		}
 
 		public class NavigateCommand : ICommand

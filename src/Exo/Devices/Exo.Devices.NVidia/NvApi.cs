@@ -6,6 +6,8 @@ using System.Threading.Channels;
 namespace Exo.Devices.NVidia;
 
 #pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable CS0649
+#pragma warning disable CS0169
 
 internal sealed class NvApi
 {
@@ -1463,3 +1465,7 @@ internal sealed class NvApi
 		public uint CurrentPower { get; }
 	}
 }
+
+#pragma warning restore CS0169
+#pragma warning restore CS0649
+#pragma warning restore IDE0044 // Add readonly modifier

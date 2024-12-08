@@ -6,7 +6,7 @@ namespace Exo.Service;
 // When published, the application should look for plugin packages in dedicated directories.
 internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 {
-	public event EventHandler? AssemblyPathsChanged;
+	public event EventHandler? AssemblyPathsChanged { add { } remove { } }
 
 	public ImmutableArray<string> AssemblyPaths { get; }
 

@@ -134,7 +134,6 @@ public abstract class IntelGpuDriver : Driver, IDeviceIdFeature
 		private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 		private readonly ControlLibrary.DisplayAdapter _gpu;
 
-		public DeviceId DeviceId { get; }
 		public override DeviceCategory DeviceCategory => DeviceCategory.GraphicsAdapter;
 
 		IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
@@ -148,7 +147,6 @@ public abstract class IntelGpuDriver : Driver, IDeviceIdFeature
 			ControlLibrary.DisplayAdapter gpu
 		) : base(deviceId, friendlyName, configurationKey)
 		{
-			DeviceId = deviceId;
 			_gpu = gpu;
 			_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, ControlLibraryDriver, IDisplayAdapterI2cBusProviderFeature>(this);
 			_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, IntelGpuDriver, IDeviceIdFeature>(this);

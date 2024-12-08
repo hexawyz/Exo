@@ -14,6 +14,7 @@ namespace Exo.Service;
 /// <remarks>This code is not expected to be used in the release version.</remarks>
 internal sealed class NotificationWindow : IDeviceNotificationService, IDisposable
 {
+#pragma warning disable CS0649
 	[DllImport("kernel32", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
 	[SuppressUnmanagedCodeSecurity]
 	private static extern IntPtr GetModuleHandleW(IntPtr zero);
@@ -86,6 +87,7 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 	[DllImport("user32", EntryPoint = "PostQuitMessage", ExactSpelling = true, SetLastError = true)]
 	[SuppressUnmanagedCodeSecurity]
 	private static extern void PostQuitMessage(int exitCode);
+#pragma warning restore CS0649
 
 	private static readonly ConcurrentDictionary<IntPtr, WeakReference<NotificationWindow>> NotificationWindows = new();
 

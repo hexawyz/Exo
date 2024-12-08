@@ -5,7 +5,8 @@ namespace Exo.Service;
 
 internal sealed class DynamicAssemblyDiscovery : IAssemblyDiscovery
 {
-	public event EventHandler? AssemblyPathsChanged;
+	// TODO: Implement
+	public event EventHandler? AssemblyPathsChanged { add { } remove { } }
 
 	public ImmutableArray<string> AssemblyPaths { get; }
 

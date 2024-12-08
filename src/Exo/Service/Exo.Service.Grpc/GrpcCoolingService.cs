@@ -36,6 +36,7 @@ internal sealed class GrpcCoolingService : ICoolingService
 
 	public async IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, [EnumeratorCancellation] CancellationToken cancellationToken)
 	{
+		await Task.Yield();
 		yield break;
 	}
 

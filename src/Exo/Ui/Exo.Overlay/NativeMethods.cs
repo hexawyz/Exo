@@ -4,6 +4,7 @@ using System.Security;
 
 namespace Exo.Overlay;
 
+#pragma warning disable CS0649
 [SuppressUnmanagedCodeSecurity]
 internal static class NativeMethods
 {
@@ -461,3 +462,4 @@ internal static class NativeMethods
 	[DllImport("user32", EntryPoint = "GetDoubleClickTime", SetLastError = true)]
 	public static extern uint GetDoubleClickTime();
 }
+#pragma warning restore CS0649

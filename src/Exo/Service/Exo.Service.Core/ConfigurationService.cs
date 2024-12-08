@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -334,8 +335,5 @@ public class ConfigurationService : IConfigurationNode
 	/// <param name="stream"></param>
 	/// <returns></returns>
 	/// <exception cref="NotImplementedException"></exception>
-	public async Task BackupAsync(Stream stream)
-	{
-		throw new NotImplementedException();
-	}
+	public Task BackupAsync(Stream stream) => Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new NotImplementedException()));
 }

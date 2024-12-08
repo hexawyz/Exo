@@ -48,6 +48,7 @@ internal unsafe sealed class ControlLibrary
 			NativeLibrary.Free(libraryHandle);
 			throw;
 		}
+		_libraryHandle = libraryHandle;
 	}
 
 	~ControlLibrary()

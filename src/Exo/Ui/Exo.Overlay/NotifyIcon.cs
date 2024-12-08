@@ -20,7 +20,7 @@ internal sealed class NotifyIcon : NotificationControl
 #pragma warning restore IDE0044 // Add readonly modifier
 	private bool _isCreated;
 
-	public event EventHandler DoubleClick;
+	public event EventHandler? DoubleClick;
 
 	internal ushort IconId => _iconId;
 
