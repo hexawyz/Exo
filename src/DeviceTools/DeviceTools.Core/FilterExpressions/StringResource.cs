@@ -1,11 +1,10 @@
-﻿namespace DeviceTools.FilterExpressions
+namespace DeviceTools.FilterExpressions;
+
+public readonly struct StringResource
 {
-	public readonly struct StringResource
-	{
-		public string Value { get; }
+	public string Value { get; }
 
-		public StringResource(string value) => Value = value;
+	public StringResource(string value) => Value = value;
 
-		public override string ToString() => Value;
-	}
+	public override string ToString() => Value;
 }

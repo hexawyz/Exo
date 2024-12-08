@@ -1,5 +1,3 @@
-using System;
-
 namespace DeviceTools.FilterExpressions;
 
 public sealed class DeviceFilterExistenceExpression : DeviceFilterExpression

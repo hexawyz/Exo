@@ -1,8 +1,7 @@
-﻿namespace DeviceTools.FilterExpressions
+namespace DeviceTools.FilterExpressions;
+
+public enum LogicalOperator
 {
-	public enum LogicalOperator
-	{
-		And = 1,
-		Or = 2,
-	}
+	And = 1,
+	Or = 2,
 }

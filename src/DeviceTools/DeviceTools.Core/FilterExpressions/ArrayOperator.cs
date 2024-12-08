@@ -1,8 +1,7 @@
-﻿namespace DeviceTools.FilterExpressions
+namespace DeviceTools.FilterExpressions;
+
+public enum ArrayOperator
 {
-	public enum ArrayOperator
-	{
-		Contains = 0x10000000,
-		NotContains = 0x10000000 | 0x00010000,
-	}
+	Contains = 0x10000000,
+	NotContains = 0x10000000 | 0x00010000,
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace DeviceTools;
 
 public static class VendorIdSourceExtensions
