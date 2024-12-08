@@ -355,7 +355,7 @@ internal static partial class NativeMethods
 
 	private static string StructToString<T>(in T value)
 		where T : struct
-		=> TruncateToFirstNull(MemoryMarshal.Cast<T, char>(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(value), 1))).ToString();
+		=> TruncateToFirstNull(MemoryMarshal.Cast<T, char>(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in value), 1))).ToString();
 
 	// A fixed length string buffer of 32 characters.
 	[StructLayout(LayoutKind.Explicit, Size = 32 * sizeof(char))]

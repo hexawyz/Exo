@@ -239,7 +239,7 @@ public abstract partial class HidPlusPlusDevice
 				// This ensures that consumers of the class have a chance to observe all devices through events.
 				if (!Volatile.Read(ref _deviceWatchStarted)) return;
 
-				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
+				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(in message[3]));
 
 				// All (Quad) HID++ 2.0 should adhere to this product ID mapping for now. It is important to know this in advance because the device might be offline.
 				var protocolFlavor = InferProtocolFlavor(parameters);

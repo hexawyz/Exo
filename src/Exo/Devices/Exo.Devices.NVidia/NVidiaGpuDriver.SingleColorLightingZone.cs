@@ -1,4 +1,4 @@
-﻿using Exo.Lighting;
+using Exo.Lighting;
 using Exo.Lighting.Effects;
 
 namespace Exo.Devices.NVidia;
@@ -9,7 +9,7 @@ public partial class NVidiaGpuDriver
 	{
 		private byte _brightness;
 
-		public SingleColorLightingZone(object @lock, int index, Guid zoneId, byte initialBrightness) : base(@lock, index, zoneId)
+		public SingleColorLightingZone(Lock @lock, int index, Guid zoneId, byte initialBrightness) : base(@lock, index, zoneId)
 		{
 			if (initialBrightness != 0)
 			{

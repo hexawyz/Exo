@@ -38,19 +38,20 @@ public readonly struct Linear11 :
 
 	public static explicit operator Linear11(float value)
 	{
+		// TODO
 		return default;
 
-		if (value == 0)
-		{
-		}
+//		if (value == 0)
+//		{
+//		}
 
-#if NET8_0_OR_GREATER
-		uint v = Unsafe.BitCast<float, uint>(value);
-#else
-		uint v = Unsafe.As<float, uint>(ref value);
-#endif
+//#if NET8_0_OR_GREATER
+//		uint v = Unsafe.BitCast<float, uint>(value);
+//#else
+//		uint v = Unsafe.As<float, uint>(ref value);
+//#endif
 
-		uint m = (v & ~(1U << 23)) >> 12;
+//		uint m = (v & ~(1U << 23)) >> 12;
 	}
 
 	public static explicit operator float(Linear11 value) => ToSingle(value._value);

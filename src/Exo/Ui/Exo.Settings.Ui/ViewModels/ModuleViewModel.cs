@@ -1,4 +1,4 @@
-﻿using Exo.Programming;
+using Exo.Programming;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -9,5 +9,5 @@ internal sealed class ModuleViewModel
 	public ModuleViewModel(ModuleDefinition definition) => _definition = definition;
 
 	public string Name => _definition.Name;
-	public string Comment => _definition.Comment;
+	public string? Comment => _definition.Comment;
 }

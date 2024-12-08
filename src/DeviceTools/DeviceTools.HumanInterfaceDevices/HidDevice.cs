@@ -16,7 +16,11 @@ public abstract class HidDevice : IDisposable
 {
 	public static IEnumerable<HidDevice> GetAll(bool includeAll = false)
 	{
+#if NET9_0_OR_GREATER
+		var @lock = new Lock();
+#else
 		var @lock = new object();
+#endif
 		foreach (string name in Device.EnumerateAllInterfaces(DeviceInterfaceClassGuids.Hid, includeAll))
 		{
 			yield return new GenericHidDevice(name, @lock);
@@ -24,7 +28,7 @@ public abstract class HidDevice : IDisposable
 	}
 
 	public static HidDevice FromPath(string deviceName)
-		=> new GenericHidDevice(deviceName, new object());
+		=> new GenericHidDevice(deviceName, new());
 
 	private HidDeviceStream? _deviceStream;
 	private HidCollectionDescriptor? _collectionDescriptor;
@@ -47,7 +51,11 @@ public abstract class HidDevice : IDisposable
 	public abstract DeviceId DeviceId { get; }
 
 	// A lock object used to protect restricted operations on the class, such as opening the device file.
+#if NET9_0_OR_GREATER
+	private protected abstract Lock Lock { get; }
+#else
 	private protected abstract object Lock { get; }
+#endif
 
 	/// <summary>Gets a value indicating if this instance has been disposed.</summary>
 	public abstract bool IsDisposed { get; }

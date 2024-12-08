@@ -369,6 +369,8 @@ public class LgMonitorDriver :
 	private FeatureSetDescription[] _featureSets;
 	private CompositeI2cBus CompositeI2cBus { get; }
 
+	[MemberNotNull(nameof(_lightingFeatures))]
+	[MemberNotNull(nameof(_featureSets))]
 	private void UpdateFeatures(UltraGearLightingFeatures? ultraGearLightingFeatures)
 	{
 		var lightingFeatures = ultraGearLightingFeatures is not null ?

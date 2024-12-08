@@ -28,7 +28,7 @@ public readonly struct PropertyKey : IEquatable<PropertyKey>
 					Marshal.ThrowExceptionForHR((int)result);
 				}
 
-				string canonicalName;
+				string? canonicalName;
 				ReadOnlySpan<char> canonicalNameSpan;
 
 #if NET6_0_OR_GREATER
@@ -92,7 +92,11 @@ public readonly struct PropertyKey : IEquatable<PropertyKey>
 	{
 		if (TryGetKnownName(out var name))
 		{
+#if !NETSTANDARD2_0
 			return name;
+#else
+			return name!;
+#endif
 		}
 
 		if (GetCanonicalName(this) is string canonicalName)

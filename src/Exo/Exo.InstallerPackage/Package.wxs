@@ -12,7 +12,7 @@
             RebootPrompt="no"
             TerminateProcess="0"
             Timeout="5"
-            Condition="INSTALLED" />
+            Condition="Installed" />
 
         <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="!(loc.DowngradeError)" />
 

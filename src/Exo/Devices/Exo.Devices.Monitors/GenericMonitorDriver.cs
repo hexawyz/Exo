@@ -72,6 +72,8 @@ public partial class GenericMonitorDriver
 
 		if (friendlyName is null && info.Capabilities is not null) friendlyName = info.Capabilities.Model;
 
+		if (friendlyName is null) throw new InvalidOperationException("No friendly name for the monitor.");
+
 		return new DriverCreationResult<SystemDevicePath>
 		(
 			keys,

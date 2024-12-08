@@ -1,4 +1,3 @@
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
@@ -40,7 +39,7 @@ public class DisplayDataChannel : IAsyncDisposable
 		// 40 bytes should fit neatly in a 64 byte sequence, considering the object header and array length.
 	}
 
-	protected DisplayDataChannel(II2cBus i2cBus, byte bufferLength, bool isOwned)
+	protected DisplayDataChannel(II2cBus? i2cBus, byte bufferLength, bool isOwned)
 	{
 		_buffer = GC.AllocateUninitializedArray<byte>(bufferLength, pinned: true);
 		_i2cBus = i2cBus;

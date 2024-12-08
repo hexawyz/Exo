@@ -374,7 +374,11 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 
 			public NavigateToSubMenuCommand(CustomMenuViewModel owner) => _owner = owner;
 
-			public void Execute(object? parameter) => _owner.NavigateToSubMenu((SubMenuMenuItemViewModel)parameter);
+			public void Execute(object? parameter)
+			{
+				if (parameter is SubMenuMenuItemViewModel subMenu) _owner.NavigateToSubMenu(subMenu);
+			}
+
 			public bool CanExecute(object? parameter) => true;
 
 			public event EventHandler? CanExecuteChanged

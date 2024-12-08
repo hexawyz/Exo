@@ -331,7 +331,7 @@ public sealed class HidI2CTransport : II2cBus, IAsyncDisposable
 
 		var pendingOperation = Volatile.Read(ref _pendingOperation);
 
-		pendingOperation = sequenceNumber == pendingOperation.SequenceNumber ? pendingOperation : null;
+		pendingOperation = sequenceNumber == pendingOperation?.SequenceNumber ? pendingOperation : null;
 
 		int length = message[0] - 4;
 

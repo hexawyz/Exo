@@ -506,17 +506,17 @@ public readonly struct DisplayConfigurationModeInfo
 
 	public DisplayConfigurationSourceMode AsSourceMode()
 		=> _displayConfigMode.InfoType == ModeInfoType.Source ?
-			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationSourceMode>(ref Unsafe.AsRef(this)) :
+			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationSourceMode>(ref Unsafe.AsRef(in this)) :
 			throw new InvalidOperationException();
 
 	public DisplayConfigurationTargetMode AsTargetMode()
 		=> _displayConfigMode.InfoType == ModeInfoType.Target ?
-			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationTargetMode>(ref Unsafe.AsRef(this)) :
+			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationTargetMode>(ref Unsafe.AsRef(in this)) :
 			throw new InvalidOperationException();
 
 	public DisplayConfigurationDesktopImageInfo AsDesktopImageInfo()
 		=> _displayConfigMode.InfoType == ModeInfoType.DesktopImage ?
-			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationDesktopImageInfo>(ref Unsafe.AsRef(this)) :
+			Unsafe.As<DisplayConfigurationModeInfo, DisplayConfigurationDesktopImageInfo>(ref Unsafe.AsRef(in this)) :
 			throw new InvalidOperationException();
 
 	public static explicit operator DisplayConfigurationSourceMode(DisplayConfigurationModeInfo info)

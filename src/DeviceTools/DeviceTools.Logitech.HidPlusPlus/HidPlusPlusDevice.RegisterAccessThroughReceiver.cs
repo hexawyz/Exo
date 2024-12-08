@@ -96,7 +96,7 @@ public abstract partial class HidPlusPlusDevice
 			// Once we create the device object, it will automatically process the notifications.
 			if (header.SubId == SubId.DeviceConnect)
 			{
-				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(message[3]));
+				var parameters = Unsafe.ReadUnaligned<DeviceConnectionParameters>(ref Unsafe.AsRef(in message[3]));
 
 				// If the WPID has changed, unregister the current instance and forward the notification to the receiver. (It will recreate a new device)
 				if (parameters.WirelessProductId != MainProductId)

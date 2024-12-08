@@ -1,4 +1,4 @@
-﻿using Exo.ColorFormats;
+using Exo.ColorFormats;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 
@@ -11,7 +11,7 @@ public partial class NVidiaGpuDriver
 	{
 		private RgbwColor _color;
 
-		public RgbwLightingZone(object @lock, int index, Guid zoneId, RgbwColor color) : base(@lock, index, zoneId)
+		public RgbwLightingZone(Lock @lock, int index, Guid zoneId, RgbwColor color) : base(@lock, index, zoneId)
 		{
 			if (color != default)
 			{

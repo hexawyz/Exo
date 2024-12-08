@@ -111,10 +111,12 @@ public sealed class MonitorDiscoveryContext : IComponentDiscoveryContext<SystemD
 		}
 
 		byte[]? cachedRawEdid;
-		using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{sourceDeviceName}\Device Parameters"))
+#pragma warning disable CA1416 // Validate platform compatibility
+		using (var deviceKey = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{sourceDeviceName}\Device Parameters")!)
 		{
 			cachedRawEdid = deviceKey.GetValue("EDID") as byte[];
 		}
+#pragma warning restore CA1416 // Validate platform compatibility
 
 		if (cachedRawEdid is null)
 		{

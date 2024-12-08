@@ -12,7 +12,9 @@ namespace Exo.Programming;
 [TypeId(0x7B175861, 0x756B, 0x4D85, 0xA7, 0x69, 0x7B, 0x03, 0x1D, 0x4D, 0x41, 0x7F)]
 public readonly struct DeviceId
 {
+#pragma warning disable CS0649
 	private readonly Guid _value;
+#pragma warning restore CS0649
 
 	public static implicit operator Guid(DeviceId deviceId) => deviceId._value;
 	public static explicit operator DeviceId(Guid guid) => Unsafe.As<Guid, DeviceId>(ref guid);

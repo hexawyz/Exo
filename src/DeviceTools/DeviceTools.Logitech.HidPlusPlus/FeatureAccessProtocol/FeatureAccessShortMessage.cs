@@ -11,10 +11,10 @@ public struct FeatureAccessShortMessage<TParameters>
 	public TParameters Parameters;
 
 	public static implicit operator FeatureAccessShortMessage(in FeatureAccessShortMessage<TParameters> message)
-		=> Unsafe.As<FeatureAccessShortMessage<TParameters>, FeatureAccessShortMessage>(ref Unsafe.AsRef(message));
+		=> Unsafe.As<FeatureAccessShortMessage<TParameters>, FeatureAccessShortMessage>(ref Unsafe.AsRef(in message));
 
 	public static explicit operator FeatureAccessShortMessage<TParameters>(in FeatureAccessShortMessage message)
-		=> Unsafe.As<FeatureAccessShortMessage, FeatureAccessShortMessage<TParameters>>(ref Unsafe.AsRef(message));
+		=> Unsafe.As<FeatureAccessShortMessage, FeatureAccessShortMessage<TParameters>>(ref Unsafe.AsRef(in message));
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 7)]

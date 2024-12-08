@@ -1,4 +1,4 @@
-﻿using Exo.ColorFormats;
+using Exo.ColorFormats;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 
@@ -10,7 +10,7 @@ public partial class NVidiaGpuDriver
 	{
 		private RgbColor _color;
 
-		public RgbLightingZone(object @lock, int index, Guid zoneId, RgbColor initialColor) : base(@lock, index, zoneId)
+		public RgbLightingZone(Lock @lock, int index, Guid zoneId, RgbColor initialColor) : base(@lock, index, zoneId)
 		{
 			if (initialColor != default)
 			{

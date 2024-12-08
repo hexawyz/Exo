@@ -21,7 +21,7 @@ internal struct DeviceStates<T>
 #pragma warning restore IDE0044 // Add readonly modifier
 
 		internal static Span<T?> GetSpan(ref FixedDeviceStates value)
-			=> MemoryMarshal.CreateSpan(ref Unsafe.AsRef(value._device0), 8);
+			=> MemoryMarshal.CreateSpan(ref value._device0, 8);
 	}
 
 	private FixedDeviceStates _fixed;
