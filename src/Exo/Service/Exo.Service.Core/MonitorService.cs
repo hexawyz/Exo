@@ -50,7 +50,7 @@ internal class MonitorService : IAsyncDisposable
 	private readonly Dictionary<Guid, MonitorDeviceDetails> _deviceDetails = new();
 	private ChannelWriter<MonitorInformation>[]? _monitorListeners = [];
 	private ChannelWriter<MonitorSettingWatchNotification>[]? _changeListeners = [];
-	private readonly object _lock = new();
+	private readonly Lock _lock = new();
 	private CancellationTokenSource? _cancellationTokenSource = new();
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ILogger<MonitorService> _logger;

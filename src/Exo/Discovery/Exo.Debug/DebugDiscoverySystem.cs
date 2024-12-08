@@ -15,7 +15,7 @@ public class DebugDiscoverySystem : DiscoveryService<DebugDiscoverySystem, Debug
 {
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
-	private readonly object _lock;
+	private readonly Lock _lock;
 	private Guid _factoryId;
 
 	public override string FriendlyName => "Debug Device Discovery";

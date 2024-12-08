@@ -150,7 +150,7 @@ public partial class NVidiaGpuDriver :
 			throw new InvalidOperationException("The returned number of zone controls is different from the number of zone informations.");
 		}
 
-		var @lock = new object();
+		var @lock = new Lock();
 
 		var lightingZones = ImmutableArray.CreateBuilder<LightingZone>(zones.Length);
 
@@ -307,7 +307,7 @@ public partial class NVidiaGpuDriver :
 	private readonly ImmutableArray<LightingZone> _lightingZones;
 	private readonly ImmutableArray<ISensor> _sensors;
 	private readonly NvApi.PhysicalGpu _gpu;
-	private readonly object _lock;
+	private readonly Lock _lock;
 	private readonly IReadOnlyCollection<ILightingZone> _lightingZoneCollection;
 	private readonly ImmutableArray<FeatureSetDescription> _featureSets;
 	private readonly UtilizationWatcher _utilizationWatcher;
@@ -340,7 +340,7 @@ public partial class NVidiaGpuDriver :
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
 		NvApi.PhysicalGpu gpu,
-		object @lock,
+		Lock @lock,
 		NvApi.Gpu.Client.IlluminationZoneControl[] zoneControls,
 		ImmutableArray<LightingZone> lightingZones,
 		bool hasTachReading,

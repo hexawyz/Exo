@@ -11,7 +11,7 @@ internal sealed partial class SensorService
 		private readonly ISensorsGroupedQueryFeature _groupedQueryFeature;
 		private readonly IGroupedPolledSensorState?[] _activeSensorStates;
 		private int _referenceCount;
-		private readonly object _lock;
+		private readonly Lock _lock;
 		private TaskCompletionSource _enableSignal;
 		private CancellationTokenSource? _disableCancellationTokenSource;
 		private CancellationTokenSource? _disposeCancellationTokenSource;

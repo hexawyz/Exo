@@ -48,7 +48,7 @@ public sealed class HidDiscoverySubsystem :
 	private readonly IDeviceNotificationService _deviceNotificationService;
 
 	private IDisposable? _deviceNotificationRegistration;
-	private readonly object _lock;
+	private readonly Lock _lock;
 
 	public HidDiscoverySubsystem
 	(

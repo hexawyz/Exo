@@ -35,7 +35,7 @@ internal sealed class PowerService : IAsyncDisposable
 
 	private sealed class DeviceState
 	{
-		private readonly object _lock;
+		private readonly Lock _lock;
 		private readonly PowerService _powerService;
 		private readonly IConfigurationContainer _configurationContainer;
 		private IBatteryStateDeviceFeature? _batteryFeatures;

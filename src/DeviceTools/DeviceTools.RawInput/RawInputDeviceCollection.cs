@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -43,10 +43,14 @@ namespace DeviceTools.RawInput
         // item ordering guarantees were required, we could still add a separate array for storage.
         // In order to be accessed outside the lock, this instance must not be mutated once assigned.
         private Dictionary<IntPtr, RawInputDevice> _devices = new Dictionary<IntPtr, RawInputDevice>();
-        // Lock object shared will all RawInputDevice instances. (NB: This could become a ReaderWriterLockSlim to increase throughput of operations if required)
-        internal readonly object _lock = new object();
-        // Determines if the collection is disposed.
-        private int _isDisposed;
+		// Lock object shared will all RawInputDevice instances. (NB: This could become a ReaderWriterLockSlim to increase throughput of operations if required)
+#if NET9_0_OR_GREATER
+		internal readonly Lock _lock = new();
+#else
+		internal readonly object _lock = new object();
+#endif
+		// Determines if the collection is disposed.
+		private int _isDisposed;
 
         private Dictionary<IntPtr, RawInputDevice> Devices => Volatile.Read(ref _devices);
         public bool IsDisposed => Volatile.Read(ref _isDisposed) != 0;

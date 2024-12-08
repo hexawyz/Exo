@@ -9,7 +9,7 @@ public partial class NVidiaGpuDriver
 		private readonly UtilizationSensor _frameBufferSensor;
 		private readonly UtilizationSensor _videoSensor;
 		private int _referenceCount;
-		private readonly object _lock;
+		private readonly Lock _lock;
 		private TaskCompletionSource _enableSignal;
 		private CancellationTokenSource? _disableCancellationTokenSource;
 		private CancellationTokenSource? _disposeCancellationTokenSource;

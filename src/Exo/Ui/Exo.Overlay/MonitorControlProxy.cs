@@ -35,7 +35,7 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 
 	private readonly ServiceConnectionManager _serviceConnectionManager;
 	private readonly Dictionary<uint, PhysicalMonitor> _physicalMonitors;
-	private readonly object _lock;
+	private readonly Lock _lock;
 	private uint _lastMonitorHandle;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _runTask;

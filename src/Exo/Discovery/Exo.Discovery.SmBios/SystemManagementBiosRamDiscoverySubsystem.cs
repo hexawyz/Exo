@@ -64,7 +64,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	internal ISystemManagementBusProvider SystemManagementBusProvider { get; }
 
-	private readonly object _lock;
+	private readonly Lock _lock;
 
 	private SystemManagementBiosRamDiscoverySubsystem
 	(

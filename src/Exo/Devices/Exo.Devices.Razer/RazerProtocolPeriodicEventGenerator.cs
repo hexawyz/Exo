@@ -20,7 +20,7 @@ internal sealed class RazerProtocolPeriodicEventGenerator : IDisposable
 
 	private readonly Timer _timer;
 	private readonly int _period;
-	private readonly object _lock;
+	private readonly Lock _lock;
 
 	// This can hold different values:
 	//  - The value null if there are no handlers. In that case, the timer will be disabled.
@@ -32,7 +32,7 @@ internal sealed class RazerProtocolPeriodicEventGenerator : IDisposable
 	{
 		_period = period;
 		_timer = new Timer(Callback.Instance, this, Timeout.Infinite, Timeout.Infinite);
-		_lock = new object();
+		_lock = new();
 	}
 
 	public void Register(IRazerPeriodicEventHandler handler)

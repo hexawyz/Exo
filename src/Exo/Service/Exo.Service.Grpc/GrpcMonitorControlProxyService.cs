@@ -364,7 +364,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		}
 	}
 
-	private readonly object _lock = new();
+	private readonly Lock _lock = new();
 	private object? _currentSessionOrTaskCompletionSource;
 
 	private void RegisterActiveSession(Session session)

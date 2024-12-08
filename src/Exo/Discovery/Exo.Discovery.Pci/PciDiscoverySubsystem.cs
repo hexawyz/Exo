@@ -51,7 +51,7 @@ public sealed class PciDiscoverySubsystem :
 
 	private IDisposable? _displayAdapterNotificationRegistration;
 	private IDisposable? _displayDeviceArrivalDeviceNotificationRegistration;
-	private readonly object _lock;
+	private readonly Lock _lock;
 
 	public PciDiscoverySubsystem
 	(

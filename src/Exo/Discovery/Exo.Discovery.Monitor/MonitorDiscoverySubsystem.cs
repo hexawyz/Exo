@@ -50,7 +50,7 @@ public sealed class MonitorDiscoverySubsystem :
 	private readonly IDeviceNotificationService _deviceNotificationService;
 	internal II2cBusProvider I2CBusProvider { get; }
 	private IDisposable? _monitorNotificationRegistration;
-	private readonly object _lock;
+	private readonly Lock _lock;
 
 	public MonitorDiscoverySubsystem
 	(

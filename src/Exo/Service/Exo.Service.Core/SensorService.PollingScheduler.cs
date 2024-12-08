@@ -27,7 +27,7 @@ internal sealed partial class SensorService
 			=> tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new PollingSchedulerDisabledException()));
 
 		private TaskCompletionSource _tickSignal;
-		private readonly object _lock;
+		private readonly Lock _lock;
 		private int _referenceCount;
 		private readonly int _period;
 		private Timer? _timer;
@@ -47,7 +47,7 @@ internal sealed partial class SensorService
 			bool lockTaken = false;
 			try
 			{
-				Monitor.TryEnter(_lock, ref lockTaken);
+				lockTaken = _lock.TryEnter();
 				if (!lockTaken) return;
 				if (_referenceCount == 0)
 				{
@@ -65,7 +65,7 @@ internal sealed partial class SensorService
 			{
 				if (lockTaken)
 				{
-					Monitor.Exit(_lock);
+					_lock.Exit();
 				}
 			}
 		}

@@ -56,7 +56,7 @@ internal sealed class CustomMenuService
 
 	private readonly IConfigurationContainer _configurationContainer;
 	private MenuItem[] _menuItems;
-	private readonly object _lock;
+	private readonly Lock _lock;
 	private ChannelWriter<MenuItemWatchNotification>[]? _changeListeners;
 	private readonly ILogger<CustomMenuService> _logger;
 

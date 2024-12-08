@@ -11,7 +11,7 @@ public abstract class MetadataResolver : IDisposable
 	private ExoArchive? _mainArchive;
 	private ExoArchive[]? _additionalArchives;
 	private readonly Dictionary<string, ExoArchive> _additionalArchivesByName;
-	private readonly object _lock;
+	private readonly Lock _lock;
 
 	public MetadataResolver()
 	{

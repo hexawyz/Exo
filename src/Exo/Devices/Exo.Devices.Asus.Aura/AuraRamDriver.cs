@@ -349,7 +349,7 @@ public partial class AuraRamDriver :
 	}
 
 	private readonly ISystemManagementBus _smBus;
-	private readonly object _lock;
+	private readonly Lock _lock;
 	private readonly ImmutableArray<AuraRamLightingZone> _lightingZones;
 	private readonly FinalPendingChanges[] _deferredChangesBuffer;
 	private readonly ReadOnlyCollection<ILightingZone> _lightingZoneCollection;
