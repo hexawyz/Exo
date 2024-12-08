@@ -10,17 +10,20 @@ using Microsoft.CodeAnalysis.Text;
 namespace DeviceTools.Core.SourceGenerators;
 
 [Generator]
-public class DevicePropertiesGenerator : ISourceGenerator
+public class DevicePropertiesGenerator : IIncrementalGenerator
 {
-	public void Initialize(GeneratorInitializationContext context) { }
+	public void Initialize(IncrementalGeneratorInitializationContext context)
+		=> context.RegisterSourceOutput
+		(
+			context.AdditionalTextsProvider
+				.Where(at => Path.GetFileName(at.Path) == "properties.csv")
+				.Select((at, c) => at.GetText()!)
+				.Where(t => t is not null),
+			Execute
+		);
 
-	public void Execute(GeneratorExecutionContext context)
+	private void Execute(SourceProductionContext context, SourceText text)
 	{
-		if (!(context.AdditionalFiles.Where(at => Path.GetFileName(at.Path) == "properties.csv").SingleOrDefault()?.GetText() is SourceText text))
-		{
-			return;
-		}
-
 		var data = new Dictionary<Guid, List<(string Name, int PropertyIndex, string Type, bool IsCanonical)>>();
 
 		var vendors = new List<(string Name, Guid categoryId, int PropertyIndex, string Type, bool IsCanonical)>();
