@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -113,7 +114,10 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		public string Key { get; }
 		public Dictionary<string, DeviceState> DevicesByUniqueId { get; } = [];
-		public Dictionary<string, DeviceState> DevicesByMainDeviceName { get; } = [];
+		// We will support multiple different devices being mapped to the same main device name for now.
+		// This is one way of solving the problem of connecting to many monitors of the same model but with a different S/N.
+		// In some cases we would want to ignore the serial number, but it is unclear how to handle this now, as we still want to track a device moving ports.
+		public Dictionary<string, object> DevicesByMainDeviceName { get; } = [];
 		public Dictionary<string, List<DeviceState>> DevicesByCompatibleHardwareId { get; } = [];
 
 		public DriverConfigurationState(string key) => Key = key;
@@ -182,21 +186,25 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	// This supports upgrading from no serial number to serial number for now, but it is maybe not not a desirable feature in the long run.
 	private static bool TryGetDevice(DriverConfigurationState state, in DeviceConfigurationKey key, [NotNullWhen(true)] out DeviceState? device)
 	{
-		// This helper method is for the fallback to main device ID case from the unique ID.
-		// It ensures that we avoid leaking the device object in case there is a match but with a unique ID. (Which we assume to be different)
-		static bool TryGetDeviceByMainDeviceNameFallback(DriverConfigurationState state, in DeviceConfigurationKey key, [NotNullWhen(true)] out DeviceState? device)
+		// This helper method tries to find a single device without unique ID.
+		// It can be used to find a device without unique ID or to upgrade a device state without unique ID to one with a device ID.
+		static bool TryGetDeviceByMainDeviceName(DriverConfigurationState state, in DeviceConfigurationKey key, [NotNullWhen(true)] out DeviceState? device)
 		{
-			if (state.DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out device))
+			if (state.DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out var devices))
 			{
-				if (device.ConfigurationKey.UniqueId is null) return true;
-				device = null;
+				if (devices is DeviceState { ConfigurationKey.UniqueId: null } foundDevice)
+				{
+					device = foundDevice;
+					return true;
+				}
 			}
+			device = null;
 			return false;
 		}
 
 		return key.UniqueId is not null ?
-			state.DevicesByUniqueId.TryGetValue(key.UniqueId, out device) || TryGetDeviceByMainDeviceNameFallback(state, key, out device) :
-			state.DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out device);
+			state.DevicesByUniqueId.TryGetValue(key.UniqueId, out device) || TryGetDeviceByMainDeviceName(state, key, out device) :
+			TryGetDeviceByMainDeviceName(state, key, out device);
 	}
 
 	private static List<DeviceState> GetDevicesWithCompatibleHardwareId(Dictionary<string, List<DeviceState>> devicesByCompatibleHardwareId, string compatibleHardwareId)
@@ -250,13 +258,77 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			}
 		}
 
-		if (!state.DevicesByMainDeviceName.TryAdd(key.DeviceMainId, deviceState))
-		{
-			state.DevicesByMainDeviceName.TryGetValue(key.DeviceMainId, out var otherDeviceId);
-			throw new InvalidOperationException($"The same main device name was found for devices {otherDeviceId:B} and {deviceId:B}.");
-		}
+		RegisterMainDeviceId(state, deviceState);
 
 		return deviceState;
+	}
+
+	private static void RegisterMainDeviceId(DriverConfigurationState state, DeviceState device)
+		=> RegisterMainDeviceId(state, device, device.ConfigurationKey.DeviceMainId, device.ConfigurationKey.UniqueId);
+
+	private static void RegisterMainDeviceId(DriverConfigurationState state, DeviceState device, string mainDeviceId, string? uniqueId)
+	{
+		// The logic for main ID is as follows:
+		// We allow multiple devices with a unique ID to be associated with the same main device name,
+		// but a device without a unique ID must be exclusively associated with a main device name.
+		if (!state.DevicesByMainDeviceName.TryAdd(mainDeviceId, device))
+		{
+			if (!state.DevicesByMainDeviceName.TryGetValue(mainDeviceId, out var currentState))
+				throw new UnreachableException("Main device name conflict.");
+
+			// A device without unique ID must have exclusive ID.
+			if (uniqueId is null)
+			{
+				throw new InvalidOperationException($"There is a main device name conflict for device {device.DeviceId:B} without unique ID.");
+			}
+			if (currentState is DeviceState otherDeviceState)
+			{
+				if (otherDeviceState.ConfigurationKey.UniqueId is null)
+				{
+					throw new InvalidOperationException($"There is a main device name associated to device {otherDeviceState.DeviceId:B} without device ID cannot be reused by device {device.DeviceId:B}.");
+				}
+
+				// If we have ensured that both devices have a unique ID, we can simply put the two devices into a list.
+				state.DevicesByMainDeviceName[mainDeviceId] = new List<DeviceState> { otherDeviceState, device };
+			}
+			else
+			{
+				// The last remaining case is that the object stored was already a list containing devices with a unique ID, so we can just add another one here.
+				((List<DeviceState>)currentState).Add(device);
+			}
+		}
+	}
+
+	private static void UnregisterMainDeviceId(DriverConfigurationState state, DeviceState device, string mainDeviceId)
+	{
+		static int FindIndex(List<DeviceState>? devices, Guid deviceId)
+		{
+			if (devices is not null)
+			{
+				var span = CollectionsMarshal.AsSpan(devices);
+				for (int i = 0; i < span.Length; i++)
+				{
+					if (span[i].DeviceId == deviceId) return i;
+				}
+			}
+			return -1;
+		}
+
+		if (!((IDictionary<string, object>)state.DevicesByMainDeviceName).Remove(new KeyValuePair<string, object>(mainDeviceId, device)))
+		{
+			if (!state.DevicesByMainDeviceName.TryGetValue(mainDeviceId, out var currentState) ||
+				currentState is not List<DeviceState> devices ||
+				FindIndex(devices, device.DeviceId) is int index && index < 0)
+				throw new UnreachableException("Main device name removal.");
+
+			devices.RemoveAt(index);
+
+			// If there is only one device left, revert to having it directly referenced instead of a list of devices.
+			if (devices.Count == 1)
+			{
+				state.DevicesByMainDeviceName[mainDeviceId] = devices[0];
+			}
+		}
 	}
 
 	// Only to be called during initialization, but necessary to ensure consistency of device instance IDs.
@@ -299,8 +371,8 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		}
 		if (oldKey.DeviceMainId != newKey.DeviceMainId)
 		{
-			state.DevicesByMainDeviceName.Remove(oldKey.DeviceMainId);
-			state.DevicesByMainDeviceName.Add(newKey.DeviceMainId, device);
+			UnregisterMainDeviceId(state, device, oldKey.DeviceMainId);
+			RegisterMainDeviceId(state, device, newKey.DeviceMainId, newKey.UniqueId);
 			hasChanged = true;
 		}
 		// The old index will be unallocated afterwards, as allocating the newer index is the most important operation.
