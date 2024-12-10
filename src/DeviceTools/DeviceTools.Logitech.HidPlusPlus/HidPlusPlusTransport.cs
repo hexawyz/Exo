@@ -428,7 +428,6 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 	{
 		if (Interlocked.Exchange(ref _disposeCancellationTokenSource, null) is { } cts)
 		{
-			cts.Dispose();
 			cts.Cancel();
 			if (_shortMessageStream is not null)
 			{
@@ -448,6 +447,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 			}
 			catch { }
 			DisposeStates();
+			cts.Dispose();
 		}
 	}
 
