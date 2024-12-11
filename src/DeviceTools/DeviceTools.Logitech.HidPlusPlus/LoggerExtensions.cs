@@ -28,5 +28,4 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 10104, Level = LogLevel.Debug, Message = "Feature {FeatureIndex} of {DeviceSerialNumber} is {Feature:X} of type {FeatureType} with version {FeatureVersion}.")]
 	public static partial void FeatureAccessDeviceUnknownFeature(this ILogger logger, string deviceSerialNumber, byte featureIndex, HidPlusPlusFeature feature, HidPlusPlusFeatureTypes featureType, byte featureVersion);
-
 }

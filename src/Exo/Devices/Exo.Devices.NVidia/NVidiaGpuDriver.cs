@@ -98,7 +98,7 @@ public partial class NVidiaGpuDriver :
 	[VendorId(VendorIdSource.Pci, NVidiaVendorId)]
 	public static ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
-		ILogger<NVidiaGpuDriver> logger,
+		ILoggerFactory loggerFactory,
 		ImmutableArray<SystemDevicePath> keys,
 		DeviceObjectInformation topLevelDevice,
 		DeviceId deviceId
@@ -114,6 +114,8 @@ public partial class NVidiaGpuDriver :
 		{
 			throw new InvalidOperationException($"Could not retrieve the bus address for the device {topLevelDevice.Id}.");
 		}
+
+		var logger = loggerFactory.CreateLogger<NVidiaGpuDriver>();
 
 		// Initialize the API and log the version.
 		logger.NvApiVersion(NvApi.GetInterfaceVersionString());
@@ -283,6 +285,7 @@ public partial class NVidiaGpuDriver :
 				new NVidiaGpuDriver
 				(
 					logger,
+					loggerFactory.CreateLogger<UtilizationWatcher>(),
 					deviceId,
 					friendlyName,
 					new("nv", topLevelDevice.Id, $"{NVidiaVendorId:X4}:{deviceId.ProductId:X4}", serialNumber.Length > 0 ? Convert.ToHexString(serialNumber) : null),
@@ -336,6 +339,7 @@ public partial class NVidiaGpuDriver :
 	private NVidiaGpuDriver
 	(
 		ILogger<NVidiaGpuDriver> logger,
+		ILogger<UtilizationWatcher> utilizationWatcherLogger,
 		DeviceId deviceId,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey,
@@ -355,7 +359,7 @@ public partial class NVidiaGpuDriver :
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
-		_utilizationWatcher = new(gpu);
+		_utilizationWatcher = new(utilizationWatcherLogger, this);
 		var sensors = ImmutableArray.CreateBuilder<ISensor>(3 + thermalSensors.Length + clockFrequencies.Length);
 		sensors.Add(_utilizationWatcher.GraphicsSensor);
 		sensors.Add(_utilizationWatcher.FrameBufferSensor);
@@ -449,17 +453,30 @@ public partial class NVidiaGpuDriver :
 		foreach (var display in displays)
 		{
 			NvApi.System.GetGpuAndOutputIdFromDisplayId(display.DisplayId, out _, out uint outputId);
+
+			byte[] rawEdid;
+			Edid edid;
 			try
 			{
-				var edid = Edid.Parse(_gpu.GetEdid(outputId));
-				if (edid.VendorId == vendorId && edid.ProductId == productId && edid.IdSerialNumber == idSerialNumber && edid.SerialNumber == serialNumber)
-				{
-					return new(new MonitorI2CBus(_gpu, outputId));
-				}
+				rawEdid = _gpu.GetEdid(outputId);
 			}
 			catch (Exception ex)
 			{
-				// TODO: Log.
+				_logger.EdidRetrievalFailure(display.DisplayId, outputId, FriendlyName, ex);
+				continue;
+			}
+			try
+			{
+				edid = Edid.Parse(rawEdid);
+			}
+			catch (Exception ex)
+			{
+				_logger.EdidParsingFailure(display.DisplayId, outputId, FriendlyName, ex);
+				continue;
+			}
+			if (edid.VendorId == vendorId && edid.ProductId == productId && edid.IdSerialNumber == idSerialNumber && edid.SerialNumber == serialNumber)
+			{
+				return new(new MonitorI2CBus(_gpu, outputId));
 			}
 		}
 		return ValueTask.FromException<II2cBus>(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("Could not find the monitor.")));
@@ -536,6 +553,7 @@ public partial class NVidiaGpuDriver :
 		}
 		catch (Exception ex)
 		{
+			_logger.GpuFanCoolerStatusQueryFailure(FriendlyName, ex);
 		}
 	}
 
@@ -560,6 +578,7 @@ public partial class NVidiaGpuDriver :
 		}
 		catch (Exception ex)
 		{
+			_logger.GpuClockFrequenciesQueryFailure(FriendlyName, ex);
 		}
 	}
 
@@ -584,6 +603,7 @@ public partial class NVidiaGpuDriver :
 		}
 		catch (Exception ex)
 		{
+			_logger.GpuClockFrequenciesQueryFailure(FriendlyName, ex);
 		}
 	}
 }

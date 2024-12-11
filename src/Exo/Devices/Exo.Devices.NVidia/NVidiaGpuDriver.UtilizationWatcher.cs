@@ -1,10 +1,12 @@
+using Microsoft.Extensions.Logging;
+
 namespace Exo.Devices.NVidia;
 
 public partial class NVidiaGpuDriver
 {
 	private sealed class UtilizationWatcher : IAsyncDisposable
 	{
-		private readonly NvApi.PhysicalGpu _gpu;
+		private readonly NVidiaGpuDriver _driver;
 		private readonly UtilizationSensor _graphicsSensor;
 		private readonly UtilizationSensor _frameBufferSensor;
 		private readonly UtilizationSensor _videoSensor;
@@ -14,14 +16,16 @@ public partial class NVidiaGpuDriver
 		private CancellationTokenSource? _disableCancellationTokenSource;
 		private CancellationTokenSource? _disposeCancellationTokenSource;
 		private readonly Task _runTask;
+		private readonly ILogger<UtilizationWatcher> _logger;
 
 		public UtilizationSensor GraphicsSensor => _graphicsSensor;
 		public UtilizationSensor FrameBufferSensor => _frameBufferSensor;
 		public UtilizationSensor VideoSensor => _videoSensor;
 
-		public UtilizationWatcher(NvApi.PhysicalGpu gpu)
+		public UtilizationWatcher(ILogger<UtilizationWatcher> logger, NVidiaGpuDriver driver)
 		{
-			_gpu = gpu;
+			_logger = logger;
+			_driver = driver;
 			_graphicsSensor = new(this, GraphicsUtilizationSensorId);
 			_frameBufferSensor = new(this, FrameBufferUtilizationSensorId);
 			_videoSensor = new(this, VideoUtilizationSensorId);
@@ -99,13 +103,13 @@ public partial class NVidiaGpuDriver
 			}
 			catch (Exception ex)
 			{
-				// TODO: Log
+				_logger.GpuUtilizationWatchingFailure(_driver.FriendlyName, ex);
 			}
 		}
 
 		private async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{
-			await foreach (var utilizationValue in _gpu.WatchUtilizationAsync(1_000, cancellationToken).ConfigureAwait(false))
+			await foreach (var utilizationValue in _driver._gpu.WatchUtilizationAsync(1_000, cancellationToken).ConfigureAwait(false))
 			{
 				var sensor = utilizationValue.Domain switch
 				{
