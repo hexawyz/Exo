@@ -137,7 +137,7 @@ public static class MonitorDefinitionSerializer
 		byte b = reader.ReadByte();
 		if ((sbyte)b < 0)
 		{
-			uint v = (uint)b & 0x8F;
+			uint v = (uint)b & 0x7F;
 			uint shift = 7;
 			while (true)
 			{
@@ -148,7 +148,7 @@ public static class MonitorDefinitionSerializer
 				}
 				else
 				{
-					v = v | ((uint)b & 0x8F) << (int)shift;
+					v = v | ((uint)b & 0x7F) << (int)shift;
 					shift += 7;
 				}
 			}
