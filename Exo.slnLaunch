@@ -3,19 +3,38 @@
     "Name": "Service and UI",
     "Projects": [
       {
-        "Name": "Exo.Service\\Exo.Service.csproj",
-        "Action": "Start",
-        "DebugTarget": "Exo.Service"
+        "Path": "src\\Exo\\Service\\Exo.Service\\Exo.Service.csproj",
+        "Action": "Start"
       },
       {
-        "Name": "Exo.Settings.Ui\\Exo.Settings.Ui.csproj",
-        "Action": "Start",
-        "DebugTarget": ""
+        "Path": "src\\Exo\\Ui\\Exo.Settings.Ui\\Exo.Settings.Ui.csproj",
+        "Action": "Start"
+      }
+    ]
+  },
+  {
+    "Name": "Service and UI and Overlay",
+    "Projects": [
+      {
+        "Path": "src\\Exo\\Service\\Exo.Service\\Exo.Service.csproj",
+        "Action": "Start"
       },
       {
-        "Name": "Exo.Overlay\\Exo.Overlay.csproj",
-        "Action": "Start",
-        "DebugTarget": "Exo.Overlay"
+        "Path": "src\\Exo\\Ui\\Exo.Settings.Ui\\Exo.Settings.Ui.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\Exo\\Ui\\Exo.Overlay\\Exo.Overlay.csproj",
+        "Action": "Start"
+      }
+    ]
+  },
+  {
+    "Name": "Service only",
+    "Projects": [
+      {
+        "Path": "src\\Exo\\Service\\Exo.Service\\Exo.Service.csproj",
+        "Action": "Start"
       }
     ]
   }
