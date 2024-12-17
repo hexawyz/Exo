@@ -1408,7 +1408,7 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 		}
 	}
 
-	public async ValueTask<string> GetDockSerialNumberAsync(CancellationToken cancellationToken)
+	public async ValueTask<string?> GetDockSerialNumberAsync(CancellationToken cancellationToken)
 	{
 		var @lock = Volatile.Read(ref _lock);
 		ObjectDisposedException.ThrowIf(@lock is null, typeof(RazerProtocolTransport));
@@ -1427,9 +1427,11 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 				UpdateChecksum(buffer);
 			}
 
-			static string ParseResponse(ReadOnlySpan<byte> buffer)
+			static string? ParseResponse(ReadOnlySpan<byte> buffer)
 			{
 				var value = buffer[9..^2];
+
+				if (value[0] == 0xFF) return null;
 
 				int length = value.IndexOf((byte)0);
 

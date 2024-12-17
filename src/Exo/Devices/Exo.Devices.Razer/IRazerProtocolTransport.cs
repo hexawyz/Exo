@@ -60,7 +60,7 @@ internal interface IRazerProtocolTransport : IDisposable
 	ValueTask<PairedDeviceInformation[]> GetDevicePairingInformationAsync(CancellationToken cancellationToken);
 	ValueTask<PairedDeviceInformation> GetDeviceInformationAsync(CancellationToken cancellationToken);
 	ValueTask<Version> GetFirmwareVersionAsync(CancellationToken cancellationToken);
-	ValueTask<string> GetDockSerialNumberAsync(CancellationToken cancellationToken);
+	ValueTask<string?> GetDockSerialNumberAsync(CancellationToken cancellationToken);
 	ValueTask<byte> GetSensorStateAsync(byte parameter1, byte parameter2, CancellationToken cancellationToken);
 	ValueTask<byte> GetDeviceModeAsync(CancellationToken cancellationToken);
 	ValueTask SetDeviceModeAsync(byte mode, CancellationToken cancellationToken);

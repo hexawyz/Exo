@@ -272,16 +272,7 @@ public abstract partial class RazerDeviceDriver :
 		(
 			RazerDeviceCategory.UsbReceiver,
 			RazerLedId.None,
-			// TODO: Remove the non-dongle flags (the device has its own config ID), and make it so that it works fine in case it doesn't.
-			RazerDeviceFlags.HasBattery |
-				RazerDeviceFlags.HasPowerNotifications |
-				RazerDeviceFlags.HasLighting |
-				RazerDeviceFlags.HasLightingV2 |
-				RazerDeviceFlags.HasReactiveLighting |
-				RazerDeviceFlags.HasDpi |
-				RazerDeviceFlags.HasDpiPresets |
-				RazerDeviceFlags.HasDpiPresetsRead |
-				RazerDeviceFlags.HasDpiPresetsV2,
+			0,
 			0x007C,
 			0x007D,
 			0xFFFF,
@@ -328,12 +319,7 @@ public abstract partial class RazerDeviceDriver :
 		(
 			RazerDeviceCategory.UsbReceiver,
 			RazerLedId.None,
-			RazerDeviceFlags.HasBattery |
-				RazerDeviceFlags.HasPowerNotifications |
-				RazerDeviceFlags.HasDpi |
-				RazerDeviceFlags.HasDpiPresets |
-				RazerDeviceFlags.HasDpiPresetsRead |
-				RazerDeviceFlags.HasDpiPresetsV2,
+			0,
 			0x00B6,
 			0x00B7,
 			0xFFFF,
@@ -527,15 +513,19 @@ public abstract partial class RazerDeviceDriver :
 			transport = new RzControlRazerProtocolTransport(new DeviceStream(Device.OpenHandle(razerControlDeviceInterfaceName!, DeviceAccess.None, FileShare.None), FileAccess.ReadWrite));
 		}
 
-		await transport.HandshakeAsync(cancellationToken).ConfigureAwait(false);
+		// TODO: Find if there is a proper way to handshake or remove this. Serial number can be used to serve as the handshake otherwise.
+		// NB: Maybe the firmware version request (00 03) can be used (to be tested), as this is the only request made to the dongle by the FW updater and it works.
+		//await transport.HandshakeAsync(cancellationToken).ConfigureAwait(false);
 
 		string? serialNumber = null;
 
-		if (deviceInfo.DeviceCategory is RazerDeviceCategory.DockReceiver)
+		if (deviceInfo.DeviceCategory is RazerDeviceCategory.UsbReceiver or RazerDeviceCategory.DockReceiver)
 		{
+			// NB: USB receivers are likely to return no valid value here, which we will consider the null value (FF repeated 20 times)
+			// As long as the call succeed, it can serve as a handshake.
 			serialNumber = await transport.GetDockSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 		}
-		else if (deviceInfo.DeviceCategory is not (RazerDeviceCategory.UsbReceiver or RazerDeviceCategory.DockReceiver))
+		else
 		{
 			serialNumber = await transport.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 		}

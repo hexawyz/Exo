@@ -935,7 +935,7 @@ internal sealed class RazerDeathAdderV2ProBluetoothProtocolTransport : IRazerPro
 	Task IRazerProtocolTransport.SetDpiPresetsV1Async(bool persist, RazerMouseDpiProfileConfiguration configuration, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<byte> IRazerProtocolTransport.GetCurrentDpiPresetAsync(bool persisted, CancellationToken cancellationToken) => throw new NotSupportedException();
 	Task IRazerProtocolTransport.SetCurrentDpiPresetAsync(bool persist, byte index, CancellationToken cancellationToken) => throw new NotSupportedException();
-	ValueTask<string> IRazerProtocolTransport.GetDockSerialNumberAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+	ValueTask<string?> IRazerProtocolTransport.GetDockSerialNumberAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 
 	ValueTask IRazerProtocolTransport.SetSensorStateAsync(byte parameter1, byte parameter2, byte value, CancellationToken cancellationToken) => throw new NotSupportedException();
 	ValueTask<byte> IRazerProtocolTransport.GetSensorStateAsync(byte parameter1, byte parameter2, CancellationToken cancellationToken) => throw new NotSupportedException();
