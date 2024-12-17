@@ -535,7 +535,7 @@ public abstract partial class RazerDeviceDriver
 		protected bool HasReactiveLighting => (_deviceFlags & RazerDeviceFlags.HasReactiveLighting) != 0;
 		protected bool MustSetDeviceMode3 => (_deviceFlags & RazerDeviceFlags.MustSetDeviceMode3) != 0;
 		protected bool MustSetSensorState5 => (_deviceFlags & RazerDeviceFlags.MustSetSensorState5) != 0;
-		protected bool IsWired => _deviceConnection == DeviceConnectionType.Wired;
+		protected bool IsWired => _connectionType == DeviceConnectionType.Wired;
 
 		protected BaseDevice
 		(

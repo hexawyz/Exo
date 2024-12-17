@@ -804,7 +804,7 @@ public abstract partial class RazerDeviceDriver :
 	// It *could* be merged with the transport for practical reasons but the two features are not related enough.
 	private readonly RazerProtocolPeriodicEventGenerator? _periodicEventGenerator;
 
-	private readonly DeviceConnectionType _deviceConnection;
+	private readonly DeviceConnectionType _connectionType;
 	private readonly ImmutableArray<DeviceId> _deviceIds;
 	private readonly byte _mainDeviceIdIndex;
 	private readonly RazerDeviceFlags _deviceFlags;
@@ -839,6 +839,7 @@ public abstract partial class RazerDeviceDriver :
 	{
 		_transport = transport;
 		_periodicEventGenerator = periodicEventGenerator;
+		_connectionType = connectionType;
 		_deviceIds = deviceIds;
 		_mainDeviceIdIndex = mainDeviceIdIndex;
 		_deviceFlags = deviceFlags;
