@@ -3,5 +3,28 @@
     // Original Capabilities: (prot(monitor)type(LCD)model(ThinkVision T34w-20)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 10 12 14(01 05 06 08 0B 12) 16 18 1A 52 60(11 0F 31) 86(02 05) AC AE B2 B6 C6(02 01 C7 00 A0 E4 00 D8 00 C0 00 00 08 00 46 00 00) C8 C9 CA CC(02 03 04 05 06 09 0A 0D) D6(01 05) DF E0(00 01 02) EA(00 01) EC(00 01 FF 00 03) F6(07) F7(04 0B(00 02)) F8(04 0B(00 02)) FA(10 12 14 86 EA) FD)mswhql(1)asset_eep(40)mccs_ver(2.2))
     // This monitor uses nested parentheses to describe VCP F7 and V8, which is non-standard and I can't determine what it would be for. Overriding the capabilities is a quick fix until this is solved.
     // Related but unhelpful: https://stackoverflow.com/questions/75652540/how-to-get-the-vcp-feature-when-the-vcp-code-contains-several-sub-codes
-    "capabilities": "(prot(monitor)type(LCD)model(ThinkVision T34w-20)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 10 12 14(01 05 06 08 0B 12) 16 18 1A 52 60(11 0F 31) 86(02 05) AC AE B2 B6 C6(02 01 C7 00 A0 E4 00 D8 00 C0 00 00 08 00 46 00 00) C8 C9 CA CC(02 03 04 05 06 09 0A 0D) D6(01 05) DF E0(00 01 02) EA(00 01) EC(00 01 FF 00 03) F6(07) FA(10 12 14 86 EA) FD)mswhql(1)asset_eep(40)mccs_ver(2.2))"
+    "capabilities": "(prot(monitor)type(LCD)model(ThinkVision T34w-20)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 10 12 14(01 05 06 08 0B 12) 16 18 1A 52 60(11 0F 31) 86(02 05) AC AE B2 B6 C6(02 01 C7 00 A0 E4 00 D8 00 C0 00 00 08 00 46 00 00) C8 C9 CA CC(02 03 04 05 06 09 0A 0D) D6(01 05) DF E0(00 01 02) EA(00 01) EC(00 01 FF 00 03) F6(07) FA(10 12 14 86 EA) FD)mswhql(1)asset_eep(40)mccs_ver(2.2))",
+    "overriddenFeatures": [
+        {
+            "vcpCode": 96,
+            "feature": "inputSelect",
+            "discreteValues": [
+                {
+                    // DP
+                    "value": 15,
+                    "nameStringId": "60c27b00-0db2-4f72-a049-a805a7f90883"
+                },
+                {
+                    // HDMI
+                    "value": 17,
+                    "nameStringId": "ff7b1ba4-6e79-4339-a25d-1f634f88f5a6"
+                },
+                {
+                    // USB-C
+                    "value": 49,
+                    "nameStringId": "1ab09771-ce84-443e-a4be-2cf9378e10f7"
+                }
+            ]
+        }
+    ]
 }
