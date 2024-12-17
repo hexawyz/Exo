@@ -513,7 +513,7 @@ public abstract partial class RazerDeviceDriver
 		private ushort _batteryLevelAndChargingStatus;
 		private ushort _idleTimer;
 		private readonly AsyncLock _lightingLock;
-		private readonly AsyncLock _batteryStateLock;
+		private readonly Lock _batteryStateLock;
 		private readonly LightingZone? _unifiedLightingZone;
 		private readonly ImmutableArray<LightingZone> _lightingZones;
 		private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
