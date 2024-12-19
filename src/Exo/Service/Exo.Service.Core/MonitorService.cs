@@ -93,14 +93,16 @@ internal class MonitorService : IAsyncDisposable
 					{
 						// The idea here is to empty out the device details before removing them from the list.
 						// So, once the details are guaranteed to be empty once they are no more exposed in the dictionary.
-						if (!_deviceDetails.TryGetValue(deviceId, out details)) continue;
-						using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+						if (_deviceDetails.TryGetValue(deviceId, out details))
 						{
-							details.KnownValues.Clear();
-							details.Driver = null;
-							lock (_lock)
+							using (await details.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 							{
-								_deviceDetails.Remove(deviceId, details);
+								details.KnownValues.Clear();
+								details.Driver = null;
+								lock (_lock)
+								{
+									_deviceDetails.Remove(deviceId, details);
+								}
 							}
 						}
 					}
@@ -111,6 +113,7 @@ internal class MonitorService : IAsyncDisposable
 					{
 						_logger.MonitorServiceDeviceRemovalError(deviceId, ex);
 					}
+					continue;
 				}
 				try
 				{
