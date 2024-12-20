@@ -17,6 +17,8 @@ public class DisplayDataChannel : IAsyncDisposable
 
 	private readonly byte[] _buffer;
 	private II2cBus? _i2cBus;
+	private readonly int _retryDelay;
+	private readonly ushort _retryCount;
 	private readonly bool _isOwned;
 	private CancellationTokenSource? _cancellationTokenSource;
 
@@ -30,19 +32,27 @@ public class DisplayDataChannel : IAsyncDisposable
 		}
 	}
 
+	protected int RetryCount => _retryCount;
+	protected int RetryDelay => _retryDelay;
+
 	protected Memory<byte> Buffer => MemoryMarshal.CreateFromPinnedArray(_buffer, 0, _buffer.Length);
 
-	public DisplayDataChannel(II2cBus? i2cBus, bool isOwned)
-		: this(i2cBus, 40, isOwned)
+	public DisplayDataChannel(II2cBus? i2cBus, bool isOwned) : this(i2cBus, 2, 100, isOwned) { }
+
+	public DisplayDataChannel(II2cBus? i2cBus, ushort retryCount, int retryDelay, bool isOwned)
+		: this(i2cBus, 40, retryCount, retryDelay, isOwned)
 	{
 		// We should generally not need anything more than 37 bytes for the buffer, so this main constructor requests a 40 byte buffer.
 		// 40 bytes should fit neatly in a 64 byte sequence, considering the object header and array length.
 	}
 
-	protected DisplayDataChannel(II2cBus? i2cBus, byte bufferLength, bool isOwned)
+	protected DisplayDataChannel(II2cBus? i2cBus, byte bufferLength, ushort retryCount, int retryDelay, bool isOwned)
 	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(retryDelay, 10);
 		_buffer = GC.AllocateUninitializedArray<byte>(bufferLength, pinned: true);
 		_i2cBus = i2cBus;
+		_retryCount = retryCount;
+		_retryDelay = retryDelay;
 		_isOwned = isOwned;
 		_cancellationTokenSource = new();
 	}
@@ -101,24 +111,24 @@ public class DisplayDataChannel : IAsyncDisposable
 	{
 		if (message[0] != DefaultDeviceAddress << 1)
 		{
-			throw new InvalidDataException("The received response has an unexpected destination address.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.WrongDestinationAddress);
 		}
 
 		if (message[1] < 0x81)
 		{
-			throw new InvalidDataException("The received response has an invalid length.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.InvalidResponseLength);
 		}
 
 		byte length = (byte)(message[1] & 0x7F);
 
 		if (Checksum.Xor(message[..(length + 3)], 0x50) != 0)
 		{
-			throw new InvalidDataException("The received response has an invalid DDC checksum.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.InvalidChecksum);
 		}
 
 		if (message[2] != (byte)command)
 		{
-			throw new InvalidDataException("The received response is referencing the wrong DDC opcode.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.WrongOpcode);
 		}
 
 		return message.Slice(3, length - 1);
@@ -130,7 +140,7 @@ public class DisplayDataChannel : IAsyncDisposable
 
 		if (contents.Length != 7)
 		{
-			throw new InvalidDataException("The received response has an incorrect length.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.IncorrectResponseLength);
 		}
 
 		switch (contents[0])
@@ -138,7 +148,7 @@ public class DisplayDataChannel : IAsyncDisposable
 		case 0:
 			if (contents[1] != vcpCode)
 			{
-				throw new InvalidDataException("The received response does not match the requested VCP code.");
+				throw new DisplayDataChannelVcpException(DisplayDataChannelError.WrongVcpCode, vcpCode, contents[1]);
 			}
 
 			bool isMomentary = contents[2] != 0;
@@ -147,9 +157,9 @@ public class DisplayDataChannel : IAsyncDisposable
 
 			return new(currentValue, maximumValue, isMomentary);
 		case 1:
-			throw new InvalidOperationException($"The monitor rejected the request for VCP code {vcpCode:X2} as unsupported. Some monitors can badly report VCP codes in the capabilities string.");
+			throw new DisplayDataChannelVcpException(DisplayDataChannelError.UnsupportedVcpCode, vcpCode);
 		default:
-			throw new InvalidOperationException($"The monitor returned an unknown error for VCP code {vcpCode:X2}.");
+			throw new DisplayDataChannelVcpException(DisplayDataChannelError.Error, vcpCode);
 		}
 	}
 
@@ -159,7 +169,7 @@ public class DisplayDataChannel : IAsyncDisposable
 
 		if (BigEndian.ReadUInt16(contents[0]) != offset)
 		{
-			throw new InvalidDataException("Non consecutive data packets were received.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.NonConsecutiveDataPackets);
 		}
 
 		var data = contents[2..];
@@ -173,7 +183,7 @@ public class DisplayDataChannel : IAsyncDisposable
 
 		if (nextOffset > 0xFFFF)
 		{
-			throw new InvalidDataException("The data exceeded the maximum size.");
+			throw new DisplayDataChannelException(DisplayDataChannelError.MaximumDataLengthExceeded);
 		}
 
 		if (destination.Length < data.Length)
@@ -212,11 +222,22 @@ public class DisplayDataChannel : IAsyncDisposable
 	{
 		var i2cBus = I2CBus;
 		var buffer = Buffer;
-		WriteVcpRequest(buffer.Span, vcpCode, (DefaultDeviceAddress << 1) ^ 0x51);
-		await i2cBus.WriteAsync(DefaultDeviceAddress, 0x51, buffer[..4], cancellationToken).ConfigureAwait(false);
-		await Task.Delay(VcpRequestDelay, cancellationToken).ConfigureAwait(false);
-		await i2cBus.ReadAsync(DefaultDeviceAddress, buffer[..11], cancellationToken).ConfigureAwait(false);
-		return ReadVcpFeatureReply(buffer.Span[..11], vcpCode);
+		int retryCount = _retryCount;
+		while (true)
+		{
+			WriteVcpRequest(buffer.Span, vcpCode, (DefaultDeviceAddress << 1) ^ 0x51);
+			await i2cBus.WriteAsync(DefaultDeviceAddress, 0x51, buffer[..4], cancellationToken).ConfigureAwait(false);
+			await Task.Delay(VcpRequestDelay, cancellationToken).ConfigureAwait(false);
+			await i2cBus.ReadAsync(DefaultDeviceAddress, buffer[..11], cancellationToken).ConfigureAwait(false);
+			try
+			{
+				return ReadVcpFeatureReply(buffer.Span[..11], vcpCode);
+			}
+			catch (DisplayDataChannelException ex) when (ex.Error is DisplayDataChannelError.WrongDestinationAddress && --retryCount >= 0)
+			{
+				await Task.Delay(_retryDelay, cancellationToken).ConfigureAwait(false);
+			}
+		}
 	}
 
 	public async ValueTask SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
@@ -270,13 +291,21 @@ public class DisplayDataChannel : IAsyncDisposable
 		var buffer = Buffer;
 
 		ushort offset = 0;
+		int retryCount = _retryCount;
 		while (true)
 		{
 			WriteVariableRead(buffer.Span, requestCommand, offset, (DefaultDeviceAddress << 1) ^ 0x51);
 			await i2cBus.WriteAsync(DefaultDeviceAddress, 0x51, buffer[..5], cancellationToken).ConfigureAwait(false);
 			await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
 			await i2cBus.ReadAsync(DefaultDeviceAddress, buffer[..38], cancellationToken).ConfigureAwait(false);
-			if (ReadVariableLengthResponse(destination.Span[offset..], buffer.Span[..38], replyCommand, ref offset)) break;
+			try
+			{
+				if (ReadVariableLengthResponse(destination.Span[offset..], buffer.Span[..38], replyCommand, ref offset)) break;
+			}
+			catch (DisplayDataChannelException ex) when (ex.Error is DisplayDataChannelError.WrongDestinationAddress && --retryCount >= 0)
+			{
+				await Task.Delay(_retryDelay, cancellationToken).ConfigureAwait(false);
+			}
 		}
 		return offset;
 	}
