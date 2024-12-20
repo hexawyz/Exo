@@ -111,12 +111,12 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 
 Exo relies on these runtimes, that you can download from the official websites:
 
-* .NET 8.0.8 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/8.0
-* Windows App SDK 1.6 Runtime: https://aka.ms/windowsappsdk/1.6/1.6.240829007/windowsappruntimeinstall-x64.exe
+* .NET 9.0.101 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
+* Windows App SDK 1.6 Runtime: https://aka.ms/windowsappsdk/1.6/1.6.241114003/windowsappruntimeinstall-x64.exe
 
 ### Optional
 
-Some devices comme with kernel drivers that are made by the manufacturer and help with providing support for the device features.
+Some devices come with kernel drivers that are made by the manufacturer and help with providing support for the device features.
 When these drivers are installed on the system, the features exposed to the OS can be different.
 In some cases, Exo will require drivers from the manufacturer, and in other cases it will require them.
 
