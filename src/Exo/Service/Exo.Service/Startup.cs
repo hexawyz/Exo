@@ -10,6 +10,7 @@ using Exo.Services;
 using Exo.SystemManagementBus;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using ProtoBuf.Grpc.Server;
+using Serilog;
 
 namespace Exo.Service;
 
@@ -264,6 +265,8 @@ public class Startup
 		}
 
 		//app.UseStaticFiles();
+
+		app.UseSerilogRequestLogging();
 
 		app.UseRouting();
 
