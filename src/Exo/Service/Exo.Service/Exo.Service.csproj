@@ -13,6 +13,7 @@
   </PropertyGroup>
 	
 	<ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore.Server" />
 		<PackageReference Include="protobuf-net.Grpc.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
 	</ItemGroup>
