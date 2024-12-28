@@ -9,7 +9,7 @@
 		<PackageReference Update="System.Reflection.MetadataLoadContext" Version="9.0.0" />
 		<PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
 		<PackageReference Update="System.Security.AccessControl" Version="6.0.1" />
-		<PackageReference Update="System.ServiceModel.Primitives" Version="8.1.0" />
+		<PackageReference Update="System.ServiceModel.Primitives" Version="8.1.1" />
 		<PackageReference Update="System.Threading.Channels" Version="9.0.0" />
 		<PackageReference Update="coverlet.collector" Version="6.0.2" />
 		<PackageReference Update="Grpc.Net.Client" Version="2.67.0" />
@@ -28,12 +28,12 @@
 		<PackageReference Update="Microsoft.NET.Test.Sdk" Version="17.12.0" />
 		<PackageReference Update="protobuf-net.Grpc" Version="1.2.2" />
 		<PackageReference Update="protobuf-net.Grpc.AspNetCore" Version="1.2.2" />
-		<PackageReference Update="Serilog.AspNetCore" Version="8.0.3" />
+		<PackageReference Update="Serilog.AspNetCore" Version="9.0.0" />
 		<PackageReference Update="SixLabors.ImageSharp" Version="3.1.6" />
 		<PackageReference Update="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
 		<PackageReference Update="xunit" Version="2.9.2" />
 		<PackageReference Update="xunit.runner.console" Version="2.9.2" />
-		<PackageReference Update="xunit.runner.visualstudio" Version="2.8.2" />
+		<PackageReference Update="xunit.runner.visualstudio" Version="3.0.0" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)' != 'net8.0' And '$(TargetFramework)' != 'net9.0'">
 		<PackageReference Update="System.Collections.Immutable" Version="7.0.0" />
