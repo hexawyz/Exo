@@ -39,6 +39,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private readonly AsyncLock _writeLock;
 	// In order to support concurrent different operations, we need to have one specific TaskCompletionSource field for each operation.
 	private TaskCompletionSource? _setBrightnessTaskCompletionSource;
+	private TaskCompletionSource? _setDisplayModeTaskCompletionSource;
 	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
 	private TaskCompletionSource? _setPumpPowerTaskCompletionSource;
 	private TaskCompletionSource? _setFanPowerTaskCompletionSource;
@@ -198,6 +199,86 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		finally
 		{
 			Volatile.Write(ref _setBrightnessTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask DisplayImageAsync(byte index, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 0);
+		EnsureNotDisposed();
+
+		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _setDisplayModeTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte imageIndex)
+		{
+			buffer.Clear();
+			buffer[0] = DisplayChangeRequestMessageId;
+			buffer[1] = 0x01;
+			buffer[2] = 4;
+			buffer[3] = imageIndex;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, index);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..8].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _setDisplayModeTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask DisplayPresetVisualAsync(KrakenPresetVisual visual, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan((byte)visual, 3, nameof(visual));
+		EnsureNotDisposed();
+
+		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _setDisplayModeTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, KrakenPresetVisual visual)
+		{
+			buffer.Clear();
+			buffer[0] = DisplayChangeRequestMessageId;
+			buffer[1] = 0x01;
+			buffer[2] = (byte)visual;
+			buffer[3] = 0;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, visual);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..8].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _setDisplayModeTaskCompletionSource, null);
 		}
 	}
 

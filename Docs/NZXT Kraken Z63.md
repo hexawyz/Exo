@@ -118,7 +118,15 @@ RES: 39 01 1a 00 41000a 51383430353132 01 00000000000000000000000000000000000000
 ````
 
 The command seems to take two parameters, the first one being always 4, and the second one being the stored image ID, from 0 to 15.
-I suspect that the first parameter might be another sub-id.
+
+The first parameter being `04` indicates that the device should display one of the stored images.
+
+Possible values are:
+
+* `00` - Off
+* `01` - Builtin animation (the same one that is displayed when the device boots after power down)
+* `02` - Temperature (the graphics that are displayed by default when the computer boots and no controlling software has yet interacted with the device)
+* `04` - Display specified image
 
 ### ??? Before and after a change of image to GIF
 
