@@ -20,6 +20,8 @@
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Firmware\DeviceTools.Firmware.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Bluetooth\DeviceTools.Bluetooth.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Usb\DeviceTools.Usb.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.WinUsb\DeviceTools.WinUsb.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.RawInput\DeviceTools.RawInput.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using DeviceTools.WinUsb;
 using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
@@ -66,6 +67,7 @@ public class KrakenDriver :
 		}
 
 		string? hidDeviceInterfaceName = null;
+		string? winUsbDeviceInterfaceName = null;
 		for (int i = 0; i < deviceInterfaces.Length; i++)
 		{
 			var deviceInterface = deviceInterfaces[i];
@@ -78,15 +80,27 @@ public class KrakenDriver :
 			if (interfaceClassGuid == DeviceInterfaceClassGuids.Hid)
 			{
 				hidDeviceInterfaceName = deviceInterface.Id;
-				HidDevice.FromPath(hidDeviceInterfaceName);
+				//HidDevice.FromPath(hidDeviceInterfaceName);
+			}
+			else if (interfaceClassGuid == DeviceInterfaceClassGuids.WinUsb)
+			{
+				winUsbDeviceInterfaceName = deviceInterface.Id;
 			}
 		}
 
 		if (hidDeviceInterfaceName is null)
 		{
-			throw new InvalidOperationException("One of the expected device interfaces was not found.");
+			throw new InvalidOperationException("The Kraken HID device interface was not found.");
 		}
 
+		if (winUsbDeviceInterfaceName is null)
+		{
+			throw new MissingKernelDriverException(friendlyName);
+		}
+
+		//var winUsbDevice = new DeviceStream(Device.OpenHandle(winUsbDeviceInterfaceName, DeviceAccess.ReadWrite), FileAccess.ReadWrite, 0, true);
+		//var deviceDescriptor = await winUsbDevice.GetDeviceDescriptorAsync(cancellationToken).ConfigureAwait(false);
+		//var configuration = await winUsbDevice.GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
 		var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
 		try
 		{
