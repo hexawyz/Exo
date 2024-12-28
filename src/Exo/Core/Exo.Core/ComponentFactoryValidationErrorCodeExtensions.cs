@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace Exo;
 
-public static class DriverFactoryValidationErrorCodeExtensions
+public static class ComponentFactoryValidationErrorCodeExtensions
 {
 	public static string? FormatError(this ComponentFactory.ValidationErrorCode errorCode, MethodInfo? method, string? argument)
 		=> errorCode switch
