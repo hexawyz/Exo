@@ -95,10 +95,11 @@ public class KrakenDriver :
 
 		if (winUsbDeviceInterfaceName is null)
 		{
-			throw new MissingKernelDriverException(friendlyName);
+			throw new MissingKernelDriverException(friendlyName, DeviceId.ForUsb(NzxtVendorId, productId, version));
 		}
 
 		//var winUsbDevice = new DeviceStream(Device.OpenHandle(winUsbDeviceInterfaceName, DeviceAccess.ReadWrite), FileAccess.ReadWrite, 0, true);
+		//var speed = await winUsbDevice.GetDeviceSpeedAsync(cancellationToken).ConfigureAwait(false);
 		//var deviceDescriptor = await winUsbDevice.GetDeviceDescriptorAsync(cancellationToken).ConfigureAwait(false);
 		//var configuration = await winUsbDevice.GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
 		var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
