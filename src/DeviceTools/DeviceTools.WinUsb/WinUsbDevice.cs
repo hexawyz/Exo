@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeviceTools.Usb;
 
 namespace DeviceTools.WinUsb;
@@ -42,7 +43,7 @@ public static class WinUsbDeviceExtensions
 	private const int InitializeIoControlCode2 = 0x350c03c;
 
 	[EditorBrowsable(EditorBrowsableState.Advanced)]
-	public static unsafe ValueTask<int> GetRawDescriptorAsync
+	public static ValueTask<int> GetRawDescriptorAsync
 	(
 		this DeviceStream device,
 		UsbDescriptorType descriptorType,
@@ -62,7 +63,7 @@ public static class WinUsbDeviceExtensions
 	}
 
 	/// <summary>Gets the USB device descriptor of the specified device.</summary>
-	/// <param name="device">The device on which the descriptor must be retrieved.</param>
+	/// <param name="device">The WinUSB device on which the descriptor must be retrieved.</param>
 	/// <param name="cancellationToken">A cancellation token.</param>
 	/// <returns>The USB device descriptor.</returns>
 	public static async ValueTask<UsbDeviceDescriptor> GetDeviceDescriptorAsync(this DeviceStream device, CancellationToken cancellationToken)
@@ -77,7 +78,7 @@ public static class WinUsbDeviceExtensions
 	}
 
 	/// <summary>Gets the USB configuration descriptor of the specified device, without any extra data.</summary>
-	/// <param name="device">The device on which the descriptor must be retrieved.</param>
+	/// <param name="device">The WinUSB device on which the descriptor must be retrieved.</param>
 	/// <param name="cancellationToken">A cancellation token.</param>
 	/// <returns>The USB device descriptor.</returns>
 	public static async ValueTask<UsbConfigurationDescriptor> GetConfigurationDescriptorAsync(this DeviceStream device, CancellationToken cancellationToken)
@@ -92,7 +93,7 @@ public static class WinUsbDeviceExtensions
 	}
 
 	/// <summary>Gets the USB configuration descriptor of the specified device, including any extra data.</summary>
-	/// <param name="device">The device on which the descriptor must be retrieved.</param>
+	/// <param name="device">The WinUSB device on which the descriptor must be retrieved.</param>
 	/// <param name="cancellationToken">A cancellation token.</param>
 	/// <returns>The USB device descriptor.</returns>
 	public static async ValueTask<UsbConfiguration> GetConfigurationAsync(this DeviceStream device, CancellationToken cancellationToken)
@@ -108,5 +109,41 @@ public static class WinUsbDeviceExtensions
 		_ = await device.IoControlAsync(GetDescriptorIoControlCode, buffer.AsMemory(0, 4), resultBuffer, cancellationToken).ConfigureAwait(false);
 
 		return new(resultBuffer);
+	}
+
+	/// <summary>Writes data to a USB pipe.</summary>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="interfaceIndex">The index of the interface as returned by .</param>
+	/// <param name="address">The pipe address.</param>
+	/// <param name="buffer">The buffer containing the data that must be written.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes written to the pipe.</returns>
+	public static async ValueTask<int> WritePipeAsync(this DeviceStream device, byte interfaceIndex, byte address, ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var inputBuffer = new byte[2];
+		// This stuff with the interface index is kinda weird, but it should be correct
+		inputBuffer[0] = interfaceIndex > 0 ? (byte)(interfaceIndex + 1) : (byte)0;
+		inputBuffer[1] = address;
+
+		return await device.IoControlAsync(WritePipeIoControlCode, inputBuffer, MemoryMarshal.AsMemory(buffer), cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>Reads data from a USB pipe.</summary>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="interfaceIndex">The index of the interface in the list of interfaces.</param>
+	/// <param name="address">The pipe address.</param>
+	/// <param name="buffer">The buffer that will hold the data that has been read.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes read from the pipe.</returns>
+	public static async ValueTask<int> ReadPipeAsync(this DeviceStream device, byte interfaceIndex, byte address, Memory<byte> buffer, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var inputBuffer = new byte[2];
+		// This stuff with the interface index is kinda weird, but it should be correct
+		inputBuffer[0] = interfaceIndex > 0 ? (byte)(interfaceIndex + 1) : (byte)0;
+		inputBuffer[1] = address;
+
+		return await device.IoControlAsync(ReadPipeIoControlCode, inputBuffer, buffer, cancellationToken).ConfigureAwait(false);
 	}
 }
