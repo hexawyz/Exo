@@ -147,6 +147,57 @@ public static class WinUsbDeviceExtensions
 		return await device.IoControlAsync(ReadPipeIoControlCode, inputBuffer, buffer, cancellationToken).ConfigureAwait(false);
 	}
 
+	/// <summary>Resets a USB pipe of a WinUSB device.</summary>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="interfaceIndex">The index of the interface in the list of interfaces.</param>
+	/// <param name="address">The pipe address.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes read from the pipe.</returns>
+	public static async ValueTask ResetPipeAsync(this DeviceStream device, byte interfaceIndex, byte address, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var inputBuffer = new byte[2];
+		// This stuff with the interface index is kinda weird, but it should be correct
+		inputBuffer[0] = interfaceIndex > 0 ? (byte)(interfaceIndex + 1) : (byte)0;
+		inputBuffer[1] = address;
+
+		await device.IoControlAsync(ResetPipeIoControlCode, (ReadOnlyMemory<byte>)inputBuffer, cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>Aborts a USB pipe of a WinUSB device.</summary>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="interfaceIndex">The index of the interface in the list of interfaces.</param>
+	/// <param name="address">The pipe address.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes read from the pipe.</returns>
+	public static async ValueTask AbortPipeAsync(this DeviceStream device, byte interfaceIndex, byte address, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var inputBuffer = new byte[2];
+		// This stuff with the interface index is kinda weird, but it should be correct
+		inputBuffer[0] = interfaceIndex > 0 ? (byte)(interfaceIndex + 1) : (byte)0;
+		inputBuffer[1] = address;
+
+		await device.IoControlAsync(AbortPipeIoControlCode, (ReadOnlyMemory<byte>)inputBuffer, cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>Flushes a USB pipe of a WinUSB device.</summary>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="interfaceIndex">The index of the interface in the list of interfaces.</param>
+	/// <param name="address">The pipe address.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes read from the pipe.</returns>
+	public static async ValueTask FlushPipeAsync(this DeviceStream device, byte interfaceIndex, byte address, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var inputBuffer = new byte[2];
+		// This stuff with the interface index is kinda weird, but it should be correct
+		inputBuffer[0] = interfaceIndex > 0 ? (byte)(interfaceIndex + 1) : (byte)0;
+		inputBuffer[1] = address;
+
+		await device.IoControlAsync(FlushPipeIoControlCode, (ReadOnlyMemory<byte>)inputBuffer, cancellationToken).ConfigureAwait(false);
+	}
+
 	/// <summary>Queries information on a WinUSB device.</summary>
 	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
 	/// <param name="informationType">The type of information to retrieve.</param>
