@@ -62,7 +62,7 @@ public static class WinUsbDeviceExtensions
 		return device.IoControlAsync(GetDescriptorIoControlCode, inputBuffer, buffer, cancellationToken);
 	}
 
-	/// <summary>Gets the USB device descriptor of the specified device.</summary>
+	/// <summary>Gets the USB device descriptor of the specified WinUSB device.</summary>
 	/// <param name="device">The WinUSB device on which the descriptor must be retrieved.</param>
 	/// <param name="cancellationToken">A cancellation token.</param>
 	/// <returns>The USB device descriptor.</returns>
@@ -77,7 +77,7 @@ public static class WinUsbDeviceExtensions
 		return Unsafe.As<byte, UsbDeviceDescriptor>(ref buffer[4]);
 	}
 
-	/// <summary>Gets the USB configuration descriptor of the specified device, without any extra data.</summary>
+	/// <summary>Gets the USB configuration descriptor of the specified WinUSB device, without any extra data.</summary>
 	/// <param name="device">The WinUSB device on which the descriptor must be retrieved.</param>
 	/// <param name="cancellationToken">A cancellation token.</param>
 	/// <returns>The USB device descriptor.</returns>
@@ -92,7 +92,7 @@ public static class WinUsbDeviceExtensions
 		return Unsafe.As<byte, UsbConfigurationDescriptor>(ref buffer[4]);
 	}
 
-	/// <summary>Gets the USB configuration descriptor of the specified device, including any extra data.</summary>
+	/// <summary>Gets the USB configuration descriptor of the specified WinUSB device, including any extra data.</summary>
 	/// <param name="device">The WinUSB device on which the descriptor must be retrieved.</param>
 	/// <param name="cancellationToken">A cancellation token.</param>
 	/// <returns>The USB device descriptor.</returns>
@@ -111,7 +111,7 @@ public static class WinUsbDeviceExtensions
 		return new(resultBuffer);
 	}
 
-	/// <summary>Writes data to a USB pipe.</summary>
+	/// <summary>Writes data to a pipe of a WinUSB device.</summary>
 	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
 	/// <param name="interfaceIndex">The index of the interface as returned by .</param>
 	/// <param name="address">The pipe address.</param>
@@ -129,7 +129,7 @@ public static class WinUsbDeviceExtensions
 		return await device.IoControlAsync(WritePipeIoControlCode, inputBuffer, MemoryMarshal.AsMemory(buffer), cancellationToken).ConfigureAwait(false);
 	}
 
-	/// <summary>Reads data from a USB pipe.</summary>
+	/// <summary>Reads data from a USB pipe of a WinUSB device.</summary>
 	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
 	/// <param name="interfaceIndex">The index of the interface in the list of interfaces.</param>
 	/// <param name="address">The pipe address.</param>
@@ -145,5 +145,40 @@ public static class WinUsbDeviceExtensions
 		inputBuffer[1] = address;
 
 		return await device.IoControlAsync(ReadPipeIoControlCode, inputBuffer, buffer, cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>Queries information on a WinUSB device.</summary>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="informationType">The type of information to retrieve.</param>
+	/// <param name="buffer">The buffer that will hold the data that has been read.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes read from the pipe.</returns>
+	[EditorBrowsable(EditorBrowsableState.Advanced)]
+	public static async ValueTask<int> QueryDeviceInformationAsync(this DeviceStream device, UsbDeviceInformationType informationType, Memory<byte> buffer, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var inputBuffer = new byte[4];
+		Unsafe.As<byte, uint>(ref inputBuffer[0]) = (uint)informationType;
+
+		return await device.IoControlAsync(QueryDeviceInformationIoControlCode, inputBuffer, buffer, cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>Gets the speed of a WinUSB device.</summary>
+	/// <remarks>
+	/// The device speed can also be retrieved by calling <see cref="QueryDeviceInformationAsync(DeviceStream, UsbDeviceInformationType, Memory{byte}, CancellationToken)"/> with
+	/// <see cref="UsbDeviceInformationType.DeviceSpeed"/>, but this call should be slightly more efficient.
+	/// </remarks>
+	/// <param name="device">The WinUSB device to which the pipe belongs.</param>
+	/// <param name="cancellationToken">A cancellation token.</param>
+	/// <returns>The number of bytes read from the pipe.</returns>
+	public static async ValueTask<UsbDeviceSpeed> GetDeviceSpeedAsync(this DeviceStream device, CancellationToken cancellationToken)
+	{
+		// TODO: Make this use native memory instead, in order to avoid garbage. (Need to provide unsafe IOCTL methods, which might in fact not be cheap)
+		var buffer = new byte[5];
+		Unsafe.As<byte, uint>(ref buffer[0]) = (uint)UsbDeviceInformationType.DeviceSpeed;
+
+		_ = await device.IoControlAsync(QueryDeviceInformationIoControlCode, buffer.AsMemory(0, 4), buffer.AsMemory(4), cancellationToken).ConfigureAwait(false);
+
+		return (UsbDeviceSpeed)buffer[4];
 	}
 }
