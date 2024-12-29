@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 namespace DeviceTools.Usb;
 
@@ -27,6 +27,6 @@ public struct UsbEndpointDescriptor
 		set => _attributes = (byte)((_attributes & 0b11001111) | ((byte)value & 0b00000011) << 4);
 	}
 
-	public byte MaximumPacketSize;
+	public ushort MaximumPacketSize;
 	public byte Interval;
 }

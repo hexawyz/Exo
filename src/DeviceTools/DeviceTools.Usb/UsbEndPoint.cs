@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace DeviceTools.Usb;
@@ -28,6 +28,6 @@ public readonly struct UsbEndPoint
 	public UsbTransferType TransferType => Descriptor.TransferType;
 	public UsbSynchronizationType SynchronizationType => Descriptor.SynchronizationType;
 	public UsbEndpointUsageType UsageType => Descriptor.UsageType;
-	public byte MaximumPacketSize => Descriptor.MaximumPacketSize;
+	public ushort MaximumPacketSize => Descriptor.MaximumPacketSize;
 	public byte Interval => Descriptor.Interval;
 }

@@ -9,38 +9,42 @@ public readonly struct UsbEndpointCollection : IReadOnlyList<UsbEndPoint>
 	public struct Enumerator : IEnumerator<UsbEndPoint>
 	{
 		private readonly ReadOnlyMemory<byte> _data;
-		private int _index;
+		private int _offset;
 
 		internal Enumerator(ReadOnlyMemory<byte> data)
 		{
 			_data = data;
-			_index = -1;
+			_offset = -1;
 		}
 
 		void IDisposable.Dispose() { }
-		void IEnumerator.Reset() => _index = -1;
+		void IEnumerator.Reset() => _offset = -1;
 
-		public UsbEndPoint Current => new UsbEndPoint(_data.Slice(_index, 6));
+		public UsbEndPoint Current => new UsbEndPoint(_data.Slice(_offset, 7));
 
 		object IEnumerator.Current => Current;
 
 		public bool MoveNext()
 		{
-			if ((uint)_index < _data.Length)
+			var data = _data;
+			int offset = _offset;
+			if ((uint)offset >= (uint)data.Length)
 			{
-				_index += 6;
+				if (offset > 0 || (offset = 9) >= data.Length) goto Failure;
+				goto ValidateCurrentDescriptor;
 			}
-			else if (_index < 0)
+		NextDescriptor:;
+			offset += Unsafe.As<byte, UsbCommonDescriptor>(ref Unsafe.AsRef(in data.Span[offset])).Length;
+			if ((uint)offset >= (uint)data.Length) goto Failure;
+		ValidateCurrentDescriptor:;
+			if (Unsafe.As<byte, UsbCommonDescriptor>(ref Unsafe.AsRef(in data.Span[offset])).DescriptorType == UsbDescriptorType.Endpoint)
 			{
-				_index = 9;
+				_offset = offset;
+				return true;
 			}
-			else
-			{
-				goto Failure;
-			}
-			if (_index + 6 <= _data.Length) return true;
-			Failure:;
-			_index = _data.Length;
+			goto NextDescriptor;
+		Failure:;
+			_offset = data.Length;
 			return false;
 		}
 	}
@@ -55,7 +59,35 @@ public readonly struct UsbEndpointCollection : IReadOnlyList<UsbEndPoint>
 
 	public ref readonly UsbInterfaceDescriptor Descriptor => ref Unsafe.As<byte, UsbInterfaceDescriptor>(ref Unsafe.AsRef(in _data.Span[0]));
 
-	public UsbEndPoint this[int index] => new UsbEndPoint(_data.Slice(9 + checked(6 * index), 6));
+	public UsbEndPoint this[int index]
+	{
+		get
+		{
+			if ((uint)index > (uint)Count) throw new ArgumentOutOfRangeException(nameof(index));
+			var data = _data;
+			int offset = 9;
+			while (true)
+			{
+				if (offset + 2 > data.Length) throw new InvalidDataException();
+
+				ref readonly var descriptor = ref Unsafe.As<byte, UsbCommonDescriptor>(ref Unsafe.AsRef(in data.Span[offset]));
+
+				if (descriptor.DescriptorType == UsbDescriptorType.Endpoint)
+				{
+					if (index == 0)
+					{
+						return new UsbEndPoint(data.Slice(offset, descriptor.Length));
+					}
+					else
+					{
+						--index;
+					}
+				}
+				offset += descriptor.Length;
+			}
+		}
+	}
+
 	public int Count => Descriptor.EndpointCount;
 
 	public Enumerator GetEnumerator() => new(_data);
