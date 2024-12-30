@@ -80,7 +80,6 @@ public class KrakenDriver :
 			if (interfaceClassGuid == DeviceInterfaceClassGuids.Hid)
 			{
 				hidDeviceInterfaceName = deviceInterface.Id;
-				//HidDevice.FromPath(hidDeviceInterfaceName);
 			}
 			else if (interfaceClassGuid == DeviceInterfaceClassGuids.WinUsb)
 			{
@@ -98,41 +97,59 @@ public class KrakenDriver :
 			throw new MissingKernelDriverException(friendlyName, DeviceId.ForUsb(NzxtVendorId, productId, version));
 		}
 
-		//var winUsbDevice = new DeviceStream(Device.OpenHandle(winUsbDeviceInterfaceName, DeviceAccess.ReadWrite), FileAccess.ReadWrite, 0, true);
-		//var speed = await winUsbDevice.GetDeviceSpeedAsync(cancellationToken).ConfigureAwait(false);
-		//var deviceDescriptor = await winUsbDevice.GetDeviceDescriptorAsync(cancellationToken).ConfigureAwait(false);
-		//var configuration = await winUsbDevice.GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
-		var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
+		DeviceStream? winUsbDevice = null;
 		try
 		{
-			string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
-			var transport = new KrakenHidTransport(hidStream);
-			var screenInfo = await transport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
-			return new DriverCreationResult<SystemDevicePath>
-			(
-				keys,
-				new KrakenDriver
-				(
-					logger,
-					transport,
-					screenInfo.Width,
-					screenInfo.Height,
-					productId,
-					version,
-					friendlyName,
-					new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", serialNumber)
-				),
-				null
-			);
+			winUsbDevice = new DeviceStream(Device.OpenHandle(winUsbDeviceInterfaceName, DeviceAccess.ReadWrite), FileAccess.ReadWrite, 0, true);
 		}
-		catch
+		catch (UnauthorizedAccessException)
 		{
-			await hidStream.DisposeAsync().ConfigureAwait(false);
+			logger.KrakenWinUsbDeviceLocked(winUsbDeviceInterfaceName);
+		}
+		try
+		{
+			var imageTransport = winUsbDevice is not null ?
+				await KrakenWinUsbImageTransport.CreateAsync(winUsbDevice, cancellationToken).ConfigureAwait(false) :
+				null;
+			var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
+			try
+			{
+				string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
+				var hidTransport = new KrakenHidTransport(hidStream);
+				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
+				return new DriverCreationResult<SystemDevicePath>
+				(
+					keys,
+					new KrakenDriver
+					(
+						logger,
+						hidTransport,
+						imageTransport,
+						screenInfo.Width,
+						screenInfo.Height,
+						productId,
+						version,
+						friendlyName,
+						new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", serialNumber)
+					),
+					null
+				);
+			}
+			catch
+			{
+				await hidStream.DisposeAsync().ConfigureAwait(false);
+				throw;
+			}
+		}
+		catch when (winUsbDevice is not null)
+		{
+			await winUsbDevice.DisposeAsync().ConfigureAwait(false);
 			throw;
 		}
 	}
 
-	private readonly KrakenHidTransport _transport;
+	private readonly KrakenHidTransport _hidTransport;
+	private readonly KrakenWinUsbImageTransport? _imageTransport;
 	private readonly ISensor[] _sensors;
 	private readonly ICooler[] _coolers;
 	private readonly ILogger<KrakenDriver> _logger;
@@ -173,6 +190,7 @@ public class KrakenDriver :
 	(
 		ILogger<KrakenDriver> logger,
 		KrakenHidTransport transport,
+		KrakenWinUsbImageTransport? imageTransport,
 		ushort imageWidth,
 		ushort imageHeight,
 		ushort productId,
@@ -183,7 +201,8 @@ public class KrakenDriver :
 		: base(friendlyName, configurationKey)
 	{
 		_logger = logger;
-		_transport = transport;
+		_hidTransport = transport;
+		_imageTransport = imageTransport;
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
@@ -196,18 +215,22 @@ public class KrakenDriver :
 		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorInformationFeature, IMonitorBrightnessFeature>(this);
 	}
 
-	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
+	public override async ValueTask DisposeAsync()
+	{
+		await _hidTransport.DisposeAsync().ConfigureAwait(false);
+		if (_imageTransport is not null) await _imageTransport.DisposeAsync().ConfigureAwait(false);
+	}
 
 	async ValueTask<ContinuousValue> IContinuousVcpFeature.GetValueAsync(CancellationToken cancellationToken)
 	{
-		var info = await _transport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
+		var info = await _hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
 		return new ContinuousValue(info.CurrentBrightness, 0, 100);
 	}
 
 	async ValueTask IContinuousVcpFeature.SetValueAsync(ushort value, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
-		await _transport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);
+		await _hidTransport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);
 	}
 
 	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
@@ -234,7 +257,7 @@ public class KrakenDriver :
 
 	async ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
-		var readings = await _transport.GetRecentReadingsAsync(cancellationToken).ConfigureAwait(false);
+		var readings = await _hidTransport.GetRecentReadingsAsync(cancellationToken).ConfigureAwait(false);
 
 		foreach (var sensor in _sensors)
 		{
@@ -289,13 +312,13 @@ public class KrakenDriver :
 
 	private async ValueTask UpdatePumpPowerAsync(byte power, CancellationToken cancellationToken)
 	{
-		await _transport.SetPumpPowerAsync(power, cancellationToken).ConfigureAwait(false);
+		await _hidTransport.SetPumpPowerAsync(power, cancellationToken).ConfigureAwait(false);
 		_lastPumpSpeedTarget = power;
 	}
 
 	private async ValueTask UpdateFanPowerAsync(byte power, CancellationToken cancellationToken)
 	{
-		await _transport.SetFanPowerAsync(power, cancellationToken).ConfigureAwait(false);
+		await _hidTransport.SetFanPowerAsync(power, cancellationToken).ConfigureAwait(false);
 		_lastFanSpeedTarget = power;
 	}
 
