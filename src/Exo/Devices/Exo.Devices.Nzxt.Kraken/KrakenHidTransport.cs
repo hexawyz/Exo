@@ -15,11 +15,11 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		public ImageInfoTaskCompletionSource(byte imageIndex) : base(TaskCreationOptions.RunContinuationsAsynchronously) => ImageIndex = imageIndex;
 	}
 
-	private sealed class ImageUploadTaskCompletionSource : TaskCompletionSource
+	private sealed class FunctionTaskCompletionSource : TaskCompletionSource
 	{
 		public byte FunctionId { get; }
 
-		public ImageUploadTaskCompletionSource(byte functionId) : base(TaskCreationOptions.RunContinuationsAsynchronously) => FunctionId = functionId;
+		public FunctionTaskCompletionSource(byte functionId) : base(TaskCreationOptions.RunContinuationsAsynchronously) => FunctionId = functionId;
 	}
 
 	// The message length is 64 bytes including the report ID, which indicates a specific command.
@@ -45,12 +45,16 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private const byte CoolingPowerPumpFunctionId = 0x01;
 	private const byte CoolingPowerFanFunctionId = 0x02;
 
+	private const byte ImageMemoryManagementSetFunctionId = 0x01;
+	private const byte ImageMemoryManagementClearFunctionId = 0x02;
+
 	private const byte CurrentDeviceStatusFunctionId = 0x01;
 
 	private const byte DisplayChangeVisualFunctionId = 0x01;
 
 	private const byte ImageUploadStartFunctionId = 0x01;
 	private const byte ImageUploadEndFunctionId = 0x02;
+	private const byte ImageUploadCancelFunctionId = 0x03;
 
 	private readonly HidFullDuplexStream _stream;
 	private readonly byte[] _buffers;
@@ -63,9 +67,10 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	// In order to support concurrent different operations, we need to have one specific TaskCompletionSource field for each operation.
 	private TaskCompletionSource? _setBrightnessTaskCompletionSource;
 	private TaskCompletionSource? _setDisplayModeTaskCompletionSource;
-	private ImageUploadTaskCompletionSource? _imageUploadTaskCompletionSource;
 	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
 	private ImageInfoTaskCompletionSource? _imageInfoTaskCompletionSource;
+	private FunctionTaskCompletionSource? _imageMemoryManagementTaskCompletionSource;
+	private FunctionTaskCompletionSource? _imageUploadTaskCompletionSource;
 	private TaskCompletionSource? _setPumpPowerTaskCompletionSource;
 	private TaskCompletionSource? _setFanPowerTaskCompletionSource;
 	private TaskCompletionSource? _statusRetrievalTaskCompletionSource;
@@ -265,9 +270,91 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask DisplayImageAsync(byte index, CancellationToken cancellationToken)
+	public async ValueTask SetImageStorageAsync(byte imageIndex, ushort memoryBlockIndex, ushort memoryBlockCount, CancellationToken cancellationToken)
 	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 15);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(imageIndex, 15);
+		EnsureNotDisposed();
+
+		var tcs = new FunctionTaskCompletionSource(ImageMemoryManagementSetFunctionId);
+		if (Interlocked.CompareExchange(ref _imageMemoryManagementTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte imageIndex, ushort memoryBlockIndex, ushort memoryBlockCount)
+		{
+			buffer.Clear();
+			buffer[0] = ImageMemoryManagementRequestMessageId;
+			buffer[1] = ImageMemoryManagementSetFunctionId;
+			buffer[2] = imageIndex;
+			buffer[3] = (byte)(imageIndex + 1);
+			LittleEndian.Write(ref buffer[4], memoryBlockIndex);
+			LittleEndian.Write(ref buffer[6], memoryBlockCount);
+			buffer[8] = 0x01;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, imageIndex, memoryBlockIndex, memoryBlockCount);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..9].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _imageMemoryManagementTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask ClearImageStorageAsync(byte imageIndex, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(imageIndex, 15);
+		EnsureNotDisposed();
+
+		var tcs = new FunctionTaskCompletionSource(ImageMemoryManagementClearFunctionId);
+		if (Interlocked.CompareExchange(ref _imageMemoryManagementTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte imageIndex)
+		{
+			buffer.Clear();
+			buffer[0] = ImageMemoryManagementRequestMessageId;
+			buffer[1] = ImageMemoryManagementClearFunctionId;
+			buffer[3] = imageIndex;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, imageIndex);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..3].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _imageMemoryManagementTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask DisplayImageAsync(byte imageIndex, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(imageIndex, 15);
 		EnsureNotDisposed();
 
 		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -277,7 +364,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		{
 			buffer.Clear();
 			buffer[0] = DisplayChangeRequestMessageId;
-			buffer[1] = 0x01;
+			buffer[1] = DisplayChangeVisualFunctionId;
 			buffer[2] = 4;
 			buffer[3] = imageIndex;
 		}
@@ -289,7 +376,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			{
 				try
 				{
-					PrepareRequest(buffer.Span, index);
+					PrepareRequest(buffer.Span, imageIndex);
 					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 				}
 				finally
@@ -317,7 +404,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		{
 			buffer.Clear();
 			buffer[0] = DisplayChangeRequestMessageId;
-			buffer[1] = 0x01;
+			buffer[1] = DisplayChangeVisualFunctionId;
 			buffer[2] = (byte)visual;
 			buffer[3] = 0;
 		}
@@ -350,7 +437,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 15);
 		EnsureNotDisposed();
 
-		var tcs = new ImageUploadTaskCompletionSource(ImageUploadStartFunctionId);
+		var tcs = new FunctionTaskCompletionSource(ImageUploadStartFunctionId);
 		if (Interlocked.CompareExchange(ref _imageUploadTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
 		static void PrepareRequest(Span<byte> buffer, byte index)
@@ -388,7 +475,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	{
 		EnsureNotDisposed();
 
-		var tcs = new ImageUploadTaskCompletionSource(ImageUploadEndFunctionId);
+		var tcs = new FunctionTaskCompletionSource(ImageUploadEndFunctionId);
 		if (Interlocked.CompareExchange(ref _imageUploadTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
 		static void PrepareRequest(Span<byte> buffer)
@@ -396,6 +483,36 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			buffer.Clear();
 			buffer[0] = ImageUploadRequestMessageId;
 			buffer[1] = ImageUploadEndFunctionId;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				PrepareRequest(buffer.Span);
+				await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _imageUploadTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask CancelImageUploadAsync(CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+
+		var tcs = new FunctionTaskCompletionSource(ImageUploadCancelFunctionId);
+		if (Interlocked.CompareExchange(ref _imageUploadTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer)
+		{
+			buffer.Clear();
+			buffer[0] = ImageUploadRequestMessageId;
+			buffer[1] = ImageUploadCancelFunctionId;
 		}
 
 		var buffer = WriteBuffer;
@@ -528,11 +645,14 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		case ScreenSettingsResponseMessageId:
 			ProcessScreenInformationResponse(functionId, data);
 			break;
-		case DisplayChangeResponseMessageId:
-			ProcessDisplayChangeResponse(functionId, data);
+		case ImageMemoryManagementResponseMessageId:
+			ProcessImageMemoryManagementResponse(functionId, data);
 			break;
 		case ImageUploadResponseMessageId:
 			ProcessImageUploadResponse(functionId, data);
+			break;
+		case DisplayChangeResponseMessageId:
+			ProcessDisplayChangeResponse(functionId, data);
 			break;
 		case GenericResponseMessageId:
 			ProcessGenericResponse(data);
@@ -561,23 +681,51 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	{
 		if (functionId == ScreenSettingsGetScreenInfoFunctionId)
 		{
+			ushort memoryBlockCount = LittleEndian.ReadUInt16(in response[1]);
 			byte imageCount = response[5];
 			ushort imageWidth = LittleEndian.ReadUInt16(in response[6]);
 			ushort imageHeight = LittleEndian.ReadUInt16(in response[8]);
 			byte brightness = response[10];
 
-			_screenInfoRetrievalTaskCompletionSource?.TrySetResult(new(brightness, imageCount, imageWidth, imageHeight));
+			_screenInfoRetrievalTaskCompletionSource?.TrySetResult(new(brightness, imageCount, imageWidth, imageHeight, memoryBlockCount));
 		}
 		else if (functionId == ScreenSettingsGetImageInfoFunctionId)
 		{
 			byte imageIndex = response[0];
-			if (_imageInfoTaskCompletionSource?.ImageIndex == imageIndex)
+			var tcs = _imageInfoTaskCompletionSource;
+			if (tcs?.ImageIndex == imageIndex)
 			{
 				byte otherImageIndex = response[1];
 				byte unknown = response[2];
 				ushort index = LittleEndian.ReadUInt16(in response[3]);
 				ushort count = LittleEndian.ReadUInt16(in response[5]);
-				_imageInfoTaskCompletionSource.TrySetResult(new(imageIndex, otherImageIndex, unknown, index, count));
+				tcs.TrySetResult(new(imageIndex, otherImageIndex, unknown, index, count));
+			}
+		}
+	}
+
+	private void ProcessImageMemoryManagementResponse(byte functionId, ReadOnlySpan<byte> response)
+	{
+		if (functionId is ImageMemoryManagementSetFunctionId or ImageMemoryManagementClearFunctionId)
+		{
+			var tcs = _imageMemoryManagementTaskCompletionSource;
+			if (tcs?.FunctionId == functionId)
+			{
+				if (response[0] == 1) tcs.TrySetResult();
+				else tcs.TrySetException(new Exception($"Result: {response[0]:X2}"));
+			}
+		}
+	}
+
+	private void ProcessImageUploadResponse(byte functionId, ReadOnlySpan<byte> response)
+	{
+		if (functionId is ImageUploadStartFunctionId or ImageUploadEndFunctionId or ImageUploadCancelFunctionId)
+		{
+			var tcs = _imageUploadTaskCompletionSource;
+			if (tcs?.FunctionId == functionId)
+			{
+				if (response[0] == 1) tcs.TrySetResult();
+				else tcs.TrySetException(new Exception($"Result: {response[0]:X2}"));
 			}
 		}
 	}
@@ -587,17 +735,6 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		if (functionId == DisplayChangeVisualFunctionId)
 		{
 			_setDisplayModeTaskCompletionSource?.TrySetResult();
-		}
-	}
-
-	private void ProcessImageUploadResponse(byte functionId, ReadOnlySpan<byte> response)
-	{
-		if (functionId is ImageUploadStartFunctionId or ImageUploadEndFunctionId)
-		{
-			if (_imageUploadTaskCompletionSource?.FunctionId == functionId)
-			{
-				_imageUploadTaskCompletionSource.TrySetResult();
-			}
 		}
 	}
 

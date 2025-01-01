@@ -1,10 +1,10 @@
+using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
-using DeviceTools.WinUsb;
 using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
@@ -117,6 +117,17 @@ public class KrakenDriver :
 				string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 				var hidTransport = new KrakenHidTransport(hidStream);
 				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
+				var storageManager = imageTransport is not null ?
+					await KrakenImageStorageManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false) :
+					null;
+
+				if (storageManager is not null)
+				{
+					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.LiquidTemperature, cancellationToken).ConfigureAwait(false);
+					await storageManager.UploadImageAsync(0, KrakenImageFormat.Raw, GenerateImage(screenInfo.Width, screenInfo.Height), cancellationToken).ConfigureAwait(false);
+					await hidTransport.DisplayImageAsync(0, cancellationToken).ConfigureAwait(false);
+				}
+
 				return new DriverCreationResult<SystemDevicePath>
 				(
 					keys,
@@ -124,7 +135,7 @@ public class KrakenDriver :
 					(
 						logger,
 						hidTransport,
-						imageTransport,
+						storageManager,
 						screenInfo.Width,
 						screenInfo.Height,
 						productId,
@@ -148,8 +159,36 @@ public class KrakenDriver :
 		}
 	}
 
+	private static byte[] GenerateImage(uint width, uint height)
+	{
+		// Pixel layout: RR GG BB AA
+		static uint GetColor(byte r, byte g, byte b)
+			=> BitConverter.IsLittleEndian ?
+				r | (uint)g << 8 | (uint)b << 16 | (uint)255 << 24 :
+				(uint)r << 24 | (uint)g << 16 | (uint)b << 8 | 255;
+
+
+		uint color1 = GetColor(255, 0, 255);
+		uint color2 = GetColor(0, 255, 255);
+
+		var data = GC.AllocateUninitializedArray<byte>(checked((int)(width * height * 4)), false);
+
+		ref var currentPixel = ref Unsafe.As<byte, uint>(ref data[0]);
+
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				currentPixel = j <= i ? color1 : color2;
+				currentPixel = ref Unsafe.Add(ref currentPixel, 1);
+			}
+		}
+
+		return data;
+	}
+
 	private readonly KrakenHidTransport _hidTransport;
-	private readonly KrakenWinUsbImageTransport? _imageTransport;
+	private readonly KrakenImageStorageManager? _storageManager;
 	private readonly ISensor[] _sensors;
 	private readonly ICooler[] _coolers;
 	private readonly ILogger<KrakenDriver> _logger;
@@ -190,7 +229,7 @@ public class KrakenDriver :
 	(
 		ILogger<KrakenDriver> logger,
 		KrakenHidTransport transport,
-		KrakenWinUsbImageTransport? imageTransport,
+		KrakenImageStorageManager? storageManager,
 		ushort imageWidth,
 		ushort imageHeight,
 		ushort productId,
@@ -202,7 +241,7 @@ public class KrakenDriver :
 	{
 		_logger = logger;
 		_hidTransport = transport;
-		_imageTransport = imageTransport;
+		_storageManager = storageManager;
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
@@ -218,7 +257,7 @@ public class KrakenDriver :
 	public override async ValueTask DisposeAsync()
 	{
 		await _hidTransport.DisposeAsync().ConfigureAwait(false);
-		if (_imageTransport is not null) await _imageTransport.DisposeAsync().ConfigureAwait(false);
+		if (_storageManager is not null) await _storageManager.DisposeAsync().ConfigureAwait(false);
 	}
 
 	async ValueTask<ContinuousValue> IContinuousVcpFeature.GetValueAsync(CancellationToken cancellationToken)
