@@ -361,8 +361,8 @@ public class KrakenDriver :
 		ValueTask pumpSetTask = ValueTask.CompletedTask;
 		ValueTask fanSetTask = ValueTask.CompletedTask;
 
-		if ((_pumpState & CoolingStateChanged) != 0) pumpSetTask = UpdatePumpPowerAsync(_pumpSpeedTarget, cancellationToken);
-		if ((_fanState & CoolingStateChanged) != 0) fanSetTask = UpdateFanPowerAsync(_fanSpeedTarget, cancellationToken);
+		if ((_pumpState & CoolingStateChanged) != 0) pumpSetTask = UpdatePumpPowerAsync(cancellationToken);
+		if ((_fanState & CoolingStateChanged) != 0) fanSetTask = UpdateFanPowerAsync(cancellationToken);
 
 		List<Exception>? exceptions = null;
 		bool operationCanceled = false;
@@ -401,16 +401,32 @@ public class KrakenDriver :
 		}
 	}
 
-	private async ValueTask UpdatePumpPowerAsync(byte power, CancellationToken cancellationToken)
+	private async ValueTask UpdatePumpPowerAsync(CancellationToken cancellationToken)
 	{
-		await _hidTransport.SetPumpPowerAsync(power, cancellationToken).ConfigureAwait(false);
-		_pumpState = 0;
+		if ((_pumpState & CoolingStateCurve) != 0)
+		{
+			await _hidTransport.SetPumpPowerCurveAsync(_pumpCoolingCurve, cancellationToken).ConfigureAwait(false);
+			_pumpState = CoolingStateCurve;
+		}
+		else
+		{
+			await _hidTransport.SetPumpPowerAsync(_pumpSpeedTarget, cancellationToken).ConfigureAwait(false);
+			_pumpState = 0;
+		}
 	}
 
-	private async ValueTask UpdateFanPowerAsync(byte power, CancellationToken cancellationToken)
+	private async ValueTask UpdateFanPowerAsync(CancellationToken cancellationToken)
 	{
-		await _hidTransport.SetFanPowerAsync(power, cancellationToken).ConfigureAwait(false);
-		_fanState = 0;
+		if ((_pumpState & CoolingStateCurve) != 0)
+		{
+			await _hidTransport.SetPumpPowerCurveAsync(_fanCoolingCurve, cancellationToken).ConfigureAwait(false);
+			_fanState = CoolingStateCurve;
+		}
+		else
+		{
+			await _hidTransport.SetPumpPowerAsync(_fanSpeedTarget, cancellationToken).ConfigureAwait(false);
+			_fanState = 0;
+		}
 	}
 
 	private abstract class Sensor
