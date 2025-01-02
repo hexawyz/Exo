@@ -124,7 +124,21 @@ public class KrakenDriver :
 				if (storageManager is not null)
 				{
 					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.LiquidTemperature, cancellationToken).ConfigureAwait(false);
-					await storageManager.UploadImageAsync(0, KrakenImageFormat.Raw, GenerateImage(screenInfo.Width, screenInfo.Height), cancellationToken).ConfigureAwait(false);
+					KrakenImageFormat imageFormat;
+					byte[] imageData;
+					try
+					{
+						// Hardcoded way of loading a GIF onto the device.
+						// It may not be very nice, but it will be a good enough workaround until we deal with UI stuff & possibly programming model in the service.
+						imageData = File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(typeof(Driver).Assembly.Location)!, "nzkt-kraken-z.gif"));
+						imageFormat = KrakenImageFormat.Gif;
+					}
+					catch (IOException)
+					{
+						imageData = GenerateImage(screenInfo.Width, screenInfo.Height);
+						imageFormat = KrakenImageFormat.Raw;
+					}
+					await storageManager.UploadImageAsync(0, imageFormat, imageData, cancellationToken).ConfigureAwait(false);
 					await hidTransport.DisplayImageAsync(0, cancellationToken).ConfigureAwait(false);
 				}
 
