@@ -537,6 +537,57 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	public ValueTask SetFanPowerAsync(byte power, CancellationToken cancellationToken)
 		=> SetPowerAsync(CoolingPowerFanFunctionId, 0x01, power, cancellationToken);
 
+	public ValueTask SetPumpPowerCurveAsync(ReadOnlyMemory<byte> powerCurve, CancellationToken cancellationToken)
+		=> SetPowerCurveAsync(CoolingPowerPumpFunctionId, 0x00, powerCurve, cancellationToken);
+
+	public ValueTask SetFanPowerCurveAsync(ReadOnlyMemory<byte> powerCurve, CancellationToken cancellationToken)
+		=> SetPowerCurveAsync(CoolingPowerFanFunctionId, 0x01, powerCurve, cancellationToken);
+
+	private async ValueTask SetPowerCurveAsync(byte functionId, byte parameter, ReadOnlyMemory<byte> powerCurve, CancellationToken cancellationToken)
+	{
+		if (powerCurve.Length != 40) throw new ArgumentException();
+
+		EnsureNotDisposed();
+
+		var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref functionId == CoolingPowerPumpFunctionId ? ref _setPumpPowerTaskCompletionSource : ref _setFanPowerTaskCompletionSource, tcs, null) is not null)
+		{
+			throw new InvalidOperationException();
+		}
+
+		static void PrepareRequest(Span<byte> buffer, byte functionId, byte parameter, ReadOnlySpan<byte> powerCurve)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = CoolingPowerRequestMessageId;
+			buffer[1] = functionId;
+			buffer[2] = 0x01;
+			buffer[3] = parameter;
+			powerCurve.CopyTo(buffer.Slice(4, 40));
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, functionId, parameter, powerCurve.Span);
+					await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..44].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref functionId == CoolingPowerPumpFunctionId ? ref _setPumpPowerTaskCompletionSource : ref _setFanPowerTaskCompletionSource, null);
+		}
+	}
+
 	private async ValueTask SetPowerAsync(byte functionId, byte parameter, byte power, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
@@ -554,8 +605,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = CoolingPowerRequestMessageId;
 			buffer[1] = functionId;
-			buffer[2] = parameter;
-			buffer[3] = power;
+			buffer[2] = 0x01;
+			buffer[3] = parameter;
 			buffer.Slice(4, 40).Fill(power);
 		}
 

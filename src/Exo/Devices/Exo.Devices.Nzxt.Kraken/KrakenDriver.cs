@@ -38,6 +38,30 @@ public class KrakenDriver :
 	private static readonly Guid FanCoolerId = new(0x5A0FE6F5, 0xB7D1, 0x46E4, 0xA5, 0x12, 0x82, 0x72, 0x6E, 0x95, 0x35, 0xC4);
 	private static readonly Guid PumpCoolerId = new(0x2A57C838, 0xCD58, 0x4D6C, 0xAF, 0x9E, 0xF5, 0xBD, 0xDD, 0x6F, 0xB9, 0x92);
 
+	// Both cooling curves taken out of NZXT CAM when creating a new cooling profile. No idea if they are the default HW curve.
+	// Points from CAM are the first column, others are interpolated.
+	private static readonly byte[] DefaultPumpCurve = [
+		60, 60, 60, 60, 60,
+		60, 60, 60, 60, 60,
+		60, 60, 60, 60, 60,
+		60, 62, 64, 66, 68,
+		70, 72, 74, 76, 78,
+		80, 82, 84, 86, 88,
+		90, 92, 94, 96, 98,
+		100, 100, 100, 100, 100,
+	];
+
+	private static readonly byte[] DefaultFanCurve = [
+		30, 30, 30, 30, 30,
+		30, 30, 30, 30, 30,
+		30, 30, 30, 30, 30,
+		30, 31, 32, 33, 34,
+		35, 36, 38, 39, 40,
+		42, 44, 45, 47, 48,
+		50, 51, 53, 54, 55,
+		57, 58, 59, 61, 62,
+	];
+
 	private const int NzxtVendorId = 0x1E71;
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
@@ -120,6 +144,9 @@ public class KrakenDriver :
 				var storageManager = imageTransport is not null ?
 					await KrakenImageStorageManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false) :
 					null;
+
+				await hidTransport.SetPumpPowerCurveAsync(DefaultPumpCurve, cancellationToken).ConfigureAwait(false);
+				await hidTransport.SetFanPowerCurveAsync(DefaultFanCurve, cancellationToken).ConfigureAwait(false);
 
 				if (storageManager is not null)
 				{
