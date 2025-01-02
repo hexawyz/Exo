@@ -189,8 +189,12 @@ internal sealed class KrakenImageStorageManager : IAsyncDisposable
 			ref var region = ref allocatedRegions[i];
 			if (region.Index >= end) break;
 		}
-		nint j = i + 1;
-		Array.Copy(allocatedRegions, i, allocatedRegions, j, allocatedRegionCount++ - j);
+		if (i != allocatedRegionCount)
+		{
+			nint j = i + 1;
+			Array.Copy(allocatedRegions, i, allocatedRegions, j, allocatedRegionCount - j);
+		}
+		++allocatedRegionCount;
 		allocatedRegions[i] = new(imageIndex, index, count);
 		_allocatedRegionCount = (ushort)allocatedRegionCount;
 	}
@@ -232,7 +236,7 @@ internal sealed class KrakenImageStorageManager : IAsyncDisposable
 			if (regionIndex >= 0)
 			{
 				await _hidTransport.ClearImageStorageAsync(index, cancellationToken).ConfigureAwait(false);
-				DeleteMemoryRegion(index);
+				DeleteMemoryRegion(regionIndex);
 			}
 			if (!TryFindFreeRegion(blockCount, out ushort blockIndex)) throw new InvalidOperationException("Cannot find an available memory region large enough to hold the image data.");
 			// TODO: If these operations are interrupted, it could mess up the state of the driver. A backup mechanism should be implemented.
