@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -61,6 +62,8 @@ public class KrakenDriver :
 		50, 51, 53, 54, 55,
 		57, 58, 59, 61, 62,
 	];
+
+	private static readonly ImmutableArray<Guid> InputSensors = [LiquidTemperatureSensorId];
 
 	private const int NzxtVendorId = 0x1E71;
 
@@ -228,6 +231,9 @@ public class KrakenDriver :
 		return data;
 	}
 
+	private const byte CoolingStateCurve = 0b01;
+	private const byte CoolingStateChanged = 0b10;
+
 	private readonly KrakenHidTransport _hidTransport;
 	private readonly KrakenImageStorageManager? _storageManager;
 	private readonly ISensor[] _sensors;
@@ -245,10 +251,13 @@ public class KrakenDriver :
 	private readonly ushort _imageWidth;
 	private readonly ushort _imageHeight;
 
-	private byte _lastPumpSpeedTarget;
-	private byte _currentPumpSpeedTarget;
-	private byte _lastFanSpeedTarget;
-	private byte _currentFanSpeedTarget;
+	private byte _pumpSpeedTarget;
+	private byte _pumpState;
+	private byte _fanSpeedTarget;
+	private byte _fanState;
+
+	private readonly byte[] _pumpCoolingCurve;
+	private readonly byte[] _fanCoolingCurve;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Cooler;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
@@ -285,6 +294,8 @@ public class KrakenDriver :
 		_storageManager = storageManager;
 		_productId = productId;
 		_versionNumber = versionNumber;
+		_pumpCoolingCurve = (byte[])DefaultPumpCurve.Clone();
+		_fanCoolingCurve = (byte[])DefaultFanCurve.Clone();
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
 		_coolers = [new PumpCooler(this), new FanCooler(this)];
 		_genericFeatures = ConfigurationKey.UniqueId is not null ?
@@ -350,8 +361,8 @@ public class KrakenDriver :
 		ValueTask pumpSetTask = ValueTask.CompletedTask;
 		ValueTask fanSetTask = ValueTask.CompletedTask;
 
-		if (_lastPumpSpeedTarget != _currentPumpSpeedTarget) pumpSetTask = UpdatePumpPowerAsync(_currentPumpSpeedTarget, cancellationToken);
-		if (_lastFanSpeedTarget != _currentFanSpeedTarget) fanSetTask = UpdateFanPowerAsync(_currentFanSpeedTarget, cancellationToken);
+		if ((_pumpState & CoolingStateChanged) != 0) pumpSetTask = UpdatePumpPowerAsync(_pumpSpeedTarget, cancellationToken);
+		if ((_fanState & CoolingStateChanged) != 0) fanSetTask = UpdateFanPowerAsync(_fanSpeedTarget, cancellationToken);
 
 		List<Exception>? exceptions = null;
 		bool operationCanceled = false;
@@ -393,13 +404,13 @@ public class KrakenDriver :
 	private async ValueTask UpdatePumpPowerAsync(byte power, CancellationToken cancellationToken)
 	{
 		await _hidTransport.SetPumpPowerAsync(power, cancellationToken).ConfigureAwait(false);
-		_lastPumpSpeedTarget = power;
+		_pumpState = 0;
 	}
 
 	private async ValueTask UpdateFanPowerAsync(byte power, CancellationToken cancellationToken)
 	{
 		await _hidTransport.SetFanPowerAsync(power, cancellationToken).ConfigureAwait(false);
-		_lastFanSpeedTarget = power;
+		_fanState = 0;
 	}
 
 	private abstract class Sensor
@@ -475,7 +486,36 @@ public class KrakenDriver :
 		protected override ushort ReadValue(KrakenReadings readings) => readings.FanSpeed;
 	}
 
-	private sealed class FanCooler : ICooler, IManualCooler
+	private static void SetControlCurve(byte[] dest, ref byte state, Guid inputId, IControlCurve<byte, byte> curve)
+	{
+		if (inputId != LiquidTemperatureSensorId) throw new ArgumentException();
+
+		for (int i = 0; i < dest.Length; i++)
+		{
+			dest[i] = curve[(byte)(20 + i)];
+		}
+		state = CoolingStateChanged | CoolingStateCurve;
+	}
+
+	public static bool TryGetControlCurve(byte[] src, byte state, out Guid inputId, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
+	{
+		if ((state & CoolingStateCurve) != 0)
+		{
+			inputId = LiquidTemperatureSensorId;
+			var dataPoints = new DataPoint<byte, byte>[src.Length];
+			for (int i = 0; i < src.Length; i++)
+			{
+				dataPoints[i] = new((byte)(20 + i), src[i]);
+			}
+			curve = new InterpolatedSegmentControlCurve<byte, byte>(ImmutableCollectionsMarshal.AsImmutableArray(dataPoints), MonotonicityValidators<byte>.IncreasingUpTo100);
+			return true;
+		}
+		inputId = default;
+		curve = null;
+		return false;
+	}
+
+	private sealed class FanCooler : ICooler, IManualCooler, IHardwareCurveCooler<byte>
 	{
 		private readonly KrakenDriver _driver;
 
@@ -495,17 +535,31 @@ public class KrakenDriver :
 		public void SetPower(byte power)
 		{
 			ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
-			_driver._currentFanSpeedTarget = power;
+			_driver._fanSpeedTarget = power;
+			_driver._fanState = CoolingStateChanged;
 		}
 
 		public bool TryGetPower(out byte power)
 		{
-			power = _driver._currentFanSpeedTarget;
-			return true;
+			if ((_driver._fanState & CoolingStateCurve) == 0)
+			{
+				power = _driver._fanSpeedTarget;
+				return true;
+			}
+			power = 0;
+			return false;
 		}
+
+		public ImmutableArray<Guid> AvailableInputSensors => InputSensors;
+
+		public void SetControlCurve(Guid inputId, IControlCurve<byte, byte> curve)
+			=> KrakenDriver.SetControlCurve(_driver._fanCoolingCurve, ref _driver._fanState, inputId, curve);
+
+		public bool TryGetControlCurve(out Guid inputId, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
+			=> KrakenDriver.TryGetControlCurve(_driver._fanCoolingCurve, _driver._fanState, out inputId, out curve);
 	}
 
-	private sealed class PumpCooler : ICooler, IManualCooler
+	private sealed class PumpCooler : ICooler, IManualCooler, IHardwareCurveCooler<byte>
 	{
 		private readonly KrakenDriver _driver;
 
@@ -525,13 +579,27 @@ public class KrakenDriver :
 		public void SetPower(byte power)
 		{
 			ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
-			_driver._currentPumpSpeedTarget = power;
+			_driver._pumpSpeedTarget = power;
+			_driver._fanState = CoolingStateChanged;
 		}
 
 		public bool TryGetPower(out byte power)
 		{
-			power = _driver._currentPumpSpeedTarget;
-			return true;
+			if ((_driver._pumpState & CoolingStateCurve) == 0)
+			{
+				power = _driver._pumpSpeedTarget;
+				return true;
+			}
+			power = 0;
+			return false;
 		}
+
+		public ImmutableArray<Guid> AvailableInputSensors => InputSensors;
+
+		public void SetControlCurve(Guid inputId, IControlCurve<byte, byte> curve)
+			=> KrakenDriver.SetControlCurve(_driver._pumpCoolingCurve, ref _driver._pumpState, inputId, curve);
+
+		public bool TryGetControlCurve(out Guid inputId, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
+			=> KrakenDriver.TryGetControlCurve(_driver._pumpCoolingCurve, _driver._pumpState, out inputId, out curve);
 	}
 }

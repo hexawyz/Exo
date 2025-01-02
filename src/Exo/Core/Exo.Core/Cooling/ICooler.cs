@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace Exo.Cooling;
@@ -86,10 +88,40 @@ public interface IManualCooler : IConfigurableCooler
 public interface IHardwareCurveCooler<T> : IConfigurableCooler
 	where T: struct, INumber<T>
 {
-	// TODO:
-	// ImmutableArray<CoolingInput> AvailableInputs;
-	// void SetControlCurve(Guid inputId, ControlCurve<T, byte> curve);
-	// bool TryGetControlCurve(out ControlCurve<T, byte>);
+	/// <summary>Gets a list of all available input sensors.</summary>
+	/// <remarks>Currently the sensors must be present in a readable form on the device, because some informations are missing in external metadata. This can be alleviated later.</remarks>
+	ImmutableArray<Guid> AvailableInputSensors { get; }
+
+	/// <summary>Sets the control curve to be used by this cooler.</summary>
+	/// <remarks>
+	/// <para>Only the sensors referenced by <see cref="AvailableInputSensors"/> can be used as control curve input.</para>
+	/// <para>
+	/// Upon receiving a valid request, the driver shall reinterpret the curve so as to fit the internal data model that suits the device.
+	/// Drivers are in no way expected to preserve the control curve reference provided as an input, and callers should ot assume that the data can be read back again.
+	/// Drivers are expected to return the active curve upon a call to <see cref="TryGetControlCurve(out Guid, out IControlCurve{T, byte}?)"/>,
+	/// using data that fit their internal representation the best.
+	/// </para>
+	/// </remarks>
+	/// <param name="inputId">The sensor to use as an input.</param>
+	/// <param name="curve">The control curve to apply.</param>
+	void SetControlCurve(Guid inputId, IControlCurve<T, byte> curve);
+
+	/// <summary>Gets the applied cooling curve.</summary>
+	/// <remarks>
+	/// The curve returned can be different than the one provided to <see cref="SetControlCurve(Guid, IControlCurve{T, byte})"/> in an earlier call.
+	/// For simplicity, device drivers are allowed to return the curve that best matches their internal representation, meaning that data points can be truncated or interpolated,
+	/// and values can be rounded accordingly.
+	/// </remarks>
+	/// <param name="inputId">The sensor used as input of this source, if any.</param>
+	/// <param name="curve">The curve currently applied on the cooler, if any.</param>
+	/// <returns></returns>
+	bool TryGetControlCurve(out Guid inputId, [NotNullWhen(true)] out IControlCurve<T, byte>? curve);
+}
+
+public readonly struct HardwareCoolingInput
+{
+	/// <summary>Gets the built-in sensor ID, if any is available.</summary>
+	public Guid SensorId { get; }
 }
 
 /// <summary>Identifies the type of a cooler.</summary>
