@@ -11,7 +11,6 @@ using Exo.Configuration;
 using Exo.Cooling;
 using Exo.Features;
 using Exo.Features.Cooling;
-using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -26,12 +25,15 @@ internal partial class CoolingService
 			SensorId = info.SpeedSensorId;
 			Type = info.Type;
 			SupportedCoolingModes = info.SupportedCoolingModes;
+			PowerLimits = info.PowerLimits;
+			HardwareCurveInputSensorIds = info.HardwareCurveInputSensorIds;
 		}
 
 		public Guid? SensorId { get; }
 		public CoolerType Type { get; }
 		public CoolingModes SupportedCoolingModes { get; }
 		public CoolerPowerLimits? PowerLimits { get; }
+		public ImmutableArray<Guid> HardwareCurveInputSensorIds { get; }
 	}
 
 	// TODO: Write the persistance code.
@@ -110,21 +112,21 @@ internal partial class CoolingService
 				continue;
 			}
 
-			var collerIds = await coolersConfigurationConfigurationContainer.GetKeysAsync(cancellationToken);
+			var coolerIds = await coolersConfigurationConfigurationContainer.GetKeysAsync(cancellationToken);
 
-			if (collerIds.Length == 0)
+			if (coolerIds.Length == 0)
 			{
 				continue;
 			}
 
 			var coolerInformations = ImmutableArray.CreateBuilder<CoolerInformation>();
 
-			foreach (var coolerId in collerIds)
+			foreach (var coolerId in coolerIds)
 			{
 				var result = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerInformation>(coolerId, cancellationToken).ConfigureAwait(false);
 				if (!result.Found) continue;
 				var info = result.Value;
-				coolerInformations.Add(new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits));
+				coolerInformations.Add(new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits, info.HardwareCurveInputSensorIds));
 			}
 
 			if (coolerInformations.Count > 0)
@@ -272,9 +274,15 @@ internal partial class CoolingService
 				var powerLimits = cooler is IConfigurableCooler configurableCooler ?
 					new CoolerPowerLimits(configurableCooler.MinimumPower, configurableCooler.CanSwitchOff) :
 					null as CoolerPowerLimits?;
+				ImmutableArray<Guid> hardwareCurveInputSensorIds = [];
 				if (cooler is IAutomaticCooler) coolingModes |= CoolingModes.Automatic;
 				if (cooler is IManualCooler) coolingModes |= CoolingModes.Manual;
-				var info = new CoolerInformation(cooler.CoolerId, cooler.SpeedSensorId, cooler.Type, coolingModes, powerLimits);
+				if (cooler is IHardwareCurveCooler hardwareCurveCooler)
+				{
+					coolingModes |= CoolingModes.HardwareControlCurve;
+					hardwareCurveInputSensorIds = hardwareCurveCooler.AvailableInputSensors;
+				}
+				var info = new CoolerInformation(cooler.CoolerId, cooler.SpeedSensorId, cooler.Type, coolingModes, powerLimits, hardwareCurveInputSensorIds);
 				addedCoolerInfosById.Add(info.CoolerId, info);
 				coolerInfos[i] = info;
 			}

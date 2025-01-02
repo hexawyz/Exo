@@ -85,13 +85,16 @@ public interface IManualCooler : IConfigurableCooler
 	bool TryGetPower(out byte power);
 }
 
-public interface IHardwareCurveCooler<T> : IConfigurableCooler
-	where T: struct, INumber<T>
+public interface IHardwareCurveCooler : IConfigurableCooler
 {
 	/// <summary>Gets a list of all available input sensors.</summary>
 	/// <remarks>Currently the sensors must be present in a readable form on the device, because some informations are missing in external metadata. This can be alleviated later.</remarks>
 	ImmutableArray<Guid> AvailableInputSensors { get; }
+}
 
+public interface IHardwareCurveCooler<T> : IHardwareCurveCooler
+	where T: struct, INumber<T>
+{
 	/// <summary>Sets the control curve to be used by this cooler.</summary>
 	/// <remarks>
 	/// <para>Only the sensors referenced by <see cref="AvailableInputSensors"/> can be used as control curve input.</para>
