@@ -286,7 +286,7 @@
         </Grid>
     </DataTemplate>
 
-    <DataTemplate x:Key="ControlCurveCoolingParametersStyle" x:DataType="vm:ControlCurveCoolingModeViewModel">
+    <DataTemplate x:Key="SoftwareControlCurveCoolingParametersStyle" x:DataType="vm:ControlCurveCoolingModeViewModel">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
@@ -344,10 +344,54 @@
         </Grid>
     </DataTemplate>
 
+    <DataTemplate x:Key="HardwareControlCurveCoolingParametersStyle" x:DataType="vm:ControlCurveCoolingModeViewModel">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolingInputSensorLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
+            <ComboBox
+                Grid.Row="0"
+                Grid.Column="1"
+                Margin="6,6,6,6"
+                ItemsSource="{Binding SensorsAvailableForCoolingControlCurves, Mode=OneTime}"
+                SelectedItem="{Binding InputSensor, Mode=TwoWay}"
+                HorizontalContentAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding DisplayName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetInputSensorCommand}" CommandParameter="{Binding}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+            <lcontrols:PowerControlCurveEditor
+                Grid.Row="1"
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                CurveStrokeThickness="2"
+                SymbolRadius="4"
+                MinimumInputValue="{Binding InputSensor.ScaleMinimumValue}"
+                MaximumInputValue="{Binding InputSensor.ScaleMaximumValue}"
+                MinimumPower="{Binding MinimumOnPower}"
+                CanSwitchOff="{Binding CanSwitchOff}"
+                Points="{Binding Points}" />
+        </Grid>
+    </DataTemplate>
+
     <lts:CoolingParametersTemplateSelector
         x:Key="CoolingParametersTemplateSelector"
         AutomaticTemplate="{StaticResource AutomaticCoolingParametersStyle}"
         FixedTemplate="{StaticResource FixedCoolingParametersStyle}"
-        ControlCurveTemplate="{StaticResource ControlCurveCoolingParametersStyle}" />
+        SoftwareControlCurveTemplate="{StaticResource SoftwareControlCurveCoolingParametersStyle}"
+        HardwareControlCurveTemplate="{StaticResource HardwareControlCurveCoolingParametersStyle}" />
 
 </ResourceDictionary>

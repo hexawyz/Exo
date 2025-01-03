@@ -243,6 +243,10 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 	public void Dispose()
 	{
 		_deviceViewModel.PropertyChanged -= OnDeviceViewModelPropertyChanged;
+		foreach (var cooler in _coolers)
+		{
+			cooler.Dispose();
+		}
 		OnDeviceOffline();
 	}
 
@@ -294,6 +298,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 				{
 					_coolersBySensorId.Remove(sensorId);
 				}
+				vm.Dispose();
 			}
 		}
 
@@ -388,7 +393,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 	}
 }
 
-internal sealed class CoolerViewModel : ResettableBindableObject
+internal sealed class CoolerViewModel : ResettableBindableObject, IDisposable
 {
 	private static class Commands
 	{
@@ -463,7 +468,11 @@ internal sealed class CoolerViewModel : ResettableBindableObject
 		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 		{
 			coolingModes.Add(new FixedCoolingModeViewModel(coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
-			coolingModes.Add(new ControlCurveCoolingModeViewModel(sensorsViewModel, coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
+			coolingModes.Add(new SoftwareControlCurveCoolingModeViewModel(sensorsViewModel, coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
+		}
+		if ((coolerInformation.SupportedCoolingModes & RawCoolingModes.HardwareControlCurve) != 0)
+		{
+			coolingModes.Add(new HardwareControlCurveCoolingModeViewModel(device.Id, sensorsViewModel, coolerInformation.PowerLimits!.MinimumPower, coolerInformation.PowerLimits.CanSwitchOff));
 		}
 
 		if (coolingModes.Count > 0)
@@ -483,6 +492,14 @@ internal sealed class CoolerViewModel : ResettableBindableObject
 			displayName = metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
 		}
 		_coolerDisplayName = displayName ?? string.Create(CultureInfo.InvariantCulture, $"Cooler {_coolerInformation.CoolerId:B}.");
+	}
+
+	public void Dispose()
+	{
+		foreach (var coolingMode in _coolingModes)
+		{
+			coolingMode.Dispose();
+		}
 	}
 
 	public string DisplayName => _coolerDisplayName;
@@ -508,7 +525,8 @@ internal sealed class CoolerViewModel : ResettableBindableObject
 			// This will be useful for updating the current and initial cooling modes later.
 			ICoolingModeViewModel? automaticCoolingModeViewModel = null;
 			ICoolingModeViewModel? fixedCoolingModeViewModel = null;
-			ICoolingModeViewModel? controlCurveCoolingModeViewModel = null;
+			ICoolingModeViewModel? softwareControlCurveCoolingModeViewModel = null;
+			ICoolingModeViewModel? hardwareControlCurveCoolingModeViewModel = null;
 
 			foreach (var coolingMode in _coolingModes)
 			{
@@ -516,7 +534,8 @@ internal sealed class CoolerViewModel : ResettableBindableObject
 				{
 				case AutomaticCoolingModeViewModel: automaticCoolingModeViewModel = coolingMode; break;
 				case FixedCoolingModeViewModel: fixedCoolingModeViewModel = coolingMode; break;
-				case ControlCurveCoolingModeViewModel: controlCurveCoolingModeViewModel = coolingMode; break;
+				case SoftwareControlCurveCoolingModeViewModel: softwareControlCurveCoolingModeViewModel = coolingMode; break;
+				case HardwareControlCurveCoolingModeViewModel: hardwareControlCurveCoolingModeViewModel = coolingMode; break;
 				}
 			}
 
@@ -528,7 +547,11 @@ internal sealed class CoolerViewModel : ResettableBindableObject
 			else if ((information.SupportedCoolingModes & RawCoolingModes.Manual) != 0)
 			{
 				coolingModes.Add(fixedCoolingModeViewModel ?? new FixedCoolingModeViewModel(information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
-				coolingModes.Add(controlCurveCoolingModeViewModel ?? new ControlCurveCoolingModeViewModel(_sensorsViewModel, information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
+				coolingModes.Add(softwareControlCurveCoolingModeViewModel ?? new SoftwareControlCurveCoolingModeViewModel(_sensorsViewModel, information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
+			}
+			else if ((information.SupportedCoolingModes & RawCoolingModes.HardwareControlCurve) != 0)
+			{
+				coolingModes.Add(hardwareControlCurveCoolingModeViewModel ?? new HardwareControlCurveCoolingModeViewModel(Device.Id, _sensorsViewModel, information.PowerLimits!.MinimumPower, information.PowerLimits.CanSwitchOff));
 			}
 			_coolingModes = coolingModes.Count > 0 ? Array.AsReadOnly(coolingModes.ToArray()) : ReadOnlyCollection<ICoolingModeViewModel>.Empty;
 			NotifyPropertyChanged(ChangedProperty.CoolingModes);
@@ -595,7 +618,7 @@ internal enum LogicalCoolingMode
 	HardwareControlCurve = 3,
 }
 
-internal interface ICoolingModeViewModel : IResettable
+internal interface ICoolingModeViewModel : IResettable, IDisposable
 {
 	LogicalCoolingMode CoolingMode { get; }
 	ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken);
@@ -606,6 +629,7 @@ internal sealed class AutomaticCoolingModeViewModel : ICoolingModeViewModel
 	public static readonly AutomaticCoolingModeViewModel Instance = new();
 
 	private AutomaticCoolingModeViewModel() { }
+	public void Dispose() { }
 
 	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.Automatic;
 	public bool IsChanged => false;
@@ -646,6 +670,8 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 		_minimumPower = minimumPower;
 		_canSwitchOff = canSwitchOff;
 	}
+
+	public void Dispose() { }
 
 	public byte MinimumPower => _canSwitchOff ? (byte)0 : _minimumPower;
 	public bool CanSwitchOff => _canSwitchOff;
@@ -704,24 +730,10 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 		=> coolingService.SetFixedCoolingAsync(new() { DeviceId = deviceId, CoolerId = coolerId, Power = Power }, cancellationToken);
 }
 
-internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
+internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
 {
 	private static class Commands
 	{
-		public sealed class ResetFallbackPowerCommand : ICommand
-		{
-			public static readonly ResetFallbackPowerCommand Instance = new();
-
-			private ResetFallbackPowerCommand() { }
-
-			public void Execute(object? parameter) => ((ControlCurveCoolingModeViewModel)parameter!).ResetFallbackPower();
-			public bool CanExecute(object? parameter) => (parameter as ControlCurveCoolingModeViewModel)?.IsChanged ?? false;
-
-			public event EventHandler? CanExecuteChanged;
-
-			public static void NotifyCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
-		}
-
 		public sealed class ResetInputSensorCommand : ICommand
 		{
 			public static readonly ResetInputSensorCommand Instance = new();
@@ -739,44 +751,25 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 
 	private object? _points;
 
-	private byte _initialFallbackPower;
-	private byte _currentFallbackPower;
 	private readonly byte _minimumPower;
 	private readonly bool _canSwitchOff;
-
-	public override bool IsChanged => _initialFallbackPower != _currentFallbackPower;
 
 	public object? Points => _points;
 
 	private readonly SensorsViewModel _sensorsViewModel;
 	private SensorViewModel? _inputSensor;
 
-	public LogicalCoolingMode CoolingMode => LogicalCoolingMode.SoftwareControlCurve;
+	public abstract LogicalCoolingMode CoolingMode { get; }
 
-	public ICommand ResetFallbackPowerCommand => Commands.ResetFallbackPowerCommand.Instance;
 	public ICommand ResetInputSensorCommand => Commands.ResetInputSensorCommand.Instance;
 
 	public byte MinimumOnPower => _minimumPower;
 	public byte MinimumPower => _canSwitchOff ? (byte)0 : _minimumPower;
 	public bool CanSwitchOff => _canSwitchOff;
 
-	public byte FallbackPower
-	{
-		get => _currentFallbackPower;
-		set
-		{
-			if (value >= _minimumPower && value < 100 || _canSwitchOff && value == 0)
-			{
-				bool wasChanged = IsChanged;
-				if (SetValue(ref _currentFallbackPower, value, ChangedProperty.FallbackPower))
-				{
-					OnChangeStateChange(wasChanged);
-				}
-			}
-		}
-	}
+	protected SensorsViewModel SensorsViewModel => _sensorsViewModel;
 
-	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsViewModel.SensorsAvailableForCoolingControlCurves;
+	public abstract ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves { get; }
 
 	public SensorViewModel? InputSensor
 	{
@@ -825,7 +818,6 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 	{
 		_sensorsViewModel = sensorsViewModel;
 
-		_currentFallbackPower = _initialFallbackPower = canSwitchOff ? (byte)0 : minimumPower;
 		_minimumPower = minimumPower;
 		_canSwitchOff = canSwitchOff;
 
@@ -836,58 +828,18 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 		}
 	}
 
-	internal void SetInitialPower(byte value)
-	{
-		if (_initialFallbackPower != value)
-		{
-			byte oldValue = _initialFallbackPower;
-			_initialFallbackPower = value;
-			if (_currentFallbackPower == _initialFallbackPower)
-			{
-				_currentFallbackPower = value;
-				NotifyPropertyChanged(ChangedProperty.FallbackPower);
-			}
-			else if (_currentFallbackPower == value)
-			{
-				OnChanged(true);
-			}
-		}
-	}
+	public virtual void Dispose() { }
 
-	internal void ResetFallbackPower() => FallbackPower = _initialFallbackPower;
-	internal void ResetInputSensor() => InputSensor = _sensorsViewModel.SensorsAvailableForCoolingControlCurves.Count > 0 ? _sensorsViewModel.SensorsAvailableForCoolingControlCurves[0] : null;
+	protected internal void ResetInputSensor() => InputSensor = _sensorsViewModel.SensorsAvailableForCoolingControlCurves.Count > 0 ? _sensorsViewModel.SensorsAvailableForCoolingControlCurves[0] : null;
 
 	protected override void Reset()
 	{
-		ResetFallbackPower();
+		ResetInputSensor();
 	}
 
-	protected override void OnChanged(bool isChanged)
-	{
-		Commands.ResetFallbackPowerCommand.NotifyCanExecuteChanged();
-		base.OnChanged(isChanged);
-	}
+	public abstract ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken);
 
-	public ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
-	{
-		if (_inputSensor is null || _points is null || ((ICollection)_points).Count == 0) return ValueTask.CompletedTask;
-
-		return coolingService.SetSoftwareControlCurveCoolingAsync
-		(
-			new()
-			{
-				CoolingDeviceId = deviceId,
-				CoolerId = coolerId,
-				SensorDeviceId = _inputSensor.Device.Id,
-				SensorId = _inputSensor.Id,
-				FallbackValue = FallbackPower,
-				ControlCurve = CreateCoolingControlCurve(_inputSensor.DataType, _canSwitchOff ? (byte)0 :  _minimumPower, _points),
-			},
-			cancellationToken
-		);
-	}
-
-	private static CoolingControlCurve CreateCoolingControlCurve(SensorDataType dataType, byte initialValue, object points)
+	protected static CoolingControlCurve CreateCoolingControlCurve(SensorDataType dataType, byte initialValue, object points)
 		=> dataType switch
 		{
 			SensorDataType.UInt8 => CreateUnsignedCoolingControlCurve(initialValue, (ObservableCollection<IDataPoint<byte, byte>>)points),
@@ -949,6 +901,221 @@ internal sealed class ControlCurveCoolingModeViewModel : ResettableBindableObjec
 				SegmentPoints = points.Select(p => new DoubleToUIntDataPoint { X = float.CreateChecked(p.X), Y = p.Y }).ToImmutableArray()
 			}
 		};
+}
+
+internal sealed class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoolingModeViewModel
+{
+	private static class Commands
+	{
+		public sealed class ResetFallbackPowerCommand : ICommand
+		{
+			public static readonly ResetFallbackPowerCommand Instance = new();
+
+			private ResetFallbackPowerCommand() { }
+
+			public void Execute(object? parameter) => ((SoftwareControlCurveCoolingModeViewModel)parameter!).ResetFallbackPower();
+			public bool CanExecute(object? parameter) => (parameter as ControlCurveCoolingModeViewModel)?.IsChanged ?? false;
+
+			public event EventHandler? CanExecuteChanged;
+
+			public static void NotifyCanExecuteChanged() => Instance.CanExecuteChanged?.Invoke(Instance, EventArgs.Empty);
+		}
+	}
+
+	private byte _initialFallbackPower;
+	private byte _currentFallbackPower;
+
+	public override LogicalCoolingMode CoolingMode => LogicalCoolingMode.SoftwareControlCurve;
+	
+	public ICommand ResetFallbackPowerCommand => Commands.ResetFallbackPowerCommand.Instance;
+
+	public override bool IsChanged => _initialFallbackPower != _currentFallbackPower;
+
+	public byte FallbackPower
+	{
+		get => _currentFallbackPower;
+		set
+		{
+			if (value >= MinimumPower && value < 100 || CanSwitchOff && value == 0)
+			{
+				bool wasChanged = IsChanged;
+				if (SetValue(ref _currentFallbackPower, value, ChangedProperty.FallbackPower))
+				{
+					OnChangeStateChange(wasChanged);
+				}
+			}
+		}
+	}
+
+	public SoftwareControlCurveCoolingModeViewModel(SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
+		: base(sensorsViewModel, minimumPower, canSwitchOff)
+	{
+		_currentFallbackPower = _initialFallbackPower = canSwitchOff ? (byte)0 : minimumPower;
+	}
+
+	public override ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => SensorsViewModel.SensorsAvailableForCoolingControlCurves;
+
+	public override ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
+	{
+		if (InputSensor is null || Points is null || ((ICollection)Points).Count == 0) return ValueTask.CompletedTask;
+
+		return coolingService.SetSoftwareControlCurveCoolingAsync
+		(
+			new()
+			{
+				CoolingDeviceId = deviceId,
+				CoolerId = coolerId,
+				SensorDeviceId = InputSensor.Device.Id,
+				SensorId = InputSensor.Id,
+				FallbackValue = FallbackPower,
+				ControlCurve = CreateCoolingControlCurve(InputSensor.DataType, CanSwitchOff ? (byte)0 : MinimumPower, Points),
+			},
+			cancellationToken
+		);
+	}
+
+	internal void SetInitialFallbackPower(byte value)
+	{
+		if (_initialFallbackPower != value)
+		{
+			byte oldValue = _initialFallbackPower;
+			_initialFallbackPower = value;
+			if (_currentFallbackPower == _initialFallbackPower)
+			{
+				_currentFallbackPower = value;
+				NotifyPropertyChanged(ChangedProperty.FallbackPower);
+			}
+			else if (_currentFallbackPower == value)
+			{
+				OnChanged(true);
+			}
+		}
+	}
+
+	internal void ResetFallbackPower() => FallbackPower = _initialFallbackPower;
+
+	protected override void Reset()
+	{
+		ResetFallbackPower();
+		ResetInputSensor();
+	}
+
+	protected override void OnChanged(bool isChanged)
+	{
+		Commands.ResetFallbackPowerCommand.NotifyCanExecuteChanged();
+		base.OnChanged(isChanged);
+	}
+}
+
+internal sealed class HardwareControlCurveCoolingModeViewModel : ControlCurveCoolingModeViewModel
+{
+	public override LogicalCoolingMode CoolingMode => LogicalCoolingMode.HardwareControlCurve;
+
+	public override bool IsChanged => false;
+
+	private readonly ObservableCollection<SensorViewModel> _sensorsAvailableForCoolingControlCurves;
+	private readonly NotifyCollectionChangedEventHandler _notifyCollectionChangedEventHandler;
+	private readonly Guid _deviceId;
+
+	public HardwareControlCurveCoolingModeViewModel(Guid deviceId, SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
+		: base(sensorsViewModel, minimumPower, canSwitchOff)
+	{
+		_notifyCollectionChangedEventHandler = OnSensorsAvailableForCoolingControlCurvesCollectionChanged;
+		_deviceId = deviceId;
+
+		_sensorsAvailableForCoolingControlCurves = new();
+		ResetAvailableSensors();
+		sensorsViewModel.SensorsAvailableForCoolingControlCurves.CollectionChanged += _notifyCollectionChangedEventHandler;
+	}
+
+	public override void Dispose()
+	{
+		SensorsViewModel.SensorsAvailableForCoolingControlCurves.CollectionChanged -= _notifyCollectionChangedEventHandler;
+	}
+
+	private void OnSensorsAvailableForCoolingControlCurvesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+	{
+		switch (e.Action)
+		{
+		case NotifyCollectionChangedAction.Add:
+			foreach (SensorViewModel item in e.NewItems!)
+			{
+				if (item.Device.Id == _deviceId)
+				{
+					_sensorsAvailableForCoolingControlCurves.Add(item);
+				}
+			}
+			break;
+		case NotifyCollectionChangedAction.Remove:
+			foreach (SensorViewModel item in e.OldItems!)
+			{
+				if (item.Device.Id == _deviceId)
+				{
+					_sensorsAvailableForCoolingControlCurves.Remove(item);
+				}
+			}
+			break;
+		case NotifyCollectionChangedAction.Replace:
+			var removedItem = (SensorViewModel)e.OldItems![0]!;
+			var addedItem = (SensorViewModel)e.NewItems![0]!;
+			if (removedItem.Device.Id == _deviceId)
+			{
+				int removedIndex = _sensorsAvailableForCoolingControlCurves.IndexOf(removedItem);
+				if (removedIndex >= 0)
+				{
+					if (addedItem.Device.Id == _deviceId)
+					{
+						_sensorsAvailableForCoolingControlCurves[removedIndex] = addedItem;
+					}
+					else
+					{
+						_sensorsAvailableForCoolingControlCurves.RemoveAt(removedIndex);
+					}
+				}
+			}
+			else if (addedItem.Device.Id == _deviceId)
+			{
+				_sensorsAvailableForCoolingControlCurves.Add(addedItem);
+			}
+			break;
+		case NotifyCollectionChangedAction.Move:
+			break;
+		case NotifyCollectionChangedAction.Reset:
+			ResetAvailableSensors();
+			break;
+		}
+	}
+
+	private void ResetAvailableSensors()
+	{
+		_sensorsAvailableForCoolingControlCurves.Clear();
+		foreach (var sensor in SensorsViewModel.SensorsAvailableForCoolingControlCurves)
+		{
+			if (sensor.Device.Id == _deviceId)
+			{
+				_sensorsAvailableForCoolingControlCurves.Add(sensor);
+			}
+		}
+	}
+
+	public override ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsAvailableForCoolingControlCurves;
+
+	public override ValueTask ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
+	{
+		if (InputSensor is null || Points is null || ((ICollection)Points).Count == 0) return ValueTask.CompletedTask;
+
+		return coolingService.SetHardwareControlCurveCoolingAsync
+		(
+			new()
+			{
+				CoolingDeviceId = deviceId,
+				CoolerId = coolerId,
+				SensorId = InputSensor.Id,
+				ControlCurve = CreateCoolingControlCurve(InputSensor.DataType, CanSwitchOff ? (byte)0 : MinimumPower, Points),
+			},
+			cancellationToken
+		);
+	}
 }
 
 internal sealed class PowerDataPointViewModel<T> : BindableObject, IDataPoint<T, byte>
