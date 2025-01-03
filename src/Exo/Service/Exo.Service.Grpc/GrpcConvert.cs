@@ -24,6 +24,7 @@ using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFr
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
 using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
+using GrpcSensorCapabilities = Exo.Contracts.Ui.Settings.SensorCapabilities;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
@@ -124,7 +125,7 @@ internal static class GrpcConvert
 			SensorId = sensorInformation.SensorId,
 			DataType = sensorInformation.DataType.ToGrpc(),
 			Unit = sensorInformation.Unit,
-			IsPolled = sensorInformation.IsPolled,
+			Capabilities = sensorInformation.Capabilities.ToGrpc(),
 			ScaleMinimumValue = sensorInformation.ScaleMinimumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMinimumValue) : null,
 			ScaleMaximumValue = sensorInformation.ScaleMaximumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMaximumValue) : null,
 		};
@@ -229,6 +230,9 @@ internal static class GrpcConvert
 			SensorDataType.Float64 => GrpcSensorDataType.Float64,
 			_ => throw new NotImplementedException()
 		};
+
+	public static GrpcSensorCapabilities ToGrpc(this SensorCapabilities capabilities)
+		=> (GrpcSensorCapabilities)capabilities;
 
 	public static GrpcMonitorInformation ToGrpc(this MonitorInformation information)
 		=> new()

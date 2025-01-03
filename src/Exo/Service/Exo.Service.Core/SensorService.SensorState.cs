@@ -56,9 +56,13 @@ internal sealed partial class SensorService
 
 		public static SensorState<TValue> Create<TValue>(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, ISensor<TValue> sensor)
 			where TValue : struct, INumber<TValue>
-			=> sensor.IsPolled ?
-				CreatePolledSensorState(logger, sensorService, groupedQueryState, (IPolledSensor<TValue>)sensor) :
-				new StreamedSensorState<TValue>(logger, (IStreamedSensor<TValue>)sensor);
+			=> sensor.Kind switch
+			{
+				SensorKind.Internal => new InternalSensorState<TValue>(logger, (IInternalSensor<TValue>)sensor),
+				SensorKind.Polled => CreatePolledSensorState(logger, sensorService, groupedQueryState, (IPolledSensor<TValue>)sensor),
+				SensorKind.Streamed => new StreamedSensorState<TValue>(logger, (IStreamedSensor<TValue>)sensor),
+				_ => throw new InvalidOperationException(),
+			};
 
 		private static SensorState<TValue> CreatePolledSensorState<TValue>(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState? groupedQueryState, IPolledSensor<TValue> sensor)
 			where TValue : struct, INumber<TValue>
@@ -232,6 +236,17 @@ internal sealed partial class SensorService
 				RemoveListener(channel);
 			}
 		}
+	}
+
+	private sealed class InternalSensorState<TValue> : SensorState<TValue>
+		where TValue : struct, INumber<TValue>
+	{
+		public InternalSensorState(ILogger<SensorState> logger, IInternalSensor<TValue> sensor) : base(logger, sensor)
+		{
+		}
+
+		protected override ValueTask WatchValuesAsync(CancellationToken cancellationToken)
+			=> ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("This sensor can not be watched.")));
 	}
 
 	private sealed class PolledSensorState<TValue> : SensorState<TValue>, IPolledSensorState

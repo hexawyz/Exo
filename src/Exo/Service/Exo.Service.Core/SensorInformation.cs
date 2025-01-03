@@ -2,12 +2,12 @@ namespace Exo.Service;
 
 internal record struct SensorInformation
 {
-	public SensorInformation(Guid sensorId, SensorDataType dataType, string unit, bool isPolled, object? scaleMinimumValue, object? scaleMaximumValue)
+	public SensorInformation(Guid sensorId, SensorDataType dataType, string unit, SensorCapabilities capabilities, object? scaleMinimumValue, object? scaleMaximumValue)
 	{
 		SensorId = sensorId;
 		DataType = dataType;
 		Unit = unit;
-		IsPolled = isPolled;
+		Capabilities = capabilities;
 		ScaleMinimumValue = scaleMinimumValue;
 		ScaleMaximumValue = scaleMaximumValue;
 	}
@@ -15,7 +15,7 @@ internal record struct SensorInformation
 	public Guid SensorId { get; }
 	public SensorDataType DataType { get; }
 	public string Unit { get; }
-	public bool IsPolled { get; }
+	public SensorCapabilities Capabilities { get; init; }
 	public object? ScaleMinimumValue { get; }
 	public object? ScaleMaximumValue { get; }
 }

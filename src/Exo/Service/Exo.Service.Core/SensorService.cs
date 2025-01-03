@@ -34,14 +34,14 @@ internal sealed partial class SensorService
 		{
 			DataType = info.DataType;
 			UnitSymbol = info.Unit;
-			IsPolled = info.IsPolled;
+			Capabilities = info.Capabilities;
 			ScaleMinimumValue = info.ScaleMinimumValue;
 			ScaleMaximumValue = info.ScaleMaximumValue;
 		}
 
 		public SensorDataType DataType { get; init; }
 		public string UnitSymbol { get; init; }
-		public bool IsPolled { get; init; }
+		public SensorCapabilities Capabilities { get; init; }
 		public object? ScaleMinimumValue { get; init; }
 		public object? ScaleMaximumValue { get; init; }
 	}
@@ -66,11 +66,23 @@ internal sealed partial class SensorService
 			reader.Read();
 			string unitSymbol = reader.GetString() ?? throw new JsonException();
 
+			SensorCapabilities capabilities = SensorCapabilities.None;
 			reader.Read();
-			if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.IsPolled)) throw new JsonException();
+			if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
 
-			reader.Read();
-			bool isPolled = reader.GetBoolean();
+			switch (reader.GetString())
+			{
+			// Backwards compatibility stuff.
+			case "IsPolled":
+				reader.Read();
+				if (reader.GetBoolean()) capabilities |= SensorCapabilities.Polled;
+				break;
+			case nameof(PersistedSensorInformation.Capabilities):
+				reader.Read();
+				capabilities = JsonSerializer.Deserialize<SensorCapabilities>(ref reader, options);
+				break;
+			default: throw new JsonException();
+			}
 
 			object? maxValue = null;
 			object? minValue = null;
@@ -100,7 +112,7 @@ internal sealed partial class SensorService
 			{
 				DataType = dataType,
 				UnitSymbol = unitSymbol,
-				IsPolled = isPolled,
+				Capabilities = capabilities,
 				ScaleMinimumValue = minValue,
 				ScaleMaximumValue = maxValue,
 			};
@@ -153,7 +165,8 @@ internal sealed partial class SensorService
 			writer.WritePropertyName(nameof(PersistedSensorInformation.DataType));
 			JsonSerializer.Serialize(writer, value.DataType, options);
 			writer.WriteString(nameof(PersistedSensorInformation.UnitSymbol), value.UnitSymbol);
-			writer.WriteBoolean(nameof(PersistedSensorInformation.IsPolled), value.IsPolled);
+			writer.WritePropertyName(nameof(PersistedSensorInformation.Capabilities));
+			JsonSerializer.Serialize(writer, value.Capabilities, options);
 			if (value.ScaleMinimumValue is not null)
 			{
 				WriteNumericProperty(writer, value.DataType, nameof(PersistedSensorInformation.ScaleMinimumValue), value.ScaleMinimumValue, options);
@@ -239,7 +252,7 @@ internal sealed partial class SensorService
 				var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorInformation>(sensorId, cancellationToken).ConfigureAwait(false);
 				if (!result.Found) continue;
 				var info = result.Value;
-				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.UnitSymbol, info.IsPolled, info.ScaleMinimumValue, info.ScaleMaximumValue));
+				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.UnitSymbol, info.Capabilities, info.ScaleMinimumValue, info.ScaleMaximumValue));
 			}
 
 			if (sensorInformations.Count > 0)
@@ -491,7 +504,22 @@ internal sealed partial class SensorService
 
 	private static SensorInformation BuildSensorInformation<T>(ISensor<T> sensor, SensorDataType dataType)
 		where T : struct, INumber<T>
-		=> new SensorInformation(sensor.SensorId, dataType, sensor.Unit.Symbol, sensor.IsPolled, sensor.ScaleMinimumValue, sensor.ScaleMaximumValue);
+		=> new SensorInformation(sensor.SensorId, dataType, sensor.Unit.Symbol, GetCapabilities(sensor), sensor.ScaleMinimumValue, sensor.ScaleMaximumValue);
+
+	private static SensorCapabilities GetCapabilities(ISensor sensor)
+	{
+		SensorCapabilities capabilities = SensorCapabilities.None;
+
+		switch (sensor.Kind)
+		{
+		case SensorKind.Internal: break;
+		case SensorKind.Polled: capabilities |= SensorCapabilities.Polled; break;
+		case SensorKind.Streamed: capabilities |= SensorCapabilities.Streamed; break;
+		default: throw new InvalidOperationException("Unsupported enum value.");
+		}
+
+		return capabilities;
+	}
 
 	private async ValueTask HandleRemovalAsync(DeviceWatchNotification notification)
 	{

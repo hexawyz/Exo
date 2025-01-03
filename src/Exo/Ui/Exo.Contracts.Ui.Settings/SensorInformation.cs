@@ -12,7 +12,7 @@ public sealed class SensorInformation
 	[DataMember(Order = 3)]
 	public required string Unit { get; init; }
 	[DataMember(Order = 4)]
-	public required bool IsPolled { get; init; }
+	public required SensorCapabilities Capabilities { get; init; }
 	/// <summary>Gets the minimum value that should be used for the scale display.</summary>
 	/// <remarks>This will ideally match the actual (theoretical) minimum value, but it is not guaranteed.</remarks>
 	[DataMember(Order = 5)]

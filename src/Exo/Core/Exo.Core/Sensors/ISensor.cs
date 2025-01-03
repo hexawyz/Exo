@@ -2,6 +2,13 @@ using System.Numerics;
 
 namespace Exo.Sensors;
 
+public enum SensorKind
+{
+	Internal,
+	Polled,
+	Streamed,
+}
+
 public interface ISensor
 {
 	/// <summary>Gets the well-known unique ID of the sensor.</summary>
@@ -24,16 +31,28 @@ public interface ISensor
 	/// </remarks>
 	Type ValueType { get; }
 
-	/// <summary>Gets a value indicating whether this sensor is polled.</summary>
+	/// <summary>Gets a value indicating the kind of sensor.</summary>
 	/// <remarks>
-	/// Polled sensors will implement the <see cref="IPolledSensor{TValue}"/> interface, while non-polled sensors will implement <see cref="IStreamedSensor{TValue}"/>.
+	/// <para>
+	/// Internal sensors will implement <see cref="IInternalSensor{TValue}"/>, polled sensors will implement the <see cref="IPolledSensor{TValue}"/> interface,
+	/// while non-polled sensors will implement <see cref="IStreamedSensor{TValue}"/>.
+	/// </para>
+	/// <para>
+	/// Internal sensors are sensors that exist within the device and can be used for some other features such as hardware cooling curves, but are not exposed directly by the device.
+	/// </para>
 	/// </remarks>
-	bool IsPolled { get; }
+	SensorKind Kind { get; }
+}
+
+/// <summary>Represents a sensor that cannot be queried.</summary>
+public interface IInternalSensor : ISensor
+{
+	SensorKind ISensor.Kind => SensorKind.Internal;
 }
 
 public interface IPolledSensor : ISensor
 {
-	bool ISensor.IsPolled => true;
+	SensorKind ISensor.Kind => SensorKind.Polled;
 
 	/// <summary>Gets a value indicating the group query mode for this sensor.</summary>
 	/// <remarks>
@@ -66,6 +85,12 @@ public interface ISensor<TValue> : ISensor
 	TValue? ScaleMaximumValue { get; }
 
 	Type ISensor.ValueType => typeof(TValue);
+}
+
+/// <summary>Represents a sensor that cannot be queried.</summary>
+public interface IInternalSensor<TValue> : ISensor<TValue>, IInternalSensor
+	where TValue : struct, INumber<TValue>
+{
 }
 
 public interface IPolledSensor<TValue> : ISensor<TValue>, IPolledSensor
@@ -107,7 +132,7 @@ public interface IPolledSensor<TValue> : ISensor<TValue>, IPolledSensor
 public interface IStreamedSensor<TValue> : ISensor<TValue>
 	where TValue : struct, INumber<TValue>
 {
-	bool ISensor.IsPolled => false;
+	SensorKind ISensor.Kind => SensorKind.Streamed;
 
 	/// <summary>Enumerates values from the sensor.</summary>
 	/// <remarks>Implementations can assume that there will always be at most a single enumeration per sensor at a given time.</remarks>

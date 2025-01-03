@@ -372,7 +372,7 @@ internal sealed class SensorViewModel : BindableObject
 	public string DisplayName => _displayName;
 	public SensorDataType DataType => _sensorInformation.DataType;
 	public string Unit => _sensorInformation.Unit;
-	public bool IsPolled => _sensorInformation.IsPolled;
+	public SensorCapabilities Capabilities => _sensorInformation.Capabilities;
 	public double? ScaleMinimumValue => _metadataMinimumValue ?? _sensorInformation.ScaleMinimumValue;
 	public double? ScaleMaximumValue => _metadataMaximumValue ?? _sensorInformation.ScaleMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
@@ -389,9 +389,12 @@ internal sealed class SensorViewModel : BindableObject
 
 		if (oldInfo.DataType != _sensorInformation.DataType) NotifyPropertyChanged(ChangedProperty.DataType);
 		if (oldInfo.Unit != _sensorInformation.Unit) NotifyPropertyChanged(ChangedProperty.Unit);
-		if (oldInfo.IsPolled != _sensorInformation.IsPolled) NotifyPropertyChanged(ChangedProperty.IsPolled);
+		if (oldInfo.Capabilities != _sensorInformation.Capabilities) NotifyPropertyChanged(ChangedProperty.Capabilities);
 
-		StartWatching();
+		if ((_sensorInformation.Capabilities & (SensorCapabilities.Polled | SensorCapabilities.Streamed)) != 0)
+		{
+			StartWatching();
+		}
 	}
 
 	private void StartWatching()
