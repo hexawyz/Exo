@@ -252,12 +252,14 @@ public abstract partial class HidPlusPlusDevice
 				{
 					foreach (var handler in handlers)
 					{
+						if (handler is null) continue;
 						try
 						{
 							await handler.DisposeAsync().ConfigureAwait(false);
 						}
 						catch
 						{
+							// TODO: Log
 						}
 					}
 				}
