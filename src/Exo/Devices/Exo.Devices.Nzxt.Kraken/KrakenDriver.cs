@@ -570,7 +570,7 @@ public class KrakenDriver :
 			return false;
 		}
 
-		public ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors { get; }
+		public ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors => _availableSensors;
 
 		public bool TryGetActiveSensor([NotNullWhen(true)] out IHardwareCurveCoolerSensorCurveControl? sensor)
 		{
@@ -633,7 +633,7 @@ public class KrakenDriver :
 			return false;
 		}
 
-		public ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors { get; }
+		public ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors => _availableSensors;
 
 		public bool TryGetActiveSensor([NotNullWhen(true)] out IHardwareCurveCoolerSensorCurveControl? sensor)
 		{
