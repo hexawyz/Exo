@@ -419,12 +419,12 @@ public class KrakenDriver :
 	{
 		if ((_pumpState & CoolingStateCurve) != 0)
 		{
-			await _hidTransport.SetPumpPowerCurveAsync(_fanCoolingCurve, cancellationToken).ConfigureAwait(false);
+			await _hidTransport.SetFanPowerCurveAsync(_fanCoolingCurve, cancellationToken).ConfigureAwait(false);
 			_fanState = CoolingStateCurve;
 		}
 		else
 		{
-			await _hidTransport.SetPumpPowerAsync(_fanSpeedTarget, cancellationToken).ConfigureAwait(false);
+			await _hidTransport.SetFanPowerAsync(_fanSpeedTarget, cancellationToken).ConfigureAwait(false);
 			_fanState = 0;
 		}
 	}
