@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -280,7 +281,7 @@ internal partial class CoolingService
 				if (cooler is IHardwareCurveCooler hardwareCurveCooler)
 				{
 					coolingModes |= CoolingModes.HardwareControlCurve;
-					hardwareCurveInputSensorIds = hardwareCurveCooler.AvailableInputSensors;
+					hardwareCurveInputSensorIds = ImmutableArray.CreateRange(hardwareCurveCooler.AvailableSensors, s => s.SensorId);
 				}
 				var info = new CoolerInformation(cooler.CoolerId, cooler.SpeedSensorId, cooler.Type, coolingModes, powerLimits, hardwareCurveInputSensorIds);
 				addedCoolerInfosById.Add(info.CoolerId, info);
@@ -420,6 +421,7 @@ internal partial class CoolingService
 	private sealed class CoolerState
 	{
 		private static readonly object AutomaticPowerState = new();
+		private static readonly object HardwareCurveState = new();
 
 		private readonly SensorService _sensorService;
 		private readonly ICooler _cooler;
@@ -491,6 +493,79 @@ internal partial class CoolingService
 				dynamicCoolerState.Start();
 				_activeState = dynamicCoolerState;
 			}
+		}
+
+		public async ValueTask SetHardwareCurveAsync<TInput>(Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+			where TInput : struct, INumber<TInput>
+		{
+			if (_cooler is not IHardwareCurveCooler cooler) throw new InvalidOperationException("This cooler does not support hardware curves.");
+			var sensor = FindSensor(cooler, sensorId);
+
+			switch (SensorService.GetSensorDataType(sensor.ValueType))
+			{
+			case SensorDataType.UInt8:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<byte>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.UInt16:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<ushort>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.UInt32:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<uint>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.UInt64:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<ulong>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.UInt128:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<UInt128>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.SInt8:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<sbyte>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.SInt16:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<short>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.SInt32:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<int>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.SInt64:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<long>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.SInt128:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<Int128>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.Float16:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<Half>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.Float32:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<float>(), cancellationToken).ConfigureAwait(false);
+				break;
+			case SensorDataType.Float64:
+				await SetHardwareCurveAsync(sensor, controlCurve.CastInput<double>(), cancellationToken).ConfigureAwait(false);
+				break;
+			default:
+				throw new InvalidOperationException("Unsupported sensor data type.");
+			}
+		}
+
+		private async ValueTask SetHardwareCurveAsync<TInput>(IHardwareCurveCoolerSensorCurveControl sensor, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+			where TInput : struct, INumber<TInput>
+		{
+			if (sensor is not IHardwareCurveCoolerSensorCurveControl<TInput> typedSensor) throw new InvalidOperationException("This sensor has an incompatible value type.");
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
+				_activeState = HardwareCurveState;
+				_changeWriter.TryWrite(CoolerChange.CreateHardwareCurve(typedSensor, controlCurve));
+			}
+		}
+
+		private static IHardwareCurveCoolerSensorCurveControl FindSensor(IHardwareCurveCooler cooler, Guid sensorId)
+		{
+			foreach (var sensor in cooler.AvailableSensors)
+			{
+				if (sensor.SensorId == sensorId) return sensor;
+			}
+			throw new InvalidOperationException("The specified sensor ID is not a valid hardware control curve input source.");
 		}
 
 		public void SendManualPowerUpdate(byte power) => _changeWriter.TryWrite(CoolerChange.CreateManual(Unsafe.As<IManualCooler>(_cooler), power));
@@ -653,6 +728,15 @@ internal partial class CoolingService
 			default:
 				throw new InvalidOperationException("Unsupported sensor data type.");
 			}
+		}
+	}
+
+	public async ValueTask SetHardwareControlCurveAsync<TInput>(Guid coolingDeviceId, Guid coolerId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
+		where TInput : struct, INumber<TInput>
+	{
+		if (TryGetCoolerState(coolingDeviceId, coolerId, out var state))
+		{
+			await state.SetHardwareCurveAsync(sensorId, controlCurve, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

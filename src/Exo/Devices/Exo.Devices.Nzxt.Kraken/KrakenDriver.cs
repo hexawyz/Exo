@@ -502,10 +502,8 @@ public class KrakenDriver :
 		protected override ushort ReadValue(KrakenReadings readings) => readings.FanSpeed;
 	}
 
-	private static void SetControlCurve(byte[] dest, ref byte state, Guid inputId, IControlCurve<byte, byte> curve)
+	private static void SetControlCurve(byte[] dest, ref byte state, IControlCurve<byte, byte> curve)
 	{
-		if (inputId != LiquidTemperatureSensorId) throw new ArgumentException();
-
 		for (int i = 0; i < dest.Length; i++)
 		{
 			dest[i] = curve[(byte)(20 + i)];
@@ -513,11 +511,10 @@ public class KrakenDriver :
 		state = CoolingStateChanged | CoolingStateCurve;
 	}
 
-	public static bool TryGetControlCurve(byte[] src, byte state, out Guid inputId, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
+	public static bool TryGetControlCurve(byte[] src, byte state, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
 	{
 		if ((state & CoolingStateCurve) != 0)
 		{
-			inputId = LiquidTemperatureSensorId;
 			var dataPoints = new DataPoint<byte, byte>[src.Length];
 			for (int i = 0; i < src.Length; i++)
 			{
@@ -526,22 +523,29 @@ public class KrakenDriver :
 			curve = new InterpolatedSegmentControlCurve<byte, byte>(ImmutableCollectionsMarshal.AsImmutableArray(dataPoints), MonotonicityValidators<byte>.IncreasingUpTo100);
 			return true;
 		}
-		inputId = default;
 		curve = null;
 		return false;
 	}
 
-	private sealed class FanCooler : ICooler, IManualCooler, IHardwareCurveCooler<byte>
+	private sealed class FanCooler : ICooler, IManualCooler, IHardwareCurveCooler, IHardwareCurveCoolerSensorCurveControl<byte>
 	{
 		private readonly KrakenDriver _driver;
+		private readonly ImmutableArray<IHardwareCurveCoolerSensorCurveControl> _availableSensors;
 
-		public FanCooler(KrakenDriver driver) => _driver = driver;
+		public FanCooler(KrakenDriver driver)
+		{
+			_driver = driver;
+			_availableSensors = [this];
+		}
 
 		public Guid CoolerId => FanCoolerId;
 		public CoolerType Type => CoolerType.Fan;
 
 		public Guid? SpeedSensorId => FanSpeedSensorId;
 		public CoolingMode CoolingMode => CoolingMode.Manual;
+
+		Guid IHardwareCurveCoolerSensorCurveControl.SensorId => LiquidTemperatureSensorId;
+		SensorUnit IHardwareCurveCoolerSensorCurveControl.Unit => SensorUnit.Celsius;
 
 		// NB: From testing, the speed starts increasing at 21%, for about 500 RPM.
 		public byte MinimumPower => 20;
@@ -566,26 +570,45 @@ public class KrakenDriver :
 			return false;
 		}
 
-		public ImmutableArray<Guid> AvailableInputSensors => InputSensors;
+		public ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors { get; }
 
-		public void SetControlCurve(Guid inputId, IControlCurve<byte, byte> curve)
-			=> KrakenDriver.SetControlCurve(_driver._fanCoolingCurve, ref _driver._fanState, inputId, curve);
+		public bool TryGetActiveSensor([NotNullWhen(true)] out IHardwareCurveCoolerSensorCurveControl? sensor)
+		{
+			if ((_driver._fanState & CoolingStateCurve) != 0)
+			{
+				sensor = this;
+				return true;
+			}
+			sensor = null;
+			return false;
+		}
 
-		public bool TryGetControlCurve(out Guid inputId, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
-			=> KrakenDriver.TryGetControlCurve(_driver._fanCoolingCurve, _driver._fanState, out inputId, out curve);
+		public void SetControlCurve(IControlCurve<byte, byte> curve)
+			=> KrakenDriver.SetControlCurve(_driver._fanCoolingCurve, ref _driver._fanState, curve);
+
+		public bool TryGetControlCurve([NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
+			=> KrakenDriver.TryGetControlCurve(_driver._fanCoolingCurve, _driver._fanState, out curve);
 	}
 
-	private sealed class PumpCooler : ICooler, IManualCooler, IHardwareCurveCooler<byte>
+	private sealed class PumpCooler : ICooler, IManualCooler, IHardwareCurveCooler, IHardwareCurveCoolerSensorCurveControl<byte>
 	{
 		private readonly KrakenDriver _driver;
+		private readonly ImmutableArray<IHardwareCurveCoolerSensorCurveControl> _availableSensors;
 
-		public PumpCooler(KrakenDriver driver) => _driver = driver;
+		public PumpCooler(KrakenDriver driver)
+		{
+			_driver = driver;
+			_availableSensors = [this];
+		}
 
 		public Guid CoolerId => PumpCoolerId;
 		public CoolerType Type => CoolerType.Pump;
 
 		public Guid? SpeedSensorId => PumpSpeedSensorId;
 		public CoolingMode CoolingMode => CoolingMode.Manual;
+
+		Guid IHardwareCurveCoolerSensorCurveControl.SensorId => LiquidTemperatureSensorId;
+		SensorUnit IHardwareCurveCoolerSensorCurveControl.Unit => SensorUnit.Celsius;
 
 		// NB: From testing, the speed starts increasing at 32%, and the effective minimum speed seems to map to about 41% of the maximum. (~1150 RPM / ~2800 RPM)
 		public byte MinimumPower => 30;
@@ -596,7 +619,7 @@ public class KrakenDriver :
 		{
 			ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
 			_driver._pumpSpeedTarget = power;
-			_driver._fanState = CoolingStateChanged;
+			_driver._pumpState = CoolingStateChanged;
 		}
 
 		public bool TryGetPower(out byte power)
@@ -610,12 +633,23 @@ public class KrakenDriver :
 			return false;
 		}
 
-		public ImmutableArray<Guid> AvailableInputSensors => InputSensors;
+		public ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors { get; }
 
-		public void SetControlCurve(Guid inputId, IControlCurve<byte, byte> curve)
-			=> KrakenDriver.SetControlCurve(_driver._pumpCoolingCurve, ref _driver._pumpState, inputId, curve);
+		public bool TryGetActiveSensor([NotNullWhen(true)] out IHardwareCurveCoolerSensorCurveControl? sensor)
+		{
+			if ((_driver._pumpState & CoolingStateCurve) != 0)
+			{
+				sensor = this;
+				return true;
+			}
+			sensor = null;
+			return false;
+		}
 
-		public bool TryGetControlCurve(out Guid inputId, [NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
-			=> KrakenDriver.TryGetControlCurve(_driver._pumpCoolingCurve, _driver._pumpState, out inputId, out curve);
+		public void SetControlCurve(IControlCurve<byte, byte> curve)
+			=> KrakenDriver.SetControlCurve(_driver._pumpCoolingCurve, ref _driver._pumpState, curve);
+
+		public bool TryGetControlCurve([NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
+			=> KrakenDriver.TryGetControlCurve(_driver._pumpCoolingCurve, _driver._pumpState, out curve);
 	}
 }

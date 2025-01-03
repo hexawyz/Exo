@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Exo.Sensors;
 
 namespace Exo.Cooling;
 
@@ -87,14 +88,40 @@ public interface IManualCooler : IConfigurableCooler
 
 public interface IHardwareCurveCooler : IConfigurableCooler
 {
-	/// <summary>Gets a list of all available input sensors.</summary>
-	/// <remarks>Currently the sensors must be present in a readable form on the device, because some informations are missing in external metadata. This can be alleviated later.</remarks>
-	ImmutableArray<Guid> AvailableInputSensors { get; }
+	/// <summary>Gets a list of all possible source sensors.</summary>
+	/// <remarks>
+	/// <para>
+	/// For each internal sensor source that can be used with this cooler, one separate instance of <see cref="IHardwareCurveCoolerSensorCurveControl"/> will be provided.
+	/// </para>
+	/// <para>
+	/// Internal sensors would generally also be exposed as sensors through the sensor API surface, but it is not required by the cooling API.
+	/// It is assumed that some sensors used for hardware cooling curves might not be readable or easily readable, and as such, metadata for the sensor is exposed in <see cref="IHardwareCurveCoolerSensorCurveControl"/>.
+	/// </para>
+	/// </remarks>
+	ImmutableArray<IHardwareCurveCoolerSensorCurveControl> AvailableSensors { get; }
+
+	bool TryGetActiveSensor([NotNullWhen(true)] out IHardwareCurveCoolerSensorCurveControl? sensor);
 }
 
-public interface IHardwareCurveCooler<T> : IHardwareCurveCooler
-	where T: struct, INumber<T>
+/// <summary>Allows controlling a hardware cooling curve based on a sensor.</summary>
+/// <remarks>
+/// Instances of <see cref="IHardwareCurveCoolerSensorCurveControl"/> must also implement <see cref="IHardwareCurveCoolerSensorCurveControl{T}"/> for exactly one datatype.
+/// Said datatype must be the one returned by <see cref="ValueType"/>.
+/// </remarks>
+public interface IHardwareCurveCoolerSensorCurveControl
 {
+	Guid SensorId { get; }
+	SensorUnit Unit { get; }
+	Type ValueType { get; }
+}
+
+/// <summary></summary>
+/// <typeparam name="TInput"></typeparam>
+public interface IHardwareCurveCoolerSensorCurveControl<TInput> : IHardwareCurveCoolerSensorCurveControl
+	where TInput : struct, INumber<TInput>
+{
+	Type IHardwareCurveCoolerSensorCurveControl.ValueType => typeof(TInput);
+
 	/// <summary>Sets the control curve to be used by this cooler.</summary>
 	/// <remarks>
 	/// <para>Only the sensors referenced by <see cref="AvailableInputSensors"/> can be used as control curve input.</para>
@@ -105,9 +132,8 @@ public interface IHardwareCurveCooler<T> : IHardwareCurveCooler
 	/// using data that fit their internal representation the best.
 	/// </para>
 	/// </remarks>
-	/// <param name="inputId">The sensor to use as an input.</param>
 	/// <param name="curve">The control curve to apply.</param>
-	void SetControlCurve(Guid inputId, IControlCurve<T, byte> curve);
+	void SetControlCurve(IControlCurve<TInput, byte> curve);
 
 	/// <summary>Gets the applied cooling curve.</summary>
 	/// <remarks>
@@ -115,10 +141,9 @@ public interface IHardwareCurveCooler<T> : IHardwareCurveCooler
 	/// For simplicity, device drivers are allowed to return the curve that best matches their internal representation, meaning that data points can be truncated or interpolated,
 	/// and values can be rounded accordingly.
 	/// </remarks>
-	/// <param name="inputId">The sensor used as input of this source, if any.</param>
 	/// <param name="curve">The curve currently applied on the cooler, if any.</param>
 	/// <returns></returns>
-	bool TryGetControlCurve(out Guid inputId, [NotNullWhen(true)] out IControlCurve<T, byte>? curve);
+	bool TryGetControlCurve([NotNullWhen(true)] out IControlCurve<TInput, byte>? curve);
 }
 
 public readonly struct HardwareCoolingInput

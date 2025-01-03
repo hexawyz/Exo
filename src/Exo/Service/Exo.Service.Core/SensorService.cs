@@ -190,6 +190,7 @@ internal sealed partial class SensorService
 	}
 
 	public static SensorDataType GetSensorDataType<T>() where T : INumber<T> => SensorDataTypes<T>.DataType;
+	public static SensorDataType GetSensorDataType(Type type) => TypeToSensorDataTypeMapping[type];
 
 	// Helper method that will ensure a cancellation token source is wiped out properly and exactly once. (Because the Dispose method can throw if called twice…)
 	private static void ClearAndDisposeCancellationTokenSource(ref CancellationTokenSource? cancellationTokenSource)

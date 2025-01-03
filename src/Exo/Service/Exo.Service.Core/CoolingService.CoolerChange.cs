@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Numerics;
 using Exo.Cooling;
 
 namespace Exo.Service;
@@ -36,6 +37,10 @@ internal partial class CoolingService
 			change.Prepare(cooler, power);
 			return change;
 		}
+
+		public static CoolerChange CreateHardwareCurve<T>(IHardwareCurveCoolerSensorCurveControl<T> sensorControl, IControlCurve<T, byte> curve)
+			where T : struct, INumber<T>
+			=> new HardwareCurveCoolerChange<T>(sensorControl, curve);
 
 		private sealed class AutomaticCoolerChange : CoolerChange
 		{
@@ -79,6 +84,24 @@ internal partial class CoolingService
 					_cooler = null;
 					ManualChangePool.Push(this);
 				}
+			}
+		}
+
+		private sealed class HardwareCurveCoolerChange<T> : CoolerChange
+			where T : struct, INumber<T>
+		{
+			private readonly IHardwareCurveCoolerSensorCurveControl<T> _sensorControl;
+			private readonly IControlCurve<T, byte> _curve;
+
+			public HardwareCurveCoolerChange(IHardwareCurveCoolerSensorCurveControl<T> sensorControl, IControlCurve<T, byte> curve)
+			{
+				_sensorControl = sensorControl;
+				_curve = curve;
+			}
+
+			public override void Execute()
+			{
+				_sensorControl.SetControlCurve(_curve);
 			}
 		}
 	}
