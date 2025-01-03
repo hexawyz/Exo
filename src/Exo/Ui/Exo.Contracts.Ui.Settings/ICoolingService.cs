@@ -40,4 +40,11 @@ public interface ICoolingService
 	/// <returns></returns>
 	[OperationContract(Name = "SetSoftwareControlCurveCooling")]
 	ValueTask SetSoftwareControlCurveCoolingAsync(SoftwareCurveCoolingParameters parameters, CancellationToken cancellationToken);
+
+	/// <summary>Sets a hardware-managed control curve for the specified device and cooler.</summary>
+	/// <param name="parameters"></param>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	[OperationContract(Name = "SetHardwareControlCurveCooling")]
+	ValueTask SetHardwareControlCurveCoolingAsync(HardwareCurveCoolingParameters parameters, CancellationToken cancellationToken);
 }

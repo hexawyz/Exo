@@ -120,4 +120,69 @@ internal sealed class GrpcCoolingService : ICoolingService
 			_ => throw new InvalidOperationException("Unsupported control curve data."),
 		};
 	}
+
+	public ValueTask SetHardwareControlCurveCoolingAsync(HardwareCurveCoolingParameters parameters, CancellationToken cancellationToken)
+	{
+		return parameters.ControlCurve.RawValue switch
+		{
+			UnsignedIntegerCoolingControlCurve unsignedIntegerCurve =>
+				_coolingService.SetHardwareControlCurveAsync
+				(
+					parameters.CoolingDeviceId,
+					parameters.CoolerId,
+					parameters.SensorId,
+					new InterpolatedSegmentControlCurve<ulong, byte>
+					(
+						ImmutableArray.CreateRange(unsignedIntegerCurve.SegmentPoints, dp => new DataPoint<ulong, byte>(dp.X, checked((byte)dp.Y))),
+						unsignedIntegerCurve.InitialValue,
+						MonotonicityValidators<byte>.IncreasingUpTo100
+					),
+					cancellationToken
+				),
+			SignedIntegerCoolingControlCurve signedIntegerCurve =>
+				_coolingService.SetHardwareControlCurveAsync
+				(
+					parameters.CoolingDeviceId,
+					parameters.CoolerId,
+					parameters.SensorId,
+					new InterpolatedSegmentControlCurve<long, byte>
+					(
+						ImmutableArray.CreateRange(signedIntegerCurve.SegmentPoints, dp => new DataPoint<long, byte>(dp.X, checked((byte)dp.Y))),
+						signedIntegerCurve.InitialValue,
+						MonotonicityValidators<byte>.IncreasingUpTo100
+					),
+					cancellationToken
+				),
+			SinglePrecisionFloatingPointCoolingControlCurve singleFloatCurve =>
+				_coolingService.SetHardwareControlCurveAsync
+				(
+					parameters.CoolingDeviceId,
+					parameters.CoolerId,
+					parameters.SensorId,
+					new InterpolatedSegmentControlCurve<float, byte>
+					(
+						ImmutableArray.CreateRange(singleFloatCurve.SegmentPoints, dp => new DataPoint<float, byte>(dp.X, checked((byte)dp.Y))),
+						singleFloatCurve.InitialValue,
+						MonotonicityValidators<byte>.IncreasingUpTo100
+					),
+					cancellationToken
+				),
+			DoublePrecisionFloatingPointCoolingControlCurve doubleFloatCurve =>
+				_coolingService.SetHardwareControlCurveAsync
+				(
+					parameters.CoolingDeviceId,
+					parameters.CoolerId,
+					parameters.SensorId,
+					new InterpolatedSegmentControlCurve<double, byte>
+					(
+						ImmutableArray.CreateRange(doubleFloatCurve.SegmentPoints, dp => new DataPoint<double, byte>(dp.X, checked((byte)dp.Y))),
+						doubleFloatCurve.InitialValue,
+						MonotonicityValidators<byte>.IncreasingUpTo100
+					),
+					cancellationToken
+				),
+			null => throw new ArgumentException("Missing control curve."),
+			_ => throw new InvalidOperationException("Unsupported control curve data."),
+		};
+	}
 }
