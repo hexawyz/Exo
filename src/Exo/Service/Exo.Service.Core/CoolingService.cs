@@ -132,16 +132,6 @@ internal partial class CoolingService
 		SingleWriter = false,
 	};
 
-	// Helper method that will ensure a cancellation token source is wiped out properly and exactly once. (Because the Dispose method can throw if called twice…)
-	private static void ClearAndDisposeCancellationTokenSource(ref CancellationTokenSource? cancellationTokenSource)
-	{
-		if (Interlocked.Exchange(ref cancellationTokenSource, null) is { } cts)
-		{
-			cts.Cancel();
-			cts.Dispose();
-		}
-	}
-
 	private const string CoolingConfigurationContainerName = "cln";
 
 	public static async ValueTask<CoolingService> CreateAsync
