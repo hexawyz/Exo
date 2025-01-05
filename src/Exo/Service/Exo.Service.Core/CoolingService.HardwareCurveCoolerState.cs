@@ -1,5 +1,6 @@
 using System.Numerics;
 using Exo.Cooling;
+using Exo.Cooling.Configuration;
 
 namespace Exo.Service;
 
@@ -8,7 +9,7 @@ internal partial class CoolingService
 	private abstract class HardwareCurveCoolerState
 	{
 		public abstract CoolerChange CreateCoolerChange(IHardwareCurveCooler cooler);
-		public abstract HardwareCurveCoolingMode GetPersistedConfiguration();
+		public abstract HardwareCurveCoolingModeConfiguration GetPersistedConfiguration();
 	}
 
 	private sealed class HardwareCurveCoolerState<TInput> : HardwareCurveCoolerState
@@ -34,8 +35,8 @@ internal partial class CoolingService
 
 		public override CoolerChange CreateCoolerChange(IHardwareCurveCooler cooler) => CoolerChange.CreateHardwareCurve(GetSensor(cooler, _sensorId), _controlCurve);
 
-		public override HardwareCurveCoolingMode GetPersistedConfiguration()
-			=> new HardwareCurveCoolingMode()
+		public override HardwareCurveCoolingModeConfiguration GetPersistedConfiguration()
+			=> new()
 			{
 				SensorId = _sensorId,
 				Curve = CreatePersistedCurve(_controlCurve)

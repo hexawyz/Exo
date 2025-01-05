@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Cooling;
+using Exo.Cooling.Configuration;
 
 namespace Exo.Service;
 
@@ -21,7 +22,7 @@ internal partial class CoolingService
 
 		public SensorService SensorService => _sensorService;
 
-		public CoolerState(SensorService sensorService, CoolerInformation information, PersistedCoolerConfiguration? persistedCoolerConfiguration)
+		public CoolerState(SensorService sensorService, CoolerInformation information, CoolerConfiguration? persistedCoolerConfiguration)
 		{
 			_sensorService = sensorService;
 			_lock = new();
@@ -32,74 +33,74 @@ internal partial class CoolingService
 			}
 		}
 
-		private object? DeserializeCoolingMode(ActiveCoolingMode coolingMode)
+		private object? DeserializeCoolingMode(CoolingModeConfiguration coolingMode)
 		{
 			switch (coolingMode)
 			{
-			case AutomaticCoolingMode automaticCoolingMode:
+			case AutomaticCoolingModeConfiguration automaticCoolingMode:
 				return AutomaticPowerState;
-			case FixedCoolingMode fixedCoolingMode:
+			case FixedCoolingModeConfiguration fixedCoolingMode:
 				return _manualPowerState = new(fixedCoolingMode.Power);
-			case SoftwareCurveCoolingMode softwareCurveCoolingMode:
+			case SoftwareCurveCoolingModeConfiguration softwareCurveCoolingMode:
 				return DeserializeCoolingMode(softwareCurveCoolingMode);
-			case HardwareCurveCoolingMode hardwareCurveCoolingMode:
+			case HardwareCurveCoolingModeConfiguration hardwareCurveCoolingMode:
 				return DeserializeCoolingMode(hardwareCurveCoolingMode);
 			default:
 				return null;
 			}
 		}
 
-		private SoftwareCurveCoolerState DeserializeCoolingMode(SoftwareCurveCoolingMode coolingMode)
+		private SoftwareCurveCoolerState DeserializeCoolingMode(SoftwareCurveCoolingModeConfiguration coolingMode)
 		{
 			switch (coolingMode.Curve)
 			{
-			case PersistedCoolingCurve<sbyte> curveSByte: return DeserializeCoolingMode(coolingMode, curveSByte);
-			case PersistedCoolingCurve<byte> curveByte: return DeserializeCoolingMode(coolingMode, curveByte);
-			case PersistedCoolingCurve<short> curveInt16: return DeserializeCoolingMode(coolingMode, curveInt16);
-			case PersistedCoolingCurve<ushort> curveUInt16: return DeserializeCoolingMode(coolingMode, curveUInt16);
-			case PersistedCoolingCurve<int> curveInt32: return DeserializeCoolingMode(coolingMode, curveInt32);
-			case PersistedCoolingCurve<uint> curveUInt32: return DeserializeCoolingMode(coolingMode, curveUInt32);
-			case PersistedCoolingCurve<long> curveInt64: return DeserializeCoolingMode(coolingMode, curveInt64);
-			case PersistedCoolingCurve<ulong> curveUInt64: return DeserializeCoolingMode(coolingMode, curveUInt64);
-			case PersistedCoolingCurve<Half> curveFloat16: return DeserializeCoolingMode(coolingMode, curveFloat16);
-			case PersistedCoolingCurve<float> curveFloat32: return DeserializeCoolingMode(coolingMode, curveFloat32);
-			case PersistedCoolingCurve<double> curveFloat64: return DeserializeCoolingMode(coolingMode, curveFloat64);
+			case CoolingCurveConfiguration<sbyte> curveSByte: return DeserializeCoolingMode(coolingMode, curveSByte);
+			case CoolingCurveConfiguration<byte> curveByte: return DeserializeCoolingMode(coolingMode, curveByte);
+			case CoolingCurveConfiguration<short> curveInt16: return DeserializeCoolingMode(coolingMode, curveInt16);
+			case CoolingCurveConfiguration<ushort> curveUInt16: return DeserializeCoolingMode(coolingMode, curveUInt16);
+			case CoolingCurveConfiguration<int> curveInt32: return DeserializeCoolingMode(coolingMode, curveInt32);
+			case CoolingCurveConfiguration<uint> curveUInt32: return DeserializeCoolingMode(coolingMode, curveUInt32);
+			case CoolingCurveConfiguration<long> curveInt64: return DeserializeCoolingMode(coolingMode, curveInt64);
+			case CoolingCurveConfiguration<ulong> curveUInt64: return DeserializeCoolingMode(coolingMode, curveUInt64);
+			case CoolingCurveConfiguration<Half> curveFloat16: return DeserializeCoolingMode(coolingMode, curveFloat16);
+			case CoolingCurveConfiguration<float> curveFloat32: return DeserializeCoolingMode(coolingMode, curveFloat32);
+			case CoolingCurveConfiguration<double> curveFloat64: return DeserializeCoolingMode(coolingMode, curveFloat64);
 			default: throw new InvalidOperationException();
 			}
 		}
 
-		private SoftwareCurveCoolerState<TInput> DeserializeCoolingMode<TInput>(SoftwareCurveCoolingMode coolingMode, PersistedCoolingCurve<TInput> curve)
+		private SoftwareCurveCoolerState<TInput> DeserializeCoolingMode<TInput>(SoftwareCurveCoolingModeConfiguration coolingMode, CoolingCurveConfiguration<TInput> curve)
 			where TInput : struct, INumber<TInput>
 		{
 			return new SoftwareCurveCoolerState<TInput>(this, coolingMode.SensorDeviceId, coolingMode.SensorId, coolingMode.DefaultPower, DeserializeCurve(curve));
 		}
 
-		private HardwareCurveCoolerState DeserializeCoolingMode(HardwareCurveCoolingMode coolingMode)
+		private HardwareCurveCoolerState DeserializeCoolingMode(HardwareCurveCoolingModeConfiguration coolingMode)
 		{
 			switch (coolingMode.Curve)
 			{
-			case PersistedCoolingCurve<sbyte> curveSByte: return DeserializeCoolingMode(coolingMode, curveSByte);
-			case PersistedCoolingCurve<byte> curveByte: return DeserializeCoolingMode(coolingMode, curveByte);
-			case PersistedCoolingCurve<short> curveInt16: return DeserializeCoolingMode(coolingMode, curveInt16);
-			case PersistedCoolingCurve<ushort> curveUInt16: return DeserializeCoolingMode(coolingMode, curveUInt16);
-			case PersistedCoolingCurve<int> curveInt32: return DeserializeCoolingMode(coolingMode, curveInt32);
-			case PersistedCoolingCurve<uint> curveUInt32: return DeserializeCoolingMode(coolingMode, curveUInt32);
-			case PersistedCoolingCurve<long> curveInt64: return DeserializeCoolingMode(coolingMode, curveInt64);
-			case PersistedCoolingCurve<ulong> curveUInt64: return DeserializeCoolingMode(coolingMode, curveUInt64);
-			case PersistedCoolingCurve<Half> curveFloat16: return DeserializeCoolingMode(coolingMode, curveFloat16);
-			case PersistedCoolingCurve<float> curveFloat32: return DeserializeCoolingMode(coolingMode, curveFloat32);
-			case PersistedCoolingCurve<double> curveFloat64: return DeserializeCoolingMode(coolingMode, curveFloat64);
+			case CoolingCurveConfiguration<sbyte> curveSByte: return DeserializeCoolingMode(coolingMode, curveSByte);
+			case CoolingCurveConfiguration<byte> curveByte: return DeserializeCoolingMode(coolingMode, curveByte);
+			case CoolingCurveConfiguration<short> curveInt16: return DeserializeCoolingMode(coolingMode, curveInt16);
+			case CoolingCurveConfiguration<ushort> curveUInt16: return DeserializeCoolingMode(coolingMode, curveUInt16);
+			case CoolingCurveConfiguration<int> curveInt32: return DeserializeCoolingMode(coolingMode, curveInt32);
+			case CoolingCurveConfiguration<uint> curveUInt32: return DeserializeCoolingMode(coolingMode, curveUInt32);
+			case CoolingCurveConfiguration<long> curveInt64: return DeserializeCoolingMode(coolingMode, curveInt64);
+			case CoolingCurveConfiguration<ulong> curveUInt64: return DeserializeCoolingMode(coolingMode, curveUInt64);
+			case CoolingCurveConfiguration<Half> curveFloat16: return DeserializeCoolingMode(coolingMode, curveFloat16);
+			case CoolingCurveConfiguration<float> curveFloat32: return DeserializeCoolingMode(coolingMode, curveFloat32);
+			case CoolingCurveConfiguration<double> curveFloat64: return DeserializeCoolingMode(coolingMode, curveFloat64);
 			default: throw new InvalidOperationException();
 			}
 		}
 
-		private HardwareCurveCoolerState<TInput> DeserializeCoolingMode<TInput>(HardwareCurveCoolingMode coolingMode, PersistedCoolingCurve<TInput> curve)
+		private HardwareCurveCoolerState<TInput> DeserializeCoolingMode<TInput>(HardwareCurveCoolingModeConfiguration coolingMode, CoolingCurveConfiguration<TInput> curve)
 			where TInput : struct, INumber<TInput>
 		{
 			return new HardwareCurveCoolerState<TInput>(coolingMode.SensorId, DeserializeCurve(curve));
 		}
 
-		private static InterpolatedSegmentControlCurve<TInput, byte> DeserializeCurve<TInput>(PersistedCoolingCurve<TInput> curve)
+		private static InterpolatedSegmentControlCurve<TInput, byte> DeserializeCurve<TInput>(CoolingCurveConfiguration<TInput> curve)
 			where TInput : struct, INumber<TInput>
 			=> new(curve.Points, MonotonicityValidators<byte>.IncreasingUpTo100);
 
@@ -164,10 +165,10 @@ internal partial class CoolingService
 			}
 		}
 
-		public PersistedCoolerConfiguration? CreatePersistedConfiguration()
+		public CoolerConfiguration? CreatePersistedConfiguration()
 		{
 			var activeState = Volatile.Read(ref _activeState);
-			ActiveCoolingMode activeCoolingMode;
+			CoolingModeConfiguration activeCoolingMode;
 			if (_activeState is SoftwareCurveCoolerState dynamicState)
 			{
 				activeCoolingMode = dynamicState.GetPersistedConfiguration();
@@ -178,11 +179,11 @@ internal partial class CoolingService
 			}
 			else if (_manualPowerState is not null && ReferenceEquals(_activeState, _manualPowerState))
 			{
-				activeCoolingMode = new FixedCoolingMode() { Power = _manualPowerState.Value };
+				activeCoolingMode = new FixedCoolingModeConfiguration() { Power = _manualPowerState.Value };
 			}
 			else if (ReferenceEquals(activeState, AutomaticPowerState))
 			{
-				activeCoolingMode = new AutomaticCoolingMode();
+				activeCoolingMode = new AutomaticCoolingModeConfiguration();
 			}
 			else
 			{

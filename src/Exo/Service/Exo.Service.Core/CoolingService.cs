@@ -1,13 +1,12 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Cooling;
+using Exo.Cooling.Configuration;
 using Exo.Features;
 using Exo.Features.Cooling;
 using Microsoft.Extensions.Logging;
@@ -33,95 +32,6 @@ internal partial class CoolingService
 		public CoolingModes SupportedCoolingModes { get; }
 		public CoolerPowerLimits? PowerLimits { get; }
 		public ImmutableArray<Guid> HardwareCurveInputSensorIds { get; }
-	}
-
-	// NB: After thinking about it, this persistence shouldn't be an obstacle for the programming model to come later. (And also it is critically needed)
-	// The configuration that is set up at the service level will be considered as some kind of default non-programmable state that will be allowed to be reused within the programming model.
-	[TypeId(0x55E60F25, 0x3544, 0x4E42, 0xA2, 0xE8, 0x8E, 0xCC, 0x5A, 0x0A, 0xE1, 0xE1)]
-	private readonly struct PersistedCoolerConfiguration
-	{
-		public required ActiveCoolingMode CoolingMode { get; init; }
-	}
-
-	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "name", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
-	[JsonDerivedType(typeof(AutomaticCoolingMode), "Automatic")]
-	[JsonDerivedType(typeof(FixedCoolingMode), "Fixed")]
-	[JsonDerivedType(typeof(SoftwareCurveCoolingMode), "SoftwareCurve")]
-	[JsonDerivedType(typeof(HardwareCurveCoolingMode), "HardwareCurve")]
-	private abstract class ActiveCoolingMode
-	{
-	}
-
-	private sealed class AutomaticCoolingMode : ActiveCoolingMode { }
-
-	private sealed class FixedCoolingMode : ActiveCoolingMode
-	{
-		private readonly byte _power;
-
-		[Range(0, 100)]
-		public required byte Power
-		{
-			get => _power;
-			init
-			{
-				ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
-				_power = value;
-			}
-		}
-	}
-
-	private sealed class SoftwareCurveCoolingMode : ActiveCoolingMode
-	{
-		public required Guid SensorDeviceId { get; init; }
-		public required Guid SensorId { get; init; }
-		private readonly byte _defaultPower;
-
-		[Range(0, 100)]
-		public byte DefaultPower
-		{
-			get => _defaultPower;
-			init
-			{
-				ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
-				_defaultPower = value;
-			}
-		}
-
-		public required PersistedCoolingCurve Curve { get; init; }
-	}
-
-	private sealed class HardwareCurveCoolingMode : ActiveCoolingMode
-	{
-		public required Guid SensorId { get; init; }
-		public required PersistedCoolingCurve Curve { get; init; }
-	}
-
-	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "dataType", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<sbyte>), "SInt8")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<byte>), "UInt8")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<short>), "SInt16")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<ushort>), "UInt16")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<int>), "SInt32")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<uint>), "UInt32")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<long>), "SInt64")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<ulong>), "UInt64")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<Half>), "Float16")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<float>), "Float32")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<double>), "Float64")]
-	private abstract class PersistedCoolingCurve
-	{
-	}
-
-	private sealed class PersistedCoolingCurve<T> : PersistedCoolingCurve
-		where T : struct, INumber<T>
-	{
-		private readonly ImmutableArray<DataPoint<T, byte>> _points = [];
-
-		public required ImmutableArray<DataPoint<T, byte>> Points
-		{
-			get => _points;
-			init => _points = value.IsDefaultOrEmpty ? [] : value;
-		}
 	}
 
 	private static readonly BoundedChannelOptions CoolingChangeChannelOptions = new(20)
@@ -170,7 +80,7 @@ internal partial class CoolingService
 				var infoResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerInformation>(coolerId, cancellationToken).ConfigureAwait(false);
 				if (!infoResult.Found) continue;
 				var info = infoResult.Value;
-				var configResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerConfiguration>(coolerId, cancellationToken).ConfigureAwait(false);
+				var configResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<CoolerConfiguration>(coolerId, cancellationToken).ConfigureAwait(false);
 				coolerStates.Add
 				(
 					coolerId,
@@ -486,9 +396,9 @@ internal partial class CoolingService
 		}
 	}
 
-	private static PersistedCoolingCurve<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
+	private static CoolingCurveConfiguration<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
 		where TInput : struct, INumber<TInput>
-		=> new PersistedCoolingCurve<TInput>() { Points = controlCurve.GetPoints() };
+		=> new CoolingCurveConfiguration<TInput>() { Points = controlCurve.GetPoints() };
 
 	public async ValueTask SetAutomaticPowerAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
 	{
@@ -581,7 +491,7 @@ internal partial class CoolingService
 		}
 	}
 
-	private async void PersistCoolingConfiguration(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, PersistedCoolerConfiguration configuration, CancellationToken cancellationToken)
+	private async void PersistCoolingConfiguration(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, CoolerConfiguration configuration, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -593,6 +503,6 @@ internal partial class CoolingService
 		}
 	}
 
-	private ValueTask PersistCoolingConfigurationAsync(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, PersistedCoolerConfiguration configuration, CancellationToken cancellationToken)
+	private ValueTask PersistCoolingConfigurationAsync(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, CoolerConfiguration configuration, CancellationToken cancellationToken)
 		=> coolersConfigurationContainer.WriteValueAsync(coolerId, configuration, cancellationToken);
 }

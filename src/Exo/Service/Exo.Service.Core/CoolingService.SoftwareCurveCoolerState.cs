@@ -1,5 +1,6 @@
 using System.Numerics;
 using Exo.Cooling;
+using Exo.Cooling.Configuration;
 
 namespace Exo.Service;
 
@@ -54,7 +55,7 @@ internal partial class CoolingService
 		/// <returns></returns>
 		protected abstract Task RunAsync(CancellationToken cancellationToken);
 
-		public abstract SoftwareCurveCoolingMode GetPersistedConfiguration();
+		public abstract SoftwareCurveCoolingModeConfiguration GetPersistedConfiguration();
 	}
 
 	private sealed class SoftwareCurveCoolerState<TInput> : SoftwareCurveCoolerState
@@ -111,8 +112,8 @@ internal partial class CoolingService
 			}
 		}
 
-		public override SoftwareCurveCoolingMode GetPersistedConfiguration()
-			=> new SoftwareCurveCoolingMode()
+		public override SoftwareCurveCoolingModeConfiguration GetPersistedConfiguration()
+			=> new()
 			{
 				SensorDeviceId = _sensorDeviceId,
 				SensorId = _sensorId,
