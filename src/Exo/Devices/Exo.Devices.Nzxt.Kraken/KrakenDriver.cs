@@ -473,15 +473,16 @@ public class KrakenDriver :
 		}
 	}
 
-	private sealed class LiquidTemperatureSensor : Sensor<byte>
+	// TODO: Expose the sensor as float16 instead. Half is not optimized yet, but when it is finally (.NET 10?), it will be more interesting.
+	private sealed class LiquidTemperatureSensor : Sensor<float>
 	{
 		public override Guid SensorId => LiquidTemperatureSensorId;
 		public override SensorUnit Unit => SensorUnit.Celsius;
-		public override byte? ScaleMaximumValue => 100;
+		public override float? ScaleMaximumValue => 100;
 
 		public LiquidTemperatureSensor(KrakenDriver driver) : base(driver) { }
 
-		protected override byte ReadValue(KrakenReadings readings) => readings.LiquidTemperature;
+		protected override float ReadValue(KrakenReadings readings) => readings.LiquidTemperature + readings.LiquidTemperatureDecimal / 10f;
 	}
 
 	private sealed class PumpSpeedSensor : Sensor<ushort>

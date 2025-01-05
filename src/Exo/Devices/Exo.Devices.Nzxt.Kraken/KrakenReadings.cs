@@ -1,17 +1,28 @@
-﻿namespace Exo.Devices.Nzxt.Kraken;
+namespace Exo.Devices.Nzxt.Kraken;
 
 internal readonly struct KrakenReadings
 {
-	private readonly ulong _rawValue;
+	private readonly byte _liquidTemperature;
+	private readonly byte _liquidTemperatureDecimal;
+	private readonly byte _fanPower;
+	private readonly byte _pumpPower;
+	private readonly ushort _fanSpeed;
+	private readonly ushort _pumpSpeed;
 
-	public byte LiquidTemperature => (byte)(_rawValue >> 48);
-	public byte FanPower => (byte)(_rawValue >> 40);
-	public byte PumpPower => (byte)(_rawValue >> 32);
-	public ushort FanSpeed => (ushort)(_rawValue >> 16);
-	public ushort PumpSpeed => (ushort)_rawValue;
-
-	internal KrakenReadings(ushort pumpSpeed, ushort fanSpeed, byte pumpPower, byte fanPower, byte liquidTemperature)
+	public KrakenReadings(byte liquidTemperature, byte liquidTemperatureDecimal, byte fanPower, byte pumpPower, ushort fanSpeed, ushort pumpSpeed)
 	{
-		_rawValue = pumpSpeed | (uint)fanSpeed << 16 | (ulong)pumpPower << 32 | (ulong)fanPower << 40 | (ulong)liquidTemperature << 48;
+		_liquidTemperature = liquidTemperature;
+		_liquidTemperatureDecimal = liquidTemperatureDecimal;
+		_fanPower = fanPower;
+		_pumpPower = pumpPower;
+		_fanSpeed = fanSpeed;
+		_pumpSpeed = pumpSpeed;
 	}
+
+	public byte LiquidTemperature => _liquidTemperature;
+	public byte LiquidTemperatureDecimal => _liquidTemperatureDecimal;
+	public byte FanPower => _fanPower;
+	public byte PumpPower => _pumpPower;
+	public ushort FanSpeed => _fanSpeed;
+	public ushort PumpSpeed => _pumpSpeed;
 }

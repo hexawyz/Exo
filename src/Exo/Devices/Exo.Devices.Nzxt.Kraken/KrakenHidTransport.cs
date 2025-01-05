@@ -716,11 +716,12 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		if (functionId == CurrentDeviceStatusFunctionId)
 		{
 			byte liquidTemperature = response[1];
+			byte liquidTemperatureDecimal = response[2];
 			ushort pumpSpeed = LittleEndian.ReadUInt16(in response[3]);
 			byte pumpSetPower = response[19];
 			ushort fanSpeed = LittleEndian.ReadUInt16(in response[9]);
 			byte fanSetPower = response[11];
-			var readings = new KrakenReadings(pumpSpeed, fanSpeed, pumpSetPower, fanSetPower, liquidTemperature);
+			var readings = new KrakenReadings(liquidTemperature, liquidTemperatureDecimal, fanSetPower, pumpSetPower, fanSpeed, pumpSpeed);
 			Volatile.Write(ref _lastReadings, Unsafe.BitCast<KrakenReadings, ulong>(readings));
 			Volatile.Write(ref _lastReadingsTimestamp, (ulong)Stopwatch.GetTimestamp());
 
