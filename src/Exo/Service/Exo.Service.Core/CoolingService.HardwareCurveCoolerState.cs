@@ -7,28 +7,37 @@ internal partial class CoolingService
 {
 	private abstract class HardwareCurveCoolerState
 	{
-		public abstract CoolerChange CreateCoolerChange();
+		public abstract CoolerChange CreateCoolerChange(IHardwareCurveCooler cooler);
 		public abstract HardwareCurveCoolingMode GetPersistedConfiguration();
 	}
 
 	private sealed class HardwareCurveCoolerState<TInput> : HardwareCurveCoolerState
 		where TInput : struct, INumber<TInput>
 	{
-		private readonly IHardwareCurveCoolerSensorCurveControl<TInput> _sensor;
+		private readonly Guid _sensorId;
 		private readonly InterpolatedSegmentControlCurve<TInput, byte> _controlCurve;
 
-		public HardwareCurveCoolerState(IHardwareCurveCoolerSensorCurveControl<TInput> sensor, InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
+		public HardwareCurveCoolerState(Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
 		{
-			_sensor = sensor;
+			_sensorId = sensorId;
 			_controlCurve = controlCurve;
 		}
 
-		public override CoolerChange CreateCoolerChange() => CoolerChange.CreateHardwareCurve(_sensor, _controlCurve);
+		private static IHardwareCurveCoolerSensorCurveControl<TInput> GetSensor(IHardwareCurveCooler cooler, Guid sensorId)
+		{
+			foreach (var sensor in cooler.AvailableSensors)
+			{
+				if (sensor.SensorId == sensorId && sensor is IHardwareCurveCoolerSensorCurveControl<TInput> typedSensor) return typedSensor;
+			}
+			throw new InvalidOperationException();
+		}
+
+		public override CoolerChange CreateCoolerChange(IHardwareCurveCooler cooler) => CoolerChange.CreateHardwareCurve(GetSensor(cooler, _sensorId), _controlCurve);
 
 		public override HardwareCurveCoolingMode GetPersistedConfiguration()
 			=> new HardwareCurveCoolingMode()
 			{
-				SensorId = _sensor.SensorId,
+				SensorId = _sensorId,
 				Curve = CreatePersistedCurve(_controlCurve)
 			};
 	}

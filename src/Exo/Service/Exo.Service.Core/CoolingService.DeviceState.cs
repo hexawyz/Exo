@@ -33,12 +33,16 @@ internal partial class CoolingService
 			Coolers = coolers;
 		}
 
-		public async ValueTask SetOnline(LiveDeviceState? liveDeviceState, CancellationToken cancellationToken)
+		public async ValueTask SetOnlineAsync(LiveDeviceState? liveDeviceState, CancellationToken cancellationToken)
 		{
 			using (await Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				LiveDeviceState = liveDeviceState;
 				IsConnected = true;
+				foreach (var cooler in Coolers.Values)
+				{
+					await cooler.RestoreStateAsync(cancellationToken).ConfigureAwait(false);
+				}
 			}
 		}
 

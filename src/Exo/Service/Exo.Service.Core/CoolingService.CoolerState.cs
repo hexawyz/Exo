@@ -21,12 +21,87 @@ internal partial class CoolingService
 
 		public SensorService SensorService => _sensorService;
 
-		public CoolerState(SensorService sensorService, CoolerInformation information)
+		public CoolerState(SensorService sensorService, CoolerInformation information, PersistedCoolerConfiguration? persistedCoolerConfiguration)
 		{
 			_sensorService = sensorService;
 			_lock = new();
 			_information = information;
+			if (persistedCoolerConfiguration is { } configuration)
+			{
+				_activeState = DeserializeCoolingMode(configuration.CoolingMode);
+			}
 		}
+
+		private object? DeserializeCoolingMode(ActiveCoolingMode coolingMode)
+		{
+			switch (coolingMode)
+			{
+			case AutomaticCoolingMode automaticCoolingMode:
+				return AutomaticPowerState;
+			case FixedCoolingMode fixedCoolingMode:
+				return _manualPowerState = new(fixedCoolingMode.Power);
+			case SoftwareCurveCoolingMode softwareCurveCoolingMode:
+				return DeserializeCoolingMode(softwareCurveCoolingMode);
+			case HardwareCurveCoolingMode hardwareCurveCoolingMode:
+				return DeserializeCoolingMode(hardwareCurveCoolingMode);
+			default:
+				return null;
+			}
+		}
+
+		private SoftwareCurveCoolerState DeserializeCoolingMode(SoftwareCurveCoolingMode coolingMode)
+		{
+			switch (coolingMode.Curve)
+			{
+			case PersistedCoolingCurve<sbyte> curveSByte: return DeserializeCoolingMode(coolingMode, curveSByte);
+			case PersistedCoolingCurve<byte> curveByte: return DeserializeCoolingMode(coolingMode, curveByte);
+			case PersistedCoolingCurve<short> curveInt16: return DeserializeCoolingMode(coolingMode, curveInt16);
+			case PersistedCoolingCurve<ushort> curveUInt16: return DeserializeCoolingMode(coolingMode, curveUInt16);
+			case PersistedCoolingCurve<int> curveInt32: return DeserializeCoolingMode(coolingMode, curveInt32);
+			case PersistedCoolingCurve<uint> curveUInt32: return DeserializeCoolingMode(coolingMode, curveUInt32);
+			case PersistedCoolingCurve<long> curveInt64: return DeserializeCoolingMode(coolingMode, curveInt64);
+			case PersistedCoolingCurve<ulong> curveUInt64: return DeserializeCoolingMode(coolingMode, curveUInt64);
+			case PersistedCoolingCurve<Half> curveFloat16: return DeserializeCoolingMode(coolingMode, curveFloat16);
+			case PersistedCoolingCurve<float> curveFloat32: return DeserializeCoolingMode(coolingMode, curveFloat32);
+			case PersistedCoolingCurve<double> curveFloat64: return DeserializeCoolingMode(coolingMode, curveFloat64);
+			default: throw new InvalidOperationException();
+			}
+		}
+
+		private SoftwareCurveCoolerState<TInput> DeserializeCoolingMode<TInput>(SoftwareCurveCoolingMode coolingMode, PersistedCoolingCurve<TInput> curve)
+			where TInput : struct, INumber<TInput>
+		{
+			return new SoftwareCurveCoolerState<TInput>(this, coolingMode.SensorDeviceId, coolingMode.SensorId, coolingMode.DefaultPower, DeserializeCurve(curve));
+		}
+
+		private HardwareCurveCoolerState DeserializeCoolingMode(HardwareCurveCoolingMode coolingMode)
+		{
+			switch (coolingMode.Curve)
+			{
+			case PersistedCoolingCurve<sbyte> curveSByte: return DeserializeCoolingMode(coolingMode, curveSByte);
+			case PersistedCoolingCurve<byte> curveByte: return DeserializeCoolingMode(coolingMode, curveByte);
+			case PersistedCoolingCurve<short> curveInt16: return DeserializeCoolingMode(coolingMode, curveInt16);
+			case PersistedCoolingCurve<ushort> curveUInt16: return DeserializeCoolingMode(coolingMode, curveUInt16);
+			case PersistedCoolingCurve<int> curveInt32: return DeserializeCoolingMode(coolingMode, curveInt32);
+			case PersistedCoolingCurve<uint> curveUInt32: return DeserializeCoolingMode(coolingMode, curveUInt32);
+			case PersistedCoolingCurve<long> curveInt64: return DeserializeCoolingMode(coolingMode, curveInt64);
+			case PersistedCoolingCurve<ulong> curveUInt64: return DeserializeCoolingMode(coolingMode, curveUInt64);
+			case PersistedCoolingCurve<Half> curveFloat16: return DeserializeCoolingMode(coolingMode, curveFloat16);
+			case PersistedCoolingCurve<float> curveFloat32: return DeserializeCoolingMode(coolingMode, curveFloat32);
+			case PersistedCoolingCurve<double> curveFloat64: return DeserializeCoolingMode(coolingMode, curveFloat64);
+			default: throw new InvalidOperationException();
+			}
+		}
+
+		private HardwareCurveCoolerState<TInput> DeserializeCoolingMode<TInput>(HardwareCurveCoolingMode coolingMode, PersistedCoolingCurve<TInput> curve)
+			where TInput : struct, INumber<TInput>
+		{
+			return new HardwareCurveCoolerState<TInput>(coolingMode.SensorId, DeserializeCurve(curve));
+		}
+
+		private static InterpolatedSegmentControlCurve<TInput, byte> DeserializeCurve<TInput>(PersistedCoolingCurve<TInput> curve)
+			where TInput : struct, INumber<TInput>
+			=> new(curve.Points, MonotonicityValidators<byte>.IncreasingUpTo100);
 
 		public CoolerInformation Information => _information;
 
@@ -61,7 +136,7 @@ internal partial class CoolingService
 			{
 				_cooler = null;
 				_changeWriter = null;
-				if (_activeState is DynamicCoolerState dynamicState)
+				if (_activeState is SoftwareCurveCoolerState dynamicState)
 				{
 					await dynamicState.StopAsync().ConfigureAwait(false);
 				}
@@ -72,16 +147,15 @@ internal partial class CoolingService
 		{
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				_cooler = null;
 				var activeState = _activeState;
-				if (activeState is DynamicCoolerState dynamicState)
+				if (activeState is SoftwareCurveCoolerState dynamicState)
 				{
 					dynamicState.Reset();
 					dynamicState.Start();
 				}
 				else if (activeState is HardwareCurveCoolerState hardwareCurveState)
 				{
-					_changeWriter!.TryWrite(hardwareCurveState.CreateCoolerChange());
+					_changeWriter!.TryWrite(hardwareCurveState.CreateCoolerChange((IHardwareCurveCooler)_cooler!));
 				}
 				else if (_manualPowerState is not null && ReferenceEquals(activeState, _manualPowerState))
 				{
@@ -94,7 +168,7 @@ internal partial class CoolingService
 		{
 			var activeState = Volatile.Read(ref _activeState);
 			ActiveCoolingMode activeCoolingMode;
-			if (_activeState is DynamicCoolerState dynamicState)
+			if (_activeState is SoftwareCurveCoolerState dynamicState)
 			{
 				activeCoolingMode = dynamicState.GetPersistedConfiguration();
 			}
@@ -154,7 +228,7 @@ internal partial class CoolingService
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				var dynamicCoolerState = new DynamicCoolerState<TInput>(this, sensorDeviceId, sensorId, fallbackValue, controlCurve);
+				var dynamicCoolerState = new SoftwareCurveCoolerState<TInput>(this, sensorDeviceId, sensorId, fallbackValue, controlCurve);
 				dynamicCoolerState.Start();
 				_activeState = dynamicCoolerState;
 			}
@@ -219,9 +293,9 @@ internal partial class CoolingService
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				var hardwareCurveState = new HardwareCurveCoolerState<TInput>(typedSensor, controlCurve);
+				var hardwareCurveState = new HardwareCurveCoolerState<TInput>(sensor.SensorId, controlCurve);
 				_activeState = hardwareCurveState;
-				_changeWriter!.TryWrite(hardwareCurveState.CreateCoolerChange());
+				_changeWriter!.TryWrite(CoolerChange.CreateHardwareCurve(typedSensor, controlCurve));
 			}
 		}
 

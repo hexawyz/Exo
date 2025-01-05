@@ -5,7 +5,7 @@ namespace Exo.Service;
 
 internal partial class CoolingService
 {
-	private abstract class DynamicCoolerState
+	private abstract class SoftwareCurveCoolerState
 	{
 		private readonly CoolerState _coolerState;
 		private CancellationTokenSource? _cancellationTokenSource;
@@ -13,7 +13,7 @@ internal partial class CoolingService
 
 		protected CoolerState CoolerState => _coolerState;
 
-		protected DynamicCoolerState(CoolerState coolerState)
+		protected SoftwareCurveCoolerState(CoolerState coolerState)
 		{
 			_coolerState = coolerState;
 			_cancellationTokenSource = new();
@@ -57,7 +57,7 @@ internal partial class CoolingService
 		public abstract SoftwareCurveCoolingMode GetPersistedConfiguration();
 	}
 
-	private sealed class DynamicCoolerState<TInput> : DynamicCoolerState
+	private sealed class SoftwareCurveCoolerState<TInput> : SoftwareCurveCoolerState
 		where TInput : struct, INumber<TInput>
 	{
 		private readonly InterpolatedSegmentControlCurve<TInput, byte> _controlCurve;
@@ -65,7 +65,7 @@ internal partial class CoolingService
 		private readonly Guid _sensorId;
 		private readonly byte _fallbackValue;
 
-		public DynamicCoolerState(CoolerState coolerState, Guid sensorDeviceId, Guid sensorId, byte fallbackValue, InterpolatedSegmentControlCurve<TInput, byte> controlCurve) : base(coolerState)
+		public SoftwareCurveCoolerState(CoolerState coolerState, Guid sensorDeviceId, Guid sensorId, byte fallbackValue, InterpolatedSegmentControlCurve<TInput, byte> controlCurve) : base(coolerState)
 		{
 			_sensorDeviceId = sensorDeviceId;
 			_sensorId = sensorId;

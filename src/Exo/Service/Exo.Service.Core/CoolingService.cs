@@ -177,7 +177,8 @@ internal partial class CoolingService
 					new
 					(
 						sensorService,
-						new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits, info.HardwareCurveInputSensorIds)
+						new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits, info.HardwareCurveInputSensorIds),
+						configResult.Found ? configResult.Value : null
 					)
 				);
 			}
@@ -362,7 +363,7 @@ internal partial class CoolingService
 					await coolingConfigurationContainer.DeleteAllContainersAsync().ConfigureAwait(false);
 					foreach (var (cooler, info) in coolerDetails)
 					{
-						var coolerState = new CoolerState(_sensorService, info);
+						var coolerState = new CoolerState(_sensorService, info, null);
 						coolerStates.TryAdd(cooler.CoolerId, coolerState);
 						await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken);
 
@@ -423,14 +424,14 @@ internal partial class CoolingService
 						}
 						else
 						{
-							coolerState = new CoolerState(_sensorService, info);
+							coolerState = new CoolerState(_sensorService, info, null);
 							coolerStates.TryAdd(cooler.CoolerId, coolerState);
 							await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken);
 						}
 						await coolerState.SetOnlineAsync(cooler, info, changeChannel!, cancellationToken).ConfigureAwait(false);
 					}
 				}
-				await state.SetOnline(liveDeviceState, cancellationToken).ConfigureAwait(false);
+				await state.SetOnlineAsync(liveDeviceState, cancellationToken).ConfigureAwait(false);
 				_changeListeners.TryWrite(new CoolingDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(Array.ConvertAll(coolerDetails, x => x.Info))));
 			}
 		}
