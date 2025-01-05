@@ -39,4 +39,11 @@ public sealed class CoolingParameters
 		get => _value as SoftwareCurveCoolingParameters;
 		init => _value = value;
 	}
+
+	[DataMember(Order = 5)]
+	public HardwareCurveCoolingParameters? HardwareControlCurve
+	{
+		get => _value as HardwareCurveCoolingParameters;
+		init => _value = value;
+	}
 }
