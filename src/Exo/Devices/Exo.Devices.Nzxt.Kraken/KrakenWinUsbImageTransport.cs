@@ -46,18 +46,18 @@ internal sealed class KrakenWinUsbImageTransport : IAsyncDisposable
 			_uploadSetupMessage[12] = (byte)imageFormat;
 			LittleEndian.Write(ref _uploadSetupMessage[16], (uint)memory.Length);
 			await _deviceStream.WritePipeAsync(0, _pipeAddress, MemoryMarshal.CreateFromPinnedArray(_uploadSetupMessage, 0, _uploadSetupMessage.Length), cancellationToken).ConfigureAwait(false);
-		}
-		while (true)
-		{
-			if (memory.Length < PacketSize)
+			while (true)
 			{
-				await _deviceStream.WritePipeAsync(0, _pipeAddress, memory, cancellationToken).ConfigureAwait(false);
-				return;
-			}
-			else
-			{
-				await _deviceStream.WritePipeAsync(0, _pipeAddress, memory[..PacketSize], cancellationToken).ConfigureAwait(false);
-				memory = memory[PacketSize..];
+				if (memory.Length < PacketSize)
+				{
+					await _deviceStream.WritePipeAsync(0, _pipeAddress, memory, cancellationToken).ConfigureAwait(false);
+					return;
+				}
+				else
+				{
+					await _deviceStream.WritePipeAsync(0, _pipeAddress, memory[..PacketSize], cancellationToken).ConfigureAwait(false);
+					memory = memory[PacketSize..];
+				}
 			}
 		}
 	}
