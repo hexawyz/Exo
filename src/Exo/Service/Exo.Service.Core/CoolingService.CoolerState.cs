@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Cooling;
@@ -90,30 +90,27 @@ internal partial class CoolingService
 			}
 		}
 
-		public async ValueTask<PersistedCoolerConfiguration?> CreatePersistedConfigurationAsync(CancellationToken cancellationToken)
+		public PersistedCoolerConfiguration? CreatePersistedConfiguration()
 		{
-			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			var activeState = Volatile.Read(ref _activeState);
+			ActiveCoolingMode activeCoolingMode;
+			if (_activeState is DynamicCoolerState dynamicState)
 			{
-				var activeState = _activeState;
-				ActiveCoolingMode activeCoolingMode;
-				if (_activeState is DynamicCoolerState dynamicState)
-				{
-					activeCoolingMode = dynamicState.GetPersistedConfiguration();
-				}
-				else if (activeState is HardwareCurveCoolerState hardwareCurveState)
-				{
-					activeCoolingMode = hardwareCurveState.GetPersistedConfiguration();
-				}
-				else if (_manualPowerState is not null && ReferenceEquals(_activeState, _manualPowerState))
-				{
-					activeCoolingMode = new FixedCoolingMode() { Power = _manualPowerState.Value };
-				}
-				else
-				{
-					return null;
-				}
-				return new() { CoolingMode = activeCoolingMode };
+				activeCoolingMode = dynamicState.GetPersistedConfiguration();
 			}
+			else if (activeState is HardwareCurveCoolerState hardwareCurveState)
+			{
+				activeCoolingMode = hardwareCurveState.GetPersistedConfiguration();
+			}
+			else if (_manualPowerState is not null && ReferenceEquals(_activeState, _manualPowerState))
+			{
+				activeCoolingMode = new FixedCoolingMode() { Power = _manualPowerState.Value };
+			}
+			else
+			{
+				return null;
+			}
+			return new() { CoolingMode = activeCoolingMode };
 		}
 
 		public async ValueTask SetAutomaticPowerAsync(CancellationToken cancellationToken)

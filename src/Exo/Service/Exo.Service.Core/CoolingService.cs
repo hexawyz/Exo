@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -44,7 +43,7 @@ internal partial class CoolingService
 		public required ActiveCoolingMode CoolingMode { get; init; }
 	}
 
-	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "Name", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "name", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
 	[JsonDerivedType(typeof(AutomaticCoolingMode), "Automatic")]
 	[JsonDerivedType(typeof(FixedCoolingMode), "Fixed")]
 	[JsonDerivedType(typeof(SoftwareCurveCoolingMode), "SoftwareCurve")]
@@ -97,7 +96,7 @@ internal partial class CoolingService
 		public required PersistedCoolingCurve Curve { get; init; }
 	}
 
-	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "DataType", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "dataType", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
 	[JsonDerivedType(typeof(PersistedCoolingCurve<sbyte>), "SInt8")]
 	[JsonDerivedType(typeof(PersistedCoolingCurve<byte>), "UInt8")]
 	[JsonDerivedType(typeof(PersistedCoolingCurve<short>), "SInt16")]
@@ -108,7 +107,7 @@ internal partial class CoolingService
 	[JsonDerivedType(typeof(PersistedCoolingCurve<ulong>), "UInt64")]
 	[JsonDerivedType(typeof(PersistedCoolingCurve<Half>), "Float16")]
 	[JsonDerivedType(typeof(PersistedCoolingCurve<float>), "Float32")]
-	[JsonDerivedType(typeof(PersistedCoolingCurve<double>), "Float32")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<double>), "Float64")]
 	private abstract class PersistedCoolingCurve
 	{
 	}
@@ -502,17 +501,19 @@ internal partial class CoolingService
 
 	public async ValueTask SetAutomaticPowerAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
 	{
-		if (TryGetCoolerState(deviceId, coolerId, out var state))
+		if (_deviceStates.TryGetValue(deviceId, out var deviceState) && deviceState.Coolers is { } coolerStates && coolerStates.TryGetValue(coolerId, out var coolerState))
 		{
-			await state.SetAutomaticPowerAsync(cancellationToken).ConfigureAwait(false);
+			await coolerState.SetAutomaticPowerAsync(cancellationToken).ConfigureAwait(false);
+			PersistCoolingConfiguration(deviceState, coolerState, cancellationToken);
 		}
 	}
 
 	public async ValueTask SetFixedPowerAsync(Guid deviceId, Guid coolerId, byte power, CancellationToken cancellationToken)
 	{
-		if (TryGetCoolerState(deviceId, coolerId, out var state))
+		if (_deviceStates.TryGetValue(deviceId, out var deviceState) && deviceState.Coolers is { } coolerStates && coolerStates.TryGetValue(coolerId, out var coolerState))
 		{
-			await state.SetManualPowerAsync(power, cancellationToken).ConfigureAwait(false);
+			await coolerState.SetManualPowerAsync(power, cancellationToken).ConfigureAwait(false);
+			PersistCoolingConfiguration(deviceState, coolerState, cancellationToken);
 		}
 	}
 
@@ -521,74 +522,86 @@ internal partial class CoolingService
 	{
 		var sensorInformation = await _sensorService.GetSensorInformationAsync(sensorDeviceId, sensorId, cancellationToken).ConfigureAwait(false);
 
-		if (TryGetCoolerState(coolingDeviceId, coolerId, out var state))
+		if (_deviceStates.TryGetValue(coolingDeviceId, out var deviceState) && deviceState.Coolers is { } coolerStates && coolerStates.TryGetValue(coolerId, out var coolerState))
 		{
 			switch (sensorInformation.DataType)
 			{
 			case SensorDataType.UInt8:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<byte>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<byte>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt16:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<ushort>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<ushort>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt32:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<uint>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<uint>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt64:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<ulong>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<ulong>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.UInt128:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<UInt128>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<UInt128>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt8:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<sbyte>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<sbyte>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt16:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<short>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<short>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt32:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<int>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<int>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt64:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<long>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<long>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.SInt128:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<Int128>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<Int128>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.Float16:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<Half>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<Half>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.Float32:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<float>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<float>(), cancellationToken).ConfigureAwait(false);
 				break;
 			case SensorDataType.Float64:
-				await state.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<double>(), cancellationToken).ConfigureAwait(false);
+				await coolerState.SetDynamicPowerAsyncAsync(sensorDeviceId, sensorId, fallbackValue, controlCurve.CastInput<double>(), cancellationToken).ConfigureAwait(false);
 				break;
 			default:
 				throw new InvalidOperationException("Unsupported sensor data type.");
 			}
+			PersistCoolingConfiguration(deviceState, coolerState, cancellationToken);
 		}
 	}
 
 	public async ValueTask SetHardwareControlCurveAsync<TInput>(Guid coolingDeviceId, Guid coolerId, Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
 		where TInput : struct, INumber<TInput>
 	{
-		if (TryGetCoolerState(coolingDeviceId, coolerId, out var state))
+		if (_deviceStates.TryGetValue(coolingDeviceId, out var deviceState) && deviceState.Coolers is { } coolerStates && coolerStates.TryGetValue(coolerId, out var coolerState))
 		{
-			await state.SetHardwareCurveAsync(sensorId, controlCurve, cancellationToken).ConfigureAwait(false);
+			await coolerState.SetHardwareCurveAsync(sensorId, controlCurve, cancellationToken).ConfigureAwait(false);
+			PersistCoolingConfiguration(deviceState, coolerState, cancellationToken);
 		}
 	}
 
-	private bool TryGetCoolerState(Guid deviceId, Guid coolerId, [NotNullWhen(true)] out CoolerState? state)
+	private void PersistCoolingConfiguration(DeviceState deviceState, CoolerState coolerState, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (coolerState.CreatePersistedConfiguration() is { } configuration)
 		{
-			if (deviceState.Coolers is { } coolerStates)
-			{
-				return coolerStates.TryGetValue(coolerId, out state);
-			}
+			PersistCoolingConfiguration(deviceState.CoolingConfigurationContainer, coolerState.Information.CoolerId, configuration, cancellationToken);
 		}
-		state = null;
-		return false;
 	}
+
+	private async void PersistCoolingConfiguration(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, PersistedCoolerConfiguration configuration, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await PersistCoolingConfigurationAsync(coolersConfigurationContainer, coolerId, configuration, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
+	}
+
+	private ValueTask PersistCoolingConfigurationAsync(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, PersistedCoolerConfiguration configuration, CancellationToken cancellationToken)
+		=> coolersConfigurationContainer.WriteValueAsync(coolerId, configuration, cancellationToken);
 }
