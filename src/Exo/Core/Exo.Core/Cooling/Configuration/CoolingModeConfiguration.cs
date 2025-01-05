@@ -48,11 +48,11 @@ public sealed class SoftwareCurveCoolingModeConfiguration : CoolingModeConfigura
 		}
 	}
 
-	public required CoolingCurveConfiguration Curve { get; init; }
+	public required CoolingControlCurveConfiguration Curve { get; init; }
 }
 
 public sealed class HardwareCurveCoolingModeConfiguration : CoolingModeConfiguration
 {
 	public required Guid SensorId { get; init; }
-	public required CoolingCurveConfiguration Curve { get; init; }
+	public required CoolingControlCurveConfiguration Curve { get; init; }
 }

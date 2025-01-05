@@ -170,7 +170,7 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 		return new(dataPoints, initialValue);
 	}
 
-	public ImmutableArray<DataPoint<TInput, TOutput>> GetPoints() => _points;
+	public (TOutput InitialValue, ImmutableArray<DataPoint<TInput, TOutput>> Points) GetData() => (_initialValue, _points);
 }
 
 public interface IDataPointInterpolator<TX, TY>

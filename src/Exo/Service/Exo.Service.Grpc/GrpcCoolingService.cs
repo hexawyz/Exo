@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling;
+using Exo.Cooling.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
@@ -36,8 +37,18 @@ internal sealed class GrpcCoolingService : ICoolingService
 
 	public async IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, [EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await Task.Yield();
-		yield break;
+		_logger.GrpcCoolingServiceChangeWatchStart();
+		try
+		{
+			await foreach (var update in _coolingService.WatchCoolingChangesAsync(cancellationToken))
+			{
+				yield return update.ToGrpc();
+			}
+		}
+		finally
+		{
+			_logger.GrpcCoolingServiceChangeWatchStop();
+		}
 	}
 
 	public ValueTask SetAutomaticCoolingAsync(AutomaticCoolingParameters parameters, CancellationToken cancellationToken)

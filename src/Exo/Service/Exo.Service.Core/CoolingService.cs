@@ -115,6 +115,7 @@ internal partial class CoolingService
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
 	private ChannelWriter<CoolingDeviceInformation>[]? _changeListeners;
+	private ChannelWriter<CoolingUpdate>[]? _coolingChangeListeners;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly SensorService _sensorService;
 	private readonly ILogger<CoolingService> _logger;
@@ -396,9 +397,50 @@ internal partial class CoolingService
 		}
 	}
 
-	private static CoolingCurveConfiguration<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
+	public async IAsyncEnumerable<CoolingUpdate> WatchCoolingChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateSingleWriterChannel<CoolingUpdate>();
+
+		List<CoolingUpdate>? initialUpdates = new();
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			foreach (var device in _deviceStates.Values)
+			{
+				foreach (var cooler in device.Coolers.Values)
+				{
+					if (cooler.CreatePersistedConfiguration() is { } configuration)
+					{
+						initialUpdates.Add(new CoolingUpdate() { DeviceId = device.DeviceId, CoolerId = cooler.Information.CoolerId, CoolingMode = configuration.CoolingMode });
+					}
+				}
+			}
+			ArrayExtensions.InterlockedAdd(ref _coolingChangeListeners, channel);
+		}
+		try
+		{
+			foreach (var update in initialUpdates)
+			{
+				yield return update;
+			}
+			initialUpdates = null;
+
+			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+			{
+				yield return info;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _coolingChangeListeners, channel);
+		}
+	}
+
+	private static CoolingControlCurveConfiguration<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
 		where TInput : struct, INumber<TInput>
-		=> new CoolingCurveConfiguration<TInput>() { Points = controlCurve.GetPoints() };
+	{
+		var (initialValue, points) = controlCurve.GetData();
+		return new() { Points = points, InitialValue = initialValue };
+	}
 
 	public async ValueTask SetAutomaticPowerAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
 	{
@@ -488,6 +530,7 @@ internal partial class CoolingService
 		if (coolerState.CreatePersistedConfiguration() is { } configuration)
 		{
 			PersistCoolingConfiguration(deviceState.CoolingConfigurationContainer, coolerState.Information.CoolerId, configuration, cancellationToken);
+			_coolingChangeListeners?.TryWrite(new() { DeviceId = deviceState.DeviceId, CoolerId = coolerState.Information.CoolerId, CoolingMode = configuration.CoolingMode });
 		}
 	}
 
