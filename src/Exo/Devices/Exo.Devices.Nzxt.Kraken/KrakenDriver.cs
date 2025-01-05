@@ -63,6 +63,8 @@ public class KrakenDriver :
 		57, 58, 59, 61, 62,
 	];
 
+	private static readonly ImmutableArray<byte> DefaultControlCurveInputValues = [20, 25, 30, 35, 40, 45, 50, 55, 59];
+
 	private static readonly ImmutableArray<Guid> InputSensors = [LiquidTemperatureSensorId];
 
 	private const int NzxtVendorId = 0x1E71;
@@ -547,6 +549,10 @@ public class KrakenDriver :
 		Guid IHardwareCurveCoolerSensorCurveControl.SensorId => LiquidTemperatureSensorId;
 		SensorUnit IHardwareCurveCoolerSensorCurveControl.Unit => SensorUnit.Celsius;
 
+		public byte MinimumInputValue => 20;
+		public byte MaximumInputValue => 59;
+		public ImmutableArray<byte> DefaultCurveInputValues => DefaultControlCurveInputValues;
+
 		// NB: From testing, the speed starts increasing at 21%, for about 500 RPM.
 		public byte MinimumPower => 20;
 		public byte MaximumPower => 100;
@@ -609,6 +615,10 @@ public class KrakenDriver :
 
 		Guid IHardwareCurveCoolerSensorCurveControl.SensorId => LiquidTemperatureSensorId;
 		SensorUnit IHardwareCurveCoolerSensorCurveControl.Unit => SensorUnit.Celsius;
+
+		public byte MinimumInputValue => 20;
+		public byte MaximumInputValue => 59;
+		public ImmutableArray<byte> DefaultCurveInputValues => DefaultControlCurveInputValues;
 
 		// NB: From testing, the speed starts increasing at 32%, and the effective minimum speed seems to map to about 41% of the maximum. (~1150 RPM / ~2800 RPM)
 		public byte MinimumPower => 30;

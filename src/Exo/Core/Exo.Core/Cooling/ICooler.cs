@@ -112,15 +112,26 @@ public interface IHardwareCurveCoolerSensorCurveControl
 {
 	Guid SensorId { get; }
 	SensorUnit Unit { get; }
+	/// <summary>The type of value fo the sensor in the context of the hardware control curve.</summary>
+	/// <remarks>This value can differ from <see cref="ISensor.ValueType"/>, as hardware control curves do not necessarily have the same precision as sensor reads.</remarks>
 	Type ValueType { get; }
 }
 
-/// <summary></summary>
+/// <summary>Allows controlling a hardware cooling curve based on a sensor.</summary>
 /// <typeparam name="TInput"></typeparam>
 public interface IHardwareCurveCoolerSensorCurveControl<TInput> : IHardwareCurveCoolerSensorCurveControl
 	where TInput : struct, INumber<TInput>
 {
 	Type IHardwareCurveCoolerSensorCurveControl.ValueType => typeof(TInput);
+
+	/// <summary>The minimum value of the sensor that can be used in the curve.</summary>
+	TInput MinimumInputValue { get; }
+	/// <summary>The maximum value of the sensor that can be used in the curve.</summary>
+	TInput MaximumInputValue { get; }
+
+	/// <summary>Indicates the set of input values to use by default for this curve.</summary>
+	/// <remarks>Contrary to software curves, hardware curves would usually have strict limitations, so this information is not provided in metadata.</remarks>
+	ImmutableArray<TInput> DefaultCurveInputValues { get; }
 
 	/// <summary>Sets the control curve to be used by this cooler.</summary>
 	/// <remarks>
