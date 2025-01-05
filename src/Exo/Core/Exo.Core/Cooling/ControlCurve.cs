@@ -169,6 +169,8 @@ public sealed class InterpolatedSegmentControlCurve<TInput, TOutput> : IControlC
 		var dataPoints = ImmutableArray.CreateRange(_points, static p => new DataPoint<TInput, TOtherOutput>(p.X, TOtherOutput.CreateChecked(p.Y)));
 		return new(dataPoints, initialValue);
 	}
+
+	public ImmutableArray<DataPoint<TInput, TOutput>> GetPoints() => _points;
 }
 
 public interface IDataPointInterpolator<TX, TY>

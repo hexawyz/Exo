@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -37,11 +36,10 @@ internal partial class CoolingService
 		public ImmutableArray<Guid> HardwareCurveInputSensorIds { get; }
 	}
 
-	// TODO: Write the persistance code.
-	// NB: After thinking about it, this shouldn't be an obstacle for the programming model to come later.
-	// The configuration that is set up at the service level will be considered as some kind of default non-programmable state that will be allowed to be reused within the programmation model.
+	// NB: After thinking about it, this persistence shouldn't be an obstacle for the programming model to come later. (And also it is critically needed)
+	// The configuration that is set up at the service level will be considered as some kind of default non-programmable state that will be allowed to be reused within the programming model.
 	[TypeId(0x55E60F25, 0x3544, 0x4E42, 0xA2, 0xE8, 0x8E, 0xCC, 0x5A, 0x0A, 0xE1, 0xE1)]
-	private abstract class PersistedCoolerConfiguration
+	private readonly struct PersistedCoolerConfiguration
 	{
 		public required ActiveCoolingMode CoolingMode { get; init; }
 	}
@@ -49,18 +47,20 @@ internal partial class CoolingService
 	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "Name", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
 	[JsonDerivedType(typeof(AutomaticCoolingMode), "Automatic")]
 	[JsonDerivedType(typeof(FixedCoolingMode), "Fixed")]
+	[JsonDerivedType(typeof(SoftwareCurveCoolingMode), "SoftwareCurve")]
+	[JsonDerivedType(typeof(HardwareCurveCoolingMode), "HardwareCurve")]
 	private abstract class ActiveCoolingMode
 	{
 	}
 
-	private sealed class AutomaticCoolingMode { }
+	private sealed class AutomaticCoolingMode : ActiveCoolingMode { }
 
-	private sealed class FixedCoolingMode
+	private sealed class FixedCoolingMode : ActiveCoolingMode
 	{
 		private readonly byte _power;
 
 		[Range(0, 100)]
-		public byte Power
+		public required byte Power
 		{
 			get => _power;
 			init
@@ -68,6 +68,60 @@ internal partial class CoolingService
 				ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
 				_power = value;
 			}
+		}
+	}
+
+	private sealed class SoftwareCurveCoolingMode : ActiveCoolingMode
+	{
+		public required Guid SensorDeviceId { get; init; }
+		public required Guid SensorId { get; init; }
+		private readonly byte _defaultPower;
+
+		[Range(0, 100)]
+		public byte DefaultPower
+		{
+			get => _defaultPower;
+			init
+			{
+				ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
+				_defaultPower = value;
+			}
+		}
+
+		public required PersistedCoolingCurve Curve { get; init; }
+	}
+
+	private sealed class HardwareCurveCoolingMode : ActiveCoolingMode
+	{
+		public required Guid SensorId { get; init; }
+		public required PersistedCoolingCurve Curve { get; init; }
+	}
+
+	[JsonPolymorphic(IgnoreUnrecognizedTypeDiscriminators = true, TypeDiscriminatorPropertyName = "DataType", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<sbyte>), "SInt8")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<byte>), "UInt8")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<short>), "SInt16")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<ushort>), "UInt16")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<int>), "SInt32")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<uint>), "UInt32")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<long>), "SInt64")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<ulong>), "UInt64")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<Half>), "Float16")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<float>), "Float32")]
+	[JsonDerivedType(typeof(PersistedCoolingCurve<double>), "Float32")]
+	private abstract class PersistedCoolingCurve
+	{
+	}
+
+	private sealed class PersistedCoolingCurve<T> : PersistedCoolingCurve
+		where T : struct, INumber<T>
+	{
+		private readonly ImmutableArray<DataPoint<T, byte>> _points = [];
+
+		public required ImmutableArray<DataPoint<T, byte>> Points
+		{
+			get => _points;
+			init => _points = value.IsDefaultOrEmpty ? [] : value;
 		}
 	}
 
@@ -120,17 +174,26 @@ internal partial class CoolingService
 				continue;
 			}
 
-			var coolerInformations = ImmutableArray.CreateBuilder<CoolerInformation>();
+			var coolerStates = new Dictionary<Guid, CoolerState>();
 
 			foreach (var coolerId in coolerIds)
 			{
-				var result = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerInformation>(coolerId, cancellationToken).ConfigureAwait(false);
-				if (!result.Found) continue;
-				var info = result.Value;
-				coolerInformations.Add(new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits, info.HardwareCurveInputSensorIds));
+				var infoResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerInformation>(coolerId, cancellationToken).ConfigureAwait(false);
+				if (!infoResult.Found) continue;
+				var info = infoResult.Value;
+				var configResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerConfiguration>(coolerId, cancellationToken).ConfigureAwait(false);
+				coolerStates.Add
+				(
+					coolerId,
+					new
+					(
+						sensorService,
+						new CoolerInformation(coolerId, info.SensorId, info.Type, info.SupportedCoolingModes, info.PowerLimits, info.HardwareCurveInputSensorIds)
+					)
+				);
 			}
 
-			if (coolerInformations.Count > 0)
+			if (coolerStates.Count > 0)
 			{
 				deviceStates.TryAdd
 				(
@@ -139,10 +202,8 @@ internal partial class CoolingService
 					(
 						deviceConfigurationContainer,
 						coolersConfigurationConfigurationContainer,
-						false,
-						new(deviceId, coolerInformations.DrainToImmutable()),
-						null,
-						null
+						deviceId,
+						coolerStates
 					)
 				);
 			}
@@ -257,20 +318,14 @@ internal partial class CoolingService
 
 		try
 		{
-			var coolerInfos = new CoolerInformation[coolers.Length];
-			var coolerStates = new Dictionary<Guid, CoolerState>();
-			var addedCoolerInfosById = new Dictionary<Guid, CoolerInformation>();
+			var coolerDetails = new (ICooler Cooler, CoolerInformation Info)[coolers.Length];
+			// This is used at two places to keep track of cooler IDs.
+			// 1 - To identify duplicate IDs
+			// 2 - To identify the removed coolers
+			var coolerIds = new HashSet<Guid>();
 			for (int i = 0; i < coolers.Length; i++)
 			{
 				var cooler = coolers[i];
-				if (!coolerStates.TryAdd(cooler.CoolerId, new(_sensorService, cooler, changeChannel!)))
-				{
-					// We ignore all sensors and discard the device if there is a duplicate ID.
-					// TODO: Log an error.
-					coolerInfos = [];
-					coolerStates.Clear();
-					break;
-				}
 				CoolingModes coolingModes = 0;
 				var powerLimits = cooler is IConfigurableCooler configurableCooler ?
 					new CoolerPowerLimits(configurableCooler.MinimumPower, configurableCooler.CanSwitchOff) :
@@ -284,11 +339,19 @@ internal partial class CoolingService
 					hardwareCurveInputSensorIds = ImmutableArray.CreateRange(hardwareCurveCooler.AvailableSensors, s => s.SensorId);
 				}
 				var info = new CoolerInformation(cooler.CoolerId, cooler.SpeedSensorId, cooler.Type, coolingModes, powerLimits, hardwareCurveInputSensorIds);
-				addedCoolerInfosById.Add(info.CoolerId, info);
-				coolerInfos[i] = info;
+				if (!coolerIds.Add(cooler.CoolerId))
+				{
+					// We ignore all sensors and discard the device if there is a duplicate ID.
+					// TODO: Log an error.
+					coolerDetails = [];
+					break;
+				}
+				coolerDetails[i] = (cooler, info);
 			}
 
-			if (coolerInfos.Length == 0)
+			coolerIds.Clear();
+
+			if (coolerDetails.Length == 0)
 			{
 				if (_deviceStates.TryRemove(notification.DeviceInformation.Id, out var state))
 				{
@@ -298,25 +361,30 @@ internal partial class CoolingService
 			else
 			{
 				IConfigurationContainer<Guid> coolingConfigurationContainer;
+				Dictionary<Guid, CoolerState> coolerStates;
 				if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var state))
 				{
+					coolerStates = new();
+
 					var deviceContainer = _devicesConfigurationContainer.GetContainer(notification.DeviceInformation.Id);
 					coolingConfigurationContainer = deviceContainer.GetContainer(CoolingConfigurationContainerName, GuidNameSerializer.Instance);
 
 					// For sanity, remove the pre-existing sensor containers, although there should be none initially.
 					await coolingConfigurationContainer.DeleteAllContainersAsync().ConfigureAwait(false);
-					foreach (var info in coolerInfos)
+					foreach (var (cooler, info) in coolerDetails)
 					{
+						var coolerState = new CoolerState(_sensorService, info);
+						coolerStates.TryAdd(cooler.CoolerId, coolerState);
 						await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken);
+
+						await coolerState.SetOnlineAsync(cooler, info, changeChannel!, cancellationToken).ConfigureAwait(false);
 					}
 
 					state = new
 					(
 						deviceContainer,
 						coolingConfigurationContainer,
-						notification.DeviceInformation.IsAvailable,
-						new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(coolerInfos)),
-						liveDeviceState,
+						notification.DeviceInformation.Id,
 						coolerStates
 					);
 
@@ -324,39 +392,57 @@ internal partial class CoolingService
 				}
 				else
 				{
+					coolerStates = state.Coolers;
 					coolingConfigurationContainer = state.CoolingConfigurationContainer;
 
-					foreach (var previousInfo in state.Information.Coolers)
+					coolerIds.Clear();
+
+					// Start by identifying the pre-existing coolers by their IDs.
+					foreach (var previousCooler in coolerStates.Values)
 					{
-						// Remove all pre-existing sensor info from the dictionary that was build earlier so that only new entries remain in the end.
-						// Appropriate updates for previous sensors will be done depending on the result of that removal.
-						if (!addedCoolerInfosById.Remove(previousInfo.CoolerId, out var currentInfo))
+						coolerIds.Add(previousCooler.Information.CoolerId);
+					}
+
+					// Keep track of all coolers that don't exist anymore.
+					foreach (var (_, coolerInfo) in coolerDetails)
+					{
+						coolerIds.Remove(coolerInfo.CoolerId);
+					}
+
+					// Clear the state from old coolers.
+					foreach (var oldCoolerId in coolerIds)
+					{
+						if (coolerStates.Remove(oldCoolerId, out var oldCooler))
 						{
 							// Remove existing sensor configuration if the sensor is not reported by the device anymore.
-							await coolingConfigurationContainer.DeleteValuesAsync(previousInfo.CoolerId).ConfigureAwait(false);
+							await coolingConfigurationContainer.DeleteValuesAsync(oldCooler.Information.CoolerId).ConfigureAwait(false);
 						}
-						else if (currentInfo != previousInfo)
+					}
+
+					coolerIds.Clear();
+
+					// Finally, mark all of the current sensors as online.
+					foreach (var (cooler, info) in coolerDetails)
+					{
+						if (coolerStates.TryGetValue(info.CoolerId, out var coolerState))
 						{
 							// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
-							await coolingConfigurationContainer.WriteValueAsync(currentInfo.CoolerId, new PersistedCoolerInformation(currentInfo), cancellationToken).ConfigureAwait(false);
+							if (info != coolerState.Information)
+							{
+								await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken).ConfigureAwait(false);
+							}
 						}
-					}
-
-					// Finally, persist the information for the newly discovered sensors.
-					foreach (var currentInfo in addedCoolerInfosById.Values)
-					{
-						await coolingConfigurationContainer.WriteValueAsync(currentInfo.CoolerId, new PersistedCoolerInformation(currentInfo), cancellationToken).ConfigureAwait(false);
-					}
-
-					using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-					{
-						state.Information = new CoolingDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(coolerInfos));
-						state.LiveDeviceState = liveDeviceState;
-						state.CoolerStates = coolerStates;
-						state.IsConnected = notification.DeviceInformation.IsAvailable;
+						else
+						{
+							coolerState = new CoolerState(_sensorService, info);
+							coolerStates.TryAdd(cooler.CoolerId, coolerState);
+							await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken);
+						}
+						await coolerState.SetOnlineAsync(cooler, info, changeChannel!, cancellationToken).ConfigureAwait(false);
 					}
 				}
-				_changeListeners.TryWrite(state.Information);
+				await state.SetOnline(liveDeviceState, cancellationToken).ConfigureAwait(false);
+				_changeListeners.TryWrite(new CoolingDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(Array.ConvertAll(coolerDetails, x => x.Info))));
 			}
 		}
 		catch
@@ -378,15 +464,7 @@ internal partial class CoolingService
 
 	private async ValueTask DetachDeviceStateAsync(DeviceState state)
 	{
-		using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
-		{
-			state.IsConnected = false;
-			if (state.LiveDeviceState is { } liveDeviceState)
-			{
-				await liveDeviceState.DisposeAsync().ConfigureAwait(false);
-			}
-			state.CoolerStates = null;
-		}
+		await state.SetOfflineAsync(default).ConfigureAwait(false);
 	}
 
 	public async IAsyncEnumerable<CoolingDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -396,7 +474,7 @@ internal partial class CoolingService
 		CoolingDeviceInformation[]? initialDeviceInfos = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialDeviceInfos = _deviceStates.Values.Select(state => state.Information).ToArray();
+			initialDeviceInfos = _deviceStates.Values.Select(state => state.CreateInformation()).ToArray();
 			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
 		}
 		try
@@ -421,30 +499,109 @@ internal partial class CoolingService
 	private sealed class CoolerState
 	{
 		private static readonly object AutomaticPowerState = new();
-		private static readonly object HardwareCurveState = new();
 
 		private readonly SensorService _sensorService;
-		private readonly ICooler _cooler;
-		private readonly ChannelWriter<CoolerChange> _changeWriter;
+		private ICooler? _cooler;
+		private ChannelWriter<CoolerChange>? _changeWriter;
 		private readonly AsyncLock _lock;
 		private object? _activeState;
-		private readonly StrongBox<int>? _manualPowerState;
+		private StrongBox<byte>? _manualPowerState;
+		private CoolerInformation _information;
 
 		public SensorService SensorService => _sensorService;
 
-		public CoolerState(SensorService sensorService, ICooler cooler, ChannelWriter<CoolerChange> changeWriter)
+		public CoolerState(SensorService sensorService, CoolerInformation information)
 		{
 			_sensorService = sensorService;
-			_cooler = cooler;
-			_changeWriter = changeWriter;
 			_lock = new();
-			if (cooler is IManualCooler manualCooler)
+			_information = information;
+		}
+
+		public CoolerInformation Information => _information;
+
+		public async Task SetOnlineAsync(ICooler cooler, CoolerInformation information, ChannelWriter<CoolerChange> changeWriter, CancellationToken cancellationToken)
+		{
+			using (await _lock.WaitAsync(default).ConfigureAwait(false))
 			{
-				if (!manualCooler.TryGetPower(out byte power))
+				_cooler = cooler;
+				_information = information;
+				_changeWriter = changeWriter;
+				if (cooler is IManualCooler manualCooler)
 				{
-					power = manualCooler.MinimumPower;
+					if (!manualCooler.TryGetPower(out byte power))
+					{
+						power = manualCooler.MinimumPower;
+					}
+					if (_manualPowerState is null)
+					{
+						_manualPowerState = new(power);
+					}
 				}
-				_manualPowerState = new(power);
+				else
+				{
+					_manualPowerState = null;
+				}
+			}
+		}
+
+		public async Task SetOfflineAsync(CancellationToken cancellationToken)
+		{
+			using (await _lock.WaitAsync(default).ConfigureAwait(false))
+			{
+				_cooler = null;
+				_changeWriter = null;
+				if (_activeState is DynamicCoolerState dynamicState)
+				{
+					await dynamicState.StopAsync().ConfigureAwait(false);
+				}
+			}
+		}
+
+		public async ValueTask RestoreStateAsync(CancellationToken cancellationToken)
+		{
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				_cooler = null;
+				var activeState = _activeState;
+				if (activeState is DynamicCoolerState dynamicState)
+				{
+					dynamicState.Reset();
+					dynamicState.Start();
+				}
+				else if (activeState is HardwareCurveCoolerState hardwareCurveState)
+				{
+					_changeWriter!.TryWrite(hardwareCurveState.CreateCoolerChange());
+				}
+				else if (_manualPowerState is not null && ReferenceEquals(activeState, _manualPowerState))
+				{
+					SendManualPowerUpdate(_manualPowerState.Value);
+				}
+			}
+		}
+
+		public async ValueTask<PersistedCoolerConfiguration?> CreatePersistedConfigurationAsync(CancellationToken cancellationToken)
+		{
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				var activeState = _activeState;
+				ActiveCoolingMode activeCoolingMode;
+				if (_activeState is DynamicCoolerState dynamicState)
+				{
+					activeCoolingMode = dynamicState.GetPersistedConfiguration();
+				}
+				else if (activeState is HardwareCurveCoolerState hardwareCurveState)
+				{
+					activeCoolingMode = hardwareCurveState.GetPersistedConfiguration();
+				}
+				else if (_manualPowerState is not null && ReferenceEquals(_activeState, _manualPowerState))
+				{
+					activeCoolingMode = new FixedCoolingMode() { Power = _manualPowerState.Value };
+				}
+				else
+				{
+					return null;
+				}
+				return new() { CoolingMode = activeCoolingMode };
 			}
 		}
 
@@ -456,7 +613,7 @@ internal partial class CoolingService
 			{
 				if (ReferenceEquals(_activeState, AutomaticPowerState)) return;
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				_changeWriter.TryWrite(CoolerChange.CreateAutomatic(automaticCooler));
+				_changeWriter!.TryWrite(CoolerChange.CreateAutomatic(automaticCooler));
 				_activeState = AutomaticPowerState;
 			}
 		}
@@ -498,7 +655,7 @@ internal partial class CoolingService
 		public async ValueTask SetHardwareCurveAsync<TInput>(Guid sensorId, InterpolatedSegmentControlCurve<TInput, byte> controlCurve, CancellationToken cancellationToken)
 			where TInput : struct, INumber<TInput>
 		{
-			if (_cooler is not IHardwareCurveCooler cooler) throw new InvalidOperationException("This cooler does not support hardware curves.");
+			if (_cooler is not IHardwareCurveCooler cooler) throw new InvalidOperationException("Hardware cooling curves are not supported by this cooler.");
 			var sensor = FindSensor(cooler, sensorId);
 
 			switch (SensorService.GetSensorDataType(sensor.ValueType))
@@ -554,8 +711,9 @@ internal partial class CoolingService
 			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				_activeState = HardwareCurveState;
-				_changeWriter.TryWrite(CoolerChange.CreateHardwareCurve(typedSensor, controlCurve));
+				var hardwareCurveState = new HardwareCurveCoolerState<TInput>(typedSensor, controlCurve);
+				_activeState = hardwareCurveState;
+				_changeWriter!.TryWrite(hardwareCurveState.CreateCoolerChange());
 			}
 		}
 
@@ -568,10 +726,42 @@ internal partial class CoolingService
 			throw new InvalidOperationException("The specified sensor ID is not a valid hardware control curve input source.");
 		}
 
-		public void SendManualPowerUpdate(byte power) => _changeWriter.TryWrite(CoolerChange.CreateManual(Unsafe.As<IManualCooler>(_cooler), power));
+		public void SendManualPowerUpdate(byte power) => _changeWriter!.TryWrite(CoolerChange.CreateManual(Unsafe.As<IManualCooler>(_cooler!), power));
 	}
 
-	private abstract class DynamicCoolerState : IAsyncDisposable
+	private static PersistedCoolingCurve<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
+		where TInput : struct, INumber<TInput>
+		=> new PersistedCoolingCurve<TInput>() { Points = controlCurve.GetPoints() };
+
+	private abstract class HardwareCurveCoolerState
+	{
+		public abstract CoolerChange CreateCoolerChange();
+		public abstract HardwareCurveCoolingMode GetPersistedConfiguration();
+	}
+
+	private sealed class HardwareCurveCoolerState<TInput> : HardwareCurveCoolerState
+		where TInput : struct, INumber<TInput>
+	{
+		private readonly IHardwareCurveCoolerSensorCurveControl<TInput> _sensor;
+		private readonly InterpolatedSegmentControlCurve<TInput, byte> _controlCurve;
+
+		public HardwareCurveCoolerState(IHardwareCurveCoolerSensorCurveControl<TInput> sensor, InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
+		{
+			_sensor = sensor;
+			_controlCurve = controlCurve;
+		}
+
+		public override CoolerChange CreateCoolerChange() => CoolerChange.CreateHardwareCurve(_sensor, _controlCurve);
+
+		public override HardwareCurveCoolingMode GetPersistedConfiguration()
+			=> new HardwareCurveCoolingMode()
+			{
+				SensorId = _sensor.SensorId,
+				Curve = CreatePersistedCurve(_controlCurve)
+			};
+	}
+
+	private abstract class DynamicCoolerState
 	{
 		private readonly CoolerState _coolerState;
 		private CancellationTokenSource? _cancellationTokenSource;
@@ -587,12 +777,12 @@ internal partial class CoolingService
 
 		internal void Start()
 		{
-			ObjectDisposedException.ThrowIf(_cancellationTokenSource is null, typeof(DynamicCoolerState));
+			if (_cancellationTokenSource is null) throw new InvalidOperationException();
 			if (_runTask is not null) throw new InvalidOperationException();
 			_runTask = RunAsync(_cancellationTokenSource!.Token);
 		}
 
-		public async ValueTask DisposeAsync()
+		public async ValueTask StopAsync()
 		{
 			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
 			cts.Cancel();
@@ -603,7 +793,24 @@ internal partial class CoolingService
 			cts.Dispose();
 		}
 
+		/// <summary>Resets the state, after it has been stopped.</summary>
+		/// <remarks>
+		/// This operation is important to allow for restarting a dynamic state after a device came back online from a previous time.
+		/// This is actually a niche use case as cooling devices would generally be always on. However, devices can go offline for many reasons, so we definitely want to have this working.
+		/// </remarks>
+		/// <returns></returns>
+		internal void Reset()
+		{
+			if (Interlocked.CompareExchange(ref _cancellationTokenSource, new CancellationTokenSource(), null) is not null) throw new InvalidOperationException();
+		}
+
+		/// <summary>Runs this dynamic state until it is requested to stop.</summary>
+		/// <remarks>This method can be called multiple times but never more than once at a time.</remarks>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
 		protected abstract Task RunAsync(CancellationToken cancellationToken);
+
+		public abstract SoftwareCurveCoolingMode GetPersistedConfiguration();
 	}
 
 	private sealed class DynamicCoolerState<TInput> : DynamicCoolerState
@@ -659,6 +866,15 @@ internal partial class CoolingService
 				// TODO: Log (Error)
 			}
 		}
+
+		public override SoftwareCurveCoolingMode GetPersistedConfiguration()
+			=> new SoftwareCurveCoolingMode()
+			{
+				SensorDeviceId = _sensorDeviceId,
+				SensorId = _sensorId,
+				DefaultPower = _fallbackValue,
+				Curve = CreatePersistedCurve(_controlCurve)
+			};
 	}
 
 	public async ValueTask SetAutomaticPowerAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
@@ -744,7 +960,7 @@ internal partial class CoolingService
 	{
 		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
 		{
-			if (deviceState.CoolerStates is { } coolerStates)
+			if (deviceState.Coolers is { } coolerStates)
 			{
 				return coolerStates.TryGetValue(coolerId, out state);
 			}

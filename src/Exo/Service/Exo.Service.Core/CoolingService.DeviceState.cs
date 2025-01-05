@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features.Cooling;
@@ -11,28 +13,60 @@ internal partial class CoolingService
 		public AsyncLock Lock { get; }
 		public IConfigurationContainer DeviceConfigurationContainer { get; }
 		public IConfigurationContainer<Guid> CoolingConfigurationContainer { get; }
-		public bool IsConnected { get; set; }
-		public CoolingDeviceInformation Information { get; set; }
-		public LiveDeviceState? LiveDeviceState { get; set; }
-		public Dictionary<Guid, CoolerState>? CoolerStates { get; set; }
+		public bool IsConnected { get; private set; }
+		public LiveDeviceState? LiveDeviceState { get; private set; }
+		public Dictionary<Guid, CoolerState> Coolers { get; }
+		public Guid DeviceId { get; }
 
 		public DeviceState
 		(
 			IConfigurationContainer deviceConfigurationContainer,
 			IConfigurationContainer<Guid> coolingConfigurationContainer,
-			bool isConnected,
-			CoolingDeviceInformation information,
-			LiveDeviceState? liveDeviceState,
-			Dictionary<Guid, CoolerState>? coolerStates
+			Guid deviceId,
+			Dictionary<Guid, CoolerState> coolers
 		)
 		{
 			Lock = new();
 			DeviceConfigurationContainer = deviceConfigurationContainer;
 			CoolingConfigurationContainer = coolingConfigurationContainer;
-			IsConnected = isConnected;
-			Information = information;
-			LiveDeviceState = liveDeviceState;
-			CoolerStates = coolerStates;
+			DeviceId = deviceId;
+			Coolers = coolers;
+		}
+
+		public async ValueTask SetOnline(LiveDeviceState? liveDeviceState, CancellationToken cancellationToken)
+		{
+			using (await Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				LiveDeviceState = liveDeviceState;
+				IsConnected = true;
+			}
+		}
+
+		public async ValueTask SetOfflineAsync(CancellationToken cancellationToken)
+		{
+			using (await Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				IsConnected = false;
+				if (LiveDeviceState is { } liveDeviceState)
+				{
+					await liveDeviceState.DisposeAsync().ConfigureAwait(false);
+				}
+				foreach (var coolerState in Coolers.Values)
+				{
+					await coolerState.SetOfflineAsync(cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
+
+		public CoolingDeviceInformation CreateInformation()
+		{
+			var infos = new CoolerInformation[Coolers.Count];
+			int i = 0;
+			foreach (var coolerState in Coolers.Values)
+			{
+				infos[i++] = coolerState.Information;
+			}
+			return new CoolingDeviceInformation(DeviceId, ImmutableCollectionsMarshal.AsImmutableArray(infos));
 		}
 	}
 
