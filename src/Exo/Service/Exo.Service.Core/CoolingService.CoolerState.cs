@@ -180,6 +180,10 @@ internal partial class CoolingService
 			{
 				activeCoolingMode = new FixedCoolingMode() { Power = _manualPowerState.Value };
 			}
+			else if (ReferenceEquals(activeState, AutomaticPowerState))
+			{
+				activeCoolingMode = new AutomaticCoolingMode();
+			}
 			else
 			{
 				return null;
