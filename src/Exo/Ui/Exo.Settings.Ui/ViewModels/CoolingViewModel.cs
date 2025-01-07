@@ -963,6 +963,8 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 	private readonly SensorsViewModel _sensorsViewModel;
 	private Guid _initialInputSensorDeviceId;
 	private Guid _initialInputSensorId;
+	private Guid _currentInputSensorDeviceId;
+	private Guid _currentInputSensorId;
 	private SensorViewModel? _inputSensor;
 
 	public abstract LogicalCoolingMode CoolingMode { get; }
@@ -977,50 +979,64 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 
 	public abstract ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves { get; }
 
+	// This property should only be used for the UI side.
+	// Sensors can be loaded after the configuration has been updated, and the property will change as needed.
+	// If this property is used as a reference, it could lead to incorrect results.
 	public SensorViewModel? InputSensor
 	{
 		get => _inputSensor;
 		set
 		{
+			// Ignoring requests to set the value to null make the code simpler and might avoid some weird data binding edge cases.
+			if (value == null) return;
+
 			bool wasChanged = IsChanged;
 
-			if (SetValue(ref _inputSensor, value, ChangedProperty.InputSensor))
+			if (value != _inputSensor)
 			{
-				object? newPoints;
-				SensorDataType dataType;
-				if (_inputSensor == null)
-				{
-					newPoints = null;
-					dataType = SensorDataType.UInt8;
-					_hasCurveChanged = _initialInputSensorDeviceId != default || _initialInputSensorId != default || _initialCurve is not null;
-				}
-				else
-				{
-					dataType = _inputSensor.DataType;
-					if (_inputSensor.Device.Id == _initialInputSensorDeviceId && _inputSensor.Id == _initialInputSensorId && _initialCurve is not null)
-					{
-						newPoints = CreateDataPoints(dataType, _initialCurve);
-						_hasCurveChanged = false;
-					}
-					else
-					{
-						newPoints = value is not null ? CreateNewDataPoints(value.DataType, value.PresetControlCurveSteps) : null;
-						_hasCurveChanged = true;
-					}
-				}
-				if (!AreCurvesEqual(dataType, newPoints, _points))
-				{
-					_points = newPoints;
-					NotifyPropertyChanged(ChangedProperty.Points);
-				}
+				var oldSensorDeviceId = _currentInputSensorDeviceId;
+				var oldSensorId = _currentInputSensorId;
+				var newSensorDeviceId = value.Device.Id;
+				var newSensorId = value.Id;
 
+				_currentInputSensorDeviceId = newSensorDeviceId;
+				_currentInputSensorId = newSensorId;
+				_inputSensor = value;
+
+				NotifyPropertyChanged(ChangedProperty.InputSensor);
+
+				if (newSensorDeviceId != oldSensorDeviceId || newSensorId != oldSensorId)
+				{
+					OnInputSensorChanged(value, newSensorDeviceId == _initialInputSensorDeviceId && newSensorId == _initialInputSensorId);
+				}
 				OnChangeStateChange(wasChanged);
 			}
-
 		}
 	}
 
-	protected bool HasInputSensorChanged => (_inputSensor?.Device.Id ?? default) != _initialInputSensorDeviceId || (_inputSensor?.Id ?? default) != _initialInputSensorId;
+	protected virtual void OnInputSensorChanged(SensorViewModel sensor, bool isInitialSensor)
+	{
+		object? newPoints;
+		SensorDataType dataType;
+		dataType = sensor.DataType;
+		if (isInitialSensor && _initialCurve is not null)
+		{
+			newPoints = CreateDataPoints(dataType, _initialCurve);
+			_hasCurveChanged = false;
+		}
+		else
+		{
+			newPoints = CreateNewDataPoints(sensor.DataType, sensor.PresetControlCurveSteps);
+			_hasCurveChanged = true;
+		}
+		if (!AreCurvesEqual(dataType, newPoints, _points))
+		{
+			_points = newPoints;
+			NotifyPropertyChanged(ChangedProperty.Points);
+		}
+	}
+
+	protected bool HasInputSensorChanged => _currentInputSensorDeviceId != _initialInputSensorDeviceId || _currentInputSensorId != _initialInputSensorId;
 	protected bool HasCurveChanged => _hasCurveChanged;
 
 	public override bool IsChanged => HasInputSensorChanged || HasCurveChanged;
@@ -1056,8 +1072,10 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 		// First, update the current sensor ID if necessary.
 		if (
 			sensorDeviceId != oldInitialSensorDeviceId || sensorId != oldInitialSensorId &&
-			(_inputSensor is not null ? _inputSensor.Device.Id == oldInitialSensorDeviceId && _inputSensor.Id == oldInitialSensorId : oldInitialSensorDeviceId == default && oldInitialSensorId == default))
+			_currentInputSensorDeviceId == oldInitialSensorDeviceId && _currentInputSensorId == oldInitialSensorId)
 		{
+			_currentInputSensorDeviceId = sensorDeviceId;
+			_currentInputSensorId = sensorId;
 			if (sensorDeviceId != default && sensorId != default)
 			{
 				foreach (var sensor in SensorsAvailableForCoolingControlCurves)
@@ -1075,11 +1093,7 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 
 		if (oldSensor != _inputSensor) NotifyPropertyChanged(ChangedProperty.InputSensor);
 
-		bool isInitialSensor = _inputSensor is not null ?
-			_inputSensor.Device.Id == sensorDeviceId && _inputSensor.Id == sensorId :
-			oldInitialSensorDeviceId == default && oldInitialSensorId == default;
-
-		OnCoolingInputSensorConfigurationChanged(parameters, isInitialSensor, _inputSensor != oldSensor);
+		OnCoolingInputSensorConfigurationChanged(parameters, _currentInputSensorDeviceId == sensorDeviceId && _currentInputSensorId == sensorId, _inputSensor != oldSensor);
 
 		OnChangeStateChange(wasChanged);
 	}
@@ -1293,6 +1307,16 @@ internal sealed class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoo
 	}
 
 	public override ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => SensorsViewModel.SensorsAvailableForCoolingControlCurves;
+
+	protected override void OnInputSensorChanged(SensorViewModel sensor, bool isInitialSensor)
+	{
+		if (isInitialSensor && _currentFallbackPower != _initialFallbackPower)
+		{
+			_currentFallbackPower = _initialFallbackPower;
+			NotifyPropertyChanged(ChangedProperty.FallbackPower);
+		}
+		base.OnInputSensorChanged(sensor, isInitialSensor);
+	}
 
 	protected override void OnCoolingInputSensorConfigurationChanged(ICurveCoolingParameters parameters, bool isInitialSensor, bool wasInputSensorUpdated)
 	{
