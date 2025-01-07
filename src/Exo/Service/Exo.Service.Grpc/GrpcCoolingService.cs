@@ -35,7 +35,7 @@ internal sealed class GrpcCoolingService : ICoolingService
 		}
 	}
 
-	public async IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, [EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		_logger.GrpcCoolingServiceChangeWatchStart();
 		try

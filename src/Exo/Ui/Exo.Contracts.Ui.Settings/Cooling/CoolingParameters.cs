@@ -5,10 +5,10 @@ namespace Exo.Contracts.Ui.Settings.Cooling;
 [DataContract]
 public sealed class CoolingParameters
 {
-	private readonly object? _value;
+	private readonly ICoolingParameters? _value;
 
 	[IgnoreDataMember]
-	public object? RawValue => _value;
+	public ICoolingParameters? RawValue => _value;
 
 	/// <summary>Represents the live power of a cooler when a control curve is applied.</summary>
 	/// <remarks>This should not be interpreted as a cooling mode, unlike other parameters.</remarks>

@@ -1,9 +1,9 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui;
 
 [DataContract]
-public sealed class UIntDataPoint
+public sealed class UIntDataPoint : IDataPoint<ulong, ulong>
 {
 	[DataMember(Order = 1)]
 	public ulong X { get; init; }

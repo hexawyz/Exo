@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts.Ui.Settings.Cooling;
 
 [DataContract]
-public sealed class FixedCoolingParameters
+public sealed class FixedCoolingParameters : ICoolingParameters
 {
 	[DataMember(Order = 1)]
 	public required Guid DeviceId { get; init; }

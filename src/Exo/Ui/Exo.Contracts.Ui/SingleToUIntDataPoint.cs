@@ -1,12 +1,12 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui;
 
 [DataContract]
-public sealed class SingleToUIntDataPoint
+public sealed class SingleToUIntDataPoint : IDataPoint<float, ulong>
 {
 	[DataMember(Order = 1)]
 	public float X { get; init; }
 	[DataMember(Order = 2)]
-	public long Y { get; init; }
+	public ulong Y { get; init; }
 }

@@ -64,7 +64,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 
 			try
 			{
-				await Task.WhenAll([watchDevicesTask, watchEffectsTask, watchBrightnessTask]);
+				await Task.WhenAll(watchDevicesTask, watchEffectsTask, watchBrightnessTask);
 			}
 			catch
 			{

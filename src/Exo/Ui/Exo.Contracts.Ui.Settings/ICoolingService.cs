@@ -18,7 +18,7 @@ public interface ICoolingService
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	[OperationContract(Name = "WatchCoolingChanges")]
-	IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(SoftwareCurveCoolingParameters parameters, CancellationToken cancellationToken);
+	IAsyncEnumerable<CoolingParameters> WatchCoolingChangesAsync(CancellationToken cancellationToken);
 
 	/// <summary>Sets automatic cooling for the specified device and cooler.</summary>
 	/// <param name="parameters"></param>

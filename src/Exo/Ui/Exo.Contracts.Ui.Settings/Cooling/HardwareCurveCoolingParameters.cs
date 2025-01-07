@@ -1,12 +1,13 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings.Cooling;
 
 [DataContract]
-public sealed class HardwareCurveCoolingParameters
+public sealed class HardwareCurveCoolingParameters : ICurveCoolingParameters
 {
 	[DataMember(Order = 1)]
 	public required Guid CoolingDeviceId { get; init; }
+	Guid ICoolingParameters.DeviceId => CoolingDeviceId;
 	[DataMember(Order = 2)]
 	public required Guid CoolerId { get; init; }
 	[DataMember(Order = 3)]

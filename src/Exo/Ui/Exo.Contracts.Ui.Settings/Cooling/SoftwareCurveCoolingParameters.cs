@@ -3,10 +3,11 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts.Ui.Settings.Cooling;
 
 [DataContract]
-public sealed class SoftwareCurveCoolingParameters
+public sealed class SoftwareCurveCoolingParameters : ICurveCoolingParameters
 {
 	[DataMember(Order = 1)]
 	public required Guid CoolingDeviceId { get; init; }
+	Guid ICoolingParameters.DeviceId => CoolingDeviceId;
 	[DataMember(Order = 2)]
 	public required Guid CoolerId { get; init; }
 	[DataMember(Order = 3)]
