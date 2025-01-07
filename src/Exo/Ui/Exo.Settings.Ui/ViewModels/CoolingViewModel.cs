@@ -1372,7 +1372,7 @@ internal sealed class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoo
 	public SoftwareControlCurveCoolingModeViewModel(SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
 		: base(sensorsViewModel, minimumPower, canSwitchOff)
 	{
-		_currentFallbackPower = _initialFallbackPower = canSwitchOff ? (byte)0 : minimumPower;
+		_currentFallbackPower = _initialFallbackPower = 100;
 	}
 
 	public override ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => SensorsViewModel.SensorsAvailableForCoolingControlCurves;
