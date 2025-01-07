@@ -4,10 +4,19 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui.Controls"
     xmlns:lconverters="using:Exo.Settings.Ui.Converters">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <Brush x:Key="ControlCurveEditorLiveValueStroke">#888</Brush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <Brush x:Key="ControlCurveEditorLiveValueStroke">#888</Brush>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
     <Style x:Key="DefaultPowerControlCurveEditorStyle" TargetType="local:PowerControlCurveEditor">
         <Setter Property="Background" Value="{ThemeResource LineChartBackground}" />
         <Setter Property="HorizontalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
         <Setter Property="VerticalGridStroke" Value="{ThemeResource LineChartGridStroke}" />
+        <Setter Property="LiveValueStroke" Value="{ThemeResource ControlCurveEditorLiveValueStroke}" />
         <Setter Property="CurveStroke" Value="{ThemeResource LineChartStroke}" />
         <Setter Property="CurveStrokeThickness" Value="{ThemeResource LineChartStrokeThickness}" />
         <Setter Property="CurveStrokeLineJoin" Value="{ThemeResource LineChartStrokeLineJoin}" />
@@ -56,6 +65,7 @@
                                 <Grid x:Name="PART_LayoutGrid">
                                     <Path x:Name="PART_HorizontalGridLinesPath" Stroke="{TemplateBinding HorizontalGridStroke}" />
                                     <Path x:Name="PART_VerticalGridLinesPath" Stroke="{TemplateBinding VerticalGridStroke}" />
+                                    <Line x:Name="PART_LiveInputValueLine" Stroke="{TemplateBinding LiveValueStroke}" />
                                     <Path x:Name="PART_CurvePath" Stroke="{TemplateBinding CurveStroke}" StrokeThickness="{TemplateBinding CurveStrokeThickness}" StrokeLineJoin="{TemplateBinding CurveStrokeLineJoin}" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                                 </Grid>
                             </Grid>

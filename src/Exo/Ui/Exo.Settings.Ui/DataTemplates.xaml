@@ -338,6 +338,7 @@
                 SymbolRadius="4"
                 MinimumInputValue="{Binding InputSensor.ScaleMinimumValue}"
                 MaximumInputValue="{Binding InputSensor.ScaleMaximumValue}"
+                LiveInputValue="{Binding InputSensor.LiveDetails.CurrentValue.Value}"
                 MinimumPower="{Binding MinimumOnPower}"
                 CanSwitchOff="{Binding CanSwitchOff}"
                 Points="{Binding Points}" />
@@ -381,6 +382,7 @@
                 SymbolRadius="4"
                 MinimumInputValue="{Binding InputSensor.ScaleMinimumValue}"
                 MaximumInputValue="{Binding InputSensor.ScaleMaximumValue}"
+                LiveInputValue="{Binding InputSensor.LiveDetails.CurrentValue.Value}"
                 MinimumPower="{Binding MinimumOnPower}"
                 CanSwitchOff="{Binding CanSwitchOff}"
                 Points="{Binding Points}" />

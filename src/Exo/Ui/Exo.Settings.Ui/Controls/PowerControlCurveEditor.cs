@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 using WinRT;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
@@ -17,6 +18,7 @@ namespace Exo.Settings.Ui.Controls;
 [TemplatePart(Name = LayoutGridPartName, Type = typeof(Grid))]
 [TemplatePart(Name = HorizontalGridLinesPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = VerticalGridLinesPathPartName, Type = typeof(Path))]
+[TemplatePart(Name = LiveInputValueLinePartName, Type = typeof(Line))]
 [TemplatePart(Name = CurvePathPartName, Type = typeof(Path))]
 [TemplatePart(Name = SymbolsPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = HorizontalTicksItemsRepeaterPartName, Type = typeof(ItemsRepeater))]
@@ -28,6 +30,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private const string CurvePathPartName = "PART_CurvePath";
 	private const string HorizontalGridLinesPathPartName = "PART_HorizontalGridLinesPath";
 	private const string VerticalGridLinesPathPartName = "PART_VerticalGridLinesPath";
+	private const string LiveInputValueLinePartName = "PART_LiveInputValueLine";
 	private const string SymbolsPathPartName = "PART_SymbolsPath";
 	private const string HorizontalTicksItemsRepeaterPartName = "PART_HorizontalTicksItemsRepeater";
 	private const string VerticalTicksItemsRepeaterPartName = "PART_VerticalTicksItemsRepeater";
@@ -40,6 +43,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private Path? _symbolsPath;
 	private Path? _horizontalGridLinesPath;
 	private Path? _verticalGridLinesPath;
+	private Line? _liveInputValueLine;
 	private ToolTip? _powerValueToolTip;
 	private ItemsRepeater? _horizontalTickItemsRepeater;
 	private ItemsRepeater? _verticalTickItemsRepeater;
@@ -95,13 +99,16 @@ internal sealed partial class PowerControlCurveEditor : Control
 	{
 		if (e.Property == PointsProperty) OnPointsChanged(e);
 		if (e.Property == SymbolRadiusProperty) UpdateSymbolsTranslation();
-		RefreshCurve();
+
+		if (e.Property == LiveInputValueProperty) RefreshLiveInputValue();
+		else RefreshCurve();
 	}
 
 	private void OnLoaded(RoutedEventArgs e)
 	{
 		if (Points is INotifyCollectionChanged points) points.CollectionChanged += _pointsCollectionChanged;
 		RefreshScales(true);
+		RefreshLiveInputValue();
 		RefreshCurve();
 	}
 
@@ -123,6 +130,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 	private void OnSizeChanged(SizeChangedEventArgs e)
 	{
 		RefreshScales(true);
+		RefreshLiveInputValue();
 		RefreshCurve();
 	}
 
@@ -143,6 +151,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		_layoutGrid = GetTemplateChild(LayoutGridPartName) as Grid;
 		_horizontalGridLinesPath = GetTemplateChild(HorizontalGridLinesPathPartName) as Path;
 		_verticalGridLinesPath = GetTemplateChild(VerticalGridLinesPathPartName) as Path;
+		_liveInputValueLine = GetTemplateChild(LiveInputValueLinePartName) as Line;
 		_curvePath = GetTemplateChild(CurvePathPartName) as Path;
 		_symbolsPath = GetTemplateChild(SymbolsPathPartName) as Path;
 		_horizontalTickItemsRepeater = GetTemplateChild(HorizontalTicksItemsRepeaterPartName) as ItemsRepeater;
@@ -150,6 +159,7 @@ internal sealed partial class PowerControlCurveEditor : Control
 		_powerValueToolTip = GetTemplateChild(PowerValueToolTipPartName) as ToolTip;
 		AttachParts();
 		RefreshScales(true);
+		RefreshLiveInputValue();
 		RefreshCurve();
 	}
 
@@ -177,6 +187,14 @@ internal sealed partial class PowerControlCurveEditor : Control
 		}
 		SetData(_verticalGridLinesPath, null);
 		SetData(_horizontalGridLinesPath, null);
+		if (_liveInputValueLine is { } liveInputValueLine)
+		{
+			liveInputValueLine.ClearValue(Line.X1Property);
+			liveInputValueLine.ClearValue(Line.Y1Property);
+			liveInputValueLine.ClearValue(Line.X2Property);
+			liveInputValueLine.ClearValue(Line.Y2Property);
+			_liveInputValueLine = null;
+		}
 		if (_verticalTickItemsRepeater is not null) _verticalTickItemsRepeater.ItemsSource = null;
 		if (_horizontalTickItemsRepeater is not null) _horizontalTickItemsRepeater.ItemsSource = null;
 	}
@@ -259,6 +277,31 @@ internal sealed partial class PowerControlCurveEditor : Control
 		else
 		{
 			UpdateChart(_horizontalScale, _verticalScale, _curvePathGeometry, _symbolsGeometryGroup, Points, _draggedPointIndex, _draggedPointCurrentInputValue, _draggedPointCurrentPower, minimumPower, canSwitchOff, symbolRadius);
+		}
+	}
+
+	private void RefreshLiveInputValue()
+	{
+		if (_liveInputValueLine is not { } liveInputValueLine) return;
+
+		var liveInputValue = LiveInputValue;
+		var horizontalScale = _horizontalScale;
+		double height = _layoutGrid?.ActualHeight ?? 1;
+
+		if (liveInputValue is null || horizontalScale is null)
+		{
+			liveInputValueLine.ClearValue(Line.X1Property);
+			liveInputValueLine.ClearValue(Line.Y1Property);
+			liveInputValueLine.ClearValue(Line.X2Property);
+			liveInputValueLine.ClearValue(Line.Y2Property);
+		}
+		else
+		{
+			double x = horizontalScale[Convert.ToDouble(liveInputValue)];
+			liveInputValueLine.X1 = x;
+			liveInputValueLine.Y1 = 0;
+			liveInputValueLine.X2 = x;
+			liveInputValueLine.Y2 = height - 1;
 		}
 	}
 

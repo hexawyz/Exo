@@ -76,6 +76,14 @@ internal partial class PowerControlCurveEditor
 
 	public static readonly DependencyProperty PointsProperty = RegisterPropertyWithChangeHandler<object?>(nameof(Points), null);
 
+	public object? LiveInputValue
+	{
+		get => GetValue(LiveInputValueProperty);
+		set => SetValue(LiveInputValueProperty, value);
+	}
+
+	public static readonly DependencyProperty LiveInputValueProperty = RegisterPropertyWithChangeHandler<object?>(nameof(LiveInputValue), null);
+
 	public Brush CurveStroke
 	{
 		get => (Brush)GetValue(CurveStrokeProperty);
@@ -147,4 +155,12 @@ internal partial class PowerControlCurveEditor
 	}
 
 	public static readonly DependencyProperty VerticalGridStrokeProperty = RegisterProperty<Brush>(nameof(VerticalGridStroke), new SolidColorBrush());
+
+	public Brush LiveValueStroke
+	{
+		get => (Brush)GetValue(LiveValueStrokeProperty);
+		set => SetValue(LiveValueStrokeProperty, value);
+	}
+
+	public static readonly DependencyProperty LiveValueStrokeProperty = RegisterProperty<Brush>(nameof(LiveValueStroke), new SolidColorBrush());
 }
