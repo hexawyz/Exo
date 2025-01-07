@@ -12,10 +12,8 @@ using System.Windows.Input;
 using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Settings;
 using Exo.Contracts.Ui.Settings.Cooling;
-using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Microsoft.Extensions.Logging.Abstractions;
 using RawCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -967,6 +965,8 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 	private Guid _currentInputSensorId;
 	private SensorViewModel? _inputSensor;
 
+	private readonly NotifyCollectionChangedEventHandler _notifyCollectionChangedEventHandler;
+
 	public abstract LogicalCoolingMode CoolingMode { get; }
 
 	public ICommand ResetInputSensorCommand => Commands.ResetInputSensorCommand.Instance;
@@ -1043,6 +1043,8 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 
 	public ControlCurveCoolingModeViewModel(SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
 	{
+		_notifyCollectionChangedEventHandler = OnSensorsAvailableForCoolingControlCurvesCollectionChanged;
+
 		_sensorsViewModel = sensorsViewModel;
 
 		_minimumPower = minimumPower;
@@ -1053,9 +1055,76 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 			_inputSensor = _sensorsViewModel.SensorsAvailableForCoolingControlCurves[0];
 			_points = CreateNewDataPoints(_inputSensor.DataType, _inputSensor.PresetControlCurveSteps);
 		}
+
+		sensorsViewModel.SensorsAvailableForCoolingControlCurves.CollectionChanged += _notifyCollectionChangedEventHandler;
 	}
 
-	public virtual void Dispose() { }
+	public virtual void Dispose()
+	{
+		SensorsViewModel.SensorsAvailableForCoolingControlCurves.CollectionChanged -= _notifyCollectionChangedEventHandler;
+	}
+
+	protected virtual void OnSensorsAvailableForCoolingControlCurvesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+	{
+		var oldInputSensor = _inputSensor;
+
+		switch (e.Action)
+		{
+		case NotifyCollectionChangedAction.Add:
+			foreach (SensorViewModel sensor in e.NewItems!)
+			{
+				if (sensor.Device.Id == _currentInputSensorDeviceId && sensor.Id == _currentInputSensorId)
+				{
+					_inputSensor = sensor;
+					break;
+				}
+			}
+			break;
+		case NotifyCollectionChangedAction.Remove:
+			foreach (SensorViewModel sensor in e.OldItems!)
+			{
+				if (sensor.Device.Id == _currentInputSensorDeviceId && sensor.Id == _currentInputSensorId)
+				{
+					_inputSensor = null;
+					break;
+				}
+			}
+			break;
+		case NotifyCollectionChangedAction.Replace:
+			foreach (SensorViewModel sensor in e.OldItems!)
+			{
+				if (sensor.Device.Id == _currentInputSensorDeviceId && sensor.Id == _currentInputSensorId)
+				{
+					_inputSensor = null;
+					break;
+				}
+			}
+			foreach (SensorViewModel sensor in e.NewItems!)
+			{
+				if (sensor.Device.Id == _currentInputSensorDeviceId && sensor.Id == _currentInputSensorId)
+				{
+					_inputSensor = sensor;
+					break;
+				}
+			}
+			break;
+		case NotifyCollectionChangedAction.Move:
+			break;
+		case NotifyCollectionChangedAction.Reset:
+			_inputSensor = null;
+			foreach (var sensor in SensorsViewModel.SensorsAvailableForCoolingControlCurves)
+			{
+				if (sensor.Device.Id == _currentInputSensorDeviceId && sensor.Id == _currentInputSensorId)
+				{
+					_inputSensor = sensor;
+					break;
+				}
+			}
+			break;
+		}
+
+		if (_inputSensor != oldInputSensor) NotifyPropertyChanged(ChangedProperty.InputSensor);
+	}
 
 	public void OnCoolingConfigurationChanged(ICurveCoolingParameters parameters)
 	{
@@ -1394,27 +1463,23 @@ internal sealed class HardwareControlCurveCoolingModeViewModel : ControlCurveCoo
 	public override LogicalCoolingMode CoolingMode => LogicalCoolingMode.HardwareControlCurve;
 
 	private readonly ObservableCollection<SensorViewModel> _sensorsAvailableForCoolingControlCurves;
-	private readonly NotifyCollectionChangedEventHandler _notifyCollectionChangedEventHandler;
 	private readonly Guid _deviceId;
 
 	public HardwareControlCurveCoolingModeViewModel(Guid deviceId, SensorsViewModel sensorsViewModel, byte minimumPower, bool canSwitchOff)
 		: base(sensorsViewModel, minimumPower, canSwitchOff)
 	{
-		_notifyCollectionChangedEventHandler = OnSensorsAvailableForCoolingControlCurvesCollectionChanged;
 		_deviceId = deviceId;
 
 		_sensorsAvailableForCoolingControlCurves = new();
 		ResetAvailableSensors();
-		sensorsViewModel.SensorsAvailableForCoolingControlCurves.CollectionChanged += _notifyCollectionChangedEventHandler;
 	}
 
-	public override void Dispose()
+	// NB: This method should not be called before the constructor has completed because all code will run on the UI thread.
+	// Otherwise, we would need to worry about event concurrency.
+	protected override void OnSensorsAvailableForCoolingControlCurvesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
 	{
-		SensorsViewModel.SensorsAvailableForCoolingControlCurves.CollectionChanged -= _notifyCollectionChangedEventHandler;
-	}
+		base.OnSensorsAvailableForCoolingControlCurvesCollectionChanged(sender, e);
 
-	private void OnSensorsAvailableForCoolingControlCurvesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-	{
 		switch (e.Action)
 		{
 		case NotifyCollectionChangedAction.Add:
