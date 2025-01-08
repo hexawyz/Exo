@@ -18,15 +18,26 @@
                 <ResourceDictionary Source="Controls\LineChart.xaml" />
                 <ResourceDictionary Source="Controls\PowerControlCurveEditor.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorBackground" Color="#eeeeff" />
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorGridStroke" Color="#8cf" />
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorLiveValueStroke" Color="#5af" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorBackground" Color="#024" />
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorGridStroke" Color="#036" />
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorLiveValueStroke" Color="#04a" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
                     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+                    
+                    <SolidColorBrush x:Key="CoolingPowerControlCurveEditorBackground" Color="{StaticResource SolidBackgroundFillColorBase}" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
@@ -397,6 +408,24 @@
                 <Setter Property="Stroke" Value="#04f" />
                 <Setter Property="AreaFill" Value="#04f" />
                 <Setter Property="MinMaxLineStroke" Value="#02a" />
+            </Style>
+
+            <SolidColorBrush x:Key="CoolingPowerControlCurveEditorCurveStroke" Color="#07e" />
+            <SolidColorBrush x:Key="CoolingPowerControlCurveEditorSymbolStroke" Color="#07e" />
+            <SolidColorBrush x:Key="CoolingPowerControlCurveEditorSymbolFill" Color="#08f" />
+            <x:Double x:Key="CoolingPowerControlCurveEditorCurveStrokeThickness">2</x:Double>
+            <x:Double x:Key="CoolingPowerControlCurveEditorSymbolRadius">4</x:Double>
+
+            <Style x:Key="CoolingPowerControlCurveEditorStyle" TargetType="lcontrols:PowerControlCurveEditor" BasedOn="{StaticResource DefaultPowerControlCurveEditorStyle}">
+                <Setter Property="Background" Value="{ThemeResource CoolingPowerControlCurveEditorBackground}" />
+                <Setter Property="HorizontalGridStroke" Value="{ThemeResource CoolingPowerControlCurveEditorGridStroke}" />
+                <Setter Property="VerticalGridStroke" Value="{ThemeResource CoolingPowerControlCurveEditorGridStroke}" />
+                <Setter Property="CurveStroke" Value="{ThemeResource CoolingPowerControlCurveEditorCurveStroke}" />
+                <Setter Property="SymbolStroke" Value="{ThemeResource CoolingPowerControlCurveEditorSymbolStroke}" />
+                <Setter Property="SymbolFill" Value="{ThemeResource CoolingPowerControlCurveEditorSymbolFill}" />
+                <Setter Property="LiveValueStroke" Value="{ThemeResource CoolingPowerControlCurveEditorLiveValueStroke}" />
+                <Setter Property="CurveStrokeThickness" Value="{ThemeResource CoolingPowerControlCurveEditorCurveStrokeThickness}" />
+                <Setter Property="SymbolRadius" Value="{ThemeResource CoolingPowerControlCurveEditorSymbolRadius}" />
             </Style>
 
             <lconverters:SensorCategoryToStyleConverter
