@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui;
 
 [DataContract]
+[DebuggerDisplay("X: {X}, Y: {Y}")]
 public sealed class UIntDataPoint : IDataPoint<ulong, ulong>
 {
 	[DataMember(Order = 1)]

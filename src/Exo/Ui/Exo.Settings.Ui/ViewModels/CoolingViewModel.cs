@@ -1235,7 +1235,7 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 
 	protected static bool AreCurvesEqual<T>(object? a, object? b)
 		where T : struct, INumber<T>
-		=> AreCurvesEqual((ObservableCollection<Controls.IDataPoint<T, byte>>?)a, (ObservableCollection<Controls.IDataPoint<T, byte>>?)a);
+		=> AreCurvesEqual((ObservableCollection<Controls.IDataPoint<T, byte>>?)a, (ObservableCollection<Controls.IDataPoint<T, byte>>?)b);
 
 	protected static bool AreCurvesEqual<T>(ObservableCollection<Controls.IDataPoint<T, byte>>? a, ObservableCollection<Controls.IDataPoint<T, byte>>? b)
 		where T : struct, INumber<T>
