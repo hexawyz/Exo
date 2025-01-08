@@ -372,6 +372,7 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 				if (isOnline)
 				{
 					vm.SetOnline(coolerInfo);
+					vm.UpdateConfiguration(parameters);
 				}
 				_coolersById.Add(coolerInfo.CoolerId, vm);
 				_coolers.Add(vm);
@@ -395,6 +396,10 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 
 	public void OnCoolingConfigurationChanged(ICoolingParameters? coolingParameters)
 	{
+		if (coolingParameters is not null && _coolersById.TryGetValue(coolingParameters.CoolerId, out var cooler))
+		{
+			cooler.UpdateConfiguration(coolingParameters);
+		}
 	}
 
 	private void OnDeviceOnline()
