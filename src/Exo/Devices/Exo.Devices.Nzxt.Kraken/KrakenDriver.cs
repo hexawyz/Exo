@@ -65,13 +65,14 @@ public class KrakenDriver :
 
 	private static readonly ImmutableArray<byte> DefaultControlCurveInputValues = [20, 25, 30, 35, 40, 45, 50, 55, 59];
 
-	private static readonly ImmutableArray<Guid> InputSensors = [LiquidTemperatureSensorId];
-
 	private const int NzxtVendorId = 0x1E71;
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
-	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3008)]
+	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3008)] // Kraken Z
+	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300C)] // Kraken Elite (2023)
+	//[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300E)] // Kraken (2023)
+	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3012)] // Kraken Elite RGB (2024)
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ILogger<KrakenDriver> logger,
