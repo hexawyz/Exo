@@ -78,6 +78,7 @@
             <lconverters:HalfProbabilityToDoublePercentageConverter x:Key="HalfProbabilityToDoublePercentageConverter" />
             <lconverters:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
             <lconverters:SecondsToStringConverter x:Key="SecondsToStringConverter" />
+            <lconverters:GridLengthConverter x:Key="GridLengthConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

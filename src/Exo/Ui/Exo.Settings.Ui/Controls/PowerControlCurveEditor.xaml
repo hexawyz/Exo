@@ -24,6 +24,8 @@
         <Setter Property="SymbolStroke" Value="Transparent" />
         <Setter Property="SymbolStrokeThickness" Value="0" />
         <Setter Property="SymbolRadius" Value="2" />
+        <Setter Property="HorizontalMargin" Value="20" />
+        <Setter Property="VerticalMargin" Value="10" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:PowerControlCurveEditor">
@@ -33,30 +35,66 @@
                         </Grid.Resources>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin, Converter={StaticResource GridLengthConverter}}" MaxWidth="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin}" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin, Converter={StaticResource GridLengthConverter}}" MaxWidth="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin}" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=VerticalMargin, Converter={StaticResource GridLengthConverter}}" MaxHeight="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=VerticalMargin}" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=VerticalMargin, Converter={StaticResource GridLengthConverter}}" MaxHeight="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=VerticalMargin}" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <ItemsRepeater x:Name="PART_VerticalTicksItemsRepeater" Grid.Row="0" Grid.Column="0">
-                            <ItemsRepeater.Resources>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Margin" Value="0" />
-                                    <Setter Property="HorizontalTextAlignment" Value="Right" />
-                                    <Setter Property="VerticalAlignment" Value="Center" />
-                                </Style>
-                            </ItemsRepeater.Resources>
-                            <ItemsRepeater.Layout>
-                                <local:TickLayout Orientation="Vertical" />
-                            </ItemsRepeater.Layout>
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource PercentConverter}}" />
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                        <Grid Grid.Row="0" Grid.Column="1" Margin="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <!-- Wrapping the ticks within a grid is some kind of workaround to add margin to the ticks to compensate for the margin added to the chart layout grid. -->
+                        <Grid Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Grid.ColumnSpan="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SymbolRadius, Converter={StaticResource GridLengthConverter}}" MaxHeight="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SymbolRadius}" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SymbolRadius, Converter={StaticResource GridLengthConverter}}" MaxHeight="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SymbolRadius}" />
+                            </Grid.RowDefinitions>
+                            <ItemsRepeater x:Name="PART_VerticalTicksItemsRepeater" Grid.Row="1" Margin="0,0,5,0">
+                                <ItemsRepeater.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="0" />
+                                        <Setter Property="HorizontalTextAlignment" Value="Right" />
+                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                    </Style>
+                                </ItemsRepeater.Resources>
+                                <ItemsRepeater.Layout>
+                                    <local:TickLayout Orientation="Vertical" TickHalfSize="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=VerticalMargin}" />
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource PercentConverter}}" />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </Grid>
+                        <Grid Grid.Row="2" Grid.Column="1" Grid.RowSpan="2" Grid.ColumnSpan="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SymbolRadius, Converter={StaticResource GridLengthConverter}}" MaxWidth="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin}" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SymbolRadius, Converter={StaticResource GridLengthConverter}}" MaxWidth="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin}" />
+                            </Grid.ColumnDefinitions>
+                            <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Column="1">
+                                <ItemsRepeater.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="0" />
+                                        <Setter Property="HorizontalTextAlignment" Value="Center" />
+                                        <Setter Property="VerticalAlignment" Value="Top" />
+                                    </Style>
+                                </ItemsRepeater.Resources>
+                                <ItemsRepeater.Layout>
+                                    <local:TickLayout Orientation="Horizontal" TickHalfSize="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=HorizontalMargin}" />
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource InputValueConverter}}" />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </Grid>
+                        <Grid Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                             <Grid
                                 Margin="{Binding SymbolRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource RadiusToThicknessConverter}}"
                                 HorizontalAlignment="Stretch"
@@ -75,23 +113,6 @@
                                 </ToolTipService.ToolTip>
                             </Path>
                         </Grid>
-                        <ItemsRepeater x:Name="PART_HorizontalTicksItemsRepeater" Grid.Row="1" Grid.Column="1">
-                            <ItemsRepeater.Resources>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Margin" Value="0" />
-                                    <Setter Property="HorizontalTextAlignment" Value="Center" />
-                                    <Setter Property="VerticalAlignment" Value="Top" />
-                                </Style>
-                            </ItemsRepeater.Resources>
-                            <ItemsRepeater.Layout>
-                                <local:TickLayout Orientation="Horizontal" />
-                            </ItemsRepeater.Layout>
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource InputValueConverter}}" />
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

@@ -163,4 +163,20 @@ internal partial class PowerControlCurveEditor
 	}
 
 	public static readonly DependencyProperty LiveValueStrokeProperty = RegisterProperty<Brush>(nameof(LiveValueStroke), new SolidColorBrush());
+
+	public double VerticalMargin
+	{
+		get => (double)GetValue(VerticalMarginProperty);
+		set => SetValue(VerticalMarginProperty, value);
+	}
+
+	public static readonly DependencyProperty VerticalMarginProperty = RegisterPropertyWithChangeHandler(nameof(VerticalMargin), 10d);
+
+	public double HorizontalMargin
+	{
+		get => (double)GetValue(HorizontalMarginProperty);
+		set => SetValue(HorizontalMarginProperty, value);
+	}
+
+	public static readonly DependencyProperty HorizontalMarginProperty = RegisterPropertyWithChangeHandler(nameof(HorizontalMargin), 20d);
 }

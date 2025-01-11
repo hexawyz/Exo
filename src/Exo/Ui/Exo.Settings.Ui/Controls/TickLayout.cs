@@ -20,6 +20,20 @@ internal sealed class TickLayout : NonVirtualizingLayout
 		new PropertyMetadata(Orientation.Vertical, static (s, e) => ((TickLayout)s).OnOrientationChanged())
 	);
 
+	public double TickHalfSize
+	{
+		get => (double)GetValue(TickHalfSizeProperty);
+		set => SetValue(TickHalfSizeProperty, value);
+	}
+
+	public static readonly DependencyProperty TickHalfSizeProperty = DependencyProperty.Register
+	(
+		nameof(TickHalfSize),
+		typeof(double),
+		typeof(TickLayout),
+		new PropertyMetadata(10d)
+	);
+
 	public TickLayout()
 	{
 	}
@@ -30,68 +44,33 @@ internal sealed class TickLayout : NonVirtualizingLayout
 	{
 		if (context.Children.Count == 0) return new(0, 0);
 
-		// In the first pass, all children are queried for their ideal size as if they were alone.
+		var tickSize = (float)(2 * TickHalfSize);
+
+		// We chose to allow overlap of children in case there would not be enough space. This is the simplest way to allocate space.
+		Size availableSizePerChild = Orientation == Orientation.Vertical ?
+			new(availableSize._width, Math.Min(availableSize._height, tickSize)) :
+			new(Math.Min(availableSize._width, tickSize), availableSize._height);
+
+		// Query all children for their size with one of the two dimensions already fixed.
 		float maxIdealWidth = 0;
 		float maxIdealHeight = 0;
 		foreach (var child in context.Children)
 		{
-			child.Measure(availableSize);
+			child.Measure(availableSizePerChild);
 			var size = child.DesiredSize;
 			if (float.IsFinite(size._width) && size._width > maxIdealWidth) maxIdealWidth = size._width;
 			if (float.IsFinite(size._height) && size._height > maxIdealHeight) maxIdealHeight = size._height;
 		}
 
-		// After the initial measures, we can determine the biggest ideal size, capped by availableSize.
-		float maxTotalWidth = maxIdealWidth;
-		float maxTotalHeight = maxIdealHeight;
-		float itemWidth = maxTotalWidth;
-		float itemHeight = maxTotalHeight;
+		// Compute the final size using the variable dimension as we are allowed to.
 		if (Orientation == Orientation.Vertical)
 		{
-			if (maxTotalWidth > availableSize._width) maxTotalWidth = availableSize._width;
-			maxTotalHeight *= context.Children.Count;
-			if (maxTotalHeight > availableSize._height) maxTotalHeight = availableSize._height;
-
-			itemHeight = maxTotalHeight / context.Children.Count;
+			return new(Math.Min(availableSize._width, maxIdealWidth), Math.Min(availableSize._height, availableSizePerChild._height * context.Children.Count));
 		}
 		else
 		{
-			if (maxTotalHeight > availableSize._height) maxTotalHeight = availableSize._height;
-			maxTotalWidth *= context.Children.Count;
-			if (maxTotalWidth > availableSize._width) maxTotalWidth = availableSize._width;
-
-			itemWidth = maxTotalHeight / context.Children.Count;
+			return new(Math.Min(availableSize._width, availableSizePerChild._width * context.Children.Count), Math.Min(availableSize._height, maxIdealWidth));
 		}
-
-		// The second pass will determine if we can shrink the size we determined above.
-		// NB: We could loop and adjust many times, but we would have no guarantee that the algorithm would converge at some point.
-		var itemSize = new Size(itemWidth, itemHeight);
-		float maxIdealWidth2 = 0;
-		float maxIdealHeight2 = 0;
-		foreach (var child in context.Children)
-		{
-			child.Measure(itemSize);
-			var size = child.DesiredSize;
-			if (float.IsFinite(size._width) && size._width > maxIdealWidth2) maxIdealWidth2 = size._width;
-			if (float.IsFinite(size._height) && size._height > maxIdealHeight2) maxIdealHeight2 = size._height;
-		}
-
-		float maxTotalWidth2 = maxTotalWidth;
-		float maxTotalHeight2 = maxTotalHeight;
-		if (Orientation == Orientation.Vertical)
-		{
-			if (maxIdealWidth2 < maxTotalWidth2) maxTotalWidth2 = maxIdealWidth2;
-			maxTotalHeight2 = maxIdealHeight2 * context.Children.Count;
-			if (maxTotalHeight2 > maxTotalHeight) maxTotalHeight2 = maxTotalHeight;
-		}
-		else
-		{
-			if (maxIdealHeight2 < maxTotalHeight2) maxTotalHeight2 = maxIdealHeight2;
-			maxTotalWidth2 = maxIdealWidth2 * context.Children.Count;
-			if (maxTotalWidth2 > maxTotalWidth) maxTotalWidth2 = maxTotalWidth;
-		}
-
-		return new(maxTotalWidth2, maxTotalHeight2);
 	}
 
 	protected override Size ArrangeOverride(NonVirtualizingLayoutContext context, Size finalSize)
@@ -100,27 +79,44 @@ internal sealed class TickLayout : NonVirtualizingLayout
 		if (children.Count == 0) return new Size(0, 0);
 		float width = float.IsFinite(finalSize._width) ? finalSize._width : 0;
 		float height = float.IsFinite(finalSize._height) ? finalSize._height : 0;
+		float size = (float)(2 * TickHalfSize);
 
 		if (Orientation == Orientation.Vertical)
 		{
-			float h = height / children.Count;
-
-			for (int i = 0; i < children.Count; i++)
+			float space = height - size;
+			if (space < 0)
 			{
-				var child = children[i];
-
-				child.Arrange(new Rect(0, i * h, width, h));
+				for (int i = 0; i < children.Count; i++)
+				{
+					children[i].Arrange(new Rect(0, 0, width, height));
+				}
+			}
+			else
+			{
+				float h = space / Math.Max(1, children.Count - 1);
+				for (int i = 0; i < children.Count; i++)
+				{
+					children[i].Arrange(new Rect(0, i * h, width, size));
+				}
 			}
 		}
 		else
 		{
-			float w = width / children.Count;
-
-			for (int i = 0; i < children.Count; i++)
+			float space = width - size;
+			if (space < 0)
 			{
-				var child = children[i];
-
-				child.Arrange(new Rect(i * w, 0, w, height));
+				for (int i = 0; i < children.Count; i++)
+				{
+					children[i].Arrange(new Rect(0, 0, width, height));
+				}
+			}
+			else
+			{
+				float w = space / Math.Max(1, children.Count - 1);
+				for (int i = 0; i < children.Count; i++)
+				{
+					children[i].Arrange(new Rect(i * w, 0, size, height));
+				}
 			}
 		}
 
