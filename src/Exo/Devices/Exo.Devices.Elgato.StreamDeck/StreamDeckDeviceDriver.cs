@@ -230,8 +230,9 @@ public sealed class StreamDeckDeviceDriver :
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
-	// Elgato Stream Deck actually only allows setting the delay up to two hours, but we can reasonably do a bit more. (As the device is not battery powered anyway)
-	TimeSpan IIdleSleepTimerFeature.MaximumIdleTime => TimeSpan.FromTicks(8 * TimeSpan.TicksPerHour);
+	// Elgato Stream Deck actually only allows setting the delay up to two hours, but the device can do much more.
+	// The maximum we can set here will thus always be arbitrary, but for now, setting values that are too big will make the UI unusable or even break it. (Broken for uint.MaxValue)
+	TimeSpan IIdleSleepTimerFeature.MaximumIdleTime => TimeSpan.FromTicks(2 * TimeSpan.TicksPerHour);
 	TimeSpan IIdleSleepTimerFeature.IdleTime => TimeSpan.FromTicks(_idleSleepDelay * TimeSpan.TicksPerSecond);
 
 	async Task IIdleSleepTimerFeature.SetIdleTimeAsync(TimeSpan idleTime, CancellationToken cancellationToken)
