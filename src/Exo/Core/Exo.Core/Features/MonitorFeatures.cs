@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
+using System.Diagnostics.Contracts;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Images;
+using Exo.Monitors;
 
 namespace Exo.Features.Monitors;
 
@@ -119,15 +121,44 @@ public interface IMonitorInputLagFeature : IMonitorDeviceFeature, INonContinuous
 public interface IMonitorBlueLightFilterLevelFeature : IMonitorDeviceFeature, IContinuousVcpFeature { }
 public interface IMonitorPowerIndicatorToggleFeature : IMonitorDeviceFeature, IBooleanVcpFeature { }
 
-public interface IEmbeddedMonitorInformationFeature : IMonitorDeviceFeature
+public interface IEmbeddedMonitorFeature : IEmbeddedMonitor, IMonitorDeviceFeature
 {
-	MonitorShape Shape { get; }
-	Size ImageSize { get; }
 }
 
-public enum MonitorShape : byte
+/// <summary>To be used for a device exposing multiple embedded monitors.</summary>
+/// <remarks>
+/// <para>This feature is necessary to support devices such as the various Elgato StreamDecks.</para>
+/// <para>THis feature is exclusive with <see cref="IEmbeddedMonitorFeature"/>.</para>
+/// </remarks>
+public interface IEmbeddedMonitorControllerFeature : IMonitorDeviceFeature
 {
-	Rectangle = 0,
-	Square = 1,
-	Circle = 2,
+	/// <summary>Gets a list of the embedded monitors exposed by this device.</summary>
+	ImmutableArray<IEmbeddedMonitor> EmbeddedMonitors { get; }
+}
+
+public interface IEmbeddedMonitorScreenSaverFeature : IEmbeddedMonitor, IMonitorDeviceFeature
+{
+}
+
+public interface IEmbeddedMonitor
+{
+	/// <summary>Gets the monitor ID.</summary>
+	/// <remarks>This property is especially important for devices exposing multiple monitors.</remarks>
+	Guid MonitorId { get; }
+	/// <summary>Gets the shape of the monitor.</summary>
+	/// <remarks>
+	/// Some AIO devices will expose a circular screen, but most embedded monitors are expected to be of rectangular shape.
+	/// The shape of the monitor might mainly be used to optimize image compression if the monitor is non-rectangular.
+	/// </remarks>
+	MonitorShape Shape { get; }
+	/// <summary>Gets the image size of the monitor.</summary>
+	Size ImageSize { get; }
+	/// <summary>Gets the effective pixel format of the monitor.</summary>
+	/// <remarks>
+	/// Monitors should generally support a 32 bits RGB(A) format, but this information is needed in order to feed acceptable images to the device.
+	/// This is especially important in case of raw images, but it will matter in other situations, such as when only a reduced number of colors is supported.
+	/// </remarks>
+	PixelFormat PixelFormat { get; }
+	/// <summary>Gets a description of the image formats that are directly supported by the embedded monitor.</summary>
+	ImageFormats SupportedImageFormats { get; }
 }

@@ -13,6 +13,7 @@ using Exo.Features.Cooling;
 using Exo.Features.Monitors;
 using Exo.Features.Sensors;
 using Exo.Images;
+using Exo.Monitors;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
@@ -29,7 +30,7 @@ public class KrakenDriver :
 	IDeviceDriver<ICoolingDeviceFeature>,
 	ICoolingControllerFeature,
 	IDeviceDriver<IMonitorDeviceFeature>,
-	IEmbeddedMonitorInformationFeature,
+	IEmbeddedMonitorFeature,
 	IMonitorBrightnessFeature
 {
 	private static readonly Guid LiquidTemperatureSensorId = new(0x8E880DE1, 0x2A45, 0x400D, 0xA9, 0x0F, 0x42, 0xE8, 0x9B, 0xF9, 0x50, 0xDB);
@@ -38,6 +39,8 @@ public class KrakenDriver :
 
 	private static readonly Guid FanCoolerId = new(0x5A0FE6F5, 0xB7D1, 0x46E4, 0xA5, 0x12, 0x82, 0x72, 0x6E, 0x95, 0x35, 0xC4);
 	private static readonly Guid PumpCoolerId = new(0x2A57C838, 0xCD58, 0x4D6C, 0xAF, 0x9E, 0xF5, 0xBD, 0xDD, 0x6F, 0xB9, 0x92);
+
+	private static readonly Guid MonitorId = new (0xAB1C8580, 0x9FC4, 0x4BB6, 0xB9, 0xC7, 0x02, 0xF1, 0x81, 0x81, 0x68, 0xB6);
 
 	// Both cooling curves taken out of NZXT CAM when creating a new cooling profile. No idea if they are the default HW curve.
 	// Points from CAM are the first column, others are interpolated.
@@ -269,9 +272,11 @@ public class KrakenDriver :
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => ImmutableCollectionsMarshal.AsImmutableArray(_sensors);
 	ImmutableArray<ICooler> ICoolingControllerFeature.Coolers => ImmutableCollectionsMarshal.AsImmutableArray(_coolers);
 
-	MonitorShape IEmbeddedMonitorInformationFeature.Shape => MonitorShape.Circle;
-
-	Size IEmbeddedMonitorInformationFeature.ImageSize => new(_imageWidth, _imageHeight);
+	Guid IEmbeddedMonitor.MonitorId => MonitorId;
+	MonitorShape IEmbeddedMonitor.Shape => MonitorShape.Circle;
+	Size IEmbeddedMonitor.ImageSize => new(_imageWidth, _imageHeight);
+	PixelFormat IEmbeddedMonitor.PixelFormat => PixelFormat.R8G8B8X8;
+	ImageFormats IEmbeddedMonitor.SupportedImageFormats => ImageFormats.Raw | ImageFormats.Gif;
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
@@ -306,7 +311,7 @@ public class KrakenDriver :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, KrakenDriver, ICoolingControllerFeature>(this);
-		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorInformationFeature, IMonitorBrightnessFeature>(this);
+		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorFeature, IMonitorBrightnessFeature>(this);
 	}
 
 	public override async ValueTask DisposeAsync()
