@@ -24,12 +24,12 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock x:Uid="BatteryLevelLabel" Margin="{StaticResource RowLabelMargin}" />
-        <TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.Level, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
-        <TextBlock Grid.Row="1" x:Uid="BatteryStatusLabel" Margin="{StaticResource RowLabelMargin}" />
-        <TextBlock Grid.Row="1" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.BatteryStatus, Mode=OneWay}" />
-        <TextBlock Grid.Row="2" x:Uid="ExternalPowerStatusLabel" Margin="{StaticResource RowLabelMargin}" />
-        <TextBlock Grid.Row="2" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.ExternalPowerStatus, Mode=OneWay}" />
+        <TextBlock x:Uid="BatteryLevelLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.Level, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <TextBlock Grid.Row="1" x:Uid="BatteryStatusLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.BatteryStatus, Mode=OneWay}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <TextBlock Grid.Row="2" x:Uid="ExternalPowerStatusLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.ExternalPowerStatus, Mode=OneWay}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
         <TextBlock Grid.Row="3" x:Uid="LowPowerModeThresholdLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <Slider
             Grid.Row="3"
