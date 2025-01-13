@@ -40,6 +40,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 		Docs\Razer DeathAdder Platform 3.md = Docs\Razer DeathAdder Platform 3.md
 		Docs\Razer DeathAdder V2 Pro.md = Docs\Razer DeathAdder V2 Pro.md
 		Docs\Razer Mamba Chroma.md = Docs\Razer Mamba Chroma.md
+		Docs\Stream Decl XL.md = Docs\Stream Decl XL.md
 		Docs\Useful Bits.md = Docs\Useful Bits.md
 		Docs\ViewSonic VP2785-4K.md = Docs\ViewSonic VP2785-4K.md
 	EndProjectSection
