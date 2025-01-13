@@ -159,6 +159,70 @@ internal class StreamDeckDevice : IAsyncDisposable
 		return ReadResponse(buffer.Span);
 	}
 
+	public async Task<string> GetOtherVersion1Async(CancellationToken cancellationToken)
+	{
+		// NB: This returns a different version number than the other ones.
+		// I have no idea what this is about as I just found this using blackbox testing, but it is definitely a version.
+		// 04 ? ? ? ? ? 0 . 0 1 . 0 0 7
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x05;
+		static string ReadResponse(ReadOnlySpan<byte> buffer) => Encoding.ASCII.GetString(buffer.Slice(6, 8));
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
+	}
+
+	public async Task<string> GetOtherVersion2Async(CancellationToken cancellationToken)
+	{
+		// NB: This returns a different version number than the other ones.
+		// I have no idea what this is about as I just found this using blackbox testing, but it is definitely a version.
+		// 04 ? ? ? ? ? 1 . 0 0 . 0 0 8
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x05;
+		static string ReadResponse(ReadOnlySpan<byte> buffer) => Encoding.ASCII.GetString(buffer.Slice(6, 8));
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
+	}
+
+	public async Task<uint> GetSleepTimerAsync(CancellationToken cancellationToken)
+	{
+		// NB: This command was manually tested to return the sleep timer (if we change it, the exact value is returned), along with an unkown byte value.
+		// In my testing, the unknown byte was always `04`
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x0A;
+		static uint ReadResponse(ReadOnlySpan<byte> buffer) => LittleEndian.ReadUInt32(in buffer[2]);
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
+	}
+
+	public async Task<ushort> GetUsageTimeAsync(CancellationToken cancellationToken)
+	{
+		// This command seems to return some status on the device.
+		// I saw one of the values increasing at some point, which was not related to a key press or any specific action from the official software,  so the only explanation is that it is time.
+		// Expectation was then that one of the value represented a 2byte or 4byte duration in hours for which the device was on.
+		// Number returned matched closely the expected duration of my device.
+		// Format: AA AA BB BB TT TT TT TT
+		// Assuming that the duration is 4 bytes, although unproven. One would need to keep the device turned on 7.5 years to find out.
+		// Other values are unknown. Were `04 00` and `02 00` on the day of measurement.
+
+		var buffer = FeatureBuffer;
+
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x0A;
+		static ushort ReadResponse(ReadOnlySpan<byte> buffer) => LittleEndian.ReadUInt16(in buffer[2]);
+
+		PrepareRequest(buffer.Span);
+		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);
+		return ReadResponse(buffer.Span);
+	}
+
 	public async Task SetBrightnessAsync(byte value, CancellationToken cancellationToken)
 	{
 		var buffer = FeatureBuffer;

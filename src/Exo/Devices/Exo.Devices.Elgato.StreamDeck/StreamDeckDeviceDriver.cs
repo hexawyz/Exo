@@ -7,6 +7,7 @@ using DeviceTools.HumanInterfaceDevices.Usages;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Monitors;
+using Exo.Features.PowerManagement;
 using Exo.Images;
 using Exo.Monitors;
 using Microsoft.Extensions.Logging;
@@ -35,10 +36,12 @@ public sealed class StreamDeckDeviceDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
+	IDeviceDriver<IPowerManagementDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
 	IEmbeddedMonitorControllerFeature,
-	IMonitorBrightnessFeature
+	IMonitorBrightnessFeature,
+	IIdleSleepTimerFeature
 {
 	private static readonly Guid[] StreamDeckXlButtonIds = [
 		new(0x903959D8, 0x4449, 0x4081, 0x92, 0x24, 0x60, 0x54, 0x55, 0x26, 0xAB, 0xE6),
@@ -141,6 +144,7 @@ public sealed class StreamDeckDeviceDriver :
 		{
 			string serialNumber = await device.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 			var deviceInfo = await device.GetDeviceInfoAsync(cancellationToken).ConfigureAwait(false);
+			uint idleSleepDelay = await device.GetSleepTimerAsync(cancellationToken).ConfigureAwait(false);
 
 			return new DriverCreationResult<SystemDevicePath>
 			(
@@ -150,6 +154,7 @@ public sealed class StreamDeckDeviceDriver :
 					device,
 					StreamDeckXlButtonIds,
 					deviceInfo,
+					idleSleepDelay,
 					friendlyName,
 					productId,
 					version,
@@ -168,20 +173,25 @@ public sealed class StreamDeckDeviceDriver :
 	private readonly StreamDeckDevice _device;
 	private readonly Guid[] _buttonIds;
 	private readonly StreamDeckDeviceInfo _deviceInfo;
+	private uint _idleSleepDelay;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 	private readonly Button[] _buttons;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
+	IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
+
 
 	private StreamDeckDeviceDriver
 	(
 		StreamDeckDevice device,
 		Guid[] buttonIds,
 		StreamDeckDeviceInfo deviceInfo,
+		uint idleSleepDelay,
 		string friendlyName,
 		ushort productId,
 		ushort versionNumber,
@@ -191,6 +201,7 @@ public sealed class StreamDeckDeviceDriver :
 		_device = device;
 		_buttonIds = buttonIds;
 		_deviceInfo = deviceInfo;
+		_idleSleepDelay = idleSleepDelay;
 		_productId = productId;
 		_versionNumber = versionNumber;
 
@@ -203,6 +214,7 @@ public sealed class StreamDeckDeviceDriver :
 
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
 		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, StreamDeckDeviceDriver, IEmbeddedMonitorControllerFeature>(this);
+		_powerManagementFeatures = FeatureSet.Create<IPowerManagementDeviceFeature, StreamDeckDeviceDriver, IIdleSleepTimerFeature>(this);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -217,6 +229,18 @@ public sealed class StreamDeckDeviceDriver :
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(ElgatoVendorId, _productId, _versionNumber);
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
+
+	// Elgato Stream Deck actually only allows setting the delay up to two hours, but we can reasonably do a bit more. (As the device is not battery powered anyway)
+	TimeSpan IIdleSleepTimerFeature.MaximumIdleTime => TimeSpan.FromTicks(8 * TimeSpan.TicksPerHour);
+	TimeSpan IIdleSleepTimerFeature.IdleTime => TimeSpan.FromTicks(_idleSleepDelay * TimeSpan.TicksPerSecond);
+
+	async Task IIdleSleepTimerFeature.SetIdleTimeAsync(TimeSpan idleTime, CancellationToken cancellationToken)
+	{
+		if ((ulong)(idleTime.Ticks - 5) > 8 * TimeSpan.TicksPerHour) throw new ArgumentOutOfRangeException(nameof(idleTime));
+		uint idleSleepDelay = (uint)((ulong)idleTime.Ticks / TimeSpan.TicksPerSecond);
+		await _device.SetSleepTimerAsync(idleSleepDelay, cancellationToken).ConfigureAwait(false);
+		_idleSleepDelay = idleSleepDelay;
+	}
 
 	ImmutableArray<IEmbeddedMonitor> IEmbeddedMonitorControllerFeature.EmbeddedMonitors => ImmutableCollectionsMarshal.AsImmutableArray(Unsafe.As<IEmbeddedMonitor[]>(_buttons));
 
@@ -238,7 +262,7 @@ public sealed class StreamDeckDeviceDriver :
 		Guid IEmbeddedMonitor.MonitorId => _driver._buttonIds[_keyIndex];
 		MonitorShape IEmbeddedMonitor.Shape => MonitorShape.Square;
 		Size IEmbeddedMonitor.ImageSize => _driver.ButtonImageSize;
-		PixelFormat IEmbeddedMonitor.PixelFormat => PixelFormat.R8G8B8X8;
-		ImageFormats IEmbeddedMonitor.SupportedImageFormats { get; }
+		PixelFormat IEmbeddedMonitor.PixelFormat => PixelFormat.B8G8R8;
+		ImageFormats IEmbeddedMonitor.SupportedImageFormats => ImageFormats.Bitmap | ImageFormats.Jpeg;
 	}
 }
