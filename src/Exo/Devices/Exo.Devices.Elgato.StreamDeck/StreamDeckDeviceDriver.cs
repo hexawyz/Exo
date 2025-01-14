@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
@@ -261,9 +262,16 @@ public sealed class StreamDeckDeviceDriver :
 		}
 
 		Guid IEmbeddedMonitor.MonitorId => _driver._buttonIds[_keyIndex];
-		MonitorShape IEmbeddedMonitor.Shape => MonitorShape.Square;
-		Size IEmbeddedMonitor.ImageSize => _driver.ButtonImageSize;
-		PixelFormat IEmbeddedMonitor.PixelFormat => PixelFormat.B8G8R8;
-		ImageFormats IEmbeddedMonitor.SupportedImageFormats => ImageFormats.Bitmap | ImageFormats.Jpeg;
+
+		EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation => new(MonitorShape.Square, _driver.ButtonImageSize, PixelFormat.B8G8R8, ImageFormats.Bitmap | ImageFormats.Jpeg, false);
+
+		ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+		{
+			if (imageFormat is not ImageFormat.Bitmap or ImageFormat.Jpeg)
+			{
+				return ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentOutOfRangeException(nameof(imageFormat))));
+			}
+			return new ValueTask(_driver._device.SetKeyImageDataAsync(_keyIndex, data, cancellationToken));
+		}
 	}
 }

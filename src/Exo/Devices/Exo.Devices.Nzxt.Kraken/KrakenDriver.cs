@@ -273,12 +273,9 @@ public class KrakenDriver :
 	ImmutableArray<ICooler> ICoolingControllerFeature.Coolers => ImmutableCollectionsMarshal.AsImmutableArray(_coolers);
 
 	Guid IEmbeddedMonitor.MonitorId => MonitorId;
-	MonitorShape IEmbeddedMonitor.Shape => MonitorShape.Circle;
-	Size IEmbeddedMonitor.ImageSize => new(_imageWidth, _imageHeight);
-	PixelFormat IEmbeddedMonitor.PixelFormat => PixelFormat.R8G8B8X8;
-	ImageFormats IEmbeddedMonitor.SupportedImageFormats => ImageFormats.Raw | ImageFormats.Gif;
+	EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation => new(MonitorShape.Circle, new(_imageWidth, _imageHeight), PixelFormat.R8G8B8X8, ImageFormats.Raw | ImageFormats.Gif, true);
 
-	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet <IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
 	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
@@ -436,6 +433,10 @@ public class KrakenDriver :
 			_fanState = 0;
 		}
 	}
+
+	// TODO
+	ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+		=> throw new NotImplementedException();
 
 	private abstract class Sensor
 	{
