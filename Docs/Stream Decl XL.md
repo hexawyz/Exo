@@ -56,6 +56,14 @@ Firmware 1.01.000 end is 115272 bytes.
 02 09 08 <IsFinalPacket:B8> <PacketIndex:U16> <PacketLength:U16> <Data:U8[]>
 ```
 
+#### Command `0C` - Stream Deck + - Write image region
+
+```
+02 0C <Left:U16> <Top:U16> <Width:U16> <Height:U16> <IsFinalPacket:B8> <PacketIndex:U16> <PacketLength:U16> <Zero:U8> <Data:U8[]>
+```
+
+Stream Deck + devices would also include a touch screen, that can be updated entirely or partially using this command.
+
 ### Feature report `03` - Write - Device configuration
 
 #### Command `02` - Reset
@@ -142,6 +150,8 @@ Example:
 ```
 08 04 08 6000 6000 0004 5802 02 00 01 04 04 00 0000 0000 0000000000000000000000
 ```
+
+NB: This likely includes touch screen width and height for SD+ devices.
 
 ### Feature report `09` - Read - Device total uptime
 

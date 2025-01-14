@@ -298,8 +298,8 @@ internal class StreamDeckDevice : IAsyncDisposable
 			ushort sliceLength = isLastSlice ? (ushort)remaining.Length : maxSliceLength;
 
 			buffer[3] = isLastSlice ? (byte)0x01 : (byte)0x00;
-			Unsafe.WriteUnaligned(ref buffer[4], BitConverter.IsLittleEndian ? sliceLength : BinaryPrimitives.ReverseEndianness(sliceLength));
-			Unsafe.WriteUnaligned(ref buffer[6], BitConverter.IsLittleEndian ? index : BinaryPrimitives.ReverseEndianness(index));
+			LittleEndian.Write(ref buffer[4], sliceLength);
+			LittleEndian.Write(ref buffer[6], index);
 			remaining.Span[..sliceLength].CopyTo(buffer[8..]);
 
 			return remaining[sliceLength..];
@@ -308,6 +308,51 @@ internal class StreamDeckDevice : IAsyncDisposable
 		var remaining = data;
 
 		remaining = PrepareRequest(buffer.Span, maxSliceLength, keyIndex, remaining);
+		ushort index = 0;
+		while (true)
+		{
+			await _stream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+			if (remaining.Length == 0) break;
+			remaining = UpdateRequest(buffer.Span, maxSliceLength, remaining, ++index);
+		}
+	}
+
+	public async Task SetTouchScreenRegionAsync(ushort x, ushort y, ushort width, ushort height, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+	{
+		var buffer = WriteBuffer;
+
+		ushort maxSliceLength = checked((ushort)(buffer.Length - 16));
+
+		static ReadOnlyMemory<byte> PrepareRequest(Span<byte> buffer, ushort x, ushort y, ushort width, ushort height, ushort maxSliceLength, ReadOnlyMemory<byte> remaining)
+		{
+			buffer[0] = 0x02;
+			buffer[1] = 0x0C;
+			LittleEndian.Write(ref buffer[2], x);
+			LittleEndian.Write(ref buffer[4], y);
+			LittleEndian.Write(ref buffer[6], width);
+			LittleEndian.Write(ref buffer[8], height);
+			LittleEndian.Write(ref buffer[15], 0);
+
+			return UpdateRequest(buffer, maxSliceLength, remaining, 0);
+		}
+
+		static ReadOnlyMemory<byte> UpdateRequest(Span<byte> buffer, ushort maxSliceLength, ReadOnlyMemory<byte> remaining, ushort index)
+		{
+			bool isLastSlice = remaining.Length <= maxSliceLength;
+			ushort sliceLength = isLastSlice ? (ushort)remaining.Length : maxSliceLength;
+
+			// NB: For some reason, the slice index & length are inversed compared to the call to set the key image 🤷
+			buffer[10] = isLastSlice ? (byte)0x01 : (byte)0x00;
+			LittleEndian.Write(ref buffer[11], index);
+			LittleEndian.Write(ref buffer[13], sliceLength);
+			remaining.Span[..sliceLength].CopyTo(buffer[16..]);
+
+			return remaining[sliceLength..];
+		}
+
+		var remaining = data;
+
+		remaining = PrepareRequest(buffer.Span, x, y, width, height, maxSliceLength, remaining);
 		ushort index = 0;
 		while (true)
 		{
@@ -339,8 +384,8 @@ internal class StreamDeckDevice : IAsyncDisposable
 
 			// NB: For some reason, the slice index & length are inversed compared to the call to set the key image 🤷
 			buffer[3] = isLastSlice ? (byte)0x01 : (byte)0x00;
-			Unsafe.WriteUnaligned(ref buffer[4], BitConverter.IsLittleEndian ? index : BinaryPrimitives.ReverseEndianness(index));
-			Unsafe.WriteUnaligned(ref buffer[6], BitConverter.IsLittleEndian ? sliceLength : BinaryPrimitives.ReverseEndianness(sliceLength));
+			LittleEndian.Write(ref buffer[4], index);
+			LittleEndian.Write(ref buffer[6], sliceLength);
 			remaining.Span[..sliceLength].CopyTo(buffer[8..]);
 
 			return remaining[sliceLength..];
