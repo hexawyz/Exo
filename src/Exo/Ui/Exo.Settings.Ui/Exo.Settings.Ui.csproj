@@ -32,6 +32,7 @@
     <None Remove="DevicesPage.xaml" />
     <None Remove="EditionToolbar.xaml" />
     <None Remove="HomePage.xaml" />
+    <None Remove="ImagesPage.xaml" />
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
     <None Remove="MonitorMiscSettingsControl.xaml" />
@@ -63,6 +64,7 @@
 		<PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.1.240916" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" IncludeAssets="None" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="protobuf-net.Grpc" />
@@ -84,6 +86,12 @@
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Page Update="ImagesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 	
   <ItemGroup>
