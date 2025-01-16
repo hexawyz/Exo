@@ -30,25 +30,21 @@
             </Grid>
         </Border>
         <Border Grid.Row="1" Padding="6" HorizontalAlignment="Stretch" Margin="{ThemeResource RowLabelMargin}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-            <ItemsView ItemsSource="{Binding Images}" MinHeight="250">
+            <ItemsView ItemsSource="{Binding Images}" MinHeight="250" HorizontalAlignment="Stretch">
                 <ItemsView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ImageViewModel">
                         <ItemContainer AutomationProperties.Name="{Binding Name}">
-                            <Grid Margin="6" MinHeight="200">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" MaxWidth="200" />
-                                    <ColumnDefinition Width="Auto" MinWidth="100" />
-                                </Grid.ColumnDefinitions>
-                                <Image Stretch="UniformToFill" Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" />
-                                <StackPanel Grid.Column="1" Margin="{ThemeResource RowContentMargin}">
-                                    <TextBox Text="{Binding Name}" Header="Name" Width="150" />
+                            <Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
+                                <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
+                                <StackPanel Orientation="Vertical" Height="40" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
                                 </StackPanel>
                             </Grid>
                         </ItemContainer>
                     </DataTemplate>
                 </ItemsView.ItemTemplate>
                 <ItemsView.Layout>
-                    <UniformGridLayout />
+                    <UniformGridLayout MinItemWidth="212" MinItemHeight="212" ItemsStretch="None" />
                 </ItemsView.Layout>
             </ItemsView>
         </Border>
