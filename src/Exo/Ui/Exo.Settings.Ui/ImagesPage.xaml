@@ -11,18 +11,46 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <Grid>
-        <ItemsView ItemsSource="{Binding Images.Images}">
-            <ItemsView.ItemTemplate>
-                <DataTemplate x:DataType="vm:ImageViewModel">
-                    <ItemContainer AutomationProperties.Name="{Binding Name}">
-                        <TextBox Text="{Binding Name}" />
-                    </ItemContainer>
-                </DataTemplate>
-            </ItemsView.ItemTemplate>
-            <ItemsView.Layout>
-                <UniformGridLayout />
-            </ItemsView.Layout>
-        </ItemsView>
+    <Grid DataContext="{Binding Images}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" MaxHeight="200" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border Margin="{ThemeResource RowLabelMargin}" Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MaxWidth="200" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Margin="{ThemeResource RowContentMargin}" Source="{Binding LoadedImageData, Converter={StaticResource ByteArrayToBitmapImageConverter}}" />
+                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="{ThemeResource RowContentMargin}">
+                    <Button Margin="{ThemeResource RowLabelMargin}" Click="OnOpenButtonClick" Width="120">Open</Button>
+                    <Button Margin="{ThemeResource RowLabelMargin}" Command="{Binding AddImageCommand}" Width="120" Style="{ThemeResource AccentButtonStyle}">Add</Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Padding="6" HorizontalAlignment="Stretch" Margin="{ThemeResource RowLabelMargin}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
+            <ItemsView ItemsSource="{Binding Images}" MinHeight="250">
+                <ItemsView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ImageViewModel">
+                        <ItemContainer AutomationProperties.Name="{Binding Name}">
+                            <Grid Margin="6" MinHeight="200">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MaxWidth="200" />
+                                    <ColumnDefinition Width="Auto" MinWidth="100" />
+                                </Grid.ColumnDefinitions>
+                                <Image Stretch="UniformToFill" Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" />
+                                <StackPanel Grid.Column="1" Margin="{ThemeResource RowContentMargin}">
+                                    <TextBox Text="{Binding Name}" Header="Name" Width="150" />
+                                </StackPanel>
+                            </Grid>
+                        </ItemContainer>
+                    </DataTemplate>
+                </ItemsView.ItemTemplate>
+                <ItemsView.Layout>
+                    <UniformGridLayout />
+                </ItemsView.Layout>
+            </ItemsView>
+        </Border>
     </Grid>
 </Page>

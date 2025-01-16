@@ -79,6 +79,8 @@
             <lconverters:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter" />
             <lconverters:SecondsToStringConverter x:Key="SecondsToStringConverter" />
             <lconverters:GridLengthConverter x:Key="GridLengthConverter" />
+            <lconverters:ByteArrayToBitmapImageConverter x:Key="ByteArrayToBitmapImageConverter" />
+            <lconverters:FileNameToBitmapImageConverter x:Key="FileNameToBitmapImageConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 
