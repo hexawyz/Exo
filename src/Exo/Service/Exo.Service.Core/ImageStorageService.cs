@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Images;
@@ -10,6 +11,7 @@ namespace Exo.Service;
 internal sealed class ImageStorageService
 {
 	[TypeId(0x1D185C1A, 0x4903, 0x4D4A, 0x91, 0x20, 0x69, 0x4A, 0xE5, 0x2C, 0x07, 0x7A)]
+	[method: JsonConstructor]
 	private readonly struct ImageMetadata(UInt128 id, ushort width, ushort height, ImageFormat format, bool isAnimated)
 	{
 		public UInt128 Id { get; } = id;
@@ -18,6 +20,8 @@ internal sealed class ImageStorageService
 		public ImageFormat Format { get; } = format;
 		public bool IsAnimated { get; } = isAnimated;
 	}
+
+	private static string GetFileName(string imageCacheDirectory, UInt128 imageId) => Path.Combine(imageCacheDirectory, imageId.ToString("x32", CultureInfo.InvariantCulture));
 
 	public static async Task<ImageStorageService> CreateAsync(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, CancellationToken cancellationToken)
 	{
@@ -35,10 +39,11 @@ internal sealed class ImageStorageService
 			var result = await imagesConfigurationContainer.ReadValueAsync<ImageMetadata>(imageName, cancellationToken).ConfigureAwait(false);
 			if (result.Found)
 			{
-				if (!File.Exists(Path.Combine(imageCacheDirectory, imageName + ".dat")))
+				if (!File.Exists(GetFileName(imageCacheDirectory, result.Value.Id)))
 				{
 					// TODO: Log warning about missing image being removed from the collection.
 					await imagesConfigurationContainer.DeleteValueAsync<ImageMetadata>(imageName).ConfigureAwait(false);
+					continue;
 				}
 				imageCollection.Add(imageName, result.Value);
 			}
@@ -61,8 +66,6 @@ internal sealed class ImageStorageService
 		_lock = new();
 	}
 
-	private string GetFileName(UInt128 imageId) => Path.Combine(_imageCacheDirectory, imageId.ToString("X32", CultureInfo.InvariantCulture));
-
 	public async IAsyncEnumerable<ImageChangeNotification> WatchChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		var channel = Watcher.CreateSingleWriterChannel<ImageChangeNotification>();
@@ -74,7 +77,7 @@ internal sealed class ImageStorageService
 			int i = 0;
 			foreach (var (name, metadata) in _imageCollection)
 			{
-				images[i++] = new(metadata.Id, name, GetFileName(metadata.Id), metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated);
+				images[i++] = new(metadata.Id, name, GetFileName(_imageCacheDirectory, metadata.Id), metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated);
 			}
 			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
 		}
@@ -146,7 +149,7 @@ internal sealed class ImageStorageService
 				isAnimated
 			);
 
-			string fileName = GetFileName(metadata.Id);
+			string fileName = GetFileName(_imageCacheDirectory, metadata.Id);
 			if (File.Exists(fileName)) throw new InvalidOperationException("An image with the same data already exists.");
 
 			await _imagesConfigurationContainer.WriteValueAsync(imageName, metadata, cancellationToken).ConfigureAwait(false);
@@ -167,7 +170,7 @@ internal sealed class ImageStorageService
 		{
 			if (_imageCollection.TryGetValue(imageName, out var metadata))
 			{
-				string fileName = GetFileName(metadata.Id);
+				string fileName = GetFileName(_imageCacheDirectory, metadata.Id);
 				File.Delete(fileName);
 				_imageCollection.Remove(imageName);
 

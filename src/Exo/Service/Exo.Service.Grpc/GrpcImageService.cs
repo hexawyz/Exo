@@ -1,3 +1,4 @@
+using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 
@@ -23,7 +24,11 @@ internal sealed class GrpcImageService : IImageService
 
 	public async ValueTask AddImageAsync(ImageRegistrationRequest request, CancellationToken cancellationToken)
 	{
-		await _imageStorageService.AddImageAsync(request.ImageName, request.Data, cancellationToken).ConfigureAwait(false);
+		using (var memoryMappedFile = MemoryMappedFile.CreateOrOpen(request.SharedMemoryName, (long)request.SharedMemoryLength, MemoryMappedFileAccess.Read))
+		using (var memoryManager = new MemoryMappedFileMemoryManager(memoryMappedFile, 0, (int)request.SharedMemoryLength, MemoryMappedFileAccess.Read))
+		{
+			await _imageStorageService.AddImageAsync(request.ImageName, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	public async ValueTask RemoveImageAsync(ImageReference request, CancellationToken cancellationToken)

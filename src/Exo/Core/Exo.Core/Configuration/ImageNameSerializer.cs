@@ -7,7 +7,7 @@ public sealed class ImageNameSerializer : INameSerializer<string>
 {
 	private static readonly SearchValues<char> AllowedCharacters = SearchValues.Create("+-0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
 
-	public static bool IsNameValid(ReadOnlySpan<char> name) => !name.ContainsAnyExcept(AllowedCharacters);
+	public static bool IsNameValid(ReadOnlySpan<char> name) => name.Length > 0 && !name.ContainsAnyExcept(AllowedCharacters);
 
 	public static ImageNameSerializer Instance = new();
 

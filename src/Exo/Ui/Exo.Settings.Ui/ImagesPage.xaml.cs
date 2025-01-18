@@ -28,11 +28,22 @@ public sealed partial class ImagesPage : Page
 		InitializeWithWindow.Initialize(fileOpenPicker, WindowNative.GetWindowHandle(App.Current.MainWindow));
 		var file = await fileOpenPicker.PickSingleFileAsync();
 		if (file is null) return;
-		byte[]? data = null;
+		SharedMemory? data;
 		using (var stream = await file.OpenStreamForReadAsync())
 		{
-			data = new byte[stream.Length];
-			await stream.ReadExactlyAsync(data);
+			long length = stream.Length;
+			if (length <= 0)
+			{
+				data = null;
+			}
+			else
+			{
+				data = SharedMemory.Create("Exo_Image_", (ulong)length);
+				using (var viewStream = data.CreateWriteStream())
+				{
+					await stream.CopyToAsync(viewStream);
+				}
+			}
 		}
 
 		if (data is not null)

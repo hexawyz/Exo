@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Collections.ObjectModel;
+using System.IO.MemoryMappedFiles;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
@@ -36,12 +38,16 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		}
 	}
 
+	private static readonly SearchValues<char> NameAllowedCharacters = SearchValues.Create("+-0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
+
+	public static bool IsNameValid(ReadOnlySpan<char> name) => name.Length > 0 && !name.ContainsAnyExcept(NameAllowedCharacters);
+
 	private readonly ObservableCollection<ImageViewModel> _images;
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _readOnlyImages;
 	private readonly Commands.AddImageCommand _addImageCommand;
 
 	private string? _loadedImageName;
-	private byte[]? _loadedImageData;
+	private SharedMemory? _loadedImageData;
 
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private IImageService? _imageService;
@@ -114,20 +120,39 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	public string? LoadedImageName
 	{
 		get => _loadedImageName;
-		private set => SetValue(ref _loadedImageName, value, ChangedProperty.LoadedImageName);
+		set
+		{
+			// Image names will be case insensitive, however, we want to consider all casing changes here.
+			if (!string.Equals(_loadedImageName, value, StringComparison.Ordinal))
+			{
+				bool couldAddImage = CanAddImage;
+				_loadedImageName = value;
+				NotifyPropertyChanged(ChangedProperty.LoadedImageName);
+				if (couldAddImage != CanAddImage) _addImageCommand.NotifyCanExecuteChanged();
+			}
+		}
 	}
 
-	public byte[]? LoadedImageData
+	public SharedMemory? LoadedImageData
 	{
 		get => _loadedImageData;
-		private set => SetValue(ref _loadedImageData, value, ChangedProperty.LoadedImageData);
+		private set
+		{
+			if (value != _loadedImageData)
+			{
+				bool couldAddImage = CanAddImage;
+				_loadedImageData?.Dispose();
+				_loadedImageData = value;
+				NotifyPropertyChanged(ChangedProperty.LoadedImageData);
+				if (couldAddImage != CanAddImage) _addImageCommand.NotifyCanExecuteChanged();
+			}
+		}
 	}
 
-	public void SetImage(string name, byte[] data)
+	public void SetImage(string name, SharedMemory data)
 	{
 		LoadedImageName = name;
 		LoadedImageData = data;
-		_addImageCommand.NotifyCanExecuteChanged();
 	}
 
 	public void ClearImage()
@@ -136,17 +161,19 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		LoadedImageData = null;
 	}
 
-	private bool CanAddImage => _loadedImageName is { Length: > 0 } && _loadedImageData is not null;
+	private bool CanAddImage => _loadedImageName is not null && IsNameValid(_loadedImageName) && _loadedImageData is not null;
 
 	private async Task AddImageAsync(CancellationToken cancellationToken)
 	{
-		if (_imageService is null || _loadedImageName is null || _loadedImageData is null) return;
+		if (_imageService is null || _loadedImageName is null || !IsNameValid(_loadedImageName) || _loadedImageData is null) return;
 
-		await _imageService.AddImageAsync(new() { ImageName = _loadedImageName, Data = _loadedImageData }, cancellationToken);
+		await _imageService.AddImageAsync(new() { ImageName = _loadedImageName, SharedMemoryName = _loadedImageData.Name, SharedMemoryLength = _loadedImageData.Length }, cancellationToken);
 		_loadedImageName = null;
+		_loadedImageData.Dispose();
 		_loadedImageData = null;
 		NotifyPropertyChanged(ChangedProperty.LoadedImageName);
 		NotifyPropertyChanged(ChangedProperty.LoadedImageData);
+		_addImageCommand.NotifyCanExecuteChanged();
 	}
 }
 
