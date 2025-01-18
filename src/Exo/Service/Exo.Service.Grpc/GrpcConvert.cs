@@ -31,10 +31,13 @@ using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInform
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
+using GrpcImageInformation = Exo.Contracts.Ui.Settings.ImageInformation;
+using GrpcImageFormat = Exo.Contracts.Ui.Settings.ImageFormat;
 using VendorIdSource = DeviceTools.VendorIdSource;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling.Configuration;
 using System.Numerics;
+using Exo.Images;
 
 namespace Exo.Service.Grpc;
 
@@ -122,6 +125,17 @@ internal static class GrpcConvert
 		{
 			DeviceId = sensorDeviceInformation.DeviceId,
 			Sensors = ImmutableArray.CreateRange(sensorDeviceInformation.Sensors, ToGrpc),
+		};
+
+	public static GrpcImageInformation ToGrpc(this ImageInformation imageInformation)
+		=> new()
+		{
+			ImageName = imageInformation.ImageName,
+			FileName = imageInformation.FileName,
+			Width = imageInformation.Width,
+			Height = imageInformation.Height,
+			Format = imageInformation.Format.ToGrpc(),
+			IsAnimated = imageInformation.IsAnimated,
 		};
 
 	public static GrpcSensorInformation ToGrpc(this SensorInformation sensorInformation)
@@ -428,5 +442,17 @@ internal static class GrpcConvert
 			MetadataArchiveCategory.Sensors => GrpcMetadataArchiveCategory.Sensors,
 			MetadataArchiveCategory.Coolers => GrpcMetadataArchiveCategory.Coolers,
 			_ => throw new NotImplementedException()
+		};
+
+	public static GrpcImageFormat ToGrpc(this ImageFormat imageFormat)
+		=> imageFormat switch
+		{
+			ImageFormat.Raw => GrpcImageFormat.Raw,
+			ImageFormat.Bitmap => GrpcImageFormat.Bitmap,
+			ImageFormat.Gif => GrpcImageFormat.Gif,
+			ImageFormat.Jpeg => GrpcImageFormat.Jpeg,
+			ImageFormat.Png => GrpcImageFormat.Png,
+			ImageFormat.WebP => GrpcImageFormat.WebP,
+			_ => throw new NotImplementedException(),
 		};
 }

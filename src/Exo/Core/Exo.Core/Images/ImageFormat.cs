@@ -9,4 +9,5 @@ public enum ImageFormat
 	Gif = 2,
 	Jpeg = 3,
 	Png = 4,
+	WebP = 5,
 }

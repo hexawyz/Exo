@@ -10,4 +10,5 @@ public enum ImageFormats
 	Gif = 0x00000100,
 	Jpeg = 0x00001000,
 	Png = 0x00010000,
+	WebP = 0x00100000,
 }
