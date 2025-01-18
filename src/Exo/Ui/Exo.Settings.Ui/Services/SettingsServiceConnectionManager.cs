@@ -153,6 +153,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private TaskCompletionSource<IMouseService> _mouseServiceTaskCompletionSource;
 	private TaskCompletionSource<IMonitorService> _monitorServiceTaskCompletionSource;
 	private TaskCompletionSource<ILightingService> _lightingServiceTaskCompletionSource;
+	private TaskCompletionSource<IImageService> _imageServiceTaskCompletionSource;
 	private TaskCompletionSource<ISensorService> _sensorServiceTaskCompletionSource;
 	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
@@ -175,6 +176,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_mouseServiceTaskCompletionSource = new();
 		_monitorServiceTaskCompletionSource = new();
 		_lightingServiceTaskCompletionSource = new();
+		_imageServiceTaskCompletionSource = new();
 		_sensorServiceTaskCompletionSource = new();
 		_coolingServiceTaskCompletionSource = new();
 		_customMenuServiceTaskCompletionSource = new();
@@ -198,6 +200,9 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public Task<ILightingService> GetLightingServiceAsync(CancellationToken cancellationToken)
 		=> _lightingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
+
+	public Task<IImageService> GetImageServiceAsync(CancellationToken cancellationToken)
+		=> _imageServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ISensorService> GetSensorServiceAsync(CancellationToken cancellationToken)
 		=> _sensorServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -246,6 +251,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Connect(channel, _mouseServiceTaskCompletionSource);
 		Connect(channel, _monitorServiceTaskCompletionSource);
 		Connect(channel, _lightingServiceTaskCompletionSource);
+		Connect(channel, _imageServiceTaskCompletionSource);
 		Connect(channel, _sensorServiceTaskCompletionSource);
 		Connect(channel, _coolingServiceTaskCompletionSource);
 		Connect(channel, _customMenuServiceTaskCompletionSource);
@@ -270,6 +276,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Reset(ref _mouseServiceTaskCompletionSource);
 		Reset(ref _monitorServiceTaskCompletionSource);
 		Reset(ref _lightingServiceTaskCompletionSource);
+		Reset(ref _imageServiceTaskCompletionSource);
 		Reset(ref _sensorServiceTaskCompletionSource);
 		Reset(ref _coolingServiceTaskCompletionSource);
 		Reset(ref _customMenuServiceTaskCompletionSource);

@@ -63,4 +63,6 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs HasLowPowerBatteryThreshold = new (nameof(HasLowPowerBatteryThreshold));
 	public static readonly PropertyChangedEventArgs HasIdleTimer = new (nameof(HasIdleTimer));
 	public static readonly PropertyChangedEventArgs HasWirelessBrightness = new (nameof(HasWirelessBrightness));
+	public static readonly PropertyChangedEventArgs LoadedImageName = new (nameof(LoadedImageName));
+	public static readonly PropertyChangedEventArgs LoadedImageData = new (nameof(LoadedImageData));
 }

@@ -76,9 +76,9 @@ internal sealed class SettingsViewModel : BindableObject
 	public PageViewModel HomePage { get; }
 	public PageViewModel DevicesPage { get; }
 	public PageViewModel LightingPage { get; }
-	public PageViewModel ImagesPage { get; }
 	public PageViewModel SensorsPage { get; }
 	public PageViewModel CoolingPage { get; }
+	public PageViewModel ImagesPage { get; }
 	public PageViewModel CustomMenuPage { get; }
 	public PageViewModel ProgrammingPage { get; }
 
@@ -105,7 +105,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_devicesViewModel = new(ConnectionManager, _metadataService, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
-		_imagesViewModel = new();
+		_imagesViewModel = new(ConnectionManager);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);
@@ -114,12 +114,12 @@ internal sealed class SettingsViewModel : BindableObject
 		HomePage = new("Home", "\uE80F");
 		DevicesPage = new("Devices", "\uE772");
 		LightingPage = new("Lighting", "\uE781");
-		ImagesPage = new("Images", "\uE8B9");
 		SensorsPage = new("Sensors", "\uE9D9");
 		CoolingPage = new("Cooling", "\uE9CA");
+		ImagesPage = new("Images", "\uE8B9");
 		CustomMenuPage = new("CustomMenu", "\uEDE3");
 		ProgrammingPage = new("Programming", "\uE943");
-		NavigationPages = [HomePage, DevicesPage, LightingPage, ImagesPage, SensorsPage, CoolingPage, CustomMenuPage, ProgrammingPage];
+		NavigationPages = [HomePage, DevicesPage, LightingPage, SensorsPage, CoolingPage, ImagesPage, CustomMenuPage, ProgrammingPage];
 		SelectedNavigationPage = HomePage;
 
 		connectionViewModel.PropertyChanged += OnConnectionViewModelPropertyChanged;
@@ -149,8 +149,8 @@ internal sealed class SettingsViewModel : BindableObject
 	public BatteryDevicesViewModel BatteryDevices => _batteryDevicesViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
 	public SensorsViewModel Sensors => _sensorsViewModel;
-	public ImagesViewModel Images => _imagesViewModel;
 	public CoolingViewModel Cooling => _coolingViewModel;
+	public ImagesViewModel Images => _imagesViewModel;
 	public ProgrammingViewModel Programming => _programmingViewModel;
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;

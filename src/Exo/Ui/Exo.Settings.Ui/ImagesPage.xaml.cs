@@ -38,7 +38,6 @@ public sealed partial class ImagesPage : Page
 		if (data is not null)
 		{
 			ViewModel.Images.SetImage(Path.GetFileNameWithoutExtension(file.Path), data);
-			ViewModel.Images.TestAddImageToList(file.Path);
 		}
 		else
 		{

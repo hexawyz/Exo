@@ -24,6 +24,7 @@ internal sealed class ProgrammingViewModel : BindableObject, IConnectedState, IA
 	{
 		_cancellationTokenSource.Dispose();
 		_cancellationTokenSource.Cancel();
+		_stateRegistration.Dispose();
 		return ValueTask.CompletedTask;
 	}
 
