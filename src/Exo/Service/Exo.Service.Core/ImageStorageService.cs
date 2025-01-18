@@ -7,7 +7,7 @@ using Exo.Images;
 
 namespace Exo.Service;
 
-internal sealed class ImagesService
+internal sealed class ImageStorageService
 {
 	[TypeId(0x1D185C1A, 0x4903, 0x4D4A, 0x91, 0x20, 0x69, 0x4A, 0xE5, 0x2C, 0x07, 0x7A)]
 	private readonly struct ImageMetadata(UInt128 id, ushort width, ushort height, ImageFormat format, bool isAnimated)
@@ -19,7 +19,7 @@ internal sealed class ImagesService
 		public bool IsAnimated { get; } = isAnimated;
 	}
 
-	public async Task<ImagesService> CreateAsync(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, CancellationToken cancellationToken)
+	public static async Task<ImageStorageService> CreateAsync(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, CancellationToken cancellationToken)
 	{
 		if (!Path.IsPathRooted(imageCacheDirectory)) throw new ArgumentException("Images directory path must be rooted.");
 
@@ -53,7 +53,7 @@ internal sealed class ImagesService
 	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
 	private readonly AsyncLock _lock;
 
-	private ImagesService(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, Dictionary<string, ImageMetadata> imageCollection)
+	private ImageStorageService(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, Dictionary<string, ImageMetadata> imageCollection)
 	{
 		_imagesConfigurationContainer = imagesConfigurationContainer;
 		_imageCacheDirectory = imageCacheDirectory;
@@ -98,14 +98,14 @@ internal sealed class ImagesService
 		}
 	}
 
-	public async ValueTask AddImageAsync(string imageName, byte[] data, CancellationToken cancellationToken)
+	public async ValueTask AddImageAsync(string imageName, Memory<byte> data, CancellationToken cancellationToken)
 	{
 		if (!ImageNameSerializer.IsNameValid(imageName)) throw new ArgumentException("Invalid name.");
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			if (_imageCollection.ContainsKey(imageName)) throw new ArgumentException("Name already in use.");
 
-			var info = SixLabors.ImageSharp.Image.Identify(data);
+			var info = SixLabors.ImageSharp.Image.Identify(data.Span);
 
 			ImageFormat imageFormat;
 			bool isAnimated = false;
@@ -139,7 +139,7 @@ internal sealed class ImagesService
 
 			var metadata = new ImageMetadata
 			(
-				XxHash128.HashToUInt128(data, unchecked((long)0x90AB71E534FD62C8U)),
+				XxHash128.HashToUInt128(data.Span, unchecked((long)0x90AB71E534FD62C8U)),
 				checked((ushort)info.Width),
 				checked((ushort)info.Height),
 				imageFormat,
@@ -170,6 +170,11 @@ internal sealed class ImagesService
 				string fileName = GetFileName(metadata.Id);
 				File.Delete(fileName);
 				_imageCollection.Remove(imageName);
+
+				if (Volatile.Read(ref _changeListeners) is { } changeListeners)
+				{
+					changeListeners.TryWrite(new(WatchNotificationKind.Removal, new(metadata.Id, imageName, fileName, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated)));
+				}
 			}
 		}
 	}

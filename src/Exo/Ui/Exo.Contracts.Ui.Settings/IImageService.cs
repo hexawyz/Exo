@@ -5,7 +5,7 @@ namespace Exo.Contracts.Ui.Settings;
 /// <summary>This service manages the internal image collection.</summary>
 /// <remarks>The image collection is a persisted collection of images to be used within the service.</remarks>
 [ServiceContract(Name = "Images")]
-public interface IImagesService
+public interface IImageService
 {
 	/// <summary>Watches information on images available in the service.</summary>
 	/// <remarks>Images available are not necessarily loaded in memory.</remarks>

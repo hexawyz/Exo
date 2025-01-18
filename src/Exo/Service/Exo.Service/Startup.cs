@@ -30,6 +30,8 @@ public class Startup
 	// This method gets called by the runtime. Use this method to add services to the container.
 	public void ConfigureServices(IServiceCollection services)
 	{
+		string baseDirectory = Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!;
+
 		services.AddRazorPages();
 		services.AddSingleton
 		(
@@ -42,7 +44,7 @@ public class Startup
 		(
 			sp =>
 			{
-				var configurationService = new ConfigurationService(Path.Combine(Path.GetDirectoryName(typeof(Startup).Assembly.Location!)!, "cfg"));
+				var configurationService = new ConfigurationService(Path.Combine(baseDirectory, "cfg"));
 				ConfigurationMigrationService.InitializeAsync(configurationService, Program.GitCommitId, default).GetAwaiter().GetResult();
 				return configurationService;
 			}
@@ -54,6 +56,7 @@ public class Startup
 		services.AddKeyedSingleton(ConfigurationContainerNames.Assembly, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, AssemblyNameSerializer.Instance));
 		services.AddKeyedSingleton(ConfigurationContainerNames.CustomMenu, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
 		services.AddKeyedSingleton(ConfigurationContainerNames.Lighting, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Images, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, ImageNameSerializer.Instance));
 		if (Environment.IsDevelopment())
 		{
 			services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();
@@ -164,6 +167,15 @@ public class Startup
 		services.AddSingleton<ImageService>();
 		services.AddSingleton
 		(
+			sp => ImageStorageService.CreateAsync
+			(
+				sp.GetRequiredKeyedService<IConfigurationContainer<string>>(ConfigurationContainerNames.Images),
+				Path.Combine(baseDirectory, "img"),
+				default
+			).GetAwaiter().GetResult()
+		);
+		services.AddSingleton
+		(
 			sp => CustomMenuService.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<CustomMenuService>>(),
@@ -239,6 +251,7 @@ public class Startup
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcPowerService>();
 		services.AddSingleton<GrpcLightingService>();
+		services.AddSingleton<GrpcImageService>();
 		services.AddSingleton<GrpcSensorService>();
 		services.AddSingleton<GrpcCoolingService>();
 		services.AddSingleton<GrpcMouseService>();
@@ -281,6 +294,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcPowerService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcImageService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcSensorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcCoolingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
