@@ -101,7 +101,7 @@ internal sealed class ImageStorageService
 		}
 	}
 
-	public async ValueTask AddImageAsync(string imageName, Memory<byte> data, CancellationToken cancellationToken)
+	public async ValueTask AddImageAsync(string imageName, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 	{
 		if (!ImageNameSerializer.IsNameValid(imageName)) throw new ArgumentException("Invalid name.");
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
