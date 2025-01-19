@@ -28,17 +28,24 @@ internal class DeviceViewModel : BindableObject
 
 		if (deviceInformation.FeatureIds is not null)
 		{
-			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.PowerDeviceFeature))
+			foreach (var featureId in deviceInformation.FeatureIds)
 			{
-				PowerFeatures = new(this, powerService);
-			}
-			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MouseDeviceFeature))
-			{
-				MouseFeatures = new(this, mouseService);
-			}
-			if (deviceInformation.FeatureIds.Contains(WellKnownGuids.MonitorDeviceFeature))
-			{
-				MonitorFeatures = new(this, metadataService, connectionManager);
+				if (featureId == WellKnownGuids.PowerDeviceFeature)
+				{
+					PowerFeatures ??= new(this, powerService);
+				}
+				else if (featureId == WellKnownGuids.MouseDeviceFeature)
+				{
+					MouseFeatures ??= new(this, mouseService);
+				}
+				else if (featureId == WellKnownGuids.MonitorDeviceFeature)
+				{
+					MonitorFeatures ??= new(this, metadataService, connectionManager);
+				}
+				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
+				{
+					EmbeddedMonitorFeatures ??= new(this);
+				}
 			}
 		}
 	}
@@ -120,6 +127,9 @@ internal class DeviceViewModel : BindableObject
 	// If the device is a mouse, this hosts the mouse-related features.
 	public MouseDeviceFeaturesViewModel? MouseFeatures { get; }
 
-	// If the device is a monitor, this hosts the mouse-related features.
+	// If the device is a monitor, this hosts the monitor-related features.
 	public MonitorDeviceFeaturesViewModel? MonitorFeatures { get; }
+
+	// If the device has embedded monitors, this hosts the embedded monitor-related features.
+	public EmbeddedMonitorFeaturesViewModel? EmbeddedMonitorFeatures { get; }
 }
