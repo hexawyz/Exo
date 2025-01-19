@@ -94,7 +94,14 @@ internal sealed class SettingsViewModel : BindableObject
 
 	public ISettingsMetadataService MetadataService => _metadataService;
 
-	public SettingsViewModel(SettingsServiceConnectionManager connectionManager, ConnectionViewModel connectionViewModel, IEditionService editionService, ISettingsMetadataService metadataService)
+	public SettingsViewModel
+	(
+		SettingsServiceConnectionManager connectionManager,
+		ConnectionViewModel connectionViewModel,
+		IEditionService editionService,
+		IFileOpenDialog fileOpenDialog,
+		ISettingsMetadataService metadataService
+	)
 	{
 		ConnectionManager = connectionManager;
 		_connectionViewModel = connectionViewModel;
@@ -105,7 +112,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_devicesViewModel = new(ConnectionManager, _metadataService, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
-		_imagesViewModel = new(ConnectionManager);
+		_imagesViewModel = new(ConnectionManager, fileOpenDialog);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);

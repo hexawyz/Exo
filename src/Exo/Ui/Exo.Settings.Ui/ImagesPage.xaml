@@ -25,7 +25,7 @@
                 <Image Margin="{ThemeResource RowContentMargin}" Source="{Binding LoadedImageData, Converter={StaticResource SharedMemoryToBitmapImageConverter}}" />
                 <StackPanel Grid.Column="1" Orientation="Vertical" Margin="{ThemeResource RowContentMargin}">
                     <TextBox Text="{Binding LoadedImageName, Mode=TwoWay}" Header="Name" Width="250" IsEnabled="{Binding LoadedImageData, Converter={StaticResource NullabilityToBooleanConverter}}" />
-                    <Button Margin="{ThemeResource RowLabelMargin}" Click="OnOpenButtonClick" Width="120">Open</Button>
+                    <Button Margin="{ThemeResource RowLabelMargin}" Command="{Binding OpenImageCommand}" Width="120">Open…</Button>
                     <Button Margin="{ThemeResource RowLabelMargin}" Command="{Binding AddImageCommand}" Width="120" Style="{ThemeResource AccentButtonStyle}">Add</Button>
                 </StackPanel>
             </Grid>
@@ -37,17 +37,15 @@
                         <ItemContainer AutomationProperties.Name="{Binding Name}">
                             <Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
                                 <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
-                                <StackPanel Orientation="Vertical" Height="40" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
+                                <StackPanel Orientation="Vertical" Height="60" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Size: " />
-                                        <TextBlock Text="{Binding Width}" />
-                                        <TextBlock Text="x" />
-                                        <TextBlock Text="{Binding Height}" />
+                                        <TextBlock Text="{Binding Width}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                        <TextBlock Text="x" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                        <TextBlock Text="{Binding Height}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Format: " />
-                                        <TextBlock Text="{Binding Format}" />
+                                        <TextBlock Text="{Binding Format}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
                                     </StackPanel>
                                 </StackPanel>
                             </Grid>

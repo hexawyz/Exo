@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.ObjectModel;
+using System.Security.Cryptography;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
 using Exo.Memory;
@@ -12,6 +13,30 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 {
 	private static class Commands
 	{
+		public sealed class OpenImageCommand : ICommand
+		{
+			private readonly ImagesViewModel _viewModel;
+
+			public OpenImageCommand(ImagesViewModel viewModel) => _viewModel = viewModel;
+
+			public event EventHandler? CanExecuteChanged;
+
+			public bool CanExecute(object? parameter) => _viewModel.IsNotBusy;
+
+			public async void Execute(object? parameter)
+			{
+				try
+				{
+					await _viewModel.OpenImageAsync(default);
+				}
+				catch
+				{
+				}
+			}
+
+			public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
+
 		public sealed class AddImageCommand : ICommand
 		{
 			private readonly ImagesViewModel _viewModel;
@@ -43,21 +68,26 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 	private readonly ObservableCollection<ImageViewModel> _images;
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _readOnlyImages;
+	private readonly Commands.OpenImageCommand _openImageCommand;
 	private readonly Commands.AddImageCommand _addImageCommand;
 
+	private bool _isReady;
 	private string? _loadedImageName;
 	private SharedMemory? _loadedImageData;
 
 	private readonly SettingsServiceConnectionManager _connectionManager;
+	private readonly IFileOpenDialog _fileOpenDialog;
 	private IImageService? _imageService;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly IDisposable _stateRegistration;
 
-	public ImagesViewModel(SettingsServiceConnectionManager connectionManager)
+	public ImagesViewModel(SettingsServiceConnectionManager connectionManager, IFileOpenDialog fileOpenDialog)
 	{
 		_images = new();
 		_readOnlyImages = new(_images);
 		_connectionManager = connectionManager;
+		_fileOpenDialog = fileOpenDialog;
+		_openImageCommand = new(this);
 		_addImageCommand = new(this);
 		_cancellationTokenSource = new();
 		_stateRegistration = connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
@@ -71,6 +101,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	}
 
 	public ReadOnlyObservableCollection<ImageViewModel> Images => _readOnlyImages;
+	public ICommand OpenImageCommand => _openImageCommand;
 	public ICommand AddImageCommand => _addImageCommand;
 
 	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
@@ -80,12 +111,15 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		{
 			var imageService = await _connectionManager.GetImageServiceAsync(cts2.Token);
 			_imageService = imageService;
+			IsNotBusy = true;
 			await WatchImagesAsync(imageService, cts2.Token);
 		}
 	}
 
 	void IConnectedState.Reset()
 	{
+		IsNotBusy = false;
+		ClearImage();
 		_imageService = null;
 		_images.Clear();
 	}
@@ -112,6 +146,20 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 					}
 				}
 				break;
+			}
+		}
+	}
+
+	public bool IsNotBusy
+	{
+		get => _isReady;
+		private set
+		{
+			bool couldAddImage = CanAddImage;
+			if (SetValue(ref _isReady, value, ChangedProperty.IsNotBusy))
+			{
+				_openImageCommand.NotifyCanExecuteChanged();
+				if (couldAddImage != CanAddImage) _addImageCommand.NotifyCanExecuteChanged();
 			}
 		}
 	}
@@ -148,19 +196,59 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		}
 	}
 
-	public void SetImage(string name, SharedMemory data)
+	private void SetImage(string name, SharedMemory data)
 	{
 		LoadedImageName = name;
 		LoadedImageData = data;
 	}
 
-	public void ClearImage()
+	private void ClearImage()
 	{
 		LoadedImageName = null;
 		LoadedImageData = null;
 	}
 
-	private bool CanAddImage => _loadedImageName is not null && IsNameValid(_loadedImageName) && _loadedImageData is not null;
+	private bool CanAddImage => _isReady && _loadedImageName is not null && IsNameValid(_loadedImageName) && _loadedImageData is not null;
+
+	private async Task OpenImageAsync(CancellationToken cancellationToken)
+	{
+		var file = await _fileOpenDialog.OpenAsync([".bmp", ".gif", ".png", ".jpg", ".webp",]);
+
+		if (file is null) return;
+		SharedMemory? data;
+		using (var stream = await file.OpenForReadAsync())
+		{
+			long length = stream.Length;
+			if (length <= 0)
+			{
+				data = null;
+			}
+			else
+			{
+				data = SharedMemory.Create("Exo_Image_", (ulong)length);
+				using (var viewStream = data.CreateWriteStream())
+				{
+					await stream.CopyToAsync(viewStream);
+				}
+			}
+		}
+
+		if (data is not null)
+		{
+			string? name = null;
+			if (file.Path is { Length: > 0 } path)
+			{
+				name = Path.GetFileNameWithoutExtension(path);
+				if (!IsNameValid(name)) name = null;
+			}
+			if (name is null) name = "img_" + RandomNumberGenerator.GetHexString(8);
+			SetImage(name, data);
+		}
+		else
+		{
+			ClearImage();
+		}
+	}
 
 	private async Task AddImageAsync(CancellationToken cancellationToken)
 	{

@@ -22,6 +22,10 @@ using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI;
 using System.Runtime.InteropServices;
+using WinRT.Interop;
+using Windows.Storage.Pickers;
+using Windows.Storage;
+using System.Collections.Immutable;
 
 namespace Exo.Settings.Ui;
 
@@ -88,11 +92,15 @@ public partial class App : Application
 	{
 		var services = new ServiceCollection();
 
+		services.AddSingleton(sp => App.Current.MainWindow!);
+
 		services.AddSingleton<IEditionService, EditionService>();
 
 		services.AddSingleton<ConnectionViewModel>();
 
 		services.AddSingleton<ISettingsMetadataService, MetadataService>();
+
+		services.AddSingleton<IFileOpenDialog, FileOpenDialog>();
 
 		services.AddSingleton
 		(
@@ -112,5 +120,37 @@ public partial class App : Application
 		services.AddSingleton<SettingsViewModel>();
 
 		return services.BuildServiceProvider();
+	}
+
+	private sealed class FileOpenDialog : IFileOpenDialog
+	{
+		private readonly Window _mainWindow;
+
+		public FileOpenDialog(Window mainWindow) => _mainWindow = mainWindow;
+
+		async Task<IPickedFile?> IFileOpenDialog.OpenAsync(ImmutableArray<string> extensions)
+		{
+			var fileOpenPicker = new FileOpenPicker();
+			foreach (var extension in extensions)
+			{
+				fileOpenPicker.FileTypeFilter.Add(extension);
+			}
+
+			InitializeWithWindow.Initialize(fileOpenPicker, WindowNative.GetWindowHandle(_mainWindow));
+			return await fileOpenPicker.PickSingleFileAsync() is { } file ?
+				new PickedFile(file) :
+				null;
+		}
+	}
+
+	private sealed class PickedFile : IPickedFile
+	{
+		private readonly StorageFile _file;
+
+		public PickedFile(StorageFile file)
+			=> _file = file;
+
+		public string? Path => _file.Path;
+		public Task<Stream> OpenForReadAsync() => _file.OpenStreamForReadAsync();
 	}
 }
