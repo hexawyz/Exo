@@ -22,7 +22,7 @@
                     <ColumnDefinition Width="*" MaxWidth="200" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Image Margin="{ThemeResource RowContentMargin}" Source="{Binding LoadedImageData, Converter={StaticResource SharedMemoryToBitmapImageConverter}}" />
+                <Image Margin="{ThemeResource RowContentMargin}" Source="{Binding LoadedImageData, Converter={StaticResource ByteArrayToBitmapImageConverter}}" />
                 <StackPanel Grid.Column="1" Orientation="Vertical" Margin="{ThemeResource RowContentMargin}">
                     <TextBox Text="{Binding LoadedImageName, Mode=TwoWay}" Header="Name" Width="250" IsEnabled="{Binding LoadedImageData, Converter={StaticResource NullabilityToBooleanConverter}}" />
                     <Button Margin="{ThemeResource RowLabelMargin}" Command="{Binding OpenImageCommand}" Width="120">Open…</Button>

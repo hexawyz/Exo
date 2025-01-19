@@ -3,12 +3,10 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts.Ui.Settings;
 
 [DataContract]
-public sealed class ImageRegistrationRequest
+public sealed class ImageRegistrationBeginResponse
 {
 	[DataMember(Order = 1)]
-	public required string ImageName { get; init; }
+	public required Guid RequestId { get; init; }
 	[DataMember(Order = 2)]
 	public required string SharedMemoryName { get; init; }
-	[DataMember(Order = 3)]
-	public required ulong SharedMemoryLength { get; init; }
 }

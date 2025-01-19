@@ -262,7 +262,7 @@ public class Startup
 		services.AddSingleton<GrpcServiceLifetimeService>();
 		services.AddSingleton<IOverlayCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddSingleton<ISettingsCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
-		services.AddCodeFirstGrpc();
+		services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = 512 * 1024);
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

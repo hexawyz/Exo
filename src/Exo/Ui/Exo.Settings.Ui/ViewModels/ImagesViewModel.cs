@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.ObjectModel;
+using System.IO.MemoryMappedFiles;
 using System.Security.Cryptography;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
@@ -73,7 +74,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 	private bool _isReady;
 	private string? _loadedImageName;
-	private SharedMemory? _loadedImageData;
+	private byte[]? _loadedImageData;
 
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly IFileOpenDialog _fileOpenDialog;
@@ -180,7 +181,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		}
 	}
 
-	public SharedMemory? LoadedImageData
+	public byte[]? LoadedImageData
 	{
 		get => _loadedImageData;
 		private set
@@ -188,7 +189,6 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			if (value != _loadedImageData)
 			{
 				bool couldAddImage = CanAddImage;
-				_loadedImageData?.Dispose();
 				_loadedImageData = value;
 				NotifyPropertyChanged(ChangedProperty.LoadedImageData);
 				if (couldAddImage != CanAddImage) _addImageCommand.NotifyCanExecuteChanged();
@@ -196,7 +196,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		}
 	}
 
-	private void SetImage(string name, SharedMemory data)
+	private void SetImage(string name, byte[] data)
 	{
 		LoadedImageName = name;
 		LoadedImageData = data;
@@ -215,7 +215,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		var file = await _fileOpenDialog.OpenAsync([".bmp", ".gif", ".png", ".jpg", ".webp",]);
 
 		if (file is null) return;
-		SharedMemory? data;
+		byte[]? data;
 		using (var stream = await file.OpenForReadAsync())
 		{
 			long length = stream.Length;
@@ -225,11 +225,8 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			}
 			else
 			{
-				data = SharedMemory.Create("Exo_Image_", (ulong)length);
-				using (var viewStream = data.CreateWriteStream())
-				{
-					await stream.CopyToAsync(viewStream);
-				}
+				data = new byte[length];
+				await stream.ReadExactlyAsync(data, cancellationToken);
 			}
 		}
 
@@ -253,14 +250,31 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	private async Task AddImageAsync(CancellationToken cancellationToken)
 	{
 		if (_imageService is null || _loadedImageName is null || !IsNameValid(_loadedImageName) || _loadedImageData is null) return;
-
-		await _imageService.AddImageAsync(new() { ImageName = _loadedImageName, SharedMemoryName = _loadedImageData.Name, SharedMemoryLength = _loadedImageData.Length }, cancellationToken);
-		_loadedImageName = null;
-		_loadedImageData.Dispose();
-		_loadedImageData = null;
-		NotifyPropertyChanged(ChangedProperty.LoadedImageName);
-		NotifyPropertyChanged(ChangedProperty.LoadedImageData);
-		_addImageCommand.NotifyCanExecuteChanged();
+		IsNotBusy = false;
+		try
+		{
+			bool isDone = false;
+			await foreach (var response in _imageService.BeginAddImageAsync(new() { ImageName = _loadedImageName, Length = (uint)_loadedImageData.Length }, cancellationToken))
+			{
+				if (isDone) throw new InvalidOperationException();
+				using (var sharedMemory = SharedMemory.Open(response.SharedMemoryName, (uint)_loadedImageData.Length, MemoryMappedFileAccess.Write))
+				using (var memoryManager = sharedMemory.CreateMemoryManager(MemoryMappedFileAccess.Write))
+				{
+					_loadedImageData.AsSpan().CopyTo(memoryManager.GetSpan());
+				}
+				await _imageService.EndAddImageAsync(new() { RequestId = response.RequestId }, cancellationToken);
+				isDone = true;
+			}
+			_loadedImageName = null;
+			_loadedImageData = null;
+			NotifyPropertyChanged(ChangedProperty.LoadedImageName);
+			NotifyPropertyChanged(ChangedProperty.LoadedImageData);
+			_addImageCommand.NotifyCanExecuteChanged();
+		}
+		finally
+		{
+			IsNotBusy = true;
+		}
 	}
 }
 
