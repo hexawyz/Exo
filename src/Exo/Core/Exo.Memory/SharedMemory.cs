@@ -1,20 +1,24 @@
 using System.IO.MemoryMappedFiles;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
 
 namespace Exo.Memory;
 
 public sealed class SharedMemory : IDisposable
 {
-	private static readonly string DefaultPrefix = GetAcceptablePrefix();
+	private static readonly bool CanCreateGlobalSharedMemory = DetectCreateGlobalPrivilege();
+	private static string DefaultPrefix => CanCreateGlobalSharedMemory ? @"Global\" : @"Local\";
 
-	private static string GetAcceptablePrefix()
+	private static bool DetectCreateGlobalPrivilege()
 	{
 		var seCreateGlobalPrivilege = NativeMethods.GetPrivilegeValue(NativeMethods.SeCreateGlobalPrivilege);
 		foreach (var privilege in NativeMethods.GetProcessPrivileges())
 		{
-			if (privilege.Luid == seCreateGlobalPrivilege) return @"Global\";
+			if (privilege.Luid == seCreateGlobalPrivilege && (privilege.Attributes & NativeMethods.PrivilegeAttributes.Enabled) != 0) return true;
 		}
-		return @"Local\";
+		return false;
 	}
 
 	public static SharedMemory Create(string prefix, ulong length)
@@ -33,7 +37,34 @@ public sealed class SharedMemory : IDisposable
 				RandomNumberGenerator.GetHexString(span[(DefaultPrefix.Length + prefix.Length)..], true);
 			}
 		);
-		return new(name, MemoryMappedFile.CreateNew(name, (long)length, MemoryMappedFileAccess.ReadWrite, MemoryMappedFileOptions.None, HandleInheritability.None), length);
+		var memoryMappedFile = MemoryMappedFile.CreateNew(name, (long)length, MemoryMappedFileAccess.ReadWrite, MemoryMappedFileOptions.None, HandleInheritability.None);
+		// When creating a memory mapped file in the GLobal namespace, we want to adjust the privileges to allow non privileged clients to access it.
+		if (CanCreateGlobalSharedMemory)
+		{
+			// This is a dirty workaround to override security of the memory mapped file, as security for memory mapped files has not been ported to .NET Core ☹️
+			// Found here: https://github.com/dotnet/runtime/issues/48793#issuecomment-2299577613
+			using (var mutex = new Mutex())
+			{
+				mutex.SafeWaitHandle.Close();
+				mutex.SafeWaitHandle = new SafeWaitHandle(memoryMappedFile.SafeMemoryMappedFileHandle.DangerousGetHandle(), false);
+
+#pragma warning disable CA1416 // Validate platform compatibility
+				var security = mutex.GetAccessControl();
+				security.AddAccessRule
+				(
+					new MutexAccessRule
+					(
+						new SecurityIdentifier(WellKnownSidType.InteractiveSid, null),
+						// Read + Write
+						(MutexRights)6,
+						AccessControlType.Allow
+					)
+				);
+				mutex.SetAccessControl(security);
+#pragma warning restore CA1416 // Validate platform compatibility
+			}
+		}
+		return new(name, memoryMappedFile, length);
 	}
 
 	public static SharedMemory Open(string name, ulong length, MemoryMappedFileAccess access)

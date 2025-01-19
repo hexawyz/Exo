@@ -11,6 +11,7 @@
 		<PackageReference Update="System.Security.AccessControl" Version="6.0.1" />
 		<PackageReference Update="System.ServiceModel.Primitives" Version="8.1.1" />
 		<PackageReference Update="System.Threading.Channels" Version="9.0.0" />
+		<PackageReference Update="System.Threading.AccessControl" Version="9.0.1" />
 		<PackageReference Update="coverlet.collector" Version="6.0.2" />
 		<PackageReference Update="Grpc.AspNetCore.Server" Version="2.67.0" />
 		<PackageReference Update="Grpc.Net.Client" Version="2.67.0" />
