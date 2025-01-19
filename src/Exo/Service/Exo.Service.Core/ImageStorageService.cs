@@ -181,6 +181,8 @@ internal sealed class ImageStorageService
 
 			await File.WriteAllBytesAsync(fileName, data, cancellationToken).ConfigureAwait(false);
 
+			_imageCollection.Add(imageName, metadata);
+
 			if (Volatile.Read(ref _changeListeners) is { } changeListeners)
 			{
 				changeListeners.TryWrite(new(WatchNotificationKind.Addition, new(metadata.Id, imageName, fileName, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated)));

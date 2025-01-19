@@ -7,11 +7,11 @@ using DeviceTools.HumanInterfaceDevices;
 using DeviceTools.HumanInterfaceDevices.Usages;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.EmbeddedMonitors;
 using Exo.Features.Monitors;
 using Exo.Features.PowerManagement;
 using Exo.Images;
 using Exo.Monitors;
-using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Elgato.StreamDeck;
 
@@ -37,6 +37,7 @@ public sealed class StreamDeckDeviceDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
+	IDeviceDriver<IEmbeddedMonitorDeviceFeature>,
 	IDeviceDriver<IPowerManagementDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
@@ -180,10 +181,12 @@ public sealed class StreamDeckDeviceDriver :
 	private readonly Button[] _buttons;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> _embeddedMonitorFeatures;
 	private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
+	IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> IDeviceDriver<IEmbeddedMonitorDeviceFeature>.Features => _embeddedMonitorFeatures;
 	IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
 
 
@@ -214,7 +217,8 @@ public sealed class StreamDeckDeviceDriver :
 		_buttons = buttons;
 
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
-		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, StreamDeckDeviceDriver, IEmbeddedMonitorControllerFeature>(this);
+		_monitorFeatures = FeatureSet.Empty<IMonitorDeviceFeature>();
+		_embeddedMonitorFeatures = FeatureSet.Create<IEmbeddedMonitorDeviceFeature, StreamDeckDeviceDriver, IEmbeddedMonitorControllerFeature>(this);
 		_powerManagementFeatures = FeatureSet.Create<IPowerManagementDeviceFeature, StreamDeckDeviceDriver, IIdleSleepTimerFeature>(this);
 	}
 

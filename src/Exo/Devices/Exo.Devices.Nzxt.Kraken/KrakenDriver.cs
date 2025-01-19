@@ -10,6 +10,7 @@ using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Cooling;
+using Exo.Features.EmbeddedMonitors;
 using Exo.Features.Monitors;
 using Exo.Features.Sensors;
 using Exo.Images;
@@ -22,14 +23,15 @@ namespace Exo.Devices.Nzxt.Kraken;
 public class KrakenDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
+	IDeviceDriver<ISensorDeviceFeature>,
+	IDeviceDriver<ICoolingDeviceFeature>,
+	IDeviceDriver<IMonitorDeviceFeature>,
+	IDeviceDriver<IEmbeddedMonitorDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
-	IDeviceDriver<ISensorDeviceFeature>,
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature,
-	IDeviceDriver<ICoolingDeviceFeature>,
 	ICoolingControllerFeature,
-	IDeviceDriver<IMonitorDeviceFeature>,
 	IEmbeddedMonitorFeature,
 	IMonitorBrightnessFeature
 {
@@ -250,6 +252,7 @@ public class KrakenDriver :
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly IDeviceFeatureSet<ICoolingDeviceFeature> _coolingFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> _embeddedMonitorFeatures;
 
 	private int _groupQueriedSensorCount;
 	private readonly ushort _productId;
@@ -279,6 +282,7 @@ public class KrakenDriver :
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
 	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
+	IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> IDeviceDriver<IEmbeddedMonitorDeviceFeature>.Features => _embeddedMonitorFeatures;
 
 	private KrakenDriver
 	(
@@ -308,7 +312,8 @@ public class KrakenDriver :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, KrakenDriver, ICoolingControllerFeature>(this);
-		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorFeature, IMonitorBrightnessFeature>(this);
+		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IMonitorBrightnessFeature>(this);
+		_embeddedMonitorFeatures = FeatureSet.Create<IEmbeddedMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorFeature>(this);
 	}
 
 	public override async ValueTask DisposeAsync()

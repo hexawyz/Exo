@@ -94,3 +94,11 @@ public interface ICoolingDeviceFeature : IDeviceFeature
 public interface IPowerManagementDeviceFeature : IDeviceFeature
 {
 }
+
+/// <summary>Defines features for devices with embedded monitors.</summary>
+/// <remarks>Devices providing embedded monitors of any form should expose this feature to allow the software to control them.</remarks>
+[TypeId(0x7A02A05E, 0x958B, 0x4039, 0xAF, 0xBA, 0xC5, 0xD2, 0xF7, 0x87, 0x71, 0x4B)]
+public interface IEmbeddedMonitorDeviceFeature : IDeviceFeature
+{
+}
+
