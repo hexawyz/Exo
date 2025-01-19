@@ -1,11 +1,10 @@
 using System.Buffers;
 using System.Collections.ObjectModel;
-using System.IO.MemoryMappedFiles;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
+using Exo.Memory;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Microsoft.UI.Xaml.Media;
 
 namespace Exo.Settings.Ui.ViewModels;
 

@@ -1,3 +1,4 @@
+using Exo.Memory;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;

@@ -1,4 +1,4 @@
-﻿using Exo.Settings.Ui.ViewModels;
+using Exo.Memory;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media.Imaging;
 

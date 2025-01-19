@@ -62,10 +62,10 @@ internal static unsafe class NativeMethods
 	public static extern uint NtEnumerateSystemEnvironmentValuesEx(VariableEnumerationInformationClass informationClass, void* buffer, ref uint bufferLength);
 
 	[DllImport("advapi32", CharSet = CharSet.Unicode, EntryPoint = "LookupPrivilegeValueW", ExactSpelling = true, PreserveSig = true, SetLastError = true)]
-	public static extern bool LookupPrivilegeValue(string? systemName, string name, out int privilege);
+	public static extern bool LookupPrivilegeValue(string? systemName, string name, out ulong privilege);
 
 	[DllImport("ntdll", ExactSpelling = true, PreserveSig = true, SetLastError = false)]
-	public static extern uint RtlAdjustPrivilege(int privilege, bool shouldEnablePrivilege, bool isThreadPrivilege, out bool previousValue);
+	public static extern uint RtlAdjustPrivilege(ulong privilege, bool shouldEnablePrivilege, bool isThreadPrivilege, out bool previousValue);
 
 	[DllImport("ntdll", ExactSpelling = true, PreserveSig = true, SetLastError = false)]
 	public static extern uint RtlNtStatusToDosError(uint status);

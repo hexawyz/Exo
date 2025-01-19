@@ -7,7 +7,7 @@ internal static class SystemEnvironmentPrivilege
 {
 	static SystemEnvironmentPrivilege()
 	{
-		if (!NativeMethods.LookupPrivilegeValue(null, NativeMethods.SeSystemEnvironmentPrivilege, out int privilege))
+		if (!NativeMethods.LookupPrivilegeValue(null, NativeMethods.SeSystemEnvironmentPrivilege, out ulong privilege))
 		{
 			throw new Win32Exception(Marshal.GetLastWin32Error());
 		}

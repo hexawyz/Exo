@@ -17,6 +17,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Exo.Memory\Exo.Memory.csproj" />
 		<ProjectReference Include="..\Exo.Service.Core\Exo.Service.Core.csproj" />
 		<ProjectReference Include="..\..\Ui\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
 		<ProjectReference Include="..\..\Ui\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />

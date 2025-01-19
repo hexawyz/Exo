@@ -1,10 +1,10 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.IO.MemoryMappedFiles;
 using Microsoft.Win32.SafeHandles;
 
-namespace Exo.Service;
+namespace Exo.Memory;
 
-internal sealed unsafe class MemoryMappedFileMemoryManager : MemoryManager<byte>
+public sealed unsafe class MemoryMappedFileMemoryManager : MemoryManager<byte>
 {
 	private readonly SafeMemoryMappedViewHandle _viewHandle;
 	private readonly nint _offset;
@@ -16,7 +16,7 @@ internal sealed unsafe class MemoryMappedFileMemoryManager : MemoryManager<byte>
 		ArgumentNullException.ThrowIfNull(memoryMappedFile);
 		ArgumentOutOfRangeException.ThrowIfNegative(offset);
 		ArgumentOutOfRangeException.ThrowIfNegative(length);
-		_viewAccessor = memoryMappedFile.CreateViewAccessor((long)offset, length, access);
+		_viewAccessor = memoryMappedFile.CreateViewAccessor(offset, length, access);
 		_viewHandle = _viewAccessor.SafeMemoryMappedViewHandle;
 		_offset = offset;
 		_length = length;
@@ -27,9 +27,7 @@ internal sealed unsafe class MemoryMappedFileMemoryManager : MemoryManager<byte>
 	protected override void Dispose(bool disposing)
 	{
 		if (Interlocked.Exchange(ref _viewAccessor, null) is { } accessor)
-		{
 			accessor.Dispose();
-		}
 	}
 
 	public override Span<byte> GetSpan() => new((byte*)_viewHandle.DangerousGetHandle(), _length);

@@ -1,6 +1,7 @@
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
+using Exo.Memory;
 
 namespace Exo.Service.Grpc;
 
