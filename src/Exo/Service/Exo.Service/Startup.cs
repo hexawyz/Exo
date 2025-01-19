@@ -169,6 +169,7 @@ public class Startup
 		(
 			sp => ImageStorageService.CreateAsync
 			(
+				sp.GetRequiredService<ILogger<ImageStorageService>>(),
 				sp.GetRequiredKeyedService<IConfigurationContainer<string>>(ConfigurationContainerNames.Images),
 				Path.Combine(baseDirectory, "img"),
 				default

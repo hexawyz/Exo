@@ -2,64 +2,100 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
 
 internal sealed class GrpcImageService : IImageService
 {
 	private readonly ImageStorageService _imageStorageService;
+	private readonly ILogger<GrpcImageService> _logger;
 	private ImageAddState? _imageAddState;
 
-	public GrpcImageService(ImageStorageService imagesService) => _imageStorageService = imagesService;
+	public GrpcImageService(ILogger<GrpcImageService> logger, ImageStorageService imagesService)
+	{
+		_logger = logger;
+		_imageStorageService = imagesService;
+	}
 
 	public async IAsyncEnumerable<WatchNotification<Contracts.Ui.Settings.ImageInformation>> WatchImagesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		await foreach (var notification in _imageStorageService.WatchChangesAsync(cancellationToken).ConfigureAwait(false))
+		_logger.GrpcImageServiceImageWatchStart();
+		try
 		{
-			yield return new()
+			await foreach (var notification in _imageStorageService.WatchChangesAsync(cancellationToken).ConfigureAwait(false))
 			{
-				NotificationKind = notification.Kind.ToGrpc(),
-				Details = notification.ImageInformation.ToGrpc(),
-			};
+				yield return new()
+				{
+					NotificationKind = notification.Kind.ToGrpc(),
+					Details = notification.ImageInformation.ToGrpc(),
+				};
+			}
+		}
+		finally
+		{
+			_logger.GrpcImageServiceImageWatchStop();
 		}
 	}
 
 	public async IAsyncEnumerable<ImageRegistrationBeginResponse> BeginAddImageAsync(ImageRegistrationBeginRequest request, [EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		if (await _imageStorageService.HasImageAsync(request.ImageName, cancellationToken).ConfigureAwait(false))
+		_logger.GrpcImageServiceAddImageRequestStart(request.ImageName, request.Length);
+
+		ImageAddState state;
+
+		try
 		{
-			throw new InvalidOperationException("An image with the specified name is already present.");
+			if (await _imageStorageService.HasImageAsync(request.ImageName, cancellationToken).ConfigureAwait(false))
+			{
+				throw new InvalidOperationException("An image with the specified name is already present.");
+			}
+			// 24MB is the maximum image size that could be theoretically allocated on the NZXT Kraken Z, so it seems reasonable to fix this as the limit for now?
+			// This number is semi-arbitrary, as we have to allow somewhat large images, but we don't want to allow anything crazy.
+			// The risk is someone abusing the service to waste memory. Stupid but possible.
+			// We have to be careful because apps cannot create shared memory in the Global namespace themselves, so the service needs to handle it ☹️
+			// This is also the reason why only a single parallel request is allowed. Anyway, this would never be a problem in practice as the UI is supposed to be the unique client.
+			if (request.Length > 24 * 1024 * 1024) throw new Exception("Maximum allowed image size exceeded.");
+
+			state = new ImageAddState(request.ImageName);
+
+			if (Interlocked.CompareExchange(ref _imageAddState, state, null) is not null)
+			{
+				state.Dispose();
+				throw new InvalidOperationException("Another operation is currently pending.");
+			}
 		}
-		// 24MB is the maximum image size that could be theoretically allocated on the NZXT Kraken Z, so it seems reasonable to fix this as the limit for now?
-		// This number is semi-arbitrary, as we have to allow somewhat large images, but we don't want to allow anything crazy.
-		// The risk is someone abusing the service to waste memory. Stupid but possible.
-		// We have to be careful because apps cannot create shared memory in the Global namespace themselves, so the service needs to handle it ☹️
-		// This is also the reason why only a single parallel request is allowed. Anyway, this would never be a problem in practice as the UI is supposed to be the unique client.
-		if (request.Length > 24 * 1024 * 1024) throw new Exception("Maximum allowed image size exceeded.");
-
-		var state = new ImageAddState(request.ImageName);
-
-		if (Interlocked.CompareExchange(ref _imageAddState, state, null) is not null)
+		catch (Exception ex)
 		{
-			state.Dispose();
-			throw new InvalidOperationException("Another operation is currently pending.");
+			_logger.GrpcImageServiceAddImageRequestFailure(request.ImageName, ex);
+			throw;
 		}
 
 		try
 		{
 			yield return new() { RequestId = state.RequestId, SharedMemoryName = state.Initialize(request.Length) };
-			await state.WaitForWriteCompletion().WaitAsync(cancellationToken).ConfigureAwait(false);
 			try
 			{
-				using (var memoryManager = state.CreateMemoryManagerForRead())
+				await state.WaitForWriteCompletion().WaitAsync(cancellationToken).ConfigureAwait(false);
+				_logger.GrpcImageServiceAddImageRequestWriteComplete(request.ImageName);
+				try
 				{
-					await _imageStorageService.AddImageAsync(request.ImageName, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
+					using (var memoryManager = state.CreateMemoryManagerForRead())
+					{
+						await _imageStorageService.AddImageAsync(request.ImageName, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
+					}
+					_logger.GrpcImageServiceAddImageRequestSuccess(request.ImageName);
+					state.TryNotifyReadCompletion();
 				}
-				state.TryNotifyReadCompletion();
+				catch (Exception ex)
+				{
+					state.TryNotifyReadException(ex);
+				}
 			}
-			catch (Exception ex)
+			catch (Exception ex) when (ex is not OperationCanceledException)
 			{
-				state.TryNotifyReadException(ex);
+				_logger.GrpcImageServiceAddImageRequestFailure(request.ImageName, ex);
+				throw;
 			}
 		}
 		finally

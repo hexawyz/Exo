@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Images;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
@@ -23,7 +24,13 @@ internal sealed class ImageStorageService
 
 	private static string GetFileName(string imageCacheDirectory, UInt128 imageId) => Path.Combine(imageCacheDirectory, imageId.ToString("x32", CultureInfo.InvariantCulture));
 
-	public static async Task<ImageStorageService> CreateAsync(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, CancellationToken cancellationToken)
+	public static async Task<ImageStorageService> CreateAsync
+	(
+		ILogger<ImageStorageService> logger,
+		IConfigurationContainer<string> imagesConfigurationContainer,
+		string imageCacheDirectory,
+		CancellationToken cancellationToken
+	)
 	{
 		if (!Path.IsPathRooted(imageCacheDirectory)) throw new ArgumentException("Images directory path must be rooted.");
 
@@ -49,7 +56,7 @@ internal sealed class ImageStorageService
 			}
 		}
 
-		return new(imagesConfigurationContainer, imageCacheDirectory, imageCollection);
+		return new(logger, imagesConfigurationContainer, imageCacheDirectory, imageCollection);
 	}
 
 	private readonly Dictionary<string, ImageMetadata> _imageCollection;
@@ -57,9 +64,17 @@ internal sealed class ImageStorageService
 	private readonly string _imageCacheDirectory;
 	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
 	private readonly AsyncLock _lock;
+	private readonly ILogger<ImageStorageService> _logger;
 
-	private ImageStorageService(IConfigurationContainer<string> imagesConfigurationContainer, string imageCacheDirectory, Dictionary<string, ImageMetadata> imageCollection)
+	private ImageStorageService
+	(
+		ILogger<ImageStorageService> logger,
+		IConfigurationContainer<string> imagesConfigurationContainer,
+		string imageCacheDirectory,
+		Dictionary<string, ImageMetadata> imageCollection
+	)
 	{
+		_logger = logger;
 		_imagesConfigurationContainer = imagesConfigurationContainer;
 		_imageCacheDirectory = imageCacheDirectory;
 		_imageCollection = imageCollection;

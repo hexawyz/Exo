@@ -86,4 +86,22 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 10_704, EventName = "GrpcCoolingServiceChangeWatchStop", Level = LogLevel.Debug, Message = "Stopped watching cooling changes.")]
 	public static partial void GrpcCoolingServiceChangeWatchStop(this ILogger logger);
 
+	[LoggerMessage(EventId = 10_801, EventName = "GrpcImageServiceImageWatchStart", Level = LogLevel.Debug, Message = "Started watching image changes.")]
+	public static partial void GrpcImageServiceImageWatchStart(this ILogger logger);
+
+	[LoggerMessage(EventId = 10_802, EventName = "GrpcImageServiceImageWatchStop", Level = LogLevel.Debug, Message = "Stopped watching image changes.")]
+	public static partial void GrpcImageServiceImageWatchStop(this ILogger logger);
+
+	[LoggerMessage(EventId = 10_803, EventName = "GrpcImageServiceAddImageRequestStart", Level = LogLevel.Information, Message = "Start of request to add image {ImageName} of {imageDataLength} bytes.")]
+	public static partial void GrpcImageServiceAddImageRequestStart(this ILogger logger, string imageName, uint imageDataLength);
+
+	[LoggerMessage(EventId = 10_804, EventName = "GrpcImageServiceAddImageRequestWriteComplete", Level = LogLevel.Debug, Message = "Notification of image data written for request to add image {ImageName}.")]
+	public static partial void GrpcImageServiceAddImageRequestWriteComplete(this ILogger logger, string imageName);
+
+	[LoggerMessage(EventId = 10_805, EventName = "GrpcImageServiceAddImageRequestFailure", Level = LogLevel.Error, Message = "Failure to process request to add image {ImageName}.")]
+	public static partial void GrpcImageServiceAddImageRequestFailure(this ILogger logger, string imageName, Exception exception);
+
+	[LoggerMessage(EventId = 10_806, EventName = "GrpcImageServiceAddImageRequestSuccess", Level = LogLevel.Information, Message = "Success of request to add image {ImageName}.")]
+	public static partial void GrpcImageServiceAddImageRequestSuccess(this ILogger logger, string imageName);
+
 }
