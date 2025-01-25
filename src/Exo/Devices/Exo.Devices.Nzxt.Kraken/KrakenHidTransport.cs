@@ -40,6 +40,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 	private const byte ScreenSettingsGetScreenInfoFunctionId = 0x01;
 	private const byte ScreenSettingsSetBrightnessFunctionId = 0x02;
+	private const byte ScreenSettingsGetDisplayModeFunctionId = 0x03;
 	private const byte ScreenSettingsGetImageInfoFunctionId = 0x04;
 
 	private const byte CoolingPowerPumpFunctionId = 0x01;
@@ -68,6 +69,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private TaskCompletionSource? _setBrightnessTaskCompletionSource;
 	private TaskCompletionSource? _setDisplayModeTaskCompletionSource;
 	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
+	private TaskCompletionSource<DisplayModeInformation>? _displayModeRetrievalTaskCompletionSource;
 	private ImageInfoTaskCompletionSource? _imageInfoTaskCompletionSource;
 	private FunctionTaskCompletionSource? _imageMemoryManagementTaskCompletionSource;
 	private FunctionTaskCompletionSource? _imageUploadTaskCompletionSource;
@@ -187,6 +189,36 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		finally
 		{
 			Volatile.Write(ref _screenInfoRetrievalTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask<DisplayModeInformation> GetDisplayModeAsync(CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+
+		var tcs = new TaskCompletionSource<DisplayModeInformation>(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _displayModeRetrievalTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = ScreenSettingsRequestMessageId;
+			buffer[1] = ScreenSettingsGetDisplayModeFunctionId;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				PrepareRequest(buffer.Span);
+				await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+			}
+			return await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _displayModeRetrievalTaskCompletionSource, null);
 		}
 	}
 
@@ -740,6 +772,21 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			byte brightness = response[10];
 
 			_screenInfoRetrievalTaskCompletionSource?.TrySetResult(new(brightness, imageCount, imageWidth, imageHeight, memoryBlockCount));
+		}
+		else if (functionId == ScreenSettingsGetDisplayModeFunctionId)
+		{
+			// This function returns other information that is not well identified yet.
+			// Example responses:
+			// 31 03 1a0041000a51383430353132 04 0d 00 0d 00 ff 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+			// 31 03 1a0041000a51383430353132 04 05 00 05 00 ff 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+			// 31 03 1a0041000a51383430353132 04 01 00 05 00 ff 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+			// 31 03 1a0041000a51383430353132 04 07 00 07 00 ff 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+			// First two bytes correspond well to the display mode parameters, but the 4th byte seems to sometimes be synchronized with the image index, and sometimes not.
+			// Sixth byte is always 0xff?
+			if (_displayModeRetrievalTaskCompletionSource is { } tcs)
+			{
+				tcs.TrySetResult(new((KrakenDisplayMode)response[0], response[1]));
+			}
 		}
 		else if (functionId == ScreenSettingsGetImageInfoFunctionId)
 		{

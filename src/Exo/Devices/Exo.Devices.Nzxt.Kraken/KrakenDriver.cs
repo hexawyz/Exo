@@ -163,6 +163,11 @@ public class KrakenDriver :
 				await hidTransport.SetPumpPowerCurveAsync(DefaultPumpCurve, cancellationToken).ConfigureAwait(false);
 				await hidTransport.SetFanPowerCurveAsync(DefaultFanCurve, cancellationToken).ConfigureAwait(false);
 
+				// TODO: Once the image storage manager is somehow merged with the protocol (or something similar), this info should be kept as state to know which is the currently active image.
+				// Knowing the currently displayed image is useful to determine the best image flip strategy. (i.e. If there is enough memory, any image other than the current one)
+				var initialDisplayMode = await hidTransport.GetDisplayModeAsync(cancellationToken).ConfigureAwait(false);
+				currentDisplayMode = initialDisplayMode.DisplayMode;
+
 				if (storageManager is not null)
 				{
 					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.LiquidTemperature, cancellationToken).ConfigureAwait(false);
