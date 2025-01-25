@@ -7,7 +7,6 @@ namespace Exo.Features.EmbeddedMonitors;
 public interface IEmbeddedMonitorFeature : IEmbeddedMonitor, IEmbeddedMonitorDeviceFeature
 {
 }
-
 /// <summary>To be used for a device exposing multiple embedded monitors.</summary>
 /// <remarks>
 /// <para>This feature is necessary to support devices such as the various Elgato StreamDecks.</para>
@@ -19,7 +18,7 @@ public interface IEmbeddedMonitorControllerFeature : IEmbeddedMonitorDeviceFeatu
 	ImmutableArray<IEmbeddedMonitor> EmbeddedMonitors { get; }
 }
 
-/// <summary>A feaure to implement for a device supporting an automatic screensaver.</summary>
+/// <summary>A feature to implement for a device supporting an automatic screensaver.</summary>
 /// <remarks></remarks>
 public interface IEmbeddedMonitorScreenSaverFeature : IEmbeddedMonitor, IEmbeddedMonitorDeviceFeature
 {
@@ -52,16 +51,21 @@ public interface IEmbeddedMonitor
 	/// A 128 bit value is used in order to easily allow for callers to implement a more complex hashing system, for example using XXH128, in order to optimize operations on their side.
 	/// This is intended to be done in the image service of Exo.
 	/// </para>
+	/// <para>
+	/// Calling this method will switch the monitor to custom graphics and set <see cref="IEmbeddedMonitorBuiltInGraphicModes.CurrentModeId"/> to <see cref="string.Empty"/>, if the
+	/// monitor supports built-in modes.
+	/// </para>
 	/// </remarks>
 	/// <param name="imageId">An opaque image ID used to identify an image.</param>
 	/// <param name="imageFormat">The image format of the specified data.</param>
 	/// <param name="data">Valid image data in the format specified by <paramref name="imageFormat"/>.</param>
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
+	/// <exception cref="NotSupportedException">If the monitor only supports built-in graphics modes, offering no ability to show a custom image.</exception>
 	ValueTask SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
 }
 
-public interface IDrawableEmbeddedMonitor
+public interface IDrawableEmbeddedMonitor : IEmbeddedMonitor
 {
 	/// <summary>Draws the specified image in the specified region of a monitor.</summary>
 	/// <remarks>
@@ -87,6 +91,31 @@ public interface IDrawableEmbeddedMonitor
 	/// <param name="cancellationToken"></param>
 	/// <returns></returns>
 	ValueTask DrawImageAsync(Point position, Size size, UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
+}
+
+/// <summary>A feature to implement for an embedded monitor supporting built-in graphics.</summary>
+/// <remarks>In absence of this interface, embedded monitors are assumed to support only <see cref="EmbeddedMonitorGraphicsDescription.CustomGraphics"/>.</remarks>
+public interface IEmbeddedMonitorBuiltInGraphics : IEmbeddedMonitor
+{
+	/// <summary>Gets the array of built-in graphics supported by this monitor.</summary>
+	/// <remarks>
+	/// The returned array must contain at least one element and must not contain duplicate mode IDs.
+	/// If the monitor supports showing custom images, as would typically be the case, this must explicitly contain <see cref="EmbeddedMonitorGraphicsDescription.CustomGraphics"/>.
+	/// </remarks>
+	ImmutableArray<EmbeddedMonitorGraphicsDescription> SupportedGraphics { get; }
+
+	/// <summary>Gets the ID of the currently displayed graphics.</summary>
+	Guid CurrentGraphicsId { get; }
+
+	/// <summary>Sets the current built-in graphics mode on the monitor.</summary>
+	/// <remarks>
+	/// This method can not be used to switch to the custom graphics.
+	/// To that effect, one must call <see cref="IEmbeddedMonitor.SetImageAsync(UInt128, ImageFormat, ReadOnlyMemory{byte}, CancellationToken)"/>.
+	/// </remarks>
+	/// <param name="modeId"></param>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	ValueTask SetCurrentModeAsync(Guid modeId, CancellationToken cancellationToken);
 }
 
 public readonly record struct EmbeddedMonitorInformation
@@ -119,4 +148,44 @@ public readonly record struct EmbeddedMonitorInformation
 	/// <summary>Indicates whether the monitor has hardware support for animated images.</summary>
 	/// <remarks>Animated images are only expected to be supported for full refreshes.</remarks>
 	public bool HasAnimationSupport { get; }
+}
+
+public readonly struct EmbeddedMonitorGraphicsDescription
+{
+	/// <summary>Gets a default definition of the custom graphics.</summary>
+	/// <remarks>
+	/// Unless it is not supported by the monitor, custom graphics is always assumed to be the default mode.
+	/// To that effect, the <see cref="Guid"/> associated with it is <see cref="Guid.Empty"/>.
+	/// </remarks>
+	public static EmbeddedMonitorGraphicsDescription CustomGraphics => new(default, new Guid(0x2F538961, 0xDAF9, 0x4664, 0x87, 0xFA, 0x22, 0xB8, 0x48, 0xDF, 0x0E, 0xEC));
+
+	public static Guid OffId => new(0xA93C0E79, 0xB47E, 0x4542, 0xBF, 0x77, 0xC0, 0x06, 0xE4, 0xFF, 0xFB, 0x6D);
+
+	/// <summary>Gets a definition to represent a graphics off mode.</summary>
+	/// <remarks>Embedded monitors supporting a built-in "graphics off" mode can add this to the list of modes.</remarks>
+	public static EmbeddedMonitorGraphicsDescription Off => new(OffId);
+
+	/// <summary>Gets the ID used to describe these graphics.</summary>
+	/// <remarks>
+	/// This property can be <see cref="Guid.Empty"/> to represent custom graphics, which is assumed to be default in all cases where it is supported.
+	/// </remarks>
+	public Guid GraphicsId { get; }
+	/// <summary>Gets the name string ID for these graphics.</summary>
+	public Guid NameStringId { get; }
+
+	/// <summary>Initializes the structure using the same <see cref="Guid"/> for both graphics ID and name string ID.</summary>
+	/// <remarks>
+	/// In many cases, graphics ID would be unique GUIDs, so it is not reasonable to use the same <see cref="Guid"/> value for both the name and the graphics themselves.
+	/// From a logic POV it does not change much, but it is more convenient for implementation to just require a single GUID.
+	/// Of course, the constructor allowing for the use of two different GUIDs is still available for implementation that want more complex binding.
+	/// </remarks>
+	/// <param name="modeAndNameStringId">The unique ID that will be used to reference both the graphics and the name.</param>
+	public EmbeddedMonitorGraphicsDescription(Guid modeAndNameStringId)
+		: this(modeAndNameStringId, modeAndNameStringId) { }
+
+	public EmbeddedMonitorGraphicsDescription(Guid modeId, Guid nameStringId)
+	{
+		GraphicsId = modeId;
+		NameStringId = nameStringId;
+	}
 }

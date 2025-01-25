@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -33,6 +32,7 @@ public class KrakenDriver :
 	ISensorsGroupedQueryFeature,
 	ICoolingControllerFeature,
 	IEmbeddedMonitorFeature,
+	IEmbeddedMonitorBuiltInGraphics,
 	IMonitorBrightnessFeature
 {
 	private static readonly Guid LiquidTemperatureSensorId = new(0x8E880DE1, 0x2A45, 0x400D, 0xA9, 0x0F, 0x42, 0xE8, 0x9B, 0xF9, 0x50, 0xDB);
@@ -43,6 +43,9 @@ public class KrakenDriver :
 	private static readonly Guid PumpCoolerId = new(0x2A57C838, 0xCD58, 0x4D6C, 0xAF, 0x9E, 0xF5, 0xBD, 0xDD, 0x6F, 0xB9, 0x92);
 
 	private static readonly Guid MonitorId = new (0xAB1C8580, 0x9FC4, 0x4BB6, 0xB9, 0xC7, 0x02, 0xF1, 0x81, 0x81, 0x68, 0xB6);
+
+	private static readonly Guid BootAnimationGraphicsId = new (0xE4A8CC79, 0x1062, 0x4E85, 0x97, 0x72, 0xB4, 0xBF, 0xFF, 0x66, 0x74, 0xB3);
+	private static readonly Guid LiquidTemperatureGraphicsId = new (0x9AA7AF98, 0x19D2, 0x4F98, 0x96, 0x90, 0xAD, 0xF9, 0xA5, 0x90, 0x8B, 0xC3);
 
 	// Both cooling curves taken out of NZXT CAM when creating a new cooling profile. No idea if they are the default HW curve.
 	// Points from CAM are the first column, others are interpolated.
@@ -152,6 +155,7 @@ public class KrakenDriver :
 				string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 				var hidTransport = new KrakenHidTransport(hidStream);
 				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
+				var currentDisplayMode = KrakenDisplayMode.Off;
 				var storageManager = imageTransport is not null ?
 					await KrakenImageStorageManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false) :
 					null;
@@ -162,6 +166,7 @@ public class KrakenDriver :
 				if (storageManager is not null)
 				{
 					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.LiquidTemperature, cancellationToken).ConfigureAwait(false);
+					currentDisplayMode = KrakenDisplayMode.LiquidTemperature;
 					KrakenImageFormat imageFormat;
 					byte[] imageData;
 					try
@@ -178,6 +183,7 @@ public class KrakenDriver :
 					}
 					await storageManager.UploadImageAsync(0, imageFormat, imageData, cancellationToken).ConfigureAwait(false);
 					await hidTransport.DisplayImageAsync(0, cancellationToken).ConfigureAwait(false);
+					currentDisplayMode = KrakenDisplayMode.StoredImage;
 				}
 
 				return new DriverCreationResult<SystemDevicePath>
@@ -188,6 +194,7 @@ public class KrakenDriver :
 						logger,
 						hidTransport,
 						storageManager,
+						currentDisplayMode,
 						screenInfo.Width,
 						screenInfo.Height,
 						productId,
@@ -254,19 +261,24 @@ public class KrakenDriver :
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> _embeddedMonitorFeatures;
 
-	private int _groupQueriedSensorCount;
-	private readonly ushort _productId;
-	private readonly ushort _versionNumber;
-	private readonly ushort _imageWidth;
-	private readonly ushort _imageHeight;
-
 	private byte _pumpSpeedTarget;
 	private byte _pumpState;
 	private byte _fanSpeedTarget;
 	private byte _fanState;
 
+	private byte _groupQueriedSensorCount;
+
+	private KrakenDisplayMode _currentDisplayMode;
+
+	private readonly ushort _productId;
+	private readonly ushort _versionNumber;
+	private readonly ushort _imageWidth;
+	private readonly ushort _imageHeight;
+
 	private readonly byte[] _pumpCoolingCurve;
 	private readonly byte[] _fanCoolingCurve;
+
+	private readonly ImmutableArray<EmbeddedMonitorGraphicsDescription> _embeddedMonitorGraphicsDescriptions;
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Cooler;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
@@ -289,6 +301,7 @@ public class KrakenDriver :
 		ILogger<KrakenDriver> logger,
 		KrakenHidTransport transport,
 		KrakenImageStorageManager? storageManager,
+		KrakenDisplayMode currentDisplayMode,
 		ushort imageWidth,
 		ushort imageHeight,
 		ushort productId,
@@ -307,6 +320,16 @@ public class KrakenDriver :
 		_fanCoolingCurve = (byte[])DefaultFanCurve.Clone();
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
 		_coolers = [new PumpCooler(this), new FanCooler(this)];
+		_currentDisplayMode = currentDisplayMode;
+		_imageWidth = imageWidth;
+		_imageHeight = imageHeight;
+		_embeddedMonitorGraphicsDescriptions =
+		[
+			EmbeddedMonitorGraphicsDescription.Off,
+			new(BootAnimationGraphicsId),
+			new(LiquidTemperatureGraphicsId),
+			EmbeddedMonitorGraphicsDescription.CustomGraphics,
+		];
 		_genericFeatures = ConfigurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
@@ -334,6 +357,30 @@ public class KrakenDriver :
 		await _hidTransport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);
 	}
 
+	ImmutableArray<EmbeddedMonitorGraphicsDescription> IEmbeddedMonitorBuiltInGraphics.SupportedGraphics => _embeddedMonitorGraphicsDescriptions;
+
+	Guid IEmbeddedMonitorBuiltInGraphics.CurrentGraphicsId
+		=> _currentDisplayMode switch
+		{
+			KrakenDisplayMode.Off => EmbeddedMonitorGraphicsDescription.OffId,
+			KrakenDisplayMode.Animation => BootAnimationGraphicsId,
+			KrakenDisplayMode.LiquidTemperature => LiquidTemperatureGraphicsId,
+			KrakenDisplayMode.StoredImage => default,
+			// Fallback to reporting the monitor as being off.
+			_ => EmbeddedMonitorGraphicsDescription.OffId
+		};
+
+	async ValueTask IEmbeddedMonitorBuiltInGraphics.SetCurrentModeAsync(Guid modeId, CancellationToken cancellationToken)
+	{
+		KrakenPresetVisual presetVisual;
+		if (modeId == EmbeddedMonitorGraphicsDescription.OffId) presetVisual = KrakenPresetVisual.Off;
+		else if (modeId == BootAnimationGraphicsId) presetVisual = KrakenPresetVisual.Animation;
+		else if (modeId == LiquidTemperatureGraphicsId) presetVisual = KrakenPresetVisual.LiquidTemperature;
+		else throw new ArgumentException();
+		await _hidTransport.DisplayPresetVisualAsync(presetVisual, cancellationToken).ConfigureAwait(false);
+		_currentDisplayMode = (KrakenDisplayMode)presetVisual;
+	}
+
 	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
 	{
 		if (sensor is not Sensor s || s.Driver != this) throw new InvalidOperationException();
@@ -358,6 +405,8 @@ public class KrakenDriver :
 
 	async ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
+		if (_groupQueriedSensorCount == 0) return;
+
 		var readings = await _hidTransport.GetRecentReadingsAsync(cancellationToken).ConfigureAwait(false);
 
 		foreach (var sensor in _sensors)
