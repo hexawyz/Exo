@@ -767,8 +767,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	{
 		if (_lightingDeviceStates.TryGetValue(notification.DeviceInformation.Id, out var deviceState))
 		{
-			var n = CreateDeviceInformation(notification.DeviceInformation.Id, deviceState);
-
 			lock (deviceState.Lock)
 			{
 				foreach (var lightingZoneState in deviceState.LightingZones.Values)
@@ -777,10 +775,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				}
 			}
 
-			lock (_changeLock)
-			{
-				_deviceListeners.TryWrite(n);
-			}
 		}
 	}
 

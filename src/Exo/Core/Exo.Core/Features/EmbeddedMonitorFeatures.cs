@@ -4,9 +4,6 @@ using Exo.Monitors;
 
 namespace Exo.Features.EmbeddedMonitors;
 
-public interface IEmbeddedMonitorFeature : IEmbeddedMonitor, IEmbeddedMonitorDeviceFeature
-{
-}
 /// <summary>To be used for a device exposing multiple embedded monitors.</summary>
 /// <remarks>
 /// <para>This feature is necessary to support devices such as the various Elgato StreamDecks.</para>
@@ -163,7 +160,8 @@ public readonly struct EmbeddedMonitorGraphicsDescription
 
 	/// <summary>Gets a definition to represent a graphics off mode.</summary>
 	/// <remarks>Embedded monitors supporting a built-in "graphics off" mode can add this to the list of modes.</remarks>
-	public static EmbeddedMonitorGraphicsDescription Off => new(OffId);
+	// NB: References the shared "off" string, to avoid useless duplication. may be changed later.
+	public static EmbeddedMonitorGraphicsDescription Off => new(OffId, new Guid(0xA9F9A2E6, 0x2091, 0x4BD9, 0xB1, 0x35, 0xA4, 0xA5, 0xD6, 0xD4, 0x00, 0x9E));
 
 	/// <summary>Gets the ID used to describe these graphics.</summary>
 	/// <remarks>

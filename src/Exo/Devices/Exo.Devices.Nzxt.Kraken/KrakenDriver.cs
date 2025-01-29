@@ -31,7 +31,7 @@ public class KrakenDriver :
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature,
 	ICoolingControllerFeature,
-	IEmbeddedMonitorFeature,
+	IEmbeddedMonitorControllerFeature,
 	IEmbeddedMonitorBuiltInGraphics,
 	IMonitorBrightnessFeature
 {
@@ -42,10 +42,10 @@ public class KrakenDriver :
 	private static readonly Guid FanCoolerId = new(0x5A0FE6F5, 0xB7D1, 0x46E4, 0xA5, 0x12, 0x82, 0x72, 0x6E, 0x95, 0x35, 0xC4);
 	private static readonly Guid PumpCoolerId = new(0x2A57C838, 0xCD58, 0x4D6C, 0xAF, 0x9E, 0xF5, 0xBD, 0xDD, 0x6F, 0xB9, 0x92);
 
-	private static readonly Guid MonitorId = new (0xAB1C8580, 0x9FC4, 0x4BB6, 0xB9, 0xC7, 0x02, 0xF1, 0x81, 0x81, 0x68, 0xB6);
+	private static readonly Guid MonitorId = new(0xAB1C8580, 0x9FC4, 0x4BB6, 0xB9, 0xC7, 0x02, 0xF1, 0x81, 0x81, 0x68, 0xB6);
 
-	private static readonly Guid BootAnimationGraphicsId = new (0xE4A8CC79, 0x1062, 0x4E85, 0x97, 0x72, 0xB4, 0xBF, 0xFF, 0x66, 0x74, 0xB3);
-	private static readonly Guid LiquidTemperatureGraphicsId = new (0x9AA7AF98, 0x19D2, 0x4F98, 0x96, 0x90, 0xAD, 0xF9, 0xA5, 0x90, 0x8B, 0xC3);
+	private static readonly Guid BootAnimationGraphicsId = new(0xE4A8CC79, 0x1062, 0x4E85, 0x97, 0x72, 0xB4, 0xBF, 0xFF, 0x66, 0x74, 0xB3);
+	private static readonly Guid LiquidTemperatureGraphicsId = new(0x9AA7AF98, 0x19D2, 0x4F98, 0x96, 0x90, 0xAD, 0xF9, 0xA5, 0x90, 0x8B, 0xC3);
 
 	// Both cooling curves taken out of NZXT CAM when creating a new cooling profile. No idea if they are the default HW curve.
 	// Points from CAM are the first column, others are interpolated.
@@ -79,7 +79,7 @@ public class KrakenDriver :
 	[DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
 	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3008)] // Kraken Z
 	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300C)] // Kraken Elite (2023)
-	//[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300E)] // Kraken (2023)
+														  //[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300E)] // Kraken (2023)
 	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3012)] // Kraken Elite RGB (2024)
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
@@ -295,7 +295,7 @@ public class KrakenDriver :
 	Guid IEmbeddedMonitor.MonitorId => MonitorId;
 	EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation => new(MonitorShape.Circle, new(_imageWidth, _imageHeight), PixelFormat.R8G8B8X8, ImageFormats.Raw | ImageFormats.Gif, true);
 
-	IDeviceFeatureSet <IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
 	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
@@ -332,7 +332,7 @@ public class KrakenDriver :
 		[
 			EmbeddedMonitorGraphicsDescription.Off,
 			new(BootAnimationGraphicsId),
-			new(LiquidTemperatureGraphicsId),
+			new(LiquidTemperatureGraphicsId, new Guid(0x5553C264, 0x35BF, 0x44BA, 0xBD, 0x23, 0x5A, 0x1B, 0xF6, 0x11, 0xF5, 0xE1)),
 			EmbeddedMonitorGraphicsDescription.CustomGraphics,
 		];
 		_genericFeatures = ConfigurationKey.UniqueId is not null ?
@@ -341,7 +341,7 @@ public class KrakenDriver :
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, KrakenDriver, ICoolingControllerFeature>(this);
 		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IMonitorBrightnessFeature>(this);
-		_embeddedMonitorFeatures = FeatureSet.Create<IEmbeddedMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorFeature>(this);
+		_embeddedMonitorFeatures = FeatureSet.Create<IEmbeddedMonitorDeviceFeature, KrakenDriver, IEmbeddedMonitorControllerFeature>(this);
 	}
 
 	public override async ValueTask DisposeAsync()
@@ -361,6 +361,8 @@ public class KrakenDriver :
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
 		await _hidTransport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);
 	}
+
+	ImmutableArray<IEmbeddedMonitor> IEmbeddedMonitorControllerFeature.EmbeddedMonitors => [this];
 
 	ImmutableArray<EmbeddedMonitorGraphicsDescription> IEmbeddedMonitorBuiltInGraphics.SupportedGraphics => _embeddedMonitorGraphicsDescriptions;
 

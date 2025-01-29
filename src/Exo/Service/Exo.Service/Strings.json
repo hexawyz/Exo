@@ -1,441 +1,446 @@
 {
-	// Common use strings
-	"4d2b3404-1cb1-4536-918c-80facc124cf9": {
-		"en": "On",
-		"fr": "Allumé"
-	},
-	"a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e": {
-		"en": "Off",
-		"fr": "Éteint"
-	},
-	"5c65f531-fceb-477b-97ef-b762bc358396": {
-		"en": "Enabled",
-		"fr": "Activé"
-	},
-	"da23bf28-6572-4e00-83a1-be68bf7cf749": {
-		"en": "Disabled",
-		"fr": "Désactivé"
-	},
-	"16ac1b8f-cb3f-4910-9af4-bd966aa16279": {
-		"en": "Standard",
-		"fr": "Standard"
-	},
-	"e677ce93-816f-44c7-ad7e-b1042f61f2fd": {
-		"en": "Advanced",
-		"fr": "Avancé"
-	},
-	"c88a634b-9621-4108-91b8-b2f74208421f": {
-		"en": "Normal",
-		"fr": "Normal"
-	},
-	"76e54863-cd4a-4690-bcc1-ae566b534cef": {
-		"en": "Fast",
-		"fr": "Rapide"
-	},
-	"e383e29e-60c3-44a5-a761-b08f96a200a7": {
-		"en": "Faster",
-		"fr": "Plus rapide"
-	},
-	// Sensors
-	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
-		"en": "Fan Speed",
-		"fr": "Vitesse du ventilateur"
-	},
-	"d9608d42-6ba3-4ffd-a4a9-905ba063b445": {
-		"en": "Fan 1 Speed",
-		"fr": "Vitesse ventilateur 1"
-	},
-	"8b280e41-5c23-4c45-9088-65dd4b67fccc": {
-		"en": "Fan 2 Speed",
-		"fr": "Vitesse ventilateur 2"
-	},
-	"80acb355-040e-4789-96c9-8ed249964b08": {
-		"en": "Pump Speed",
-		"fr": "Vitesse de la pompe"
-	},
-	"a16abea5-5e05-40a0-861e-b948f3bc7084": {
-		"en": "Temperature",
-		"fr": "Température"
-	},
-	"5553c264-35bf-44ba-bd23-5a1bf611f5e1": {
-		"en": "Liquid Temperature",
-		"fr": "Température du liquide"
-	},
-	"4458560b-d509-4368-9181-9f66faaa65bf": {
-		"en": "Input Voltage",
-		"fr": "Tension d'entrée"
-	},
-	"d29d5844-6fc3-4e76-bd70-b158b584c5de": {
-		"en": "Output Voltage",
-		"fr": "Tension de sortie"
-	},
-	"c5f09e52-98c0-48ec-ab4a-19766755fb78": {
-		"en": "Output Power",
-		"fr": "Puissance de sortie"
-	},
-	"7a074c26-621c-4539-9c45-d1e7050f7bfb": {
-		"en": "Power Load",
-		"fr": "% de puissance"
-	},
-	"ff58ccbd-f377-481a-94eb-57e8aabb3fb7": {
-		"en": "Graphics Load",
-		"fr": "% Graphismes"
-	},
-	"d25c1838-3959-4e29-8aec-b99347a66b3f": {
-		"en": "Frame Buffer Load",
-		"fr": "% Frame buffer"
-	},
-	"33b3eec9-a302-47ab-abb9-007ec068830a": {
-		"en": "Video Load",
-		"fr": "% Vidéo"
-	},
-	"830f4e78-71b0-459c-9ade-a001d6f1ae10": {
-		"en": "GPU Temperature",
-		"fr": "Température GPU"
-	},
-	"304c3571-9070-4aad-b9ac-36d3e16008de": {
-		"en": "Memory Temperature",
-		"fr": "Température mémoire"
-	},
-	"80a6a818-b3bf-498a-a9dc-e91e0eeb9287": {
-		"en": "Power Supply Temperature",
-		"fr": "Température de l'alimentation"
-	},
-	"b143636c-58cc-4e08-9a1e-c13eb9457f7e": {
-		"en": "Board Temperature",
-		"fr": "Température carte"
-	},
-	"4dc9d432-8be8-4358-b08f-c1c6b2810692": {
-		"en": "Graphics Frequency",
-		"fr": "Fréquence graphismes"
-	},
-	"775c66e1-a4af-492d-a1fd-fa0d4601a121": {
-		"en": "Memory Frequency",
-		"fr": "Fréquence mémoire"
-	},
-	"dfc64831-9fd0-4f41-a91e-00fd7476aff7": {
-		"en": "Processor Frequency",
-		"fr": "Fréquence processeur"
-	},
-	"451592a3-c6b4-407f-826f-dda5bd9eead7": {
-		"en": "Video Frequency",
-		"fr": "Fréquence vidéo"
-	},
-	// Coolers
-	"58dbe372-3c18-4059-8f53-0bc56ded725c": {
-		"en": "Fan",
-		"fr": "Ventilateur"
-	},
-	"78986262-eeb6-4d90-88b2-cc2ce44f1874": {
-		"en": "Pump",
-		"fr": "Pompe"
-	},
-	// Lighting Zone Names
-	"43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
-		"en": "Memory Module 1",
-		"fr": "Module mémoire 1"
-	},
-	"f13178da-3309-4992-bea9-70a02da3afc9": {
-		"en": "Memory Module 2",
-		"fr": "Module mémoire 2"
-	},
-	"8ff13cab-b313-4bc6-83b7-60932ff1b0bf": {
-		"en": "Memory Module 3",
-		"fr": "Module mémoire 3"
-	},
-	"90c74ed6-fe35-450e-960e-951100998fd2": {
-		"en": "Memory Module 4",
-		"fr": "Module mémoire 4"
-	},
-	"76f1ab82-757c-4e83-8e70-6ce2ff970352": {
-		"en": "Memory Module 5",
-		"fr": "Module mémoire 5"
-	},
-	"09779d85-985f-4a1b-a3d0-3fd666d01841": {
-		"en": "Memory Module 6",
-		"fr": "Module mémoire 6"
-	},
-	"3d29c33f-f5bc-4a54-80aa-1d4111b21694": {
-		"en": "Memory Module 7",
-		"fr": "Module mémoire 7"
-	},
-	"76ffbca1-8fa9-4d79-9e07-af863a006b02": {
-		"en": "Memory Module 8",
-		"fr": "Module mémoire 8"
-	},
-	"014ef66f-12c2-48eb-8350-7bbcd7efab1f": {
-		"en": "Mouse wheel",
-		"fr": "Molette de la souris"
-	},
-	"179c675c-f48b-4a95-885e-542ddb4e3412": {
-		"en": "Logo",
-		"fr": "Logo"
-	},
-	// Lighting Effect Names
-	"72324394-b58d-41e3-a4fe-aa17342b0036": {
-		"en": "(Not Applicable)",
-		"fr": "(Non applicable)"
-	},
-	"36218033-ff96-41f1-b01c-f9fbefa4bcc3": {
-		"en": "Disabled",
-		"fr": "Désactivé"
-	},
-	"e965c6f5-3d24-42ed-9182-31f48b5248a6": {
-		"en": "Enabled",
-		"fr": "Activé"
-	},
-	"bfa5b721-db96-47a5-9e69-5dd0ae943275": {
-		"en": "Static",
-		"fr": "Statique"
-	},
-	"f49c1855-5583-4a4f-8272-7f0326a23197": {
-		"en": "Pulse",
-		"fr": "Pulsation"
-	},
-	"d30ddfeb-9337-4fde-a303-b63db3a64c2b": {
-		"en": "Pulse (Speed)",
-		"fr": "Pulsation (Vitesse)"
-	},
-	"965a4868-b74e-4674-b43f-2086daf37906": {
-		"en": "BLink",
-		"fr": "Clignottement"
-	},
-	"419e70ee-8355-4cf5-9d18-54835008cdb0": {
-		"en": "Flash",
-		"fr": "Flashs"
-	},
-	"ad36bbab-eb53-4610-957a-07ff72d5fc94": {
-		"en": "Flash (Speed)",
-		"fr": "Flashs (Vitesse)"
-	},
-	"597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
-		"en": "Double Flash",
-		"fr": "Double flashs"
-	},
-	"5a22c2a6-ff28-4a99-985c-f027cefc305b": {
-		"en": "Chase",
-		"fr": "Chasse"
-	},
-	"8f32de3a-b7c5-459c-9678-5e247af86056": {
-		"en": "Chase (Speed)",
-		"fr": "Chasse (Vitesse)"
-	},
-	"c1dc1388-3864-4db9-bffb-40bc78b34442": {
-		"en": "Wave",
-		"fr": "Vague"
-	},
-	"2c0f5ddb-f374-497b-a873-e8fd7bf6db77": {
-		"en": "Wave (Speed)",
-		"fr": "Vague (Vitesse)"
-	},
-	"5ba5b8c5-3fd9-40c5-830a-68f775a9f27b": {
-		"en": "Spectrum Cycle",
-		"fr": "Cycle spectral"
-	},
-	"a1c25516-29ca-4e76-9210-6c9afadde4da": {
-		"en": "Spectrum Cycle (Speed)",
-		"fr": "Cycle spectral (Vitesse)"
-	},
-	"1dbeeeb3-5738-4503-b3a4-c25a4c519de1": {
-		"en": "Spectrum Cycle (Brightness)",
-		"fr": "Cycle spectral (Luminosité)"
-	},
-	"454153c6-7231-4677-9007-d0f75f4432b6": {
-		"en": "Spectrum Wave",
-		"fr": "Vague spectrale"
-	},
-	"621e5d5b-7eb5-4953-b338-3a00a65ea350": {
-		"en": "Spectrum Wave (Speed)",
-		"fr": "Vague spectrale (Vitesse)"
-	},
-	"60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
-		"en": "Reactive",
-		"fr": "Réactif"
-	},
-	// Language names
-	"3d7555d0-345a-49f1-903e-a15d35b0f5ec": {
-		"en": "English",
-		"fr": "Anglais",
-		"ja": "英語"
-	},
-	"cc5d6fb5-0653-49bb-85cc-4ae2ca82f487": {
-		"en": "French",
-		"fr": "Français",
-		"ja": "フランス語"
-	},
-	"1af16a76-e293-4096-a9d7-9e9eff68b591": {
-		"en": "German",
-		"fr": "Allemand",
-		"ja": "ドイツ語"
-	},
-	"f12057bc-08ce-446d-9d25-b5965b6136ab": {
-		"en": "Italian",
-		"fr": "Italien",
-		"ja": "イタリア語"
-	},
-	"9ef9c042-bfbb-4b72-9c24-4da56e1f56be": {
-		"en": "Japanese",
-		"fr": "Japonais",
-		"ja": "日本語"
-	},
-	"12df152a-1065-4200-966f-2be77410fd13": {
-		"en": "Korean",
-		"fr": "Coréen",
-		"ja": "韓国語"
-	},
-	"e9d6e301-de10-4f5a-910e-5aa80cf057d1": {
-		"en": "Chinese (Traditional)",
-		"fr": "Chinois (Traditionnel)",
-		"ja": "中国語（繁体字）"
-	},
-	"4b0f748a-cc4a-41ea-a59b-9549dd619e76": {
-		"en": "Chinese (Simplified)",
-		"fr": "Chinois (Simplifié)",
-		"ja": "中国語（簡体字）"
-	},
-	"e3e65711-aae3-4f2d-aa95-092cfc105872": {
-		"en": "Portuguese (Portugal)",
-		"fr": "Portugais (Portugal)",
-		"ja": "ポルトガル語（ポルトガル）"
-	},
-	"9318646f-67aa-4fae-95fc-3618c2f2777b": {
-		"en": "Portuguese (Brazil)",
-		"fr": "Portugais (Brésil)",
-		"ja": "ポルトガル語（ブラジル）"
-	},
-	"5ad769bf-3aa1-49a1-a9f9-6f0ec1b43dd2": {
-		"en": "Russian",
-		"fr": "Russe",
-		"ja": "ロシア語"
-	},
-	"f4bcb574-a61d-4b25-824b-6e865d7427fe": {
-		"en": "Spanish",
-		"fr": "Espagnol",
-		"ja": "スペイン語"
-	},
-	"88307c6f-da3e-424b-bef0-23a252e5b26d": {
-		"en": "Swedish",
-		"fr": "Suédois",
-		"ja": "スウェーデン語"
-	},
-	"f2fc7a26-b392-4c13-a86e-47b2e390caf8": {
-		"en": "Turkish",
-		"fr": "Turque",
-		"ja": "トルコ語"
-	},
-	"ac934765-0eb0-4ac6-b085-88177b1e2d84": {
-		"en": "Arabic",
-		"fr": "Arabe",
-		"ja": "アラビア語"
-	},
-	"49a21314-8315-47a5-b01b-6c7e50403921": {
-		"en": "Bulgarian",
-		"fr": "Bulgare",
-		"ja": "ブルガリア語"
-	},
-	"5506a84a-4ebf-46f5-b611-047cb8631ab9": {
-		"en": "Croatian",
-		"fr": "Croate",
-		"ja": "クロアチア語"
-	},
-	"f73a11cb-ec92-42a2-83b9-5d89a811d36e": {
-		"en": "Czech",
-		"fr": "Tchèque",
-		"ja": "チェコ語"
-	},
-	"ed6ef567-b80a-40d0-9551-38f39955c4c1": {
-		"en": "Danish",
-		"fr": "Danois",
-		"ja": "デンマーク語"
-	},
-	"c42dd145-2882-4b31-90d0-a47a822ed1cd": {
-		"en": "Dutch",
-		"fr": "Néerlandais",
-		"ja": "オランダ語"
-	},
-	"3ee2c2c1-1da2-434b-80d2-2463a52273f5": {
-		"en": "Estonian",
-		"fr": "Estonien",
-		"ja": "エストニア語"
-	},
-	"42177650-1189-414e-9f67-15a0a484a1f2": {
-		"en": "Finnish",
-		"fr": "Finnois",
-		"ja": "フィンランド語"
-	},
-	"9342a747-f7e4-4f79-b0ce-5fb0c8040126": {
-		"en": "Greek",
-		"fr": "Grec",
-		"ja": "ギリシャ語"
-	},
-	"7bed3e7d-9df4-41a9-94ea-4bde84db23a2": {
-		"en": "Hebrew",
-		"fr": "Hébreu",
-		"ja": "ヘブライ語"
-	},
-	"3f31973d-899a-46f3-a249-db6b9c895f4a": {
-		"en": "Hindi",
-		"fr": "Hindi",
-		"ja": "ヒンディー語"
-	},
-	"e3720708-932f-478f-9c7f-59fd4d3e46bf": {
-		"en": "Hungarian",
-		"fr": "Hongrois",
-		"ja": "ハンガリー語"
-	},
-	"3d1908b1-95d4-4ab4-9b56-c8662e0e9ad1": {
-		"en": "Latvian",
-		"fr": "Letton",
-		"ja": "ラトビア語"
-	},
-	"fdb186f3-4dd1-44fd-9bfa-c7237d035a09": {
-		"en": "Lithuanian",
-		"fr": "Lituanien",
-		"ja": "リトアニア語"
-	},
-	"f550eb5b-c345-44db-a341-26fb3d50c04b": {
-		"en": "Norwegian",
-		"fr": "Norvégien",
-		"ja": "ノルウェー語"
-	},
-	"11801b1c-2084-49ce-a965-19a5c3b37a9e": {
-		"en": "Polish",
-		"fr": "Polonais",
-		"ja": "ポーランド語"
-	},
-	"8a812b6b-9d8c-4281-bc9c-a79fce736366": {
-		"en": "Romanian",
-		"fr": "Roumain",
-		"ja": "ルーマニア語"
-	},
-	"8912b5e0-119d-49dc-9f33-872e7e37e729": {
-		"en": "Serbian",
-		"fr": "Serbe",
-		"ja": "セルビア語"
-	},
-	"5317048d-64dd-4240-ae2a-d0787c04e633": {
-		"en": "Slovak",
-		"fr": "Slovaque",
-		"ja": "スロバキア語"
-	},
-	"78632023-055c-4447-8e94-6319c9fded96": {
-		"en": "Slovenian",
-		"fr": "Slovénien",
-		"ja": "スロベニア語"
-	},
-	"e64bd133-b3a1-4d51-bf9c-63c0c4d0d9a8": {
-		"en": "Thai",
-		"fr": "Thailandais",
-		"ja": "タイ語"
-	},
-	"5a78cc6c-bf97-424e-b520-fb004d1009e9": {
-		"en": "Ukranian",
-		"fr": "Ukrainien",
-		"ja": "ウクライナ語"
-	},
-	"6a8fbd37-8ed5-4ade-af15-ccf2e62fc8b7": {
-		"en": "Vietnamese",
-		"fr": "Vietnamien",
-		"ja": "ベトナム語"
-	}
+    // Common use strings
+    "4d2b3404-1cb1-4536-918c-80facc124cf9": {
+        "en": "On",
+        "fr": "Allumé"
+    },
+    "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e": {
+        "en": "Off",
+        "fr": "Éteint"
+    },
+    "5c65f531-fceb-477b-97ef-b762bc358396": {
+        "en": "Enabled",
+        "fr": "Activé"
+    },
+    "da23bf28-6572-4e00-83a1-be68bf7cf749": {
+        "en": "Disabled",
+        "fr": "Désactivé"
+    },
+    "16ac1b8f-cb3f-4910-9af4-bd966aa16279": {
+        "en": "Standard",
+        "fr": "Standard"
+    },
+    "e677ce93-816f-44c7-ad7e-b1042f61f2fd": {
+        "en": "Advanced",
+        "fr": "Avancé"
+    },
+    "c88a634b-9621-4108-91b8-b2f74208421f": {
+        "en": "Normal",
+        "fr": "Normal"
+    },
+    "76e54863-cd4a-4690-bcc1-ae566b534cef": {
+        "en": "Fast",
+        "fr": "Rapide"
+    },
+    "e383e29e-60c3-44a5-a761-b08f96a200a7": {
+        "en": "Faster",
+        "fr": "Plus rapide"
+    },
+    // Sensors
+    "d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
+        "en": "Fan Speed",
+        "fr": "Vitesse du ventilateur"
+    },
+    "d9608d42-6ba3-4ffd-a4a9-905ba063b445": {
+        "en": "Fan 1 Speed",
+        "fr": "Vitesse ventilateur 1"
+    },
+    "8b280e41-5c23-4c45-9088-65dd4b67fccc": {
+        "en": "Fan 2 Speed",
+        "fr": "Vitesse ventilateur 2"
+    },
+    "80acb355-040e-4789-96c9-8ed249964b08": {
+        "en": "Pump Speed",
+        "fr": "Vitesse de la pompe"
+    },
+    "a16abea5-5e05-40a0-861e-b948f3bc7084": {
+        "en": "Temperature",
+        "fr": "Température"
+    },
+    "5553c264-35bf-44ba-bd23-5a1bf611f5e1": {
+        "en": "Liquid Temperature",
+        "fr": "Température du liquide"
+    },
+    "4458560b-d509-4368-9181-9f66faaa65bf": {
+        "en": "Input Voltage",
+        "fr": "Tension d'entrée"
+    },
+    "d29d5844-6fc3-4e76-bd70-b158b584c5de": {
+        "en": "Output Voltage",
+        "fr": "Tension de sortie"
+    },
+    "c5f09e52-98c0-48ec-ab4a-19766755fb78": {
+        "en": "Output Power",
+        "fr": "Puissance de sortie"
+    },
+    "7a074c26-621c-4539-9c45-d1e7050f7bfb": {
+        "en": "Power Load",
+        "fr": "% de puissance"
+    },
+    "ff58ccbd-f377-481a-94eb-57e8aabb3fb7": {
+        "en": "Graphics Load",
+        "fr": "% Graphismes"
+    },
+    "d25c1838-3959-4e29-8aec-b99347a66b3f": {
+        "en": "Frame Buffer Load",
+        "fr": "% Frame buffer"
+    },
+    "33b3eec9-a302-47ab-abb9-007ec068830a": {
+        "en": "Video Load",
+        "fr": "% Vidéo"
+    },
+    "830f4e78-71b0-459c-9ade-a001d6f1ae10": {
+        "en": "GPU Temperature",
+        "fr": "Température GPU"
+    },
+    "304c3571-9070-4aad-b9ac-36d3e16008de": {
+        "en": "Memory Temperature",
+        "fr": "Température mémoire"
+    },
+    "80a6a818-b3bf-498a-a9dc-e91e0eeb9287": {
+        "en": "Power Supply Temperature",
+        "fr": "Température de l'alimentation"
+    },
+    "b143636c-58cc-4e08-9a1e-c13eb9457f7e": {
+        "en": "Board Temperature",
+        "fr": "Température carte"
+    },
+    "4dc9d432-8be8-4358-b08f-c1c6b2810692": {
+        "en": "Graphics Frequency",
+        "fr": "Fréquence graphismes"
+    },
+    "775c66e1-a4af-492d-a1fd-fa0d4601a121": {
+        "en": "Memory Frequency",
+        "fr": "Fréquence mémoire"
+    },
+    "dfc64831-9fd0-4f41-a91e-00fd7476aff7": {
+        "en": "Processor Frequency",
+        "fr": "Fréquence processeur"
+    },
+    "451592a3-c6b4-407f-826f-dda5bd9eead7": {
+        "en": "Video Frequency",
+        "fr": "Fréquence vidéo"
+    },
+    // Coolers
+    "58dbe372-3c18-4059-8f53-0bc56ded725c": {
+        "en": "Fan",
+        "fr": "Ventilateur"
+    },
+    "78986262-eeb6-4d90-88b2-cc2ce44f1874": {
+        "en": "Pump",
+        "fr": "Pompe"
+    },
+    // Lighting Zone Names
+    "43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
+        "en": "Memory Module 1",
+        "fr": "Module mémoire 1"
+    },
+    "f13178da-3309-4992-bea9-70a02da3afc9": {
+        "en": "Memory Module 2",
+        "fr": "Module mémoire 2"
+    },
+    "8ff13cab-b313-4bc6-83b7-60932ff1b0bf": {
+        "en": "Memory Module 3",
+        "fr": "Module mémoire 3"
+    },
+    "90c74ed6-fe35-450e-960e-951100998fd2": {
+        "en": "Memory Module 4",
+        "fr": "Module mémoire 4"
+    },
+    "76f1ab82-757c-4e83-8e70-6ce2ff970352": {
+        "en": "Memory Module 5",
+        "fr": "Module mémoire 5"
+    },
+    "09779d85-985f-4a1b-a3d0-3fd666d01841": {
+        "en": "Memory Module 6",
+        "fr": "Module mémoire 6"
+    },
+    "3d29c33f-f5bc-4a54-80aa-1d4111b21694": {
+        "en": "Memory Module 7",
+        "fr": "Module mémoire 7"
+    },
+    "76ffbca1-8fa9-4d79-9e07-af863a006b02": {
+        "en": "Memory Module 8",
+        "fr": "Module mémoire 8"
+    },
+    "014ef66f-12c2-48eb-8350-7bbcd7efab1f": {
+        "en": "Mouse wheel",
+        "fr": "Molette de la souris"
+    },
+    "179c675c-f48b-4a95-885e-542ddb4e3412": {
+        "en": "Logo",
+        "fr": "Logo"
+    },
+    // Lighting Effect Names
+    "72324394-b58d-41e3-a4fe-aa17342b0036": {
+        "en": "(Not Applicable)",
+        "fr": "(Non applicable)"
+    },
+    "36218033-ff96-41f1-b01c-f9fbefa4bcc3": {
+        "en": "Disabled",
+        "fr": "Désactivé"
+    },
+    "e965c6f5-3d24-42ed-9182-31f48b5248a6": {
+        "en": "Enabled",
+        "fr": "Activé"
+    },
+    "bfa5b721-db96-47a5-9e69-5dd0ae943275": {
+        "en": "Static",
+        "fr": "Statique"
+    },
+    "f49c1855-5583-4a4f-8272-7f0326a23197": {
+        "en": "Pulse",
+        "fr": "Pulsation"
+    },
+    "d30ddfeb-9337-4fde-a303-b63db3a64c2b": {
+        "en": "Pulse (Speed)",
+        "fr": "Pulsation (Vitesse)"
+    },
+    "965a4868-b74e-4674-b43f-2086daf37906": {
+        "en": "BLink",
+        "fr": "Clignottement"
+    },
+    "419e70ee-8355-4cf5-9d18-54835008cdb0": {
+        "en": "Flash",
+        "fr": "Flashs"
+    },
+    "ad36bbab-eb53-4610-957a-07ff72d5fc94": {
+        "en": "Flash (Speed)",
+        "fr": "Flashs (Vitesse)"
+    },
+    "597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
+        "en": "Double Flash",
+        "fr": "Double flashs"
+    },
+    "5a22c2a6-ff28-4a99-985c-f027cefc305b": {
+        "en": "Chase",
+        "fr": "Chasse"
+    },
+    "8f32de3a-b7c5-459c-9678-5e247af86056": {
+        "en": "Chase (Speed)",
+        "fr": "Chasse (Vitesse)"
+    },
+    "c1dc1388-3864-4db9-bffb-40bc78b34442": {
+        "en": "Wave",
+        "fr": "Vague"
+    },
+    "2c0f5ddb-f374-497b-a873-e8fd7bf6db77": {
+        "en": "Wave (Speed)",
+        "fr": "Vague (Vitesse)"
+    },
+    "5ba5b8c5-3fd9-40c5-830a-68f775a9f27b": {
+        "en": "Spectrum Cycle",
+        "fr": "Cycle spectral"
+    },
+    "a1c25516-29ca-4e76-9210-6c9afadde4da": {
+        "en": "Spectrum Cycle (Speed)",
+        "fr": "Cycle spectral (Vitesse)"
+    },
+    "1dbeeeb3-5738-4503-b3a4-c25a4c519de1": {
+        "en": "Spectrum Cycle (Brightness)",
+        "fr": "Cycle spectral (Luminosité)"
+    },
+    "454153c6-7231-4677-9007-d0f75f4432b6": {
+        "en": "Spectrum Wave",
+        "fr": "Vague spectrale"
+    },
+    "621e5d5b-7eb5-4953-b338-3a00a65ea350": {
+        "en": "Spectrum Wave (Speed)",
+        "fr": "Vague spectrale (Vitesse)"
+    },
+    "60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
+        "en": "Reactive",
+        "fr": "Réactif"
+    },
+    // Embedded monitor graphics
+    "2f538961-daf9-4664-87fa-22b848df0eec": {
+        "en": "Image",
+        "fr": "Image"
+    },
+    // Language names
+    "3d7555d0-345a-49f1-903e-a15d35b0f5ec": {
+        "en": "English",
+        "fr": "Anglais",
+        "ja": "英語"
+    },
+    "cc5d6fb5-0653-49bb-85cc-4ae2ca82f487": {
+        "en": "French",
+        "fr": "Français",
+        "ja": "フランス語"
+    },
+    "1af16a76-e293-4096-a9d7-9e9eff68b591": {
+        "en": "German",
+        "fr": "Allemand",
+        "ja": "ドイツ語"
+    },
+    "f12057bc-08ce-446d-9d25-b5965b6136ab": {
+        "en": "Italian",
+        "fr": "Italien",
+        "ja": "イタリア語"
+    },
+    "9ef9c042-bfbb-4b72-9c24-4da56e1f56be": {
+        "en": "Japanese",
+        "fr": "Japonais",
+        "ja": "日本語"
+    },
+    "12df152a-1065-4200-966f-2be77410fd13": {
+        "en": "Korean",
+        "fr": "Coréen",
+        "ja": "韓国語"
+    },
+    "e9d6e301-de10-4f5a-910e-5aa80cf057d1": {
+        "en": "Chinese (Traditional)",
+        "fr": "Chinois (Traditionnel)",
+        "ja": "中国語（繁体字）"
+    },
+    "4b0f748a-cc4a-41ea-a59b-9549dd619e76": {
+        "en": "Chinese (Simplified)",
+        "fr": "Chinois (Simplifié)",
+        "ja": "中国語（簡体字）"
+    },
+    "e3e65711-aae3-4f2d-aa95-092cfc105872": {
+        "en": "Portuguese (Portugal)",
+        "fr": "Portugais (Portugal)",
+        "ja": "ポルトガル語（ポルトガル）"
+    },
+    "9318646f-67aa-4fae-95fc-3618c2f2777b": {
+        "en": "Portuguese (Brazil)",
+        "fr": "Portugais (Brésil)",
+        "ja": "ポルトガル語（ブラジル）"
+    },
+    "5ad769bf-3aa1-49a1-a9f9-6f0ec1b43dd2": {
+        "en": "Russian",
+        "fr": "Russe",
+        "ja": "ロシア語"
+    },
+    "f4bcb574-a61d-4b25-824b-6e865d7427fe": {
+        "en": "Spanish",
+        "fr": "Espagnol",
+        "ja": "スペイン語"
+    },
+    "88307c6f-da3e-424b-bef0-23a252e5b26d": {
+        "en": "Swedish",
+        "fr": "Suédois",
+        "ja": "スウェーデン語"
+    },
+    "f2fc7a26-b392-4c13-a86e-47b2e390caf8": {
+        "en": "Turkish",
+        "fr": "Turque",
+        "ja": "トルコ語"
+    },
+    "ac934765-0eb0-4ac6-b085-88177b1e2d84": {
+        "en": "Arabic",
+        "fr": "Arabe",
+        "ja": "アラビア語"
+    },
+    "49a21314-8315-47a5-b01b-6c7e50403921": {
+        "en": "Bulgarian",
+        "fr": "Bulgare",
+        "ja": "ブルガリア語"
+    },
+    "5506a84a-4ebf-46f5-b611-047cb8631ab9": {
+        "en": "Croatian",
+        "fr": "Croate",
+        "ja": "クロアチア語"
+    },
+    "f73a11cb-ec92-42a2-83b9-5d89a811d36e": {
+        "en": "Czech",
+        "fr": "Tchèque",
+        "ja": "チェコ語"
+    },
+    "ed6ef567-b80a-40d0-9551-38f39955c4c1": {
+        "en": "Danish",
+        "fr": "Danois",
+        "ja": "デンマーク語"
+    },
+    "c42dd145-2882-4b31-90d0-a47a822ed1cd": {
+        "en": "Dutch",
+        "fr": "Néerlandais",
+        "ja": "オランダ語"
+    },
+    "3ee2c2c1-1da2-434b-80d2-2463a52273f5": {
+        "en": "Estonian",
+        "fr": "Estonien",
+        "ja": "エストニア語"
+    },
+    "42177650-1189-414e-9f67-15a0a484a1f2": {
+        "en": "Finnish",
+        "fr": "Finnois",
+        "ja": "フィンランド語"
+    },
+    "9342a747-f7e4-4f79-b0ce-5fb0c8040126": {
+        "en": "Greek",
+        "fr": "Grec",
+        "ja": "ギリシャ語"
+    },
+    "7bed3e7d-9df4-41a9-94ea-4bde84db23a2": {
+        "en": "Hebrew",
+        "fr": "Hébreu",
+        "ja": "ヘブライ語"
+    },
+    "3f31973d-899a-46f3-a249-db6b9c895f4a": {
+        "en": "Hindi",
+        "fr": "Hindi",
+        "ja": "ヒンディー語"
+    },
+    "e3720708-932f-478f-9c7f-59fd4d3e46bf": {
+        "en": "Hungarian",
+        "fr": "Hongrois",
+        "ja": "ハンガリー語"
+    },
+    "3d1908b1-95d4-4ab4-9b56-c8662e0e9ad1": {
+        "en": "Latvian",
+        "fr": "Letton",
+        "ja": "ラトビア語"
+    },
+    "fdb186f3-4dd1-44fd-9bfa-c7237d035a09": {
+        "en": "Lithuanian",
+        "fr": "Lituanien",
+        "ja": "リトアニア語"
+    },
+    "f550eb5b-c345-44db-a341-26fb3d50c04b": {
+        "en": "Norwegian",
+        "fr": "Norvégien",
+        "ja": "ノルウェー語"
+    },
+    "11801b1c-2084-49ce-a965-19a5c3b37a9e": {
+        "en": "Polish",
+        "fr": "Polonais",
+        "ja": "ポーランド語"
+    },
+    "8a812b6b-9d8c-4281-bc9c-a79fce736366": {
+        "en": "Romanian",
+        "fr": "Roumain",
+        "ja": "ルーマニア語"
+    },
+    "8912b5e0-119d-49dc-9f33-872e7e37e729": {
+        "en": "Serbian",
+        "fr": "Serbe",
+        "ja": "セルビア語"
+    },
+    "5317048d-64dd-4240-ae2a-d0787c04e633": {
+        "en": "Slovak",
+        "fr": "Slovaque",
+        "ja": "スロバキア語"
+    },
+    "78632023-055c-4447-8e94-6319c9fded96": {
+        "en": "Slovenian",
+        "fr": "Slovénien",
+        "ja": "スロベニア語"
+    },
+    "e64bd133-b3a1-4d51-bf9c-63c0c4d0d9a8": {
+        "en": "Thai",
+        "fr": "Thailandais",
+        "ja": "タイ語"
+    },
+    "5a78cc6c-bf97-424e-b520-fb004d1009e9": {
+        "en": "Ukranian",
+        "fr": "Ukrainien",
+        "ja": "ウクライナ語"
+    },
+    "6a8fbd37-8ed5-4ade-af15-ccf2e62fc8b7": {
+        "en": "Vietnamese",
+        "fr": "Vietnamien",
+        "ja": "ベトナム語"
+    }
 }
