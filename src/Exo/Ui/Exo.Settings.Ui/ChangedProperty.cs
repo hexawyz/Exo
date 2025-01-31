@@ -65,4 +65,6 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs HasWirelessBrightness = new (nameof(HasWirelessBrightness));
 	public static readonly PropertyChangedEventArgs LoadedImageName = new (nameof(LoadedImageName));
 	public static readonly PropertyChangedEventArgs LoadedImageData = new (nameof(LoadedImageData));
+	public static readonly PropertyChangedEventArgs Shape = new (nameof(Shape));
+	public static readonly PropertyChangedEventArgs ImageSize = new (nameof(ImageSize));
 }

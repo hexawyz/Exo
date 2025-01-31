@@ -29,15 +29,20 @@ using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
 using GrpcSensorCapabilities = Exo.Contracts.Ui.Settings.SensorCapabilities;
 using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
+using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
+using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
+using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 using GrpcImageInformation = Exo.Contracts.Ui.Settings.ImageInformation;
 using GrpcImageFormat = Exo.Contracts.Ui.Settings.ImageFormat;
+using GrpcSize = Exo.Contracts.Ui.Settings.Size;
 using VendorIdSource = DeviceTools.VendorIdSource;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling.Configuration;
 using System.Numerics;
 using Exo.Images;
+using Exo.Monitors;
 
 namespace Exo.Service.Grpc;
 
@@ -127,17 +132,6 @@ internal static class GrpcConvert
 			Sensors = ImmutableArray.CreateRange(sensorDeviceInformation.Sensors, ToGrpc),
 		};
 
-	public static GrpcImageInformation ToGrpc(this ImageInformation imageInformation)
-		=> new()
-		{
-			ImageName = imageInformation.ImageName,
-			FileName = imageInformation.FileName,
-			Width = imageInformation.Width,
-			Height = imageInformation.Height,
-			Format = imageInformation.Format.ToGrpc(),
-			IsAnimated = imageInformation.IsAnimated,
-		};
-
 	public static GrpcSensorInformation ToGrpc(this SensorInformation sensorInformation)
 		=> new()
 		{
@@ -147,6 +141,45 @@ internal static class GrpcConvert
 			Capabilities = sensorInformation.Capabilities.ToGrpc(),
 			ScaleMinimumValue = sensorInformation.ScaleMinimumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMinimumValue) : null,
 			ScaleMaximumValue = sensorInformation.ScaleMaximumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMaximumValue) : null,
+		};
+
+	public static GrpcEmbeddedMonitorDeviceInformation ToGrpc(this EmbeddedMonitorDeviceInformation embeddedMonitorDeviceInformation)
+		=> new()
+		{
+			DeviceId = embeddedMonitorDeviceInformation.DeviceId,
+			EmbeddedMonitors = ImmutableArray.CreateRange(embeddedMonitorDeviceInformation.EmbeddedMonitors, ToGrpc),
+		};
+
+	public static GrpcEmbeddedMonitorInformation ToGrpc(this EmbeddedMonitorInformation embeddedMonitorInformation)
+		=> new()
+		{
+			MonitorId = embeddedMonitorInformation.MonitorId,
+			Shape = embeddedMonitorInformation.Shape.ToGrpc(),
+			ImageSize = embeddedMonitorInformation.ImageSize.ToGrpc(),
+			Capabilities = (Contracts.Ui.Settings.EmbeddedMonitorCapabilities)embeddedMonitorInformation.Capabilities,
+			SupportedImageFormats = (Contracts.Ui.Settings.ImageFormats)embeddedMonitorInformation.SupportedImageFormats,
+		};
+
+	public static GrpcMonitorShape ToGrpc(this MonitorShape shape)
+		=> shape switch
+		{
+			MonitorShape.Rectangle => GrpcMonitorShape.Rectangle,
+			MonitorShape.Square => GrpcMonitorShape.Square,
+			MonitorShape.Circle => GrpcMonitorShape.Circle,
+			_ => throw new NotImplementedException()
+		};
+
+	public static GrpcSize ToGrpc(this Size size) => new() { Width = size.Width, Height = size.Height };
+
+	public static GrpcImageInformation ToGrpc(this ImageInformation imageInformation)
+		=> new()
+		{
+			ImageName = imageInformation.ImageName,
+			FileName = imageInformation.FileName,
+			Width = imageInformation.Width,
+			Height = imageInformation.Height,
+			Format = imageInformation.Format.ToGrpc(),
+			IsAnimated = imageInformation.IsAnimated,
 		};
 
 	public static GrpcCoolingDeviceInformation ToGrpc(this CoolingDeviceInformation coolingDeviceInformation)

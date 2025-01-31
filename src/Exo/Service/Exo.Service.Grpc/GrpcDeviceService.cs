@@ -4,22 +4,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
 
-internal sealed class GrpcDeviceService : IDeviceService, IAsyncDisposable
+internal sealed class GrpcDeviceService : IDeviceService
 {
 	private readonly ConfigurationService _configurationService;
 	private readonly ILogger<GrpcDeviceService> _logger;
 	private readonly DeviceRegistry _driverRegistry;
-	private readonly PowerService _powerService;
 
 	public GrpcDeviceService(ILogger<GrpcDeviceService> logger, ConfigurationService configurationService, DeviceRegistry driverRegistry, PowerService powerService)
 	{
 		_logger = logger;
 		_configurationService = configurationService;
 		_driverRegistry = driverRegistry;
-		_powerService = powerService;
 	}
-
-	public ValueTask DisposeAsync() => _powerService.DisposeAsync();
 
 	public async IAsyncEnumerable<WatchNotification<Contracts.Ui.Settings.DeviceInformation>> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{

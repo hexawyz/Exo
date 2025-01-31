@@ -31,6 +31,7 @@
     <None Remove="DevicePage.xaml" />
     <None Remove="DevicesPage.xaml" />
     <None Remove="EditionToolbar.xaml" />
+    <None Remove="EmbeddedMonitorSettingsControl.xaml" />
     <None Remove="HomePage.xaml" />
     <None Remove="ImagesPage.xaml" />
     <None Remove="LightingPage.xaml" />
@@ -87,6 +88,12 @@
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Page Update="EmbeddedMonitorSettingsControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 	
   <ItemGroup>

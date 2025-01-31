@@ -32,7 +32,7 @@
                 <DataTemplate>
                     <Grid Margin="0,6,0,6" HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>

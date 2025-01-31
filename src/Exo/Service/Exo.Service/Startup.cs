@@ -262,6 +262,7 @@ public class Startup
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcPowerService>();
 		services.AddSingleton<GrpcLightingService>();
+		services.AddSingleton<GrpcEmbeddedMonitorService>();
 		services.AddSingleton<GrpcImageService>();
 		services.AddSingleton<GrpcSensorService>();
 		services.AddSingleton<GrpcCoolingService>();
@@ -305,6 +306,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcPowerService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
+			endpoints.MapGrpcService<GrpcEmbeddedMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcImageService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcSensorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcCoolingService>().AddEndpointFilter(settingsEndpointFilter);

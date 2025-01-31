@@ -5,11 +5,21 @@ namespace Exo.Service;
 
 internal static partial class LoggerExtensions
 {
+	// TODO: Reorganize Event IDs (They are currently not used but the plan is to log events to the event log at some point…)
+
 	[LoggerMessage(EventId = 10_101, EventName = "GrpcDeviceServiceWatchStart", Level = LogLevel.Debug, Message = "Started watching devices.")]
 	public static partial void GrpcDeviceServiceWatchStart(this ILogger logger);
 
 	[LoggerMessage(EventId = 10_102, EventName = "GrpcDeviceServiceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching devices.")]
 	public static partial void GrpcDeviceServiceWatchStop(this ILogger logger);
+
+	// These should have more sensical IDs and replace all the other specialized messages.
+	[LoggerMessage(EventId = 10_901, EventName = "GrpcSpecializedDeviceServiceWatchStart", Level = LogLevel.Debug, Message = "Started watching {DeviceService} devices.")]
+	public static partial void GrpcSpecializedDeviceServiceWatchStart(this ILogger logger, GrpcService deviceService);
+
+	[LoggerMessage(EventId = 10_902, EventName = "GrpcSpecializedDeviceServiceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching {DeviceService} devices.")]
+	public static partial void GrpcSpecializedDeviceServiceWatchStop(this ILogger logger, GrpcService deviceService);
+
 
 	[LoggerMessage(EventId = 10_103, EventName = "GrpcDeviceServiceWatchNotification", Level = LogLevel.Trace, Message = "Device notification: {NotificationKind} for {DeviceId} ({DeviceFriendlyName}). Availability: {IsAvailable}.")]
 	public static partial void GrpcDeviceServiceWatchNotification(this ILogger logger, WatchNotificationKind notificationKind, Guid deviceId, string deviceFriendlyName, bool isAvailable);
@@ -103,5 +113,15 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 10_806, EventName = "GrpcImageServiceAddImageRequestSuccess", Level = LogLevel.Information, Message = "Success of request to add image {ImageName}.")]
 	public static partial void GrpcImageServiceAddImageRequestSuccess(this ILogger logger, string imageName);
+}
 
+public enum GrpcService
+{
+	Device = 0,
+	Power = 1,
+	Battery = 2,
+	Lighting = 3,
+	EmbeddedMonitor = 4,
+	Sensor = 5,
+	Cooling = 6,
 }

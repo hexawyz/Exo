@@ -62,6 +62,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private readonly Dictionary<Guid, ushort> _pendingPollingFrequencyChanges;
 	private readonly Dictionary<Guid, MonitorInformation> _pendingMonitorInformations;
 	private readonly Dictionary<Guid, List<MonitorSettingValue>> _pendingMonitorSettingChanges;
+	private readonly Dictionary<Guid, EmbeddedMonitorDeviceInformation> _pendingEmbeddedMonitorDeviceInformations;
 
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice;
@@ -90,6 +91,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingPollingFrequencyChanges = new();
 		_pendingMonitorInformations = new();
 		_pendingMonitorSettingChanges = new();
+		_pendingEmbeddedMonitorDeviceInformations = new();
 		_metadataService = metadataService;
 		_navigateToDeviceCommand = new(navigateCommand);
 		_cancellationTokenSource = new CancellationTokenSource();
@@ -113,6 +115,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken).ConfigureAwait(false);
 			var powerService = await _connectionManager.GetPowerServiceAsync(cancellationToken).ConfigureAwait(false);
 			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken).ConfigureAwait(false);
+			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken).ConfigureAwait(false);
+			var embeddedMonitorService = await _connectionManager.GetEmbeddedMonitorServiceAsync(cancellationToken).ConfigureAwait(false);
 
 			var deviceWatchTask = WatchDevicesAsync(deviceService, powerService, mouseService, cts.Token);
 
@@ -127,8 +131,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(mouseService, cts.Token);
 			var mouseDpiPollingFrequencyWatchTask = WatchMousePollingFrequencyChangesAsync(mouseService, cts.Token);
 
-			var monitorWatchTask = WatchMonitorsAsync(cts.Token);
-			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(cts.Token);
+			var monitorWatchTask = WatchMonitorsAsync(monitorService, cts.Token);
+			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(monitorService, cts.Token);
+
+			var embeddedMonitorDeviceWatchTask = WatchEmbeddedMonitorDevicesAsync(embeddedMonitorService, cts.Token);
 
 			try
 			{
@@ -146,7 +152,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 						mouseDpiPresetWatchTask,
 						mouseDpiPollingFrequencyWatchTask,
 						monitorWatchTask,
-						monitorSettingWatchTask
+						monitorSettingWatchTask,
+						embeddedMonitorDeviceWatchTask,
 					]
 				);
 			}
@@ -174,6 +181,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 		_pendingMonitorInformations.Clear();
 		_pendingMonitorSettingChanges.Clear();
+
+		_pendingEmbeddedMonitorDeviceInformations.Clear();
 
 		SelectedDevice = null;
 
@@ -313,6 +322,13 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				}
 			}
 		}
+		if (device.EmbeddedMonitorFeatures is { } embeddedMonitorFeatures)
+		{
+			if (_pendingEmbeddedMonitorDeviceInformations.Remove(device.Id, out var embeddedMonitorDeviceInformation))
+			{
+				embeddedMonitorFeatures.UpdateInformation(embeddedMonitorDeviceInformation);
+			}
+		}
 	}
 
 	private void HandleDeviceRemoval(DeviceViewModel device)
@@ -336,6 +352,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 		_pendingMonitorInformations.Remove(device.Id, out _);
 		_pendingMonitorSettingChanges.Remove(device.Id, out _);
+
+		_pendingEmbeddedMonitorDeviceInformations.Remove(device.Id, out _);
 	}
 
 	private async Task WatchPowerDevicesAsync(IPowerService powerService, CancellationToken cancellationToken)
@@ -575,11 +593,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMonitorsAsync(CancellationToken cancellationToken)
+	private async Task WatchMonitorsAsync(IMonitorService monitorService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
 			await foreach (var notification in monitorService.WatchMonitorsAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
@@ -600,11 +617,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMonitorSettingChangesAsync(CancellationToken cancellationToken)
+	private async Task WatchMonitorSettingChangesAsync(IMonitorService monitorService, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
 			await foreach (var notification in monitorService.WatchSettingsAsync(cancellationToken))
 			{
 				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
@@ -621,6 +637,30 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 						_pendingMonitorSettingChanges[notification.DeviceId] = changes = [];
 					}
 					changes.Add(notification);
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchEmbeddedMonitorDevicesAsync(IEmbeddedMonitorService embeddedMonitorService, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in embeddedMonitorService.WatchEmbeddedMonitorDevicesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
+				{
+					if (device.EmbeddedMonitorFeatures is { } embeddedMonitorFeatures)
+					{
+						embeddedMonitorFeatures.UpdateInformation(notification);
+					}
+				}
+				else
+				{
+					_pendingEmbeddedMonitorDeviceInformations[notification.DeviceId] = notification;
 				}
 			}
 		}

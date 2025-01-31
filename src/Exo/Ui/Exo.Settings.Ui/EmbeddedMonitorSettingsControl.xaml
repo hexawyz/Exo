@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Exo.Settings.Ui.EmbeddedMonitorSettingsControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+    xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance vm:EmbeddedMonitorFeaturesViewModel, IsDesignTimeCreatable=False}">
+    <ContentPresenter Content="{Binding}" HorizontalAlignment="Stretch">
+        <ContentPresenter.ContentTemplateSelector>
+            <lts:EmbeddedMonitorSettingTemplateSelector>
+                <lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
+                    <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
+                        <Grid HorizontalAlignment="Stretch" DataContext="{Binding EmbeddedMonitors[0]}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                            </Grid>
+                            <Image Grid.Row="1" Width="{Binding ImageSize.Width}" Height="{Binding ImageSize.Height}" />
+                        </Grid>
+                    </DataTemplate>
+                </lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
+                <lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
+                    <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
+                        <Grid></Grid>
+                    </DataTemplate>
+                </lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
+                <lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
+                    <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
+                        <Grid></Grid>
+                    </DataTemplate>
+                </lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
+            </lts:EmbeddedMonitorSettingTemplateSelector>
+        </ContentPresenter.ContentTemplateSelector>
+    </ContentPresenter>
+</UserControl>

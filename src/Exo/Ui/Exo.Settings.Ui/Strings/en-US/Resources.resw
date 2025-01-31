@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -194,6 +194,9 @@
   </data>
   <data name="DpiPresetsLabel.Text" xml:space="preserve">
     <value>DPI presets</value>
+  </data>
+  <data name="EmbeddedMonitorSettingsSectionHeader.Text" xml:space="preserve">
+    <value>Embedded Monitor</value>
   </data>
   <data name="ExternalPowerStatusLabel.Text" xml:space="preserve">
     <value>External power</value>
