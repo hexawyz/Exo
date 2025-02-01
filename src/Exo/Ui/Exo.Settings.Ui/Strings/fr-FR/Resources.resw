@@ -196,7 +196,7 @@
     <value>Préréglages PPP</value>
   </data>
   <data name="EmbeddedMonitorGraphicsLabel.Text" xml:space="preserve">
-    <value>Graphics</value>
+    <value>Graphismes</value>
   </data>
   <data name="EmbeddedMonitorImageLabel.Text" xml:space="preserve">
     <value>Image</value>

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +17,7 @@ internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 		_embeddedMonitorService = embeddedMonitorService;
 	}
 
-	public async IAsyncEnumerable<Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation> WatchEmbeddedMonitorDevicesAsync(CancellationToken cancellationToken)
+	public async IAsyncEnumerable<Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation> WatchEmbeddedMonitorDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		_logger.GrpcSpecializedDeviceServiceWatchStart(GrpcService.EmbeddedMonitor);
 		try

@@ -46,7 +46,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 				}
 				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
 				{
-					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider);
+					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider, metadataService);
 				}
 			}
 		}

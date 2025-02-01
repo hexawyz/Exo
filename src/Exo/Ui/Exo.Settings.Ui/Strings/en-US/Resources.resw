@@ -196,7 +196,7 @@
     <value>DPI presets</value>
   </data>
   <data name="EmbeddedMonitorGraphicsLabel.Text" xml:space="preserve">
-    <value>Graphismes</value>
+    <value>Graphics</value>
   </data>
   <data name="EmbeddedMonitorImageLabel.Text" xml:space="preserve">
     <value>Image</value>

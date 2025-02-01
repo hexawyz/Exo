@@ -31,6 +31,7 @@ using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInform
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
 using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
 using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
+using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
 using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
@@ -43,6 +44,7 @@ using Exo.Cooling.Configuration;
 using System.Numerics;
 using Exo.Images;
 using Exo.Monitors;
+using Exo.Features.EmbeddedMonitors;
 
 namespace Exo.Service.Grpc;
 
@@ -158,6 +160,14 @@ internal static class GrpcConvert
 			ImageSize = embeddedMonitorInformation.ImageSize.ToGrpc(),
 			Capabilities = (Contracts.Ui.Settings.EmbeddedMonitorCapabilities)embeddedMonitorInformation.Capabilities,
 			SupportedImageFormats = (Contracts.Ui.Settings.ImageFormats)embeddedMonitorInformation.SupportedImageFormats,
+			SupportedGraphics = ImmutableArray.CreateRange(embeddedMonitorInformation.SupportedGraphics, ToGrpc),
+		};
+
+	public static GrpcEmbeddedMonitorGraphicsDescription ToGrpc(this EmbeddedMonitorGraphicsDescription description)
+		=> new()
+		{
+			GraphicsId = description.GraphicsId,
+			NameStringId = description.NameStringId,
 		};
 
 	public static GrpcMonitorShape ToGrpc(this MonitorShape shape)

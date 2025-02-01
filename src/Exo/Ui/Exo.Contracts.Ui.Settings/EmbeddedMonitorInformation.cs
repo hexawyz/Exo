@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
 namespace Exo.Contracts.Ui.Settings;
@@ -17,4 +18,6 @@ public sealed class EmbeddedMonitorInformation
 	public ImageFormats SupportedImageFormats { get; init; }
 	[DataMember(Order = 6)]
 	public EmbeddedMonitorCapabilities Capabilities { get; init; }
+	[DataMember(Order = 7)]
+	public ImmutableArray<EmbeddedMonitorGraphicsDescription> SupportedGraphics { get; init; }
 }
