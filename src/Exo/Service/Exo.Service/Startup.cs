@@ -124,6 +124,7 @@ public class Startup
 				sp.GetRequiredService<ILogger<EmbeddedMonitorService>>(),
 				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
 				sp.GetRequiredService<IDeviceWatcher>(),
+				sp.GetRequiredService<ImageStorageService>(),
 				default
 			).GetAwaiter().GetResult()
 		);

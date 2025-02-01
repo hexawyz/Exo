@@ -32,4 +32,14 @@ internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 			_logger.GrpcSpecializedDeviceServiceWatchStop(GrpcService.EmbeddedMonitor);
 		}
 	}
+
+	public async ValueTask SetBuiltInGraphicsAsync(EmbeddedMonitorSetBuiltInGraphicsRequest request, CancellationToken cancellationToken)
+	{
+		await _embeddedMonitorService.SetBuiltInGraphicsAsync(request.DeviceId, request.MonitorId, request.GraphicsId, cancellationToken).ConfigureAwait(false);
+	}
+
+	public async ValueTask SetImageAsync(EmbeddedMonitorSetImageRequest request, CancellationToken cancellationToken)
+	{
+		throw new NotImplementedException();
+	}
 }

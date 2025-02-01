@@ -25,7 +25,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		private readonly AsyncLock _lock;
 		public AsyncLock Lock => _lock;
 		public IConfigurationContainer DeviceConfigurationContainer { get; }
-		public IConfigurationContainer<Guid> EmbeddedMonitorsConfigurationContainer { get; }
+		public IConfigurationContainer<Guid> EmbeddedMonitorConfigurationContainer { get; }
 		private readonly Guid _id;
 		public Guid Id => _id;
 
@@ -39,7 +39,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		{
 			_id = id;
 			DeviceConfigurationContainer = deviceConfigurationContainer;
-			EmbeddedMonitorsConfigurationContainer = embeddedMonitorsConfigurationContainer;
+			EmbeddedMonitorConfigurationContainer = embeddedMonitorsConfigurationContainer;
 			EmbeddedMonitors = embeddedMonitors;
 			_lock = new();
 		}
@@ -93,6 +93,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		private ImageFormats _imageFormats;
 		private EmbeddedMonitorCapabilities _capabilities;
 		private ImmutableArray<EmbeddedMonitorGraphicsDescription> _supportedGraphics;
+		private HashSet<Guid>? _supportedBuiltInGraphicIds;
 
 		public EmbeddedMonitorState(Guid id)
 		{
@@ -109,7 +110,8 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			PixelFormat pixelFormat,
 			ImageFormats imageFormats,
 			EmbeddedMonitorCapabilities capabilities,
-			ImmutableArray<EmbeddedMonitorGraphicsDescription> supportedGraphics
+			ImmutableArray<EmbeddedMonitorGraphicsDescription> supportedGraphics,
+			PersistedMonitorConfiguration configuration
 		)
 		{
 			_id = id;
@@ -120,6 +122,23 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			_imageFormats = imageFormats;
 			_capabilities = capabilities;
 			_supportedGraphics = supportedGraphics;
+			if ((_capabilities & EmbeddedMonitorCapabilities.BuiltInGraphics) != 0 && supportedGraphics.Length > 0 && (supportedGraphics.Length > 1 || supportedGraphics[0].GraphicsId != default))
+			{
+				_supportedBuiltInGraphicIds = new();
+				foreach (var g in supportedGraphics)
+				{
+					if (g.GraphicsId == default) continue;
+					_supportedBuiltInGraphicIds.Add(g.GraphicsId);
+				}
+				// This is mostly a safeguard for bogus state. It should not be needed but it is better to guard against bugs in drivers.
+				if (_supportedBuiltInGraphicIds.Count == 0) _supportedBuiltInGraphicIds = null;
+			}
+			_currentGraphics = configuration.GraphicsId;
+			_currentImageId = configuration.ImageId;
+			_currentRegionLeft = (ushort)configuration.ImageRegion.Left;
+			_currentRegionTop = (ushort)configuration.ImageRegion.Top;
+			_currentRegionWidth = (ushort)configuration.ImageRegion.Width;
+			_currentRegionHeight = (ushort)configuration.ImageRegion.Height;
 		}
 
 		public bool SetOnline(IEmbeddedMonitor monitor)
@@ -194,6 +213,18 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			if (!supportedGraphics.SequenceEqual(_supportedGraphics))
 			{
 				_supportedGraphics = supportedGraphics;
+				_supportedBuiltInGraphicIds?.Clear();
+				if ((_capabilities & EmbeddedMonitorCapabilities.BuiltInGraphics) != 0 && supportedGraphics.Length > 0 && (supportedGraphics.Length > 1 || supportedGraphics[0].GraphicsId != default))
+				{
+					_supportedBuiltInGraphicIds ??= new();
+					foreach (var g in supportedGraphics)
+					{
+						if (g.GraphicsId == default) continue;
+						_supportedBuiltInGraphicIds.Add(g.GraphicsId);
+					}
+				}
+				// This is mostly a safeguard for bogus state. It should not be needed but it is better to guard against bugs in drivers.
+				if (_supportedBuiltInGraphicIds?.Count == 0) _supportedBuiltInGraphicIds = null;
 				hasChanged = true;
 			}
 
@@ -205,6 +236,44 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		public void SetOffline()
 		{
 			_monitor = null;
+		}
+
+		public async ValueTask<bool> SetBuiltInGraphicsAsync(Guid graphicsId, CancellationToken cancellationToken)
+		{
+			if (_supportedBuiltInGraphicIds?.Contains(graphicsId) != true) throw new ArgumentOutOfRangeException(nameof(graphicsId));
+
+			if (graphicsId != _currentGraphics)
+			{
+				if (_monitor is IEmbeddedMonitorBuiltInGraphics builtInGraphics)
+				{
+					await builtInGraphics.SetCurrentModeAsync(graphicsId, cancellationToken).ConfigureAwait(false);
+				}
+
+				_currentGraphics = graphicsId;
+				_currentImageId = 0;
+				_currentRegionLeft = 0;
+				_currentRegionTop = 0;
+				_currentRegionWidth = 0;
+				_currentRegionHeight = 0;
+
+				return true;
+			}
+			return false;
+		}
+
+		public async ValueTask RestoreConfigurationAsync(ImageStorageService imageStorageService, CancellationToken cancellationToken)
+		{
+			if (_currentGraphics != default)
+			{
+				if (_monitor is IEmbeddedMonitorBuiltInGraphics builtInGraphics)
+				{
+					await builtInGraphics.SetCurrentModeAsync(_currentGraphics, cancellationToken).ConfigureAwait(false);
+				}
+			}
+			else if (_currentImageId != 0)
+			{
+				// TODO
+			}
 		}
 
 		public PersistedEmbeddedMonitorInformation CreatePersistedInformation()
@@ -229,6 +298,14 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				SupportedImageFormats = _imageFormats,
 				Capabilities = _capabilities,
 				SupportedGraphics = _supportedGraphics,
+			};
+
+		public PersistedMonitorConfiguration CreatePersistedConfiguration()
+			=> new()
+			{
+				GraphicsId = _currentGraphics,
+				ImageId = _currentImageId,
+				ImageRegion = new(_currentRegionLeft, _currentRegionTop, _currentRegionWidth, _currentRegionHeight)
 			};
 
 		public EmbeddedMonitorConfigurationWatchNotification CreateConfigurationNotification(Guid deviceId)
@@ -274,6 +351,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		ILogger<EmbeddedMonitorService> logger,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
+		ImageStorageService imageStorageService,
 		CancellationToken cancellationToken
 	)
 	{
@@ -301,17 +379,30 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 
 			foreach (var embeddedMonitorId in embeddedMonitorIds)
 			{
-				EmbeddedMonitorState state;
+				PersistedEmbeddedMonitorInformation info;
 				{
 					var result = await embeddedMonitorConfigurationContainer.ReadValueAsync<PersistedEmbeddedMonitorInformation>(embeddedMonitorId, cancellationToken).ConfigureAwait(false);
 					if (!result.Found) continue;
-					var info = result.Value;
-					state = new(embeddedMonitorId, info.Shape, info.Width, info.Height, info.PixelFormat, info.ImageFormats, info.Capabilities, info.SupportedGraphics);
+					info = result.Value;
 				}
+				PersistedMonitorConfiguration configuration;
 				{
 					var result = await embeddedMonitorConfigurationContainer.ReadValueAsync<PersistedMonitorConfiguration>(embeddedMonitorId, cancellationToken).ConfigureAwait(false);
-					if (!result.Found) continue;
+					if (!result.Found) configuration = default;
+					else configuration = result.Value;
 				}
+				var state = new EmbeddedMonitorState
+				(
+					embeddedMonitorId,
+					info.Shape,
+					info.Width,
+					info.Height,
+					info.PixelFormat,
+					info.ImageFormats,
+					info.Capabilities,
+					info.SupportedGraphics,
+					configuration
+				);
 				embeddedMonitors.Add(embeddedMonitorId, state);
 			}
 
@@ -331,15 +422,16 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			}
 		}
 
-		return new EmbeddedMonitorService(logger, devicesConfigurationContainer, deviceWatcher, deviceStates);
+		return new EmbeddedMonitorService(logger, devicesConfigurationContainer, deviceWatcher, imageStorageService, deviceStates);
 	}
 
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, DeviceState> _embeddedMonitorDeviceStates;
-	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
+	private readonly ImageStorageService _imageStorageService;
+	private readonly AsyncLock _lock;
 	private ChannelWriter<EmbeddedMonitorDeviceInformation>[]? _deviceListeners;
 	private ChannelWriter<EmbeddedMonitorConfigurationWatchNotification>[]? _configurationChangeListeners;
-	private readonly AsyncLock _lock;
+	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly ILogger<EmbeddedMonitorService> _logger;
 
 	private CancellationTokenSource? _cancellationTokenSource;
@@ -350,6 +442,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		ILogger<EmbeddedMonitorService> logger,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
+		ImageStorageService imageStorageService,
 		ConcurrentDictionary<Guid, DeviceState> embeddedMonitorDeviceStates
 	)
 	{
@@ -357,6 +450,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		_logger = logger;
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_deviceWatcher = deviceWatcher;
+		_imageStorageService = imageStorageService;
 		_embeddedMonitorDeviceStates = embeddedMonitorDeviceStates;
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
@@ -466,7 +560,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				{
 					if (deviceState.EmbeddedMonitors.Remove(deletedMonitorId))
 					{
-						await deviceState.EmbeddedMonitorsConfigurationContainer.DeleteValuesAsync(deletedMonitorId);
+						await deviceState.EmbeddedMonitorConfigurationContainer.DeleteValuesAsync(deletedMonitorId);
 					}
 				}
 				changedMonitors.Clear();
@@ -484,16 +578,25 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				}
 			}
 
+			deviceState.SetOnline(notification.Driver!);
+
 			if (isNew)
 			{
 				_embeddedMonitorDeviceStates.TryAdd(deviceState.Id, deviceState);
+			}
+			else
+			{
+				foreach (var monitorState in deviceState.EmbeddedMonitors.Values)
+				{
+					await monitorState.RestoreConfigurationAsync(_imageStorageService, cancellationToken).ConfigureAwait(false);
+				}
 			}
 
 			foreach (var changedMonitorId in changedMonitors)
 			{
 				if (deviceState.EmbeddedMonitors.TryGetValue(changedMonitorId, out var monitorState))
 				{
-					await deviceState.EmbeddedMonitorsConfigurationContainer.WriteValueAsync(changedMonitorId, monitorState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
+					await deviceState.EmbeddedMonitorConfigurationContainer.WriteValueAsync(changedMonitorId, monitorState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
 				}
 			}
 
@@ -513,6 +616,26 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				deviceState.SetOffline();
 			}
 		}
+	}
+
+	public async ValueTask SetBuiltInGraphicsAsync(Guid deviceId, Guid monitorId, Guid graphicsId, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfEqual(graphicsId, default);
+
+		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+
+		PersistedMonitorConfiguration configuration;
+
+		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new InvalidOperationException("Embedded monitor not found.");
+
+			if (!(await monitorState.SetBuiltInGraphicsAsync(graphicsId, cancellationToken).ConfigureAwait(false))) return;
+
+			configuration = monitorState.CreatePersistedConfiguration();
+		}
+
+		await PersistConfigurationAsync(deviceState.EmbeddedMonitorConfigurationContainer, monitorId, configuration, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async IAsyncEnumerable<EmbeddedMonitorDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -621,6 +744,6 @@ public readonly struct EmbeddedMonitorConfigurationWatchNotification
 	public required Guid DeviceId { get; init; }
 	public required Guid MonitorId { get; init; }
 	public required Guid GraphicsId { get; init; }
-	public required UInt128 ImageId { get; init; }
-	public required Rectangle ImageRegion { get; init; }
+	public UInt128 ImageId { get; init; }
+	public Rectangle ImageRegion { get; init; }
 }

@@ -129,7 +129,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken).ConfigureAwait(false);
 			var embeddedMonitorService = await _connectionManager.GetEmbeddedMonitorServiceAsync(cancellationToken).ConfigureAwait(false);
 
-			var deviceWatchTask = WatchDevicesAsync(deviceService, powerService, mouseService, cts.Token);
+			var deviceWatchTask = WatchDevicesAsync(deviceService, powerService, mouseService, embeddedMonitorService, cts.Token);
 
 			var powerWatchTask = WatchPowerDevicesAsync(powerService, cts.Token);
 			var batteryWatchTask = WatchBatteryChangesAsync(powerService, cts.Token);
@@ -205,7 +205,14 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_devices.Clear();
 	}
 
-	private async Task WatchDevicesAsync(IDeviceService deviceService, IPowerService powerService, IMouseService mouseService, CancellationToken cancellationToken)
+	private async Task WatchDevicesAsync
+	(
+		IDeviceService deviceService,
+		IPowerService powerService,
+		IMouseService mouseService,
+		IEmbeddedMonitorService embeddedMonitorService,
+		CancellationToken cancellationToken
+	)
 	{
 		try
 		{
@@ -218,7 +225,17 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Addition:
 					{
-						var device = new DeviceViewModel(_connectionManager, _availableImages, _metadataService, powerService, mouseService, _rasterizationScaleProvider, notification.Details);
+						var device = new DeviceViewModel
+						(
+							_connectionManager,
+							_availableImages,
+							_metadataService,
+							powerService,
+							mouseService,
+							embeddedMonitorService,
+							_rasterizationScaleProvider,
+							notification.Details
+						);
 						await HandleDeviceArrivalAsync(device, cancellationToken);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);

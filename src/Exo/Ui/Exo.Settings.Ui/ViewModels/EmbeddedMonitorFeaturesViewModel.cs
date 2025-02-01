@@ -13,6 +13,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _availableImages;
 	private readonly IRasterizationScaleProvider _rasterizationScaleProvider;
 	private readonly ISettingsMetadataService _metadataService;
+	private readonly IEmbeddedMonitorService _embeddedMonitorService;
 	private readonly ObservableCollection<EmbeddedMonitorViewModel> _embeddedMonitors;
 	private readonly ReadOnlyObservableCollection<EmbeddedMonitorViewModel> _readOnlyEmbeddedMonitors;
 	private readonly Dictionary<Guid, EmbeddedMonitorViewModel> _embeddedMonitorById;
@@ -24,13 +25,15 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		DeviceViewModel device,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		IRasterizationScaleProvider rasterizationScaleProvider,
-		ISettingsMetadataService metadataService
+		ISettingsMetadataService metadataService,
+		IEmbeddedMonitorService embeddedMonitorService
 	)
 	{
 		_device = device;
 		_availableImages = availableImages;
 		_rasterizationScaleProvider = rasterizationScaleProvider;
 		_metadataService = metadataService;
+		_embeddedMonitorService = embeddedMonitorService;
 		_embeddedMonitors = new();
 		_embeddedMonitorById = new();
 		_readOnlyEmbeddedMonitors = new(_embeddedMonitors);
@@ -48,6 +51,8 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		}
 	}
 
+	public Guid DeviceId => _device.Id;
+
 	public ReadOnlyObservableCollection<EmbeddedMonitorViewModel> EmbeddedMonitors => _readOnlyEmbeddedMonitors;
 	public ReadOnlyObservableCollection<ImageViewModel> AvailableImages => _availableImages;
 
@@ -60,6 +65,8 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		get => _isExpanded;
 		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
 	}
+
+	internal IEmbeddedMonitorService EmbeddedMonitorService => _embeddedMonitorService;
 
 	public void UpdateInformation(EmbeddedMonitorDeviceInformation information)
 	{
@@ -219,9 +226,12 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 
 	internal EmbeddedMonitorFeaturesViewModel Owner => _owner;
 
-	protected override Task ApplyChangesAsync(CancellationToken cancellationToken)
+	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
-		return Task.CompletedTask;
+		if (_currentGraphics is not null)
+		{
+			await _currentGraphics.ApplyAsync(cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	protected override void Reset()
@@ -262,6 +272,8 @@ internal abstract class EmbeddedMonitorGraphicsViewModel : ChangeableBindableObj
 		base.OnChanged(isChanged);
 		Monitor.NotifyGraphicsChanged(this, isChanged);
 	}
+
+	internal abstract ValueTask ApplyAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorGraphicsViewModel
@@ -272,6 +284,18 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 	}
 
 	public override bool IsChanged => false;
+
+	internal override async ValueTask ApplyAsync(CancellationToken cancellationToken)
+		=> await Monitor.Owner.EmbeddedMonitorService.SetBuiltInGraphicsAsync
+		(
+			new()
+			{
+				DeviceId = Monitor.Owner.DeviceId,
+				MonitorId = Monitor.MonitorId,
+				GraphicsId = Id 
+			},
+			cancellationToken
+		).ConfigureAwait(false);
 }
 
 internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
@@ -324,4 +348,9 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 	public double DisplayHeight => Monitor.DisplayHeight;
 
 	public ReadOnlyObservableCollection<ImageViewModel> AvailableImages => Monitor.Owner.AvailableImages;
+
+	internal override ValueTask ApplyAsync(CancellationToken cancellationToken)
+	{
+		throw new NotImplementedException();
+	}
 }

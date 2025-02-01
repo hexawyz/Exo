@@ -15,6 +15,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 		ISettingsMetadataService metadataService,
 		IPowerService powerService,
 		IMouseService mouseService,
+		IEmbeddedMonitorService embeddedMonitorService,
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		DeviceInformation deviceInformation
 	)
@@ -46,7 +47,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 				}
 				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
 				{
-					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider, metadataService);
+					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider, metadataService, embeddedMonitorService);
 				}
 			}
 		}
