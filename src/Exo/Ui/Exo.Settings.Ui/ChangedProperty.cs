@@ -6,6 +6,7 @@ namespace Exo.Settings.Ui;
 // While this is more useful for properties that are updated often, all properties can be registered in there with the only overhead of a permanent object instance.
 internal static class ChangedProperty
 {
+	public static readonly PropertyChangedEventArgs RasterizationScale = new(nameof(RasterizationScale));
 	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
 	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
 	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));
@@ -67,4 +68,6 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs LoadedImageData = new (nameof(LoadedImageData));
 	public static readonly PropertyChangedEventArgs Shape = new (nameof(Shape));
 	public static readonly PropertyChangedEventArgs ImageSize = new (nameof(ImageSize));
+	public static readonly PropertyChangedEventArgs DisplayWidth = new (nameof(DisplayWidth));
+	public static readonly PropertyChangedEventArgs DisplayHeight = new (nameof(DisplayHeight));
 }

@@ -6,7 +6,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal class DeviceViewModel : BindableObject
+internal class DeviceViewModel : BindableObject, IDisposable
 {
 	public DeviceViewModel
 	(
@@ -14,6 +14,7 @@ internal class DeviceViewModel : BindableObject
 		ISettingsMetadataService metadataService,
 		IPowerService powerService,
 		IMouseService mouseService,
+		IRasterizationScaleProvider rasterizationScaleProvider,
 		DeviceInformation deviceInformation
 	)
 	{
@@ -44,10 +45,15 @@ internal class DeviceViewModel : BindableObject
 				}
 				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
 				{
-					EmbeddedMonitorFeatures ??= new(this);
+					EmbeddedMonitorFeatures ??= new(this, rasterizationScaleProvider);
 				}
 			}
 		}
+	}
+
+	public void Dispose()
+	{
+		EmbeddedMonitorFeatures?.Dispose();
 	}
 
 	public Guid Id { get; }

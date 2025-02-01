@@ -11,8 +11,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:EmbeddedMonitorFeaturesViewModel, IsDesignTimeCreatable=False}">
-    <ContentPresenter Content="{Binding}" HorizontalAlignment="Stretch">
-        <ContentPresenter.ContentTemplateSelector>
+    <ContentControl Content="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <ContentControl.ContentTemplateSelector>
             <lts:EmbeddedMonitorSettingTemplateSelector>
                 <lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
                     <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
@@ -27,14 +27,37 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <TextBlock Text="A" Margin="{StaticResource RowLabelMargin}"></TextBlock>
+                                <ComboBox Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" />
+                                <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+                                    <FontIcon Glyph="&#xE777;" />
+                                </Button>
                             </Grid>
-                            <Image Grid.Row="1" Width="{Binding ImageSize.Width}" Height="{Binding ImageSize.Height}" />
+                            <Grid Grid.Row="1" MinWidth="{Binding DisplayWidth}" MinHeight="{Binding DisplayHeight}" Background="Black" BorderBrush="White">
+                                <Image HorizontalAlignment="Center" />
+                            </Grid>
                         </Grid>
                     </DataTemplate>
                 </lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
                 <lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
                     <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
-                        <Grid></Grid>
+                        <Grid>
+                            <!-- TODO: Create a Control to display items in a fixed grid -->
+                            <ItemsView ItemsSource="{Binding EmbeddedMonitors}">
+                                <ItemsView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:EmbeddedMonitorViewModel">
+                                        <ItemContainer>
+                                            <Grid Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}" Background="Black" Margin="3">
+                                                <Image></Image>
+                                            </Grid>
+                                        </ItemContainer>
+                                    </DataTemplate>
+                                </ItemsView.ItemTemplate>
+                                <ItemsView.Layout>
+                                    <UniformGridLayout MaximumRowsOrColumns="8" />
+                                </ItemsView.Layout>
+                            </ItemsView>
+                        </Grid>
                     </DataTemplate>
                 </lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
                 <lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
@@ -43,6 +66,6 @@
                     </DataTemplate>
                 </lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
             </lts:EmbeddedMonitorSettingTemplateSelector>
-        </ContentPresenter.ContentTemplateSelector>
-    </ContentPresenter>
+        </ContentControl.ContentTemplateSelector>
+    </ContentControl>
 </UserControl>

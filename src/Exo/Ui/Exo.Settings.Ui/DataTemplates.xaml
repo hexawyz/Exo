@@ -273,14 +273,14 @@
             <Slider
                 Grid.Row="0"
                 Grid.Column="1"
-                Margin="6,6,6,6"
+                Margin="{StaticResource RowContentLabelMargin}"
                 Maximum="100"
                 Minimum="{Binding MinimumPower, Mode=OneTime}"
                 Value="{Binding Power, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch"
                 ThumbToolTipValueConverter="{StaticResource IntegerPercentValueConverter}" />
-            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetPowerCommand}" CommandParameter="{Binding}">
+            <Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetPowerCommand}" CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>
@@ -309,14 +309,14 @@
                 HorizontalContentAlignment="Stretch"
                 HorizontalAlignment="Stretch"
                 ThumbToolTipValueConverter="{StaticResource IntegerPercentValueConverter}" />
-            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetFallbackPowerCommand}" CommandParameter="{Binding}">
+            <Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetFallbackPowerCommand}" CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
             <TextBlock Grid.Row="1" Grid.Column="0" x:Uid="CoolingInputSensorLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
             <ComboBox
                 Grid.Row="1"
                 Grid.Column="1"
-                Margin="6,6,6,6"
+                Margin="{StaticResource RowContentLabelMargin}"
                 ItemsSource="{Binding SensorsAvailableForCoolingControlCurves, Mode=OneTime}"
                 SelectedItem="{Binding InputSensor, Mode=TwoWay}"
                 HorizontalContentAlignment="Stretch"
@@ -327,7 +327,7 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Grid.Row="1" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetInputSensorCommand}" CommandParameter="{Binding}">
+            <Button Grid.Row="1" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetInputSensorCommand}" CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
             <lcontrols:PowerControlCurveEditor
@@ -359,7 +359,7 @@
             <ComboBox
                 Grid.Row="0"
                 Grid.Column="1"
-                Margin="6,6,6,6"
+                Margin="{StaticResource RowContentLabelMargin}"
                 ItemsSource="{Binding SensorsAvailableForCoolingControlCurves, Mode=OneTime}"
                 SelectedItem="{Binding InputSensor, Mode=TwoWay}"
                 HorizontalContentAlignment="Stretch"
@@ -370,7 +370,7 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Grid.Row="0" Grid.Column="2" Margin="6,0,6,0" HorizontalAlignment="Right" Command="{Binding ResetInputSensorCommand}" CommandParameter="{Binding}">
+            <Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetInputSensorCommand}" CommandParameter="{Binding}">
                 <FontIcon Glyph="&#xE777;" />
             </Button>
             <lcontrols:PowerControlCurveEditor

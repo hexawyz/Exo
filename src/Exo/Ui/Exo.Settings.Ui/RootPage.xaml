@@ -139,7 +139,7 @@
                     <FontIcon Glyph="{Binding CurrentPage.Icon}" Margin="6,4,6,0" />
                     <TextBlock
                         Grid.Column="1"
-                        Margin="6,0,6,0"
+                        Margin="{StaticResource RowContentMargin}"
                         Text="{Binding CurrentPage.DisplayName}"
                         Style="{StaticResource TitleTextBlockStyle}"
                         TextTrimming="CharacterEllipsis"

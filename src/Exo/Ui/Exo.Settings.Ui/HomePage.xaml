@@ -22,10 +22,10 @@
         <TextBlock x:Uid="WelcomeTextBlock" />
         <StackPanel
             Grid.Row="1"
-            Margin="0,6,0,6"
+            Margin="{StaticResource RowLabelMargin}"
             Orientation="Vertical"
             Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
-            <TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,6,0,6" />
+            <TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
             <Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
                 <ItemsRepeater ItemsSource="{Binding BatteryDevices.ConnectedBatteryDevices}">
                     <ItemsRepeater.Layout>

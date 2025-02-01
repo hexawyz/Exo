@@ -68,13 +68,20 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private DeviceViewModel? _selectedDevice;
 
 	private readonly ISettingsMetadataService _metadataService;
+	private readonly IRasterizationScaleProvider _rasterizationScaleProvider;
 
 	private readonly Commands.NavigateToDeviceCommand _navigateToDeviceCommand;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly IDisposable _stateRegistration;
 
-	public DevicesViewModel(SettingsServiceConnectionManager connectionManager, ISettingsMetadataService metadataService, ICommand navigateCommand)
+	public DevicesViewModel
+	(
+		SettingsServiceConnectionManager connectionManager,
+		ISettingsMetadataService metadataService,
+		IRasterizationScaleProvider rasterizationScaleProvider,
+		ICommand navigateCommand
+	)
 	{
 		_devices = new();
 		_removedDeviceIds = new();
@@ -93,6 +100,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingMonitorSettingChanges = new();
 		_pendingEmbeddedMonitorDeviceInformations = new();
 		_metadataService = metadataService;
+		_rasterizationScaleProvider = rasterizationScaleProvider;
 		_navigateToDeviceCommand = new(navigateCommand);
 		_cancellationTokenSource = new CancellationTokenSource();
 		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
@@ -207,7 +215,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Addition:
 					{
-						var device = new DeviceViewModel(_connectionManager, _metadataService, powerService, mouseService, notification.Details);
+						var device = new DeviceViewModel(_connectionManager, _metadataService, powerService, mouseService, _rasterizationScaleProvider, notification.Details);
 						await HandleDeviceArrivalAsync(device, cancellationToken);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);

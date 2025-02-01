@@ -26,6 +26,7 @@ using WinRT.Interop;
 using Windows.Storage.Pickers;
 using Windows.Storage;
 using System.Collections.Immutable;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui;
 
@@ -57,7 +58,9 @@ public partial class App : Application
 
 		GrpcClientFactory.AllowUnencryptedHttp2 = true;
 
-		Services = ConfigureServices();
+		_rasterizationScaleController = new();
+
+		Services = ConfigureServices(_rasterizationScaleController);
 
 		InitializeComponent();
 	}
@@ -76,11 +79,27 @@ public partial class App : Application
 		_window.AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon));
 		_window.SystemBackdrop = new MicaBackdrop();
 		_window.ExtendsContentIntoTitleBar = true;
-		_window.Content = new RootPage(_window);
+		var rootPage = new RootPage(_window);
+		_window.Content = rootPage;
 		_window.Activate();
+		// Setup logic to track DPI so that we can properly scale images in the UI.
+		rootPage.Loaded += (sender, e) =>
+		{
+			var xamlRoot = _window.Content.XamlRoot;
+			_rasterizationScaleController.RasterizationScale = xamlRoot.RasterizationScale;
+			xamlRoot.Changed += OnXamlRootChanged;
+		};
+	}
+
+	private void RootPage_Loaded(object sender, RoutedEventArgs e) => throw new NotImplementedException();
+
+	private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
+	{
+		_rasterizationScaleController.RasterizationScale = sender.RasterizationScale;
 	}
 
 	private Window? _window;
+	private readonly RasterizationScaleController _rasterizationScaleController;
 
 	public new static App Current => (App)Application.Current;
 
@@ -88,7 +107,7 @@ public partial class App : Application
 
 	public IServiceProvider Services { get; }
 
-	private static IServiceProvider ConfigureServices()
+	private static IServiceProvider ConfigureServices(IRasterizationScaleProvider rasterizationScaleProvider)
 	{
 		var services = new ServiceCollection();
 
@@ -97,6 +116,8 @@ public partial class App : Application
 		services.AddSingleton<IEditionService, EditionService>();
 
 		services.AddSingleton<ConnectionViewModel>();
+
+		services.AddSingleton(rasterizationScaleProvider);
 
 		services.AddSingleton<ISettingsMetadataService, MetadataService>();
 
@@ -152,5 +173,16 @@ public partial class App : Application
 
 		public string? Path => _file.Path;
 		public Task<Stream> OpenForReadAsync() => _file.OpenStreamForReadAsync();
+	}
+
+	private sealed class RasterizationScaleController : BindableObject, IRasterizationScaleProvider
+	{
+		private double _rasterizationScale = 1;
+
+		public double RasterizationScale
+		{
+			get => _rasterizationScale;
+			set => SetValue(ref _rasterizationScale, value, ChangedProperty.RasterizationScale);
+		}
 	}
 }

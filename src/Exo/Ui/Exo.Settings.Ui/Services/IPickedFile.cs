@@ -1,4 +1,4 @@
-﻿namespace Exo.Settings.Ui.Services;
+namespace Exo.Settings.Ui.Services;
 
 public interface IPickedFile
 {

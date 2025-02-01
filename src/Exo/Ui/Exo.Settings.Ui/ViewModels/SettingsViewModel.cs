@@ -98,6 +98,7 @@ internal sealed class SettingsViewModel : BindableObject
 	(
 		SettingsServiceConnectionManager connectionManager,
 		ConnectionViewModel connectionViewModel,
+		IRasterizationScaleProvider rasterizationScaleProvider,
 		IEditionService editionService,
 		IFileOpenDialog fileOpenDialog,
 		ISettingsMetadataService metadataService
@@ -109,7 +110,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_metadataService = metadataService;
 		_goBackCommand = new(this);
 		_navigateCommand = new(this);
-		_devicesViewModel = new(ConnectionManager, _metadataService, _navigateCommand);
+		_devicesViewModel = new(ConnectionManager, _metadataService, rasterizationScaleProvider, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_imagesViewModel = new(ConnectionManager, fileOpenDialog);

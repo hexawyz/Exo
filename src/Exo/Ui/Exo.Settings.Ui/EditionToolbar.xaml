@@ -12,7 +12,7 @@
 
     <StackPanel
         Grid.Row="1"
-        Margin="0,6,0,6"
+        Margin="{StaticResource RowLabelMargin}"
         Orientation="Horizontal">
         <FontIcon VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Glyph="&#xE790;" />
         <controls:ColorPickerButton

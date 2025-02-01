@@ -65,7 +65,7 @@
         <ListView
             Grid.Row="2"
             Style="{StaticResource MenuPreviewStyle}"
-            Margin="0,6,0,6"
+            Margin="{StaticResource RowLabelMargin}"
             Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
             ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
             SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
