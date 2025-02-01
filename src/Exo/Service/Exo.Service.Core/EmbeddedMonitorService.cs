@@ -261,6 +261,28 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			return false;
 		}
 
+		public async ValueTask<bool> SetImageAsync(UInt128 imageId, Rectangle region, CancellationToken cancellationToken)
+		{
+			if (imageId != _currentImageId && (region.Left != _currentRegionLeft || region.Top != _currentRegionTop || region.Width != _currentRegionWidth || region.Height != _currentRegionHeight))
+			{
+				if (_monitor is not null)
+				{
+					// TODO: Implement generation in the image storage.
+					//await _monitor.SetImageAsync();
+				}
+
+				_currentGraphics = default;
+				_currentImageId = imageId;
+				_currentRegionLeft = (ushort)region.Left;
+				_currentRegionTop = (ushort)region.Top;
+				_currentRegionWidth = (ushort)region.Width;
+				_currentRegionHeight = (ushort)region.Height;
+
+				return true;
+			}
+			return false;
+		}
+
 		public async ValueTask RestoreConfigurationAsync(ImageStorageService imageStorageService, CancellationToken cancellationToken)
 		{
 			if (_currentGraphics != default)
@@ -630,7 +652,32 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		{
 			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new InvalidOperationException("Embedded monitor not found.");
 
-			if (!(await monitorState.SetBuiltInGraphicsAsync(graphicsId, cancellationToken).ConfigureAwait(false))) return;
+			if (!await monitorState.SetBuiltInGraphicsAsync(graphicsId, cancellationToken).ConfigureAwait(false)) return;
+
+			configuration = monitorState.CreatePersistedConfiguration();
+		}
+
+		await PersistConfigurationAsync(deviceState.EmbeddedMonitorConfigurationContainer, monitorId, configuration, cancellationToken).ConfigureAwait(false);
+	}
+
+	public async ValueTask SetImageAsync(Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle imageRegion, CancellationToken cancellationToken)
+	{
+		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+		if ((uint)imageRegion.Left > ushort.MaxValue ||
+			(uint)imageRegion.Top > ushort.MaxValue ||
+			(uint)imageRegion.Width > ushort.MaxValue ||
+			(uint)imageRegion.Height > ushort.MaxValue)
+		{
+			throw new ArgumentException("Invalid crop region.");
+		}
+
+		PersistedMonitorConfiguration configuration;
+
+		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new InvalidOperationException("Embedded monitor not found.");
+
+			if (!await monitorState.SetImageAsync(imageId, imageRegion, cancellationToken).ConfigureAwait(false)) return;
 
 			configuration = monitorState.CreatePersistedConfiguration();
 		}

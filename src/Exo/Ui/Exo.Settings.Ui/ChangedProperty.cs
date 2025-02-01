@@ -71,6 +71,8 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs ImageSize = new (nameof(ImageSize));
 	public static readonly PropertyChangedEventArgs DisplayWidth = new (nameof(DisplayWidth));
 	public static readonly PropertyChangedEventArgs DisplayHeight = new (nameof(DisplayHeight));
+	public static readonly PropertyChangedEventArgs AspectRatio = new (nameof(AspectRatio));
+	public static readonly PropertyChangedEventArgs CropRectangle = new (nameof(CropRectangle));
 	public static readonly PropertyChangedEventArgs HasBuiltInGraphics = new (nameof(HasBuiltInGraphics));
 	public static readonly PropertyChangedEventArgs CurrentGraphics = new (nameof(CurrentGraphics));
 }

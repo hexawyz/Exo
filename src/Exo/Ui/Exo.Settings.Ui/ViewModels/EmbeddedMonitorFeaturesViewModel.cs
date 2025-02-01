@@ -4,6 +4,8 @@ using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Windows.Graphics.Printing;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -148,7 +150,19 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	public MonitorShape Shape
 	{
 		get => _shape;
-		private set => SetValue(ref _shape, value, ChangedProperty.Shape);
+		private set
+		{
+			if (value != _shape)
+			{
+				double oldAspectRatio = AspectRatio;
+				_shape = value;
+				NotifyPropertyChanged(ChangedProperty.Shape);
+				if (AspectRatio != oldAspectRatio)
+				{
+					NotifyPropertyChanged(ChangedProperty.AspectRatio);
+				}
+			}
+		}
 	}
 
 	public Size ImageSize
@@ -188,6 +202,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 
 	public double DisplayWidth => _imageSize.Width / _owner.RasterizationScaleProvider.RasterizationScale;
 	public double DisplayHeight => _imageSize.Height / _owner.RasterizationScaleProvider.RasterizationScale;
+	public double AspectRatio => _shape != MonitorShape.Rectangle && _imageSize.Height != 0 ? (double)_imageSize.Width / _imageSize.Height : 1;
 
 	public ReadOnlyObservableCollection<EmbeddedMonitorGraphicsViewModel> SupportedGraphics => _readOnlySupportedGraphics;
 
@@ -301,6 +316,7 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
 {
 	private UInt128 _initialImageId;
+	private Rectangle _cropRectangle;
 	private ImageViewModel? _image;
 	private readonly PropertyChangedEventHandler _onMonitorPropertyChanged;
 
@@ -319,7 +335,11 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 
 	private void OnMonitorPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (Equals(e, ChangedProperty.DisplayWidth) || Equals(e, ChangedProperty.DisplayHeight) || Equals(e, ChangedProperty.Shape) || Equals(e, ChangedProperty.ImageSize))
+		if (Equals(e, ChangedProperty.DisplayWidth) ||
+			Equals(e, ChangedProperty.DisplayHeight) ||
+			Equals(e, ChangedProperty.DisplayWidth) ||
+			Equals(e, ChangedProperty.Shape) ||
+			Equals(e, ChangedProperty.ImageSize))
 		{
 			NotifyPropertyChanged(e);
 		}
@@ -346,6 +366,10 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 
 	public double DisplayWidth => Monitor.DisplayWidth;
 	public double DisplayHeight => Monitor.DisplayHeight;
+
+	public Rectangle CropRectangle => _cropRectangle;
+
+	public double AspectRatio => Monitor.AspectRatio;
 
 	public ReadOnlyObservableCollection<ImageViewModel> AvailableImages => Monitor.Owner.AvailableImages;
 

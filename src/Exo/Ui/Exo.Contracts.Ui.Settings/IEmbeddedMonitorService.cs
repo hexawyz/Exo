@@ -1,4 +1,3 @@
-using System.Runtime.Serialization;
 using System.ServiceModel;
 
 namespace Exo.Contracts.Ui.Settings;
@@ -18,28 +17,4 @@ public interface IEmbeddedMonitorService
 
 	[OperationContract(Name = "SetImage")]
 	ValueTask SetImageAsync(EmbeddedMonitorSetImageRequest request, CancellationToken cancellationToken);
-}
-
-[DataContract]
-public sealed class EmbeddedMonitorSetBuiltInGraphicsRequest
-{
-	[DataMember(Order = 1)]
-	public Guid DeviceId { get; init; }
-	[DataMember(Order = 2)]
-	public Guid MonitorId { get; init; }
-	[DataMember(Order = 3)]
-	public Guid GraphicsId { get; init; }
-}
-
-[DataContract]
-public sealed class EmbeddedMonitorSetImageRequest
-{
-	[DataMember(Order = 1)]
-	public Guid DeviceId { get; init; }
-	[DataMember(Order = 2)]
-	public Guid MonitorId { get; init; }
-	[DataMember(Order = 3)]
-	public UInt128 ImageId { get; init; }
-	[DataMember(Order = 4)]
-	public Rectangle CropZone { get; init; }
 }

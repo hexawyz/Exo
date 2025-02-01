@@ -31,7 +31,9 @@
     <None Remove="DevicePage.xaml" />
     <None Remove="DevicesPage.xaml" />
     <None Remove="EditionToolbar.xaml" />
-    <None Remove="EmbeddedMonitorSettingsControl.xaml" />
+    <None Remove="EmbeddedMonitorDeviceSettingsControl.xaml" />
+    <None Remove="EmbeddedMonitorImageSettingsControl.xaml" />
+    <None Remove="EmbeddedMonitorSettingControl.xaml" />
     <None Remove="HomePage.xaml" />
     <None Remove="ImagesPage.xaml" />
     <None Remove="LightingPage.xaml" />
@@ -92,7 +94,19 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <Page Update="EmbeddedMonitorSettingsControl.xaml">
+    <Page Update="EmbeddedMonitorImageSettingsControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Page Update="EmbeddedMonitorSettingControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Page Update="EmbeddedMonitorDeviceSettingsControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

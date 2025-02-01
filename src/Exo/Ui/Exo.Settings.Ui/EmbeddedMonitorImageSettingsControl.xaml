@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Exo.Settings.Ui.EmbeddedMonitorImageSettingsControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Exo.Settings.Ui"
+    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="EmbeddedMonitorImageLabel" Margin="{StaticResource RowLabelMargin}"></TextBlock>
+            <ComboBox
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                ItemsSource="{Binding AvailableImages}"
+                SelectedItem="{Binding Image, Mode=TwoWay}"
+                HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ImageViewModel">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Width="20" Height="20" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding Name}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+                <FontIcon Glyph="&#xE777;" />
+            </Button>
+        </Grid>
+        <Grid Grid.Row="1" MinHeight="{Binding DisplayHeight}">
+            <controls:ImageCropper
+                x:Name="ImageCropper"
+                CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
+                Source="{Binding Image, Converter={StaticResource ImageToWriteableBitmapConverter}}"
+                ThumbPlacement="Corners"
+                Padding="20"
+                Height="{Binding ImageSize.Height}" />
+        </Grid>
+    </Grid>
+</UserControl>

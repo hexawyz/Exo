@@ -38,6 +38,7 @@ using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 using GrpcImageInformation = Exo.Contracts.Ui.Settings.ImageInformation;
 using GrpcImageFormat = Exo.Contracts.Ui.Settings.ImageFormat;
 using GrpcSize = Exo.Contracts.Ui.Settings.Size;
+using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
 using VendorIdSource = DeviceTools.VendorIdSource;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling.Configuration;
@@ -180,6 +181,8 @@ internal static class GrpcConvert
 		};
 
 	public static GrpcSize ToGrpc(this Size size) => new() { Width = size.Width, Height = size.Height };
+	public static GrpcRectangle ToGrpc(this Rectangle rectangle) => new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height };
+	public static Rectangle FromGrpc(this GrpcRectangle rectangle) => new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height };
 
 	public static GrpcImageInformation ToGrpc(this ImageInformation imageInformation)
 		=> new()

@@ -40,6 +40,6 @@ internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 
 	public async ValueTask SetImageAsync(EmbeddedMonitorSetImageRequest request, CancellationToken cancellationToken)
 	{
-		throw new NotImplementedException();
+		await _embeddedMonitorService.SetImageAsync(request.DeviceId, request.MonitorId, request.ImageId, request.CropRegion.FromGrpc(), cancellationToken).ConfigureAwait(false);
 	}
 }

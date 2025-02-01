@@ -75,7 +75,7 @@
                     <TextBlock x:Uid="EmbeddedMonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
-            <local:EmbeddedMonitorSettingsControl DataContext="{Binding EmbeddedMonitorFeatures, Mode=OneWay}" />
+            <local:EmbeddedMonitorDeviceSettingsControl DataContext="{Binding EmbeddedMonitorFeatures, Mode=OneWay}" />
         </Expander>
         <Expander
             Margin="{StaticResource VerticalItemSpacing}"
