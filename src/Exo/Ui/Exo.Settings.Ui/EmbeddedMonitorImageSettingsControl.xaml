@@ -10,7 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid HorizontalAlignment="Stretch">
+    <Grid HorizontalAlignment="Stretch" DataContext="{x:Bind ImageGraphics}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -22,18 +22,25 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock x:Uid="EmbeddedMonitorImageLabel" Margin="{StaticResource RowLabelMargin}"></TextBlock>
+            <TextBlock x:Uid="EmbeddedMonitorImageLabel" Margin="{StaticResource RowLabelMargin}" />
+            <!-- In order to make UI a bit denser, a padding of -2,-2,0,-4 is applied on ComboBox items on top of the default padding that would be applied. -->
             <ComboBox
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
                 ItemsSource="{Binding AvailableImages}"
                 SelectedItem="{Binding Image, Mode=TwoWay}"
+                Padding="10,3,0,3"
                 HorizontalAlignment="Stretch">
+                <ComboBox.Resources>
+                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
+                        <Setter Property="Padding" Value="9,3,11,3" />
+                    </Style>
+                </ComboBox.Resources>
                 <ComboBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:ImageViewModel">
                         <StackPanel Orientation="Horizontal">
-                            <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Width="20" Height="20" Margin="0,0,6,0" />
-                            <TextBlock Text="{Binding Name}" />
+                            <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding Name}" Margin="0,2,0,0" />
                         </StackPanel>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
@@ -48,6 +55,7 @@
                 CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
                 Source="{Binding Image, Converter={StaticResource ImageToWriteableBitmapConverter}}"
                 ThumbPlacement="Corners"
+                AspectRatio="{Binding AspectRatio}"
                 Padding="20"
                 Height="{Binding ImageSize.Height}" />
         </Grid>
