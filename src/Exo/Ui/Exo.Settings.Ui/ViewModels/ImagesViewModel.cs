@@ -280,6 +280,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 internal sealed partial class ImageViewModel : ApplicableResettableBindableObject
 {
+	private readonly UInt128 _id;
 	private string _name;
 	private readonly string _fileName;
 	private readonly ushort _width;
@@ -291,6 +292,7 @@ internal sealed partial class ImageViewModel : ApplicableResettableBindableObjec
 
 	public ImageViewModel(ImageInformation information)
 	{
+		_id = information.ImageId;
 		_name = information.ImageName;
 		_fileName = information.FileName;
 		_width = information.Width;
@@ -298,6 +300,8 @@ internal sealed partial class ImageViewModel : ApplicableResettableBindableObjec
 		_format = information.Format;
 		_isAnimated = information.IsAnimated;
 	}
+
+	public UInt128 Id => _id;
 
 	public string Name
 	{

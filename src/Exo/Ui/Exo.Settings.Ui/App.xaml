@@ -82,6 +82,8 @@
             <lconverters:ByteArrayToBitmapImageConverter x:Key="ByteArrayToBitmapImageConverter" />
             <lconverters:SharedMemoryToBitmapImageConverter x:Key="SharedMemoryToBitmapImageConverter" />
             <lconverters:FileNameToBitmapImageConverter x:Key="FileNameToBitmapImageConverter" />
+            <lconverters:ImageToWriteableBitmapConverter x:Key="ImageToWriteableBitmapConverter" />
+            <lconverters:MonitorShapeToCropShapeConverter x:Key="MonitorShapeToCropShapeConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

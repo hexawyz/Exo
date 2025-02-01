@@ -67,7 +67,9 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs LoadedImageName = new (nameof(LoadedImageName));
 	public static readonly PropertyChangedEventArgs LoadedImageData = new (nameof(LoadedImageData));
 	public static readonly PropertyChangedEventArgs Shape = new (nameof(Shape));
+	public static readonly PropertyChangedEventArgs Image = new (nameof(Image));
 	public static readonly PropertyChangedEventArgs ImageSize = new (nameof(ImageSize));
 	public static readonly PropertyChangedEventArgs DisplayWidth = new (nameof(DisplayWidth));
 	public static readonly PropertyChangedEventArgs DisplayHeight = new (nameof(DisplayHeight));
+	public static readonly PropertyChangedEventArgs HasBuiltInGraphics = new (nameof(HasBuiltInGraphics));
 }

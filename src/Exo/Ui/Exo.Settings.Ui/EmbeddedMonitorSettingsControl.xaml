@@ -7,6 +7,7 @@
     xmlns:lconverters="using:Exo.Settings.Ui.Converters"
     xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -19,23 +20,61 @@
                         <Grid HorizontalAlignment="Stretch" DataContext="{Binding EmbeddedMonitors[0]}">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <Grid HorizontalAlignment="Stretch">
+                            <Grid HorizontalAlignment="Stretch" Visibility="{Binding HasBuiltInGraphics, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="A" Margin="{StaticResource RowLabelMargin}"></TextBlock>
-                                <ComboBox Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" />
+                                <TextBlock x:Uid="EmbeddedMonitorGraphicsLabel" Margin="{StaticResource RowLabelMargin}"></TextBlock>
+                                <ComboBox Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" ItemsSource="{Binding SupportedGraphics}" HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:EmbeddedMonitorGraphicsViewModel">
+                                            <TextBlock Text="{Binding DisplayName}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                                 <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
                                     <FontIcon Glyph="&#xE777;" />
                                 </Button>
                             </Grid>
-                            <Grid Grid.Row="1" MinWidth="{Binding DisplayWidth}" MinHeight="{Binding DisplayHeight}" Background="Black" BorderBrush="White">
-                                <Image HorizontalAlignment="Center" />
+                            <Grid Grid.Row="1" HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Uid="EmbeddedMonitorImageLabel" Margin="{StaticResource RowLabelMargin}"></TextBlock>
+                                <ComboBox Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" ItemsSource="{Binding AvailableImages}" SelectedItem="{Binding Image, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ImageViewModel">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Width="20" Height="20" Margin="0,0,6,0" />
+                                                <TextBlock Text="{Binding Name}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+                                    <FontIcon Glyph="&#xE777;" />
+                                </Button>
                             </Grid>
+                            <Grid Grid.Row="2" MinHeight="{Binding DisplayHeight}">
+                                <controls:ImageCropper
+                                    CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
+                                    Source="{Binding Image, Converter={StaticResource ImageToWriteableBitmapConverter}}"
+                                    ThumbPlacement="Corners"
+                                    Padding="20"
+                                    Height="{Binding ImageSize.Height}" />
+                            </Grid>
+                            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                                <Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
+                                <Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+                            </StackPanel>
                         </Grid>
                     </DataTemplate>
                 </lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>

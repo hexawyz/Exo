@@ -46,6 +46,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private readonly HashSet<Guid> _removedDeviceIds;
 
 	private readonly SettingsServiceConnectionManager _connectionManager;
+	private readonly ReadOnlyObservableCollection<ImageViewModel> _availableImages;
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
 	private readonly Dictionary<Guid, DeviceViewModel> _devicesById;
@@ -78,6 +79,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	public DevicesViewModel
 	(
 		SettingsServiceConnectionManager connectionManager,
+		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		ICommand navigateCommand
@@ -86,6 +88,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_devices = new();
 		_removedDeviceIds = new();
 		_connectionManager = connectionManager;
+		_availableImages = availableImages;
 		_devicesById = new();
 		_pendingPowerDeviceInformations = new();
 		_pendingBatteryChanges = new();
@@ -215,7 +218,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Addition:
 					{
-						var device = new DeviceViewModel(_connectionManager, _metadataService, powerService, mouseService, _rasterizationScaleProvider, notification.Details);
+						var device = new DeviceViewModel(_connectionManager, _availableImages, _metadataService, powerService, mouseService, _rasterizationScaleProvider, notification.Details);
 						await HandleDeviceArrivalAsync(device, cancellationToken);
 						_devicesById.Add(notification.Details.Id, device);
 						_devices.Add(device);
