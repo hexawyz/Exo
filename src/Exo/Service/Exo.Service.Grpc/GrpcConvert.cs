@@ -174,6 +174,7 @@ internal static class GrpcConvert
 	public static GrpcImageInformation ToGrpc(this ImageInformation imageInformation)
 		=> new()
 		{
+			ImageId = imageInformation.ImageId,
 			ImageName = imageInformation.ImageName,
 			FileName = imageInformation.FileName,
 			Width = imageInformation.Width,

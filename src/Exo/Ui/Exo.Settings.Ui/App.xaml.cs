@@ -27,6 +27,7 @@ using Windows.Storage.Pickers;
 using Windows.Storage;
 using System.Collections.Immutable;
 using Exo.Ui;
+using Exo.Contracts.Ui;
 
 namespace Exo.Settings.Ui;
 
@@ -55,6 +56,8 @@ public partial class App : Application
 			metaType.Add(2, nameof(NamedElement.Name));
 			metaType.Add(3, nameof(NamedElement.Comment));
 		}
+
+		RuntimeTypeModel.Default.Add<UInt128>(false).SerializerType = typeof(UInt128Serializer);
 
 		GrpcClientFactory.AllowUnencryptedHttp2 = true;
 

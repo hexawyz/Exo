@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Exo.Contracts.Ui;
 using Exo.Programming;
 using Exo.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -27,6 +28,8 @@ public class Program
 			metaType.Add(2, nameof(NamedElement.Name));
 			metaType.Add(3, nameof(NamedElement.Comment));
 		}
+
+		RuntimeTypeModel.Default.Add<UInt128>(false).SerializerType = typeof(UInt128Serializer);
 
 		CreateHostBuilder(args).Build().Run();
 	}

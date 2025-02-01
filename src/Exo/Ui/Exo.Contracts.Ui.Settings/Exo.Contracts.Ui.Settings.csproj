@@ -16,6 +16,7 @@
 	</ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="protobuf-net" />
     <PackageReference Include="protobuf-net.Grpc" />
   </ItemGroup>
 

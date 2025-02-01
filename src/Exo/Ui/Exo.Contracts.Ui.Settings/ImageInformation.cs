@@ -6,17 +6,20 @@ namespace Exo.Contracts.Ui.Settings;
 [DataContract]
 public sealed class ImageInformation
 {
-	// NB: Image name is used as a public-facing unique key, but the images will internally use another index.
+	// The ImageId is used to reference the image internally.
 	[DataMember(Order = 1)]
-	public required string ImageName { get; init; }
+	public required UInt128 ImageId { get; init; }
+	// NB: Image name is used as a public-facing unique key, but the images will internally use ImageId.
 	[DataMember(Order = 2)]
-	public required string FileName { get; init; }
+	public required string ImageName { get; init; }
 	[DataMember(Order = 3)]
-	public required ushort Width { get; init; }
+	public required string FileName { get; init; }
 	[DataMember(Order = 4)]
-	public required ushort Height { get; init; }
+	public required ushort Width { get; init; }
 	[DataMember(Order = 5)]
-	public required ImageFormat Format { get; init; }
+	public required ushort Height { get; init; }
 	[DataMember(Order = 6)]
+	public required ImageFormat Format { get; init; }
+	[DataMember(Order = 7)]
 	public bool IsAnimated { get; init; }
 }
