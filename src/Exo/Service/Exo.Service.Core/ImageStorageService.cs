@@ -157,7 +157,9 @@ internal sealed class ImageStorageService
 			}
 			else if (info.Metadata.DecodedImageFormat == SixLabors.ImageSharp.Formats.Webp.WebpFormat.Instance)
 			{
-				imageFormat = ImageFormat.WebP;
+				imageFormat = info.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Webp.WebpFormat.Instance).FileFormat == SixLabors.ImageSharp.Formats.Webp.WebpFileFormatType.Lossless ?
+					ImageFormat.WebPLossless :
+					ImageFormat.WebPLossy;
 				isAnimated = info.FrameMetadataCollection.Count > 1;
 			}
 			else

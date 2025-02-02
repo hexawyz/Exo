@@ -10,5 +10,6 @@ public enum ImageFormats : uint
 	Gif = 0b00000100,
 	Jpeg = 0b00001000,
 	Png = 0b00010000,
-	WebP = 0b00100000,
+	WebPLossy = 0b00100000,
+	WebPLossless = 0b01000000,
 }

@@ -16,7 +16,9 @@ public enum ImageFormat : uint
 	[EnumMember]
 	Png = 4,
 	[EnumMember]
-	WebP = 5,
+	WebPLossy = 5,
+	[EnumMember]
+	WebPLossless = 6,
 }
 
 [DataContract]
@@ -34,5 +36,7 @@ public enum ImageFormats : uint
 	[EnumMember]
 	Png = 0b00010000,
 	[EnumMember]
-	WebP = 0b00100000,
+	WebPLossy = 0b00100000,
+	[EnumMember]
+	WebPLossless = 0b01000000,
 }

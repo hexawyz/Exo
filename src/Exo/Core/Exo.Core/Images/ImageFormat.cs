@@ -1,7 +1,7 @@
 namespace Exo.Images;
 
 /// <summary>Describe know supported image formats.</summary>
-public enum ImageFormat
+public enum ImageFormat : byte
 {
 	// NB: Enum must be kept in sync with ImageFormats
 	Raw = 0,
@@ -9,5 +9,6 @@ public enum ImageFormat
 	Gif = 2,
 	Jpeg = 3,
 	Png = 4,
-	WebP = 5,
+	WebPLossy = 5,
+	WebPLossless = 6,
 }
