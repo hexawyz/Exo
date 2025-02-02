@@ -57,7 +57,9 @@
                 ThumbPlacement="Corners"
                 AspectRatio="{Binding AspectRatio}"
                 Padding="20"
-                Height="{Binding ImageSize.Height}" />
+                Height="{Binding ImageSize.Height}"
+                PointerReleased="OnImageCropperPointerReleased"
+                KeyUp="OnImageCropperKeyUp" />
         </Grid>
     </Grid>
 </UserControl>

@@ -4,8 +4,6 @@ using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Windows.Graphics.Printing;
-using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -144,6 +142,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 
 	private bool IsChangedExceptGraphics => !ReferenceEquals(_initialCurrentGraphics, _currentGraphics);
 	public override bool IsChanged => IsChangedExceptGraphics || CurrentGraphics?.IsChanged == true;
+	protected override bool CanApply => IsChanged && _currentGraphics?.IsValid == true;
 
 	public Guid MonitorId => _monitorId;
 
@@ -273,6 +272,8 @@ internal abstract class EmbeddedMonitorGraphicsViewModel : ChangeableBindableObj
 	public Guid Id => _id;
 	public string DisplayName => _monitor.Owner.MetadataService.GetString(CultureInfo.CurrentCulture, _nameStringId) ?? _id.ToString();
 
+	public virtual bool IsValid => true;
+
 	internal void UpdateInformation(EmbeddedMonitorGraphicsDescription description)
 	{
 		if (description.NameStringId != _nameStringId)
@@ -346,6 +347,7 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 	}
 
 	public override bool IsChanged => (_image?.Id).GetValueOrDefault() != _initialImageId;
+	public override bool IsValid => _image is not null && _cropRectangle.Width > 0 && _cropRectangle.Height > 0 && (double)_cropRectangle.Width / _cropRectangle.Height == AspectRatio;
 
 	public ImageViewModel? Image
 	{
@@ -367,7 +369,14 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 	public double DisplayWidth => Monitor.DisplayWidth;
 	public double DisplayHeight => Monitor.DisplayHeight;
 
-	public Rectangle CropRectangle => _cropRectangle;
+	public Rectangle CropRectangle
+	{
+		get => _cropRectangle;
+		set
+		{
+			SetValue(ref _cropRectangle, value, ChangedProperty.CropRectangle);
+		}
+	}
 
 	public double AspectRatio => Monitor.AspectRatio;
 
