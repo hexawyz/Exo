@@ -4,6 +4,7 @@ using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -208,14 +209,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	public EmbeddedMonitorGraphicsViewModel? CurrentGraphics
 	{
 		get => _currentGraphics;
-		set
-		{
-			bool wasChanged = IsChanged;
-			if (SetValue(ref _currentGraphics, value, ChangedProperty.CurrentGraphics))
-			{
-				OnChangeStateChange(wasChanged);
-			}
-		}
+		set => SetChangeableValue(ref _currentGraphics, value, ChangedProperty.CurrentGraphics);
 	}
 
 	internal void UpdateInformation(EmbeddedMonitorInformation information)
@@ -308,7 +302,7 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 			{
 				DeviceId = Monitor.Owner.DeviceId,
 				MonitorId = Monitor.MonitorId,
-				GraphicsId = Id 
+				GraphicsId = Id
 			},
 			cancellationToken
 		).ConfigureAwait(false);
@@ -347,17 +341,34 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 	}
 
 	public override bool IsChanged => (_image?.Id).GetValueOrDefault() != _initialImageId;
-	public override bool IsValid => _image is not null && _cropRectangle.Width > 0 && _cropRectangle.Height > 0 && (double)_cropRectangle.Width / _cropRectangle.Height == AspectRatio;
+
+	public override bool IsValid => _image is not null && IsRegionValid(_cropRectangle);
+
+	private bool IsRegionValid(Rectangle rectangle)
+		=> rectangle.Width > 0 && rectangle.Height > 0 && (_image is null || rectangle.Width <= _image.Width && rectangle.Height <= _image.Height) && rectangle.Width * AspectRatio == rectangle.Height;
 
 	public ImageViewModel? Image
 	{
 		get => _image;
 		set
 		{
-			bool wasChanged = IsChanged;
-			if (SetValue(ref _image, value, ChangedProperty.Image))
+			if (SetChangeableValue(ref _image, value, ChangedProperty.Image))
 			{
-				OnChangeStateChange(wasChanged);
+				// TODO: Improve this to initialize the crop rectangle to a better value automatically.
+				if (value is not null && !IsRegionValid(_cropRectangle))
+				{
+					var imageSize = Monitor.ImageSize;
+					if (imageSize.Width == imageSize.Height)
+					{
+						var s = Math.Min(value.Width, value.Height);
+						CropRectangle = new() { Left = (value.Width - s) >>> 1, Top = (value.Height - s) >>> 1, Width = s, Height = s };
+					}
+				}
+				else
+				{
+					// Not ideal but good enough for now.
+					IApplicable.NotifyCanExecuteChanged();
+				}
 			}
 		}
 	}
@@ -374,7 +385,25 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		get => _cropRectangle;
 		set
 		{
-			SetValue(ref _cropRectangle, value, ChangedProperty.CropRectangle);
+			var oldRectangle = _cropRectangle;
+			if (value != oldRectangle)
+			{
+				bool wasChanged = IsChanged;
+				_cropRectangle = value;
+				NotifyPropertyChanged(ChangedProperty.CropRectangle);
+				bool isChanged = IsChanged;
+				OnChangeStateChange(wasChanged, isChanged);
+
+				// Propagate the applicable status change. Trying to make this as efficient as possible by minimizing the computations.
+				// Probably introducing a persisted IsValid flag would be better. (Also maybe just refactor the IApplicable stuff)
+				if (isChanged == wasChanged && _image is not null)
+				{
+					if (IsRegionValid(oldRectangle) != IsRegionValid(value))
+					{
+						IApplicable.NotifyCanExecuteChanged();
+					}
+				}
+			}
 		}
 	}
 
@@ -382,8 +411,21 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 
 	public ReadOnlyObservableCollection<ImageViewModel> AvailableImages => Monitor.Owner.AvailableImages;
 
-	internal override ValueTask ApplyAsync(CancellationToken cancellationToken)
+	internal override async ValueTask ApplyAsync(CancellationToken cancellationToken)
 	{
-		throw new NotImplementedException();
+		if (_image is not { } image) throw new InvalidOperationException();
+		var rectangle = _cropRectangle;
+
+		await Monitor.Owner.EmbeddedMonitorService.SetImageAsync
+		(
+			new()
+			{
+				DeviceId = Monitor.Owner.DeviceId,
+				MonitorId = Monitor.MonitorId,
+				ImageId = image.Id,
+				CropRegion = new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height },
+			},
+			cancellationToken
+		);
 	}
 }

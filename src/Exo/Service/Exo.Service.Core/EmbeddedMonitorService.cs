@@ -263,7 +263,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 
 		public async ValueTask<bool> SetImageAsync(UInt128 imageId, Rectangle region, CancellationToken cancellationToken)
 		{
-			if (imageId != _currentImageId && (region.Left != _currentRegionLeft || region.Top != _currentRegionTop || region.Width != _currentRegionWidth || region.Height != _currentRegionHeight))
+			if (imageId != _currentImageId || region.Left != _currentRegionLeft || region.Top != _currentRegionTop || region.Width != _currentRegionWidth || region.Height != _currentRegionHeight)
 			{
 				if (_monitor is not null)
 				{
