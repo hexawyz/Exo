@@ -499,7 +499,8 @@ internal static class GrpcConvert
 			ImageFormat.Gif => GrpcImageFormat.Gif,
 			ImageFormat.Jpeg => GrpcImageFormat.Jpeg,
 			ImageFormat.Png => GrpcImageFormat.Png,
-			ImageFormat.WebP => GrpcImageFormat.WebP,
+			ImageFormat.WebPLossy => GrpcImageFormat.WebPLossy,
+			ImageFormat.WebPLossless => GrpcImageFormat.WebPLossless,
 			_ => throw new NotImplementedException(),
 		};
 }

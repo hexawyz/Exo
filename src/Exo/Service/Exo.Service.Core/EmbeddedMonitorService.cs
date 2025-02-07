@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
@@ -261,14 +262,26 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			return false;
 		}
 
-		public async ValueTask<bool> SetImageAsync(UInt128 imageId, Rectangle region, CancellationToken cancellationToken)
+		public async ValueTask<bool> SetImageAsync(ImageStorageService imageStorageService, UInt128 imageId, Rectangle region, CancellationToken cancellationToken)
 		{
 			if (imageId != _currentImageId || region.Left != _currentRegionLeft || region.Top != _currentRegionTop || region.Width != _currentRegionWidth || region.Height != _currentRegionHeight)
 			{
 				if (_monitor is not null)
 				{
-					// TODO: Implement generation in the image storage.
-					//await _monitor.SetImageAsync();
+					var (physicalImageId, imageFormat, imageFile) = imageStorageService.GetTransformedImage
+					(
+						imageId,
+						new(region.Left, region.Top, region.Width, region.Height),
+						_imageFormats,
+						(_capabilities & EmbeddedMonitorCapabilities.AnimatedImages) != 0 ? _imageFormats & ImageFormats.Gif : 0,
+						new(_width, _height),
+						_shape == MonitorShape.Circle
+					);
+					using (imageFile)
+					using (var memoryManager = imageFile.CreateMemoryManager())
+					{
+						await _monitor.SetImageAsync(physicalImageId, imageFormat, memoryManager.Memory, cancellationToken);
+					}
 				}
 
 				_currentGraphics = default;
@@ -663,10 +676,11 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 	public async ValueTask SetImageAsync(Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle imageRegion, CancellationToken cancellationToken)
 	{
 		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+
 		if ((uint)imageRegion.Left > ushort.MaxValue ||
 			(uint)imageRegion.Top > ushort.MaxValue ||
-			(uint)imageRegion.Width > ushort.MaxValue ||
-			(uint)imageRegion.Height > ushort.MaxValue)
+			(uint)(imageRegion.Width - 1) > ushort.MaxValue - 1 ||
+			(uint)(imageRegion.Height - 1) > ushort.MaxValue - 1)
 		{
 			throw new ArgumentException("Invalid crop region.");
 		}
@@ -677,7 +691,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		{
 			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new InvalidOperationException("Embedded monitor not found.");
 
-			if (!await monitorState.SetImageAsync(imageId, imageRegion, cancellationToken).ConfigureAwait(false)) return;
+			if (!await monitorState.SetImageAsync(_imageStorageService, imageId, imageRegion, cancellationToken).ConfigureAwait(false)) return;
 
 			configuration = monitorState.CreatePersistedConfiguration();
 		}

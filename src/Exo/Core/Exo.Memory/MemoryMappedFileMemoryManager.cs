@@ -20,14 +20,11 @@ public sealed unsafe class MemoryMappedFileMemoryManager : MemoryManager<byte>
 		_viewHandle = _viewAccessor.SafeMemoryMappedViewHandle;
 		_offset = offset;
 		_length = length;
-		bool success = false;
-		_viewHandle.DangerousAddRef(ref success);
 	}
 
 	protected override void Dispose(bool disposing)
 	{
-		if (Interlocked.Exchange(ref _viewAccessor, null) is { } accessor)
-			accessor.Dispose();
+		if (Interlocked.Exchange(ref _viewAccessor, null) is { } accessor) accessor.Dispose();
 	}
 
 	public override Span<byte> GetSpan() => new((byte*)_viewHandle.DangerousGetHandle(), _length);

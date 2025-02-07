@@ -24,4 +24,12 @@ public static class LittleEndian
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
 	public static void Write(ref byte source, uint value)
 		=> Unsafe.WriteUnaligned(ref source, BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+	public static void Write(ref byte source, ulong value)
+		=> Unsafe.WriteUnaligned(ref source, BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+	public static void Write(ref byte source, UInt128 value)
+		=> Unsafe.WriteUnaligned(ref source, BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
 }
