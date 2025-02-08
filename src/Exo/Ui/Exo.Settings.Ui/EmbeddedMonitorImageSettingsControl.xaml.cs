@@ -1,9 +1,12 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
+using CommunityToolkit.WinUI;
 using Exo.Settings.Ui.ViewModels;
 using Exo.Ui;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 
 namespace Exo.Settings.Ui;
 
@@ -27,6 +30,39 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 	{
 		InitializeComponent();
 		ImageCropper.RegisterPropertyChangedCallback(CommunityToolkit.WinUI.Controls.ImageCropper.SourceProperty, OnImageCropperPropertyChanged);
+	}
+
+	private void OnImageCropperLoaded(object sender, RoutedEventArgs e)
+	{
+		TryBindPointerEvents();
+	}
+
+	private void TryBindPointerEvents()
+	{
+		// This is hacky but seemingly the only good way to propagate a change.
+		var children = FindChildren
+		(
+			ImageCropper,
+			[
+				"PART_TopThumb",
+				"PART_BottomThumb",
+				"PART_LeftThumb",
+				"PART_RightThumb",
+				"PART_UpperLeftThumb",
+				"PART_UpperRightThumb",
+				"PART_LowerLeftThumb",
+				"PART_LowerRightThumb",
+			]
+		);
+		foreach (var child in children)
+		{
+			BindThumbEvents(child);
+		}
+	}
+
+	private void BindThumbEvents(FrameworkElement element)
+	{
+		element.ManipulationCompleted += OnImageCropperThumbManipulationCompleted;
 	}
 
 	private void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -155,23 +191,35 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 		return (n * p, n * q);
 	}
 
-	private void OnImageCropperPointerReleased(object sender, PointerRoutedEventArgs e)
-	{
-		UpdateCroppedRegionToGraphics();
-	}
-
-	private void OnImageCropperPointerCanceled(object sender, PointerRoutedEventArgs e)
-	{
-		UpdateCroppedRegionToGraphics();
-	}
-
-	private void OnImageCropperPointerCaptureLost(object sender, PointerRoutedEventArgs e)
-	{
-		UpdateCroppedRegionToGraphics();
-	}
+	private void OnImageCropperThumbManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
+		=> UpdateCroppedRegionToGraphics();
 
 	private void OnImageCropperKeyUp(object sender, KeyRoutedEventArgs e)
+		=> UpdateCroppedRegionToGraphics();
+
+	private static ImmutableArray<FrameworkElement> FindChildren(FrameworkElement element, HashSet<string> names)
 	{
-		UpdateCroppedRegionToGraphics();
+		int childCount = VisualTreeHelper.GetChildrenCount(element);
+		if (childCount > 0)
+		{
+			var children = new List<FrameworkElement>();
+			FindChildren(element, childCount, names, children);
+			return [.. children];
+		}
+		return [];
+	}
+
+	private static void FindChildren(FrameworkElement element, int childCount, HashSet<string> names, List<FrameworkElement> children)
+	{
+		for (int i = 0; i < childCount; i++)
+		{
+			if (VisualTreeHelper.GetChild(element, i) is not FrameworkElement child) continue;
+			if (child.Name is not null && names.Contains(child.Name))
+			{
+				children.Add(child);
+			}
+			int count = VisualTreeHelper.GetChildrenCount(child);
+			if (count > 0) FindChildren(child, count, names, children);
+		}
 	}
 }
