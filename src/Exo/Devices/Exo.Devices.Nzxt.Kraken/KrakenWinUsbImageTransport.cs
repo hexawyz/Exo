@@ -48,7 +48,7 @@ internal sealed class KrakenWinUsbImageTransport : IAsyncDisposable
 			await _deviceStream.WritePipeAsync(0, _pipeAddress, MemoryMarshal.CreateFromPinnedArray(_uploadSetupMessage, 0, _uploadSetupMessage.Length), cancellationToken).ConfigureAwait(false);
 			while (true)
 			{
-				if (memory.Length < PacketSize)
+				if (memory.Length <= PacketSize)
 				{
 					await _deviceStream.WritePipeAsync(0, _pipeAddress, memory, cancellationToken).ConfigureAwait(false);
 					return;
