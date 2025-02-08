@@ -1,4 +1,3 @@
-using System;
 using CommunityToolkit.WinUI.Controls;
 using Windows.UI;
 

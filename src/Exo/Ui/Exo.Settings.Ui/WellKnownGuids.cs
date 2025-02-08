@@ -1,5 +1,3 @@
-using System;
-
 namespace Exo.Settings.Ui;
 
 internal static class WellKnownGuids

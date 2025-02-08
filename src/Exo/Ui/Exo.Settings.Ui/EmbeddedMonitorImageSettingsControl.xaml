@@ -70,6 +70,8 @@
                 Height="{Binding ImageSize.Height}"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
+                PointerCanceled="OnImageCropperPointerCanceled"
+                PointerCaptureLost="OnImageCropperPointerCaptureLost"
                 PointerReleased="OnImageCropperPointerReleased"
                 KeyUp="OnImageCropperKeyUp" />
             <controls:WrapPanel Grid.Column="1" Orientation="Vertical" Padding="{StaticResource RowContentMargin}">

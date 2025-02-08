@@ -26,6 +26,7 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 	public EmbeddedMonitorImageSettingsControl()
 	{
 		InitializeComponent();
+		ImageCropper.RegisterPropertyChangedCallback(CommunityToolkit.WinUI.Controls.ImageCropper.SourceProperty, OnImageCropperPropertyChanged);
 	}
 
 	private void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -35,6 +36,15 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 			if (e.OldValue is EmbeddedMonitorImageGraphicsViewModel oldValue) oldValue.PropertyChanged -= OnImageGraphicsPropertyChanged;
 			if (e.NewValue is EmbeddedMonitorImageGraphicsViewModel newValue) newValue.PropertyChanged += OnImageGraphicsPropertyChanged;
 			UpdateCroppedRegionFromGraphics();
+		}
+	}
+
+	private void OnImageCropperPropertyChanged(DependencyObject sender, DependencyProperty dp)
+	{
+		if (dp == CommunityToolkit.WinUI.Controls.ImageCropper.SourceProperty)
+		{
+			// Quick and dirty fix to be sure that the cropping region is properly synchronized when we switch images.
+			UpdateCroppedRegionToGraphics();
 		}
 	}
 
@@ -61,6 +71,14 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 		if (ImageGraphics is { } imageGraphics)
 		{
 			var rectangle = ImageCropper.CroppedRegion;
+			if (rectangle._x < 0 || rectangle._x > int.MaxValue ||
+				rectangle._y < 0 || rectangle._y > int.MaxValue ||
+				rectangle._width < 0 || rectangle._width > int.MaxValue ||
+				rectangle._height < 0 || rectangle._height > int.MaxValue)
+			{
+				return;
+			}
+
 			var image = imageGraphics.Image;
 
 			// Resolve the aspect ratio thingy here. We want to truncate the coordinates into integers.
@@ -86,7 +104,7 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 					// Basically, determining the two WxH candidates would be the simplest by first identifying the smallest P/Q fraction corresponding to the requested aspect ratio.
 					// This is easily done by computing the GCD.
 
-					uint gcd = Gcd((uint)imageGraphics.ImageSize.Width, (uint)imageGraphics.ImageSize.Height);
+					uint gcd = MathUtils.Gcd((uint)imageGraphics.ImageSize.Width, (uint)imageGraphics.ImageSize.Height);
 					uint p = (uint)imageGraphics.ImageSize.Width / gcd;
 					uint q = (uint)imageGraphics.ImageSize.Height / gcd;
 
@@ -137,20 +155,17 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 		return (n * p, n * q);
 	}
 
-	private static uint Gcd(uint a, uint b)
+	private void OnImageCropperPointerReleased(object sender, PointerRoutedEventArgs e)
 	{
-		while (a != 0 && b != 0)
-		{
-			if (a > b)
-				a %= b;
-			else
-				b %= a;
-		}
-
-		return a | b;
+		UpdateCroppedRegionToGraphics();
 	}
 
-	private void OnImageCropperPointerReleased(object sender, PointerRoutedEventArgs e)
+	private void OnImageCropperPointerCanceled(object sender, PointerRoutedEventArgs e)
+	{
+		UpdateCroppedRegionToGraphics();
+	}
+
+	private void OnImageCropperPointerCaptureLost(object sender, PointerRoutedEventArgs e)
 	{
 		UpdateCroppedRegionToGraphics();
 	}
