@@ -268,20 +268,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			{
 				if (_monitor is not null)
 				{
-					var (physicalImageId, imageFormat, imageFile) = imageStorageService.GetTransformedImage
-					(
-						imageId,
-						new(region.Left, region.Top, region.Width, region.Height),
-						_imageFormats,
-						(_capabilities & EmbeddedMonitorCapabilities.AnimatedImages) != 0 ? _imageFormats & ImageFormats.Gif : 0,
-						new(_width, _height),
-						_shape == MonitorShape.Circle
-					);
-					using (imageFile)
-					using (var memoryManager = imageFile.CreateMemoryManager())
-					{
-						await _monitor.SetImageAsync(physicalImageId, imageFormat, memoryManager.Memory, cancellationToken);
-					}
+					await SetImageAsyncCore(imageStorageService, imageId, region, cancellationToken);
 				}
 
 				_currentGraphics = default;
@@ -296,6 +283,24 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			return false;
 		}
 
+		private async Task SetImageAsyncCore(ImageStorageService imageStorageService, UInt128 imageId, Rectangle region, CancellationToken cancellationToken)
+		{
+			var (physicalImageId, imageFormat, imageFile) = imageStorageService.GetTransformedImage
+			(
+				imageId,
+				new(region.Left, region.Top, region.Width, region.Height),
+				_imageFormats,
+				(_capabilities & EmbeddedMonitorCapabilities.AnimatedImages) != 0 ? _imageFormats & ImageFormats.Gif : 0,
+				new(_width, _height),
+				_shape == MonitorShape.Circle
+			);
+			using (imageFile)
+			using (var memoryManager = imageFile.CreateMemoryManager())
+			{
+				await _monitor!.SetImageAsync(physicalImageId, imageFormat, memoryManager.Memory, cancellationToken);
+			}
+		}
+
 		public async ValueTask RestoreConfigurationAsync(ImageStorageService imageStorageService, CancellationToken cancellationToken)
 		{
 			if (_currentGraphics != default)
@@ -307,7 +312,16 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			}
 			else if (_currentImageId != 0)
 			{
-				// TODO
+				if (_monitor is not null)
+				{
+					await SetImageAsyncCore
+					(
+						imageStorageService,
+						_currentImageId,
+						new(_currentRegionLeft, _currentRegionTop, _currentRegionWidth, _currentRegionHeight),
+						cancellationToken
+					).ConfigureAwait(false);
+				}
 			}
 		}
 
