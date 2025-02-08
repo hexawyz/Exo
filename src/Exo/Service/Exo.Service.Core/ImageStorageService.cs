@@ -436,16 +436,62 @@ internal sealed class ImageStorageService
 
 			if (sourceRectangle.Left + sourceRectangle.Width > image.Width || sourceRectangle.Top + sourceRectangle.Height > image.Height) throw new ArgumentException(nameof(sourceRectangle));
 
+			var resampler = KnownResamplers.Bicubic;
+			var maskColor = SixLabors.ImageSharp.Color.Black;
+			if (image.Metadata.TryGetFormatMetadata(SixLabors.ImageSharp.Formats.Gif.GifFormat.Instance, out var gifMetadata))
+			{
+				var isResampling = targetSize.Width != sourceRectangle.Width || targetSize.Height != sourceRectangle.Height;
+
+				if (!isResampling) resampler = KnownResamplers.NearestNeighbor;
+
+				// This is certainly not perfect. A global color would probably be a better choice if there are less local colors than global colors.
+				if (gifMetadata!.GlobalColorTable is not null)
+				{
+					maskColor = gifMetadata.GlobalColorTable.GetValueOrDefault().Span[gifMetadata.BackgroundColorIndex];
+					// Clear the palette if we intend to resample the image.
+					// Hopefully, this will produce better end results.
+					if (isResampling) gifMetadata.GlobalColorTable = null;
+				}
+				else
+				{
+					if (image.Frames[0].Metadata.TryGetFormatMetadata(SixLabors.ImageSharp.Formats.Gif.GifFormat.Instance, out var frameMetadata) &&
+						frameMetadata!.LocalColorTable is { } localColorTable)
+					{
+						maskColor = localColorTable.Span[frameMetadata.HasTransparency ? frameMetadata.TransparencyIndex : 0];
+					}
+
+					// Same as for the global metadata, clear the local palette for every frame.
+					// NB: This might break some images? (Thinking of true color gifs)
+					if (isResampling)
+					{
+						foreach (var frame in image.Frames)
+						{
+							if (frame.Metadata.TryGetFormatMetadata(SixLabors.ImageSharp.Formats.Gif.GifFormat.Instance, out frameMetadata))
+							{
+								frameMetadata!.LocalColorTable = null;
+							}
+						}
+					}
+				}
+			}
+
 			image.Mutate
 			(
 				ctx =>
 				{
 					ctx.AutoOrient()
 						.Crop(new(sourceRectangle.Left, sourceRectangle.Top, sourceRectangle.Width, sourceRectangle.Height))
-						.Resize(targetSize.Width, targetSize.Height, true);
+						.Resize
+						(
+							targetSize.Width,
+							targetSize.Height,
+							resampler,
+							true
+						);
 					if (applyCircularMask)
 					{
-						ctx.ApplyProcessor(new CircleCroppingProcessor(SixLabors.ImageSharp.Color.Black, (byte)(targetFormat == ImageFormat.Jpeg ? 3 : 0)));
+						// TODO: For GIF, should find the index of any existing
+						ctx.ApplyProcessor(new CircleCroppingProcessor(maskColor, (byte)(targetFormat == ImageFormat.Jpeg ? 3 : 2)));
 					}
 				}
 			);
