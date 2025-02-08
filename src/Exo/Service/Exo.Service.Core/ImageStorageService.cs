@@ -433,7 +433,11 @@ internal sealed class ImageStorageService
 			TransformImage(stream, image, sourceRectangle, targetFormat, targetSize, shouldStripAnimations, shouldApplyCircularMask);
 			var physicalImageId = XxHash128.HashToUInt128(stream.GetBuffer().AsSpan(0, (int)stream.Length), PhysicalImageIdHashSeed);
 			string fileName = GetFileName(_imageCacheDirectory, physicalImageId);
-			File.WriteAllBytes(fileName, stream.GetBuffer().AsSpan(0, (int)stream.Length));
+			// Assume that if a file exists, it is already correct. We want to avoid wearing the disk if we don't need to.
+			if (!File.Exists(fileName))
+			{
+				File.WriteAllBytes(fileName, stream.GetBuffer().AsSpan(0, (int)stream.Length));
+			}
 			return (physicalImageId, targetFormat, GetImageFile(physicalImageId));
 		}
 	}
