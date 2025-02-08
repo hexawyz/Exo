@@ -586,11 +586,17 @@ internal sealed class ImageStorageService
 			string fileName = GetFileName(_imageCacheDirectory, metadata.Id);
 			if (File.Exists(fileName)) throw new InvalidOperationException("An image with the same data already exists.");
 
-			await _imagesConfigurationContainer.WriteValueAsync(imageName, metadata, cancellationToken).ConfigureAwait(false);
+			await _imagesConfigurationContainer.WriteValueAsync
+			(
+				imageName,
+				new ImageMetadata(metadata.Id, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated),
+				cancellationToken
+			).ConfigureAwait(false);
 
 			await File.WriteAllBytesAsync(fileName, data, cancellationToken).ConfigureAwait(false);
 
 			_imageCollection.Add(imageName, metadata);
+			if (!_imageCollectionById.TryAdd(metadata.Id, metadata)) throw new UnreachableException();
 
 			if (Volatile.Read(ref _changeListeners) is { } changeListeners)
 			{
