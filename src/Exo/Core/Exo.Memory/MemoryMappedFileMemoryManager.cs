@@ -31,9 +31,10 @@ public sealed unsafe class MemoryMappedFileMemoryManager : MemoryManager<byte>
 
 	public override MemoryHandle Pin(int elementIndex = 0)
 	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)elementIndex, (uint)_length, nameof(elementIndex));
 		byte* pointer = null;
 		_viewHandle.AcquirePointer(ref pointer);
-		return new MemoryHandle(pointer, pinnable: this);
+		return new MemoryHandle(pointer + (uint)elementIndex, pinnable: this);
 	}
 
 	public override void Unpin() => _viewHandle.ReleasePointer();
