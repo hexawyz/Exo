@@ -152,7 +152,7 @@ internal sealed class ImageStorageService
 				// Allow other threads to potentially reuse the object before we unregister it.
 				Monitor.Pulse(this);
 				// If we confirm the object as not having been reused, we can clean everything up.
-				if (_gcHandle.Target is null)
+				if (_gcHandle.IsAllocated && _gcHandle.Target is null)
 				{
 					_imageService._openImageFiles.TryRemove(new(_imageId, this));
 					_gcHandle.Free();

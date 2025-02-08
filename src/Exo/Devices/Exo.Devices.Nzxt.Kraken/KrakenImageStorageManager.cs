@@ -76,7 +76,7 @@ internal sealed class KrakenImageStorageManager : IAsyncDisposable
 	private readonly AsyncLock _lock;
 	// The memory is managed by keeping a memory ordered list of regions that are allocated and to which image slot.
 	// This gives us immediate information on which blocks are free and allows for relatively easily search of memory storage locations.
-	// ONly downside in this case is having to parse the entire array to find info about a memory slot. The array, however, is pretty small.
+	// Only downside in this case is having to parse the entire array to find info about a memory slot. The array, however, is pretty small.
 	private readonly MemoryRegionInfo[] _allocatedRegions;
 	private ushort _allocatedRegionCount;
 	private readonly ushort _memoryBlockCount;

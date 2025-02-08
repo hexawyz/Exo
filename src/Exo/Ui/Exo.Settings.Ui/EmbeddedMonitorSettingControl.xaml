@@ -26,11 +26,11 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Uid="EmbeddedMonitorGraphicsLabel" Margin="{StaticResource RowLabelMargin}"></TextBlock>
             <ComboBox
-                                    Grid.Column="1"
-                                    Margin="{StaticResource RowContentLabelMargin}"
-                                    ItemsSource="{Binding SupportedGraphics}"
-                                    SelectedItem="{Binding CurrentGraphics, Mode=TwoWay}"
-                                    HorizontalAlignment="Stretch">
+                Grid.Column="1"
+                Margin="{StaticResource RowContentLabelMargin}"
+                ItemsSource="{Binding SupportedGraphics}"
+                SelectedItem="{Binding CurrentGraphics, Mode=TwoWay}"
+                HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:EmbeddedMonitorGraphicsViewModel">
                         <TextBlock Text="{Binding DisplayName}" />

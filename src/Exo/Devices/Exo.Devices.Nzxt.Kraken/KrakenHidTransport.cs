@@ -358,7 +358,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			buffer.Clear();
 			buffer[0] = ImageMemoryManagementRequestMessageId;
 			buffer[1] = ImageMemoryManagementClearFunctionId;
-			buffer[3] = imageIndex;
+			buffer[2] = imageIndex;
 		}
 
 		var buffer = WriteBuffer;

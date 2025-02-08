@@ -49,7 +49,16 @@
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>
+        <!-- TODO: Switch the layout depending on available horizontal space -->
         <Grid Grid.Row="1" MinHeight="{Binding DisplayHeight}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <controls:ImageCropper
                 x:Name="ImageCropper"
                 CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
@@ -57,9 +66,21 @@
                 ThumbPlacement="Corners"
                 AspectRatio="{Binding AspectRatio}"
                 Padding="20"
+                MinHeight="{Binding DisplayHeight}"
                 Height="{Binding ImageSize.Height}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
                 PointerReleased="OnImageCropperPointerReleased"
                 KeyUp="OnImageCropperKeyUp" />
+            <controls:WrapPanel Grid.Column="1" Orientation="Vertical" Padding="{StaticResource RowContentMargin}">
+                <StackPanel Orientation="Horizontal" Margin="{StaticResource RowLabelMargin}">
+                    <TextBlock Text="{Binding CropRectangle.Width}" />
+                    <TextBlock Text="x" />
+                    <TextBlock Text="{Binding CropRectangle.Height}" />
+                </StackPanel>
+                <Button Content="Reset" Width="120" Margin="{StaticResource RowLabelMargin}" />
+                <Button Content="Center 1:1" Width="120" Margin="{StaticResource RowLabelMargin}" />
+            </controls:WrapPanel>
         </Grid>
     </Grid>
 </UserControl>

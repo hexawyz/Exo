@@ -156,6 +156,7 @@ public class KrakenDriver :
 				var hidTransport = new KrakenHidTransport(hidStream);
 				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
 				var currentDisplayMode = KrakenDisplayMode.Off;
+				byte currentImageIndex = 0;
 				var storageManager = imageTransport is not null ?
 					await KrakenImageStorageManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false) :
 					null;
@@ -167,6 +168,7 @@ public class KrakenDriver :
 				// Knowing the currently displayed image is useful to determine the best image flip strategy. (i.e. If there is enough memory, any image other than the current one)
 				var initialDisplayMode = await hidTransport.GetDisplayModeAsync(cancellationToken).ConfigureAwait(false);
 				currentDisplayMode = initialDisplayMode.DisplayMode;
+				currentImageIndex = initialDisplayMode.ImageIndex;
 
 				if (storageManager is not null)
 				{
@@ -189,6 +191,7 @@ public class KrakenDriver :
 					await storageManager.UploadImageAsync(0, imageFormat, imageData, cancellationToken).ConfigureAwait(false);
 					await hidTransport.DisplayImageAsync(0, cancellationToken).ConfigureAwait(false);
 					currentDisplayMode = KrakenDisplayMode.StoredImage;
+					currentImageIndex = 0;
 				}
 
 				return new DriverCreationResult<SystemDevicePath>
@@ -200,6 +203,8 @@ public class KrakenDriver :
 						hidTransport,
 						storageManager,
 						currentDisplayMode,
+						currentImageIndex,
+						screenInfo.ImageCount,
 						screenInfo.Width,
 						screenInfo.Height,
 						productId,
@@ -274,6 +279,8 @@ public class KrakenDriver :
 	private byte _groupQueriedSensorCount;
 
 	private KrakenDisplayMode _currentDisplayMode;
+	private byte _currentImageIndex;
+	private readonly byte _imageCount;
 
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
@@ -307,6 +314,8 @@ public class KrakenDriver :
 		KrakenHidTransport transport,
 		KrakenImageStorageManager? storageManager,
 		KrakenDisplayMode currentDisplayMode,
+		byte currentImageIndex,
+		byte imageCount,
 		ushort imageWidth,
 		ushort imageHeight,
 		ushort productId,
@@ -326,6 +335,8 @@ public class KrakenDriver :
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
 		_coolers = [new PumpCooler(this), new FanCooler(this)];
 		_currentDisplayMode = currentDisplayMode;
+		_currentImageIndex = currentImageIndex;
+		_imageCount = imageCount;
 		_imageWidth = imageWidth;
 		_imageHeight = imageHeight;
 		_embeddedMonitorGraphicsDescriptions =
@@ -495,9 +506,32 @@ public class KrakenDriver :
 		}
 	}
 
-	// TODO
-	ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
-		=> throw new NotImplementedException();
+	// TODO: Make the image allocation algorithm smarter.
+	// The version here is a MVP and may fail to display images on some occasions.
+	// Ideally, we need to be able to deallocate other images to free up memory when needed.
+	// But we also need to have a LRU cache to avoid evicting images that would be switched to often.
+	// And for that, we need to also track the image IDs that are currently assigned.
+	// Although it doesn't feel that clean, maybe just making the ImageStorageManager handle everything related to display (so a DisplayManager) is the best solution.
+	async ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+	{
+		if (_storageManager is not { } storageManager) throw new NotSupportedException("Access to the image device has been denied.");
+		byte nextImageId = (byte)(_currentImageIndex + 1);
+		if (nextImageId >= _imageCount) nextImageId = 0;
+		await storageManager.UploadImageAsync
+		(
+			nextImageId,
+			imageFormat switch
+			{
+				ImageFormat.Gif => KrakenImageFormat.Gif,
+				ImageFormat.Raw => KrakenImageFormat.Raw,
+				_ => throw new ArgumentOutOfRangeException(nameof(imageFormat)),
+			},
+			data,
+			cancellationToken
+		);
+		await _hidTransport.DisplayImageAsync(nextImageId, cancellationToken).ConfigureAwait(false);
+		_currentImageIndex = nextImageId;
+	}
 
 	private abstract class Sensor
 	{
