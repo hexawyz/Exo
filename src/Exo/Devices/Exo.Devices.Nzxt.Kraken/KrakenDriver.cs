@@ -155,8 +155,6 @@ public class KrakenDriver :
 				string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 				var hidTransport = new KrakenHidTransport(hidStream);
 				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
-				var currentDisplayMode = KrakenDisplayMode.Off;
-				byte currentImageIndex = 0;
 				var storageManager = imageTransport is not null ?
 					await KrakenImageStorageManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false) :
 					null;
@@ -167,31 +165,17 @@ public class KrakenDriver :
 				// TODO: Once the image storage manager is somehow merged with the protocol (or something similar), this info should be kept as state to know which is the currently active image.
 				// Knowing the currently displayed image is useful to determine the best image flip strategy. (i.e. If there is enough memory, any image other than the current one)
 				var initialDisplayMode = await hidTransport.GetDisplayModeAsync(cancellationToken).ConfigureAwait(false);
-				currentDisplayMode = initialDisplayMode.DisplayMode;
-				currentImageIndex = initialDisplayMode.ImageIndex;
 
-				if (storageManager is not null)
+				// Forcefully reset the display mode if we are currently displaying an image.
+				// While it is possible to allow the current image to continue existing, disabling it is a quick and easy way to avoid memory management problems.
+				// There is generally no merit in preserving the previous image state of the device, as we sadly can't know which image is stored where.
+				// This means that restarting the service would essentially duplicate the current image in another slot. Which is kinda… stupid.
+				// We can allow that later once we have perfected the memory management and slots can be deallocated in a smarted way.
+				if (initialDisplayMode.DisplayMode == KrakenDisplayMode.StoredImage)
 				{
-					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.LiquidTemperature, cancellationToken).ConfigureAwait(false);
-					currentDisplayMode = KrakenDisplayMode.LiquidTemperature;
-					KrakenImageFormat imageFormat;
-					byte[] imageData;
-					try
-					{
-						// Hardcoded way of loading a GIF onto the device.
-						// It may not be very nice, but it will be a good enough workaround until we deal with UI stuff & possibly programming model in the service.
-						imageData = File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(typeof(Driver).Assembly.Location)!, "nzkt-kraken-z.gif"));
-						imageFormat = KrakenImageFormat.Gif;
-					}
-					catch (IOException)
-					{
-						imageData = GenerateImage(screenInfo.Width, screenInfo.Height);
-						imageFormat = KrakenImageFormat.Raw;
-					}
-					await storageManager.UploadImageAsync(0, imageFormat, imageData, cancellationToken).ConfigureAwait(false);
-					await hidTransport.DisplayImageAsync(0, cancellationToken).ConfigureAwait(false);
-					currentDisplayMode = KrakenDisplayMode.StoredImage;
-					currentImageIndex = 0;
+					// Counting on the fact that we would quickly update the display mode after this.
+					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.Off, cancellationToken).ConfigureAwait(false);
+					initialDisplayMode = new(KrakenDisplayMode.Off, 0);
 				}
 
 				return new DriverCreationResult<SystemDevicePath>
@@ -202,8 +186,8 @@ public class KrakenDriver :
 						logger,
 						hidTransport,
 						storageManager,
-						currentDisplayMode,
-						currentImageIndex,
+						initialDisplayMode.DisplayMode,
+						initialDisplayMode.ImageIndex,
 						screenInfo.ImageCount,
 						screenInfo.Width,
 						screenInfo.Height,
