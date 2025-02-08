@@ -340,6 +340,14 @@ internal sealed class ImageStorageService
 		if ((targetAnimatedFormats & ~(ImageFormats.Gif | ImageFormats.Png | ImageFormats.WebPLossy | ImageFormats.WebPLossless)) != 0) throw new ArgumentOutOfRangeException(nameof(targetAnimatedFormats));
 		if (sourceRectangle.Left + sourceRectangle.Width > metadata.Width || sourceRectangle.Top + sourceRectangle.Height > metadata.Height) throw new ArgumentException(nameof(sourceRectangle));
 
+		// Determine now if the image already has the correct size. We want to avoid reprocessing an image that may already be correct.
+		bool isCorrectSize = sourceRectangle.Left == 0 &&
+			sourceRectangle.Top == 0 &&
+			sourceRectangle.Width == metadata.Width &&
+			sourceRectangle.Height == metadata.Height &&
+			targetSize.Width == metadata.Width &&
+			targetSize.Height == metadata.Height;
+
 		// First and foremost, adjust the animation stripping requirement based on the image and the supported formats of the device.
 		bool shouldStripAnimations = metadata.IsAnimated && targetAnimatedFormats == 0;
 
@@ -379,6 +387,14 @@ internal sealed class ImageStorageService
 			else throw new UnreachableException("The code must explicitly check each possible animated image format.");
 		}
 
+		// If the target format is GIF and the image has a correct size, we disable the circular mask.
+		// The reason for that being that we can not guarantee that the processing we would apply would produce a better result than the current image,
+		// even if we reduce the number of colors by applying the mask.
+		// Until we have more faith in the result of image processing, it is better to trust the original image.
+		// If the original image is not good, the user still has the option of optimizing it externally.
+		// If we re-processed the image everytime, we would prevent this.
+		if (targetFormat == ImageFormat.Gif && isCorrectSize) shouldApplyCircularMask = false;
+
 		Span<byte> payload = stackalloc byte[30];
 
 		payload[0] = (byte)
@@ -404,12 +420,7 @@ internal sealed class ImageStorageService
 		// Shortcut to return the existing physical image if it matches perfectly.
 		// Later on, should still bind the transformation metadata to the existing image.
 		if (targetFormat == metadata.Format &&
-			sourceRectangle.Left == 0 &&
-			sourceRectangle.Top == 0 &&
-			sourceRectangle.Width == metadata.Width &&
-			sourceRectangle.Height == metadata.Height &&
-			targetSize.Width == metadata.Width &&
-			targetSize.Height == metadata.Height &&
+			isCorrectSize &&
 			!shouldStripAnimations &&
 			!shouldApplyCircularMask)
 		{
