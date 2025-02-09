@@ -41,7 +41,7 @@
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>
-        <ContentControl Grid.Row="1" Content="{Binding CurrentGraphics}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <ContentControl Grid.Row="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" DataContext="{Binding CurrentGraphics, Mode=OneWay}" Content="{Binding}">
             <ContentControl.ContentTemplateSelector>
                 <lts:EmbeddedMonitorGraphicsSettingTemplateSelector>
                     <lts:EmbeddedMonitorGraphicsSettingTemplateSelector.BuiltInTemplate>
@@ -50,8 +50,8 @@
                         </DataTemplate>
                     </lts:EmbeddedMonitorGraphicsSettingTemplateSelector.BuiltInTemplate>
                     <lts:EmbeddedMonitorGraphicsSettingTemplateSelector.ImageTemplate>
-                        <DataTemplate>
-                            <local:EmbeddedMonitorImageSettingsControl ImageGraphics="{Binding}" />
+                        <DataTemplate x:DataType="vm:EmbeddedMonitorImageGraphicsViewModel">
+                            <local:EmbeddedMonitorImageSettingsControl ImageGraphics="{x:Bind Mode=OneWay}" />
                         </DataTemplate>
                     </lts:EmbeddedMonitorGraphicsSettingTemplateSelector.ImageTemplate>
                 </lts:EmbeddedMonitorGraphicsSettingTemplateSelector>

@@ -10,7 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid HorizontalAlignment="Stretch" DataContext="{x:Bind ImageGraphics}">
+    <Grid HorizontalAlignment="Stretch" DataContext="{x:Bind ImageGraphics, Mode=OneWay}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -27,7 +27,7 @@
             <ComboBox
                 Grid.Column="1"
                 Margin="{StaticResource RowContentLabelMargin}"
-                ItemsSource="{Binding AvailableImages}"
+                ItemsSource="{Binding AvailableImages, Mode=OneWay}"
                 SelectedItem="{Binding Image, Mode=TwoWay}"
                 Padding="10,3,0,3"
                 HorizontalAlignment="Stretch">
@@ -39,8 +39,8 @@
                 <ComboBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:ImageViewModel">
                         <StackPanel Orientation="Horizontal">
-                            <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
-                            <TextBlock Text="{Binding Name}" Margin="0,2,0,0" />
+                            <Image Source="{x:Bind FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneTime}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
+                            <TextBlock Text="{x:Bind Name, Mode=OneTime}" Margin="0,2,0,0" />
                         </StackPanel>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>

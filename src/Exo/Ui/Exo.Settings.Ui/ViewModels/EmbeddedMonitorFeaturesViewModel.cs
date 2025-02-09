@@ -20,6 +20,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	private readonly Dictionary<Guid, EmbeddedMonitorConfigurationUpdate> _pendingConfigurationUpdates;
 	private bool _isExpanded;
 	private readonly PropertyChangedEventHandler _onRasterizationScaleProviderPropertyChanged;
+	private EmbeddedMonitorViewModel? _selectedMonitor;
 
 	public EmbeddedMonitorFeaturesViewModel
 	(
@@ -66,6 +67,13 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	{
 		get => _isExpanded;
 		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
+	}
+
+	// This is used when showing monitors in a grid.
+	public EmbeddedMonitorViewModel? SelectedMonitor
+	{
+		get => _selectedMonitor;
+		set => SetValue(ref _selectedMonitor, value, ChangedProperty.SelectedMonitor);
 	}
 
 	internal IEmbeddedMonitorService EmbeddedMonitorService => _embeddedMonitorService;
@@ -235,7 +243,12 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	public EmbeddedMonitorGraphicsViewModel? CurrentGraphics
 	{
 		get => _currentGraphics;
-		set => SetChangeableValue(ref _currentGraphics, value, ChangedProperty.CurrentGraphics);
+		set
+		{
+			// Need to ignore null values for the 🤬 bindings behaving completely irrationally.
+			if (value is null) return;
+			SetChangeableValue(ref _currentGraphics, value, ChangedProperty.CurrentGraphics);
+		}
 	}
 
 	internal void UpdateInformation(EmbeddedMonitorInformation information)

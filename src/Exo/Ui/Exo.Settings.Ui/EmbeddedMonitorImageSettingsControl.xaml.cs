@@ -11,6 +11,7 @@ namespace Exo.Settings.Ui;
 
 internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 {
+	// For some reason, XAML won't do any type check and will mess up everything by assigning the wrong type here sometimes…
 	public EmbeddedMonitorImageGraphicsViewModel? ImageGraphics
 	{
 		get => (EmbeddedMonitorImageGraphicsViewModel)GetValue(ImageGraphicsProperty);

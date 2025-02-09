@@ -75,4 +75,5 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs CropRectangle = new (nameof(CropRectangle));
 	public static readonly PropertyChangedEventArgs HasBuiltInGraphics = new (nameof(HasBuiltInGraphics));
 	public static readonly PropertyChangedEventArgs CurrentGraphics = new (nameof(CurrentGraphics));
+	public static readonly PropertyChangedEventArgs SelectedMonitor = new (nameof(SelectedMonitor));
 }

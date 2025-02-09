@@ -290,6 +290,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				new(region.Left, region.Top, region.Width, region.Height),
 				_imageFormats,
 				(_capabilities & EmbeddedMonitorCapabilities.AnimatedImages) != 0 ? _imageFormats & ImageFormats.Gif : 0,
+				_pixelFormat,
 				new(_width, _height),
 				_shape == MonitorShape.Circle
 			);

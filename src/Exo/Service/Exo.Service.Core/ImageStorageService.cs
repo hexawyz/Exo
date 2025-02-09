@@ -11,6 +11,8 @@ using Exo.Configuration;
 using Exo.Images;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32.SafeHandles;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace Exo.Service;
@@ -329,6 +331,7 @@ internal sealed class ImageStorageService
 		Rectangle sourceRectangle,
 		ImageFormats targetStaticFormats,
 		ImageFormats targetAnimatedFormats,
+		PixelFormat targetPixelFormat,
 		Size targetSize,
 		bool shouldApplyCircularMask
 	)
@@ -351,9 +354,11 @@ internal sealed class ImageStorageService
 		// First and foremost, adjust the animation stripping requirement based on the image and the supported formats of the device.
 		bool shouldStripAnimations = metadata.IsAnimated && targetAnimatedFormats == 0;
 
+		bool targetIsStatic = shouldStripAnimations || !metadata.IsAnimated;
+
 		// Then, determine which set of formats should be used based on the image.
 		// If the image supports at least one animated format, we should be able to convert to that format.
-		var applicableFormats = shouldStripAnimations ? targetStaticFormats : targetAnimatedFormats;
+		var applicableFormats = targetIsStatic ? targetStaticFormats : targetAnimatedFormats;
 
 		// Then, Determine the target image format based on what is allowed.
 		ImageFormat targetFormat;
@@ -364,7 +369,7 @@ internal sealed class ImageStorageService
 			targetFormat = metadata.Format;
 		}
 		// If an animated image needs to be converted to a different format, we will restrict ourselves to a specific subset of formats supporting animations. (GIF and WebP)
-		else if (!shouldStripAnimations)
+		else if (!targetIsStatic)
 		{
 			// By order of preference: WebP (lossless), PNG, WebP (lossy), GIF
 			if ((applicableFormats & ImageFormats.WebPLossless) != 0) targetFormat = ImageFormat.WebPLossless;
@@ -430,7 +435,7 @@ internal sealed class ImageStorageService
 		using (var image = GetImageFile(imageId))
 		using (var stream = new MemoryStream())
 		{
-			TransformImage(stream, image, sourceRectangle, targetFormat, targetSize, shouldStripAnimations, shouldApplyCircularMask);
+			TransformImage(stream, image, sourceRectangle, targetFormat, targetPixelFormat, targetSize, shouldStripAnimations, shouldApplyCircularMask);
 			var physicalImageId = XxHash128.HashToUInt128(stream.GetBuffer().AsSpan(0, (int)stream.Length), PhysicalImageIdHashSeed);
 			string fileName = GetFileName(_imageCacheDirectory, physicalImageId);
 			// Assume that if a file exists, it is already correct. We want to avoid wearing the disk if we don't need to.
@@ -443,7 +448,17 @@ internal sealed class ImageStorageService
 	}
 
 	// TODO: Improve this method. Current operation is quick and dirty, but there are certainly better possibilities.
-	private void TransformImage(Stream stream, ImageFile originalImage, Rectangle sourceRectangle, ImageFormat targetFormat, Size targetSize, bool shouldStripAnimations, bool applyCircularMask)
+	private void TransformImage
+	(
+		Stream stream,
+		ImageFile originalImage,
+		Rectangle sourceRectangle,
+		ImageFormat targetFormat,
+		PixelFormat targetPixelFormat,
+		Size targetSize,
+		bool shouldStripAnimations,
+		bool applyCircularMask
+	)
 	{
 		using (var memoryManager = originalImage.CreateMemoryManager())
 		{
@@ -490,6 +505,16 @@ internal sealed class ImageStorageService
 				}
 			}
 
+			if (shouldStripAnimations && image.Frames.Count > 1)
+			{
+				// TODO: Also clear frame metadata related to animation.
+				do
+				{
+					image.Frames.RemoveFrame(image.Frames.Count - 1);
+				}
+				while (image.Frames.Count > 1);
+			}
+
 			image.Mutate
 			(
 				ctx =>
@@ -514,8 +539,23 @@ internal sealed class ImageStorageService
 			switch (targetFormat)
 			{
 			case ImageFormat.Raw:
-				// Need to provide the pixel format here.
-				throw new NotImplementedException();
+				if (targetPixelFormat == PixelFormat.B8G8R8A8 || targetPixelFormat == PixelFormat.B8G8R8X8) SaveRawImage<Bgra32>(image, stream);
+				else if (targetPixelFormat == PixelFormat.R8G8B8A8 || targetPixelFormat == PixelFormat.R8G8B8X8) SaveRawImage<Rgba32>(image, stream);
+				else if (targetPixelFormat == PixelFormat.A8R8G8B8 || targetPixelFormat == PixelFormat.X8R8G8B8) SaveRawImage<Argb32>(image, stream);
+				else if (targetPixelFormat == PixelFormat.A8B8G8R8 || targetPixelFormat == PixelFormat.X8B8G8R8) SaveRawImage<Abgr32>(image, stream);
+				else if (targetPixelFormat == PixelFormat.B8G8R8) SaveRawImage<Bgr24>(image, stream);
+				else if (targetPixelFormat == PixelFormat.R8G8B8) SaveRawImage<Rgb24>(image, stream);
+				else throw new NotSupportedException("The specified image format is not yet supported.");
+				break;
+			case ImageFormat.Bitmap:
+				if (targetPixelFormat == PixelFormat.B8G8R8A8 || targetPixelFormat == PixelFormat.B8G8R8X8) SaveBitmapImage<Bgra32>(image, stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel32);
+				else if (targetPixelFormat == PixelFormat.R8G8B8A8 || targetPixelFormat == PixelFormat.R8G8B8X8) SaveBitmapImage<Rgba32>(image, stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel32);
+				else if (targetPixelFormat == PixelFormat.A8R8G8B8 || targetPixelFormat == PixelFormat.X8R8G8B8) SaveBitmapImage<Argb32>(image, stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel32);
+				else if (targetPixelFormat == PixelFormat.A8B8G8R8 || targetPixelFormat == PixelFormat.X8B8G8R8) SaveBitmapImage<Abgr32>(image, stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel32);
+				else if (targetPixelFormat == PixelFormat.B8G8R8) SaveBitmapImage<Bgr24>(image, stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel24);
+				else if (targetPixelFormat == PixelFormat.R8G8B8) SaveBitmapImage<Rgb24>(image, stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel24);
+				else throw new NotSupportedException("The specified image format is not yet supported.");
+				break;
 			case ImageFormat.Gif:
 				SixLabors.ImageSharp.ImageExtensions.SaveAsGif(image, stream);
 				break;
@@ -530,6 +570,54 @@ internal sealed class ImageStorageService
 			default:
 				throw new NotImplementedException();
 			}
+		}
+	}
+
+	private static void SaveBitmapImage<TPixel>(SixLabors.ImageSharp.Image image, Stream stream, SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel bitsPerPixel)
+		where TPixel : unmanaged, IPixel<TPixel>
+	{
+		var encoder = new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder
+		{
+			BitsPerPixel = bitsPerPixel
+		};
+
+		if (image is SixLabors.ImageSharp.Image<TPixel> imageInCorrectFormat)
+		{
+			SixLabors.ImageSharp.ImageExtensions.SaveAsBmp(imageInCorrectFormat, stream, encoder);
+		}
+		else
+		{
+			using (imageInCorrectFormat = image.CloneAs<TPixel>())
+			{
+				SixLabors.ImageSharp.ImageExtensions.SaveAsBmp(imageInCorrectFormat, stream, encoder);
+			}
+		}
+	}
+
+	private static void SaveRawImage<TPixel>(SixLabors.ImageSharp.Image image, Stream stream)
+		where TPixel : unmanaged, IPixel<TPixel>
+	{
+		if (image is SixLabors.ImageSharp.Image<TPixel> imageInCorrectFormat)
+		{
+			WriteFrameDataToStream(stream, imageInCorrectFormat.Frames[0]);
+		}
+		else
+		{
+			using (imageInCorrectFormat = image.CloneAs<TPixel>())
+			{
+				WriteFrameDataToStream(stream, imageInCorrectFormat.Frames[0]);
+			}
+		}
+	}
+
+	private static void WriteFrameDataToStream<TPixel>(Stream stream, SixLabors.ImageSharp.ImageFrame<TPixel> frame)
+		where TPixel : unmanaged, IPixel<TPixel>
+	{
+		int height = frame.Height;
+		for (int i = 0; i < height; i++)
+		{
+			var row = frame.DangerousGetPixelRowMemory(i);
+			stream.Write(MemoryMarshal.Cast<TPixel, byte>(row.Span));
 		}
 	}
 
