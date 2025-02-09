@@ -112,13 +112,13 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Margin="0,6,0,6" VerticalAlignment="Center" Text="Red" />
-                                <Slider Grid.Row="0" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center" Minimum="0" Maximum="255" Value="{Binding Red, Mode=TwoWay}" />
+                                <Slider Grid.Row="0" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding Red, Mode=TwoWay}" />
                                 <TextBlock Grid.Row="0" Grid.Column="2" Margin="0,6,0,6" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Red, Mode=OneWay}" />
                                 <TextBlock Grid.Row="1" Margin="0,6,0,6" VerticalAlignment="Center" Text="Green" />
-                                <Slider Grid.Row="1" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center" Minimum="0" Maximum="255" Value="{Binding Green, Mode=TwoWay}" />
+                                <Slider Grid.Row="1" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding Green, Mode=TwoWay}" />
                                 <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,6" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Green, Mode=OneWay}" />
                                 <TextBlock Grid.Row="2" Margin="0,6,0,6" VerticalAlignment="Center" Text="Blue" />
-                                <Slider Grid.Row="2" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center" Minimum="0" Maximum="255" Value="{Binding Blue, Mode=TwoWay}" />
+                                <Slider Grid.Row="2" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding Blue, Mode=TwoWay}" />
                                 <TextBlock Grid.Row="2" Grid.Column="2" Margin="0,6,0,6" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Blue, Mode=OneWay}" />
                             </Grid>
                         </Grid>
