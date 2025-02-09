@@ -171,7 +171,7 @@ internal static class GrpcConvert
 			DeviceId = configurationUpdate.DeviceId,
 			MonitorId = configurationUpdate.MonitorId,
 			GraphicsId = configurationUpdate.GraphicsId,
-			ImageConfiguration = configurationUpdate.GraphicsId != default ?
+			ImageConfiguration = configurationUpdate.GraphicsId == default ?
 				new() { ImageId = configurationUpdate.ImageId, ImageRegion = configurationUpdate.ImageRegion.ToGrpc() } :
 				null,
 		};

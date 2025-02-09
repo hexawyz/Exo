@@ -18,6 +18,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	private readonly ObservableCollection<EmbeddedMonitorViewModel> _embeddedMonitors;
 	private readonly ReadOnlyObservableCollection<EmbeddedMonitorViewModel> _readOnlyEmbeddedMonitors;
 	private readonly Dictionary<Guid, EmbeddedMonitorViewModel> _embeddedMonitorById;
+	private readonly Dictionary<Guid, EmbeddedMonitorConfigurationUpdate> _pendingConfigurationUpdates;
 	private bool _isExpanded;
 	private readonly PropertyChangedEventHandler _onRasterizationScaleProviderPropertyChanged;
 
@@ -37,6 +38,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		_embeddedMonitorService = embeddedMonitorService;
 		_embeddedMonitors = new();
 		_embeddedMonitorById = new();
+		_pendingConfigurationUpdates = new();
 		_readOnlyEmbeddedMonitors = new(_embeddedMonitors);
 		_onRasterizationScaleProviderPropertyChanged = OnRasterizationScaleProviderPropertyChanged;
 		rasterizationScaleProvider.PropertyChanged += _onRasterizationScaleProviderPropertyChanged;
@@ -97,11 +99,23 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 				_embeddedMonitorById.Add(monitorInformation.MonitorId, vm);
 				_embeddedMonitors.Add(vm);
 			}
+			if (_pendingConfigurationUpdates.Remove(monitorInformation.MonitorId, out var configuration))
+			{
+				vm.UpdateConfiguration(configuration);
+			}
 		}
 	}
 
 	internal void UpdateConfiguration(EmbeddedMonitorConfigurationUpdate configuration)
 	{
+		if (_embeddedMonitorById.TryGetValue(configuration.MonitorId, out var monitor))
+		{
+			monitor.UpdateConfiguration(configuration);
+		}
+		else
+		{
+			_pendingConfigurationUpdates.Add(configuration.MonitorId, configuration);
+		}
 	}
 }
 
@@ -114,7 +128,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	private EmbeddedMonitorCapabilities _capabilities;
 	private readonly ObservableCollection<EmbeddedMonitorGraphicsViewModel> _supportedGraphics;
 	private readonly ReadOnlyObservableCollection<EmbeddedMonitorGraphicsViewModel> _readOnlySupportedGraphics;
-	private EmbeddedMonitorGraphicsViewModel? _initialCurrentGraphics;
+	private Guid _initialCurrentGraphicsId;
 	private EmbeddedMonitorGraphicsViewModel? _currentGraphics;
 
 	public EmbeddedMonitorViewModel(EmbeddedMonitorFeaturesViewModel owner, EmbeddedMonitorInformation information)
@@ -141,12 +155,13 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 		_readOnlySupportedGraphics = new(_supportedGraphics);
 		if (_supportedGraphics.Count > 0)
 		{
-			_initialCurrentGraphics = _currentGraphics = imageGraphics ?? _supportedGraphics[0];
+			_currentGraphics = imageGraphics ?? _supportedGraphics[0];
+			_initialCurrentGraphicsId = _currentGraphics.Id;
 		}
 	}
 
-	private bool IsChangedExceptGraphics => !ReferenceEquals(_initialCurrentGraphics, _currentGraphics);
-	public override bool IsChanged => IsChangedExceptGraphics || CurrentGraphics?.IsChanged == true;
+	private bool IsChangedNonRecursive => _currentGraphics?.Id != _initialCurrentGraphicsId;
+	public override bool IsChanged => IsChangedNonRecursive || CurrentGraphics?.IsChanged == true;
 	protected override bool CanApply => IsChanged && _currentGraphics?.IsValid == true;
 
 	public Guid MonitorId => _monitorId;
@@ -230,7 +245,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 
 	internal void NotifyGraphicsChanged(EmbeddedMonitorGraphicsViewModel graphics, bool isChanged)
 	{
-		if (ReferenceEquals(graphics, _currentGraphics) && !IsChangedExceptGraphics)
+		if (ReferenceEquals(graphics, _currentGraphics) && !IsChangedNonRecursive)
 		{
 			OnChanged(isChanged);
 		}
@@ -248,7 +263,55 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 
 	protected override void Reset()
 	{
-		CurrentGraphics = _initialCurrentGraphics;
+		foreach (var supportedGraphics in _supportedGraphics)
+		{
+			if (supportedGraphics.Id == _initialCurrentGraphicsId)
+			{
+				CurrentGraphics = supportedGraphics;
+				break;
+			}
+		}
+		_currentGraphics?.Reset();
+	}
+
+	internal void UpdateConfiguration(EmbeddedMonitorConfigurationUpdate configuration)
+	{
+		bool wasChanged = IsChanged;
+
+		EmbeddedMonitorGraphicsViewModel? newGraphics = null;
+		if (_currentGraphics?.Id == configuration.GraphicsId)
+		{
+			newGraphics = _currentGraphics;
+		}
+		else
+		{
+			foreach (var supportedGraphics in _supportedGraphics)
+			{
+				if (supportedGraphics.Id == configuration.GraphicsId)
+				{
+					newGraphics = supportedGraphics;
+					break;
+				}
+			}
+		}
+
+		// Just as a small optimization, we update the contents of the graphics first, so that in the event where it is not the one displayed, we will avoid unnecessary UI updates.
+		if (newGraphics is not null && configuration.GraphicsId == default && configuration.ImageConfiguration is { } imageConfiguration)
+		{
+			((EmbeddedMonitorImageGraphicsViewModel)newGraphics).UpdateConfiguration(imageConfiguration);
+		}
+
+		if (_initialCurrentGraphicsId != configuration.GraphicsId)
+		{
+			if (_currentGraphics is null ? newGraphics is not null : (_currentGraphics.Id == _initialCurrentGraphicsId && newGraphics is not null))
+			{
+				_currentGraphics = newGraphics;
+				NotifyPropertyChanged(ChangedProperty.CurrentGraphics);
+			}
+			_initialCurrentGraphicsId = configuration.GraphicsId;
+		}
+
+		OnChangeStateChange(wasChanged);
 	}
 }
 
@@ -288,6 +351,8 @@ internal abstract class EmbeddedMonitorGraphicsViewModel : ChangeableBindableObj
 	}
 
 	internal abstract ValueTask ApplyAsync(CancellationToken cancellationToken);
+
+	internal virtual void Reset() { }
 }
 
 internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorGraphicsViewModel
@@ -315,6 +380,7 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
 {
 	private UInt128 _initialImageId;
+	private Rectangle _initialCropRectangle;
 	private Rectangle _cropRectangle;
 	private ImageViewModel? _image;
 	private readonly PropertyChangedEventHandler _onMonitorPropertyChanged;
@@ -344,7 +410,7 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		}
 	}
 
-	public override bool IsChanged => (_image?.Id).GetValueOrDefault() != _initialImageId;
+	public override bool IsChanged => (_image?.Id).GetValueOrDefault() != _initialImageId || _initialCropRectangle != _cropRectangle;
 
 	public override bool IsValid => _image is not null && IsRegionValid(_cropRectangle);
 
@@ -431,5 +497,67 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 			},
 			cancellationToken
 		);
+	}
+
+	internal void UpdateConfiguration(EmbeddedMonitorImageConfiguration configuration)
+	{
+		bool wasChanged = IsChanged;
+		bool imageChanged = false;
+		bool cropRectangleChanged = false;
+		if (_initialImageId != configuration.ImageId)
+		{
+			if (_image is null || _image.Id == _initialImageId)
+			{
+				foreach (var image in AvailableImages)
+				{
+					if (image.Id == configuration.ImageId)
+					{
+						_image = image;
+						imageChanged = true;
+						break;
+					}
+				}
+			}
+			_initialImageId = configuration.ImageId;
+		}
+		if (_initialCropRectangle != configuration.ImageRegion)
+		{
+			if (_cropRectangle == _initialCropRectangle)
+			{
+				_cropRectangle = configuration.ImageRegion;
+				cropRectangleChanged = true;
+			}
+			_initialCropRectangle = configuration.ImageRegion;
+		}
+		if (imageChanged) NotifyPropertyChanged(ChangedProperty.Image);
+		if (cropRectangleChanged) NotifyPropertyChanged(ChangedProperty.CropRectangle);
+		OnChangeStateChange(wasChanged);
+	}
+
+	internal override void Reset()
+	{
+		if (!IsChanged) return;
+		bool imageChanged = false;
+		bool cropRectangleChanged = false;
+		if (_image?.Id != _initialImageId)
+		{
+			foreach (var image in AvailableImages)
+			{
+				if (image.Id == _initialImageId)
+				{
+					_image = image;
+					imageChanged = true;
+					break;
+				}
+			}
+		}
+		if (_cropRectangle != _initialCropRectangle)
+		{
+			_cropRectangle = _initialCropRectangle;
+			cropRectangleChanged = true;
+		}
+		if (imageChanged) NotifyPropertyChanged(ChangedProperty.Image);
+		if (cropRectangleChanged) NotifyPropertyChanged(ChangedProperty.CropRectangle);
+		OnChangeStateChange(true);
 	}
 }
