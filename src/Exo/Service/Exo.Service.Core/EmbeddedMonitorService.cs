@@ -673,6 +673,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
 
 		PersistedMonitorConfiguration configuration;
+		ChannelWriter<EmbeddedMonitorConfigurationWatchNotification>[]? configurationChangeListeners;
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
@@ -681,9 +682,23 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			if (!await monitorState.SetBuiltInGraphicsAsync(graphicsId, cancellationToken).ConfigureAwait(false)) return;
 
 			configuration = monitorState.CreatePersistedConfiguration();
+
+			configurationChangeListeners = Volatile.Read(ref _configurationChangeListeners);
 		}
 
 		await PersistConfigurationAsync(deviceState.EmbeddedMonitorConfigurationContainer, monitorId, configuration, cancellationToken).ConfigureAwait(false);
+
+		configurationChangeListeners?.TryWrite
+		(
+			new EmbeddedMonitorConfigurationWatchNotification
+			{
+				DeviceId = deviceId,
+				MonitorId = monitorId,
+				GraphicsId = configuration.GraphicsId,
+				ImageId = configuration.ImageId,
+				ImageRegion = configuration.ImageRegion,
+			}
+		);
 	}
 
 	public async ValueTask SetImageAsync(Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle imageRegion, CancellationToken cancellationToken)
@@ -699,6 +714,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		}
 
 		PersistedMonitorConfiguration configuration;
+		ChannelWriter<EmbeddedMonitorConfigurationWatchNotification>[]? configurationChangeListeners;
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
@@ -707,9 +723,23 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			if (!await monitorState.SetImageAsync(_imageStorageService, imageId, imageRegion, cancellationToken).ConfigureAwait(false)) return;
 
 			configuration = monitorState.CreatePersistedConfiguration();
+
+			configurationChangeListeners = Volatile.Read(ref _configurationChangeListeners);
 		}
 
 		await PersistConfigurationAsync(deviceState.EmbeddedMonitorConfigurationContainer, monitorId, configuration, cancellationToken).ConfigureAwait(false);
+
+		configurationChangeListeners?.TryWrite
+		(
+			new EmbeddedMonitorConfigurationWatchNotification
+			{
+				DeviceId = deviceId,
+				MonitorId = monitorId,
+				GraphicsId = configuration.GraphicsId,
+				ImageId = configuration.ImageId,
+				ImageRegion = configuration.ImageRegion,
+			}
+		);
 	}
 
 	public async IAsyncEnumerable<EmbeddedMonitorDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
