@@ -176,6 +176,7 @@ public sealed class StreamDeckDeviceDriver :
 	private readonly Guid[] _buttonIds;
 	private readonly StreamDeckDeviceInfo _deviceInfo;
 	private uint _idleSleepDelay;
+	private UInt128 _lastImageId;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 	private readonly Button[] _buttons;
@@ -188,7 +189,6 @@ public sealed class StreamDeckDeviceDriver :
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> IDeviceDriver<IEmbeddedMonitorDeviceFeature>.Features => _embeddedMonitorFeatures;
 	IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
-
 
 	private StreamDeckDeviceDriver
 	(
@@ -270,13 +270,16 @@ public sealed class StreamDeckDeviceDriver :
 		// Bitmap seems to not work at all. Until I find a way to understand how colors are mapped, it is better to disable it. (e.g. black would give dark purple, white would give maroon)
 		EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation => new(MonitorShape.Square, _driver.ButtonImageSize, PixelFormat.B8G8R8, /*ImageFormats.Bitmap | */ImageFormats.Jpeg, false);
 
-		ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+		async ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 		{
 			if (imageFormat is not (ImageFormat.Bitmap or ImageFormat.Jpeg))
 			{
-				return ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new ArgumentOutOfRangeException(nameof(imageFormat))));
+				throw new ArgumentOutOfRangeException(nameof(imageFormat));
 			}
-			return new ValueTask(_driver._device.SetKeyImageDataAsync(_keyIndex, data, cancellationToken));
+			// We basically can avoid sending a lengthy transfer over to the device if two consecutive images are the same.
+			// The write buffer will still contain the data from the last upload.
+			await _driver._device.SetKeyImageDataAsync(_keyIndex, imageId == _driver._lastImageId ? Array.Empty<byte>() : data, cancellationToken);
+			_driver._lastImageId = imageId;
 		}
 	}
 }
