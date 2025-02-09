@@ -286,7 +286,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 				break;
 			}
 		}
-		_currentGraphics?.Reset();
+		(_currentGraphics as IResettable)?.Reset();
 	}
 
 	internal void UpdateConfiguration(EmbeddedMonitorConfigurationUpdate configuration)
@@ -330,7 +330,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	}
 }
 
-internal abstract class EmbeddedMonitorGraphicsViewModel : ChangeableBindableObject
+internal abstract class EmbeddedMonitorGraphicsViewModel : ResettableBindableObject
 {
 	private readonly EmbeddedMonitorViewModel _monitor;
 	private readonly Guid _id;
@@ -367,7 +367,7 @@ internal abstract class EmbeddedMonitorGraphicsViewModel : ChangeableBindableObj
 
 	internal abstract ValueTask ApplyAsync(CancellationToken cancellationToken);
 
-	internal virtual void Reset() { }
+	protected override void Reset() { }
 }
 
 internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorGraphicsViewModel
@@ -440,23 +440,25 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 			if (SetChangeableValue(ref _image, value, ChangedProperty.Image))
 			{
 				// TODO: Improve this to initialize the crop rectangle to a better value automatically.
-				if (value is not null && !IsRegionValid(_cropRectangle))
+				if (value is not null)
 				{
 					var imageSize = Monitor.ImageSize;
 					if (imageSize.Width == imageSize.Height)
 					{
-						var s = Math.Min(value.Width, value.Height);
-						CropRectangle = new() { Left = (value.Width - s) >>> 1, Top = (value.Height - s) >>> 1, Width = s, Height = s };
+						var minDimension = Math.Min(value.Width, value.Height);
+						CropRectangle = new() { Left = (value.Width - minDimension) >>> 1, Top = (value.Height - minDimension) >>> 1, Width = minDimension, Height = minDimension };
+						// Just to avoid the applicable change below that would be duplicated. This needs to go away.
+						return;
 					}
 				}
-				else
-				{
-					// Not ideal but good enough for now.
-					IApplicable.NotifyCanExecuteChanged();
-				}
+
+				// Not ideal but good enough for now. (Basically can fire if the applicable state stays false. We can do a check on IsValid later on.)
+				IApplicable.NotifyCanExecuteChanged();
 			}
 		}
 	}
+
+	private bool IsImageChanged => (_image?.Id).GetValueOrDefault() != _initialImageId;
 
 	public MonitorShape Shape => Monitor.Shape;
 
@@ -549,7 +551,7 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		OnChangeStateChange(wasChanged);
 	}
 
-	internal override void Reset()
+	protected override void Reset()
 	{
 		if (!IsChanged) return;
 		bool imageChanged = false;
