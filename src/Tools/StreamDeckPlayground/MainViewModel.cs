@@ -58,6 +58,7 @@ public sealed class MainViewModel : BindableObject, IAsyncDisposable
 				case WatchNotificationKind.Enumeration:
 				case WatchNotificationKind.Add:
 					_devices.Add(await StreamDeckViewModel.CreateAsync(notification.Object.Id, 0x006C, cancellationToken));
+					if (_selectedDevice is null) SelectedDevice = _devices[0];
 					break;
 				case WatchNotificationKind.Update:
 					break;
