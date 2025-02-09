@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="SixLabors.ImageSharp" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\..\Exo\Devices\Exo.Devices.Elgato.StreamDeck\Exo.Devices.Elgato.StreamDeck.csproj" />
+		<ProjectReference Include="..\..\Exo\Service\Exo.DeviceNotifications\Exo.DeviceNotifications.csproj" />
+		<ProjectReference Include="..\..\Exo\Ui\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+	</ItemGroup>
+
+</Project>

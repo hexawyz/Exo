@@ -1,5 +1,3 @@
-using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DeviceTools.HumanInterfaceDevices;
@@ -8,7 +6,7 @@ namespace Exo.Devices.Elgato.StreamDeck;
 
 // This implementation is for Stream Deck XL. Multiple subclasses are needed to provide features for other device versions.
 // TODO: Create(ushort productId) returning the correct underlying implementation with correctly initialized parameters.
-internal class StreamDeckDevice : IAsyncDisposable
+public sealed class StreamDeckDevice : IAsyncDisposable
 {
 	// https://www.reddit.com/r/elgato/comments/jagj6p/stream_deck_update_49_screensaver_sleep_action/
 	// > The recommended screensaver dimensions are:
