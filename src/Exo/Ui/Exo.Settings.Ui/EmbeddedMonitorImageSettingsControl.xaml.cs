@@ -43,6 +43,7 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 		(
 			ImageCropper,
 			[
+				"PART_SourceImage",
 				"PART_TopThumb",
 				"PART_BottomThumb",
 				"PART_LeftThumb",

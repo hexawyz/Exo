@@ -4,7 +4,6 @@ using System.Globalization;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Exo.Settings.Ui.ViewModels;
 
