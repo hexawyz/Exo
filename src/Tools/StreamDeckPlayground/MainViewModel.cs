@@ -42,7 +42,7 @@ public sealed class MainViewModel : BindableObject, IAsyncDisposable
 		{
 			await foreach
 			(
-				var device in DeviceQuery.EnumerateAllAsync
+				var notification in DeviceQuery.WatchAllAsync
 				(
 					DeviceObjectKind.DeviceInterface,
 					Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid &
@@ -53,7 +53,27 @@ public sealed class MainViewModel : BindableObject, IAsyncDisposable
 				)
 			)
 			{
-				_devices.Add(await StreamDeckViewModel.CreateAsync(device.Id, 0x006C, cancellationToken));
+				switch (notification.Kind)
+				{
+				case WatchNotificationKind.Enumeration:
+				case WatchNotificationKind.Add:
+					_devices.Add(await StreamDeckViewModel.CreateAsync(notification.Object.Id, 0x006C, cancellationToken));
+					break;
+				case WatchNotificationKind.Update:
+					break;
+				case WatchNotificationKind.Remove:
+					for (int i = 0; i < _devices.Count; i++)
+					{
+						var device = _devices[i];
+						if (device.DeviceName == notification.Object.Id)
+						{
+							_devices.RemoveAt(i);
+							await device.DisposeAsync();
+							break;
+						}
+					}
+					break;
+				}
 			}
 		}
 		catch (OperationCanceledException)

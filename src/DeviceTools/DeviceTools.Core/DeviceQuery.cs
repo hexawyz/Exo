@@ -24,6 +24,56 @@ public sealed class DeviceQuery
 #if NET5_0_OR_GREATER
 	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 #endif
+	private static unsafe void WatchAllCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
+	{
+		var ctx = Unsafe.As<DevQueryWatchCallbackContext>(GCHandle.FromIntPtr(context).Target)!;
+		switch (action->Action)
+		{
+		case NativeMethods.DeviceQueryResultAction.DevQueryResultAdd:
+		case NativeMethods.DeviceQueryResultAction.DevQueryResultUpdate:
+		case NativeMethods.DeviceQueryResultAction.DevQueryResultRemove:
+			ref var @object = ref action->StateOrObject.DeviceObject;
+			var kind = (WatchNotificationKind)action->Action;
+			if (!ctx.IsEnumerationComplete && kind == WatchNotificationKind.Add) kind = WatchNotificationKind.Enumeration;
+#if NET6_0_OR_GREATER
+			ctx.Writer.TryWrite(new(kind, new(@object.ObjectType, MemoryMarshal.CreateReadOnlySpanFromNullTerminated(@object.ObjectId).ToString(), ParseProperties(ref @object))));
+#else
+			ctx.Writer.TryWrite(new(kind, new(@object.ObjectType, Marshal.PtrToStringUni((IntPtr)@object.ObjectId)!, ParseProperties(ref @object))));
+#endif
+			break;
+		case NativeMethods.DeviceQueryResultAction.DevQueryResultStateChange:
+			var state = action->StateOrObject.State;
+			if (state is NativeMethods.DeviceQueryState.DevQueryStateEnumCompleted)
+			{
+				ctx.IsEnumerationComplete = true;
+			}
+			else if (state is NativeMethods.DeviceQueryState.DevQueryStateAborted)
+			{
+#if NET5_0_OR_GREATER
+				ctx.Writer.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("The query was aborted.")));
+#else
+				try { new Exception("The query was aborted."); }
+				catch (Exception ex) { ctx.Writer.TryComplete(ex); }
+#endif
+				ctx.Dispose();
+			}
+			else if (state is NativeMethods.DeviceQueryState.DevQueryStateClosed)
+			{
+#if NET5_0_OR_GREATER
+				ctx.Writer.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new OperationCanceledException()));
+#else
+				try { new OperationCanceledException(); }
+				catch (Exception ex) { ctx.Writer.TryComplete(ex); }
+#endif
+				ctx.Dispose();
+			}
+			break;
+		}
+	}
+
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+#endif
 	private static unsafe void EnumerateAllCallback(IntPtr handle, IntPtr context, NativeMethods.DeviceQueryResultActionData* action)
 	{
 		var ctx = Unsafe.As<DevQueryCallbackContext<ChannelWriter<DeviceObjectInformation>>>(GCHandle.FromIntPtr(context).Target)!;
@@ -167,6 +217,7 @@ public sealed class DeviceQuery
 	{
 		EnumerateAll = 1,
 		FindAll,
+		WatchAll,
 		GetObjectProperties
 	}
 
@@ -201,6 +252,14 @@ public sealed class DeviceQuery
 		public TState State { get; }
 
 		public DevQueryCallbackContext(Method method, TState state) : base(method) => State = state;
+	}
+
+	private class DevQueryWatchCallbackContext : DevQueryCallbackContext
+	{
+		public ChannelWriter<DeviceObjectWatchWatchNotification> Writer { get; }
+		public bool IsEnumerationComplete { get; set; }
+
+		public DevQueryWatchCallbackContext(ChannelWriter<DeviceObjectWatchWatchNotification> writer) : base(Method.WatchAll) => Writer = writer;
 	}
 
 	private class DevQueryCallbackContext<TState, TValue> : DevQueryCallbackContext<TState>
@@ -332,6 +391,69 @@ public sealed class DeviceQuery
 		return dictionary;
 	}
 
+	public static IAsyncEnumerable<DeviceObjectWatchWatchNotification> WatchAllAsync(DeviceObjectKind objectKind, CancellationToken cancellationToken) =>
+		WatchAllAsync(objectKind, null, null, cancellationToken);
+
+	public static IAsyncEnumerable<DeviceObjectWatchWatchNotification> WatchAllAsync(DeviceObjectKind objectKind, DeviceFilterExpression filter, CancellationToken cancellationToken) =>
+		WatchAllAsync(objectKind, null, filter, cancellationToken);
+
+	public static IAsyncEnumerable<DeviceObjectWatchWatchNotification> WatchAllAsync(DeviceObjectKind objectKind, IEnumerable<Property>? properties, CancellationToken cancellationToken) =>
+		WatchAllAsync(objectKind, properties, null, cancellationToken);
+
+	public static IAsyncEnumerable<DeviceObjectWatchWatchNotification> WatchAllAsync
+	(
+		DeviceObjectKind objectKind,
+		IEnumerable<Property>? properties,
+		DeviceFilterExpression? filter,
+		CancellationToken cancellationToken
+	)
+	{
+		int count = filter?.GetFilterElementCount(true) ?? 0;
+		Span<NativeMethods.DevicePropertyFilterExpression> filterExpressions = count <= 4 ?
+			count == 0 ?
+				new Span<NativeMethods.DevicePropertyFilterExpression>() :
+				stackalloc NativeMethods.DevicePropertyFilterExpression[count] :
+			new NativeMethods.DevicePropertyFilterExpression[count];
+
+		Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = GetPropertyKeys(properties);
+
+		SafeDeviceQueryHandle query;
+		DevQueryWatchCallbackContext context;
+
+		filter?.FillExpressions(filterExpressions, true, out count);
+
+		var channel = Channel.CreateUnbounded<DeviceObjectWatchWatchNotification>(EnumerateAllChannelOptions);
+		try
+		{
+			context = new(channel);
+
+			try
+			{
+				query = CreateObjectQuery
+				(
+					objectKind,
+					properties is null ?
+						NativeMethods.DeviceQueryFlags.UpdateResults | NativeMethods.DeviceQueryFlags.AllProperties | NativeMethods.DeviceQueryFlags.AsyncClose :
+						NativeMethods.DeviceQueryFlags.UpdateResults | NativeMethods.DeviceQueryFlags.AsyncClose,
+					propertyKeys,
+					filterExpressions,
+					context.GetHandle()
+				);
+			}
+			catch
+			{
+				context.Dispose();
+				throw;
+			}
+		}
+		finally
+		{
+			filter?.ReleaseExpressionResources();
+		}
+
+		return EnumerateAllAsync(query, (ChannelReader<DeviceObjectWatchWatchNotification>)channel, cancellationToken);
+	}
+
 	public static IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync(DeviceObjectKind objectKind, CancellationToken cancellationToken) =>
 		EnumerateAllAsync(objectKind, null, null, cancellationToken);
 
@@ -390,13 +512,13 @@ public sealed class DeviceQuery
 			filter?.ReleaseExpressionResources();
 		}
 
-		return EnumerateAllAsync(query, channel, cancellationToken);
+		return EnumerateAllAsync(query, (ChannelReader<DeviceObjectInformation>)channel, cancellationToken);
 	}
 
-	private static async IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync
+	private static async IAsyncEnumerable<T> EnumerateAllAsync<T>
 	(
 		SafeDeviceQueryHandle queryHandle,
-		ChannelReader<DeviceObjectInformation> reader,
+		ChannelReader<T> reader,
 		[EnumeratorCancellation] CancellationToken cancellationToken
 	)
 	{
@@ -821,6 +943,7 @@ public sealed class DeviceQuery
 			{
 				Method.EnumerateAll => &EnumerateAllCallback,
 				Method.FindAll => &FindAllCallback,
+				Method.WatchAll => &WatchAllCallback,
 				Method.GetObjectProperties => &GetObjectPropertiesCallback,
 				_ => throw new InvalidOperationException()
 			},
@@ -835,6 +958,7 @@ public sealed class DeviceQuery
 			{
 				Method.EnumerateAll => EnumerateAllCallback,
 				Method.FindAll => FindAllCallback,
+				Method.WatchAll => WatchAllCallback,
 				Method.GetObjectProperties => GetObjectPropertiesCallback,
 				_ => throw new InvalidOperationException()
 			},
