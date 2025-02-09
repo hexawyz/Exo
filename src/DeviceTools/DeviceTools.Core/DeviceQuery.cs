@@ -359,14 +359,14 @@ public sealed class DeviceQuery
 		Span<NativeMethods.DevicePropertyCompoundKey> propertyKeys = GetPropertyKeys(properties);
 
 		SafeDeviceQueryHandle query;
-		DevQueryCallbackContext<ChannelReader<DeviceObjectInformation>> context;
+		DevQueryCallbackContext<ChannelWriter<DeviceObjectInformation>> context;
 
 		filter?.FillExpressions(filterExpressions, true, out count);
 
+		var channel = Channel.CreateUnbounded<DeviceObjectInformation>(EnumerateAllChannelOptions);
 		try
 		{
-			var channel = Channel.CreateUnbounded<DeviceObjectInformation>(EnumerateAllChannelOptions);
-			context = new(Method.EnumerateAll, channel.Reader);
+			context = new(Method.EnumerateAll, channel);
 
 			try
 			{
@@ -390,21 +390,21 @@ public sealed class DeviceQuery
 			filter?.ReleaseExpressionResources();
 		}
 
-		return EnumerateAllAsync(query, context, cancellationToken);
+		return EnumerateAllAsync(query, channel, cancellationToken);
 	}
 
 	private static async IAsyncEnumerable<DeviceObjectInformation> EnumerateAllAsync
 	(
 		SafeDeviceQueryHandle queryHandle,
-		DevQueryCallbackContext<ChannelReader<DeviceObjectInformation>> context,
+		ChannelReader<DeviceObjectInformation> reader,
 		[EnumeratorCancellation] CancellationToken cancellationToken
 	)
 	{
 		try
 		{
-			while (await context.State.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+			while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
 			{
-				while (context.State.TryRead(out var info))
+				while (reader.TryRead(out var info))
 				{
 					yield return info;
 				}

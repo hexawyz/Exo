@@ -40,9 +40,9 @@ public sealed class MainViewModel : BindableObject, IAsyncDisposable
 	{
 		try
 		{
-			foreach
+			await foreach
 			(
-				var device in await DeviceQuery.FindAllAsync
+				var device in DeviceQuery.EnumerateAllAsync
 				(
 					DeviceObjectKind.DeviceInterface,
 					Properties.System.Devices.InterfaceClassGuid == DeviceInterfaceClassGuids.Hid &
