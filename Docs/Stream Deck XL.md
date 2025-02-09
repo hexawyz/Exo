@@ -50,6 +50,9 @@ Firmware 1.01.000 end is 115272 bytes.
 02 07 <ButtonIndex:U8> <IsFinalPacket:B8> <PacketLength:U16> <PacketIndex:U16> <Data:U8[]>
 ```
 
+To be noted that issuing a write with empty data will allow the device to reuse the previously uploaded data.
+This can be used to update multiple buttons to the same image more quickly.
+
 #### Command `09` - Write screensaver data
 
 ```
