@@ -17,7 +17,7 @@
             <lts:EmbeddedMonitorSettingTemplateSelector>
                 <lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
                     <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
-                        <local:EmbeddedMonitorSettingControl Monitor="{Binding EmbeddedMonitors[0]}" />
+                        <local:EmbeddedMonitorSettingControl Monitor="{Binding EmbeddedMonitors[0]}" IsEnabled="{Binding EmbeddedMonitors[0].IsNotBusy}" />
                     </DataTemplate>
                 </lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
                 <lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>

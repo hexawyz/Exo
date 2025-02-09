@@ -129,6 +129,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	private readonly ReadOnlyObservableCollection<EmbeddedMonitorGraphicsViewModel> _readOnlySupportedGraphics;
 	private Guid _initialCurrentGraphicsId;
 	private EmbeddedMonitorGraphicsViewModel? _currentGraphics;
+	private bool _isReady;
 
 	public EmbeddedMonitorViewModel(EmbeddedMonitorFeaturesViewModel owner, EmbeddedMonitorInformation information)
 	{
@@ -157,11 +158,18 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 			_currentGraphics = imageGraphics ?? _supportedGraphics[0];
 			_initialCurrentGraphicsId = _currentGraphics.Id;
 		}
+		_isReady = true;
 	}
 
 	private bool IsChangedNonRecursive => _currentGraphics?.Id != _initialCurrentGraphicsId;
 	public override bool IsChanged => IsChangedNonRecursive || CurrentGraphics?.IsChanged == true;
 	protected override bool CanApply => IsChanged && _currentGraphics?.IsValid == true;
+
+	public bool IsNotBusy
+	{
+		get => _isReady;
+		private set => SetValue(ref _isReady, value, ChangedProperty.IsNotBusy);
+	}
 
 	public Guid MonitorId => _monitorId;
 
@@ -256,7 +264,15 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	{
 		if (_currentGraphics is not null)
 		{
-			await _currentGraphics.ApplyAsync(cancellationToken).ConfigureAwait(false);
+			IsNotBusy = false;
+			try
+			{
+				await _currentGraphics.ApplyAsync(cancellationToken);
+			}
+			finally
+			{
+				IsNotBusy = true;
+			}
 		}
 	}
 
@@ -373,7 +389,7 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 				GraphicsId = Id
 			},
 			cancellationToken
-		).ConfigureAwait(false);
+		);
 }
 
 internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
