@@ -48,17 +48,20 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="Serial Number" Margin="0,6,0,6" VerticalAlignment="Center" />
                         <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SerialNumber}" Margin="0,6,0,6" VerticalAlignment="Center" />
                         <TextBlock Grid.Row="1" Text="Firmware Version" Margin="0,6,0,6" VerticalAlignment="Center" />
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FirmwareVersion}" Margin="0,6,0,6" VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Text="Grid Size" Margin="0,6,0,6" VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"><Run Text="{Binding ButtonColumnCount, Mode=OneWay}" /><Run Text="x" /><Run Text="{Binding ButtonRowCount, Mode=OneWay}" /></TextBlock>
-                        <TextBlock Grid.Row="3" Text="Button Size" Margin="0,6,0,6" VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"><Run Text="{Binding ButtonImageWidth, Mode=OneWay}" /><Run Text="x" /><Run Text="{Binding ButtonImageHeight, Mode=OneWay}" /></TextBlock>
-                        <TextBlock Grid.Row="4" Text="Screen Size" Margin="0,6,0,6" VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"><Run Text="{Binding ScreensaverImageWidth, Mode=OneWay}" /><Run Text="x" /><Run Text="{Binding ScreensaverImageHeight, Mode=OneWay}" /></TextBlock>
+                        <TextBlock Grid.Row="2" Text="Usage Time" Margin="0,6,0,6" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding UsageTime}" Margin="0,6,0,6" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="3" Text="Grid Size" Margin="0,6,0,6" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"><Run Text="{Binding ButtonColumnCount, Mode=OneWay}" /><Run Text="x" /><Run Text="{Binding ButtonRowCount, Mode=OneWay}" /></TextBlock>
+                        <TextBlock Grid.Row="4" Text="Button Size" Margin="0,6,0,6" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"><Run Text="{Binding ButtonImageWidth, Mode=OneWay}" /><Run Text="x" /><Run Text="{Binding ButtonImageHeight, Mode=OneWay}" /></TextBlock>
+                        <TextBlock Grid.Row="5" Text="Screen Size" Margin="0,6,0,6" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"><Run Text="{Binding ScreensaverImageWidth, Mode=OneWay}" /><Run Text="x" /><Run Text="{Binding ScreensaverImageHeight, Mode=OneWay}" /></TextBlock>
                     </Grid>
                 </Expander>
                 <Expander Grid.Row="1" Header="Buttons" Margin="0,6,0,6" IsExpanded="True">

@@ -10,6 +10,7 @@ internal sealed class DesignMainViewModel
 		public string DeviceName { get; }
 		public string SerialNumber { get; }
 		public string FirmwareVersion { get; }
+		public TimeSpan UsageTime { get; }
 		public int ButtonColumnCount { get; }
 		public int ButtonRowCount { get; }
 		public int ButtonImageWidth { get; }
@@ -19,11 +20,12 @@ internal sealed class DesignMainViewModel
 		public ReadOnlyCollection<StreamDeckButton> Buttons { get; }
 		public StreamDeckButton? SelectedButton { get; set; }
 
-		public StreamDeckDevice(string deviceName, string serialNumber, string firmwareVersion, int buttonColumnCount, int buttonRowCount, int buttonImageWidth, int buttonImageHeight, int screensaverImageWidth, int screensaverImageHeight)
+		public StreamDeckDevice(string deviceName, string serialNumber, string firmwareVersion, TimeSpan usageTime, int buttonColumnCount, int buttonRowCount, int buttonImageWidth, int buttonImageHeight, int screensaverImageWidth, int screensaverImageHeight)
 		{
 			DeviceName = deviceName;
 			SerialNumber = serialNumber;
 			FirmwareVersion = firmwareVersion;
+			UsageTime = usageTime;
 			ButtonColumnCount = buttonColumnCount;
 			ButtonRowCount = buttonRowCount;
 			ButtonImageWidth = buttonImageWidth;
@@ -52,7 +54,7 @@ internal sealed class DesignMainViewModel
 
 	public DesignMainViewModel()
 	{
-		var device = new StreamDeckDevice(@"\\HID\Whatever", "SN0123456789", "42.42.42", 8, 4, 96, 96, 1024, 600);
+		var device = new StreamDeckDevice(@"\\HID\Whatever", "SN0123456789", "42.42.42", TimeSpan.FromDays(21, 8), 8, 4, 96, 96, 1024, 600);
 		Devices = new([device]);
 		SelectedDevice = device;
 	}

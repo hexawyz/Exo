@@ -201,7 +201,7 @@ public sealed class StreamDeckDevice : IAsyncDisposable
 		return ReadResponse(buffer.Span);
 	}
 
-	public async Task<ushort> GetUsageTimeAsync(CancellationToken cancellationToken)
+	public async Task<uint> GetUsageTimeAsync(CancellationToken cancellationToken)
 	{
 		// This command seems to return some status on the device.
 		// I saw one of the values increasing at some point, which was not related to a key press or any specific action from the official software,  so the only explanation is that it is time.
@@ -213,8 +213,8 @@ public sealed class StreamDeckDevice : IAsyncDisposable
 
 		var buffer = FeatureBuffer;
 
-		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x0A;
-		static ushort ReadResponse(ReadOnlySpan<byte> buffer) => LittleEndian.ReadUInt16(in buffer[2]);
+		static void PrepareRequest(Span<byte> buffer) => buffer[0] = 0x09;
+		static uint ReadResponse(ReadOnlySpan<byte> buffer) => LittleEndian.ReadUInt32(in buffer[5]);
 
 		PrepareRequest(buffer.Span);
 		await _stream.ReceiveFeatureReportAsync(buffer, cancellationToken).ConfigureAwait(false);

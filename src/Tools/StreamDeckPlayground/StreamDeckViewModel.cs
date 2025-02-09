@@ -16,8 +16,9 @@ public sealed class StreamDeckViewModel : BindableObject, IAsyncDisposable
 		var device = new StreamDeckDevice(new(deviceName), productId);
 		var serialNumber = await device.GetSerialNumberAsync(cancellationToken);
 		var firmwareVersion = await device.GetVersionAsync(cancellationToken);
+		uint usageTime = await device.GetUsageTimeAsync(cancellationToken);
 		var info = await device.GetDeviceInfoAsync(cancellationToken);
-		return new(deviceName, device, serialNumber, firmwareVersion, info);
+		return new(deviceName, device, serialNumber, firmwareVersion, usageTime, info);
 	}
 
 	private readonly string _deviceName;
@@ -25,19 +26,21 @@ public sealed class StreamDeckViewModel : BindableObject, IAsyncDisposable
 	private readonly StreamDeckDeviceInfo _deviceInformation;
 	private readonly string _serialNumber;
 	private readonly string _firmwareVersion;
+	private readonly uint _usageTime;
 	private readonly ReadOnlyCollection<StreamDeckButtonViewModel> _buttons;
 	private StreamDeckButtonViewModel? _selectedButton;
 	private readonly ChannelWriter<(byte KeyIndex, Rgb24 Color)> _updateWriter;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _executeUpdatesTask;
 
-	public StreamDeckViewModel(string deviceName, StreamDeckDevice device, string serialNumber, string firmwareVersion, StreamDeckDeviceInfo deviceInformation)
+	public StreamDeckViewModel(string deviceName, StreamDeckDevice device, string serialNumber, string firmwareVersion, uint usageTime, StreamDeckDeviceInfo deviceInformation)
 	{
 		_deviceName = deviceName;
 		_device = device;
 		_deviceInformation = deviceInformation;
 		_serialNumber = serialNumber;
 		_firmwareVersion = firmwareVersion;
+		_usageTime = usageTime;
 		_buttons = Array.AsReadOnly(Enumerable.Range(0, deviceInformation.ButtonCount).Select(i => new StreamDeckButtonViewModel(this, (byte)i)).ToArray());
 		var channel = Channel.CreateUnbounded<(byte KeyIndex, Rgb24 Color)>(new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
 		_updateWriter = channel;
@@ -82,6 +85,8 @@ public sealed class StreamDeckViewModel : BindableObject, IAsyncDisposable
 
 	public int ScreensaverImageWidth => _deviceInformation.ScreensaverImageWidth;
 	public int ScreensaverImageHeight => _deviceInformation.ScreensaverImageHeight;
+
+	public TimeSpan UsageTime => TimeSpan.FromHours(_usageTime);
 
 	public ReadOnlyCollection<StreamDeckButtonViewModel> Buttons => _buttons;
 
