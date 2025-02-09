@@ -64,6 +64,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private readonly Dictionary<Guid, MonitorInformation> _pendingMonitorInformations;
 	private readonly Dictionary<Guid, List<MonitorSettingValue>> _pendingMonitorSettingChanges;
 	private readonly Dictionary<Guid, EmbeddedMonitorDeviceInformation> _pendingEmbeddedMonitorDeviceInformations;
+	private readonly Dictionary<Guid, List<EmbeddedMonitorConfigurationUpdate>> _pendingEmbeddedMonitorConfigurationChanges;
 
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice;
@@ -102,6 +103,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingMonitorInformations = new();
 		_pendingMonitorSettingChanges = new();
 		_pendingEmbeddedMonitorDeviceInformations = new();
+		_pendingEmbeddedMonitorConfigurationChanges = new();
 		_metadataService = metadataService;
 		_rasterizationScaleProvider = rasterizationScaleProvider;
 		_navigateToDeviceCommand = new(navigateCommand);
@@ -146,6 +148,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			var monitorSettingWatchTask = WatchMonitorSettingChangesAsync(monitorService, cts.Token);
 
 			var embeddedMonitorDeviceWatchTask = WatchEmbeddedMonitorDevicesAsync(embeddedMonitorService, cts.Token);
+			var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(embeddedMonitorService, cts.Token);
 
 			try
 			{
@@ -165,6 +168,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 						monitorWatchTask,
 						monitorSettingWatchTask,
 						embeddedMonitorDeviceWatchTask,
+						embeddedMonitorConfigurationWatchTask,
 					]
 				);
 			}
@@ -194,6 +198,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingMonitorSettingChanges.Clear();
 
 		_pendingEmbeddedMonitorDeviceInformations.Clear();
+		_pendingEmbeddedMonitorConfigurationChanges.Clear();
 
 		SelectedDevice = null;
 
@@ -356,6 +361,13 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 			{
 				embeddedMonitorFeatures.UpdateInformation(embeddedMonitorDeviceInformation);
 			}
+			if (_pendingEmbeddedMonitorConfigurationChanges.Remove(device.Id, out var embeddedMonitorConfigurations))
+			{
+				foreach (var embeddedMonitorConfiguration in embeddedMonitorConfigurations)
+				{
+					embeddedMonitorFeatures.UpdateConfiguration(embeddedMonitorConfiguration);
+				}
+			}
 		}
 	}
 
@@ -382,6 +394,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingMonitorSettingChanges.Remove(device.Id, out _);
 
 		_pendingEmbeddedMonitorDeviceInformations.Remove(device.Id, out _);
+		_pendingEmbeddedMonitorConfigurationChanges.Remove(device.Id, out _);
 	}
 
 	private async Task WatchPowerDevicesAsync(IPowerService powerService, CancellationToken cancellationToken)
@@ -689,6 +702,34 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				else
 				{
 					_pendingEmbeddedMonitorDeviceInformations[notification.DeviceId] = notification;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
+	private async Task WatchEmbeddedMonitorConfigurationChangesAsync(IEmbeddedMonitorService embeddedMonitorService, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in embeddedMonitorService.WatchConfigurationUpdatesAsync(cancellationToken))
+			{
+				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
+				{
+					if (device.EmbeddedMonitorFeatures is { } embeddedMonitorFeatures)
+					{
+						embeddedMonitorFeatures.UpdateConfiguration(notification);
+					}
+				}
+				else
+				{
+					if (!_pendingEmbeddedMonitorConfigurationChanges.TryGetValue(notification.DeviceId, out var changes))
+					{
+						_pendingEmbeddedMonitorConfigurationChanges[notification.DeviceId] = changes = [];
+					}
+					changes.Add(notification);
 				}
 			}
 		}

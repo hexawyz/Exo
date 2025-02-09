@@ -6,14 +6,12 @@ namespace Exo.Service.Grpc;
 
 internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 {
-	private readonly ConfigurationService _configurationService;
 	private readonly ILogger<GrpcDeviceService> _logger;
 	private readonly EmbeddedMonitorService _embeddedMonitorService;
 
-	public GrpcEmbeddedMonitorService(ILogger<GrpcDeviceService> logger, ConfigurationService configurationService, EmbeddedMonitorService embeddedMonitorService)
+	public GrpcEmbeddedMonitorService(ILogger<GrpcDeviceService> logger, EmbeddedMonitorService embeddedMonitorService)
 	{
 		_logger = logger;
-		_configurationService = configurationService;
 		_embeddedMonitorService = embeddedMonitorService;
 	}
 
@@ -30,6 +28,23 @@ internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 		finally
 		{
 			_logger.GrpcSpecializedDeviceServiceWatchStop(GrpcService.EmbeddedMonitor);
+		}
+	}
+
+	public async IAsyncEnumerable<EmbeddedMonitorConfigurationUpdate> WatchConfigurationUpdatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		// TODO: Logging
+		//_logger.GrpcSpecializedDeviceServiceWatchStart(GrpcService.EmbeddedMonitor);
+		try
+		{
+			await foreach (var configuration in _embeddedMonitorService.WatchConfigurationChangesAsync(cancellationToken).ConfigureAwait(false))
+			{
+				yield return configuration.ToGrpc();
+			}
+		}
+		finally
+		{
+			//_logger.GrpcSpecializedDeviceServiceWatchStop(GrpcService.EmbeddedMonitor);
 		}
 	}
 

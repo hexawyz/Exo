@@ -31,6 +31,7 @@ using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInform
 using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
 using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
 using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
+using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.EmbeddedMonitorConfigurationUpdate;
 using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
 using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
@@ -162,6 +163,17 @@ internal static class GrpcConvert
 			Capabilities = (Contracts.Ui.Settings.EmbeddedMonitorCapabilities)embeddedMonitorInformation.Capabilities,
 			SupportedImageFormats = (Contracts.Ui.Settings.ImageFormats)embeddedMonitorInformation.SupportedImageFormats,
 			SupportedGraphics = ImmutableArray.CreateRange(embeddedMonitorInformation.SupportedGraphics, ToGrpc),
+		};
+
+	public static GrpcEmbeddedMonitorConfigurationUpdate ToGrpc(this EmbeddedMonitorConfigurationWatchNotification configurationUpdate)
+		=> new()
+		{
+			DeviceId = configurationUpdate.DeviceId,
+			MonitorId = configurationUpdate.MonitorId,
+			GraphicsId = configurationUpdate.GraphicsId,
+			ImageConfiguration = configurationUpdate.GraphicsId != default ?
+				new() { ImageId = configurationUpdate.ImageId, ImageRegion = configurationUpdate.ImageRegion.ToGrpc() } :
+				null,
 		};
 
 	public static GrpcEmbeddedMonitorGraphicsDescription ToGrpc(this EmbeddedMonitorGraphicsDescription description)

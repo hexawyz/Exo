@@ -12,6 +12,9 @@ public interface IEmbeddedMonitorService
 	[OperationContract(Name = "WatchEmbeddedMonitorDevices")]
 	IAsyncEnumerable<EmbeddedMonitorDeviceInformation> WatchEmbeddedMonitorDevicesAsync(CancellationToken cancellationToken);
 
+	[OperationContract(Name = "WatchConfigurationUpdates")]
+	IAsyncEnumerable<EmbeddedMonitorConfigurationUpdate> WatchConfigurationUpdatesAsync(CancellationToken cancellationToken);
+
 	[OperationContract(Name = "SetBuiltInGraphics")]
 	ValueTask SetBuiltInGraphicsAsync(EmbeddedMonitorSetBuiltInGraphicsRequest request, CancellationToken cancellationToken);
 

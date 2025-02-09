@@ -69,7 +69,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 
 	internal IEmbeddedMonitorService EmbeddedMonitorService => _embeddedMonitorService;
 
-	public void UpdateInformation(EmbeddedMonitorDeviceInformation information)
+	internal void UpdateInformation(EmbeddedMonitorDeviceInformation information)
 	{
 		var monitorIds = new HashSet<Guid>();
 		foreach (var monitorInformation in information.EmbeddedMonitors)
@@ -98,6 +98,10 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 				_embeddedMonitors.Add(vm);
 			}
 		}
+	}
+
+	internal void UpdateConfiguration(EmbeddedMonitorConfigurationUpdate configuration)
+	{
 	}
 }
 

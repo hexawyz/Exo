@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
-using CommunityToolkit.WinUI;
 using Exo.Settings.Ui.ViewModels;
 using Exo.Ui;
 using Microsoft.UI.Xaml;
