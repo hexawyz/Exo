@@ -268,7 +268,8 @@ public sealed class StreamDeckDeviceDriver :
 		Guid IEmbeddedMonitor.MonitorId => _driver._buttonIds[_keyIndex];
 
 		// Bitmap seems to not work at all. Until I find a way to understand how colors are mapped, it is better to disable it. (e.g. black would give dark purple, white would give maroon)
-		EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation => new(MonitorShape.Square, _driver.ButtonImageSize, PixelFormat.B8G8R8, /*ImageFormats.Bitmap | */ImageFormats.Jpeg, false);
+		EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation
+			=> new(MonitorShape.Square, ImageRotation.Rotate180, _driver.ButtonImageSize, PixelFormat.B8G8R8, /*ImageFormats.Bitmap | */ImageFormats.Jpeg, false);
 
 		async ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
 		{

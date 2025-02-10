@@ -117,9 +117,10 @@ public interface IEmbeddedMonitorBuiltInGraphics : IEmbeddedMonitor
 
 public readonly record struct EmbeddedMonitorInformation
 {
-	public EmbeddedMonitorInformation(MonitorShape shape, Size imageSize, PixelFormat pixelFormat, ImageFormats supportedImageFormats, bool hasAnimationSupport)
+	public EmbeddedMonitorInformation(MonitorShape shape, ImageRotation defaultRotation, Size imageSize, PixelFormat pixelFormat, ImageFormats supportedImageFormats, bool hasAnimationSupport)
 	{
 		Shape = shape;
+		DefaultRotation = defaultRotation;
 		ImageSize = imageSize;
 		PixelFormat = pixelFormat;
 		SupportedImageFormats = supportedImageFormats;
@@ -132,6 +133,12 @@ public readonly record struct EmbeddedMonitorInformation
 	/// The shape of the monitor might mainly be used to optimize image compression if the monitor is non-rectangular.
 	/// </remarks>
 	public MonitorShape Shape { get; }
+	/// <summary>Gets the default rotation of the monitor.</summary>
+	/// <remarks>
+	/// Some monitors are by design put in a non-native orientation. As such, the proper display of images on these monitors require preliminary rotation.
+	/// This is, for example, the case of displays in some StreamDeck devices.
+	/// </remarks>
+	public ImageRotation DefaultRotation { get; }
 	/// <summary>Gets the image size of the monitor.</summary>
 	public Size ImageSize { get; }
 	/// <summary>Gets the effective pixel format of the monitor.</summary>

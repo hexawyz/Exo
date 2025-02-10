@@ -87,6 +87,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		// Metadata
 		private readonly Guid _id;
 		private MonitorShape _shape;
+		private ImageRotation _defaultRotation;
 		private ushort _width;
 		private ushort _height;
 		private PixelFormat _pixelFormat;
@@ -105,6 +106,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		(
 			Guid id,
 			MonitorShape shape,
+			ImageRotation defaultRotation,
 			ushort width,
 			ushort height,
 			PixelFormat pixelFormat,
@@ -116,6 +118,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		{
 			_id = id;
 			_shape = shape;
+			_defaultRotation = defaultRotation;
 			_width = width;
 			_height = height;
 			_pixelFormat = pixelFormat;
@@ -183,6 +186,11 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			if (_shape != information.Shape)
 			{
 				_shape = information.Shape;
+				hasChanged = true;
+			}
+			if (_defaultRotation != information.DefaultRotation)
+			{
+				_defaultRotation = information.DefaultRotation;
 				hasChanged = true;
 			}
 			if (_width != information.ImageSize.Width)
@@ -292,6 +300,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				(_capabilities & EmbeddedMonitorCapabilities.AnimatedImages) != 0 ? _imageFormats & ImageFormats.Gif : 0,
 				_pixelFormat,
 				new(_width, _height),
+				_defaultRotation,
 				_shape == MonitorShape.Circle
 			);
 			using (imageFile)
@@ -329,6 +338,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			=> new()
 			{
 				Shape = _shape,
+				DefaultRotation = _defaultRotation,
 				Width = _width,
 				Height = _height,
 				PixelFormat = _pixelFormat,
@@ -342,6 +352,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			{
 				MonitorId = _id,
 				Shape = _shape,
+				DefaultRotation = _defaultRotation,
 				ImageSize = new(_width, _height),
 				PixelFormat = _pixelFormat,
 				SupportedImageFormats = _imageFormats,
@@ -377,6 +388,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 	private readonly struct PersistedEmbeddedMonitorInformation
 	{
 		public required MonitorShape Shape { get; init; }
+		public required ImageRotation DefaultRotation { get; init; }
 		public required ushort Width { get; init; }
 		public required ushort Height { get; init; }
 		public required PixelFormat PixelFormat { get; init; }
@@ -444,6 +456,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				(
 					embeddedMonitorId,
 					info.Shape,
+					info.DefaultRotation,
 					info.Width,
 					info.Height,
 					info.PixelFormat,
@@ -837,6 +850,7 @@ public readonly struct EmbeddedMonitorInformation
 {
 	public required Guid MonitorId { get; init; }
 	public required MonitorShape Shape { get; init; }
+	public required ImageRotation DefaultRotation { get; init; }
 	public required Size ImageSize { get; init; }
 	public required PixelFormat PixelFormat { get; init; }
 	public required ImageFormats SupportedImageFormats { get; init; }

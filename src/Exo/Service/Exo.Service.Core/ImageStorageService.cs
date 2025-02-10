@@ -333,6 +333,7 @@ internal sealed class ImageStorageService
 		ImageFormats targetAnimatedFormats,
 		PixelFormat targetPixelFormat,
 		Size targetSize,
+		ImageRotation targetRotation,
 		bool shouldApplyCircularMask
 	)
 	{
@@ -344,12 +345,13 @@ internal sealed class ImageStorageService
 		if (sourceRectangle.Left + sourceRectangle.Width > metadata.Width || sourceRectangle.Top + sourceRectangle.Height > metadata.Height) throw new ArgumentException(nameof(sourceRectangle));
 
 		// Determine now if the image already has the correct size. We want to avoid reprocessing an image that may already be correct.
-		bool isCorrectSize = sourceRectangle.Left == 0 &&
-			sourceRectangle.Top == 0 &&
-			sourceRectangle.Width == metadata.Width &&
-			sourceRectangle.Height == metadata.Height &&
-			targetSize.Width == metadata.Width &&
-			targetSize.Height == metadata.Height;
+		bool shouldCrop = sourceRectangle.Left != 0 ||
+			sourceRectangle.Top != 0 ||
+			sourceRectangle.Width != metadata.Width ||
+			sourceRectangle.Height != metadata.Height;
+		bool shouldResize = targetSize.Width == sourceRectangle.Width &&
+			targetSize.Height == sourceRectangle.Height;
+		bool isCorrectSize = !(shouldCrop || shouldResize);
 
 		// First and foremost, adjust the animation stripping requirement based on the image and the supported formats of the device.
 		bool shouldStripAnimations = metadata.IsAnimated && targetAnimatedFormats == 0;
@@ -400,15 +402,19 @@ internal sealed class ImageStorageService
 		// If we re-processed the image everytime, we would prevent this.
 		if (targetFormat == ImageFormat.Gif && isCorrectSize) shouldApplyCircularMask = false;
 
+		var operations = ImageOperations.None;
+
+		if (shouldCrop) operations |= ImageOperations.Crop;
+		if (shouldResize) operations |= ImageOperations.Resize;
+		if (shouldApplyCircularMask) operations |= ImageOperations.CircularMask;
+		if (shouldStripAnimations) operations |= ImageOperations.StripAnimation;
+
+		// ⚠️ Just straight output the rotation here. Multiplication should be optimized to a shift by the JIT, but we keep sync with enum values that way.
+		operations |= (ImageOperations)((uint)targetRotation * (uint)ImageOperations.Rotate90);
+
 		Span<byte> payload = stackalloc byte[30];
 
-		payload[0] = (byte)
-		(
-			shouldApplyCircularMask ?
-				(shouldStripAnimations ? ImageOperationType.CircularTargetAdjustStripAnimation : ImageOperationType.CircularTargetAdjust) :
-				(shouldStripAnimations ? ImageOperationType.RectangularTargetAdjustStripAnimation : ImageOperationType.RectangularTargetAdjust)
-		);
-
+		payload[0] = (byte)operations;
 		payload[1] = (byte)targetFormat;
 		LittleEndian.Write(ref payload[2], imageId);
 		LittleEndian.Write(ref payload[18], (ushort)sourceRectangle.Left);
@@ -435,7 +441,7 @@ internal sealed class ImageStorageService
 		using (var image = GetImageFile(imageId))
 		using (var stream = new MemoryStream())
 		{
-			TransformImage(stream, image, sourceRectangle, targetFormat, targetPixelFormat, targetSize, shouldStripAnimations, shouldApplyCircularMask);
+			TransformImage(stream, operations, image, sourceRectangle, targetFormat, targetPixelFormat, targetSize);
 			var physicalImageId = XxHash128.HashToUInt128(stream.GetBuffer().AsSpan(0, (int)stream.Length), PhysicalImageIdHashSeed);
 			string fileName = GetFileName(_imageCacheDirectory, physicalImageId);
 			// Assume that if a file exists, it is already correct. We want to avoid wearing the disk if we don't need to.
@@ -451,13 +457,12 @@ internal sealed class ImageStorageService
 	private void TransformImage
 	(
 		Stream stream,
+		ImageOperations operations,
 		ImageFile originalImage,
 		Rectangle sourceRectangle,
 		ImageFormat targetFormat,
 		PixelFormat targetPixelFormat,
-		Size targetSize,
-		bool shouldStripAnimations,
-		bool applyCircularMask
+		Size targetSize
 	)
 	{
 		using (var memoryManager = originalImage.CreateMemoryManager())
@@ -505,7 +510,7 @@ internal sealed class ImageStorageService
 				}
 			}
 
-			if (shouldStripAnimations && image.Frames.Count > 1)
+			if ((operations & ImageOperations.StripAnimation) != 0 && image.Frames.Count > 1)
 			{
 				// TODO: Also clear frame metadata related to animation.
 				do
@@ -519,18 +524,30 @@ internal sealed class ImageStorageService
 			(
 				ctx =>
 				{
-					ctx.AutoOrient()
-						.Crop(new(sourceRectangle.Left, sourceRectangle.Top, sourceRectangle.Width, sourceRectangle.Height))
-						.Resize
+					// TODO: Merge this with rotation.
+					// Basically, it should be possible to avoid explicit rotation if the requested rotation already matches the EXIF rotation.
+					// Meaning that EXIF rotation should be added to image metadata.
+					ctx.AutoOrient();
+
+					if ((operations & ImageOperations.Crop) != 0) ctx.Crop(new(sourceRectangle.Left, sourceRectangle.Top, sourceRectangle.Width, sourceRectangle.Height));
+					if ((operations & ImageOperations.Resize) != 0)
+					{
+						ctx.Resize
 						(
 							targetSize.Width,
 							targetSize.Height,
 							resampler,
 							true
 						);
-					if (applyCircularMask)
+					}
+					var rotation = (ImageRotation)((uint)(operations & ImageOperations.Rotate270) / (uint)ImageOperations.Rotate90);
+					if (rotation != ImageRotation.None)
 					{
-						// TODO: For GIF, should find the index of any existing
+						ctx.Rotate((RotateMode)(90 * (uint)rotation));
+					}
+					if ((operations & ImageOperations.CircularMask) != 0)
+					{
+						// TODO: For GIF, selected color could still be improved to pick a pixel already within the circle.
 						ctx.ApplyProcessor(new CircleCroppingProcessor(maskColor, (byte)(targetFormat == ImageFormat.Jpeg ? 3 : 2)));
 					}
 				}
@@ -728,11 +745,20 @@ internal sealed class ImageStorageService
 	}
 }
 
-internal enum ImageOperationType : byte
+[Flags]
+internal enum ImageOperations : byte
 {
-	Unknown = 0,
-	RectangularTargetAdjust = 1,
-	RectangularTargetAdjustStripAnimation = 2,
-	CircularTargetAdjust = 3,
-	CircularTargetAdjustStripAnimation = 4,
+	None = 0,
+
+	// One bit these individual operations that can be applied to images for device adaptation.
+	Crop = 1,
+	Resize = 2,
+	CircularMask = 4,
+	StripAnimation = 8,
+	
+	// Two bits for rotations
+	// ⚠️ Be careful that these values must be synchronized with ImageRotation. We must be able to quickly insert and extract those.
+	Rotate90 = 16,
+	Rotate180 = 32,
+	Rotate270 = 48,
 }
