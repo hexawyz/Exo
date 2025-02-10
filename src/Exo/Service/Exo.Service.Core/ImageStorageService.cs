@@ -349,8 +349,8 @@ internal sealed class ImageStorageService
 			sourceRectangle.Top != 0 ||
 			sourceRectangle.Width != metadata.Width ||
 			sourceRectangle.Height != metadata.Height;
-		bool shouldResize = targetSize.Width == sourceRectangle.Width &&
-			targetSize.Height == sourceRectangle.Height;
+		bool shouldResize = targetSize.Width != sourceRectangle.Width ||
+			targetSize.Height != sourceRectangle.Height;
 		bool isCorrectSize = !(shouldCrop || shouldResize);
 
 		// First and foremost, adjust the animation stripping requirement based on the image and the supported formats of the device.
