@@ -27,6 +27,24 @@ internal sealed class SettingsViewModel : BindableObject
 			}
 		}
 
+		public class GoForwardCommand : ICommand
+		{
+			private readonly SettingsViewModel _viewModel;
+
+			public GoForwardCommand(SettingsViewModel viewModel) => _viewModel = viewModel;
+
+			public void Execute(object? parameter) => _viewModel.GoForward();
+
+			public bool CanExecute(object? parameter) => _viewModel.CanNavigateForward;
+
+			// TODO: See if it is worth implementing.
+			public event EventHandler? CanExecuteChanged
+			{
+				add { }
+				remove { }
+			}
+		}
+
 		public class NavigateCommand : ICommand
 		{
 			private readonly SettingsViewModel _viewModel;
@@ -63,6 +81,7 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly CustomMenuViewModel _customMenuViewModel;
 
 	private readonly List<PageViewModel> _navigationStack;
+	private int _currentPageIndex;
 	private PageViewModel? _selectedNavigationPage;
 
 	public PageViewModel? SelectedNavigationPage
@@ -71,7 +90,7 @@ internal sealed class SettingsViewModel : BindableObject
 		set => SetValue(ref _selectedNavigationPage, value, ChangedProperty.SelectedNavigationPage);
 	}
 
-	public PageViewModel CurrentPage => _navigationStack.Count > 0 ? _navigationStack[^1] : HomePage;
+	public PageViewModel CurrentPage => (uint)_currentPageIndex < (uint)_navigationStack.Count ? _navigationStack[_currentPageIndex] : HomePage;
 
 	public PageViewModel HomePage { get; }
 	public PageViewModel DevicesPage { get; }
@@ -85,9 +104,11 @@ internal sealed class SettingsViewModel : BindableObject
 	public PageViewModel[] NavigationPages { get; }
 
 	private readonly Commands.GoBackCommand _goBackCommand;
+	private readonly Commands.GoForwardCommand _goForwardCommand;
 	private readonly Commands.NavigateCommand _navigateCommand;
 
 	public ICommand GoBackCommand => _goBackCommand;
+	public ICommand GoForwardCommand => _goForwardCommand;
 	public ICommand NavigateCommand => _navigateCommand;
 
 	public ConnectionStatus ConnectionStatus => _connectionViewModel.ConnectionStatus;
@@ -109,6 +130,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_editionService = editionService;
 		_metadataService = metadataService;
 		_goBackCommand = new(this);
+		_goForwardCommand = new(this);
 		_navigateCommand = new(this);
 		_imagesViewModel = new(ConnectionManager, fileOpenDialog);
 		_devicesViewModel = new(ConnectionManager, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, _navigateCommand);
@@ -129,6 +151,7 @@ internal sealed class SettingsViewModel : BindableObject
 		ProgrammingPage = new("Programming", "\uE943");
 		NavigationPages = [HomePage, DevicesPage, LightingPage, SensorsPage, CoolingPage, ImagesPage, CustomMenuPage, ProgrammingPage];
 		SelectedNavigationPage = HomePage;
+		_currentPageIndex = -1;
 
 		connectionViewModel.PropertyChanged += OnConnectionViewModelPropertyChanged;
 	}
@@ -139,12 +162,15 @@ internal sealed class SettingsViewModel : BindableObject
 		{
 			if (ConnectionStatus == ConnectionStatus.Disconnected)
 			{
-				bool wasStackEmpty = _navigationStack.Count == 0;
+				uint oldStackLength = (uint)_navigationStack.Count;
+				int oldPageIndex = _currentPageIndex;
 				_navigationStack.Clear();
+				_currentPageIndex = -1;
 				NotifyPropertyChanged(ChangedProperty.ConnectionStatus);
 				NotifyPropertyChanged(ChangedProperty.CurrentPage);
-				if (!wasStackEmpty) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
-				SelectedNavigationPage = null;
+				if (oldPageIndex >= 0) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+				if ((uint)(oldPageIndex + 1) < oldStackLength) NotifyPropertyChanged(ChangedProperty.CanNavigateForward);
+				SelectedNavigationPage = HomePage;
 			}
 			else
 			{
@@ -163,25 +189,46 @@ internal sealed class SettingsViewModel : BindableObject
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;
 
-	public bool CanNavigateBack => _navigationStack.Count > 0;
+	public bool CanNavigateBack => _currentPageIndex >= 0;
+	public bool CanNavigateForward => (uint)(_currentPageIndex + 1) < (uint)_navigationStack.Count;
 
 	private void NavigateTo(PageViewModel pageViewModel)
 	{
 		if (_navigationStack.Count == 0 ? pageViewModel != HomePage : _navigationStack[^1] != pageViewModel)
 		{
+			int oldStackLength = _navigationStack.Count;
+			if (oldStackLength > 0)
+			{
+				if (_currentPageIndex < 0) _navigationStack.Clear();
+				else _navigationStack.RemoveRange(++_currentPageIndex, oldStackLength - _currentPageIndex);
+			}
+			_currentPageIndex = _navigationStack.Count;
 			_navigationStack.Add(pageViewModel);
 			NotifyPropertyChanged(ChangedProperty.CurrentPage);
-			if (_navigationStack.Count == 1) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+			if (_currentPageIndex == 0) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+			if (oldStackLength >= _navigationStack.Count) NotifyPropertyChanged(ChangedProperty.CanNavigateForward);
 		}
 	}
 
 	private void GoBack()
 	{
-		if (_navigationStack.Count > 0)
+		if (_currentPageIndex >= 0)
 		{
-			_navigationStack.RemoveAt(_navigationStack.Count - 1);
+			_currentPageIndex--;
 			NotifyPropertyChanged(ChangedProperty.CurrentPage);
-			if (_navigationStack.Count == 0) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+			if (_currentPageIndex < 0) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+			if (_navigationStack.Count - _currentPageIndex == 2) NotifyPropertyChanged(ChangedProperty.CanNavigateForward);
+		}
+	}
+
+	private void GoForward()
+	{
+		if ((uint)(_currentPageIndex + 1) < (uint)_navigationStack.Count)
+		{
+			_currentPageIndex++;
+			NotifyPropertyChanged(ChangedProperty.CurrentPage);
+			if (_currentPageIndex == 0) NotifyPropertyChanged(ChangedProperty.CanNavigateBack);
+			if (_navigationStack.Count - _currentPageIndex == 1) NotifyPropertyChanged(ChangedProperty.CanNavigateForward);
 		}
 	}
 }

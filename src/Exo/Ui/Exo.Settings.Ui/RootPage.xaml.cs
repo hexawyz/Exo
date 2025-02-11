@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.Foundation;
 using Windows.Graphics;
 
@@ -15,6 +16,8 @@ namespace Exo.Settings.Ui;
 internal sealed partial class RootPage : Page
 {
 	private readonly Window _window;
+	private Pointer? _currentCapturedPointer;
+	private int _navigationPointerState;
 
 	public string AppTitleText => "Exo";
 
@@ -100,10 +103,21 @@ internal sealed partial class RootPage : Page
 	}
 
 	private void OnNavigationBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
+		=> TryGoBack();
+
+	private void TryGoBack()
 	{
 		if (ViewModel is { } vm && vm.GoBackCommand.CanExecute(null))
 		{
 			vm.GoBackCommand.Execute(null);
+		}
+	}
+
+	private void TryGoForward()
+	{
+		if (ViewModel is { } vm && vm.GoForwardCommand.CanExecute(null))
+		{
+			vm.GoForwardCommand.Execute(null);
 		}
 	}
 
@@ -169,4 +183,56 @@ internal sealed partial class RootPage : Page
 
 	private static RectInt32 GetRect(Rect bounds, double scale)
 		=> new((int)Math.Round(bounds.X * scale), (int)Math.Round(bounds.Y * scale), (int)Math.Round(bounds.Width * scale), (int)Math.Round(bounds.Height * scale));
+
+	private void OnNavigationPointerPressed(object sender, PointerRoutedEventArgs e)
+		=> HandlePointerEvent((UIElement)sender, e, 0);
+
+	private void OnNavigationPointerReleased(object sender, PointerRoutedEventArgs e)
+		=> HandlePointerEvent((UIElement)sender, e, 1);
+
+	private void OnNavigationPointerCanceled(object sender, PointerRoutedEventArgs e)
+		=> HandlePointerEvent((UIElement)sender, e, 3);
+
+	private void OnNavigationPointerCaptureLost(object sender, PointerRoutedEventArgs e)
+		=> HandlePointerEvent((UIElement)sender, e, 4);
+
+	private void HandlePointerEvent(UIElement sender, PointerRoutedEventArgs e, byte eventType)
+	{
+		if (eventType != 4 && (eventType != 3 || _currentCapturedPointer != e.Pointer))
+		{
+			var properties = e.GetCurrentPoint(sender).Properties;
+
+			if (!e.Handled && !properties.IsLeftButtonPressed && !properties.IsRightButtonPressed && !properties.IsMiddleButtonPressed)
+			{
+				bool backPressed = properties.IsXButton1Pressed;
+				bool forwardPressed = properties.IsXButton2Pressed;
+				int newState = backPressed ^ forwardPressed ? backPressed ? 1 : 2 : 0;
+				if (eventType == 0 && newState != 0)
+				{
+					e.Handled = true;
+					_navigationPointerState = newState;
+					sender.CapturePointer(e.Pointer);
+					return;
+				}
+				else if (eventType == 1 && _navigationPointerState != 0)
+				{
+					e.Handled = true;
+					if (_navigationPointerState == 1)
+					{
+						TryGoBack();
+					}
+					else if (_navigationPointerState == 2)
+					{
+						TryGoForward();
+					}
+				}
+			}
+		}
+		_navigationPointerState = 0;
+		if (_currentCapturedPointer is not null)
+		{
+			sender.ReleasePointerCapture(_currentCapturedPointer);
+			_currentCapturedPointer = null;
+		}
+	}
 }

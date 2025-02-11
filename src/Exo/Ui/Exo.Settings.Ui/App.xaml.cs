@@ -28,6 +28,7 @@ using Windows.Storage;
 using System.Collections.Immutable;
 using Exo.Ui;
 using Exo.Contracts.Ui;
+using Windows.UI.Core;
 
 namespace Exo.Settings.Ui;
 
@@ -85,16 +86,14 @@ public partial class App : Application
 		var rootPage = new RootPage(_window);
 		_window.Content = rootPage;
 		_window.Activate();
-		// Setup logic to track DPI so that we can properly scale images in the UI.
 		rootPage.Loaded += (sender, e) =>
 		{
+			// Setup logic to track DPI so that we can properly scale images in the UI.
 			var xamlRoot = _window.Content.XamlRoot;
 			_rasterizationScaleController.RasterizationScale = xamlRoot.RasterizationScale;
 			xamlRoot.Changed += OnXamlRootChanged;
 		};
 	}
-
-	private void RootPage_Loaded(object sender, RoutedEventArgs e) => throw new NotImplementedException();
 
 	private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
 	{

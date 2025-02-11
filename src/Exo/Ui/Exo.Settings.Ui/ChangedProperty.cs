@@ -10,6 +10,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs SelectedNavigationPage = new(nameof(SelectedNavigationPage));
 	public static readonly PropertyChangedEventArgs CurrentPage = new(nameof(CurrentPage));
 	public static readonly PropertyChangedEventArgs CanNavigateBack = new(nameof(CanNavigateBack));
+	public static readonly PropertyChangedEventArgs CanNavigateForward = new(nameof(CanNavigateForward));
 	public static readonly PropertyChangedEventArgs Text = new(nameof(Text));
 	public static readonly PropertyChangedEventArgs Color = new(nameof(Color));
 	public static readonly PropertyChangedEventArgs ShowToolbar = new(nameof(ShowToolbar));
@@ -68,6 +69,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs LoadedImageData = new (nameof(LoadedImageData));
 	public static readonly PropertyChangedEventArgs Shape = new (nameof(Shape));
 	public static readonly PropertyChangedEventArgs Image = new (nameof(Image));
+	public static readonly PropertyChangedEventArgs SelectedImage = new (nameof(SelectedImage));
 	public static readonly PropertyChangedEventArgs ImageSize = new (nameof(ImageSize));
 	public static readonly PropertyChangedEventArgs DisplayWidth = new (nameof(DisplayWidth));
 	public static readonly PropertyChangedEventArgs DisplayHeight = new (nameof(DisplayHeight));
