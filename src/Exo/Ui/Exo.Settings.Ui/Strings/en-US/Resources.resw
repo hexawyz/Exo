@@ -117,9 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AddImageButton.Content" xml:space="preserve">
-    <value>Add</value>
-  </data>
   <data name="ApplyButton.Content" xml:space="preserve">
     <value>Apply</value>
   </data>
@@ -176,9 +173,6 @@
   </data>
   <data name="CustomMenuAddSubMenuItemCommand.Label" xml:space="preserve">
     <value>Submenu</value>
-  </data>
-  <data name="DeleteImageButton.Content" xml:space="preserve">
-    <value>Delete</value>
   </data>
   <data name="DeviceIdProductId.Text" xml:space="preserve">
     <value>Product ID</value>
@@ -333,9 +327,6 @@
   <data name="MousePerformanceSettingsSectionHeader.Text" xml:space="preserve">
     <value>Mouse Performance</value>
   </data>
-  <data name="OpenImageButton.Content" xml:space="preserve">
-    <value>Open…</value>
-  </data>
   <data name="PollingRateLabel.Text" xml:space="preserve">
     <value>Polling Rate</value>
   </data>
@@ -371,5 +362,14 @@
   </data>
   <data name="WelcomeTextBlock.Text" xml:space="preserve">
     <value>Welcome to Exo.</value>
+  </data>
+  <data name="ImageCollectionRemoveImageButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete the selected image.</value>
+  </data>
+  <data name="ImageCollectionAddImageButton.Content" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="ImageCollectionOpenImageButton.Content" xml:space="preserve">
+    <value>Open…</value>
   </data>
 </root>

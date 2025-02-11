@@ -25,44 +25,68 @@
                 <Image Margin="{ThemeResource RowContentMargin}" Source="{Binding LoadedImageData, Converter={StaticResource ByteArrayToBitmapImageConverter}}" />
                 <StackPanel Grid.Column="1" Orientation="Vertical" Margin="{ThemeResource RowContentMargin}">
                     <TextBox Text="{Binding LoadedImageName, Mode=TwoWay}" Header="Name" Width="250" IsEnabled="{Binding LoadedImageData, Converter={StaticResource NullabilityToBooleanConverter}}" />
-                    <Button Margin="{ThemeResource RowLabelMargin}" x:Uid="OpenImageButton" Command="{Binding OpenImageCommand}" Width="120" />
-                    <Button Margin="{ThemeResource RowLabelMargin}" x:Uid="AddImageButton" Command="{Binding AddImageCommand}" Width="120" Style="{ThemeResource AccentButtonStyle}" />
-                    <Button Margin="{ThemeResource RowLabelMargin}" x:Uid="DeleteImageButton" Command="{Binding RemoveImageCommand}" Width="120" />
+                    <Button x:Uid="ImageCollectionOpenImageButton" Margin="{ThemeResource RowLabelMargin}" Command="{Binding OpenImageCommand}" Width="120" />
+                    <Button x:Uid="ImageCollectionAddImageButton" Margin="{ThemeResource RowLabelMargin}" Command="{Binding AddImageCommand}" Width="120" Style="{ThemeResource AccentButtonStyle}" />
                 </StackPanel>
             </Grid>
         </Border>
-        <Border Grid.Row="1" Padding="6" HorizontalAlignment="Stretch" Margin="{ThemeResource RowLabelMargin}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-            <ItemsView
-                Name="ImageItemsView"
-                ItemsSource="{Binding Images}"
-                MinHeight="250"
-                HorizontalAlignment="Stretch"
-                DataContextChanged="OnItemsViewDataContextChanged"
-                SelectionChanged="OnItemsViewSelectionChanged">
-                <ItemsView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ImageViewModel">
-                        <ItemContainer AutomationProperties.Name="{Binding Name}">
-                            <Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
-                                <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
-                                <StackPanel Orientation="Vertical" Height="60" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
-                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Width}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                        <TextBlock Text="x" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                        <TextBlock Text="{Binding Height}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Format}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-                        </ItemContainer>
-                    </DataTemplate>
-                </ItemsView.ItemTemplate>
-                <ItemsView.Layout>
-                    <UniformGridLayout MinItemWidth="212" MinItemHeight="212" ItemsStretch="None" />
-                </ItemsView.Layout>
-            </ItemsView>
+        <Border
+            Grid.Row="1"
+            HorizontalAlignment="Stretch"
+            Margin="{ThemeResource RowLabelMargin}"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
+            CornerRadius="{ThemeResource OverlayCornerRadius}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="60" />
+                </Grid.ColumnDefinitions>
+                <ScrollViewer Padding="6" MaxHeight="500">
+                    <ItemsView
+                        Name="ImageItemsView"
+                        ItemsSource="{Binding Images}"
+                        MinHeight="250"
+                        HorizontalAlignment="Stretch"
+                        DataContextChanged="OnItemsViewDataContextChanged"
+                        SelectionChanged="OnItemsViewSelectionChanged">
+                        <ItemsView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImageViewModel">
+                                <ItemContainer AutomationProperties.Name="{Binding Name}">
+                                    <Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
+                                        <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
+                                        <StackPanel Orientation="Vertical" Height="60" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Width}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                                <TextBlock Text="x" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                                <TextBlock Text="{Binding Height}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Format}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </ItemContainer>
+                            </DataTemplate>
+                        </ItemsView.ItemTemplate>
+                        <ItemsView.Layout>
+                            <UniformGridLayout MinItemWidth="212" MinItemHeight="212" ItemsStretch="None" />
+                        </ItemsView.Layout>
+                    </ItemsView>
+                </ScrollViewer>
+                <StackPanel
+                    Padding="6"
+                    Grid.Column="1"
+                    Orientation="Vertical"
+                    HorizontalAlignment="Right"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                    <Button HorizontalAlignment="Right" x:Uid="ImageCollectionRemoveImageButton" Command="{Binding RemoveImageCommand}">
+                        <FontIcon Glyph="&#xE74D;" />
+                    </Button>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Page>
