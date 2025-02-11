@@ -35,7 +35,6 @@
     <None Remove="EmbeddedMonitorImageSettingsControl.xaml" />
     <None Remove="EmbeddedMonitorSettingControl.xaml" />
     <None Remove="HomePage.xaml" />
-    <None Remove="ImagesPage.xaml" />
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
     <None Remove="MonitorMiscSettingsControl.xaml" />
@@ -112,7 +111,7 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <Page Update="ImagesPage.xaml">
+    <Page Update="ImageCollectionPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

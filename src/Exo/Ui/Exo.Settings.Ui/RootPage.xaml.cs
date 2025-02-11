@@ -142,7 +142,7 @@ internal sealed partial class RootPage : Page
 				type = typeof(LightingPage);
 				break;
 			case "Images":
-				type = typeof(ImagesPage);
+				type = typeof(ImageCollectionPage);
 				break;
 			case "Sensors":
 				type = typeof(SensorsPage);

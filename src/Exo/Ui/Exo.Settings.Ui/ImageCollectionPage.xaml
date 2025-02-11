@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Exo.Settings.Ui.ImagesPage"
+    x:Class="Exo.Settings.Ui.ImageCollectionPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
@@ -31,7 +31,13 @@
             </Grid>
         </Border>
         <Border Grid.Row="1" Padding="6" HorizontalAlignment="Stretch" Margin="{ThemeResource RowLabelMargin}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-            <ItemsView ItemsSource="{Binding Images}" MinHeight="250" HorizontalAlignment="Stretch">
+            <ItemsView
+                Name="ImageItemsView"
+                ItemsSource="{Binding Images}"
+                MinHeight="250"
+                HorizontalAlignment="Stretch"
+                DataContextChanged="OnItemsViewDataContextChanged"
+                SelectionChanged="OnItemsViewSelectionChanged">
                 <ItemsView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ImageViewModel">
                         <ItemContainer AutomationProperties.Name="{Binding Name}">

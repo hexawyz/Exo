@@ -69,6 +69,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 	private readonly ObservableCollection<ImageViewModel> _images;
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _readOnlyImages;
+	private ImageViewModel? _selectedImage;
 	private readonly Commands.OpenImageCommand _openImageCommand;
 	private readonly Commands.AddImageCommand _addImageCommand;
 
@@ -102,6 +103,13 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	}
 
 	public ReadOnlyObservableCollection<ImageViewModel> Images => _readOnlyImages;
+
+	public ImageViewModel? SelectedImage
+	{
+		get => _selectedImage;
+		set => SetValue(ref _selectedImage, value, ChangedProperty.SelectedImage);
+	}
+
 	public ICommand OpenImageCommand => _openImageCommand;
 	public ICommand AddImageCommand => _addImageCommand;
 
