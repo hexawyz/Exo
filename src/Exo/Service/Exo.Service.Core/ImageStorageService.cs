@@ -732,9 +732,13 @@ internal sealed class ImageStorageService
 		{
 			if (_imageCollection.TryGetValue(imageName, out var metadata))
 			{
+				// TODO: There should be a check to ensure that images are not in use.
+				// Ideally, by calling all dependent services to do an exhaustive verification. (As removing images is an exceptional event)
+				// Problem: How to do this without introducing a deadlock.
 				string fileName = GetFileName(_imageCacheDirectory, metadata.Id);
 				File.Delete(fileName);
 				_imageCollection.Remove(imageName);
+				_imageCollectionById.TryRemove(metadata.Id, out _);
 
 				if (Volatile.Read(ref _changeListeners) is { } changeListeners)
 				{
