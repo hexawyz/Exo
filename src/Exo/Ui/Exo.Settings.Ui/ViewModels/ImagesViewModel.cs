@@ -61,6 +61,30 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 			public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
+
+		public sealed class RemoveImageCommand : ICommand
+		{
+			private readonly ImagesViewModel _viewModel;
+
+			public RemoveImageCommand(ImagesViewModel viewModel) => _viewModel = viewModel;
+
+			public event EventHandler? CanExecuteChanged;
+
+			public bool CanExecute(object? parameter) => _viewModel.CanRemoveImage;
+
+			public async void Execute(object? parameter)
+			{
+				try
+				{
+					await _viewModel.RemoveImageAsync(default);
+				}
+				catch
+				{
+				}
+			}
+
+			public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
 	}
 
 	private static readonly SearchValues<char> NameAllowedCharacters = SearchValues.Create("+-0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
@@ -72,6 +96,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	private ImageViewModel? _selectedImage;
 	private readonly Commands.OpenImageCommand _openImageCommand;
 	private readonly Commands.AddImageCommand _addImageCommand;
+	private readonly Commands.RemoveImageCommand _removeImageCommand;
 
 	private bool _isReady;
 	private string? _loadedImageName;
@@ -91,6 +116,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		_fileOpenDialog = fileOpenDialog;
 		_openImageCommand = new(this);
 		_addImageCommand = new(this);
+		_removeImageCommand = new(this);
 		_cancellationTokenSource = new();
 		_stateRegistration = connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
@@ -107,11 +133,21 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	public ImageViewModel? SelectedImage
 	{
 		get => _selectedImage;
-		set => SetValue(ref _selectedImage, value, ChangedProperty.SelectedImage);
+		set
+		{
+			if (value != _selectedImage)
+			{
+				var oldValue = _selectedImage;
+				_selectedImage = value;
+				if (value is null != oldValue is null) _removeImageCommand.NotifyCanExecuteChanged();
+				NotifyPropertyChanged(ChangedProperty.SelectedImage);
+			}
+		}
 	}
 
 	public ICommand OpenImageCommand => _openImageCommand;
 	public ICommand AddImageCommand => _addImageCommand;
+	public ICommand RemoveImageCommand => _removeImageCommand;
 
 	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
 	{
@@ -217,6 +253,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	}
 
 	private bool CanAddImage => _isReady && _loadedImageName is not null && IsNameValid(_loadedImageName) && _loadedImageData is not null;
+	private bool CanRemoveImage => _selectedImage != null;
 
 	private async Task OpenImageAsync(CancellationToken cancellationToken)
 	{
@@ -278,6 +315,20 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			NotifyPropertyChanged(ChangedProperty.LoadedImageName);
 			NotifyPropertyChanged(ChangedProperty.LoadedImageData);
 			_addImageCommand.NotifyCanExecuteChanged();
+		}
+		finally
+		{
+			IsNotBusy = true;
+		}
+	}
+
+	private async Task RemoveImageAsync(CancellationToken cancellationToken)
+	{
+		if (_imageService is null || _selectedImage is null) return;
+		IsNotBusy = false;
+		try
+		{
+			await _imageService.RemoveImageAsync(new ImageReference { ImageName = _selectedImage.Name }, cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{
