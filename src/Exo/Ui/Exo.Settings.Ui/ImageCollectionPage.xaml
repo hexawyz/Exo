@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
     xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+    xmlns:lc="using:Exo.Settings.Ui.Controls"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -43,39 +44,41 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="60" />
                 </Grid.ColumnDefinitions>
-                <ScrollViewer Padding="6" MaxHeight="500">
-                    <ItemsView
-                        Name="ImageItemsView"
-                        ItemsSource="{Binding Images}"
-                        MinHeight="250"
-                        HorizontalAlignment="Stretch"
-                        DataContextChanged="OnItemsViewDataContextChanged"
-                        SelectionChanged="OnItemsViewSelectionChanged">
-                        <ItemsView.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ImageViewModel">
-                                <ItemContainer AutomationProperties.Name="{Binding Name}">
-                                    <Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
-                                        <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
-                                        <StackPanel Orientation="Vertical" Height="60" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
-                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Width}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                                <TextBlock Text="x" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                                <TextBlock Text="{Binding Height}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                <lc:NonGreedyScrollViewer MinHeight="250">
+                    <ScrollViewer Padding="6" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                        <ItemsView
+                            Name="ImageItemsView"
+                            ItemsSource="{Binding Images}"
+                            MinHeight="250"
+                            HorizontalAlignment="Stretch"
+                            DataContextChanged="OnItemsViewDataContextChanged"
+                            SelectionChanged="OnItemsViewSelectionChanged">
+                            <ItemsView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ImageViewModel">
+                                    <ItemContainer AutomationProperties.Name="{Binding Name}">
+                                        <Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
+                                            <Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
+                                            <StackPanel Orientation="Vertical" Height="60" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Width}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                                    <TextBlock Text="x" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                                    <TextBlock Text="{Binding Height}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Format}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+                                                </StackPanel>
                                             </StackPanel>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Format}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Grid>
-                                </ItemContainer>
-                            </DataTemplate>
-                        </ItemsView.ItemTemplate>
-                        <ItemsView.Layout>
-                            <UniformGridLayout MinItemWidth="212" MinItemHeight="212" ItemsStretch="None" />
-                        </ItemsView.Layout>
-                    </ItemsView>
-                </ScrollViewer>
+                                        </Grid>
+                                    </ItemContainer>
+                                </DataTemplate>
+                            </ItemsView.ItemTemplate>
+                            <ItemsView.Layout>
+                                <UniformGridLayout MinItemWidth="212" MinItemHeight="212" ItemsStretch="None" />
+                            </ItemsView.Layout>
+                        </ItemsView>
+                    </ScrollViewer>
+                </lc:NonGreedyScrollViewer>
                 <StackPanel
                     Padding="6"
                     Grid.Column="1"
