@@ -1,0 +1,137 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="arm64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/DeviceTools/">
+    <Project Path="src/DeviceTools/DeviceTools.Bluetooth/DeviceTools.Bluetooth.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Cli/DeviceTools.Cli.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Core.SourceGenerators/DeviceTools.Core.SourceGenerators.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Core.Tests/DeviceTools.Core.Tests.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Core/DeviceTools.Core.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.DeviceIds.Databases/DeviceTools.DeviceIds.Databases.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.DeviceIds.Usb/DeviceTools.DeviceIds.Usb.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.DevQueryHelper/DeviceTools.DevQueryHelper.vcxproj" Id="744d228d-912c-45a2-972f-ae6c623d5d12">
+      <Platform Solution="Debug|arm64" Project="x64" />
+      <Platform Solution="Release|arm64" Project="ARM64" />
+    </Project>
+    <Project Path="src/DeviceTools/DeviceTools.DisplayDevices.Tests/DeviceTools.DisplayDevices.Tests.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.DisplayDevices/DeviceTools.DisplayDevices.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Firmware/DeviceTools.Firmware.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.HumanInterfaceDevices/DeviceTools.HumanInterfaceDevices.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Logitech.HidPlusPlus/DeviceTools.Logitech.HidPlusPlus.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Numerics.Tests/DeviceTools.Numerics.Tests.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Numerics/DeviceTools.Numerics.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.RawInput/DeviceTools.RawInput.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.SourceGenerators/DeviceTools.SourceGenerators.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Usb/DeviceTools.Usb.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.WinUsb/DeviceTools.WinUsb.csproj" />
+  </Folder>
+  <Folder Name="/Docs/">
+    <File Path="Docs/Apple USB Keyboard.md" />
+    <File Path="Docs/Aura RAM.md" />
+    <File Path="Docs/Corsair HX1200i.md" />
+    <File Path="Docs/Design Philosophy.md" />
+    <File Path="Docs/Gigabyte Z490 Vision D.md" />
+    <File Path="Docs/HID++.md" />
+    <File Path="Docs/LG 27GP950.md" />
+    <File Path="Docs/Logitech Bolt.txt" />
+    <File Path="Docs/Logitech MX Keys.md" />
+    <File Path="Docs/NZXT Kraken Z63.md" />
+    <File Path="Docs/Razer DeathAdder 3.5G.md" />
+    <File Path="Docs/Razer DeathAdder Platform 3.md" />
+    <File Path="Docs/Razer DeathAdder V2 Pro.md" />
+    <File Path="Docs/Razer Mamba Chroma.md" />
+    <File Path="Docs/Stream Deck XL.md" />
+    <File Path="Docs/Useful Bits.md" />
+    <File Path="Docs/ViewSonic VP2785-4K.md" />
+  </Folder>
+  <Folder Name="/Exo/">
+    <File Path="src/Exo/Directory.Build.targets" />
+    <File Path="src/Exo/ExoMetadata.targets" />
+    <Project Path="src/Exo/Exo.InstallerPackage/Exo.InstallerPackage.wixproj" Type="b7dd6f7e-def8-4e67-b5b7-07ef123db6f0">
+      <Platform Solution="*|Any CPU" Project="x64" />
+      <Platform Solution="*|arm64" Project="ARM64" />
+    </Project>
+  </Folder>
+  <Folder Name="/Exo/Core/" Id="4f25866e-8db7-912f-aef3-9b2cfe12173a">
+    <Project Path="src/Exo/Core/Exo.Archive.Tests/Exo.Archive.Tests.csproj" />
+    <Project Path="src/Exo/Core/Exo.Archive/Exo.Archive.csproj" />
+    <Project Path="src/Exo/Core/Exo.Contracts/Exo.Contracts.csproj" />
+    <Project Path="src/Exo/Core/Exo.Core.Tests/Exo.Core.Tests.csproj" />
+    <Project Path="src/Exo/Core/Exo.Core/Exo.Core.csproj" />
+    <Project Path="src/Exo/Core/Exo.Memory/Exo.Memory.csproj" />
+    <Project Path="src/Exo/Core/Exo.Metadata/Exo.Metadata.csproj" />
+    <Project Path="src/Exo/Core/Exo.MetadataCompiler/Exo.MetadataCompiler.csproj" />
+    <Project Path="src/Exo/Core/Exo.Programming.Contracts/Exo.Programming.Contracts.csproj" />
+    <Project Path="src/Exo/Core/Exo.Utils/Exo.Utils.csproj" />
+  </Folder>
+  <Folder Name="/Exo/Devices/" Id="fe0abb33-2571-cddd-7ef1-a13b8dd6465e">
+    <Project Path="src/Exo/Devices/Exo.Devices.Apple.Keyboard/Exo.Devices.Apple.Keyboard.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Asus.Aura/Exo.Devices.Asus.Aura.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Corsair.PowerSupplies/Exo.Devices.Corsair.PowerSupplies.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Eaton.Ups/Exo.Devices.Eaton.Ups.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Elgato.StreamDeck/Exo.Devices.Elgato.StreamDeck.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Gigabyte/Exo.Devices.Gigabyte.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Intel/Exo.Devices.Intel.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Lg.Monitors/Exo.Devices.Lg.Monitors.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Logitech/Exo.Devices.Logitech.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Monitors/Exo.Devices.Monitors.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.NVidia/Exo.Devices.NVidia.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Nzxt.Kraken/Exo.Devices.Nzxt.Kraken.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Razer.Legacy/Exo.Devices.Razer.Legacy.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Razer/Exo.Devices.Razer.csproj" />
+    <Project Path="src/Exo/Devices/Exo.MonitorDatabaseCompiler/Exo.MonitorDatabaseCompiler.csproj" />
+  </Folder>
+  <Folder Name="/Exo/Discovery/" Id="76fbe4c7-5fe3-355e-e7ed-dc9c973067f2">
+    <Project Path="src/Exo/Discovery/Exo.Debug/Exo.Debug.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.Hid/Exo.Discovery.Hid.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.Monitor/Exo.Discovery.Monitor.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.Pci/Exo.Discovery.Pci.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.Root/Exo.Discovery.Root.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.SmBios/Exo.Discovery.SmBios.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.System/Exo.Discovery.System.csproj" />
+  </Folder>
+  <Folder Name="/Exo/Service/" Id="02fe5b6d-f809-b674-df1e-803b16124d92">
+    <Project Path="src/Exo/Service/Exo.Cli/Exo.Cli.csproj" />
+    <Project Path="src/Exo/Service/Exo.DeviceNotifications.Tester/Exo.DeviceNotifications.Tester.csproj" />
+    <Project Path="src/Exo/Service/Exo.DeviceNotifications/Exo.DeviceNotifications.csproj" />
+    <Project Path="src/Exo/Service/Exo.Extensions.Hosting.WindowsServices/Exo.Extensions.Hosting.WindowsServices.csproj" />
+    <Project Path="src/Exo/Service/Exo.Service.Core.Tests/Exo.Service.Core.Tests.csproj" />
+    <Project Path="src/Exo/Service/Exo.Service.Core/Exo.Service.Core.csproj" />
+    <Project Path="src/Exo/Service/Exo.Service.Grpc/Exo.Service.Grpc.csproj" />
+    <Project Path="src/Exo/Service/Exo.Service.ImageService/Exo.Service.ImageService.csproj" />
+    <Project Path="src/Exo/Service/Exo.Service/Exo.Service.csproj" />
+    <Project Path="src/Exo/Service/Exo.ServiceProcess.ServiceController/Exo.ServiceProcess.ServiceController.csproj" />
+  </Folder>
+  <Folder Name="/Exo/Ui/" Id="d7c8b3ce-0fec-fa3b-585d-e5395570dd28">
+    <Project Path="src/Exo/Ui/Exo.Contracts.Ui.Overlay/Exo.Contracts.Ui.Overlay.csproj" />
+    <Project Path="src/Exo/Ui/Exo.Contracts.Ui.Settings/Exo.Contracts.Ui.Settings.csproj" />
+    <Project Path="src/Exo/Ui/Exo.Contracts.Ui/Exo.Contracts.Ui.csproj" />
+    <Project Path="src/Exo/Ui/Exo.Overlay/Exo.Overlay.csproj" />
+    <Project Path="src/Exo/Ui/Exo.Settings.Ui/Exo.Settings.Ui.csproj">
+      <Platform Solution="*|Any CPU" Project="x64" />
+      <Platform Solution="*|arm64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
+    <Project Path="src/Exo/Ui/Exo.Ui.Core/Exo.Ui.Core.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="exo-icon.ico" />
+    <File Path="global.json" />
+    <File Path="LICENCE.txt" />
+    <File Path="NuGet.config" />
+    <File Path="ReadMe.md" />
+    <File Path="src/Directory.Build.props" />
+    <File Path="src/Directory.Build.targets" />
+    <File Path="Useful Bits.md" />
+  </Folder>
+  <Folder Name="/Tools/">
+    <Project Path="src/Tools/StreamDeckPlayground/StreamDeckPlayground.csproj" />
+  </Folder>
+</Solution>
