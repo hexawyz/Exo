@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.UI.Xaml.Documents;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -132,6 +134,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	private readonly Guid _monitorId;
 	private MonitorShape _shape;
 	private Size _imageSize;
+	private UnsignedRationalNumber16 _aspectRatio;
 	private EmbeddedMonitorCapabilities _capabilities;
 	private readonly ObservableCollection<EmbeddedMonitorGraphicsViewModel> _supportedGraphics;
 	private readonly ReadOnlyObservableCollection<EmbeddedMonitorGraphicsViewModel> _readOnlySupportedGraphics;
@@ -167,6 +170,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 			_initialCurrentGraphicsId = _currentGraphics.Id;
 		}
 		_isReady = true;
+		_aspectRatio = new(1, 1);
 	}
 
 	private bool IsChangedNonRecursive => _currentGraphics?.Id != _initialCurrentGraphicsId;
@@ -210,6 +214,9 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 			if (widthChanged | heightChanged)
 			{
 				_imageSize = value;
+				_aspectRatio = value.Height == 0 ?
+					UnsignedRationalNumber16.One :
+					UnsignedRationalNumber16.Reduce((ushort)_imageSize.Width, (ushort)_imageSize.Height);
 				NotifyPropertyChanged(ChangedProperty.ImageSize);
 
 				if (widthChanged) NotifyPropertyChanged(ChangedProperty.DisplayWidth);
@@ -237,6 +244,8 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	public double DisplayWidth => _imageSize.Width / _owner.RasterizationScaleProvider.RasterizationScale;
 	public double DisplayHeight => _imageSize.Height / _owner.RasterizationScaleProvider.RasterizationScale;
 	public double AspectRatio => _shape != MonitorShape.Rectangle && _imageSize.Height != 0 ? (double)_imageSize.Width / _imageSize.Height : 1;
+
+	public UnsignedRationalNumber16 RationalAspectRatio => _aspectRatio;
 
 	public ReadOnlyObservableCollection<EmbeddedMonitorGraphicsViewModel> SupportedGraphics => _readOnlySupportedGraphics;
 
@@ -407,16 +416,35 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 
 internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
 {
+	private static class Commands
+	{
+		public sealed class AutoCropCommand : ICommand
+		{
+			private readonly EmbeddedMonitorImageGraphicsViewModel _viewModel;
+
+			public AutoCropCommand(EmbeddedMonitorImageGraphicsViewModel viewModel) => _viewModel = viewModel;
+
+			public bool CanExecute(object? parameter) => _viewModel.Image != null;
+			public void Execute(object? parameter) => _viewModel.SetAutomaticCropRegion(parameter is bool b && b);
+
+			public event EventHandler? CanExecuteChanged;
+
+			public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
+
 	private UInt128 _initialImageId;
 	private Rectangle _initialCropRectangle;
 	private Rectangle _cropRectangle;
 	private ImageViewModel? _image;
 	private readonly PropertyChangedEventHandler _onMonitorPropertyChanged;
+	private readonly Commands.AutoCropCommand _autoCropCommand;
 
 	public EmbeddedMonitorImageGraphicsViewModel(EmbeddedMonitorViewModel monitor, EmbeddedMonitorGraphicsDescription description)
 		: base(monitor, description)
 	{
 		_initialImageId = 0;
+		_autoCropCommand = new(this);
 		_onMonitorPropertyChanged = OnMonitorPropertyChanged;
 		monitor.PropertyChanged += _onMonitorPropertyChanged;
 	}
@@ -438,6 +466,8 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		}
 	}
 
+	public ICommand AutoCropCommand => _autoCropCommand;
+
 	public override bool IsChanged => (_image?.Id).GetValueOrDefault() != _initialImageId || _initialCropRectangle != _cropRectangle;
 
 	public override bool IsValid => _image is not null && IsRegionValid(_cropRectangle);
@@ -450,28 +480,49 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		get => _image;
 		set
 		{
-			if (SetChangeableValue(ref _image, value, ChangedProperty.Image))
+			if (value != _image)
 			{
-				// TODO: Improve this to initialize the crop rectangle to a better value automatically.
+				bool wasValid = IsValid;
+				bool wasNull = _image is null;
+
+				_image = value;
+
+				NotifyPropertyChanged(ChangedProperty.Image);
+
 				if (value is not null)
 				{
-					var imageSize = Monitor.ImageSize;
-					if (imageSize.Width == imageSize.Height)
-					{
-						var minDimension = Math.Min(value.Width, value.Height);
-						CropRectangle = new() { Left = (value.Width - minDimension) >>> 1, Top = (value.Height - minDimension) >>> 1, Width = minDimension, Height = minDimension };
-						// Just to avoid the applicable change below that would be duplicated. This needs to go away.
-						return;
-					}
+					SetAutomaticCropRegion(false);
 				}
 
-				// Not ideal but good enough for now. (Basically can fire if the applicable state stays false. We can do a check on IsValid later on.)
-				IApplicable.NotifyCanExecuteChanged();
+				if (wasNull || value is null) _autoCropCommand.RaiseCanExecuteChanged();
+				if (wasValid != IsValid) IApplicable.NotifyCanExecuteChanged();
 			}
 		}
 	}
 
-	private bool IsImageChanged => (_image?.Id).GetValueOrDefault() != _initialImageId;
+	public void SetAutomaticCropRegion(bool avoidUpsampling)
+	{
+		if (_image is not { } image) return;
+		var targetSize = Monitor.ImageSize;
+
+		var foundSize = avoidUpsampling && image.Width >= targetSize.Width && image.Height >= targetSize.Height ?
+			targetSize :
+			ComputeOptimalCropSize(new() { Width = image.Width, Height = image.Height }, Monitor.RationalAspectRatio);
+
+		CropRectangle = new()
+		{
+			Left = (image.Width - foundSize.Width) >>> 1,
+			Top = (image.Height - foundSize.Height) >>> 1,
+			Width = foundSize.Width,
+			Height = foundSize.Height,
+		};
+	}
+
+	public static Size ComputeOptimalCropSize(Size imageSize, UnsignedRationalNumber16 aspectRatio)
+	{
+		uint n = Math.Min((uint)imageSize.Width / aspectRatio.P, (uint)imageSize.Height / aspectRatio.Q);
+		return new() { Width = (int)(n * aspectRatio.P), Height = (int)(n * aspectRatio.Q) };
+	}
 
 	public MonitorShape Shape => Monitor.Shape;
 

@@ -41,7 +41,13 @@
                 <FontIcon Glyph="&#xE777;" />
             </Button>
         </Grid>
-        <ContentControl Grid.Row="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" DataContext="{Binding CurrentGraphics, Mode=OneWay}" Content="{Binding}">
+        <ContentControl
+            Grid.Row="1"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            DataContext="{Binding CurrentGraphics, Mode=OneWay}"
+            Content="{Binding}"
+            Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}">
             <ContentControl.ContentTemplateSelector>
                 <lts:EmbeddedMonitorGraphicsSettingTemplateSelector>
                     <lts:EmbeddedMonitorGraphicsSettingTemplateSelector.BuiltInTemplate>

@@ -372,4 +372,10 @@
   <data name="ImageCollectionOpenImageButton.Content" xml:space="preserve">
     <value>Open…</value>
   </data>
+  <data name="AutoCropMaximumButtonLabel.Text" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="AutoCropMinimumButtonLabel.Text" xml:space="preserve">
+    <value>Center 1:1</value>
+  </data>
 </root>

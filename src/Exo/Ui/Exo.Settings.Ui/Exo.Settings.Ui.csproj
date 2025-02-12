@@ -19,6 +19,7 @@
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 	
   <ItemGroup>

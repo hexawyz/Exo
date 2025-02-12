@@ -78,8 +78,26 @@
                     <TextBlock Text="x" />
                     <TextBlock Text="{Binding CropRectangle.Height}" />
                 </StackPanel>
-                <Button Content="Reset" Width="120" Margin="{StaticResource RowLabelMargin}" />
-                <Button Content="Center 1:1" Width="120" Margin="{StaticResource RowLabelMargin}" />
+                <Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource FalseValue}" HorizontalContentAlignment="Stretch">
+                    <Grid HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="&#xE740;" />
+                        <TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMaximumButtonLabel" />
+                    </Grid>
+                </Button>
+                <Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource TrueValue}" HorizontalContentAlignment="Stretch">
+                    <Grid HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="&#xE73F;" />
+                        <TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMinimumButtonLabel" />
+                    </Grid>
+                </Button>
             </controls:WrapPanel>
         </Grid>
     </Grid>
