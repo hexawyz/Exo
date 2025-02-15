@@ -91,6 +91,33 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 	public static bool IsNameValid(ReadOnlySpan<char> name) => name.Length > 0 && !name.ContainsAnyExcept(NameAllowedCharacters);
 
+	public static string? TrySanitizeName(ReadOnlySpan<char> name)
+	{
+		if (name.Length == 0) return null;
+
+		return string.Create
+		(
+			name.Length,
+			name,
+			static (span, name) =>
+			{
+				while (true)
+				{
+					int index = name.IndexOfAnyExcept(NameAllowedCharacters);
+					if (index < 0)
+					{
+						name.CopyTo(span);
+						return;
+					}
+					name[..index].CopyTo(span);
+					span[index] = '_';
+					name = name[(index + 1)..];
+					span = span[(index + 1)..];
+				}
+			}
+		);
+	}
+
 	private readonly ObservableCollection<ImageViewModel> _images;
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _readOnlyImages;
 	private ImageViewModel? _selectedImage;
@@ -281,7 +308,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			if (file.Path is { Length: > 0 } path)
 			{
 				name = Path.GetFileNameWithoutExtension(path);
-				if (!IsNameValid(name)) name = null;
+				if (!IsNameValid(name)) name = TrySanitizeName(name);
 			}
 			if (name is null) name = "img_" + RandomNumberGenerator.GetHexString(8);
 			SetImage(name, data);
