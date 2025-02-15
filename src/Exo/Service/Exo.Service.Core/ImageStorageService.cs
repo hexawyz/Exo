@@ -206,10 +206,12 @@ internal sealed class ImageStorageService
 	}
 
 	private const long PhysicalImageIdHashSeed = unchecked((long)0x90AB71E534FD62C8U);
+	private const long LogicalImageIdHashSeed = unchecked((long)0x548A41D831245BCAU);
 
 	private readonly Dictionary<string, LiveImageMetadata> _imageCollection;
 	private readonly ConcurrentDictionary<UInt128, LiveImageMetadata> _imageCollectionById;
 	private readonly ConcurrentDictionary<UInt128, SharedImageSlot> _openImageFiles;
+	private readonly ConcurrentDictionary<UInt128, LiveImageMetadata> _logicalImageMappings;
 	private readonly IConfigurationContainer<string> _imagesConfigurationContainer;
 	private readonly string _imageCacheDirectory;
 	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
@@ -231,6 +233,7 @@ internal sealed class ImageStorageService
 		_imageCollection = imageCollection;
 		_imageCollectionById = imageCollectionById;
 		_openImageFiles = new();
+		_logicalImageMappings = new();
 		_lock = new();
 	}
 
@@ -424,9 +427,13 @@ internal sealed class ImageStorageService
 		LittleEndian.Write(ref payload[26], (ushort)targetSize.Width);
 		LittleEndian.Write(ref payload[28], (ushort)targetSize.Height);
 
-		// NB: Let's use that later
-		//var transformedImageId = XxHash128.HashToUInt128(payload);
-		//if (TryGetImageFile(transformedImageId) is { } transformedImage) return transformedImage;
+		// Compute a logical image ID to be able to avoid costly transformations.
+		// TODO: Of course, we want to persist the logical to physical image IDs at some point, but having it in-memory at least allows for fast image swapping.
+		var logicalImageId = XxHash128.HashToUInt128(payload, LogicalImageIdHashSeed);
+		if (_logicalImageMappings.TryGetValue(logicalImageId, out var physicalImageMetadata))
+		{
+			return (physicalImageMetadata.Id, physicalImageMetadata.Format, GetImageFile(physicalImageMetadata.Id));
+		}
 
 		// Shortcut to return the existing physical image if it matches perfectly.
 		// Later on, should still bind the transformation metadata to the existing image.
@@ -435,6 +442,7 @@ internal sealed class ImageStorageService
 			!shouldStripAnimations &&
 			!shouldApplyCircularMask)
 		{
+			_logicalImageMappings.TryAdd(logicalImageId, metadata);
 			return (imageId, targetFormat, GetImageFile(imageId));
 		}
 
@@ -449,6 +457,8 @@ internal sealed class ImageStorageService
 			{
 				File.WriteAllBytes(fileName, stream.GetBuffer().AsSpan(0, (int)stream.Length));
 			}
+			physicalImageMetadata = new(physicalImageId, null, (ushort)targetSize.Width, (ushort)targetSize.Height, targetFormat, !targetIsStatic);
+			_logicalImageMappings.TryAdd(logicalImageId, physicalImageMetadata);
 			return (physicalImageId, targetFormat, GetImageFile(physicalImageId));
 		}
 	}
