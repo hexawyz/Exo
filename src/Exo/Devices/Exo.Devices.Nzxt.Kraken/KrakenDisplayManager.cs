@@ -276,7 +276,7 @@ internal sealed class KrakenDisplayManager : IAsyncDisposable
 		else if (preservedRegionIndex >= 0)
 		{
 			var region = allocatedRegions[(int)preservedRegionIndex];
-			nuint freeSpaceAfter = (nuint)_memoryBlockCount - region.Range.Offset;
+			nuint freeSpaceAfter = (nuint)_memoryBlockCount - region.Range.Length - region.Range.Offset;
 
 			// If there is memory available before or after the current image, choose the smallest valid region just before or after the image.
 			if (region.Range.Offset >= length)
