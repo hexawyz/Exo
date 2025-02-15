@@ -5,8 +5,11 @@ using System.IO.Hashing;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Exo.Configuration;
 using Exo.Images;
 using Microsoft.Extensions.Logging;
@@ -38,6 +41,8 @@ internal sealed class ImageStorageService
 		public ushort Height { get; } = height;
 		public ImageFormat Format { get; } = format;
 		public bool IsAnimated { get; } = isAnimated;
+
+		public ImageMetadata ToMetadata() => new(Id, Width, Height, Format, IsAnimated);
 	}
 
 	private class SharedImageFile : ImageFile
@@ -166,6 +171,13 @@ internal sealed class ImageStorageService
 
 	private static string GetFileName(string imageCacheDirectory, UInt128 imageId) => Path.Combine(imageCacheDirectory, imageId.ToString("x32", CultureInfo.InvariantCulture));
 
+	// Logical image metadata will be persisted in a single file in order to save disk space (more like a real database).
+	// Considering that the number of images could grow organically (in scenarios where images are used at all),
+	// storing metadata in individual files would waste storage for each image.
+	// We consider the data to not be deletable in general, so what will happen is that barring the initial load,
+	// metadata will be written to the file in append only mode. During initial load, we will keep a lock on the file and allow rewriting it if some entries are outdated.
+	private static string GetLogicalImageCacheFileName(string imageCacheDirectory) => Path.Combine(imageCacheDirectory, "meta");
+
 	public static async Task<ImageStorageService> CreateAsync
 	(
 		ILogger<ImageStorageService> logger,
@@ -202,7 +214,71 @@ internal sealed class ImageStorageService
 			}
 		}
 
-		return new(logger, imagesConfigurationContainer, imageCacheDirectory, imageCollection, imageCollectionById);
+		var logicalImageMetadata = new ConcurrentDictionary<UInt128, ImageMetadata>();
+		var logicalImageMetadataFile = new FileInfo(GetLogicalImageCacheFileName(imageCacheDirectory));
+		bool shouldRewriteMetadata = false;
+		try
+		{
+			using var logicalImageMetadataReadStream = logicalImageMetadataFile.Open
+			(
+				new FileStreamOptions()
+				{
+					Mode = FileMode.Open,
+					Access = FileAccess.Read,
+					Share = FileShare.Read,
+					Options = FileOptions.SequentialScan | FileOptions.Asynchronous
+				}
+			);
+
+			await foreach (var kvp in JsonSerializer.DeserializeAsyncEnumerable<KeyValuePair<UInt128, ImageMetadata>>(logicalImageMetadataReadStream, true, ConfigurationService.JsonSerializerOptions, cancellationToken))
+			{
+				if (!File.Exists(GetFileName(imageCacheDirectory, kvp.Value.Id)))
+				{
+					shouldRewriteMetadata = true;
+				}
+				else if (!logicalImageMetadata.TryAdd(kvp.Key, kvp.Value))
+				{
+					shouldRewriteMetadata = true;
+					logicalImageMetadata[kvp.Key] = kvp.Value;
+				}
+			}
+		}
+		catch (FileNotFoundException)
+		{
+		}
+
+		// We specify a small buffer size that should be able to hold any entry entirely.
+		// This way, entries can be written atomically.
+		var logicalImageMetadataWriteStream = logicalImageMetadataFile.Create
+		(
+			shouldRewriteMetadata ? FileMode.Truncate : FileMode.OpenOrCreate,
+			FileSystemRights.AppendData,
+			FileShare.Read,
+			128,
+			FileOptions.Asynchronous,
+			null
+		);
+
+		try
+		{
+			if (shouldRewriteMetadata)
+			{
+				foreach (var kvp in logicalImageMetadata)
+				{
+					// We should not allow this call to be cancelled, as it would wipe out the entire cache.
+					// Simultaneously, it might also be acceptable to wipe the cache. To revisit later.
+					await JsonSerializer.SerializeAsync(logicalImageMetadataWriteStream, kvp, ConfigurationService.JsonSerializerOptions, default).ConfigureAwait(false);
+					await logicalImageMetadataWriteStream.FlushAsync().ConfigureAwait(false);
+				}
+			}
+		}
+		catch
+		{
+			await logicalImageMetadataWriteStream.DisposeAsync();
+			throw;
+		}
+
+		return new(logger, imagesConfigurationContainer, imageCacheDirectory, imageCollection, imageCollectionById, logicalImageMetadata, logicalImageMetadataWriteStream);
 	}
 
 	private const long PhysicalImageIdHashSeed = unchecked((long)0x90AB71E534FD62C8U);
@@ -211,9 +287,10 @@ internal sealed class ImageStorageService
 	private readonly Dictionary<string, LiveImageMetadata> _imageCollection;
 	private readonly ConcurrentDictionary<UInt128, LiveImageMetadata> _imageCollectionById;
 	private readonly ConcurrentDictionary<UInt128, SharedImageSlot> _openImageFiles;
-	private readonly ConcurrentDictionary<UInt128, LiveImageMetadata> _logicalImageMappings;
+	private readonly ConcurrentDictionary<UInt128, ImageMetadata> _logicalImageMetadata;
 	private readonly IConfigurationContainer<string> _imagesConfigurationContainer;
 	private readonly string _imageCacheDirectory;
+	private readonly FileStream _logicalImageMetadataPersistenceStream;
 	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
 	private readonly AsyncLock _lock;
 	private readonly ILogger<ImageStorageService> _logger;
@@ -224,7 +301,9 @@ internal sealed class ImageStorageService
 		IConfigurationContainer<string> imagesConfigurationContainer,
 		string imageCacheDirectory,
 		Dictionary<string, LiveImageMetadata> imageCollection,
-		ConcurrentDictionary<UInt128, LiveImageMetadata> imageCollectionById
+		ConcurrentDictionary<UInt128, LiveImageMetadata> imageCollectionById,
+		ConcurrentDictionary<UInt128, ImageMetadata> logicalImageMappings,
+		FileStream logicalImageMetadataPersistenceStream
 	)
 	{
 		_logger = logger;
@@ -233,8 +312,13 @@ internal sealed class ImageStorageService
 		_imageCollection = imageCollection;
 		_imageCollectionById = imageCollectionById;
 		_openImageFiles = new();
-		_logicalImageMappings = new();
+		_logicalImageMetadata = logicalImageMappings;
+		_logicalImageMetadataPersistenceStream = logicalImageMetadataPersistenceStream;
 		_lock = new();
+	}
+
+	private void PersistLogicalImageMappings(object? state)
+	{
 	}
 
 	public async IAsyncEnumerable<ImageChangeNotification> WatchChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -326,7 +410,7 @@ internal sealed class ImageStorageService
 	//  - Any physical image can be referenced by multiple logical images
 	//  - The mapping between logical and physical images should always be persisted. (If the physical image is persisted)
 	// TODO: The above
-	// The method below is basically a specialized transformation to generate a physical image for a gicen device specification.
+	// The method below is basically a specialized transformation to generate a physical image for a given device specification.
 	// These images are intended to be sent straight to devices in their binary encoded format.
 	public (UInt128 ImageId, ImageFormat format, ImageFile Image) GetTransformedImage
 	(
@@ -430,7 +514,7 @@ internal sealed class ImageStorageService
 		// Compute a logical image ID to be able to avoid costly transformations.
 		// TODO: Of course, we want to persist the logical to physical image IDs at some point, but having it in-memory at least allows for fast image swapping.
 		var logicalImageId = XxHash128.HashToUInt128(payload, LogicalImageIdHashSeed);
-		if (_logicalImageMappings.TryGetValue(logicalImageId, out var physicalImageMetadata))
+		if (_logicalImageMetadata.TryGetValue(logicalImageId, out var physicalImageMetadata))
 		{
 			return (physicalImageMetadata.Id, physicalImageMetadata.Format, GetImageFile(physicalImageMetadata.Id));
 		}
@@ -442,7 +526,7 @@ internal sealed class ImageStorageService
 			!shouldStripAnimations &&
 			!shouldApplyCircularMask)
 		{
-			_logicalImageMappings.TryAdd(logicalImageId, metadata);
+			RegisterLogicalImageMetadata(logicalImageId, metadata.ToMetadata(), default);
 			return (imageId, targetFormat, GetImageFile(imageId));
 		}
 
@@ -457,9 +541,34 @@ internal sealed class ImageStorageService
 			{
 				File.WriteAllBytes(fileName, stream.GetBuffer().AsSpan(0, (int)stream.Length));
 			}
-			physicalImageMetadata = new(physicalImageId, null, (ushort)targetSize.Width, (ushort)targetSize.Height, targetFormat, !targetIsStatic);
-			_logicalImageMappings.TryAdd(logicalImageId, physicalImageMetadata);
+			physicalImageMetadata = new(physicalImageId, (ushort)targetSize.Width, (ushort)targetSize.Height, targetFormat, !targetIsStatic);
+			RegisterLogicalImageMetadata(logicalImageId, physicalImageMetadata, default);
 			return (physicalImageId, targetFormat, GetImageFile(physicalImageId));
+		}
+	}
+
+	private async void RegisterLogicalImageMetadata(UInt128 logicalImageId, ImageMetadata metadata, CancellationToken cancellationToken)
+	{
+		if (_logicalImageMetadata.TryAdd(logicalImageId, metadata))
+		{
+			try
+			{
+				using (await _lock.WaitAsync(cancellationToken))
+				{
+					await JsonSerializer.SerializeAsync
+					(
+						_logicalImageMetadataPersistenceStream,
+						new KeyValuePair<UInt128, ImageMetadata>(logicalImageId, metadata),
+						ConfigurationService.JsonSerializerOptions,
+						cancellationToken
+					).ConfigureAwait(false);
+					await _logicalImageMetadataPersistenceStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+				}
+			}
+			catch
+			{
+				// TODO: Log
+			}
 		}
 	}
 
@@ -719,7 +828,7 @@ internal sealed class ImageStorageService
 			await _imagesConfigurationContainer.WriteValueAsync
 			(
 				imageName,
-				new ImageMetadata(metadata.Id, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated),
+				metadata.ToMetadata(),
 				cancellationToken
 			).ConfigureAwait(false);
 
@@ -769,7 +878,7 @@ internal enum ImageOperations : byte
 	Resize = 2,
 	CircularMask = 4,
 	StripAnimation = 8,
-	
+
 	// Two bits for rotations
 	// ⚠️ Be careful that these values must be synchronized with ImageRotation. We must be able to quickly insert and extract those.
 	Rotate90 = 16,

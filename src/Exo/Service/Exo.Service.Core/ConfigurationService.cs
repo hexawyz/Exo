@@ -9,7 +9,8 @@ namespace Exo.Service;
 
 public class ConfigurationService : IConfigurationNode
 {
-	private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+	// Options will become read-only after first use, so we can just share it as is, trusting that no other piece of code will try to change this.
+	internal static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
 	{
 		AllowTrailingCommas = false,
 		WriteIndented = false,
