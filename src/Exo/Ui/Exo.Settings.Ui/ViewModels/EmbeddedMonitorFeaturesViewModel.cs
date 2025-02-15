@@ -482,6 +482,7 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		{
 			if (value != _image)
 			{
+				bool wasChanged = IsChanged;
 				bool wasValid = IsValid;
 				bool wasNull = _image is null;
 
@@ -493,6 +494,8 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 				{
 					SetAutomaticCropRegion(false);
 				}
+
+				OnChangeStateChange(wasChanged);
 
 				if (wasNull || value is null) _autoCropCommand.RaiseCanExecuteChanged();
 				if (wasValid != IsValid) IApplicable.NotifyCanExecuteChanged();

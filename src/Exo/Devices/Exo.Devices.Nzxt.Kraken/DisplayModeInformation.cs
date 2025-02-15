@@ -1,5 +1,6 @@
-﻿namespace Exo.Devices.Nzxt.Kraken;
+namespace Exo.Devices.Nzxt.Kraken;
 
+// ⚠️ The fact that this structure is 16 bytes is relied upon in KrakenDisplayManager.
 internal readonly struct DisplayModeInformation
 {
 	public DisplayModeInformation(KrakenDisplayMode displayMode, byte imageIndex)

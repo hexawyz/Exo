@@ -135,7 +135,9 @@ public class KrakenDriver :
 			throw new MissingKernelDriverException(friendlyName, DeviceId.ForUsb(NzxtVendorId, productId, version));
 		}
 
-		DeviceStream? winUsbDevice = null;
+		// Now strictly require the WinUSB device to be present.
+		// Some operations are possible without it, but it makes no sense now that the device is properly supported.
+		DeviceStream winUsbDevice;
 		try
 		{
 			winUsbDevice = new DeviceStream(Device.OpenHandle(winUsbDeviceInterfaceName, DeviceAccess.ReadWrite), FileAccess.ReadWrite, 0, true);
@@ -143,39 +145,31 @@ public class KrakenDriver :
 		catch (UnauthorizedAccessException)
 		{
 			logger.KrakenWinUsbDeviceLocked(winUsbDeviceInterfaceName);
+			throw;
 		}
 		try
 		{
-			var imageTransport = winUsbDevice is not null ?
-				await KrakenWinUsbImageTransport.CreateAsync(winUsbDevice, cancellationToken).ConfigureAwait(false) :
-				null;
+			var imageTransport = await KrakenWinUsbImageTransport.CreateAsync(winUsbDevice, cancellationToken).ConfigureAwait(false);
 			var hidStream = new HidFullDuplexStream(hidDeviceInterfaceName);
 			try
 			{
 				string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 				var hidTransport = new KrakenHidTransport(hidStream);
 				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
-				var storageManager = imageTransport is not null ?
-					await KrakenImageStorageManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false) :
-					null;
+				var displayManager = await KrakenDisplayManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false);
 
 				await hidTransport.SetPumpPowerCurveAsync(DefaultPumpCurve, cancellationToken).ConfigureAwait(false);
 				await hidTransport.SetFanPowerCurveAsync(DefaultFanCurve, cancellationToken).ConfigureAwait(false);
-
-				// TODO: Once the image storage manager is somehow merged with the protocol (or something similar), this info should be kept as state to know which is the currently active image.
-				// Knowing the currently displayed image is useful to determine the best image flip strategy. (i.e. If there is enough memory, any image other than the current one)
-				var initialDisplayMode = await hidTransport.GetDisplayModeAsync(cancellationToken).ConfigureAwait(false);
 
 				// Forcefully reset the display mode if we are currently displaying an image.
 				// While it is possible to allow the current image to continue existing, disabling it is a quick and easy way to avoid memory management problems.
 				// There is generally no merit in preserving the previous image state of the device, as we sadly can't know which image is stored where.
 				// This means that restarting the service would essentially duplicate the current image in another slot. Which is kinda… stupid.
 				// We can allow that later once we have perfected the memory management and slots can be deallocated in a smarted way.
-				if (initialDisplayMode.DisplayMode == KrakenDisplayMode.StoredImage)
+				if (displayManager.CurrentDisplayMode.DisplayMode == KrakenDisplayMode.StoredImage)
 				{
 					// Counting on the fact that we would quickly update the display mode after this.
-					await hidTransport.DisplayPresetVisualAsync(KrakenPresetVisual.Off, cancellationToken).ConfigureAwait(false);
-					initialDisplayMode = new(KrakenDisplayMode.Off, 0);
+					await displayManager.DisplayPresetVisualAsync(KrakenPresetVisual.Off, cancellationToken).ConfigureAwait(false);
 				}
 
 				return new DriverCreationResult<SystemDevicePath>
@@ -185,10 +179,7 @@ public class KrakenDriver :
 					(
 						logger,
 						hidTransport,
-						storageManager,
-						initialDisplayMode.DisplayMode,
-						initialDisplayMode.ImageIndex,
-						screenInfo.ImageCount,
+						displayManager,
 						screenInfo.Width,
 						screenInfo.Height,
 						productId,
@@ -212,39 +203,11 @@ public class KrakenDriver :
 		}
 	}
 
-	private static byte[] GenerateImage(uint width, uint height)
-	{
-		// Pixel layout: RR GG BB AA
-		static uint GetColor(byte r, byte g, byte b)
-			=> BitConverter.IsLittleEndian ?
-				r | (uint)g << 8 | (uint)b << 16 | (uint)255 << 24 :
-				(uint)r << 24 | (uint)g << 16 | (uint)b << 8 | 255;
-
-
-		uint color1 = GetColor(255, 0, 255);
-		uint color2 = GetColor(0, 255, 255);
-
-		var data = GC.AllocateUninitializedArray<byte>(checked((int)(width * height * 4)), false);
-
-		ref var currentPixel = ref Unsafe.As<byte, uint>(ref data[0]);
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				currentPixel = j <= i ? color1 : color2;
-				currentPixel = ref Unsafe.Add(ref currentPixel, 1);
-			}
-		}
-
-		return data;
-	}
-
 	private const byte CoolingStateCurve = 0b01;
 	private const byte CoolingStateChanged = 0b10;
 
 	private readonly KrakenHidTransport _hidTransport;
-	private readonly KrakenImageStorageManager? _storageManager;
+	private readonly KrakenDisplayManager _displayManager;
 	private readonly ISensor[] _sensors;
 	private readonly ICooler[] _coolers;
 	private readonly ILogger<KrakenDriver> _logger;
@@ -261,10 +224,6 @@ public class KrakenDriver :
 	private byte _fanState;
 
 	private byte _groupQueriedSensorCount;
-
-	private KrakenDisplayMode _currentDisplayMode;
-	private byte _currentImageIndex;
-	private readonly byte _imageCount;
 
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
@@ -296,10 +255,7 @@ public class KrakenDriver :
 	(
 		ILogger<KrakenDriver> logger,
 		KrakenHidTransport transport,
-		KrakenImageStorageManager? storageManager,
-		KrakenDisplayMode currentDisplayMode,
-		byte currentImageIndex,
-		byte imageCount,
+		KrakenDisplayManager displayManager,
 		ushort imageWidth,
 		ushort imageHeight,
 		ushort productId,
@@ -311,16 +267,13 @@ public class KrakenDriver :
 	{
 		_logger = logger;
 		_hidTransport = transport;
-		_storageManager = storageManager;
+		_displayManager = displayManager;
 		_productId = productId;
 		_versionNumber = versionNumber;
 		_pumpCoolingCurve = (byte[])DefaultPumpCurve.Clone();
 		_fanCoolingCurve = (byte[])DefaultFanCurve.Clone();
 		_sensors = [new LiquidTemperatureSensor(this), new PumpSpeedSensor(this), new FanSpeedSensor(this)];
 		_coolers = [new PumpCooler(this), new FanCooler(this)];
-		_currentDisplayMode = currentDisplayMode;
-		_currentImageIndex = currentImageIndex;
-		_imageCount = imageCount;
 		_imageWidth = imageWidth;
 		_imageHeight = imageHeight;
 		_embeddedMonitorGraphicsDescriptions =
@@ -342,7 +295,7 @@ public class KrakenDriver :
 	public override async ValueTask DisposeAsync()
 	{
 		await _hidTransport.DisposeAsync().ConfigureAwait(false);
-		if (_storageManager is not null) await _storageManager.DisposeAsync().ConfigureAwait(false);
+		if (_displayManager is not null) await _displayManager.DisposeAsync().ConfigureAwait(false);
 	}
 
 	async ValueTask<ContinuousValue> IContinuousVcpFeature.GetValueAsync(CancellationToken cancellationToken)
@@ -362,7 +315,7 @@ public class KrakenDriver :
 	ImmutableArray<EmbeddedMonitorGraphicsDescription> IEmbeddedMonitorBuiltInGraphics.SupportedGraphics => _embeddedMonitorGraphicsDescriptions;
 
 	Guid IEmbeddedMonitorBuiltInGraphics.CurrentGraphicsId
-		=> _currentDisplayMode switch
+		=> _displayManager.CurrentDisplayMode.DisplayMode switch
 		{
 			KrakenDisplayMode.Off => EmbeddedMonitorGraphicsDescription.OffId,
 			KrakenDisplayMode.Animation => BootAnimationGraphicsId,
@@ -379,8 +332,7 @@ public class KrakenDriver :
 		else if (modeId == BootAnimationGraphicsId) presetVisual = KrakenPresetVisual.Animation;
 		else if (modeId == LiquidTemperatureGraphicsId) presetVisual = KrakenPresetVisual.LiquidTemperature;
 		else throw new ArgumentException();
-		await _hidTransport.DisplayPresetVisualAsync(presetVisual, cancellationToken).ConfigureAwait(false);
-		_currentDisplayMode = (KrakenDisplayMode)presetVisual;
+		await _displayManager.DisplayPresetVisualAsync(presetVisual, cancellationToken).ConfigureAwait(false);
 	}
 
 	void ISensorsGroupedQueryFeature.AddSensor(IPolledSensor sensor)
@@ -497,13 +449,9 @@ public class KrakenDriver :
 	// And for that, we need to also track the image IDs that are currently assigned.
 	// Although it doesn't feel that clean, maybe just making the ImageStorageManager handle everything related to display (so a DisplayManager) is the best solution.
 	async ValueTask IEmbeddedMonitor.SetImageAsync(UInt128 imageId, ImageFormat imageFormat, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
-	{
-		if (_storageManager is not { } storageManager) throw new NotSupportedException("Access to the image device has been denied.");
-		byte nextImageId = (byte)(_currentImageIndex + 1);
-		if (nextImageId >= _imageCount) nextImageId = 0;
-		await storageManager.UploadImageAsync
+		=> await _displayManager.DisplayImageAsync
 		(
-			nextImageId,
+			imageId,
 			imageFormat switch
 			{
 				ImageFormat.Gif => KrakenImageFormat.Gif,
@@ -513,9 +461,6 @@ public class KrakenDriver :
 			data,
 			cancellationToken
 		);
-		await _hidTransport.DisplayImageAsync(nextImageId, cancellationToken).ConfigureAwait(false);
-		_currentImageIndex = nextImageId;
-	}
 
 	private abstract class Sensor
 	{
