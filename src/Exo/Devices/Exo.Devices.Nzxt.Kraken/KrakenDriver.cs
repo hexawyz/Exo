@@ -77,10 +77,14 @@ public class KrakenDriver :
 
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
-	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3008)] // Kraken Z
-	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300C)] // Kraken Elite (2023)
-														  //[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300E)] // Kraken (2023)
-	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3012)] // Kraken Elite RGB (2024)
+	// Kraken Z
+	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3008)]
+	// Kraken Elite (2023)
+	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300C)]
+	// Kraken (2023)
+	//[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x300E)]
+	// Kraken Elite (2024)
+	[ProductId(VendorIdSource.Usb, NzxtVendorId, 0x3012)]
 	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ILogger<KrakenDriver> logger,
