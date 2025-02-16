@@ -4,14 +4,18 @@
 
 Exo is the exoskeleton for your Windows computer and its connected devices.
 
-You can use it to control or monitor your Mouses, Keyboards, Monitors, RGB lighting, etc.
+You can use it to control or monitor your Mouses, Keyboards, Monitors, AIO, RGB lighting, etc.
 
 The project was started out of spite for all the client-side "drivers" for devices, that consume unimaginable amounts of RAM and CPU.
 As such, the goal of Exo is to replace all of these tools in a single service that will be more stable, consume a relatively small memory footprint, with a low CPU overhead.
 
 To support this vision, Exo is designed to be as modular as possible, and device support is provided through dynamically-loaded plugins that you can add or remove as you need.
+To be as light **and** reliable as possible, Exo is implemented as a background service, that will start early enough during the boot process to restore settings before user logon.
+You will not be held back by a heavy Electron-based or CEF-based UI, as the user interface is purely on-demand.
 
-⚠️ The project is still in the development phase, so some features are not implemented yet. It does nonetheless provide support for quite a few devices already, exposing some or all of their features in the UI.
+⚠️ The project is still in development, but many features are already available in a stable state.
+You can check the list of (known) supported devices at https://exo-app.io/devices.html.
+All the devices listed will have some or all of their hardware features exposed by Exo in some form or another.
 
 ℹ️ Some devices are based on the same protocol as those already supported. It is possible that the current code already support a specific device, but does not "recognize" it.
 In order to avoid communicating with a device that is incompatible, the code of the various device plugins will generally have an explicit list of each supported device.
@@ -29,22 +33,66 @@ When these apps exist, they are more often than not presented as client-side app
 
 Other than being slow and consuming a huge chunk of your RAM for nothing, those applications are more often than not somewhat unstable, and can have undesired behavior such as random updates or invisible crashes. (Do you really need 5 unstable chrome processes to manage a mouse?)
 
-As the author of Exo, I believe (and by now, have mostly proven 😄) that it is possible to do a much better job than this on all aspects.
+As the author of Exo, I believed that it is possible to do a much better job than this on all aspects, which should now have been mostly proven 😄
 Exo is designed and architected with this in mind, and aims to provide a Windows service that will detect and operate on your device by being mindful of system resources. (Expect between 20 and 40 MB depending on your configuration, and mostly no CPU usage)
+
+Current focus is on exposing passive hardware features, which is basically CPU free after the service has been initialized.
+Every software-based feature that we add will be 100% optional, as you should be able to *decide* how your CPU resources are spent.
+One example of software-based feature that is present (and optional) today is software cooling curves.
+Unless your device doesn't support an automatic cooling mode or a hardware cooling curve, Exo will need to spend 0% of CPU to update the cooling power of the device.
 
 # Supported features
 
 Exo currently support the following features, provided that there is a custom driver to expose the features of your device in the service:
 
-* Overlay notifications: Some of the other features will push notifications that will be displayed on screen.
-* RGB Lighting: Setting hardware effects is supported, dynamic ARGB lighting not yet ready.
-* Device battery status: The service will be aware of, and display the battery charge of your device, as well as show notifications for low battery, etc. Also supports idle timer and low power mode for wireless devices that support it. (e.g. Razer)
-* Monitor control: Brightness, Contrast, Audio Volume, Input Select and various settings, if supported by the monitor. (A configuration system for overriding monitor details is available)
-* Keyboard backlighting: The service will observe keyboard backlight changes and push overlay notifications.
-* Mouse: DPI change notifications, Configuration of DPI presets and polling frequency, and manual DPI changes from the UI.
-* GPU: Provide support for accessing connected monitors in non-interactive (service) mode. (May rely on fallback using the Windows API if necessary)
-* Sensors: For devices that provide data readings, expose sensors that can be read periodically and displayed in the UI.
-* Coolers: For cooling devices, or devices equipped with a fan, expose controllable coolers and allow setting custom software cooling curves based on sensors.
+* Overlay notifications
+	* Some of the other features will push notifications that will be displayed on screen
+	* ⚠️ Notifications are sent by the service but displayed by the helper in-session UI application, `Exo.Overlay` (might rename this to `Exo.Helper` at some point)
+* RGB Lighting
+	* Hardware lighting effects are supported, as exposed by the drivers for the devices
+	* Hardware persistence of lighting effects, if supported by the device
+	* Software persistence of lighting effects, for all devices
+* Embedded monitors
+	* Setting images to be displayed on devices equipped with controllable displays. (For example Stream Deck and Kraken Z)
+	* Image library: Management of the list of images used by the service. All image need to be imported within the service before they are used. Animated images are of course supported.
+	* Smart image transformation: When an image is assigned to an embedded monitor, it will be transformed in an appropriate format to be displayed in the device.
+	* Caching of image transformations: Let's avoid doing the work multiple time. Once an image has been transformed, Exo will reuse the previous result.
+	* Unique identification of images: Devices may find it useful to know if they have already seen an image previously. In some cases this will allow the image to be displayed way quicker.
+	* Software persistence of image configuration, for all devices
+* Device power management
+	* Awareness of the battery level of devices that are able to report it
+	* Awareness of the external power connection of (wireless) devices that support it
+	* Low power mode setting for devices that support it
+	* Idle timer setting for devices that support it
+	* Low battery level notifications
+	* Charging or discharging notifications, when applicable
+* Monitor control
+	* Brightness
+	* Contrast
+	* Audio Volume
+	* Input Select (⚠️ Will be broken on many monitors **even when** they advertise the feature)
+	* Various other settings, if supported by the monitor
+	* A configuration system for overriding monitor details is available
+	* ⚠️ Monitors tend to lie about the features they support, or even return invalid capabilities. The configuration system **must** be used to work around this. Please submit an issue or PR for support of specific monitors.
+* Keyboard
+	* Backlighting: The service will observe keyboard backlight changes and push overlay notifications
+* Mouse
+	* DPI change notifications
+	* Configuration of DPI presets
+	* Configuration of polling frequency when applicable
+	* Manual DPI changes from the UI
+	* DPI change overlay notifications
+* GPU
+	* Provide support for accessing connected monitors in non-interactive (service) mode. (May rely on fallback using the Windows API if necessary)
+* Sensors
+	* For devices that provide data readings, expose sensors that can be read periodically and displayed in the UI.
+* Coolers
+	* For cooling devices, or devices equipped with a fan, expose controllable coolers
+	* Support for different cooling modes, depending on the hardware
+		* Automatic cooling: Uses the internal cooling curves or algorithms of the device, as implemented in firmware or hardware.
+		* Fixed cooling: Assigns a manual cooling power target to be used
+		* Hardware cooling curve: Assigns a cooling curve to be used by the device FW/HW, based on internal sensors that the device supports.
+		* Software cooling curve: Dynamically adjusts cooling power of the device based on any sensor accessible within Exo.
 
 All text in the application can be localized, and in addition to the default English localization, the following languages are supported out of the box: French.
 
@@ -65,7 +113,9 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Razer
 	* DeathAdder V2 Pro (USB, Dongle, Bluetooth LE): Battery Level, Charge status, RGB lighting, DPI changes, DPI Presets, Low Power mode, Idle Sleep Timer
 	* DeathAdder V3 Pro (USB, Dongle): Battery Level, Charge status, DPI changes, DPI Presets, Low Power mode, Idle Sleep Timer (NB: This device has not been tested, but shares most features of the V2, so it is expected to work fine)
-	* Mouse Dock Chroma: RGB
+	* Mouse Dock Chroma: RGB lighting
+	* Mamba Chroma & Dock: DPI Level, RGB (This device is old and has many quirks, as it is hiding some important information from the host.)
+	* DeathAdder 3.5G: Lighting, predefined DPI presets. (Using kernel driver; recommend using old kernel driver)
 * Asus & Various RAM manufacturers:
 	* Aura compatible RAM: RGB lighting (Provided that there is a SMBus driver for your motherboard or chipset, and that the RAM module ID is added to the list of supported module IDs is updated in the code)
 		* G-Skill Trident Z Neo (F4-3600C18-32GTZN)
@@ -83,13 +133,13 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* 27GP950 Monitor (USB): Standard Monitor control, RGB lighting.
 	* 27GP950 Monitor (DP/HDMI): Standard Monitor control (if connected through supported GPU)
 * Elgato
-	* SteamDeck XL (Protocol is implemented and mostly tested, but features are not exposed)
+	* SteamDeck XL: Assigning images to buttons (⚠️ If you played with this and want to get rid of the images you assigned, you will have to manually delete the button configuration in `%ProgramFiles%\Exo\Exo.Service\cfg\dev\<RANDOM_DEVICE_ID>\scr`)
 * Corsair
-	* HX1200i: Sensors accessible via Corsair Link. (e.g. Temperature)
+	* HX1200i: Sensors accessible via Corsair Link. (e.g. Temperature), Cooling control
 * Eaton
 	* Various UPS Models: Power consumption and battery level.
 * NZXT
-	* Kraken Z devices: Screen brightness, Cooling control, Sensors for Liquid temperature, Pump speed and Fan speed.
+	* Kraken Z devices: Displaying custom images, Screen brightness, Cooling control, Sensors for Liquid temperature, Pump speed and Fan speed. (Still missing: RGB lighting)
 * Other
 	* Generic monitor support (Requires a GPU driver for the GPU the monitor is connected to; May require the UI helper to be started if the GPU driver cannot directly provide I2C support)
 
@@ -99,7 +149,6 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 
 * dns-sd/mdns/bonjour service discovery (for Elgato lights, etc)
 * Support for a "Light" feature, slightly different than "Lighting" feature, in that lights are independent entities that can be turned on and off externally.
-* (Temporary?) support for persisting cooling settings between service restarts. This will probably be partially superseeded by the programming system. (NB: Persistence of lighting effects is implemented)
 * Programming system that will allow creating customized complex setups to fit any user need, with predictable state transitions.
 * CPU temperature sensor (Sadly requires a Kernel driver)
 
@@ -111,7 +160,7 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 
 Exo relies on these runtimes, that you can download from the official websites:
 
-* .NET 9.0.101 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
+* .NET 9.0.200 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
 * Windows App SDK 1.6 Runtime: https://aka.ms/windowsappsdk/1.6/1.6.241114003/windowsappruntimeinstall-x64.exe
 
 ### Optional
@@ -138,16 +187,29 @@ If you want to get the kernel drivers, (e.g. for preservation), the simplest way
 
 NB: It is also possible to obtain those drivers without a completing a full installation of Synapse 3, as there are multiple steps in the install.
 
+### Razer DeathAdder 3.5G Kernel Drivers
+
+Kernel drivers are strictly required to control this mouse, as its old design did not expose HID reports to the user.
+
+Exo will work with either drivers provided by Synapse (*NOT* V3) or the legacy drivers. If you have Synapse installed, you should already be good to go.
+
+If possible, advice is to rely on the legacy drivers, as the architecture of the newer drivers is way more complex and actually relies on **multiple** drivers cooperating together.
+As such, the legacy drivers should generally consume less system resources. (Hopefully)
+
+⚠️ You don't need the client application at all. I would even advise you to avoid installing it, as it could mess with some mouse settings in Windows.
+You only need the actual driver part, which is possible to extract from the installer package. (the legacy driver is called `danew`. Either `danew32` or more likely `danew64`)
+
 ### ⚠️ Conflicts with other software
 
 As is usually the case for this category of software, Exo can sometimes conflict with other software running to control a device.
-This is not always the case and depends on the device, but it is advised to stop other softwares (apps and services) before running Exo, in order to avoid problems.
+This is not always the case and depends on the device, but it is advised to stop other software (apps and services) before running Exo, in order to avoid problems.
 
 e.g.:
 * Logitech software: For HID++ 2.0 devices, an application ID is used in the protocol to prevent problems. For HID++ 1.0 devices (e.g. USB receivers), some conflicts are possible, although the code tries to ignoring interferences.
 * Razer Synapse (in case of a supported device): The Razer protocol is not really designed to avoid conflicts, so the softwares can run into problems if two are running simultaneously.
 * Stream Deck: When accessing the device Exo can slightly disrupt the StreamDeck software, but this is probably an intentional behavior from Elgato in order to allow others to control the device. Distruption is instantly fixed by simply opening the main window of the Stream Deck software.
 * RGB Fusion 2.0: As long as the software is not open and running any effects, it seems that there are generally no conflicts.
+* NZXT CAM: If CAM is started prior to the service, it will prevent it from accessing Kraken devices.
 
 ## Getting a binary release
 
@@ -162,7 +224,7 @@ Depending on the situation it might be better to grab a release directly from a 
 
 ## Prerequisites
 
-* Visual Studio 2022 (Version Supporting .NET 8.0 at least) with the following workloads:
+* Visual Studio 2022 (Version Supporting .NET 9.0 at least) with the following workloads:
 	* ASP.NET development
 	* C++ Desktop development (This is only needed for a tiny bit of code that is sadly unavoidable)
 	* .NET Desktop development
@@ -294,6 +356,10 @@ public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsy
 
 You can take a look at any of the drivers to get more specific examples of how things are done.
 
+⚠️ What we call Driver in Exo is analogous to what a Driver is in kernel terms, except that Exo is run from user mode.
+A driver in exo **can** rely on a kernel driver (generally provided by the manufacturer), but the goal is to avoid this as much as possible, when it is reasonable to do so.
+Obviously, GPU support will always go through official drivers and manufacturer APIs.
+
 ### Supported feature categories
 
 Each driver must implement one or more features of one or more features category, through which the device features will be exposed.
@@ -321,6 +387,10 @@ Currently only provides `IDisplayAdapterI2CBusProviderFeature`, which is used fo
 #### `ILightingDeviceFeature`: Lighting features
 
 Drivers for devices providing lighting zones would implement features in this category, starting with `ILightingControllerFeature`.
+
+#### `IEmbeddedMonitorDeviceFeature`: Embedded monitor features
+
+Drivers for devices providing embedded displays would implement features in this category, especially `IEmbeddedMonitorControllerFeature`.
 
 #### `IMotherboardDeviceFeature`: Motherboard features
 
