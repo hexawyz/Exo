@@ -155,7 +155,7 @@
                         VerticalAlignment="Center"
                         DataContext="{Binding Devices.SelectedDevice}"
                         Visibility="{Binding SerialNumber, Converter={StaticResource NullabilityToVisibilityConverter}, FallbackValue=Collapsed}">
-                        <TextBlock VerticalAlignment="Center" Margin="0,0,4,0" Text="S/N:" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Uid="DeviceSerialNumberLabel" VerticalAlignment="Center" Margin="0,0,4,0" Style="{StaticResource CaptionTextBlockStyle}" />
                         <TextBlock Text="{Binding Path=SerialNumber}" Style="{StaticResource CaptionTextBlockStyle}" />
                     </StackPanel>
                     <FontIcon

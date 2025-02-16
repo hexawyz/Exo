@@ -118,15 +118,15 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Automatic" xml:space="preserve">
-    <value>Automatique</value>
+    <value>自動</value>
   </data>
   <data name="Fixed" xml:space="preserve">
-    <value>Fixe</value>
+    <value>固定</value>
   </data>
   <data name="HardwareControlCurve" xml:space="preserve">
-    <value>Courbe de contrôle (matériel)</value>
+    <value>制御曲線（ハードウェア）</value>
   </data>
   <data name="SoftwareControlCurve" xml:space="preserve">
-    <value>Courbe de contrôle (logiciel)</value>
+    <value>制御曲線（ソフトウェア）</value>
   </data>
 </root>

@@ -2,31 +2,38 @@
     // Common use strings
     "4d2b3404-1cb1-4536-918c-80facc124cf9": {
         "en": "On",
-        "fr": "Allumé"
+        "fr": "Allumé",
+        "ja": "オン"
     },
     "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e": {
         "en": "Off",
-        "fr": "Éteint"
+        "fr": "Éteint",
+        "ja": "オフ"
     },
     "5c65f531-fceb-477b-97ef-b762bc358396": {
         "en": "Enabled",
-        "fr": "Activé"
+        "fr": "Activé",
+        "ja": "有効"
     },
     "da23bf28-6572-4e00-83a1-be68bf7cf749": {
         "en": "Disabled",
-        "fr": "Désactivé"
+        "fr": "Désactivé",
+        "ja": "無効"
     },
     "16ac1b8f-cb3f-4910-9af4-bd966aa16279": {
         "en": "Standard",
-        "fr": "Standard"
+        "fr": "Standard",
+        "ja": "標準"
     },
     "e677ce93-816f-44c7-ad7e-b1042f61f2fd": {
         "en": "Advanced",
-        "fr": "Avancé"
+        "fr": "Avancé",
+        "ja": "詳細"
     },
     "c88a634b-9621-4108-91b8-b2f74208421f": {
         "en": "Normal",
-        "fr": "Normal"
+        "fr": "Normal",
+        "ja": "普通"
     },
     "76e54863-cd4a-4690-bcc1-ae566b534cef": {
         "en": "Fast",
@@ -39,27 +46,32 @@
     // Sensors
     "d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
         "en": "Fan Speed",
-        "fr": "Vitesse du ventilateur"
+        "fr": "Vitesse du ventilateur",
+        "ja": "ファンの回転数"
     },
     "d9608d42-6ba3-4ffd-a4a9-905ba063b445": {
         "en": "Fan 1 Speed",
-        "fr": "Vitesse ventilateur 1"
+        "fr": "Vitesse ventilateur 1",
+        "ja": "ファン１の回転数"
     },
     "8b280e41-5c23-4c45-9088-65dd4b67fccc": {
         "en": "Fan 2 Speed",
-        "fr": "Vitesse ventilateur 2"
+        "fr": "Vitesse ventilateur 2",
+        "ja": "ファン２の回転数"
     },
     "80acb355-040e-4789-96c9-8ed249964b08": {
         "en": "Pump Speed",
-        "fr": "Vitesse de la pompe"
+        "fr": "ポンプの回転数"
     },
     "a16abea5-5e05-40a0-861e-b948f3bc7084": {
         "en": "Temperature",
-        "fr": "Température"
+        "fr": "Température",
+        "ja": "温度"
     },
     "5553c264-35bf-44ba-bd23-5a1bf611f5e1": {
         "en": "Liquid Temperature",
-        "fr": "Température du liquide"
+        "fr": "Température du liquide",
+        "ja": "液体の温度"
     },
     "4458560b-d509-4368-9181-9f66faaa65bf": {
         "en": "Input Voltage",
@@ -124,11 +136,13 @@
     // Coolers
     "58dbe372-3c18-4059-8f53-0bc56ded725c": {
         "en": "Fan",
-        "fr": "Ventilateur"
+        "fr": "Ventilateur",
+        "ja": "ファン"
     },
     "78986262-eeb6-4d90-88b2-cc2ce44f1874": {
         "en": "Pump",
-        "fr": "Pompe"
+        "fr": "Pompe",
+        "ja": "ポンプ"
     },
     // Lighting Zone Names
     "43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
@@ -169,7 +183,8 @@
     },
     "179c675c-f48b-4a95-885e-542ddb4e3412": {
         "en": "Logo",
-        "fr": "Logo"
+        "fr": "Logo",
+        "ja": "ロゴ"
     },
     // Lighting Effect Names
     "72324394-b58d-41e3-a4fe-aa17342b0036": {
@@ -178,11 +193,13 @@
     },
     "36218033-ff96-41f1-b01c-f9fbefa4bcc3": {
         "en": "Disabled",
-        "fr": "Désactivé"
+        "fr": "Désactivé",
+        "ja": "無効"
     },
     "e965c6f5-3d24-42ed-9182-31f48b5248a6": {
         "en": "Enabled",
-        "fr": "Activé"
+        "fr": "Activé",
+        "ja": "有効"
     },
     "bfa5b721-db96-47a5-9e69-5dd0ae943275": {
         "en": "Static",
@@ -197,7 +214,7 @@
         "fr": "Pulsation (Vitesse)"
     },
     "965a4868-b74e-4674-b43f-2086daf37906": {
-        "en": "BLink",
+        "en": "Blink",
         "fr": "Clignottement"
     },
     "419e70ee-8355-4cf5-9d18-54835008cdb0": {
@@ -255,7 +272,8 @@
     // Embedded monitor graphics
     "2f538961-daf9-4664-87fa-22b848df0eec": {
         "en": "Image",
-        "fr": "Image"
+        "fr": "Image",
+        "ja": "画像"
     },
     // Language names
     "3d7555d0-345a-49f1-903e-a15d35b0f5ec": {

@@ -117,16 +117,28 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Automatic" xml:space="preserve">
-    <value>Automatique</value>
+  <data name="Cooling" xml:space="preserve">
+    <value>冷却設定</value>
   </data>
-  <data name="Fixed" xml:space="preserve">
-    <value>Fixe</value>
+  <data name="CustomMenu" xml:space="preserve">
+    <value>カスタムメニュー設定</value>
   </data>
-  <data name="HardwareControlCurve" xml:space="preserve">
-    <value>Courbe de contrôle (matériel)</value>
+  <data name="Devices" xml:space="preserve">
+    <value>デバイス</value>
   </data>
-  <data name="SoftwareControlCurve" xml:space="preserve">
-    <value>Courbe de contrôle (logiciel)</value>
+  <data name="Home" xml:space="preserve">
+    <value>ホーム</value>
+  </data>
+  <data name="Images" xml:space="preserve">
+    <value>画像ライブラリー</value>
+  </data>
+  <data name="Lighting" xml:space="preserve">
+    <value>照明設定</value>
+  </data>
+  <data name="Programming" xml:space="preserve">
+    <value>プログラミング</value>
+  </data>
+  <data name="Sensors" xml:space="preserve">
+    <value>センサー</value>
   </data>
 </root>

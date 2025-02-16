@@ -118,40 +118,40 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="ApplyButton.Content" xml:space="preserve">
-    <value>Apply</value>
+    <value>適用</value>
   </data>
   <data name="BatteryLevelLabel.Text" xml:space="preserve">
-    <value>Battery Level</value>
+    <value>バッテリー残量</value>
   </data>
   <data name="BatteryLevelsTitleTextBlock.Text" xml:space="preserve">
-    <value>Battery Levels</value>
+    <value>バッテリー残量</value>
   </data>
   <data name="BatteryStatusLabel.Text" xml:space="preserve">
-    <value>Battery status</value>
+    <value>バッテリーの状態</value>
   </data>
   <data name="CoolerCoolingModeLabel.Text" xml:space="preserve">
-    <value>Mode</value>
+    <value>モード</value>
   </data>
   <data name="CoolerCurrentSpeed.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Current Speed</value>
+    <value>現在の速度</value>
   </data>
   <data name="CoolingFallbackPowerLabel.Text" xml:space="preserve">
-    <value>Fallback Power</value>
+    <value>フォールバック電力</value>
   </data>
   <data name="CoolingFallbackPowerLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>This value will be used as a fallback if the sensor value is not available.</value>
+    <value>センサー値が利用できない場合は、この値がフォールバックとして使用されます。</value>
   </data>
   <data name="CoolingInputSensorLabel.Text" xml:space="preserve">
-    <value>Source Sensor</value>
+    <value>入力センサー</value>
   </data>
   <data name="CoolingPowerLabel.Text" xml:space="preserve">
-    <value>Power</value>
+    <value>電力</value>
   </data>
   <data name="CurrentDpiLabel.Text" xml:space="preserve">
-    <value>Current DPI</value>
+    <value>現在のDPI</value>
   </data>
   <data name="CustomMenuAddNewItemButton.Label" xml:space="preserve">
-    <value>Add</value>
+    <value>追加</value>
   </data>
   <data name="CustomMenuAddNewItemButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Add a menu item.</value>
@@ -160,13 +160,13 @@
     <value>Add a clickable menu item.</value>
   </data>
   <data name="CustomMenuAddNormalItemCommand.Label" xml:space="preserve">
-    <value>Normal</value>
+    <value>普通</value>
   </data>
   <data name="CustomMenuAddSeparatorItemCommand.Description" xml:space="preserve">
     <value>Add a separator menu item.</value>
   </data>
   <data name="CustomMenuAddSeparatorItemCommand.Label" xml:space="preserve">
-    <value>Separator</value>
+    <value>セパレーター</value>
   </data>
   <data name="CustomMenuAddSubMenuItemCommand.Description" xml:space="preserve">
     <value>Add a submenu.</value>
@@ -175,43 +175,43 @@
     <value>Submenu</value>
   </data>
   <data name="DeviceIdProductId.Text" xml:space="preserve">
-    <value>Product ID</value>
+    <value>プロダクトID</value>
   </data>
   <data name="DeviceIdSectionHeader.Text" xml:space="preserve">
-    <value>Device ID</value>
+    <value>デバイスのID</value>
   </data>
   <data name="DeviceIdSource.Text" xml:space="preserve">
     <value>Source</value>
   </data>
   <data name="DeviceIdVendorId.Text" xml:space="preserve">
-    <value>Vendor ID</value>
+    <value>ベンダーID</value>
   </data>
   <data name="DeviceIdVendorIdSource.Text" xml:space="preserve">
     <value>Vendor ID Source</value>
   </data>
   <data name="DeviceIdVersion.Text" xml:space="preserve">
-    <value>Version</value>
+    <value>バージョン</value>
   </data>
   <data name="DpiPresetsLabel.Text" xml:space="preserve">
-    <value>DPI presets</value>
+    <value>DPIプリセット</value>
   </data>
   <data name="EmbeddedMonitorGraphicsLabel.Text" xml:space="preserve">
-    <value>Graphics</value>
+    <value>グラフィック</value>
   </data>
   <data name="EmbeddedMonitorImageLabel.Text" xml:space="preserve">
-    <value>Image</value>
+    <value>画像</value>
   </data>
   <data name="EmbeddedMonitorSettingsSectionHeader.Text" xml:space="preserve">
-    <value>Embedded Monitor</value>
+    <value>組み込みモニター</value>
   </data>
   <data name="ExternalPowerStatusLabel.Text" xml:space="preserve">
-    <value>External power</value>
+    <value>外部電源の状態</value>
   </data>
   <data name="IdleSleepTimerLabel.Text" xml:space="preserve">
-    <value>Sleep timer</value>
+    <value>スリープタイマー</value>
   </data>
   <data name="LightingEffectLabel.Text" xml:space="preserve">
-    <value>Effect</value>
+    <value>照明効果</value>
   </data>
   <data name="LightingPersistChangesCheckBox.Content" xml:space="preserve">
     <value>Persist settings in device memory</value>
@@ -220,7 +220,7 @@
     <value>This option will allow lighting effects to be applied when the service is not running. Excessive use of this feature can wear the flash storage of some devices.</value>
   </data>
   <data name="LightingZoneUnifiedLightingToggle.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Unified Lighting</value>
+    <value>統一照明モード</value>
   </data>
   <data name="LowPowerModeThresholdLabel.Text" xml:space="preserve">
     <value>Low power mode %</value>
@@ -229,112 +229,112 @@
     <value>Audio Volume</value>
   </data>
   <data name="MonitorBlueLightFilterLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Blue Light Filter</value>
+    <value>ブルーライト低減</value>
   </data>
   <data name="MonitorBlueSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Hue (Blue)</value>
+    <value>色調（青）</value>
   </data>
   <data name="MonitorBlueSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Saturation (Blue)</value>
+    <value>色調整（青）</value>
   </data>
   <data name="MonitorBlueVideoBlackLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Blue Offset</value>
+    <value>オフセット（青）</value>
   </data>
   <data name="MonitorBlueVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Video Gain (Blue)</value>
+    <value>ガイン（青）</value>
   </data>
   <data name="MonitorBrightnessLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Brightness</value>
+    <value>輝度</value>
   </data>
   <data name="MonitorContrastLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Contrast</value>
+    <value>コントラスト</value>
   </data>
   <data name="MonitorCyanSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Hue (Cyan)</value>
+    <value>色調（シアン）</value>
   </data>
   <data name="MonitorCyanSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Saturation (Cyan)</value>
+    <value>色調整（シアン）</value>
   </data>
   <data name="MonitorGreenSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Hue (Green)</value>
+    <value>色調（緑）</value>
   </data>
   <data name="MonitorGreenSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Saturation (Green)</value>
+    <value>色調整（緑）</value>
   </data>
   <data name="MonitorGreenVideoBlackLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Green Offset</value>
+    <value>オフセット（緑）</value>
   </data>
   <data name="MonitorGreenVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Video Gain (Green)</value>
+    <value>ガイン（緑）</value>
   </data>
   <data name="MonitorInputLagLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Input Lag</value>
+    <value>入力遅延</value>
   </data>
   <data name="MonitorInputSelectLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Input Select</value>
+    <value>入力選択</value>
   </data>
   <data name="MonitorMagentaSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Hue (Magenta)</value>
+    <value>色調（マゼンタ）</value>
   </data>
   <data name="MonitorMagentaSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Saturation (Magenta)</value>
+    <value>色調整（マゼンタ）</value>
   </data>
   <data name="MonitorMiscellaneousSettingsSectionHeader.Text" xml:space="preserve">
-    <value>Miscellaneous</value>
+    <value>その他</value>
   </data>
   <data name="MonitorOsdLanguageLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>OSD Language</value>
+    <value>言語選択</value>
   </data>
   <data name="MonitorPerformanceSettingsSectionHeader.Text" xml:space="preserve">
-    <value>Performance</value>
+    <value>パフォーマンス</value>
   </data>
   <data name="MonitorPowerIndicatorLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Power Indicator</value>
+    <value>電源インジケーター</value>
   </data>
   <data name="MonitorRedSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Hue (Red)</value>
+    <value>色調（赤）</value>
   </data>
   <data name="MonitorRedSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Saturation (Red)</value>
+    <value>色調整（赤）</value>
   </data>
   <data name="MonitorRedVideoBlackLevelLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Red Offset</value>
+    <value>オフセット（赤）</value>
   </data>
   <data name="MonitorRedVideoGainLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Video Gain (Red)</value>
+    <value>ガイン（赤）</value>
   </data>
   <data name="MonitorResponseTimeLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Response Time</value>
+    <value>応答速度</value>
   </data>
   <data name="MonitorRgbSettingsSectionHeader.Text" xml:space="preserve">
-    <value>R/G/B</value>
+    <value>赤/緑/青</value>
   </data>
   <data name="MonitorSettingsSectionHeader.Text" xml:space="preserve">
-    <value>Monitor settings</value>
+    <value>モニター設定</value>
   </data>
   <data name="MonitorSharpnessLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Sharpness</value>
+    <value>鮮鋭度</value>
   </data>
   <data name="MonitorSixAxisSettingsSectionHeader.Text" xml:space="preserve">
     <value>6 Colors</value>
   </data>
   <data name="MonitorYellowSixAxisHueLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Hue (Yellow)</value>
+    <value>色調（イエロー）</value>
   </data>
   <data name="MonitorYellowSixAxisSaturationLabel.ToolTipService.ToolTip" xml:space="preserve">
-    <value>6 Axis Saturation (Yellow)</value>
+    <value>色調整（イエロー）</value>
   </data>
   <data name="MousePerformanceSettingsSectionHeader.Text" xml:space="preserve">
-    <value>Mouse Performance</value>
+    <value>マウスのパフォーマンス</value>
   </data>
   <data name="PollingRateLabel.Text" xml:space="preserve">
-    <value>Polling Rate</value>
+    <value>ポーリングレート</value>
   </data>
   <data name="PowerManagementSettingsSectionHeader.Text" xml:space="preserve">
-    <value>Power Management</value>
+    <value>電源管理</value>
   </data>
   <data name="PresetHorizontalDpiLabel.Text" xml:space="preserve">
-    <value>Horizontal DPI</value>
+    <value>水平DPI</value>
   </data>
   <data name="PresetIndependentDpiCheckbox.Content" xml:space="preserve">
     <value>Independent X-Y DPI</value>
@@ -352,33 +352,33 @@
     <value>Vertical DPI Value assigned to this preset.</value>
   </data>
   <data name="PresetVerticalDpiLabel.Text" xml:space="preserve">
-    <value>Vertical DPI</value>
+    <value>垂直DPI</value>
   </data>
   <data name="RefreshButton.Content" xml:space="preserve">
-    <value>Refresh</value>
+    <value>更新</value>
   </data>
   <data name="ResetButton.Content" xml:space="preserve">
-    <value>Reset</value>
+    <value>リセット</value>
   </data>
   <data name="WelcomeTextBlock.Text" xml:space="preserve">
-    <value>Welcome to Exo.</value>
+    <value>Exoへようこそ</value>
   </data>
   <data name="ImageCollectionRemoveImageButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Delete the selected image.</value>
   </data>
   <data name="ImageCollectionAddImageButton.Content" xml:space="preserve">
-    <value>Add</value>
+    <value>追加</value>
   </data>
   <data name="ImageCollectionOpenImageButton.Content" xml:space="preserve">
-    <value>Open…</value>
+    <value>開く</value>
   </data>
   <data name="AutoCropMaximumButtonLabel.Text" xml:space="preserve">
-    <value>Auto</value>
+    <value>自動</value>
   </data>
   <data name="AutoCropMinimumButtonLabel.Text" xml:space="preserve">
-    <value>Center 1:1</value>
+    <value>中央に配置 1：1</value>
   </data>
   <data name="DeviceSerialNumberLabel.Text" xml:space="preserve">
-    <value>S/N:</value>
+    <value>シリアル番号：</value>
   </data>
 </root>

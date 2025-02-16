@@ -79,8 +79,14 @@
         "en": "USB-C"
     },
     // Custom setting levels
+    "72a3447e-1E6b-4789-a736-30c7e986d787": {
+        "en": "Advanced",
+        "fr": "Avancé",
+        "ja": "高速"
+    },
     "c90085da-1406-4fc5-a5f5-a7b0443d9f0f": {
         "en": "Ultra Fast",
-        "fr": "Ultra rapide"
+        "fr": "Ultra rapide",
+        "ja": "超高速"
     }
 }

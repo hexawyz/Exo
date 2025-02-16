@@ -378,4 +378,7 @@
   <data name="AutoCropMinimumButtonLabel.Text" xml:space="preserve">
     <value>Centrer 1:1</value>
   </data>
+  <data name="DeviceSerialNumberLabel.Text" xml:space="preserve">
+    <value>S/N:</value>
+  </data>
 </root>
