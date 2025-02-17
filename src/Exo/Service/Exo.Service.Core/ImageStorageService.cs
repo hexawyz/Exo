@@ -247,37 +247,39 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		{
 		}
 
+		// We cannot open the file with FileMode.Truncate simultaneously with FileSystemRights.AppendData, so we do the recreation of the file in a separate path.
+		if (shouldRewriteMetadata)
+		{
+			using var logicalImageMetadataRewriteStream = logicalImageMetadataFile.Open(
+				new FileStreamOptions()
+				{
+					Mode = FileMode.Truncate,
+					Access = FileAccess.Write,
+					Share = FileShare.None,
+					Options = FileOptions.SequentialScan | FileOptions.Asynchronous
+				}
+			);
+			foreach (var kvp in logicalImageMetadata)
+			{
+				// We should not allow this call to be cancelled, as it would wipe out the entire cache.
+				// Simultaneously, it might also be acceptable to wipe the cache. To revisit later.
+				await JsonSerializer.SerializeAsync(logicalImageMetadataRewriteStream, kvp, ConfigurationService.JsonSerializerOptions, default).ConfigureAwait(false);
+				await logicalImageMetadataRewriteStream.FlushAsync().ConfigureAwait(false);
+			}
+		}
+
 		// We specify a small buffer size that should be able to hold any entry entirely.
 		// This way, entries can be written atomically.
 		// NB: From what I know, we still want to go through OS and hardware caches. What's most important is that the data is handed down to the OS as soon as possible.
 		var logicalImageMetadataWriteStream = logicalImageMetadataFile.Create
 		(
-			shouldRewriteMetadata ? FileMode.Truncate : FileMode.OpenOrCreate,
+			FileMode.OpenOrCreate,
 			FileSystemRights.AppendData,
 			FileShare.Read,
 			128,
 			FileOptions.Asynchronous,
 			null
 		);
-
-		try
-		{
-			if (shouldRewriteMetadata)
-			{
-				foreach (var kvp in logicalImageMetadata)
-				{
-					// We should not allow this call to be cancelled, as it would wipe out the entire cache.
-					// Simultaneously, it might also be acceptable to wipe the cache. To revisit later.
-					await JsonSerializer.SerializeAsync(logicalImageMetadataWriteStream, kvp, ConfigurationService.JsonSerializerOptions, default).ConfigureAwait(false);
-					await logicalImageMetadataWriteStream.FlushAsync().ConfigureAwait(false);
-				}
-			}
-		}
-		catch
-		{
-			await logicalImageMetadataWriteStream.DisposeAsync();
-			throw;
-		}
 
 		return new(logger, imagesConfigurationContainer, imageCacheDirectory, imageCollection, imageCollectionById, logicalImageMetadata, logicalImageMetadataWriteStream);
 	}
