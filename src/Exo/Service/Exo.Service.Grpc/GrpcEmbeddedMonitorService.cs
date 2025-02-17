@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
@@ -50,11 +51,35 @@ internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 
 	public async ValueTask SetBuiltInGraphicsAsync(EmbeddedMonitorSetBuiltInGraphicsRequest request, CancellationToken cancellationToken)
 	{
-		await _embeddedMonitorService.SetBuiltInGraphicsAsync(request.DeviceId, request.MonitorId, request.GraphicsId, cancellationToken).ConfigureAwait(false);
+		try
+		{
+			await _embeddedMonitorService.SetBuiltInGraphicsAsync(request.DeviceId, request.MonitorId, request.GraphicsId, cancellationToken).ConfigureAwait(false);
+		}
+		// TODO: Add an exception for "not found" so that we can report that status
+		catch (ArgumentException ex)
+		{
+			throw new RpcException(new(StatusCode.InvalidArgument, ex.Message));
+		}
+		catch (Exception ex)
+		{
+			throw new RpcException(new(StatusCode.Unknown, ex.Message));
+		}
 	}
 
 	public async ValueTask SetImageAsync(EmbeddedMonitorSetImageRequest request, CancellationToken cancellationToken)
 	{
-		await _embeddedMonitorService.SetImageAsync(request.DeviceId, request.MonitorId, request.ImageId, request.CropRegion.FromGrpc(), cancellationToken).ConfigureAwait(false);
+		try
+		{
+			await _embeddedMonitorService.SetImageAsync(request.DeviceId, request.MonitorId, request.ImageId, request.CropRegion.FromGrpc(), cancellationToken).ConfigureAwait(false);
+		}
+		// TODO: Add an exception for "not found" so that we can report that status
+		catch (ArgumentException ex)
+		{
+			throw new RpcException(new(StatusCode.InvalidArgument, ex.Message));
+		}
+		catch (Exception ex)
+		{
+			throw new RpcException(new(StatusCode.Unknown, ex.Message));
+		}
 	}
 }

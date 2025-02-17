@@ -136,7 +136,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_goForwardCommand = new(this);
 		_navigateCommand = new(this);
 		_imagesViewModel = new(ConnectionManager, fileOpenDialog, this);
-		_devicesViewModel = new(ConnectionManager, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, _navigateCommand);
+		_devicesViewModel = new(ConnectionManager, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);

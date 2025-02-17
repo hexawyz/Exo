@@ -13,6 +13,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 		SettingsServiceConnectionManager connectionManager,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
+		INotificationSystem notificationSystem,
 		IPowerService powerService,
 		IMouseService mouseService,
 		IEmbeddedMonitorService embeddedMonitorService,
@@ -47,7 +48,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 				}
 				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
 				{
-					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider, metadataService, embeddedMonitorService);
+					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider, metadataService, embeddedMonitorService, notificationSystem);
 				}
 			}
 		}

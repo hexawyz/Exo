@@ -346,13 +346,9 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			NotifyPropertyChanged(ChangedProperty.LoadedImageData);
 			_addImageCommand.NotifyCanExecuteChanged();
 		}
-		catch (RpcException ex)
-		{
-			_notificationSystem.PublishNotification(NotificationSeverity.Error, $"Failed to add the image {_loadedImageName}.", ex.Status.Detail);
-		}
 		catch (Exception ex)
 		{
-			_notificationSystem.PublishNotification(NotificationSeverity.Error, $"Failed to add the image {_loadedImageName}.", ex.Message);
+			_notificationSystem.PublishError(ex, $"Failed to add the image {_loadedImageName}.");
 		}
 		finally
 		{

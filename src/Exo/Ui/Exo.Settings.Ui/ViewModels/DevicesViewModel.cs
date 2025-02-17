@@ -71,6 +71,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly IRasterizationScaleProvider _rasterizationScaleProvider;
+	private readonly INotificationSystem _notificationSystem;
 
 	private readonly Commands.NavigateToDeviceCommand _navigateToDeviceCommand;
 
@@ -83,6 +84,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		IRasterizationScaleProvider rasterizationScaleProvider,
+		INotificationSystem notificationSystem,
 		ICommand navigateCommand
 	)
 	{
@@ -106,6 +108,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingEmbeddedMonitorConfigurationChanges = new();
 		_metadataService = metadataService;
 		_rasterizationScaleProvider = rasterizationScaleProvider;
+		_notificationSystem = notificationSystem;
 		_navigateToDeviceCommand = new(navigateCommand);
 		_cancellationTokenSource = new CancellationTokenSource();
 		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
@@ -235,6 +238,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 							_connectionManager,
 							_availableImages,
 							_metadataService,
+							_notificationSystem,
 							powerService,
 							mouseService,
 							embeddedMonitorService,

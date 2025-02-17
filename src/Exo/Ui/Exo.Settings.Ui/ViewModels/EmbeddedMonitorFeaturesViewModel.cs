@@ -5,6 +5,7 @@ using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Grpc.Core;
 using Microsoft.UI.Xaml.Documents;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -23,6 +24,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	private bool _isExpanded;
 	private readonly PropertyChangedEventHandler _onRasterizationScaleProviderPropertyChanged;
 	private EmbeddedMonitorViewModel? _selectedMonitor;
+	private readonly INotificationSystem _notificationSystem;
 
 	public EmbeddedMonitorFeaturesViewModel
 	(
@@ -30,7 +32,8 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		ISettingsMetadataService metadataService,
-		IEmbeddedMonitorService embeddedMonitorService
+		IEmbeddedMonitorService embeddedMonitorService,
+		INotificationSystem notificationSystem
 	)
 	{
 		_device = device;
@@ -38,6 +41,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		_rasterizationScaleProvider = rasterizationScaleProvider;
 		_metadataService = metadataService;
 		_embeddedMonitorService = embeddedMonitorService;
+		_notificationSystem = notificationSystem;
 		_embeddedMonitors = new();
 		_embeddedMonitorById = new();
 		_pendingConfigurationUpdates = new();
@@ -61,9 +65,13 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	public ReadOnlyObservableCollection<EmbeddedMonitorViewModel> EmbeddedMonitors => _readOnlyEmbeddedMonitors;
 	public ReadOnlyObservableCollection<ImageViewModel> AvailableImages => _availableImages;
 
+	internal DeviceViewModel Device => _device;
+
 	internal IRasterizationScaleProvider RasterizationScaleProvider => _rasterizationScaleProvider;
 
 	internal ISettingsMetadataService MetadataService => _metadataService;
+
+	internal INotificationSystem NotificationSystem => _notificationSystem;
 
 	public bool IsExpanded
 	{
@@ -402,16 +410,25 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 	public override bool IsChanged => false;
 
 	internal override async ValueTask ApplyAsync(CancellationToken cancellationToken)
-		=> await Monitor.Owner.EmbeddedMonitorService.SetBuiltInGraphicsAsync
-		(
-			new()
-			{
-				DeviceId = Monitor.Owner.DeviceId,
-				MonitorId = Monitor.MonitorId,
-				GraphicsId = Id
-			},
-			cancellationToken
-		);
+	{
+		try
+		{
+			await Monitor.Owner.EmbeddedMonitorService.SetBuiltInGraphicsAsync
+			(
+				new()
+				{
+					DeviceId = Monitor.Owner.DeviceId,
+					MonitorId = Monitor.MonitorId,
+					GraphicsId = Id
+				},
+				cancellationToken
+			);
+		}
+		catch (Exception ex)
+		{
+			Monitor.Owner.NotificationSystem.PublishError(ex, $"Failed to set the graphics of {Monitor.Owner.Device.FriendlyName}.");
+		}
+	}
 }
 
 internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
@@ -567,20 +584,32 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 
 	internal override async ValueTask ApplyAsync(CancellationToken cancellationToken)
 	{
-		if (_image is not { } image) throw new InvalidOperationException();
+		if (_image is not { } image)
+		{
+			Monitor.Owner.NotificationSystem.PublishNotification(NotificationSeverity.Warning, $"Failed to set image for {Monitor.Owner.Device.FriendlyName}.", "No image is currently selected.");
+			return;
+		}
+
 		var rectangle = _cropRectangle;
 
-		await Monitor.Owner.EmbeddedMonitorService.SetImageAsync
-		(
-			new()
-			{
-				DeviceId = Monitor.Owner.DeviceId,
-				MonitorId = Monitor.MonitorId,
-				ImageId = image.Id,
-				CropRegion = new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height },
-			},
-			cancellationToken
-		);
+		try
+		{
+			await Monitor.Owner.EmbeddedMonitorService.SetImageAsync
+			(
+				new()
+				{
+					DeviceId = Monitor.Owner.DeviceId,
+					MonitorId = Monitor.MonitorId,
+					ImageId = image.Id,
+					CropRegion = new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height },
+				},
+				cancellationToken
+			);
+		}
+		catch (Exception ex)
+		{
+			Monitor.Owner.NotificationSystem.PublishError(ex, $"Failed to set image for {Monitor.Owner.Device.FriendlyName}.");
+		}
 	}
 
 	internal void UpdateConfiguration(EmbeddedMonitorImageConfiguration configuration)
