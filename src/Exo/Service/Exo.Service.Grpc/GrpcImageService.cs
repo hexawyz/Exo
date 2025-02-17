@@ -2,6 +2,7 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Memory;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
@@ -48,21 +49,21 @@ internal sealed class GrpcImageService : IImageService
 		{
 			if (await _imageStorageService.HasImageAsync(request.ImageName, cancellationToken).ConfigureAwait(false))
 			{
-				throw new InvalidOperationException("An image with the specified name is already present.");
+				throw new RpcException(new(StatusCode.InvalidArgument, "An image with the specified name is already present."));
 			}
 			// 24MB is the maximum image size that could be theoretically allocated on the NZXT Kraken Z, so it seems reasonable to fix this as the limit for now?
 			// This number is semi-arbitrary, as we have to allow somewhat large images, but we don't want to allow anything crazy.
 			// The risk is someone abusing the service to waste memory. Stupid but possible.
 			// We have to be careful because apps cannot create shared memory in the Global namespace themselves, so the service needs to handle it ☹️
 			// This is also the reason why only a single parallel request is allowed. Anyway, this would never be a problem in practice as the UI is supposed to be the unique client.
-			if (request.Length > 24 * 1024 * 1024) throw new Exception("Maximum allowed image size exceeded.");
+			if (request.Length > 24 * 1024 * 1024) throw new RpcException(new(StatusCode.InvalidArgument, "Maximum allowed image size exceeded."));
 
 			state = new ImageAddState(request.ImageName);
 
 			if (Interlocked.CompareExchange(ref _imageAddState, state, null) is not null)
 			{
 				state.Dispose();
-				throw new InvalidOperationException("Another operation is currently pending.");
+				throw new RpcException(new(StatusCode.FailedPrecondition, "Another operation is currently pending."));
 			}
 		}
 		catch (Exception ex)
@@ -82,7 +83,14 @@ internal sealed class GrpcImageService : IImageService
 				{
 					using (var memoryManager = state.CreateMemoryManagerForRead())
 					{
-						await _imageStorageService.AddImageAsync(request.ImageName, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
+						try
+						{
+							await _imageStorageService.AddImageAsync(request.ImageName, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
+						}
+						catch (ArgumentException ex)
+						{
+							throw AsRpcException(ex);
+						}
 					}
 					_logger.GrpcImageServiceAddImageRequestSuccess(request.ImageName);
 					state.TryNotifyReadCompletion();
@@ -107,15 +115,27 @@ internal sealed class GrpcImageService : IImageService
 
 	public async ValueTask EndAddImageAsync(ImageRegistrationEndRequest request, CancellationToken cancellationToken)
 	{
-		if (Volatile.Read(ref _imageAddState) is not { } state || state.RequestId != request.RequestId || !state.TryNotifyWriteCompletion()) throw new InvalidOperationException();
+		if (Volatile.Read(ref _imageAddState) is not { } state || state.RequestId != request.RequestId || !state.TryNotifyWriteCompletion())
+		{
+			throw new RpcException(new(StatusCode.FailedPrecondition, "This operation cannot be performed."));
+		}
 
 		await state.WaitForReadCompletion().WaitAsync(cancellationToken).ConfigureAwait(false);
 	}
 
 	public async ValueTask RemoveImageAsync(ImageReference request, CancellationToken cancellationToken)
 	{
-		await _imageStorageService.RemoveImageAsync(request.ImageName, cancellationToken).ConfigureAwait(false);
+		try
+		{
+			await _imageStorageService.RemoveImageAsync(request.ImageName, cancellationToken).ConfigureAwait(false);
+		}
+		catch (ArgumentException ex)
+		{
+			throw AsRpcException(ex);
+		}
 	}
+
+	private static RpcException AsRpcException(ArgumentException ex) => new RpcException(new(StatusCode.InvalidArgument, ex.Message));
 
 	private sealed class ImageAddState : IDisposable
 	{

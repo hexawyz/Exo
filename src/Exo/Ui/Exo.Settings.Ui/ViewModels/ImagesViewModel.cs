@@ -7,6 +7,7 @@ using Exo.Contracts.Ui.Settings;
 using Exo.Memory;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Grpc.Core;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -344,6 +345,10 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			NotifyPropertyChanged(ChangedProperty.LoadedImageName);
 			NotifyPropertyChanged(ChangedProperty.LoadedImageData);
 			_addImageCommand.NotifyCanExecuteChanged();
+		}
+		catch (RpcException ex)
+		{
+			_notificationSystem.PublishNotification(NotificationSeverity.Error, $"Failed to add the image {_loadedImageName}.", ex.Status.Detail);
 		}
 		catch (Exception ex)
 		{
