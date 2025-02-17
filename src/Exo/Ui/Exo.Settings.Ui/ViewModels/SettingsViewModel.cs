@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Exo.Metadata;
 using Exo.Settings.Ui.Services;
@@ -5,7 +6,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class SettingsViewModel : BindableObject
+internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 {
 	private static class Commands
 	{
@@ -79,6 +80,8 @@ internal sealed class SettingsViewModel : BindableObject
 	private readonly CoolingViewModel _coolingViewModel;
 	private readonly ProgrammingViewModel _programmingViewModel;
 	private readonly CustomMenuViewModel _customMenuViewModel;
+	private readonly ObservableCollection<NotificationViewModel> _notifications;
+	private readonly ReadOnlyObservableCollection<NotificationViewModel> _readOnlyNotifications;
 
 	private readonly List<PageViewModel> _navigationStack;
 	private int _currentPageIndex;
@@ -132,7 +135,7 @@ internal sealed class SettingsViewModel : BindableObject
 		_goBackCommand = new(this);
 		_goForwardCommand = new(this);
 		_navigateCommand = new(this);
-		_imagesViewModel = new(ConnectionManager, fileOpenDialog);
+		_imagesViewModel = new(ConnectionManager, fileOpenDialog, this);
 		_devicesViewModel = new(ConnectionManager, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
@@ -141,6 +144,8 @@ internal sealed class SettingsViewModel : BindableObject
 		_programmingViewModel = new(ConnectionManager);
 		_customMenuViewModel = new(ConnectionManager);
 		_navigationStack = new();
+		_notifications = new();
+		_readOnlyNotifications = new(_notifications);
 		HomePage = new("Home", "\uE80F");
 		DevicesPage = new("Devices", "\uE772");
 		LightingPage = new("Lighting", "\uE781");
@@ -188,6 +193,7 @@ internal sealed class SettingsViewModel : BindableObject
 	public ProgrammingViewModel Programming => _programmingViewModel;
 	public CustomMenuViewModel CustomMenu => _customMenuViewModel;
 	public IEditionService EditionService => _editionService;
+	public ReadOnlyObservableCollection<NotificationViewModel> Notifications => _readOnlyNotifications;
 
 	public bool CanNavigateBack => _currentPageIndex >= 0;
 	public bool CanNavigateForward => (uint)(_currentPageIndex + 1) < (uint)_navigationStack.Count;
@@ -231,4 +237,7 @@ internal sealed class SettingsViewModel : BindableObject
 			if (_navigationStack.Count - _currentPageIndex == 1) NotifyPropertyChanged(ChangedProperty.CanNavigateForward);
 		}
 	}
+
+	void INotificationSystem.PublishNotification(NotificationSeverity severity, string title, string message)
+		=> _notifications.Add(new(_notifications, severity, title, message));
 }

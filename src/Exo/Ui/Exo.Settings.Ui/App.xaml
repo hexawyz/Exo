@@ -87,6 +87,7 @@
             <lconverters:FileNameToBitmapImageConverter x:Key="FileNameToBitmapImageConverter" />
             <lconverters:ImageToWriteableBitmapConverter x:Key="ImageToWriteableBitmapConverter" />
             <lconverters:MonitorShapeToCropShapeConverter x:Key="MonitorShapeToCropShapeConverter" />
+            <lconverters:NotificationSeverityConverter x:Key="NotificationSeverityConverter" />
 
             <local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

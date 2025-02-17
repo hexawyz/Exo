@@ -131,16 +131,18 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly IFileOpenDialog _fileOpenDialog;
+	private readonly INotificationSystem _notificationSystem;
 	private IImageService? _imageService;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly IDisposable _stateRegistration;
 
-	public ImagesViewModel(SettingsServiceConnectionManager connectionManager, IFileOpenDialog fileOpenDialog)
+	public ImagesViewModel(SettingsServiceConnectionManager connectionManager, IFileOpenDialog fileOpenDialog, INotificationSystem notificationSystem)
 	{
 		_images = new();
 		_readOnlyImages = new(_images);
 		_connectionManager = connectionManager;
 		_fileOpenDialog = fileOpenDialog;
+		_notificationSystem = notificationSystem;
 		_openImageCommand = new(this);
 		_addImageCommand = new(this);
 		_removeImageCommand = new(this);
@@ -342,6 +344,10 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			NotifyPropertyChanged(ChangedProperty.LoadedImageName);
 			NotifyPropertyChanged(ChangedProperty.LoadedImageData);
 			_addImageCommand.NotifyCanExecuteChanged();
+		}
+		catch (Exception ex)
+		{
+			_notificationSystem.PublishNotification(NotificationSeverity.Error, $"Failed to add the image {_loadedImageName}.", ex.Message);
 		}
 		finally
 		{
