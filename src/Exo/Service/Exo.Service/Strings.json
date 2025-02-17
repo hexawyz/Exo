@@ -61,7 +61,8 @@
     },
     "80acb355-040e-4789-96c9-8ed249964b08": {
         "en": "Pump Speed",
-        "fr": "ポンプの回転数"
+        "fr": "Vitesse de la pompe",
+        "ja": "ポンプの回転数"
     },
     "a16abea5-5e05-40a0-861e-b948f3bc7084": {
         "en": "Temperature",
