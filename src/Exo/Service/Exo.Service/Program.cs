@@ -7,6 +7,7 @@ using Exo.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using ProtoBuf.Meta;
 using Serilog;
+using SixLabors.ImageSharp.Memory;
 
 namespace Exo.Service;
 
@@ -30,6 +31,8 @@ public class Program
 		}
 
 		RuntimeTypeModel.Default.Add<UInt128>(false).SerializerType = typeof(UInt128Serializer);
+
+		SixLabors.ImageSharp.Configuration.Default.MemoryAllocator = new SimpleGcMemoryAllocator();
 
 		CreateHostBuilder(args).Build().Run();
 	}

@@ -287,6 +287,9 @@ internal sealed class ImageStorageService : IAsyncDisposable
 	private const long PhysicalImageIdHashSeed = unchecked((long)0x90AB71E534FD62C8U);
 	private const long LogicalImageIdHashSeed = unchecked((long)0x548A41D831245BCAU);
 
+	// Let's clean up image memory after a few seconds. We may increase this value later on if needed.
+	private const int ImageSharpCleanupDelay = 5_000;
+
 	private readonly Dictionary<string, LiveImageMetadata> _imageCollection;
 	private readonly ConcurrentDictionary<UInt128, LiveImageMetadata> _imageCollectionById;
 	private readonly ConcurrentDictionary<UInt128, SharedImageSlot> _openImageFiles;
@@ -297,6 +300,7 @@ internal sealed class ImageStorageService : IAsyncDisposable
 	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
 	private readonly AsyncLock _lock;
 	private readonly ILogger<ImageStorageService> _logger;
+	private readonly Timer _imageSharpCleanupTimer;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _logicalImageMetadataPersistenceTask;
 
@@ -330,9 +334,17 @@ internal sealed class ImageStorageService : IAsyncDisposable
 			}
 		);
 		_logicalImageMetadataPersistenceWriter = logicalImageMetadataPersistenceChannel;
+		_imageSharpCleanupTimer = new(CleanupImageMemory, null, Timeout.Infinite, Timeout.Infinite);
 		_lock = new();
 		_cancellationTokenSource = new();
 		_logicalImageMetadataPersistenceTask = PersistLogicalImageMetadataAsync(logicalImageMetadataPersistenceChannel, logicalImageMetadataPersistenceStream, _cancellationTokenSource.Token);
+	}
+
+	private void CleanupImageMemory(object? state)
+	{
+		SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
+		// Give a little kick to GC to free the memory.
+		GC.Collect(2, GCCollectionMode.Default, true);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -610,10 +622,14 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		Size targetSize
 	)
 	{
-		using (var memoryManager = originalImage.CreateMemoryManager())
+		_imageSharpCleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
+		try
 		{
-			var image = SixLabors.ImageSharp.Image.Load(memoryManager.GetSpan());
-
+			SixLabors.ImageSharp.Image image;
+			using (var sourceStream = originalImage.CreateReadStream())
+			{
+				image = SixLabors.ImageSharp.Image.Load(sourceStream);
+			}
 			if (sourceRectangle.Left + sourceRectangle.Width > image.Width || sourceRectangle.Top + sourceRectangle.Height > image.Height) throw new ArgumentException(nameof(sourceRectangle));
 
 			var resampler = KnownResamplers.Bicubic;
@@ -732,6 +748,11 @@ internal sealed class ImageStorageService : IAsyncDisposable
 			default:
 				throw new NotImplementedException();
 			}
+		}
+		finally
+		{
+			// Request cleanup of ImageSharp resources at a later time.
+			_imageSharpCleanupTimer.Change(ImageSharpCleanupDelay, Timeout.Infinite);
 		}
 	}
 
