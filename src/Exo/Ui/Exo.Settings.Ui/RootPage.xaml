@@ -99,6 +99,7 @@
             IsTabStop="False"
             IsSettingsVisible="False"
             IsTitleBarAutoPaddingEnabled="True"
+            OpenPaneLength="250"
             IsBackEnabled="{Binding CanNavigateBack}"
             MenuItemsSource="{Binding NavigationPages}"
             SelectedItem="{Binding SelectedNavigationPage, Mode=TwoWay}"
