@@ -1,34 +1,21 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
-using ProtoBuf.Grpc.Client;
-using Windows.ApplicationModel;
-using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Exo.Contracts.Ui.Settings;
+using System.Collections.Immutable;
+using System.Globalization;
+using System.Runtime.InteropServices;
+using Exo.Contracts.Ui;
 using Exo.Programming;
-using ProtoBuf.Meta;
-using Microsoft.Extensions.DependencyInjection;
 using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
-using Microsoft.UI;
-using System.Runtime.InteropServices;
-using WinRT.Interop;
-using Windows.Storage.Pickers;
-using Windows.Storage;
-using System.Collections.Immutable;
 using Exo.Ui;
-using Exo.Contracts.Ui;
-using Windows.UI.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.Windows.Globalization;
+using ProtoBuf.Grpc.Client;
+using ProtoBuf.Meta;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace Exo.Settings.Ui;
 
@@ -75,6 +62,21 @@ public partial class App : Application
 	/// <param name="args">Details about the launch request and process.</param>
 	protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
 	{
+#if FORCE_LANGUAGE_EN
+		string forcedCultureName = "en-US";
+#elif FORCE_LANGUAGE_FR
+		string forcedCultureName = "fr-FR";
+#elif FORCE_LANGUAGE_JA
+		string forcedCultureName = "ja-JP";
+#endif
+#if FORCE_LANGUAGE_EN || FORCE_LANGUAGE_FR || FORCE_LANGUAGE_JA
+		var cultureInfo = CultureInfo.GetCultureInfo(forcedCultureName, true);
+		CultureInfo.CurrentCulture = cultureInfo;
+		CultureInfo.CurrentUICulture = cultureInfo;
+
+		ApplicationLanguages.PrimaryLanguageOverride = forcedCultureName;
+#endif
+
 		// NB: Not sure how we are supposed to handle DPI here, as icons are loaded for one dimension at a time 🤷
 		// This code loads the default icon size, and it seems to work but I didn't check it deeply.
 		nint instanceHandle = GetModuleHandle(0);
