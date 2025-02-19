@@ -5,6 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Exo.Service</RootNamespace>
 		<WarningsAsErrors>Nullable</WarningsAsErrors>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	
 	<ItemGroup>
