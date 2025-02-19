@@ -6,11 +6,13 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Images;
+using Exo.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32.SafeHandles;
 using SixLabors.ImageSharp.Advanced;
@@ -178,6 +180,9 @@ internal sealed class ImageStorageService : IAsyncDisposable
 	// During initial load, we will allow rewriting it if some entries are outdated.
 	private static string GetLogicalImageCacheFileName(string imageCacheDirectory) => Path.Combine(imageCacheDirectory, "meta");
 
+	private static string GetTemporaryFileName(string imageCacheDirectory)
+		=> Path.Combine(imageCacheDirectory, "tmp", RandomNumberGenerator.GetHexString(32));
+
 	public static async Task<ImageStorageService> CreateAsync
 	(
 		ILogger<ImageStorageService> logger,
@@ -190,6 +195,7 @@ internal sealed class ImageStorageService : IAsyncDisposable
 
 		imageCacheDirectory = Path.GetFullPath(imageCacheDirectory);
 		Directory.CreateDirectory(imageCacheDirectory);
+		Directory.CreateDirectory(Path.Combine(imageCacheDirectory, "tmp"));
 
 		var imageNames = await imagesConfigurationContainer.GetKeysAsync(cancellationToken).ConfigureAwait(false);
 
@@ -287,9 +293,6 @@ internal sealed class ImageStorageService : IAsyncDisposable
 	private const long PhysicalImageIdHashSeed = unchecked((long)0x90AB71E534FD62C8U);
 	private const long LogicalImageIdHashSeed = unchecked((long)0x548A41D831245BCAU);
 
-	// Let's clean up image memory after a few seconds. We may increase this value later on if needed.
-	private const int ImageSharpCleanupDelay = 5_000;
-
 	private readonly Dictionary<string, LiveImageMetadata> _imageCollection;
 	private readonly ConcurrentDictionary<UInt128, LiveImageMetadata> _imageCollectionById;
 	private readonly ConcurrentDictionary<UInt128, SharedImageSlot> _openImageFiles;
@@ -300,7 +303,6 @@ internal sealed class ImageStorageService : IAsyncDisposable
 	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
 	private readonly AsyncLock _lock;
 	private readonly ILogger<ImageStorageService> _logger;
-	private readonly Timer _imageSharpCleanupTimer;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _logicalImageMetadataPersistenceTask;
 
@@ -334,17 +336,9 @@ internal sealed class ImageStorageService : IAsyncDisposable
 			}
 		);
 		_logicalImageMetadataPersistenceWriter = logicalImageMetadataPersistenceChannel;
-		_imageSharpCleanupTimer = new(CleanupImageMemory, null, Timeout.Infinite, Timeout.Infinite);
 		_lock = new();
 		_cancellationTokenSource = new();
 		_logicalImageMetadataPersistenceTask = PersistLogicalImageMetadataAsync(logicalImageMetadataPersistenceChannel, logicalImageMetadataPersistenceStream, _cancellationTokenSource.Token);
-	}
-
-	private void CleanupImageMemory(object? state)
-	{
-		SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
-		// Give a little kick to GC to free the memory.
-		GC.Collect(2, GCCollectionMode.Default, true);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -453,21 +447,8 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		}
 	}
 
-	// NB: Transformations (that are cached) should actually be implemented using an indirection.
-	// In all cases, image IDs cached on disk should be computed based on image contents.
-	// This means that there would be two image ID namespaces, which is somewhat of a problem.
-	// From the target implementation we want for images, I can establish these rules:
-	//  - There should be logical images and physical images.
-	//  - Each logical image can optionally be persisted into a physical image
-	//  - Logical images should only reference other logical images
-	//  - Exception: Physical *named* images should be referenced by a special kind of logical image, acting as an indirection.
-	//  - All physical images are either a named image OR a specific serialization process applied on a logical image.
-	//  - Any physical image can be referenced by multiple logical images
-	//  - The mapping between logical and physical images should always be persisted. (If the physical image is persisted)
-	// TODO: The above
-	// The method below is basically a specialized transformation to generate a physical image for a given device specification.
 	// These images are intended to be sent straight to devices in their binary encoded format.
-	public (UInt128 ImageId, ImageFormat format, ImageFile Image) GetTransformedImage
+	public (UInt128 ImageId, ImageFormat Format, ImageFile Image) GetTransformedImage
 	(
 		UInt128 imageId,
 		Rectangle sourceRectangle,
@@ -585,21 +566,38 @@ internal sealed class ImageStorageService : IAsyncDisposable
 			return (imageId, targetFormat, GetImageFile(imageId));
 		}
 
-		using (var image = GetImageFile(imageId))
-		using (var stream = new MemoryStream())
+		UInt128 physicalImageId;
+		string temporaryFileName = GetTemporaryFileName(_imageCacheDirectory);
+		using (var stream = new FileStream(temporaryFileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.None))
 		{
-			TransformImage(stream, operations, image, sourceRectangle, targetFormat, targetPixelFormat, targetSize);
-			var physicalImageId = XxHash128.HashToUInt128(stream.GetBuffer().AsSpan(0, (int)stream.Length), PhysicalImageIdHashSeed);
-			string fileName = GetFileName(_imageCacheDirectory, physicalImageId);
-			// Assume that if a file exists, it is already correct. We want to avoid wearing the disk if we don't need to.
-			if (!File.Exists(fileName))
+			using (var image = GetImageFile(imageId))
 			{
-				File.WriteAllBytes(fileName, stream.GetBuffer().AsSpan(0, (int)stream.Length));
+				TransformImage(stream, operations, image, sourceRectangle, targetFormat, targetPixelFormat, targetSize);
 			}
-			physicalImageMetadata = new(physicalImageId, (ushort)targetSize.Width, (ushort)targetSize.Height, targetFormat, !targetIsStatic);
-			RegisterLogicalImageMetadata(logicalImageId, physicalImageMetadata);
-			return (physicalImageId, targetFormat, GetImageFile(physicalImageId));
+			stream.Flush();
+			// Yeah, I'm doing all of this just because I don't want to go through the stream abstraction to compute the Hash.
+			// I have no idea if this is better, but I believe that in many cases, the file should entirely be in the kernel cache at that point, so it could be marginally faster.
+			using (var memoryMappedFile = MemoryMappedFile.CreateFromFile(stream, null, stream.Length, MemoryMappedFileAccess.Read, HandleInheritability.None, true))
+			using (var memoryManager = new MemoryMappedFileMemoryManager(memoryMappedFile, 0, checked((int)stream.Length), MemoryMappedFileAccess.Read))
+			{
+				physicalImageId = XxHash128.HashToUInt128(memoryManager.GetSpan(), PhysicalImageIdHashSeed);
+			}
+			string fileName = GetFileName(_imageCacheDirectory, physicalImageId);
+			// We save on memory (especially memory management) by directly writing the file to disk, however, we can only compute the final filename after the whole data has been written.
+			// We'll assume that if a file exists, it is already correct. In that case, we'll just delete the temporary file.
+			// This is kinda taking the bet that the file won't already exist, though.
+			if (File.Exists(fileName))
+			{
+				File.Delete(temporaryFileName);
+			}
+			else
+			{
+				File.Move(temporaryFileName, fileName, false);
+			}
 		}
+		physicalImageMetadata = new(physicalImageId, (ushort)targetSize.Width, (ushort)targetSize.Height, targetFormat, !targetIsStatic);
+		RegisterLogicalImageMetadata(logicalImageId, physicalImageMetadata);
+		return (physicalImageId, targetFormat, GetImageFile(physicalImageId));
 	}
 
 	private void RegisterLogicalImageMetadata(UInt128 logicalImageId, ImageMetadata metadata)
@@ -610,7 +608,7 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		}
 	}
 
-	// TODO: Improve this method. Current operation is quick and dirty, but there are certainly better possibilities.
+	// The method below is basically a specialized transformation to generate a physical image for a given device specification.
 	private void TransformImage
 	(
 		Stream stream,
@@ -622,14 +620,13 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		Size targetSize
 	)
 	{
-		_imageSharpCleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
+		SixLabors.ImageSharp.Image image;
+		using (var sourceStream = originalImage.CreateReadStream())
+		{
+			image = SixLabors.ImageSharp.Image.Load(sourceStream);
+		}
 		try
 		{
-			SixLabors.ImageSharp.Image image;
-			using (var sourceStream = originalImage.CreateReadStream())
-			{
-				image = SixLabors.ImageSharp.Image.Load(sourceStream);
-			}
 			if (sourceRectangle.Left + sourceRectangle.Width > image.Width || sourceRectangle.Top + sourceRectangle.Height > image.Height) throw new ArgumentException(nameof(sourceRectangle));
 
 			var resampler = KnownResamplers.Bicubic;
@@ -751,8 +748,7 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		}
 		finally
 		{
-			// Request cleanup of ImageSharp resources at a later time.
-			_imageSharpCleanupTimer.Change(ImageSharpCleanupDelay, Timeout.Infinite);
+			image.Dispose();
 		}
 	}
 
