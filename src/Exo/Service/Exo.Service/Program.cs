@@ -63,7 +63,6 @@ public class Program
 					{
 						if (refCount == (refCount = Interlocked.CompareExchange(ref _refCount, refCount | (int.MinValue >> 1), refCount)))
 						{
-							TryFree();
 							return;
 						}
 					}
