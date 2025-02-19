@@ -45,6 +45,10 @@ public class Program
 				GC.AddMemoryPressure(_length * Unsafe.SizeOf<T>());
 			}
 
+#pragma warning disable CA2015 // Do not define finalizers for types derived from MemoryManager<T>
+			~NativeMemoryHolder() => Dispose(false);
+#pragma warning restore CA2015 // Do not define finalizers for types derived from MemoryManager<T>
+
 			protected override void Dispose(bool disposing)
 			{
 				if (disposing)
