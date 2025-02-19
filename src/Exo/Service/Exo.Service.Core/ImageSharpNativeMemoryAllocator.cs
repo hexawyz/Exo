@@ -32,9 +32,14 @@ public class ImageSharpNativeMemoryAllocator : MemoryAllocator
 			GC.AddMemoryPressure(_length * Unsafe.SizeOf<T>());
 		}
 
+#if DEBUG
 #pragma warning disable CA2015 // Do not define finalizers for types derived from MemoryManager<T>
-		~NativeMemoryManager() => Dispose(false);
+		~NativeMemoryManager()
+		{
+			System.Diagnostics.Debug.Write($"Finalizer of {nameof(ImageSharpNativeMemoryAllocator)} was called. Check that there is not a Dispose() missing somewhere.");
+		}
 #pragma warning restore CA2015 // Do not define finalizers for types derived from MemoryManager<T>
+#endif
 
 		protected override void Dispose(bool disposing)
 		{
@@ -95,12 +100,7 @@ public class ImageSharpNativeMemoryAllocator : MemoryAllocator
 					TryFree();
 					return;
 				}
-				else if (refCount >= int.MinValue >> 2)
-				{
-					// Try to mitigate the case where someone did something terribly wrong.
-					Interlocked.Increment(ref _refCount);
-					throw new InvalidOperationException();
-				}
+				// If this (public 😞) method is called without a corresponding call to Pin, we'll just let the user shoot itself in the foot. This should never happen.
 			}
 		}
 	}
