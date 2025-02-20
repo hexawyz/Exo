@@ -17,7 +17,7 @@
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
-		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN;FORCE_LANGUAGE_EN</DefineConstants>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
