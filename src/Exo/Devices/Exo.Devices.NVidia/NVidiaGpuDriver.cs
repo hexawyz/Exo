@@ -4,8 +4,10 @@ using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using Exo.ColorFormats;
+using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.Cooling;
 using Exo.Features.Lighting;
 using Exo.Features.Sensors;
 using Exo.I2C;
@@ -22,6 +24,7 @@ public partial class NVidiaGpuDriver :
 	IDeviceDriver<IDisplayAdapterDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceDriver<ISensorDeviceFeature>,
+	IDeviceDriver<ICoolingDeviceFeature>,
 	IDisplayAdapterI2cBusProviderFeature,
 	ILightingControllerFeature,
 	ILightingDeferredChangesFeature,
@@ -77,6 +80,9 @@ public partial class NVidiaGpuDriver :
 
 	private static readonly Guid Fan1SpeedSensorId = new(0xFCF6D2E1, 0x9048, 0x4E87, 0xAC, 0x9F, 0x91, 0xE2, 0x50, 0xE1, 0x21, 0x8B);
 	private static readonly Guid Fan2SpeedSensorId = new(0xBE0F57CB, 0xCD6D, 0x4422, 0xA0, 0x24, 0xB2, 0x8F, 0xF4, 0x25, 0xE9, 0x03);
+
+	private static readonly Guid Fan1CoolerId = new(0x1F3E6519, 0x9404, 0x4866, 0x85, 0xB8, 0x52, 0xD4, 0x52, 0x48, 0x50, 0x60);
+	private static readonly Guid Fan2CoolerId = new(0xB02259B1, 0xF5DC, 0x4371, 0x9C, 0xD3, 0xBC, 0xE4, 0xBE, 0x34, 0x53, 0x1F);
 
 	private static readonly Guid GraphicsUtilizationSensorId = new(0x005F94DD, 0x09F5, 0x46D3, 0x99, 0x02, 0xE1, 0x5D, 0x6A, 0x19, 0xD8, 0x24);
 	private static readonly Guid FrameBufferUtilizationSensorId = new(0xBF9AAD1D, 0xE013, 0x4178, 0x97, 0xB3, 0x42, 0x20, 0xD2, 0x6C, 0xBE, 0x71);
@@ -252,10 +258,13 @@ public partial class NVidiaGpuDriver :
 		}
 
 		var fanStatuses = new NvApi.GpuFanStatus[32];
+		var fanControls = new NvApi.GpuFanControl[32];
 		int fanStatusCount = 0;
+		int fanControlCount = 0;
 		try
 		{
 			fanStatusCount = foundGpu.GetFanCoolersStatus(fanStatuses);
+			fanControlCount = foundGpu.GetFanCoolersControl(fanControls);
 		}
 		catch
 		{
@@ -295,6 +304,7 @@ public partial class NVidiaGpuDriver :
 					lightingZones.DrainToImmutable(),
 					hasTachReading,
 					fanStatuses.AsSpan(0, fanStatusCount),
+					fanControls.AsSpan(0, fanControlCount),
 					thermalSensors.AsSpan(0, sensorCount),
 					clockFrequencies.AsSpan(0, clockFrequencyCount)
 				)
@@ -306,6 +316,7 @@ public partial class NVidiaGpuDriver :
 	private readonly IDeviceFeatureSet<IDisplayAdapterDeviceFeature> _displayAdapterFeatures;
 	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
+	private readonly IDeviceFeatureSet<ICoolingDeviceFeature> _coolingFeatures;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly ImmutableArray<LightingZone> _lightingZones;
 	private readonly ImmutableArray<ISensor> _sensors;
@@ -333,6 +344,7 @@ public partial class NVidiaGpuDriver :
 	IDeviceFeatureSet<IDisplayAdapterDeviceFeature> IDeviceDriver<IDisplayAdapterDeviceFeature>.Features => _displayAdapterFeatures;
 	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
+	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 
 	public override ImmutableArray<FeatureSetDescription> FeatureSets => _featureSets;
 
@@ -349,6 +361,7 @@ public partial class NVidiaGpuDriver :
 		ImmutableArray<LightingZone> lightingZones,
 		bool hasTachReading,
 		ReadOnlySpan<NvApi.GpuFanStatus> fanCoolerStatuses,
+		ReadOnlySpan<NvApi.GpuFanControl> fanCoolerControls,
 		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors,
 		ReadOnlySpan<NvApi.GpuClockFrequency> clockFrequencies
 	) : base(friendlyName, configurationKey)
@@ -398,6 +411,11 @@ public partial class NVidiaGpuDriver :
 			}
 		}
 		_sensors = sensors.DrainToImmutable();
+		FanCoolingControl? coolingControl = null;
+		if (fanCoolerStatuses.Length == fanCoolerControls.Length)
+		{
+			coolingControl = new FanCoolingControl(gpu, fanCoolerControls);
+		}
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2cBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
@@ -407,18 +425,19 @@ public partial class NVidiaGpuDriver :
 		_sensorFeatures = _thermalTargetSensors.Length > 0 ?
 			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this) :
 			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature>(this);
-		_featureSets = lightingZones.Length == 0 ?
-			[
-				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
-				FeatureSetDescription.CreateStatic<IDisplayAdapterDeviceFeature>(),
-				FeatureSetDescription.CreateStatic<ISensorDeviceFeature>()
-			] :
-			[
-				FeatureSetDescription.CreateStatic<IGenericDeviceFeature>(),
-				FeatureSetDescription.CreateStatic<IDisplayAdapterDeviceFeature>(),
-				FeatureSetDescription.CreateStatic<ILightingDeviceFeature>(),
-				FeatureSetDescription.CreateStatic<ISensorDeviceFeature>()
-			];
+		_coolingFeatures = coolingControl is not null ?
+			FeatureSet.Create<ICoolingDeviceFeature, FanCoolingControl, ICoolingControllerFeature>(coolingControl) :
+			FeatureSet.Empty<ICoolingDeviceFeature>();
+
+		var featureSets = new FeatureSetDescription[3 + (lightingZones.Length != 0 ? 1 : 0) + (coolingControl is not null ? 1 : 0)];
+		int featureSetCount = 0;
+		featureSets[featureSetCount++] = FeatureSetDescription.CreateStatic<IGenericDeviceFeature>();
+		featureSets[featureSetCount++] = FeatureSetDescription.CreateStatic<IDisplayAdapterDeviceFeature>();
+		if (lightingZones.Length != 0) featureSets[featureSetCount++] = FeatureSetDescription.CreateStatic<ILightingDeviceFeature>();
+		featureSets[featureSetCount++] = FeatureSetDescription.CreateStatic<ISensorDeviceFeature>();
+		if (coolingControl is not null) featureSets[featureSetCount++] = FeatureSetDescription.CreateStatic<ICoolingDeviceFeature>();
+
+		_featureSets = ImmutableCollectionsMarshal.AsImmutableArray(featureSets);
 	}
 
 	public override ValueTask DisposeAsync() => _utilizationWatcher.DisposeAsync();
@@ -604,6 +623,141 @@ public partial class NVidiaGpuDriver :
 		catch (Exception ex)
 		{
 			_logger.GpuClockFrequenciesQueryFailure(FriendlyName, ex);
+		}
+	}
+
+	private sealed class FanCoolingControl : ICoolingControllerFeature
+	{
+		private readonly uint[] _fanIds;
+		private readonly sbyte[] _powers;
+		private readonly NvApi.PhysicalGpu _physicalGpu;
+		private bool _hasChanged;
+		private readonly FanCooler[] _coolers;
+
+		public FanCoolingControl(NvApi.PhysicalGpu physicalGpu, ReadOnlySpan<NvApi.GpuFanControl> fanControls)
+		{
+			var fanIds = new uint[fanControls.Length];
+			var powers = new sbyte[fanControls.Length];
+			var coolers = new FanCooler[fanControls.Length];
+
+			// Keep track of how many know coolers have been registered. We will hide the unknown IDs for safety. (Only 1 and 2 seen at the time of writing this)
+			int registeredCoolerCount = 0;
+			for (int i = 0; i < fanControls.Length; i++)
+			{
+				ref readonly var fanControl = ref fanControls[i];
+
+				fanIds[i] = fanControl.FanId;
+				powers[i] = fanControl.CoolingMode == NvApi.FanCoolingMode.Manual ? (sbyte)fanControl.Power : (sbyte)-1;
+
+				if (fanControl.FanId is 1)
+				{
+					coolers[registeredCoolerCount++] = new(this, i, Fan1CoolerId, Fan1SpeedSensorId);
+				}
+				else if (fanControl.FanId is 2)
+				{
+					coolers[registeredCoolerCount++] = new(this, i, Fan2CoolerId, Fan2SpeedSensorId);
+				}
+			}
+
+			if (registeredCoolerCount < coolers.Length)
+			{
+				coolers = coolers[..registeredCoolerCount];
+			}
+
+			_physicalGpu = physicalGpu;
+			_fanIds = fanIds;
+			_powers = powers;
+			_coolers = coolers;
+		}
+
+		ImmutableArray<ICooler> ICoolingControllerFeature.Coolers => ImmutableCollectionsMarshal.AsImmutableArray((ICooler[])_coolers);
+
+		ValueTask ICoolingControllerFeature.ApplyChangesAsync(CancellationToken cancellationToken)
+		{
+			if (_hasChanged)
+			{
+				try
+				{
+					var fanIds = _fanIds;
+					var powers = _powers;
+					Span<NvApi.GpuFanControl> fanControls = stackalloc NvApi.GpuFanControl[fanIds.Length];
+
+					for (int i = 0; i < fanControls.Length; i++)
+					{
+						uint fanId = fanIds[i];
+						sbyte power = powers[i];
+						fanControls[i] = new(fanId, power >= 0 ? (byte)power : (byte)0, power >= 0 ? NvApi.FanCoolingMode.Manual : NvApi.FanCoolingMode.Automatic);
+					}
+
+					_physicalGpu.SetFanCoolersControl(fanControls);
+				}
+				catch (Exception ex)
+				{
+					return ValueTask.FromException(ex);
+				}
+			}
+			return ValueTask.CompletedTask;
+		}
+
+		private sealed class FanCooler : ICooler, IAutomaticCooler, IManualCooler
+		{
+			private readonly FanCoolingControl _control;
+			private readonly int _index;
+			private readonly Guid _coolerId;
+			private readonly Guid _sensorId;
+
+			public FanCooler(FanCoolingControl control, int index, Guid coolerId, Guid sensorId)
+			{
+				_control = control;
+				_index = index;
+				_coolerId = coolerId;
+				_sensorId = sensorId;
+			}
+
+			private sbyte Power
+			{
+				get => _control._powers[_index];
+				set
+				{
+					ref var power = ref _control._powers[_index];
+					if (value != power)
+					{
+						Volatile.Write(ref power, value);
+						_control._hasChanged = true;
+					}
+				}
+			}
+
+			Guid ICooler.CoolerId => _coolerId;
+			Guid? ICooler.SpeedSensorId => _sensorId;
+			CoolerType ICooler.Type => CoolerType.Fan;
+			CoolingMode ICooler.CoolingMode => Power < 0 ? CoolingMode.Automatic : CoolingMode.Manual;
+
+			void IAutomaticCooler.SwitchToAutomaticCooling() => Power = -1;
+
+			void IManualCooler.SetPower(byte power)
+			{
+				ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
+				Power = (sbyte)power;
+			}
+
+			bool IManualCooler.TryGetPower(out byte power)
+			{
+				var p = Power;
+				if ((byte)p <= 100)
+				{
+					power = (byte)p;
+					return true;
+				}
+				else
+				{
+					power = 0;
+					return false;
+				}
+			}
+
+			byte IConfigurableCooler.MinimumPower => 0;
+			bool IConfigurableCooler.CanSwitchOff => true;
 		}
 	}
 }

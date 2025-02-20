@@ -81,6 +81,8 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> GetCoolerSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xda141340);
 			//public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> ClientFanCoolersGetInfo = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xfb85b01e);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersStatus*, uint> ClientFanCoolersGetStatus = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersStatus*, uint>)QueryInterface(0x35aed5e8);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint> ClientFanCoolersGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint>)QueryInterface(0x814b209f);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint> ClientFanCoolersSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint>)QueryInterface(0xa58971a5);
 		}
 
 		public static class System
@@ -936,6 +938,45 @@ internal sealed class NvApi
 
 				public FanCoolerStatusArray FanCoolers;
 			}
+
+			internal struct FanCoolerControl
+			{
+				public uint FanId;
+				public uint Power;
+				public FanCoolingMode CoolingMode;
+				public uint Unknown03;
+				public uint Unknown04;
+				public uint Unknown05;
+				public uint Unknown06;
+				public uint Unknown07;
+				public uint Unknown08;
+				public uint Unknown09;
+				public uint Unknown10;
+			}
+
+			[InlineArray(32)]
+			internal struct FanCoolerControlArray
+			{
+				private FanCoolerControl _element0;
+			}
+
+			internal struct FanCoolersControl
+			{
+				public uint Version;
+				public uint Unknown0;
+				public uint Count;
+
+				public uint Unknown1;
+				public uint Unknown2;
+				public uint Unknown3;
+				public uint Unknown4;
+				public uint Unknown5;
+				public uint Unknown6;
+				public uint Unknown7;
+				public uint Unknown8;
+
+				public FanCoolerControlArray FanCoolers;
+			}
 		}
 	}
 
@@ -1325,20 +1366,53 @@ internal sealed class NvApi
 			return reading;
 		}
 
-		public unsafe int GetFanCoolersStatus(Span<GpuFanStatus> fanCoolers)
+		public unsafe int GetFanCoolersStatus(Span<GpuFanStatus> fanStatuses)
 		{
 			if (Functions.Gpu.ClientFanCoolersGetStatus == null) return 0;
 			var status = new Gpu.Client.FanCoolersStatus { Version = StructVersion<Gpu.Client.FanCoolersStatus>(1) };
 			ValidateResult(Functions.Gpu.ClientFanCoolersGetStatus(_handle, &status));
 			if (status.Count > 32) throw new InvalidOperationException("Invalid fan cooler count.");
-			if (fanCoolers.Length < status.Count) throw new ArgumentException("Provided storage is not large enough.");
+			if (fanStatuses.Length < status.Count) throw new ArgumentException("Provided storage is not large enough.");
 			var items = ((ReadOnlySpan<Gpu.Client.FanCoolerStatus>)status.FanCoolers)[..(int)status.Count];
 			for (int i = 0; i < status.Count; i++)
 			{
-				var item = items[i];
-				fanCoolers[i] = new GpuFanStatus(item.FanId, item.SpeedInRotationsPerMinute, item.MinimumPower, item.MaximumPower, item.CurrentPower);
+				ref readonly var item = ref items[i];
+				fanStatuses[i] = new GpuFanStatus(item.FanId, item.SpeedInRotationsPerMinute, item.MinimumPower, item.MaximumPower, item.CurrentPower);
 			}
 			return (int)status.Count;
+		}
+
+		public unsafe int GetFanCoolersControl(Span<GpuFanControl> fanControls)
+		{
+			if (Functions.Gpu.ClientFanCoolersGetControl == null) return 0;
+			var status = new Gpu.Client.FanCoolersControl { Version = StructVersion<Gpu.Client.FanCoolersControl>(1) };
+			ValidateResult(Functions.Gpu.ClientFanCoolersGetControl(_handle, &status));
+			if (status.Count > 32) throw new InvalidOperationException("Invalid fan cooler count.");
+			if (fanControls.Length < status.Count) throw new ArgumentException("Provided storage is not large enough.");
+			var items = ((ReadOnlySpan<Gpu.Client.FanCoolerControl>)status.FanCoolers)[..(int)status.Count];
+			for (int i = 0; i < status.Count; i++)
+			{
+				ref readonly var item = ref items[i];
+				fanControls[i] = new(item.FanId, item.Power, item.CoolingMode);
+			}
+			return (int)status.Count;
+		}
+
+		public unsafe void SetFanCoolersControl(ReadOnlySpan<GpuFanControl> fanControls)
+		{
+			if (Functions.Gpu.ClientFanCoolersSetControl == null) return;
+			var status = new Gpu.Client.FanCoolersControl { Version = StructVersion<Gpu.Client.FanCoolersControl>(1) };
+			if ((uint)(fanControls.Length - 1) > 32) throw new ArgumentException("Invalid fan cooler count.");
+			var items = ((Span<Gpu.Client.FanCoolerControl>)status.FanCoolers)[..fanControls.Length];
+			for (int i = 0; i < fanControls.Length; i++)
+			{
+				ref readonly var fanControl = ref fanControls[i];
+				ref var item = ref items[i];
+				item.FanId = fanControl.FanId;
+				item.Power = fanControl.Power;
+				item.CoolingMode = fanControl.CoolingMode;
+			}
+			ValidateResult(Functions.Gpu.ClientFanCoolersSetControl(_handle, &status));
 		}
 
 		[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
@@ -1446,23 +1520,27 @@ internal sealed class NvApi
 		public uint FrequencyInKiloHertz { get; }
 	}
 
-	public readonly struct GpuFanStatus
+	public readonly struct GpuFanStatus(uint fanId, uint speedInRotationsPerMinute, uint minimumPower, uint maximumPower, uint currentPower)
 	{
-		public GpuFanStatus(uint fanId, uint speedInRotationsPerMinute, uint minimumPower, uint maximumPower, uint currentPower)
-		{
-			FanId = fanId;
-			SpeedInRotationsPerMinute = speedInRotationsPerMinute;
-			MinimumPower = minimumPower;
-			MaximumPower = maximumPower;
-			CurrentPower = currentPower;
-		}
-
 		// Unsure whether this is an index or an enumeration like ThermalTarget, etc. Must be conservative when using that value.
-		public uint FanId { get; }
-		public uint SpeedInRotationsPerMinute { get; }
-		public uint MinimumPower { get; }
-		public uint MaximumPower { get; }
-		public uint CurrentPower { get; }
+		public uint FanId { get; } = fanId;
+		public uint SpeedInRotationsPerMinute { get; } = speedInRotationsPerMinute;
+		public uint MinimumPower { get; } = minimumPower;
+		public uint MaximumPower { get; } = maximumPower;
+		public uint CurrentPower { get; } = currentPower;
+	}
+
+	public enum FanCoolingMode : uint
+	{
+		Automatic = 0,
+		Manual = 1,
+	}
+
+	public readonly struct GpuFanControl(uint fanId, uint power, FanCoolingMode coolingMode)
+	{
+		public uint FanId { get; } = fanId;
+		public uint Power { get; } = power;
+		public FanCoolingMode CoolingMode { get; } = coolingMode;
 	}
 }
 
