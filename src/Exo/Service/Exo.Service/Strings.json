@@ -140,6 +140,16 @@
         "fr": "Ventilateur",
         "ja": "ファン"
     },
+    "96248f2b-3504-4feb-80df-8b49f2f1ebe0": {
+        "en": "Fan 1",
+        "fr": "Ventilateur 1",
+        "ja": "ファン１"
+    },
+    "f3a31701-859b-4eff-8ae8-65af35aaca69": {
+        "en": "Fan 2",
+        "fr": "Ventilateur 2",
+        "ja": "ファン２"
+    },
     "78986262-eeb6-4d90-88b2-cc2ce44f1874": {
         "en": "Pump",
         "fr": "Pompe",
