@@ -827,7 +827,7 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 		get => _currentPower;
 		set
 		{
-			if (value >= _minimumPower && value < 100 || _canSwitchOff && value == 0)
+			if (value >= _minimumPower && value <= 100 || _canSwitchOff && value == 0)
 			{
 				bool wasChanged = IsChanged;
 				if (SetValue(ref _currentPower, value, ChangedProperty.Power))
@@ -1486,7 +1486,7 @@ internal sealed class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoo
 		get => _currentFallbackPower;
 		set
 		{
-			if (value >= MinimumPower && value < 100 || CanSwitchOff && value == 0)
+			if (value >= MinimumPower && value <= 100 || CanSwitchOff && value == 0)
 			{
 				bool wasChanged = IsChanged;
 				if (SetValue(ref _currentFallbackPower, value, ChangedProperty.FallbackPower))
