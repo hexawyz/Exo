@@ -756,8 +756,8 @@ public partial class NVidiaGpuDriver :
 				}
 			}
 
-			byte IConfigurableCooler.MinimumPower => 0;
-			bool IConfigurableCooler.CanSwitchOff => true;
+			byte IConfigurableCooler.MinimumPower => 30;
+			bool IConfigurableCooler.CanSwitchOff => false;
 		}
 	}
 }
