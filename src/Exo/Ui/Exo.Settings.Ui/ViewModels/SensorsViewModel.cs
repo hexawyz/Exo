@@ -373,8 +373,8 @@ internal sealed class SensorViewModel : BindableObject
 	public SensorDataType DataType => _sensorInformation.DataType;
 	public string Unit => _sensorInformation.Unit;
 	public SensorCapabilities Capabilities => _sensorInformation.Capabilities;
-	public double? ScaleMinimumValue => _metadataMinimumValue ?? _sensorInformation.ScaleMinimumValue;
-	public double? ScaleMaximumValue => _metadataMaximumValue ?? _sensorInformation.ScaleMaximumValue;
+	public double? ScaleMinimumValue => _sensorInformation.ScaleMinimumValue ?? _metadataMinimumValue;
+	public double? ScaleMaximumValue => _sensorInformation.ScaleMaximumValue ?? _metadataMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
 	public SensorCategory Category => _sensorCategory;
 	public ImmutableArray<double> PresetControlCurveSteps => ImmutableCollectionsMarshal.AsImmutableArray(_presetControlCurveSteps);

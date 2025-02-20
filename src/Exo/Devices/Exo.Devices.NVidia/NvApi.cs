@@ -79,7 +79,7 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint> GetAllClockFrequencies = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint>)QueryInterface(0xdcb616c3);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetTachReading = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x5f608315);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> GetCoolerSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xda141340);
-			//public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> ClientFanCoolersGetInfo = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xfb85b01e);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersInfo*, uint> ClientFanCoolersGetInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersInfo*, uint>)QueryInterface(0xfb85b01e);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersStatus*, uint> ClientFanCoolersGetStatus = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersStatus*, uint>)QueryInterface(0x35aed5e8);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint> ClientFanCoolersGetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint>)QueryInterface(0x814b209f);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint> ClientFanCoolersSetControl = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersControl*, uint>)QueryInterface(0xa58971a5);
@@ -899,6 +899,49 @@ internal sealed class NvApi
 				private readonly ByteArray64 _reserved;
 			}
 
+			internal struct FanCoolerInfo
+			{
+				public uint FanId;
+				// This seems to be a boolean field.
+				// It either indicates that the fan can be controlled manually OR that the fan can be stopped.
+				// One or the other would be a very useful info to have.
+				public uint UnknownFeature;
+				public uint MinimumSpeedInRotationsPerMinute;
+				public uint MaximumSpeedInRotationsPerMinute;
+				public uint Unknown04;
+				public uint Unknown05;
+				public uint Unknown06;
+				public uint Unknown07;
+				public uint Unknown08;
+				public uint Unknown09;
+				public uint Unknown10;
+				public uint Unknown11;
+			}
+
+			[InlineArray(32)]
+			internal struct FanCoolerInfoArray
+			{
+				private FanCoolerInfo _element0;
+			}
+
+			internal struct FanCoolersInfo
+			{
+				public uint Version;
+				public uint Unknown0;
+				public uint Count;
+
+				public uint Unknown1;
+				public uint Unknown2;
+				public uint Unknown3;
+				public uint Unknown4;
+				public uint Unknown5;
+				public uint Unknown6;
+				public uint Unknown7;
+				public uint Unknown8;
+
+				public FanCoolerInfoArray FanCoolers;
+			}
+
 			internal struct FanCoolerStatus
 			{
 				public uint FanId;
@@ -1366,6 +1409,22 @@ internal sealed class NvApi
 			return reading;
 		}
 
+		public unsafe int GetFanCoolersInfo(Span<GpuFanInfo> fanStatuses)
+		{
+			if (Functions.Gpu.ClientFanCoolersGetStatus == null) return 0;
+			var status = new Gpu.Client.FanCoolersInfo { Version = StructVersion<Gpu.Client.FanCoolersInfo>(1) };
+			ValidateResult(Functions.Gpu.ClientFanCoolersGetInfo(_handle, &status));
+			if (status.Count > 32) throw new InvalidOperationException("Invalid fan cooler count.");
+			if (fanStatuses.Length < status.Count) throw new ArgumentException("Provided storage is not large enough.");
+			var items = ((ReadOnlySpan<Gpu.Client.FanCoolerInfo>)status.FanCoolers)[..(int)status.Count];
+			for (int i = 0; i < status.Count; i++)
+			{
+				ref readonly var item = ref items[i];
+				fanStatuses[i] = new GpuFanInfo(item.FanId, (item.UnknownFeature & 1) != 0, item.MinimumSpeedInRotationsPerMinute, item.MaximumSpeedInRotationsPerMinute);
+			}
+			return (int)status.Count;
+		}
+
 		public unsafe int GetFanCoolersStatus(Span<GpuFanStatus> fanStatuses)
 		{
 			if (Functions.Gpu.ClientFanCoolersGetStatus == null) return 0;
@@ -1519,6 +1578,14 @@ internal sealed class NvApi
 
 		public Gpu.PublicClock Clock { get; }
 		public uint FrequencyInKiloHertz { get; }
+	}
+
+	public readonly struct GpuFanInfo(uint fanId, bool hasUnknownFeature, uint minimumSpeedInRotationsPerMinute, uint maximumSpeedInRotationsPerMinute)
+	{
+		public uint FanId { get; } = fanId;
+		public bool HasUnknownFeature { get; } = hasUnknownFeature;
+		public uint MinimumSpeedInRotationsPerMinute { get; } = minimumSpeedInRotationsPerMinute;
+		public uint MaximumSpeedInRotationsPerMinute { get; } = maximumSpeedInRotationsPerMinute;
 	}
 
 	public readonly struct GpuFanStatus(uint fanId, uint speedInRotationsPerMinute, uint minimumPower, uint maximumPower, uint currentPower)

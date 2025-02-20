@@ -257,12 +257,15 @@ public partial class NVidiaGpuDriver :
 			}
 		}
 
+		var fanInfos = new NvApi.GpuFanInfo[32];
 		var fanStatuses = new NvApi.GpuFanStatus[32];
 		var fanControls = new NvApi.GpuFanControl[32];
+		int fanInfoCount = 0;
 		int fanStatusCount = 0;
 		int fanControlCount = 0;
 		try
 		{
+			fanInfoCount = foundGpu.GetFanCoolersInfo(fanInfos);
 			fanStatusCount = foundGpu.GetFanCoolersStatus(fanStatuses);
 			fanControlCount = foundGpu.GetFanCoolersControl(fanControls);
 		}
@@ -303,6 +306,7 @@ public partial class NVidiaGpuDriver :
 					zoneControls,
 					lightingZones.DrainToImmutable(),
 					hasTachReading,
+					fanInfos.AsSpan(0, fanInfoCount),
 					fanStatuses.AsSpan(0, fanStatusCount),
 					fanControls.AsSpan(0, fanControlCount),
 					thermalSensors.AsSpan(0, sensorCount),
@@ -360,6 +364,7 @@ public partial class NVidiaGpuDriver :
 		NvApi.Gpu.Client.IlluminationZoneControl[] zoneControls,
 		ImmutableArray<LightingZone> lightingZones,
 		bool hasTachReading,
+		ReadOnlySpan<NvApi.GpuFanInfo> fanCoolerInfos,
 		ReadOnlySpan<NvApi.GpuFanStatus> fanCoolerStatuses,
 		ReadOnlySpan<NvApi.GpuFanControl> fanCoolerControls,
 		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors,
@@ -400,22 +405,31 @@ public partial class NVidiaGpuDriver :
 				_logger.GpuClockNotSupported(clockFrequencies[i].Clock);
 			}
 		}
-		_fanCoolerSensors = new FanCoolerSensor?[fanCoolerStatuses.Length];
-		for (int i = 0; i < fanCoolerStatuses.Length; i++)
+		FanCoolingControl? coolingControl = null;
+		if (fanCoolerInfos.Length == fanCoolerStatuses.Length)
 		{
-			var fanCoolerStatus = fanCoolerStatuses[i];
-			// This API is not documented, so we don't really know all the details. Only fans with an ID that has been seen in the wild will be exposed as sensors. (Similar as for clocks above)
-			if (fanCoolerStatus.FanId is 1 or 2)
+			_fanCoolerSensors = new FanCoolerSensor?[fanCoolerStatuses.Length];
+			for (int i = 0; i < fanCoolerStatuses.Length; i++)
 			{
-				sensors.Add(_fanCoolerSensors[i] = new(_gpu, fanCoolerStatus));
+				ref readonly var fanCoolerInfo = ref fanCoolerInfos[i];
+				ref readonly var fanCoolerStatus = ref fanCoolerStatuses[i];
+				// This API is not documented, so we don't really know all the details. Only fans with an ID that has been seen in the wild will be exposed as sensors. (Similar as for clocks above)
+				// TODO: Extend the fan ID support.
+				if (fanCoolerStatus.FanId is 1 or 2)
+				{
+					sensors.Add(_fanCoolerSensors[i] = new(_gpu, in fanCoolerInfo, in fanCoolerStatus));
+				}
+			}
+			if (fanCoolerStatuses.Length == fanCoolerControls.Length)
+			{
+				coolingControl = new FanCoolingControl(gpu, fanCoolerInfos, fanCoolerStatuses, fanCoolerControls);
 			}
 		}
-		_sensors = sensors.DrainToImmutable();
-		FanCoolingControl? coolingControl = null;
-		if (fanCoolerStatuses.Length == fanCoolerControls.Length)
+		else
 		{
-			coolingControl = new FanCoolingControl(gpu, fanCoolerControls);
+			_fanCoolerSensors = [];
 		}
+		_sensors = sensors.DrainToImmutable();
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, NVidiaGpuDriver, IDeviceIdFeature>(this);
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2cBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
@@ -634,7 +648,7 @@ public partial class NVidiaGpuDriver :
 		private bool _hasChanged;
 		private readonly FanCooler[] _coolers;
 
-		public FanCoolingControl(NvApi.PhysicalGpu physicalGpu, ReadOnlySpan<NvApi.GpuFanControl> fanControls)
+		public FanCoolingControl(NvApi.PhysicalGpu physicalGpu, ReadOnlySpan<NvApi.GpuFanInfo> fanInfos, ReadOnlySpan<NvApi.GpuFanStatus> fanStatuses, ReadOnlySpan<NvApi.GpuFanControl> fanControls)
 		{
 			var fanIds = new uint[fanControls.Length];
 			var powers = new short[fanControls.Length];
@@ -644,19 +658,31 @@ public partial class NVidiaGpuDriver :
 			int registeredCoolerCount = 0;
 			for (int i = 0; i < fanControls.Length; i++)
 			{
+				ref readonly var fanStatus = ref fanStatuses[i];
 				ref readonly var fanControl = ref fanControls[i];
 
 				fanIds[i] = fanControl.FanId;
 				powers[i] = fanControl.CoolingMode == NvApi.FanCoolingMode.Manual ? (short)fanControl.Power : (short)256;
 
+				Guid coolerId;
+				Guid sensorId;
 				if (fanControl.FanId is 1)
 				{
-					coolers[registeredCoolerCount++] = new(this, i, Fan1CoolerId, Fan1SpeedSensorId);
+					coolerId = Fan1CoolerId;
+					sensorId = Fan1SpeedSensorId;
 				}
 				else if (fanControl.FanId is 2)
 				{
-					coolers[registeredCoolerCount++] = new(this, i, Fan2CoolerId, Fan2SpeedSensorId);
+					coolerId = Fan2CoolerId;
+					sensorId = Fan2SpeedSensorId;
 				}
+				else
+				{
+					// Skip "unknown" fans
+					// TODO: The fan IDs seem pretty reliable starting at 1 (probably to detect empty IDs), so we could probably hardcode a few more fan IDs.
+					continue;
+				}
+				coolers[registeredCoolerCount++] = new(this, i, coolerId, sensorId, checked((byte)fanStatus.MinimumPower), checked((byte)fanStatus.MaximumPower));
 			}
 
 			if (registeredCoolerCount < coolers.Length)
@@ -718,13 +744,17 @@ public partial class NVidiaGpuDriver :
 			private readonly int _index;
 			private readonly Guid _coolerId;
 			private readonly Guid _sensorId;
+			private readonly byte _minimumPower;
+			private readonly byte _maximumPower;
 
-			public FanCooler(FanCoolingControl control, int index, Guid coolerId, Guid sensorId)
+			public FanCooler(FanCoolingControl control, int index, Guid coolerId, Guid sensorId, byte minimumPower, byte maximumPower)
 			{
 				_control = control;
 				_index = index;
 				_coolerId = coolerId;
 				_sensorId = sensorId;
+				_minimumPower = minimumPower;
+				_maximumPower = maximumPower;
 			}
 
 			private sbyte Power
@@ -757,7 +787,8 @@ public partial class NVidiaGpuDriver :
 
 			void IManualCooler.SetPower(byte power)
 			{
-				ArgumentOutOfRangeException.ThrowIfGreaterThan(power, 100);
+				ArgumentOutOfRangeException.ThrowIfLessThan(power, _minimumPower);
+				ArgumentOutOfRangeException.ThrowIfGreaterThan(power, _maximumPower);
 				Power = (sbyte)power;
 			}
 
@@ -776,7 +807,9 @@ public partial class NVidiaGpuDriver :
 				}
 			}
 
-			byte IConfigurableCooler.MinimumPower => 30;
+			// NB: I didn't expose maximum power in the API, as it would seem stupid for it not to be 100.
+			// TODO: Let's maybe add a warning log if the max power of a fan is not 100 for some reason.
+			byte IConfigurableCooler.MinimumPower => _minimumPower;
 			bool IConfigurableCooler.CanSwitchOff => false;
 		}
 	}

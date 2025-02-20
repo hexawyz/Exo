@@ -15,19 +15,22 @@ public partial class NVidiaGpuDriver
 			};
 
 		private uint _currentValue;
+		private readonly uint _maximumValue;
 		private readonly byte _fanId;
 
 		public Guid SensorId => GetGuidForFan(_fanId);
 
-		public FanCoolerSensor(NvApi.PhysicalGpu gpu, NvApi.GpuFanStatus fanStatus)
+		public FanCoolerSensor(NvApi.PhysicalGpu gpu, in NvApi.GpuFanInfo fanInfo, in NvApi.GpuFanStatus fanStatus)
 			: base(gpu)
 		{
 			_currentValue = fanStatus.SpeedInRotationsPerMinute;
+			// NB: There is no useful way to use the minimum value here, as it is the minimum *ON* value.
+			_maximumValue = fanInfo.MaximumSpeedInRotationsPerMinute;
 			_fanId = (byte)fanStatus.FanId;
 		}
 
-		public uint? ScaleMinimumValue => null;
-		public uint? ScaleMaximumValue => null;
+		public uint? ScaleMinimumValue => 0;
+		public uint? ScaleMaximumValue => _maximumValue;
 
 		public SensorUnit Unit => SensorUnit.RotationsPerMinute;
 
