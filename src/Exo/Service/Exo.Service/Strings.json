@@ -76,15 +76,18 @@
     },
     "4458560b-d509-4368-9181-9f66faaa65bf": {
         "en": "Input Voltage",
-        "fr": "Tension d'entrée"
+        "fr": "Tension d'entrée",
+        "ja": "入力電圧"
     },
     "d29d5844-6fc3-4e76-bd70-b158b584c5de": {
         "en": "Output Voltage",
-        "fr": "Tension de sortie"
+        "fr": "Tension de sortie",
+        "ja": "出力電圧"
     },
     "c5f09e52-98c0-48ec-ab4a-19766755fb78": {
         "en": "Output Power",
-        "fr": "Puissance de sortie"
+        "fr": "Puissance de sortie",
+        "ja": "出力電力"
     },
     "7a074c26-621c-4539-9c45-d1e7050f7bfb": {
         "en": "Power Load",
