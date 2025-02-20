@@ -213,7 +213,7 @@ internal partial class CoolingService
 			{
 				if (_manualPowerState.Value != power) _manualPowerState.Value = power;
 				if (_activeState is IAsyncDisposable disposable) await disposable.DisposeAsync();
-				else if (!ReferenceEquals(_activeState, _manualPowerState)) _activeState = AutomaticPowerState;
+				else if (!ReferenceEquals(_activeState, _manualPowerState)) _activeState = _manualPowerState;
 				SendManualPowerUpdate(power);
 			}
 		}
