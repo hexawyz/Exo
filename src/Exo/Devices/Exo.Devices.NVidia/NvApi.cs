@@ -1412,6 +1412,7 @@ internal sealed class NvApi
 				item.Power = fanControl.Power;
 				item.CoolingMode = fanControl.CoolingMode;
 			}
+			status.Count = (uint)fanControls.Length;
 			ValidateResult(Functions.Gpu.ClientFanCoolersSetControl(_handle, &status));
 		}
 
