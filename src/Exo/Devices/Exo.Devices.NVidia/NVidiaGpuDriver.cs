@@ -629,7 +629,7 @@ public partial class NVidiaGpuDriver :
 	private sealed class FanCoolingControl : ICoolingControllerFeature
 	{
 		private readonly uint[] _fanIds;
-		private readonly sbyte[] _powers;
+		private readonly short[] _statuses;
 		private readonly NvApi.PhysicalGpu _physicalGpu;
 		private bool _hasChanged;
 		private readonly FanCooler[] _coolers;
@@ -637,7 +637,7 @@ public partial class NVidiaGpuDriver :
 		public FanCoolingControl(NvApi.PhysicalGpu physicalGpu, ReadOnlySpan<NvApi.GpuFanControl> fanControls)
 		{
 			var fanIds = new uint[fanControls.Length];
-			var powers = new sbyte[fanControls.Length];
+			var powers = new short[fanControls.Length];
 			var coolers = new FanCooler[fanControls.Length];
 
 			// Keep track of how many know coolers have been registered. We will hide the unknown IDs for safety. (Only 1 and 2 seen at the time of writing this)
@@ -647,7 +647,7 @@ public partial class NVidiaGpuDriver :
 				ref readonly var fanControl = ref fanControls[i];
 
 				fanIds[i] = fanControl.FanId;
-				powers[i] = fanControl.CoolingMode == NvApi.FanCoolingMode.Manual ? (sbyte)fanControl.Power : (sbyte)-1;
+				powers[i] = fanControl.CoolingMode == NvApi.FanCoolingMode.Manual ? (short)fanControl.Power : (short)256;
 
 				if (fanControl.FanId is 1)
 				{
@@ -666,7 +666,7 @@ public partial class NVidiaGpuDriver :
 
 			_physicalGpu = physicalGpu;
 			_fanIds = fanIds;
-			_powers = powers;
+			_statuses = powers;
 			_coolers = coolers;
 		}
 
@@ -679,17 +679,30 @@ public partial class NVidiaGpuDriver :
 				try
 				{
 					var fanIds = _fanIds;
-					var powers = _powers;
+					var statuses = _statuses;
 					Span<NvApi.GpuFanControl> fanControls = stackalloc NvApi.GpuFanControl[fanIds.Length];
 
-					for (int i = 0; i < fanControls.Length; i++)
+					int changedCount = 0;
+					for (int i = 0; i < fanIds.Length; i++)
 					{
 						uint fanId = fanIds[i];
-						sbyte power = powers[i];
-						fanControls[i] = new(fanId, power >= 0 ? (byte)power : (byte)0, power >= 0 ? NvApi.FanCoolingMode.Manual : NvApi.FanCoolingMode.Automatic);
+						ref short statusRef = ref statuses[i];
+						short status = statusRef;
+						if (status < 0)
+						{
+							status &= 0x7FFF;
+							bool isManual = (status & 0x100) == 0;
+							fanControls[changedCount++] = new(fanId, isManual ? (byte)status : (byte)0, isManual ? NvApi.FanCoolingMode.Manual : NvApi.FanCoolingMode.Automatic);
+							statusRef = status;
+						}
 					}
 
-					_physicalGpu.SetFanCoolersControl(fanControls);
+					if (changedCount > 0)
+					{
+						_physicalGpu.SetFanCoolersControl(fanControls[..changedCount]);
+					}
+
+					_hasChanged = false;
 				}
 				catch (Exception ex)
 				{
@@ -716,13 +729,20 @@ public partial class NVidiaGpuDriver :
 
 			private sbyte Power
 			{
-				get => _control._powers[_index];
+				get
+				{
+					short status = _control._statuses[_index];
+					return (status & 0x100) == 0 ? (sbyte)status : (sbyte)-1;
+				}
 				set
 				{
-					ref var power = ref _control._powers[_index];
+					ref short statusRef = ref _control._statuses[_index];
+					short status = statusRef;
+					sbyte power = (status & 0x100) == 0 ? (sbyte)status : (sbyte)-1;
 					if (value != power)
 					{
-						Volatile.Write(ref power, value);
+						status = (short)(status & 0x7E00 | (value >= 0 ? 0x8000 | (byte)value : 0x8100));
+						Volatile.Write(ref statusRef, status);
 						_control._hasChanged = true;
 					}
 				}
