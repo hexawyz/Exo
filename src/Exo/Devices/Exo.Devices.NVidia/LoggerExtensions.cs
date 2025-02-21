@@ -86,8 +86,18 @@ internal static partial class LoggerExtensions
 		string deviceFriendlyName,
 		Exception exception
 	);
-
 	[LoggerMessage(EventId = 10202,
+		EventName = "GpuDynamicPStatesQueryFailure",
+		Level = LogLevel.Error,
+		Message = "Failed to query the dynamic PStates for GPU {DeviceFriendlyName}.")]
+	public static partial void GpuDynamicPStatesQueryFailure
+	(
+		this ILogger logger,
+		string deviceFriendlyName,
+		Exception exception
+	);
+
+	[LoggerMessage(EventId = 10203,
 		EventName = "GpuClockNotSupported",
 		Level = LogLevel.Warning,
 		Message = "Clock {Clock} is not supported. It will not be exposed as a sensor.")]
@@ -97,7 +107,7 @@ internal static partial class LoggerExtensions
 		NvApi.Gpu.PublicClock clock
 	);
 
-	[LoggerMessage(EventId = 10203,
+	[LoggerMessage(EventId = 10204,
 		EventName = "GpuUtilizationWatchingFailure",
 		Level = LogLevel.Error,
 		Message = "An error occurred while watching utilization for GPU {DeviceFriendlyName}.")]

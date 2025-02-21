@@ -41,6 +41,13 @@
         "minimumValue": 0,
         "maximumValue": 100
     },
+    // Bus
+    "b91428a3-7b32-49ce-ba02-cff18a15910b": {
+        "nameStringId": "a2e5471f-7d3c-432c-88f8-c9f16e2456f5",
+        "category": "load",
+        "minimumValue": 0,
+        "maximumValue": 100
+    },
     // GPU Temperature
     "b65044be-a3b0-4efb-9efb-826e3bd760a0": {
         "nameStringId": "830f4e78-71b0-459c-9ade-a001d6f1ae10",

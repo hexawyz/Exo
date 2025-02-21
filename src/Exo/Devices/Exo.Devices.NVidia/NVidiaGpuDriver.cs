@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
 using Exo.ColorFormats;
-using Exo.Cooling;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Cooling;
@@ -87,6 +86,7 @@ public partial class NVidiaGpuDriver :
 	private static readonly Guid GraphicsUtilizationSensorId = new(0x005F94DD, 0x09F5, 0x46D3, 0x99, 0x02, 0xE1, 0x5D, 0x6A, 0x19, 0xD8, 0x24);
 	private static readonly Guid FrameBufferUtilizationSensorId = new(0xBF9AAD1D, 0xE013, 0x4178, 0x97, 0xB3, 0x42, 0x20, 0xD2, 0x6C, 0xBE, 0x71);
 	private static readonly Guid VideoUtilizationSensorId = new(0x147C8F52, 0x1402, 0x4515, 0xB9, 0xFB, 0x41, 0x48, 0xFD, 0x02, 0x12, 0xA4);
+	private static readonly Guid BusUtilizationSensorId = new(0xB91428A3, 0x7B32, 0x49CE, 0xBA, 0x02, 0xCF, 0xF1, 0x8A, 0x15, 0x91, 0x0B);
 
 	private static readonly Guid GpuThermalSensorId = new(0xB65044BE, 0xA3B0, 0x4EFB, 0x9E, 0xFB, 0x82, 0x6E, 0x3B, 0xD7, 0x60, 0xA0);
 	private static readonly Guid MemoryThermalSensorId = new(0x463292D7, 0x4C7F, 0x4848, 0xBA, 0x9E, 0x71, 0x28, 0x21, 0xDF, 0xD5, 0xE8);
@@ -289,6 +289,16 @@ public partial class NVidiaGpuDriver :
 		var clockFrequencies = new NvApi.GpuClockFrequency[32];
 		int clockFrequencyCount = foundGpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
 
+		var dynamicPStateInfos = new NvApi.GpuDynamicPStateInfo[8];
+		int dynamicPStateCount = 0;
+		try
+		{
+			dynamicPStateCount = foundGpu.GetDynamicPStatesInfoEx(dynamicPStateInfos);
+		}
+		catch
+		{
+		}
+
 		return new
 		(
 			new DriverCreationResult<SystemDevicePath>
@@ -310,7 +320,8 @@ public partial class NVidiaGpuDriver :
 					fanStatuses.AsSpan(0, fanStatusCount),
 					fanControls.AsSpan(0, fanControlCount),
 					thermalSensors.AsSpan(0, sensorCount),
-					clockFrequencies.AsSpan(0, clockFrequencyCount)
+					clockFrequencies.AsSpan(0, clockFrequencyCount),
+					dynamicPStateInfos.AsSpan(0, dynamicPStateCount)
 				)
 			)
 		);
@@ -328,13 +339,15 @@ public partial class NVidiaGpuDriver :
 	private readonly Lock _lock;
 	private readonly IReadOnlyCollection<ILightingZone> _lightingZoneCollection;
 	private readonly ImmutableArray<FeatureSetDescription> _featureSets;
-	private readonly UtilizationWatcher _utilizationWatcher;
-	private readonly FanCoolerSensor?[] _fanCoolerSensors;
+	private readonly UtilizationWatcher? _utilizationWatcher;
+	private readonly DynamicPStateSensor[] _dynamicPStateSensors;
+	private readonly FanCoolerSensor[] _fanCoolerSensors;
 	private readonly ThermalTargetSensor[] _thermalTargetSensors;
 	private readonly ClockSensor?[] _clockSensors;
 	private int _fanCoolerGroupQueriedSensorCount;
 	private int _thermalGroupQueriedSensorCount;
 	private int _clockGroupQueriedSensorCount;
+	private int _dynamicPStateGroupQueriedSensorCount;
 	private readonly ILogger<NVidiaGpuDriver> _logger;
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZoneCollection;
@@ -368,7 +381,8 @@ public partial class NVidiaGpuDriver :
 		ReadOnlySpan<NvApi.GpuFanStatus> fanCoolerStatuses,
 		ReadOnlySpan<NvApi.GpuFanControl> fanCoolerControls,
 		ReadOnlySpan<NvApi.Gpu.ThermalSensor> thermalSensors,
-		ReadOnlySpan<NvApi.GpuClockFrequency> clockFrequencies
+		ReadOnlySpan<NvApi.GpuClockFrequency> clockFrequencies,
+		ReadOnlySpan<NvApi.GpuDynamicPStateInfo> dynamicPStateInfos
 	) : base(friendlyName, configurationKey)
 	{
 		_logger = logger;
@@ -377,11 +391,29 @@ public partial class NVidiaGpuDriver :
 		_lightingZones = lightingZones;
 		_gpu = gpu;
 		_lock = @lock;
-		_utilizationWatcher = new(utilizationWatcherLogger, this);
-		var sensors = ImmutableArray.CreateBuilder<ISensor>(3 + thermalSensors.Length + clockFrequencies.Length);
-		sensors.Add(_utilizationWatcher.GraphicsSensor);
-		sensors.Add(_utilizationWatcher.FrameBufferSensor);
-		sensors.Add(_utilizationWatcher.VideoSensor);
+		var sensors = ImmutableArray.CreateBuilder<ISensor>(4 + fanCoolerInfos.Length + thermalSensors.Length + clockFrequencies.Length);
+		if (dynamicPStateInfos.Length > 0)
+		{
+			var pStateSensors = new DynamicPStateSensor[dynamicPStateInfos.Length];
+			int count = 0;
+			for (int i = 0; i < dynamicPStateInfos.Length; i++)
+			{
+				ref readonly var info = ref dynamicPStateInfos[i];
+				if (info.Domain <= NvApi.Gpu.Client.UtilizationDomain.Bus)
+				{
+					sensors.Add(pStateSensors[count++] = new(gpu, info.Domain, info.Percent));
+				}
+			}
+			_dynamicPStateSensors = count < pStateSensors.Length ? pStateSensors[..count] : pStateSensors;
+		}
+		else
+		{
+			_dynamicPStateSensors = [];
+			_utilizationWatcher = new(utilizationWatcherLogger, this);
+			sensors.Add(_utilizationWatcher.GraphicsSensor);
+			sensors.Add(_utilizationWatcher.FrameBufferSensor);
+			sensors.Add(_utilizationWatcher.VideoSensor);
+		}
 		if (hasTachReading)
 		{
 			sensors.Add(new LegacyFanSensor(gpu));
@@ -408,7 +440,8 @@ public partial class NVidiaGpuDriver :
 		FanCoolingControl? coolingControl = null;
 		if (fanCoolerInfos.Length == fanCoolerStatuses.Length)
 		{
-			_fanCoolerSensors = new FanCoolerSensor?[fanCoolerStatuses.Length];
+			var fanCoolerSensors = new FanCoolerSensor[fanCoolerStatuses.Length];
+			int count = 0;
 			for (int i = 0; i < fanCoolerStatuses.Length; i++)
 			{
 				ref readonly var fanCoolerInfo = ref fanCoolerInfos[i];
@@ -417,9 +450,10 @@ public partial class NVidiaGpuDriver :
 				// TODO: Extend the fan ID support.
 				if (fanCoolerStatus.FanId is 1 or 2)
 				{
-					sensors.Add(_fanCoolerSensors[i] = new(_gpu, in fanCoolerInfo, in fanCoolerStatus));
+					sensors.Add(fanCoolerSensors[count++] = new(_gpu, in fanCoolerInfo, in fanCoolerStatus));
 				}
 			}
+			_fanCoolerSensors = count < fanCoolerSensors.Length ? fanCoolerSensors[..count] : fanCoolerSensors;
 			if (fanCoolerStatuses.Length == fanCoolerControls.Length)
 			{
 				coolingControl = new FanCoolingControl(gpu, fanCoolerInfos, fanCoolerStatuses, fanCoolerControls);
@@ -454,7 +488,17 @@ public partial class NVidiaGpuDriver :
 		_featureSets = ImmutableCollectionsMarshal.AsImmutableArray(featureSets);
 	}
 
-	public override ValueTask DisposeAsync() => _utilizationWatcher.DisposeAsync();
+	public override ValueTask DisposeAsync()
+	{
+		if (_utilizationWatcher is { } utilizationWatcher)
+		{
+			return utilizationWatcher.DisposeAsync();
+		}
+		else
+		{
+			return ValueTask.CompletedTask;
+		}
+	}
 
 	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.NeverPersisted;
 
@@ -533,6 +577,10 @@ public partial class NVidiaGpuDriver :
 			{
 				_clockGroupQueriedSensorCount++;
 			}
+			else if (s is DynamicPStateSensor)
+			{
+				_dynamicPStateGroupQueriedSensorCount++;
+			}
 		}
 	}
 
@@ -554,6 +602,10 @@ public partial class NVidiaGpuDriver :
 			{
 				_clockGroupQueriedSensorCount--;
 			}
+			else if (s is DynamicPStateSensor)
+			{
+				_dynamicPStateGroupQueriedSensorCount--;
+			}
 		}
 	}
 
@@ -562,6 +614,7 @@ public partial class NVidiaGpuDriver :
 		QueryFanCoolerSensors();
 		QueryThermalSensors();
 		QueryClockSensors();
+		QueryDynamicPStateSensors();
 		return ValueTask.CompletedTask;
 	}
 
@@ -625,6 +678,7 @@ public partial class NVidiaGpuDriver :
 		{
 			int clockFrequencyCount = _gpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
 
+			var sensors = _dynamicPStateSensors;
 			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
 			if (clockFrequencyCount == _clockSensors.Length)
 			{
@@ -640,177 +694,29 @@ public partial class NVidiaGpuDriver :
 		}
 	}
 
-	private sealed class FanCoolingControl : ICoolingControllerFeature
+	private void QueryDynamicPStateSensors()
 	{
-		private readonly uint[] _fanIds;
-		private readonly short[] _statuses;
-		private readonly NvApi.PhysicalGpu _physicalGpu;
-		private bool _hasChanged;
-		private readonly FanCooler[] _coolers;
+		if (_dynamicPStateGroupQueriedSensorCount == 0) return;
 
-		public FanCoolingControl(NvApi.PhysicalGpu physicalGpu, ReadOnlySpan<NvApi.GpuFanInfo> fanInfos, ReadOnlySpan<NvApi.GpuFanStatus> fanStatuses, ReadOnlySpan<NvApi.GpuFanControl> fanControls)
+		Span<NvApi.GpuDynamicPStateInfo> dynamicPStateInfos = stackalloc NvApi.GpuDynamicPStateInfo[8];
+
+		try
 		{
-			var fanIds = new uint[fanControls.Length];
-			var powers = new short[fanControls.Length];
-			var coolers = new FanCooler[fanControls.Length];
+			int dynamicPStateInfoCount = _gpu.GetDynamicPStatesInfoEx(dynamicPStateInfos);
 
-			// Keep track of how many know coolers have been registered. We will hide the unknown IDs for safety. (Only 1 and 2 seen at the time of writing this)
-			int registeredCoolerCount = 0;
-			for (int i = 0; i < fanControls.Length; i++)
+			var sensors = _dynamicPStateSensors;
+			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
+			if (dynamicPStateInfoCount == sensors.Length)
 			{
-				ref readonly var fanStatus = ref fanStatuses[i];
-				ref readonly var fanControl = ref fanControls[i];
-
-				fanIds[i] = fanControl.FanId;
-				powers[i] = fanControl.CoolingMode == NvApi.FanCoolingMode.Manual ? (short)fanControl.Power : (short)256;
-
-				Guid coolerId;
-				Guid sensorId;
-				if (fanControl.FanId is 1)
+				for (int i = 0; i < sensors.Length; i++)
 				{
-					coolerId = Fan1CoolerId;
-					sensorId = Fan1SpeedSensorId;
+					sensors[i]?.OnValueRead(dynamicPStateInfos[i].Percent);
 				}
-				else if (fanControl.FanId is 2)
-				{
-					coolerId = Fan2CoolerId;
-					sensorId = Fan2SpeedSensorId;
-				}
-				else
-				{
-					// Skip "unknown" fans
-					// TODO: The fan IDs seem pretty reliable starting at 1 (probably to detect empty IDs), so we could probably hardcode a few more fan IDs.
-					continue;
-				}
-				coolers[registeredCoolerCount++] = new(this, i, coolerId, sensorId, checked((byte)fanStatus.MinimumPower), checked((byte)fanStatus.MaximumPower));
 			}
-
-			if (registeredCoolerCount < coolers.Length)
-			{
-				coolers = coolers[..registeredCoolerCount];
-			}
-
-			_physicalGpu = physicalGpu;
-			_fanIds = fanIds;
-			_statuses = powers;
-			_coolers = coolers;
 		}
-
-		ImmutableArray<ICooler> ICoolingControllerFeature.Coolers => ImmutableCollectionsMarshal.AsImmutableArray((ICooler[])_coolers);
-
-		ValueTask ICoolingControllerFeature.ApplyChangesAsync(CancellationToken cancellationToken)
+		catch (Exception ex)
 		{
-			if (_hasChanged)
-			{
-				try
-				{
-					var fanIds = _fanIds;
-					var statuses = _statuses;
-					Span<NvApi.GpuFanControl> fanControls = stackalloc NvApi.GpuFanControl[fanIds.Length];
-
-					int changedCount = 0;
-					for (int i = 0; i < fanIds.Length; i++)
-					{
-						uint fanId = fanIds[i];
-						ref short statusRef = ref statuses[i];
-						short status = statusRef;
-						if (status < 0)
-						{
-							status &= 0x7FFF;
-							bool isManual = (status & 0x100) == 0;
-							fanControls[changedCount++] = new(fanId, isManual ? (byte)status : (byte)0, isManual ? NvApi.FanCoolingMode.Manual : NvApi.FanCoolingMode.Automatic);
-							statusRef = status;
-						}
-					}
-
-					if (changedCount > 0)
-					{
-						_physicalGpu.SetFanCoolersControl(fanControls[..changedCount]);
-					}
-
-					_hasChanged = false;
-				}
-				catch (Exception ex)
-				{
-					return ValueTask.FromException(ex);
-				}
-			}
-			return ValueTask.CompletedTask;
-		}
-
-		private sealed class FanCooler : ICooler, IAutomaticCooler, IManualCooler
-		{
-			private readonly FanCoolingControl _control;
-			private readonly int _index;
-			private readonly Guid _coolerId;
-			private readonly Guid _sensorId;
-			private readonly byte _minimumPower;
-			private readonly byte _maximumPower;
-
-			public FanCooler(FanCoolingControl control, int index, Guid coolerId, Guid sensorId, byte minimumPower, byte maximumPower)
-			{
-				_control = control;
-				_index = index;
-				_coolerId = coolerId;
-				_sensorId = sensorId;
-				_minimumPower = minimumPower;
-				_maximumPower = maximumPower;
-			}
-
-			private sbyte Power
-			{
-				get
-				{
-					short status = _control._statuses[_index];
-					return (status & 0x100) == 0 ? (sbyte)status : (sbyte)-1;
-				}
-				set
-				{
-					ref short statusRef = ref _control._statuses[_index];
-					short status = statusRef;
-					sbyte power = (status & 0x100) == 0 ? (sbyte)status : (sbyte)-1;
-					if (value != power)
-					{
-						status = (short)(status & 0x7E00 | (value >= 0 ? 0x8000 | (byte)value : 0x8100));
-						Volatile.Write(ref statusRef, status);
-						_control._hasChanged = true;
-					}
-				}
-			}
-
-			Guid ICooler.CoolerId => _coolerId;
-			Guid? ICooler.SpeedSensorId => _sensorId;
-			CoolerType ICooler.Type => CoolerType.Fan;
-			CoolingMode ICooler.CoolingMode => Power < 0 ? CoolingMode.Automatic : CoolingMode.Manual;
-
-			void IAutomaticCooler.SwitchToAutomaticCooling() => Power = -1;
-
-			void IManualCooler.SetPower(byte power)
-			{
-				ArgumentOutOfRangeException.ThrowIfLessThan(power, _minimumPower);
-				ArgumentOutOfRangeException.ThrowIfGreaterThan(power, _maximumPower);
-				Power = (sbyte)power;
-			}
-
-			bool IManualCooler.TryGetPower(out byte power)
-			{
-				var p = Power;
-				if ((byte)p <= 100)
-				{
-					power = (byte)p;
-					return true;
-				}
-				else
-				{
-					power = 0;
-					return false;
-				}
-			}
-
-			// NB: I didn't expose maximum power in the API, as it would seem stupid for it not to be 100.
-			// TODO: Let's maybe add a warning log if the max power of a fan is not 100 for some reason.
-			byte IConfigurableCooler.MinimumPower => _minimumPower;
-			bool IConfigurableCooler.CanSwitchOff => false;
+			_logger.GpuDynamicPStatesQueryFailure(FriendlyName, ex);
 		}
 	}
 }

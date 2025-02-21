@@ -105,6 +105,10 @@
         "en": "Video Load",
         "fr": "% Vidéo"
     },
+    "a2e5471f-7d3c-432c-88f8-c9f16e2456f5": {
+        "en": "Bus Load",
+        "fr": "% Bus"
+    },
     "830f4e78-71b0-459c-9ade-a001d6f1ae10": {
         "en": "GPU Temperature",
         "fr": "Température GPU"

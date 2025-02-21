@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -19,6 +20,8 @@ internal sealed class NvApi
 	public static bool HasThermals => DriverVersion >= 85_00;
 	public static bool HasClockFrequencies => DriverVersion >= 285_00;
 	public static bool HasIllumination => DriverVersion >= 400_00;
+	public static bool HasDynamicPStatesInfoEx => DriverVersion >= 185_00;
+	public static bool HasPStates20 => DriverVersion >= 295_00;
 	public static bool HasUtilizationSamples => DriverVersion >= 455_00;
 
 	static NvApi()
@@ -77,6 +80,12 @@ internal sealed class NvApi
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint> ClientRegisterForUtilizationSampleUpdates = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.UtilizationPeriodicCallbackSettings*, uint>)QueryInterface(0xadeeaf67);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint> GetThermalSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.ThermalSettings*, uint>)QueryInterface(0xe3640a56);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint> GetAllClockFrequencies = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.ClockFrequencies*, uint>)QueryInterface(0xdcb616c3);
+			// Struct Size for the two below is 0x2494 (V1)
+			//public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.PStates*, uint> GetPStates = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.PStates*, uint>)QueryInterface(0xa69f8e29);
+			//public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.PStates*, byte, uint> GetPStatesEx = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.PStates*, byte, uint>)QueryInterface(0x3b0d30df);
+			// Struct Size for the one below is 0x88 (V1)
+			//public static readonly delegate* unmanaged[Cdecl]<nint, byte*, uint> GetDynamicPstatesInfo = (delegate* unmanaged[Cdecl]<nint, byte*, uint>)QueryInterface(0x189a1fdf);
+			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DynamicPStatesInfo*, uint> GetDynamicPstatesInfoEx = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.DynamicPStatesInfo*, uint>)QueryInterface(0x60ded2ed);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint*, uint> GetTachReading = (delegate* unmanaged[Cdecl]<nint, uint*, uint>)QueryInterface(0x5f608315);
 			public static readonly delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint> GetCoolerSettings = (delegate* unmanaged[Cdecl]<nint, uint, NvApi.Gpu.CoolerSettings*, uint>)QueryInterface(0xda141340);
 			public static readonly delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersInfo*, uint> ClientFanCoolersGetInfo = (delegate* unmanaged[Cdecl]<nint, NvApi.Gpu.Client.FanCoolersInfo*, uint>)QueryInterface(0xfb85b01e);
@@ -346,6 +355,27 @@ internal sealed class NvApi
 				set => _flags = (_flags & ~0xFU) | ((uint)value & 0xFU);
 			}
 			public ClockFrequencyArray Domains;
+		}
+
+		internal struct DynamicPStateInfo
+		{
+			private uint _flags;
+			public uint Percentage;
+
+			public bool IsPresent => (_flags & 1) != 0;
+		}
+
+		[InlineArray(8)]
+		internal struct DynamicPStateInfoArray
+		{
+			private DynamicPStateInfo _element0;
+		}
+
+		public struct DynamicPStatesInfo
+		{
+			public uint Version;
+			public uint Flags;
+			public DynamicPStateInfoArray Utilizations;
 		}
 
 		public enum ThermalController
@@ -862,11 +892,12 @@ internal sealed class NvApi
 				private ByteArray64 _reserved;
 			}
 
-			public enum UtilizationDomain
+			public enum UtilizationDomain : byte
 			{
 				Graphics = 0,
 				FrameBuffer = 1,
 				Video = 2,
+				Bus = 3,
 			}
 
 			internal struct UtilizationData
@@ -1393,9 +1424,37 @@ internal sealed class NvApi
 			var domains = (ReadOnlySpan<Gpu.ClockFrequency>)apiClockFrequencies.Domains;
 			for (int i = 0; i < domains.Length; i++)
 			{
-				if (domains[i].IsPresent)
+				ref readonly var domain = ref domains[i];
+				if (domain.IsPresent)
 				{
-					clockFrequencies[count++] = new GpuClockFrequency((Gpu.PublicClock)i, domains[i].FrequencyInKiloHertz);
+					clockFrequencies[count++] = new GpuClockFrequency((Gpu.PublicClock)i, domain.FrequencyInKiloHertz);
+				}
+			}
+			return count;
+		}
+
+		//public unsafe void GetDynamicPStatesInfo()
+		//{
+		//	if (!HasClockFrequencies) return;
+		//	var data = new uint[0x22];
+		//	data[0] = 0x10088U;
+		//	fixed (uint* p = data)
+		//		ValidateResult(Functions.Gpu.GetDynamicPstatesInfo(_handle, (byte*)p));
+		//}
+
+		public unsafe int GetDynamicPStatesInfoEx(Span<GpuDynamicPStateInfo> infos)
+		{
+			if (!HasDynamicPStatesInfoEx) return 0;
+			var pStatesInfo = new Gpu.DynamicPStatesInfo { Version = StructVersion<Gpu.DynamicPStatesInfo>(1) };
+			ValidateResult(Functions.Gpu.GetDynamicPstatesInfoEx(_handle, &pStatesInfo));
+			var utilizations = ((ReadOnlySpan<Gpu.DynamicPStateInfo>)pStatesInfo.Utilizations);
+			int count = 0;
+			for (int i = 0; i < utilizations.Length; i++)
+			{
+				ref readonly var utilization = ref utilizations[i];
+				if (utilization.IsPresent)
+				{
+					infos[count++] = new((Gpu.Client.UtilizationDomain)i, (byte)utilization.Percentage);
 				}
 			}
 			return count;
@@ -1552,6 +1611,12 @@ internal sealed class NvApi
 
 		public static bool operator ==(PhysicalGpu left, PhysicalGpu right) => left.Equals(right);
 		public static bool operator !=(PhysicalGpu left, PhysicalGpu right) => !(left == right);
+	}
+
+	public readonly struct GpuDynamicPStateInfo(Gpu.Client.UtilizationDomain domain, byte percent)
+	{
+		public Gpu.Client.UtilizationDomain Domain { get; } = domain;
+		public byte Percent { get; } = percent;
 	}
 
 	public readonly struct GpuClientUtilizationData
