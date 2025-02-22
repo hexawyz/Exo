@@ -215,10 +215,11 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _taskId0;
 			private byte _taskId1;
 
-			public ushort TaskId
+			/// <summary>Task ID which specifies how the software should handle this control.</summary>
+			public TaskId TaskId
 			{
-				get => BigEndian.ReadUInt16(in _taskId0);
-				set => BigEndian.Write(ref _taskId0, value);
+				get => (TaskId)BigEndian.ReadUInt16(in _taskId0);
+				set => BigEndian.Write(ref _taskId0, (ushort)value);
 			}
 
 			private byte _flags;

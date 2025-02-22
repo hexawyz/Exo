@@ -33,13 +33,13 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(
 		EventId = 65008,
 		Level = LogLevel.Debug,
-		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId:X4}, Position: {Position}, GroupNumber: {GroupNumber}, GroupMask: {GroupMask}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
+		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId}, Position: {Position}, GroupNumber: {GroupNumber}, GroupMask: {GroupMask}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
 	public static partial void FeatureAccessDevice1B04ControlIdWithPositionAndGroup
 	(
 		this ILogger logger,
 		string? deviceSerialNumber,
 		ControlId controlId,
-		ushort taskId,
+		TaskId taskId,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlFlags flags,
 		byte position,
 		byte groupNumber,
@@ -50,13 +50,13 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(
 		EventId = 65009,
 		Level = LogLevel.Debug,
-		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId:X4}, GroupNumber: {GroupNumber}, GroupMask: {GroupMask}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
+		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId}, GroupNumber: {GroupNumber}, GroupMask: {GroupMask}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
 	public static partial void FeatureAccessDevice1B04ControlIdWithGroup
 	(
 		this ILogger logger,
 		string? deviceSerialNumber,
 		ControlId controlId,
-		ushort taskId,
+		TaskId taskId,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlFlags flags,
 		byte groupNumber,
 		byte groupMask,
@@ -66,13 +66,13 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(
 		EventId = 65010,
 		Level = LogLevel.Debug,
-		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId:X4}, Position: {Position}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
+		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId}, Position: {Position}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
 	public static partial void FeatureAccessDevice1B04ControlIdWithPosition
 	(
 		this ILogger logger,
 		string? deviceSerialNumber,
 		ControlId controlId,
-		ushort taskId,
+		TaskId taskId,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlFlags flags,
 		byte position,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlReportingCapabilities reportingCapabilities
@@ -81,13 +81,13 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(
 		EventId = 65011,
 		Level = LogLevel.Debug,
-		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId:X4}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
+		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
 	public static partial void FeatureAccessDevice1B04ControlId
 	(
 		this ILogger logger,
 		string? deviceSerialNumber,
 		ControlId controlId,
-		ushort taskId,
+		TaskId taskId,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlFlags flags,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlReportingCapabilities reportingCapabilities
 	);
