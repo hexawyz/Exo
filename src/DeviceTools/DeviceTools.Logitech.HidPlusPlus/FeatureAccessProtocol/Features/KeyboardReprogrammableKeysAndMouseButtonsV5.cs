@@ -89,10 +89,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId10;
 			private byte _controlId11;
 
-			public ushort ControlId1
+			public ControlId ControlId1
 			{
-				get => BigEndian.ReadUInt16(in _controlId10);
-				set => BigEndian.Write(ref _controlId10, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId10);
+				set => BigEndian.Write(ref _controlId10, (ushort)value);
 			}
 
 			public byte Event1;
@@ -100,10 +100,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId20;
 			private byte _controlId21;
 
-			public ushort ControlId2
+			public ControlId ControlId2
 			{
-				get => BigEndian.ReadUInt16(in _controlId20);
-				set => BigEndian.Write(ref _controlId20, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId20);
+				set => BigEndian.Write(ref _controlId20, (ushort)value);
 			}
 
 			public byte Event2;
@@ -111,10 +111,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId30;
 			private byte _controlId31;
 
-			public ushort ControlId3
+			public ControlId ControlId3
 			{
-				get => BigEndian.ReadUInt16(in _controlId30);
-				set => BigEndian.Write(ref _controlId30, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId30);
+				set => BigEndian.Write(ref _controlId30, (ushort)value);
 			}
 
 			public byte Event3;
@@ -122,10 +122,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId40;
 			private byte _controlId41;
 
-			public ushort ControlId4
+			public ControlId ControlId4
 			{
-				get => BigEndian.ReadUInt16(in _controlId40);
-				set => BigEndian.Write(ref _controlId40, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId40);
+				set => BigEndian.Write(ref _controlId40, (ushort)value);
 			}
 
 			public byte Event4;
@@ -133,10 +133,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId50;
 			private byte _controlId51;
 
-			public ushort ControlId5
+			public ControlId ControlId5
 			{
-				get => BigEndian.ReadUInt16(in _controlId50);
-				set => BigEndian.Write(ref _controlId50, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId50);
+				set => BigEndian.Write(ref _controlId50, (ushort)value);
 			}
 
 			public byte Event5;
@@ -206,10 +206,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId0;
 			private byte _controlId1;
 
-			public ushort ControlId
+			public ControlId ControlId
 			{
-				get => BigEndian.ReadUInt16(in _controlId0);
-				set => BigEndian.Write(ref _controlId0, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId0);
+				set => BigEndian.Write(ref _controlId0, (ushort)value);
 			}
 
 			private byte _taskId0;
@@ -263,10 +263,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId0;
 			private byte _controlId1;
 
-			public ushort ControlId
+			public ControlId ControlId
 			{
-				get => BigEndian.ReadUInt16(in _controlId0);
-				set => BigEndian.Write(ref _controlId0, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId0);
+				set => BigEndian.Write(ref _controlId0, (ushort)value);
 			}
 		}
 
@@ -277,10 +277,10 @@ public static class KeyboardReprogrammableKeysAndMouseButtonsV5
 			private byte _controlId0;
 			private byte _controlId1;
 
-			public ushort ControlId
+			public ControlId ControlId
 			{
-				get => BigEndian.ReadUInt16(in _controlId0);
-				set => BigEndian.Write(ref _controlId0, value);
+				get => (ControlId)BigEndian.ReadUInt16(in _controlId0);
+				set => BigEndian.Write(ref _controlId0, (ushort)value);
 			}
 
 			private byte _flags0;

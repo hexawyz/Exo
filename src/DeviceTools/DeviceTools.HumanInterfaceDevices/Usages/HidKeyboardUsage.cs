@@ -65,7 +65,7 @@ namespace DeviceTools.HumanInterfaceDevices.Usages
 		/// <summary>Keyboard \ and | (US)</summary>
 		Oem5 = 0x31,
 		/// <summary>Keyboard # and ~ (non-US)</summary>
-		XXXXXXXXXXXXXXXX = 0x32,
+		Oem7NonUs = 0x32,
 		/// <summary>Keyboard ; and : (US)</summary>
 		Oem1 = 0x33,
 		/// <summary>Keyboard ' and " (US)</summary>
