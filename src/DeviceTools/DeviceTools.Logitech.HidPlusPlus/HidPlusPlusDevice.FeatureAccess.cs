@@ -22,6 +22,7 @@ public abstract partial class HidPlusPlusDevice
 		private BacklightV2FeatureHandler? _backlightState;
 		private ColorLedEffectFeatureHandler? _colorLedEffectState;
 		private LockKeyFeatureHandler? _lockKeyFeatureHandler;
+		private KeyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler? _keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler;
 		private OnboardProfileFeatureHandler? _onBoardProfileState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
@@ -104,6 +105,13 @@ public abstract partial class HidPlusPlusDevice
 				var backlightState = new BacklightV2FeatureHandler(this, index);
 				Volatile.Write(ref _backlightState, backlightState);
 				Volatile.Write(ref _featureHandlers![index], backlightState);
+			}
+
+			if (features.TryGetInformation(HidPlusPlusFeature.KeyboardReprogrammableKeysAndMouseButtonsV5, out info))
+			{
+				var keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler = new KeyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler(this, info.Index, info.Version);
+				Volatile.Write(ref _keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler, keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler);
+				Volatile.Write(ref _featureHandlers![index], keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler);
 			}
 
 			if (features.TryGetIndex(HidPlusPlusFeature.LockKeyState, out index))
@@ -269,14 +277,14 @@ public abstract partial class HidPlusPlusDevice
 		// Can be called multiple times. It can be called on a disconnected device.
 		private protected override async Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 		{
-			Logger.FeatureAccessDeviceConnected(MainDeviceId.ProductId, FriendlyName, SerialNumber!);
+			Logger.FeatureAccessDeviceConnected(MainDeviceId.ProductId, FriendlyName, SerialNumber);
 
 			if (_featureHandlers is { } handlers)
 			{
 				foreach (var feature in CachedFeatures!)
 				{
-					if (Enum.IsDefined(feature.Feature)) Logger.FeatureAccessDeviceKnownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
-					else Logger.FeatureAccessDeviceUnknownFeature(SerialNumber!, feature.Index, feature.Feature, feature.Type, feature.Version);
+					if (Enum.IsDefined(feature.Feature)) Logger.FeatureAccessDeviceKnownFeature(SerialNumber, feature.Index, feature.Feature, feature.Type, feature.Version);
+					else Logger.FeatureAccessDeviceUnknownFeature(SerialNumber, feature.Index, feature.Feature, feature.Type, feature.Version);
 				}
 
 				for (int i = 0; i < handlers.Length; i++)

@@ -1,4 +1,4 @@
-﻿using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
+using DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
 
 namespace DeviceTools.Logitech.HidPlusPlus;
 

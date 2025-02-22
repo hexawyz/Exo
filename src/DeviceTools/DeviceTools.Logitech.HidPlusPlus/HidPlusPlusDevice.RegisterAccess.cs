@@ -68,7 +68,7 @@ public abstract partial class HidPlusPlusDevice
 
 		private protected override Task InitializeAsync(int retryCount, CancellationToken cancellationToken)
 		{
-			Logger.RegisterAccessDeviceConnected(MainDeviceId.ProductId, FriendlyName, SerialNumber!);
+			Logger.RegisterAccessDeviceConnected(MainDeviceId.ProductId, FriendlyName, SerialNumber);
 			return Task.CompletedTask;
 		}
 	}
