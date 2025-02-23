@@ -8,13 +8,32 @@ public interface IGenericDeviceFeature : IDeviceFeature
 {
 }
 
+/// <summary>Device features relative to keyboard capabilities.</summary>
+/// <remarks>
+/// <para>Features based on <see cref="IKeyboardDeviceFeature"/> should generally only be implemented by keyboard devices.</para>
+/// <para>Advanced key remapping features will be provided under <see cref="IUserInputDeviceFeature"/>.</para>
+/// </remarks>
 [TypeId(0x207EC5E4, 0x42DF, 0x4ACD, 0x8C, 0xA6, 0x05, 0xE4, 0xDF, 0xA3, 0x46, 0xAB)]
 public interface IKeyboardDeviceFeature : IDeviceFeature
 {
 }
 
+/// <summary>Device features relative to mouse capabilities.</summary>
+/// <remarks>
+/// <para>Features based on <see cref="IMouseDeviceFeature"/> should generally only be implemented by mouse devices.</para>
+/// <para>Advanced button remapping features will be provided under <see cref="IUserInputDeviceFeature"/>.</para>
+/// </remarks>
 [TypeId(0xC3B7ED20, 0x9E91, 0x4BC9, 0xB8, 0x69, 0x1E, 0xEF, 0xE7, 0xBF, 0xAD, 0xC5)]
 public interface IMouseDeviceFeature : IDeviceFeature
+{
+}
+
+/// <summary>Devices processing user input such as mouse, keyboards and gamepads can implement features in this category.</summary>
+/// <remarks>
+/// This category includes features that are common across multiple kinds of user-input devices, such as interceptable and remappable button presses.
+/// </remarks>
+[TypeId(0x1C6A388B, 0xC780, 0x428E, 0xA7, 0x2D, 0xAE, 0xE5, 0xCF, 0x5E, 0xE5, 0xC1)]
+public interface IUserInputDeviceFeature : IDeviceFeature
 {
 }
 
