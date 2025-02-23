@@ -66,8 +66,8 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(
 		EventId = 65010,
 		Level = LogLevel.Debug,
-		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId}, Position: {Position}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
-	public static partial void FeatureAccessDevice1B04ControlIdWithPosition
+		Message = "Device {DeviceSerialNumber} has non-remappable control {ControlId} (Task: {TaskId}, Position: {Position}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
+	public static partial void FeatureAccessDevice1B04NonRemappableControlIdWithPosition
 	(
 		this ILogger logger,
 		string? deviceSerialNumber,
@@ -81,8 +81,8 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(
 		EventId = 65011,
 		Level = LogLevel.Debug,
-		Message = "Device {DeviceSerialNumber} has control {ControlId} (Task: {TaskId}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
-	public static partial void FeatureAccessDevice1B04ControlId
+		Message = "Device {DeviceSerialNumber} has non-remappable control {ControlId} (Task: {TaskId}, Flags: {Flags}, Capabilities: {ReportingCapabilities}).")]
+	public static partial void FeatureAccessDevice1B04NonRemappableControlId
 	(
 		this ILogger logger,
 		string? deviceSerialNumber,

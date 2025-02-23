@@ -3,6 +3,15 @@ namespace DeviceTools.Logitech.HidPlusPlus;
 /// <summary>Control IDs used for HID++ reprogrammable keys and buttons.</summary>
 public enum ControlId : ushort
 {
+	// This is at least the case on MX keys
+	LaunchCalculator = 0x000A,
+	Eject = 0x000D,
+	Lock = 0x006F, // Bound to MultiPlatformLock but this would be duplicated with 0x00C2
+
+	// There is a key at 0x0034 on MX Keys for Mac, but I don't know what it could be.
+
+	// There should be sleep-related controls at 0x40, 0x89, 0x9C, 0xA4, as indicated by the doc for 0xC2
+
 	SecondLeftClick = 0x00B8,
 	FunctionPlusSecondLeftClick = 0x00B9,
 	MultiPlatformAppSwitchOrMissionControl = 0x00BA,

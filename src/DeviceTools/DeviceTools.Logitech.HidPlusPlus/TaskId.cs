@@ -2,6 +2,36 @@ namespace DeviceTools.Logitech.HidPlusPlus;
 
 public enum TaskId : ushort
 {
+	ReprogrammableVolumeUp = 0x0001,
+	ReprogrammableVolumeDown = 0x0002,
+	ReprogrammableMute = 0x0003,
+	ReprogrammablePlayPause = 0x0004,
+	ReprogrammableNextTrack = 0x0005,
+	ReprogrammablePreviousTrack = 0x0006,
+
+	// This is at least the case on MX Keys for Mac.
+	LaunchCalculator = 0x000A,
+	Eject = 0x000D,
+
+	LeftClick = 0x0038,
+	RightClick = 0x0039,
+	MiddleClick = 0x003A,
+	MouseButton4 = 0x003C,
+	MouseButton5 = 0x003D,
+
+	// Control 0xC2 indicates that this will by default send HID Sleep (0xC 0x0030 is actually Power, and 0x1 0x0082 is Caps Lock ?)
+	MultiPlatformLock = 0x44,
+
+	// Indicated for control 0xDE (F Lock) in the doc as "Do nothing" and observed on MX Keys for Mac for what should be the fn key lock. (Can be verified later if necessary)
+	DoNothing = 0x62,
+
+	// AKA PageDown
+	FunctionPlusDown = 0x6F,
+	// AKA PageUp
+	FunctionPlusUp = 0x70,
+
+	LaunchSpUi = 0x0092,
+
 	/// <summary>Win + P.</summary>
 	SwitchPresentation = 0x93,
 	/// <summary>Win + Down Arrow.</summary>
@@ -91,6 +121,7 @@ public enum TaskId : ushort
 	EmojiLoudlyCryingFace = 0xDA,
 	EmojiSmiley = 0xDB,
 	EmojiSmileyWithTears = 0xDC,
+	// Also LedToggle ??
 	OpenEmojiPanel = 0xDD,
 	MultiPlatformAppSwitchOrLaunchPad = 0xDE,
 	SnippingTool = 0xDF,

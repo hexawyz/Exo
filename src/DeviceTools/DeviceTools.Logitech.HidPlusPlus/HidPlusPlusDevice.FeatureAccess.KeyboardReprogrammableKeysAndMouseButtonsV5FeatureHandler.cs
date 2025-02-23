@@ -68,7 +68,7 @@ public abstract partial class HidPlusPlusDevice
 					{
 						if (info.GroupNumber == 0 && info.GroupMask == 0)
 						{
-							Device.Logger.FeatureAccessDevice1B04ControlId(Device.SerialNumber, info.ControlId, info.TaskId, info.Flags, info.ReportingCapabilities);
+							Device.Logger.FeatureAccessDevice1B04NonRemappableControlId(Device.SerialNumber, info.ControlId, info.TaskId, info.Flags, info.ReportingCapabilities);
 						}
 						else
 						{
@@ -79,7 +79,7 @@ public abstract partial class HidPlusPlusDevice
 					{
 						if (info.GroupNumber == 0 && info.GroupMask == 0)
 						{
-							Device.Logger.FeatureAccessDevice1B04ControlIdWithPosition(Device.SerialNumber, info.ControlId, info.TaskId, info.Flags, info.Position, info.ReportingCapabilities);
+							Device.Logger.FeatureAccessDevice1B04NonRemappableControlIdWithPosition(Device.SerialNumber, info.ControlId, info.TaskId, info.Flags, info.Position, info.ReportingCapabilities);
 						}
 						else
 						{
