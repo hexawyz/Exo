@@ -1,4 +1,7 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using DeviceTools.HumanInterfaceDevices;
 
@@ -30,6 +33,8 @@ public sealed class StreamDeckDevice : IAsyncDisposable
 	private readonly StreamDeckDeviceInfo _deviceInfo;
 	private readonly byte[] _ioBuffers;
 	private uint _downKeys;
+
+	public event StreamDeckButtonEventHandler? ButtonStateChanged;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly Task _readTask;
@@ -67,7 +72,7 @@ public sealed class StreamDeckDevice : IAsyncDisposable
 				uint oldKeys = _downKeys;
 				uint newKeys = ReadKeysFromBuffer();
 				Volatile.Write(ref _downKeys, newKeys);
-				uint changedKeys = oldKeys ^ newKeys;
+				ButtonStateChanged?.Invoke(this, oldKeys, newKeys);
 			}
 		}
 		catch (OperationCanceledException)
@@ -90,8 +95,20 @@ public sealed class StreamDeckDevice : IAsyncDisposable
 		// [4..]: bool
 		if (buffer[0] != 1) throw new InvalidOperationException("Invalid report ID.");
 
-		var keyBuffer = buffer[4..buffer[2]];
+		var keyBuffer = buffer.Slice(4, buffer[2]);
 		if (keyBuffer.Length > _deviceInfo.ButtonCount) throw new InvalidOperationException("Key count mismatch.");
+
+		// TODO: Implement other vector sizes. Also check if the byte order would also work for ARM.
+		// 32 keys can be read and processed as a single 256-bits vector.
+		if (Vector256.IsHardwareAccelerated)
+		{
+			if (keyBuffer.Length == 32)
+			{
+				// This is equivalent to the non-vectorized code below where we assume that values are always 0 or 1.
+				// If other bits were to be used for some other meaning, the code would need to be adapted. (Only likely for newer HW though)
+				return ~Vector256.ExtractMostSignificantBits(Vector256.IsZero(Unsafe.ReadUnaligned<Vector256<byte>>(ref Unsafe.AsRef(in keyBuffer[0]))));
+			}
+		}
 
 		uint keys = 0;
 		for (int i = 0; i < keyBuffer.Length; i++)
@@ -401,3 +418,5 @@ public sealed class StreamDeckDevice : IAsyncDisposable
 		}
 	}
 }
+
+public delegate void StreamDeckButtonEventHandler(StreamDeckDevice device, uint previousButtons, uint currentButtons);

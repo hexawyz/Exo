@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -10,6 +11,7 @@ using Exo.Features;
 using Exo.Features.EmbeddedMonitors;
 using Exo.Features.Monitors;
 using Exo.Features.PowerManagement;
+using Exo.Features.UserInput;
 using Exo.Images;
 using Exo.Monitors;
 
@@ -39,11 +41,14 @@ public sealed class StreamDeckDeviceDriver :
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<IEmbeddedMonitorDeviceFeature>,
 	IDeviceDriver<IPowerManagementDeviceFeature>,
+	IDeviceDriver<IUserInputDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
 	IEmbeddedMonitorControllerFeature,
 	IMonitorBrightnessFeature,
-	IIdleSleepTimerFeature
+	IIdleSleepTimerFeature,
+	IRemappableButtonsFeature,
+	IInterceptedButtonsFeature
 {
 	private static readonly Guid[] StreamDeckXlButtonIds = [
 		new(0x903959D8, 0x4449, 0x4081, 0x92, 0x24, 0x60, 0x54, 0x55, 0x26, 0xAB, 0xE6),
@@ -175,19 +180,24 @@ public sealed class StreamDeckDeviceDriver :
 	private readonly StreamDeckDevice _device;
 	private readonly Guid[] _buttonIds;
 	private readonly StreamDeckDeviceInfo _deviceInfo;
+	private event ButtonEventHandler? ButtonDown;
+	private event ButtonEventHandler? ButtonUp;
 	private uint _idleSleepDelay;
 	private UInt128 _lastImageId;
 	private readonly ushort _productId;
 	private readonly ushort _versionNumber;
 	private readonly Button[] _buttons;
+	private readonly ImmutableArray<RemappableButtonDefinition> _buttonDefinitions;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
+	private readonly IDeviceFeatureSet<IUserInputDeviceFeature> _userInputFeatures;
 	private readonly IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> _embeddedMonitorFeatures;
 	private readonly IDeviceFeatureSet<IPowerManagementDeviceFeature> _powerManagementFeatures;
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
 	IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> IDeviceDriver<IEmbeddedMonitorDeviceFeature>.Features => _embeddedMonitorFeatures;
+	IDeviceFeatureSet<IUserInputDeviceFeature> IDeviceDriver<IUserInputDeviceFeature>.Features => _userInputFeatures;
 	IDeviceFeatureSet<IPowerManagementDeviceFeature> IDeviceDriver<IPowerManagementDeviceFeature>.Features => _powerManagementFeatures;
 
 	private StreamDeckDeviceDriver
@@ -210,16 +220,21 @@ public sealed class StreamDeckDeviceDriver :
 		_versionNumber = versionNumber;
 
 		var buttons = new Button[deviceInfo.ButtonCount];
+		var buttonDefinitions = new RemappableButtonDefinition[deviceInfo.ButtonCount];
 		for (int i = 0; i < buttons.Length; i++)
 		{
 			buttons[i] = new(this, (byte)i);
+			buttonDefinitions[i] = new(new(HidUsagePage.VendorDefinedFF00, 0x0001), ButtonCapabilities.HasCustomDisplay, StreamDeckXlButtonIds[i], []);
 		}
 		_buttons = buttons;
 
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, StreamDeckDeviceDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this);
 		_monitorFeatures = FeatureSet.Empty<IMonitorDeviceFeature>();
 		_embeddedMonitorFeatures = FeatureSet.Create<IEmbeddedMonitorDeviceFeature, StreamDeckDeviceDriver, IEmbeddedMonitorControllerFeature>(this);
+		_userInputFeatures = FeatureSet.Create<IUserInputDeviceFeature, StreamDeckDeviceDriver, IRemappableButtonsFeature, IInterceptedButtonsFeature>(this);
 		_powerManagementFeatures = FeatureSet.Create<IPowerManagementDeviceFeature, StreamDeckDeviceDriver, IIdleSleepTimerFeature>(this);
+
+		_device.ButtonStateChanged += OnButtonStateChanged;
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Keyboard;
@@ -227,6 +242,57 @@ public sealed class StreamDeckDeviceDriver :
 	public override async ValueTask DisposeAsync()
 	{
 		await _device.DisposeAsync().ConfigureAwait(false);
+	}
+
+	// TODO: This event is currently transmitted synchronously. Proper state management will require queuing of events.
+	// This probably doesn't need to be done here, but to be revisted later, as other device events (e.g. battery) may impose different semantics overall.
+	// Probably, if we can document all driver events as single-writer, in-order notifications that can be processed very quickly, we would avoid more problems.
+	// As the drivers are actually always used in code that has a deterministic behavior (one that we can choose), this is maybe not that unreasonable.
+	// IIRC problems arise when we want time coherence between different events… Which is where things may need to change.
+	private void OnButtonStateChanged(StreamDeckDevice device, uint previousButtons, uint currentButtons)
+	{
+		nuint changed = previousButtons ^ currentButtons;
+
+		// Process ButtonUp events first
+		{
+			nuint up = previousButtons & changed;
+			if (up != 0 && ButtonUp is { } buttonUp)
+			{
+				DispatchButtonEvents(up, buttonUp);
+			}
+		}
+
+		// Process ButtonDown events second
+		{
+			nuint down = currentButtons & changed;
+			if (down != 0 && ButtonDown is { } buttonDown)
+			{
+				DispatchButtonEvents(down, buttonDown);
+			}
+		}
+	}
+
+	// The logic for dispatching up/down events is obviously the same.
+	// We just find the indices of all buttons that have been pressed or released and invoke the handler.
+	private void DispatchButtonEvents(nuint mask, ButtonEventHandler handler)
+	{
+		nuint buttonIndex = 0;
+		while (true)
+		{
+			int shift = BitOperations.TrailingZeroCount(mask);
+			buttonIndex += (nuint)shift;
+
+			try
+			{
+				handler(this, new ButtonId(HidUsagePage.VendorDefinedFF00, (ushort)buttonIndex));
+			}
+			catch
+			{
+				// TODO: Log ?
+			}
+
+			if ((mask = mask >>> (shift + 1)) == 0) break;
+		}
 	}
 
 	private Size ButtonImageSize => new(_deviceInfo.ButtonImageWidth, _deviceInfo.ButtonImageHeight);
@@ -282,5 +348,26 @@ public sealed class StreamDeckDeviceDriver :
 			await _driver._device.SetKeyImageDataAsync(_keyIndex, imageId == _driver._lastImageId ? Array.Empty<byte>() : data, cancellationToken);
 			_driver._lastImageId = imageId;
 		}
+	}
+
+	ImmutableArray<RemappableButtonDefinition> IRemappableButtonsFeature.Buttons => _buttonDefinitions;
+
+	// TODO: We'll see what will be the requirement for implementation of this method later. Should it always be called with an action of "intercept" or should it not be called at all?
+	void IRemappableButtonsFeature.SetAction(ButtonId buttonId, Guid actionId) => throw new NotSupportedException();
+
+	void IRemappableButtonsFeature.ResetButton(ButtonId buttonId) { }
+
+	ValueTask IRemappableButtonsFeature.ApplyChangesAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+	event ButtonEventHandler IInterceptedButtonsFeature.ButtonDown
+	{
+		add => ButtonDown += value;
+		remove => ButtonDown -= value;
+	}
+
+	event ButtonEventHandler IInterceptedButtonsFeature.ButtonUp
+	{
+		add => ButtonUp += value;
+		remove => ButtonUp -= value;
 	}
 }
