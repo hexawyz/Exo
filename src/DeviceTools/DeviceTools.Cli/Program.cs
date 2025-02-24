@@ -666,7 +666,7 @@ internal static class Program
 		{
 			HidUsagePage.GenericDesktop => UsageToString<HidGenericDesktopUsage>(usage),
 			HidUsagePage.Simulation => UsageToString<HidSimulationUsage>(usage),
-			HidUsagePage.Vr => UsageToString<HidVrUsage>(usage),
+			HidUsagePage.VirtualReality => UsageToString<HidVrUsage>(usage),
 			HidUsagePage.Sport => UsageToString<HidSportUsage>(usage),
 			HidUsagePage.Game => UsageToString<HidGameUsage>(usage),
 			HidUsagePage.GenericDevice => UsageToString<HidGenericDeviceUsage>(usage),

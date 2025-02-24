@@ -77,7 +77,7 @@ public abstract class RawInputDevice : HidDevice
 		{
 			HidUsagePage.GenericDesktop => new RawInputHidDevice<HidGenericDesktopUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 			HidUsagePage.Simulation => new RawInputHidDevice<HidSimulationUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
-			HidUsagePage.Vr => new RawInputHidDevice<HidVrUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
+			HidUsagePage.VirtualReality => new RawInputHidDevice<HidVrUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 			HidUsagePage.Sport => new RawInputHidDevice<HidSportUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 			HidUsagePage.Game => new RawInputHidDevice<HidGameUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
 			HidUsagePage.GenericDevice => new RawInputHidDevice<HidGenericDeviceUsage>(collection, handle, deviceInfo.UsagePage, deviceInfo.Usage, vendorId, productId, deviceInfo.VersionNumber),
