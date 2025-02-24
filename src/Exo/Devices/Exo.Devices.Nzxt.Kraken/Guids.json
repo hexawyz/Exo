@@ -1,0 +1,14 @@
+{
+    "Exo.Devices.Nzxt.Kraken": {
+        "KrakenDriver": {
+            "LiquidTemperatureSensorId": "8e880de1-2a45-400d-a90f-42e89bf950db",
+            "PumpSpeedSensorId": "3a2f0f14-3957-400e-8b6c-cb025b891506",
+            "FanSpeedSensorId": "fdc93d5b-ede3-4774-96ec-c4fdb1c1debc",
+            "FanCoolerId": "5a0fe6f5-b7d1-46e4-a512-82726e9535c4",
+            "PumpCoolerId": "2a57c838-cd58-4d6c-af9e-f5bddd6fb992",
+            "MonitorId": "ab1c8580-9fc4-4bb6-b9c7-02f1818168b6",
+            "BootAnimationGraphicsId": "e4a8cc79-1062-4e85-9772-b4bfff6674b3",
+            "LiquidTemperatureGraphicsId": "9aa7af98-19d2-4f98-9690-adf9a5908bc3"
+        }
+    }
+}
