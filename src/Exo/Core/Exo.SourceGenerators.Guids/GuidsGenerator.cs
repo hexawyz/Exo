@@ -127,7 +127,7 @@ public class GuidsGenerator : IIncrementalGenerator
 
 			if (!guidIndices.TryGetValue(guid, out int index))
 			{
-				guidIndices.Add(guid, guids.Count);
+				guidIndices.Add(guid, index = guids.Count);
 				guids.Add(guid);
 			}
 			return new(name, index);
@@ -156,8 +156,9 @@ public class GuidsGenerator : IIncrementalGenerator
 			return new(name, index, array.Count);
 		}
 
-		var rootNamespace = new NamespaceInfo("System");
 		var sb = new StringBuilder(1024);
+
+		const string RootNamespace = "Exo";
 
 		sb.AppendLine("using System;");
 		sb.AppendLine("using System.Collections;");
@@ -165,34 +166,37 @@ public class GuidsGenerator : IIncrementalGenerator
 		sb.AppendLine("using System.ComponentModel;");
 		sb.AppendLine("using System.Runtime.CompilerServices;");
 		sb.AppendLine();
-		sb.AppendLine("namespace Exo.Internal");
+		sb.Append("namespace ").AppendLine(RootNamespace);
 		sb.AppendLine("{");
-		sb.AppendLine("\t[EditorBrowsable(EditorBrowsableState.Never)]");
-		sb.AppendLine("\tinternal static class ꅔ");
+		sb.AppendLine("\tnamespace Internal");
 		sb.AppendLine("\t{");
-		sb.AppendLine("\t\tpublic static ReadOnlySpan<byte> ꁘ => [");
+		sb.AppendLine("\t\t[EditorBrowsable(EditorBrowsableState.Never)]");
+		sb.AppendLine("\t\tinternal static class ꅔ");
+		sb.AppendLine("\t\t{");
+		sb.AppendLine("\t\t\tpublic static ReadOnlySpan<byte> ꁘ => [");
 		foreach (var guid in guids)
 		{
-			sb.Append("\t\t\t");
+			sb.Append("\t\t\t\t");
 			foreach (var b in guid.ToByteArray())
 			{
 				sb.Append("0x").Append(b.ToString("X2", CultureInfo.InvariantCulture)).Append(", ");
 			}
 			sb.AppendLine();
 		}
-		sb.AppendLine("\t\t];");
+		sb.AppendLine("\t\t\t];");
+		sb.AppendLine("\t\t}");
 		sb.AppendLine("\t}");
 		if (hasArray)
 		{
 			sb.AppendLine();
-			sb.AppendLine("\tinternal readonly struct ꂓ : IReadOnlyList<Guid>");
+			sb.AppendLine("\tinternal readonly struct ImmutableGuidArray : IReadOnlyList<Guid>");
 			sb.AppendLine("\t{");
 			sb.AppendLine("\t\tprivate readonly int _index;");
 			sb.AppendLine("\t\tprivate readonly int _count;");
 			sb.AppendLine("\t\t");
-			sb.AppendLine("\t\tinternal ꂓ(int index, int count) => (_index, _count) = (index, count);");
+			sb.AppendLine("\t\tinternal ImmutableGuidArray(int index, int count) => (_index, _count) = (index, count);");
 			sb.AppendLine("\t\t");
-			sb.AppendLine("\t\tpublic Guid this[int index] => (uint)index < (uint)_count ? new(ꅔ.ꁘ.Slice(_index + index * 16, 16)) : throw new ArgumentException(nameof(index));");
+			sb.AppendLine("\t\tpublic Guid this[int index] => (uint)index < (uint)_count ? new(Internal.ꅔ.ꁘ.Slice(_index + index * 16, 16)) : throw new ArgumentException(nameof(index));");
 			sb.AppendLine("\t\tpublic int Count => _count;");
 			sb.AppendLine("\t\t");
 			sb.AppendLine("\t\tpublic Enumerator GetEnumerator() => new(this);");
@@ -205,7 +209,7 @@ public class GuidsGenerator : IIncrementalGenerator
 			sb.AppendLine("\t\t\tprivate readonly int _count;");
 			sb.AppendLine("\t\t\tprivate readonly int _startIndex;");
 			sb.AppendLine("\t\t\t");
-			sb.AppendLine("\t\t\tinternal Enumerator(ꂓ ꉩ) : this(ꉩ._index, ꉩ._count) { }");
+			sb.AppendLine("\t\t\tinternal Enumerator(ImmutableGuidArray ꉩ) : this(ꉩ._index, ꉩ._count) { }");
 			sb.AppendLine("\t\t\t");
 			sb.AppendLine("\t\t\tprivate Enumerator(int index, int count)");
 			sb.AppendLine("\t\t\t{");
@@ -216,7 +220,7 @@ public class GuidsGenerator : IIncrementalGenerator
 			sb.AppendLine("\t\t\t");
 			sb.AppendLine("\t\t\tpublic readonly void Dispose() { }");
 			sb.AppendLine("\t\t\t");
-			sb.AppendLine("\t\t\tpublic readonly Guid Current => new(ꅔ.ꁘ.Slice(_startIndex + _index * 16, 16));");
+			sb.AppendLine("\t\t\tpublic readonly Guid Current => new(Internal.ꅔ.ꁘ.Slice(_startIndex + _index * 16, 16));");
 			sb.AppendLine("\t\t\treadonly object IEnumerator.Current => Current;");
 			sb.AppendLine("\t\t\t");
 			sb.AppendLine("\t\t\tpublic bool MoveNext() => (uint)++_index < (uint)_count;");
@@ -259,12 +263,12 @@ public class GuidsGenerator : IIncrementalGenerator
 					sb.Append(indent2)
 						.Append("private static Guid ")
 						.Append(g.Name)
-						.Append(" => new(global::Exo.Internal.ꅔ.ꁘ.Slice(").Append(g.GuidIndex * 16).AppendLine(", 16));");
+						.Append(" => new(global::").Append(RootNamespace).Append(".Internal.ꅔ.ꁘ.Slice(").Append(g.GuidIndex * 16).AppendLine(", 16));");
 				}
 				else
 				{
 					sb.Append(indent2)
-						.Append("private static global::Exo.Internal.ꂓ ")
+						.Append("private static global::").Append(RootNamespace).Append(".ImmutableGuidArray ")
 						.Append(g.Name)
 						.Append(" => new(").Append(g.GuidIndex).Append(", ").Append(g.GuidCount).AppendLine(");");
 				}
@@ -273,7 +277,7 @@ public class GuidsGenerator : IIncrementalGenerator
 			{
 				EmitClass(sb, indent2, c);
 			}
-			sb.AppendLine($"{indent}}}");
+			sb.Append(indent).AppendLine("}");
 		}
 
 		context.AddSource("Guids.Generated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));

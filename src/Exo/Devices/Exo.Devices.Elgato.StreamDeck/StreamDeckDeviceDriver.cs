@@ -14,7 +14,6 @@ using Exo.Features.Monitors;
 using Exo.Features.PowerManagement;
 using Exo.Features.UserInput;
 using Exo.Images;
-using Exo.Internal;
 using Exo.Monitors;
 
 namespace Exo.Devices.Elgato.StreamDeck;
@@ -145,7 +144,7 @@ public sealed partial class StreamDeckDeviceDriver :
 	}
 
 	private readonly StreamDeckDevice _device;
-	private readonly ꂓ _buttonIds;
+	private readonly ImmutableGuidArray _buttonIds;
 	private readonly StreamDeckDeviceInfo _deviceInfo;
 	private event ButtonEventHandler? ButtonDown;
 	private event ButtonEventHandler? ButtonUp;
@@ -170,7 +169,7 @@ public sealed partial class StreamDeckDeviceDriver :
 	private StreamDeckDeviceDriver
 	(
 		StreamDeckDevice device,
-		ꂓ buttonIds,
+		ImmutableGuidArray buttonIds,
 		StreamDeckDeviceInfo deviceInfo,
 		uint idleSleepDelay,
 		string friendlyName,

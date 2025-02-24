@@ -1,0 +1,47 @@
+{
+    "Exo.Devices.NVidia": {
+        "NVidiaGpuDriver": {
+            "GpuTopZoneIds": [
+                "22c9ecbe-d047-4e26-b0f4-730e5b3e407e",
+                "2ccffd3f-98c9-4030-b02d-e33fc3a9d8ae",
+                "444912a4-8e08-42f8-8602-4fe0f632ecd2",
+                "c78170b2-639d-452a-aa80-b41256c80068"
+            ],
+            "GpuFrontZoneIds": [
+                "95a687ef-6cbb-4c22-aadb-79186744adda",
+                "0bf2c1e7-8b03-4edc-ba37-6cff6231b5cd",
+                "4b325c17-a8e6-4d8b-8056-75e2f27df4bf",
+                "9d7b59e6-fb66-46aa-9789-5c09953c46bb"
+            ],
+            "GpuBackZoneIds": [
+                "93505342-3bee-4c22-a51e-dd29ccf655ed",
+                "44170fad-08c3-46a2-b4e2-60cbb91a7768",
+                "84e65b9e-6baa-4559-9851-9346115889f8",
+                "284ebe2f-5e9b-4f6b-8d86-71478568195d"
+            ],
+            "SliTopZoneIds": [
+                "211da55c-dfcc-4a4d-a94e-7f3cfa00c722",
+                "84396000-6da7-4039-b32a-6af445d3b7f1",
+                "eea7a9dc-b811-463f-bad5-7d2243b10a03",
+                "82658966-39cd-40b7-ba7c-87b27fe4aa99"
+            ],
+            "LegacyFanSpeedSensorId": "3428225a-6be4-44af-b1cd-800a55f9432f",
+            "Fan1SpeedSensorId": "fcf6d2e1-9048-4e87-ac9f-91e250e1218b",
+            "Fan2SpeedSensorId": "be0f57cb-cd6d-4422-a024-b28ff425e903",
+            "Fan1CoolerId": "1f3e6519-9404-4866-85b8-52d452485060",
+            "Fan2CoolerId": "b02259b1-f5dc-4371-9cd3-bce4be34531f",
+            "GraphicsUtilizationSensorId": "005f94dd-09f5-46d3-9902-e15d6a19d824",
+            "FrameBufferUtilizationSensorId": "bf9aad1d-e013-4178-97b3-4220d26cbe71",
+            "VideoUtilizationSensorId": "147c8f52-1402-4515-b9fb-4148fd0212a4",
+            "BusUtilizationSensorId": "b91428a3-7b32-49ce-ba02-cff18a15910b",
+            "GpuThermalSensorId": "b65044be-a3b0-4efb-9efb-826e3bd760a0",
+            "MemoryThermalSensorId": "463292d7-4c7f-4848-ba9e-712821dfd5e8",
+            "PowerSupplyThermalSensorId": "73356f82-4194-46df-9f9f-251921015f81",
+            "BoardThermalSensorId": "359e57be-577d-46ed-a09a-d3a44b95cae8",
+            "GraphicsFrequencySensorId": "cd415440-fb17-441d-a64f-6c6273349000",
+            "MemoryFrequencySensorId": "de435007-ccd1-414e-8cf1-220fcce4d099",
+            "ProcessorFrequencySensorId": "6e1311e3-d1fb-4555-8cd9-d0f3f64331eb",
+            "VideoFrequencySensorId": "d9272343-5ac4-4cd8-9f7a-02e130c15fd3"
+        }
+    }
+}
