@@ -26,8 +26,6 @@ public class DevicePropertiesGenerator : IIncrementalGenerator
 	{
 		var data = new Dictionary<Guid, List<(string Name, int PropertyIndex, string Type, bool IsCanonical)>>();
 
-		var vendors = new List<(string Name, Guid categoryId, int PropertyIndex, string Type, bool IsCanonical)>();
-
 		if (text.Lines.Count == 0 || text.Lines[0].ToString() != "Name,CategoryId,PropertyIndex,Type,IsCanonical")
 		{
 			context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor("PG0001", "Invalid CSV file.", "Invalid CSV file.", "PropertyGenerator", DiagnosticSeverity.Error, true), null));

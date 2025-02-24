@@ -40,8 +40,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{08303426-8
 		Docs\Razer DeathAdder Platform 3.md = Docs\Razer DeathAdder Platform 3.md
 		Docs\Razer DeathAdder V2 Pro.md = Docs\Razer DeathAdder V2 Pro.md
 		Docs\Razer Mamba Chroma.md = Docs\Razer Mamba Chroma.md
-		Docs\Useful Bits.md = Docs\Useful Bits.md
 		Docs\Stream Deck XL.md = Docs\Stream Deck XL.md
+		Docs\Useful Bits.md = Docs\Useful Bits.md
 		Docs\ViewSonic VP2785-4K.md = Docs\ViewSonic VP2785-4K.md
 	EndProjectSection
 EndProject
@@ -194,6 +194,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamDeckPlayground", "src\Tools\StreamDeckPlayground\StreamDeckPlayground.csproj", "{1870E316-3853-0EE2-E6C3-98BAD951A288}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exo.SourceGenerators.Guids", "src\Exo\Core\Exo.SourceGenerators.Guids\Exo.SourceGenerators.Guids.csproj", "{8392CD57-CD60-088E-AA7D-AE825EC4951F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1319,6 +1321,22 @@ Global
 		{1870E316-3853-0EE2-E6C3-98BAD951A288}.Release|x64.Build.0 = Release|Any CPU
 		{1870E316-3853-0EE2-E6C3-98BAD951A288}.Release|x86.ActiveCfg = Release|Any CPU
 		{1870E316-3853-0EE2-E6C3-98BAD951A288}.Release|x86.Build.0 = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|arm64.Build.0 = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|x64.Build.0 = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Debug|x86.Build.0 = Debug|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|arm64.ActiveCfg = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|arm64.Build.0 = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|x64.ActiveCfg = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|x64.Build.0 = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|x86.ActiveCfg = Release|Any CPU
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1398,6 +1416,7 @@ Global
 		{53087D24-A134-4744-9136-1E24E14C2A2A} = {59B8EF45-EA19-477D-B57C-5783B7B1C5CF}
 		{6866CC56-DDAC-4511-AA90-FD77E05DB15F} = {062C0665-616A-4FB4-B0DA-2EEBE7FDA7B9}
 		{1870E316-3853-0EE2-E6C3-98BAD951A288} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{8392CD57-CD60-088E-AA7D-AE825EC4951F} = {062C0665-616A-4FB4-B0DA-2EEBE7FDA7B9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9FEED7F-27EC-4720-9CAB-C2E6FDD8556D}

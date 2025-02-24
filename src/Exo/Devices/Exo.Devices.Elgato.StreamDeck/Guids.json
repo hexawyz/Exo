@@ -1,0 +1,40 @@
+{
+    "Exo.Devices.Elgato.StreamDeck": {
+        "StreamDeckDeviceDriver": {
+            "StreamDeckXlButtonIds": [
+                "903959d8-4449-4081-9224-60545526abe6",
+                "cf380166-0805-4be7-bfad-10449ed1639e",
+                "e412eb19-58a1-4f26-ae7a-fe8df318f585",
+                "82994c85-3cef-4093-a031-0bf8818a711f",
+                "211d7055-afce-4ea6-90be-36deabbe0fbc",
+                "d7ed1be9-be25-4007-843e-02d5efc4e29e",
+                "b3d52eeb-3833-4e84-af91-19a4e792ab44",
+                "3e5f4dff-3723-4dfb-a456-fa84a0232ec5",
+                "c94ddd1d-6d5c-4295-b59f-845bbf6fd540",
+                "3d9f4285-8bd1-423b-b7c4-d83c6a725718",
+                "af42b08f-409c-4b96-be89-b9b8a332850c",
+                "7608b456-a90b-49af-96a2-9478bc7c7770",
+                "9debce69-469a-480a-be34-46a7a6106178",
+                "0f9c3b6e-af86-4a04-8913-3933fdd6d94a",
+                "c8a60d4b-b6d8-40af-82b4-cfa8b2d08f6e",
+                "d7ce48b8-5807-4f28-a6ea-2e4226c55b30",
+                "fc472091-5d34-4fc1-a7a9-a6f6c8cd4c47",
+                "656c6b17-371c-4d4f-9278-ccf2f3fcd7a5",
+                "72fcc17e-f725-4d2a-b37a-f43126910511",
+                "363a6a93-aab4-4ce5-b7f0-124ee2dd23a4",
+                "3c603ef9-b96c-4d75-9b6c-d6a72a55cc7c",
+                "f36ce9ec-d225-45c9-b6f2-215c356dc3a9",
+                "9733a887-7758-4928-b108-5a4408cd82c6",
+                "28eeed2e-9099-4e50-95cc-39dcb35a6678",
+                "fc135451-54d4-42c8-9b15-cc5965fba4a0",
+                "c3ddef57-9d98-4048-93ee-ca5f29eee793",
+                "c0951f45-d7b1-44c7-9574-10ee9019c725",
+                "d33ffc43-cde4-4f06-8fb2-3f91236ac4db",
+                "a61978bf-8ad6-42de-bba3-0a316d98902f",
+                "a75f7663-eab1-4510-be6b-492c0b783a7f",
+                "01aa7856-c94b-4587-a531-3beab2b30426",
+                "63aa0da1-17d9-482e-92ae-d03a8999a765"
+            ]
+        }
+    }
+}

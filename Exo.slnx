@@ -66,6 +66,7 @@
     <Project Path="src/Exo/Core/Exo.Metadata/Exo.Metadata.csproj" />
     <Project Path="src/Exo/Core/Exo.MetadataCompiler/Exo.MetadataCompiler.csproj" />
     <Project Path="src/Exo/Core/Exo.Programming.Contracts/Exo.Programming.Contracts.csproj" />
+    <Project Path="src/Exo/Core/Exo.SourceGenerators.Guids/Exo.SourceGenerators.Guids.csproj" Id="4d40b98c-894d-4400-8f24-c8be1bfd1068" />
     <Project Path="src/Exo/Core/Exo.Utils/Exo.Utils.csproj" />
   </Folder>
   <Folder Name="/Exo/Devices/" Id="fe0abb33-2571-cddd-7ef1-a13b8dd6465e">

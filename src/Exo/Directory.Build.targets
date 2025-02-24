@@ -1,7 +1,15 @@
 <Project>
 	<PropertyGroup Condition="'$(IsExoPluginAssembly)' == 'true'">
 		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+		<EnableExoGuidGeneration Condition="'$(EnableExoGuidGeneration)' == ''">true</EnableExoGuidGeneration>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(EnableExoGuidGeneration)' == 'true'">
+		<EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(EnableExoGuidGeneration)' == 'true' And Exists('Guids.json')">
+		<None Remove="Guids.json" />
+		<AdditionalFiles Include="Guids.json" />
+	</ItemGroup>
 	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 	<Import Condition="'$(IsExoPluginAssembly)' == 'true'" Project="ExoMetadata.targets" />
 	<ItemGroup Condition="'$(IsExoPluginAssembly)' == 'true'">
@@ -24,6 +32,9 @@
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.WinUsb\DeviceTools.WinUsb.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.RawInput\DeviceTools.RawInput.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Logitech.HidPlusPlus\DeviceTools.Logitech.HidPlusPlus.csproj" Private="false" ExcludeAssets="runtime" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(EnableExoGuidGeneration)' == 'true'">
+		<ProjectReference Include="..\..\Core\Exo.SourceGenerators.Guids\Exo.SourceGenerators.Guids.csproj" Private="false" ExcludeAssets="runtime" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<Target Name="_MakeTransitiveProjectRefsNonPrivate" AfterTargets="IncludeTransitiveProjectReferences" Condition="'$(IsExoPluginAssembly)' == 'true'">
 		<ItemGroup>
