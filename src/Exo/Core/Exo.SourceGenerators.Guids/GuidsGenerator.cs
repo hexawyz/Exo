@@ -201,7 +201,7 @@ public class GuidsGenerator : IIncrementalGenerator
 			sb.AppendLine("\t\t");
 			sb.AppendLine("\t\tinternal ImmutableGuidArray(int index, int count) => (_index, _count) = (index, count);");
 			sb.AppendLine("\t\t");
-			sb.AppendLine("\t\tpublic Guid this[int index] => (uint)index < (uint)_count ? new(Internal.ꅔ.ꁘ.Slice(_index + index * 16, 16)) : throw new ArgumentException(nameof(index));");
+			sb.AppendLine("\t\tpublic Guid this[int index] => (uint)index < (uint)_count ? new(Internal.ꅔ.ꁘ.Slice((_index + index) * 16, 16)) : throw new ArgumentException(nameof(index));");
 			sb.AppendLine("\t\tpublic int Count => _count;");
 			sb.AppendLine("\t\t");
 			sb.AppendLine("\t\tpublic Enumerator GetEnumerator() => new(this);");
@@ -225,7 +225,7 @@ public class GuidsGenerator : IIncrementalGenerator
 			sb.AppendLine("\t\t\t");
 			sb.AppendLine("\t\t\tpublic readonly void Dispose() { }");
 			sb.AppendLine("\t\t\t");
-			sb.AppendLine("\t\t\tpublic readonly Guid Current => new(Internal.ꅔ.ꁘ.Slice(_startIndex + _index * 16, 16));");
+			sb.AppendLine("\t\t\tpublic readonly Guid Current => new(Internal.ꅔ.ꁘ.Slice((_startIndex + _index) * 16, 16));");
 			sb.AppendLine("\t\t\treadonly object IEnumerator.Current => Current;");
 			sb.AppendLine("\t\t\t");
 			sb.AppendLine("\t\t\tpublic bool MoveNext() => (uint)++_index < (uint)_count;");
