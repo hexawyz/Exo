@@ -45,6 +45,12 @@ https://drive.google.com/viewerng/viewer?url=https://www.usb.org/sites/default/f
    `^(\b[^ ]+) ((?:[^ \r\n]+(?!\r?$) )+)([0-9A-F]{2})(\r?$)`
    `/// <summary>$2</summary>$4$1 = 0x$3,`
 
+## Regex replacements for transforming between C# GUIDs to strings
+
+1. Switch transform
+   `0x[0-9A-Z]{2} => new Guid\(0x([0-9A-Z]{8}), 0x([0-9A-Z]{4}), 0x([0-9A-Z]{4}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2}), 0x([0-9A-Z]{2})\)`
+   "$1-$2-$3-$4$5-$6$7$8$9$10$11"
+
 ## Enum template
 
 ````csharp

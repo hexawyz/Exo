@@ -1,0 +1,84 @@
+{
+    "Exo.Devices.Monitors": {
+        "GenericMonitorDriver": {
+            "OnStringId": "4d2b3404-1cb1-4536-918c-80facc124cf9",
+            "OffStringId": "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e",
+            "LanguageIds": [
+				// Chinese (Traditional)
+				"E9D6E301-DE10-4F5A-910E-5AA80CF057D1",
+				// English
+				"3D7555D0-345A-49F1-903E-A15D35B0F5EC",
+				// French
+				"CC5D6FB5-0653-49BB-85CC-4AE2CA82F487",
+				// German
+				"1AF16A76-E293-4096-A9D7-9E9EFF68B591",
+				// Italian
+				"F12057BC-08CE-446D-9D25-B5965B6136AB",
+				// Japanese
+				"9EF9C042-BFBB-4B72-9C24-4DA56E1F56BE",
+				// Korean
+				"12DF152A-1065-4200-966F-2BE77410FD13",
+				// Portuguese (Portugal)
+				"E3E65711-AAE3-4F2D-AA95-092CFC105872",
+				// Russian
+				"5AD769BF-3AA1-49A1-A9F9-6F0EC1B43DD2",
+				// Spanish
+				"F4BCB574-A61D-4B25-824B-6E865D7427FE",
+				// Swedish
+				"88307C6F-DA3E-424B-BEF0-23A252E5B26D",
+				// Turkish
+				"F2FC7A26-B392-4C13-A86E-47B2E390CAF8",
+				// Chinese (Simplified)
+				"4B0F748A-CC4A-41EA-A59B-9549DD619E76",
+				// Portuguese (Brazil)
+				"9318646F-67AA-4FAE-95FC-3618C2F2777B",
+				// Arabic
+				"AC934765-0EB0-4AC6-B085-88177B1E2D84",
+				// Bulgarian
+				"49A21314-8315-47A5-B01B-6C7E50403921",
+				// Croatian
+				"5506A84A-4EBF-46F5-B611-047CB8631AB9",
+				// Czech
+				"F73A11CB-EC92-42A2-83B9-5D89A811D36E",
+				// Danish
+				"ED6EF567-B80A-40D0-9551-38F39955C4C1",
+				// Dutch
+				"C42DD145-2882-4B31-90D0-A47A822ED1CD",
+				// Estonian
+				"3EE2C2C1-1DA2-434B-80D2-2463A52273F5",
+				// Finnish
+				"42177650-1189-414E-9F67-15A0A484A1F2",
+				// Greek
+				"9342A747-F7E4-4F79-B0CE-5FB0C8040126",
+				// Hebrew
+				"7BED3E7D-9DF4-41A9-94EA-4BDE84DB23A2",
+				// Hindi
+				"3F31973D-899A-46F3-A249-DB6B9C895F4A",
+				// Hungarian
+				"E3720708-932F-478F-9C7F-59FD4D3E46BF",
+				// Latvian
+				"3D1908B1-95D4-4AB4-9B56-C8662E0E9AD1",
+				// Lithuanian
+				"FDB186F3-4DD1-44FD-9BFA-C7237D035A09",
+				// Norwegian
+				"F550EB5B-C345-44DB-A341-26FB3D50C04B",
+				// Polish
+				"11801B1C-2084-49CE-A965-19A5C3B37A9E",
+				// Romanian
+				"8A812B6B-9D8C-4281-BC9C-A79FCE736366",
+				// Serbian
+				"8912B5E0-119D-49DC-9F33-872E7E37E729",
+				// Slovak
+				"5317048D-64DD-4240-AE2A-D0787C04E633",
+				// Slovenian
+				"78632023-055C-4447-8E94-6319C9FDED96",
+				// Thai
+				"E64BD133-B3A1-4D51-BF9C-63C0C4D0D9A8",
+				// Ukrainian
+				"5A78CC6C-BF97-424E-B520-FB004D1009E9",
+				// Vietnamese
+				"6A8FBD37-8ED5-4ADE-AF15-CCF2E62FC8B7"
+            ]
+        }
+    }
+}

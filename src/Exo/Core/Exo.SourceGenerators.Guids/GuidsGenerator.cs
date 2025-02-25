@@ -10,6 +10,11 @@ namespace DeviceTools.Core.SourceGenerators;
 [Generator]
 public class GuidsGenerator : IIncrementalGenerator
 {
+	public static JsonSerializerOptions JsonSerializerOptions = new(JsonSerializerDefaults.General)
+	{
+		ReadCommentHandling = JsonCommentHandling.Skip,
+	};
+
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 		=> context.RegisterSourceOutput
 		(
@@ -26,7 +31,7 @@ public class GuidsGenerator : IIncrementalGenerator
 
 		try
 		{
-			root = JsonSerializer.Deserialize<JsonObject>(text.ToString());
+			root = JsonSerializer.Deserialize<JsonObject>(text.ToString(), JsonSerializerOptions);
 		}
 		catch (JsonException ex)
 		{
