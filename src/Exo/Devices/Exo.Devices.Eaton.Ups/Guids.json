@@ -1,0 +1,8 @@
+{
+    "Exo.Devices.Eaton.Ups": {
+        "UninterruptiblePowerSupplyDriver": {
+            "PercentLoadSensorId": "d9ca6694-7514-429c-8653-6655c43073b2",
+            "OutputVoltageSensorId": "d8c1e0f2-1712-4709-8b81-3c2d2f77d634"
+        }
+    }
+}

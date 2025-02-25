@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Eaton.Ups;
 
-public sealed class UninterruptiblePowerSupplyDriver :
+public sealed partial class UninterruptiblePowerSupplyDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<IPowerManagementDeviceFeature>,
@@ -191,9 +191,6 @@ public sealed class UninterruptiblePowerSupplyDriver :
 			throw;
 		}
 	}
-
-	public static readonly Guid PercentLoadSensorId = new(0xD9CA6694, 0x7514, 0x429C, 0x86, 0x53, 0x66, 0x55, 0xC4, 0x30, 0x73, 0xB2);
-	public static readonly Guid OutputVoltageSensorId = new(0xD8C1E0F2, 0x1712, 0x4709, 0x8B, 0x81, 0x3C, 0x2D, 0x2F, 0x77, 0xD6, 0x34);
 
 	private readonly HidDeviceStream _hidStream;
 	private readonly byte[] _buffer;
