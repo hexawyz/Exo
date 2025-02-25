@@ -321,13 +321,6 @@ public sealed partial class RgbFusionIT5702Driver :
 		new EffectColor(148, 0, 211),
 	};
 
-	private static readonly Property[] RequestedDeviceInterfaceProperties = new Property[]
-	{
-		Properties.System.Devices.DeviceInstanceId,
-		Properties.System.DeviceInterface.Hid.UsagePage,
-		Properties.System.DeviceInterface.Hid.UsageId,
-	};
-
 	[DiscoverySubsystem<HidDiscoverySubsystem>]
 	[DeviceInterfaceClass(DeviceInterfaceClass.Hid)]
 	[ProductId(VendorIdSource.Usb, IteVendorId, 0x5702)]
