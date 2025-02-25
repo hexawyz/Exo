@@ -1,0 +1,23 @@
+{
+    "Exo.Devices.Gigabyte": {
+        "RgbFusionIT5702Driver": {
+            "Z490MotherboardGuids": [
+                "d57413d5-5ea2-49dd-a50a-2583bb1bca2a",
+                "bec225cd-72f7-43e6-b7c2-2db36f09f2aa",
+                "7d5c9b9f-96a0-472b-a34e-fb10a8407422",
+                "b4913c2d-ef7f-49a0-8ae6-b3392fd09fa1",
+                "1d012fd6-a097-4ea8-b02c-bd31b4b4c9c6",
+                "435444b9-2ea9-4f2b-85da-c3da052166e5",
+                "db94a671-b844-4002-a096-474e9d1e4a49"
+            ],
+            "Z490MotherboardUnifiedZoneId": "34d2462c-e510-4a44-a70e-1491328725f9",
+            "Z490MotherboardIoZoneId": "d57413d5-5ea2-49dd-a50a-2583bb1bca2a",
+            "Z490MotherboardPchZoneId": "7d5c9b9f-96a0-472b-a34e-fb10a8407422",
+            "Z490MotherboardPciZoneId": "b4913c2d-ef7f-49a0-8ae6-b3392fd09fa1",
+            "Z490MotherboardLed1ZoneId": "bec225cd-72f7-43e6-b7c2-2db36f09f2aa",
+            "Z490MotherboardLed2ZoneId": "1d012fd6-a097-4ea8-b02c-bd31b4b4c9c6",
+            "Z490MotherboardDigitalLed1ZoneId": "435444b9-2ea9-4f2b-85da-c3da052166e5",
+            "Z490MotherboardDigitalLed2ZoneId": "db94a671-b844-4002-a096-474e9d1e4a49"
+        }
+    }
+}

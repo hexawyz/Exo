@@ -155,6 +155,7 @@ public class GuidsGenerator : IIncrementalGenerator
 					ReportInvalidGuidValueError(context, text);
 					throw new ProcessingCanceledException();
 				}
+				if (!guidIndices.ContainsKey(guid)) guidIndices.Add(guid, guids.Count);
 				guids.Add(guid);
 			}
 			hasArray = true;

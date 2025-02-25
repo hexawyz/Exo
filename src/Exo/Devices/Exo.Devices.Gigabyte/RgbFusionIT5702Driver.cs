@@ -20,7 +20,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Gigabyte;
 
-public sealed class RgbFusionIT5702Driver :
+public sealed partial class RgbFusionIT5702Driver :
 	Driver,
 	IDeviceIdFeature,
 	ILightingControllerFeature,
@@ -309,26 +309,6 @@ public sealed class RgbFusionIT5702Driver :
 		public byte G;
 		public byte R;
 	}
-
-	private static readonly Guid Z490MotherboardUnifiedZoneId = new Guid(0x34D2462C, 0xE510, 0x4A44, 0xA7, 0x0E, 0x14, 0x91, 0x32, 0x87, 0x25, 0xF9);
-	private static readonly Guid Z490MotherboardIoZoneId = new Guid(0xD57413D5, 0x5EA2, 0x49DD, 0xA5, 0x0A, 0x25, 0x83, 0xBB, 0x1B, 0xCA, 0x2A);
-	private static readonly Guid Z490MotherboardPchZoneId = new Guid(0x7D5C9B9F, 0x96A0, 0x472B, 0xA3, 0x4E, 0xFB, 0x10, 0xA8, 0x40, 0x74, 0x22);
-	private static readonly Guid Z490MotherboardPciZoneId = new Guid(0xB4913C2D, 0xEF7F, 0x49A0, 0x8A, 0xE6, 0xB3, 0x39, 0x2F, 0xD0, 0x9F, 0xA1);
-	private static readonly Guid Z490MotherboardLed1ZoneId = new Guid(0xBEC225CD, 0x72F7, 0x43E6, 0xB7, 0xC2, 0x2D, 0xB3, 0x6F, 0x09, 0xF2, 0xAA);
-	private static readonly Guid Z490MotherboardLed2ZoneId = new Guid(0x1D012FD6, 0xA097, 0x4EA8, 0xB0, 0x2C, 0xBD, 0x31, 0xB4, 0xB4, 0xC9, 0xC6);
-	private static readonly Guid Z490MotherboardDigitalLed1ZoneId = new Guid(0x435444B9, 0x2EA9, 0x4F2B, 0x85, 0xDA, 0xC3, 0xDA, 0x05, 0x21, 0x66, 0xE5);
-	private static readonly Guid Z490MotherboardDigitalLed2ZoneId = new Guid(0xDB94A671, 0xB844, 0x4002, 0xA0, 0x96, 0x47, 0x4E, 0x9D, 0x1E, 0x4A, 0x49);
-
-	private static readonly Guid[] Z490MotherboardGuids = new[]
-	{
-		Z490MotherboardIoZoneId,
-		Z490MotherboardLed1ZoneId,
-		Z490MotherboardPchZoneId,
-		Z490MotherboardPciZoneId,
-		Z490MotherboardLed2ZoneId,
-		Z490MotherboardDigitalLed1ZoneId,
-		Z490MotherboardDigitalLed2ZoneId,
-	};
 
 	private static readonly EffectColor[] DefaultPalette = new[]
 	{
