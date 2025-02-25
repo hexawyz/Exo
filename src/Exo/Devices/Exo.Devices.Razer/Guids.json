@@ -1,0 +1,14 @@
+{
+	"Exo.Devices.Razer": {
+		"RazerDeviceDriver": {
+			"RazerControlDeviceInterfaceClassGuid": "e3be005d-d130-4910-88ff-09ae02f680e9",
+			// This is the GUID of the BLE GATT service used by Razer DeathAdder V2 Pro and possibly other devices.
+			// The BLE protocol is different from the USB HID protocol and does not require a kernel driver. Instead, it uses a custom BLE service exposed by the device.
+			"RazerGattServiceGuid": "52401523-f97c-7f90-0e7f-6c6f4e36db1c",
+			"DockLightingZoneGuid": "5e410069-0f34-4dd8-80db-5b11fbd413d6",
+			"DeathAdderV2ProLightingZoneGuid": "4d2ee313-ea46-4857-898c-5bf944090a9a",
+			"MambaChromaLightingZoneGuid": "16d0353a-bbb9-4993-923e-1d0909f896dd",
+			"MambaChromaDockLightingZoneGuid": "810a8e83-a7a2-4bae-8cc8-fe87dd3c8fb7"
+		}
+	}
+}

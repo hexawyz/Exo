@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
@@ -192,17 +191,6 @@ public abstract partial class RazerDeviceDriver :
 		MustSetDeviceMode3 = 0x800,
 		MustSetSensorState5 = 0x1000,
 	}
-
-	private static readonly Guid RazerControlDeviceInterfaceClassGuid = new(0xe3be005d, 0xd130, 0x4910, 0x88, 0xff, 0x09, 0xae, 0x02, 0xf6, 0x80, 0xe9);
-
-	// This is the GUID of the BLE GATT service used by Razer DeathAdder V2 Pro and possibly other devices.
-	// The BLE protocol is different from the USB HID protocol and does not require a kernel driver. Instead, it uses a custom BLE service exposed by the device.
-	private static readonly Guid RazerGattServiceGuid = new(0x52401523, 0xF97C, 0x7F90, 0x0E, 0x7F, 0x6C, 0x6F, 0x4E, 0x36, 0xDB, 0x1C);
-
-	private static readonly Guid DockLightingZoneGuid = new(0x5E410069, 0x0F34, 0x4DD8, 0x80, 0xDB, 0x5B, 0x11, 0xFB, 0xD4, 0x13, 0xD6);
-	private static readonly Guid DeathAdderV2ProLightingZoneGuid = new(0x4D2EE313, 0xEA46, 0x4857, 0x89, 0x8C, 0x5B, 0xF9, 0x44, 0x09, 0x0A, 0x9A);
-	private static readonly Guid MambaChromaLightingZoneGuid = new(0x16D0353A, 0xBBB9, 0x4993, 0x92, 0x3E, 0x1D, 0x09, 0x09, 0xF8, 0x96, 0xDD);
-	private static readonly Guid MambaChromaDockLightingZoneGuid = new(0x810A8E83, 0xA7A2, 0x4BAE, 0x8C, 0xC8, 0xFE, 0x87, 0xDD, 0x3C, 0x8F, 0xB7);
 
 	// Stores the device informations in a linear table that allow deduplicating information and accessing it by reference.
 	// The indices into this table will be built into the dictionary.

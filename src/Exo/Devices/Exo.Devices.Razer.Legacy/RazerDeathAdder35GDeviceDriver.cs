@@ -41,9 +41,6 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 
 	private static readonly ImmutableArray<ushort> PollingFrequencies = [125, 500, 1000];
 
-	private static readonly Guid WheelLightingZoneGuid = new(0xEF92DD34, 0x3DE7, 0x4D22, 0xB4, 0x6E, 0x02, 0x34, 0xCD, 0x86, 0xFF, 0x25);
-	private static readonly Guid LogoLightingZoneGuid = new(0x531208F2, 0x499B, 0x4779, 0x82, 0xEE, 0x8E, 0x8A, 0xD2, 0xAA, 0xE4, 0xC6);
-
 	private static readonly ImmutableArray<DotsPerInch> DpiPresets3500 = [new(450), new(900), new(1800), new(3500)];
 	private static readonly ImmutableArray<DotsPerInch> DpiPresets1800 = [new(450), new(900), new(1800)];
 
