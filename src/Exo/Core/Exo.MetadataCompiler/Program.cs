@@ -34,6 +34,13 @@ case "strings":
 		{
 			throw new InvalidDataException();
 		}
+		// At the obvious expense of more CPU time being spent in this processor, we will deduplicate strings in a given file.
+		// As string files grow larger it is expected to have a few redundant values, and it will be great if we can shave off a few hundred of bytes from doing this.
+		// Reasons for duplication:
+		// - Two string IDs with a somewhat different semantic meaning actually end up using the same contents for most (or all ?) languages.
+		// - Two languages use the same word(s) to define something
+		// - Any variation of or between the above.
+		var deduplicatedStrings = new Dictionary<string, InMemoryExoArchiveBuilder.FileReference>(StringComparer.Ordinal);
 		byte[] keyBuffer = new byte[16 + 11];
 		keyBuffer[16] = (byte)'/';
 		foreach (var kvp1 in stringData)
@@ -49,7 +56,14 @@ case "strings":
 					keyLength++;
 					keyLength += Encoding.UTF8.GetBytes(culture.Name, keyBuffer.AsSpan(keyLength));
 				}
-				builder.AddFile(keyBuffer.AsSpan(0, keyLength), Encoding.UTF8.GetBytes(kvp2.Value));
+				if (deduplicatedStrings.TryGetValue(kvp2.Value, out var file))
+				{
+					builder.AddFile(keyBuffer.AsSpan(0, keyLength), file);
+				}
+				else
+				{
+					deduplicatedStrings.Add(kvp2.Value, builder.AddFile(keyBuffer.AsSpan(0, keyLength), Encoding.UTF8.GetBytes(kvp2.Value)));
+				}
 			}
 		}
 		break;

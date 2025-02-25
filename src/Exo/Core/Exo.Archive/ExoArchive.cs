@@ -261,36 +261,66 @@ public sealed class InMemoryExoArchiveBuilder
 		}
 	}
 
+	/// <summary>A reference to a file that was added.</summary>
+	/// <remarks>This can be used to attach an extra name to the file.</remarks>
+	public readonly struct FileReference
+	{
+		private readonly InMemoryExoArchiveBuilder _builder;
+		private readonly nuint _index;
+
+		internal FileReference(InMemoryExoArchiveBuilder builder, nuint index)
+		{
+			_builder = builder;
+			_index = index;
+		}
+
+		internal nuint GetEntryIndex(InMemoryExoArchiveBuilder builder)
+		{
+			if (!ReferenceEquals(builder, _builder)) throw new InvalidOperationException();
+
+			return _index;
+		}
+	}
+
+	private const long ExoArchiveNameSeed1 = 0x5649484352414F58;
+
 	private readonly HashSet<ulong> _hashes;
-	private readonly List<File> _file;
+	private readonly List<File> _files;
 
 	public InMemoryExoArchiveBuilder()
 	{
 		_hashes = new();
-		_file = new();
+		_files = new();
 	}
 
-	public void AddFile(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
+	private FileReference AddFile(File file)
 	{
-		ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
+		int index = _files.Count;
+		_files.Add(file);
+		return new(this, (uint)index);
+	}
+
+	public FileReference AddFile(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
+	{
+		ulong hash1 = XxHash3.HashToUInt64(key, ExoArchiveNameSeed1);
 		ulong hash2 = XxHash3.HashToUInt64(key, 0);
 
 		if (!_hashes.Add(hash2)) throw new InvalidOperationException("An entry with the same hash has already been added.");
 
-		_file.Add(new(hash1, hash2, data.ToImmutableArray()));
+		return AddFile(new(hash1, hash2, data.ToImmutableArray()));
 	}
 
-	public void AddFile(ReadOnlySpan<byte> key, ImmutableArray<byte> data)
+	public FileReference AddFile(ReadOnlySpan<byte> key, ImmutableArray<byte> data)
 	{
-		ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
+		ulong hash1 = XxHash3.HashToUInt64(key, ExoArchiveNameSeed1);
 		ulong hash2 = XxHash3.HashToUInt64(key, 0);
 
 		if (!_hashes.Add(hash2)) throw new InvalidOperationException("An entry with the same hash has already been added.");
 
-		_file.Add(new(hash1, hash2, data));
+		return AddFile(new(hash1, hash2, data));
 	}
 
-	public void AddFile(ReadOnlySpan<byte> keys, ReadOnlySpan<int> keyLengths, ReadOnlySpan<byte> data)
+	public FileReference AddFile(ReadOnlySpan<byte> keys, ReadOnlySpan<int> keyLengths, ReadOnlySpan<byte> data)
 	{
 		var fileKeys = new Key[keyLengths.Length];
 		int offset = 0;
@@ -300,7 +330,7 @@ public sealed class InMemoryExoArchiveBuilder
 			var key = keys.Slice(offset, keyLength);
 			offset += keyLength;
 
-			ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
+			ulong hash1 = XxHash3.HashToUInt64(key, ExoArchiveNameSeed1);
 			ulong hash2 = XxHash3.HashToUInt64(key, 0);
 
 			if (!_hashes.Add(hash2))
@@ -316,7 +346,52 @@ public sealed class InMemoryExoArchiveBuilder
 			fileKeys[i] = new(hash1, hash2);
 		}
 
-		_file.Add(new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), data.ToImmutableArray()));
+		return AddFile(new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), data.ToImmutableArray()));
+	}
+
+	public FileReference AddFile(ReadOnlySpan<byte> key, FileReference file)
+	{
+		ulong hash1 = XxHash3.HashToUInt64(key, ExoArchiveNameSeed1);
+		ulong hash2 = XxHash3.HashToUInt64(key, 0);
+
+		if (!_hashes.Add(hash2)) throw new InvalidOperationException("An entry with the same hash has already been added.");
+
+		ref var entry = ref CollectionsMarshal.AsSpan(_files)[(int)file.GetEntryIndex(this)];
+		entry = new([.. entry.Keys, new(hash1, hash2)], entry.Data);
+		return file;
+	}
+
+	public FileReference AddFile(ReadOnlySpan<byte> keys, ReadOnlySpan<int> keyLengths, FileReference file)
+	{
+		ref var entry = ref CollectionsMarshal.AsSpan(_files)[(int)file.GetEntryIndex(this)];
+		int previousKeyCount = entry.Keys.Length;
+		var fileKeys = new Key[previousKeyCount + keyLengths.Length];
+		entry.Keys.CopyTo(fileKeys);
+		int offset = 0;
+		for (int i = 0; i < keyLengths.Length; i++)
+		{
+			int keyLength = keyLengths[i];
+			var key = keys.Slice(offset, keyLength);
+			offset += keyLength;
+
+			ulong hash1 = XxHash3.HashToUInt64(key, ExoArchiveNameSeed1);
+			ulong hash2 = XxHash3.HashToUInt64(key, 0);
+
+			if (!_hashes.Add(hash2))
+			{
+				// Rollback registration of the previous keys.
+				for (int j = 0; j < i; j++)
+				{
+					_hashes.Remove(fileKeys[previousKeyCount + j].Hash2);
+				}
+				throw new InvalidOperationException("An entry with the same hash has already been added.");
+			}
+
+			fileKeys[previousKeyCount + i] = new(hash1, hash2);
+		}
+
+		entry = new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), entry.Data);
+		return file;
 	}
 
 	public void AddFile(ReadOnlySpan<byte> keys, ReadOnlySpan<int> keyLengths, ImmutableArray<byte> data)
@@ -329,7 +404,7 @@ public sealed class InMemoryExoArchiveBuilder
 			var key = keys.Slice(offset, keyLength);
 			offset += keyLength;
 
-			ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
+			ulong hash1 = XxHash3.HashToUInt64(key, ExoArchiveNameSeed1);
 			ulong hash2 = XxHash3.HashToUInt64(key, 0);
 
 			if (!_hashes.Add(hash2))
@@ -345,7 +420,7 @@ public sealed class InMemoryExoArchiveBuilder
 			fileKeys[i] = new(hash1, hash2);
 		}
 
-		_file.Add(new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), data));
+		_files.Add(new(ImmutableCollectionsMarshal.AsImmutableArray(fileKeys), data));
 	}
 
 	public async ValueTask SaveAsync(string fileName, CancellationToken cancellationToken)
@@ -420,7 +495,7 @@ public sealed class InMemoryExoArchiveBuilder
 			return buffer;
 		}
 
-		var entries = BuildEntries(_file);
+		var entries = BuildEntries(_files);
 
 		using var file = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
 
@@ -440,7 +515,7 @@ public sealed class InMemoryExoArchiveBuilder
 			await file.WriteAsync(paddingBytes.AsMemory(0, (int)r), cancellationToken).ConfigureAwait(false);
 		}
 
-		foreach (var entry in _file)
+		foreach (var entry in _files)
 		{
 			await file.WriteAsync(ImmutableCollectionsMarshal.AsArray(entry.Data), cancellationToken).ConfigureAwait(false);
 			r = (uint)entry.Data.Length % BlockSize;
