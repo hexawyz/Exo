@@ -42,7 +42,8 @@ public static class Program
 			.ConfigureWebHost
 			(
 				webBuilder => webBuilder.UseStartup<Startup>()
-					.UseKestrel((ctx, o) => o.Configure(ctx.Configuration.GetSection("Kestrel"), reloadOnChange: true))
+					.UseUrls()
+					.UseKestrel()
 					.UseNamedPipes
 					(
 						o =>
