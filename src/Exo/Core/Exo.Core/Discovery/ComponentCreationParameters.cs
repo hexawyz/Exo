@@ -7,7 +7,7 @@ public readonly struct ComponentCreationParameters<TKey, TCreationContext> : IAs
 	where TCreationContext : class, IComponentCreationContext
 {
 	public ImmutableArray<TKey> AssociatedKeys { get; }
-	public TCreationContext CreationContext { get; }
+	public TCreationContext? CreationContext { get; }
 	public ImmutableArray<Guid> FactoryIds { get; }
 
 	public ComponentCreationParameters(ImmutableArray<TKey> associatedKeys, TCreationContext creationContext, ImmutableArray<Guid> factoryIds)
@@ -17,5 +17,5 @@ public readonly struct ComponentCreationParameters<TKey, TCreationContext> : IAs
 		FactoryIds = factoryIds;
 	}
 
-	public ValueTask DisposeAsync() => CreationContext.DisposeAsync();
+	public ValueTask DisposeAsync() => CreationContext is { } context ? context.DisposeAsync() : ValueTask.CompletedTask;
 }

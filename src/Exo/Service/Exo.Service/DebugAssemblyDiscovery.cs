@@ -33,6 +33,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			("Discovery", @"Exo.Discovery.Monitor"),
 			("Discovery", @"Exo.Discovery.System"),
 			("Discovery", @"Exo.Discovery.SmBios"),
+			("Discovery", @"Exo.Discovery.DnsSd"),
 			("Devices", @"Exo.Devices.Logitech"),
 			("Devices", @"Exo.Devices.Gigabyte"),
 			("Devices", @"Exo.Devices.Apple.Keyboard"),

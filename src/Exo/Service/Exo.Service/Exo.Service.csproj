@@ -84,6 +84,7 @@
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.SmBios\Exo.Discovery.SmBios.csproj" Private="false" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Discovery\Exo.Discovery.DnsSd\Exo.Discovery.DnsSd.csproj" Private="false" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">

@@ -88,6 +88,7 @@
   </Folder>
   <Folder Name="/Exo/Discovery/" Id="76fbe4c7-5fe3-355e-e7ed-dc9c973067f2">
     <Project Path="src/Exo/Discovery/Exo.Debug/Exo.Debug.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.DnsSd/Exo.Discovery.DnsSd.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.Hid/Exo.Discovery.Hid.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.Monitor/Exo.Discovery.Monitor.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.Pci/Exo.Discovery.Pci.csproj" />

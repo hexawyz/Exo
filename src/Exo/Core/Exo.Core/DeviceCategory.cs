@@ -20,6 +20,9 @@ public enum DeviceCategory
 	Gamepad,
 	Monitor,
 	GraphicsAdapter,
+	// Light means a "light" in the sense of a something that can be turned on and off by multiple sources, like a wireless switch for example, thus behaving more like a lightbulb.
+	Light,
+	// Lighting is the general category intended for RGB lighting or everything that could be assimilated to it. (Even a single white led would fall into this)
 	Lighting,
 	UsbWirelessNetwork,
 	UsbWirelessReceiver,

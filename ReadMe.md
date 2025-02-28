@@ -147,7 +147,6 @@ NB: Support of a device does not mean that all of its features will be exposed i
 
 Features are being added bit by bit, and while some are not yet fully designed, there is actually a vision on what to be done:
 
-* dns-sd/mdns/bonjour service discovery (for Elgato lights, etc)
 * Support for a "Light" feature, slightly different than "Lighting" feature, in that lights are independent entities that can be turned on and off externally.
 * Programming system that will allow creating customized complex setups to fit any user need, with predictable state transitions.
 * CPU temperature sensor (Sadly requires a Kernel driver)
