@@ -34,6 +34,8 @@ public enum DeviceCategory
 	[EnumMember]
 	GraphicsAdapter,
 	[EnumMember]
+	Light,
+	[EnumMember]
 	Lighting,
 	[EnumMember]
 	UsbWirelessNetwork,

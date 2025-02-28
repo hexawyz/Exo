@@ -139,21 +139,28 @@ public sealed class DnsSdDiscoverySubsystem :
 					cancellationToken
 				).ConfigureAwait(false))
 			{
-				switch (notification.Kind)
+				// Process notifications inside the lock, so that we can allow drivers to report when the device is down in a more consistent way down the road.
+				lock (_lock)
 				{
-				// From my observations, it seems that there are actually no removal notifications but update notifications are sent when a device is back up ?
-				// Processing updates as add notifications can generate multiple add notifications in a row. It works because the orchestrator will deduplicate, but it is unclean.
-				// TODO: Make this a bit better. Either without DevQuery if it is any better or by propagating device disconnects from the drivers back to the service discovery subsystem.
-				case WatchNotificationKind.Enumeration:
-				case WatchNotificationKind.Add:
-				case WatchNotificationKind.Update:
-					_logger.DnsSdInstanceArrival(notification.Object.Id);
-					HandleArrival(notification.Object);
-					break;
-				case WatchNotificationKind.Remove:
-					_logger.DnsSdInstanceRemoval(notification.Object.Id);
-					HandleRemoval(notification.Object);
-					break;
+					switch (notification.Kind)
+					{
+					// From my observations, it seems that there are actually no removal notifications but update notifications are sent when a device is back up ?
+					// Processing updates as add notifications can generate multiple add notifications in a row. It works because the orchestrator will deduplicate, but it is unclean.
+					// TODO: Make this a bit better. Either without DevQuery if it is any better or by propagating device disconnects from the drivers back to the service discovery subsystem.
+					case WatchNotificationKind.Enumeration:
+					case WatchNotificationKind.Add:
+						_logger.DnsSdInstanceArrival(notification.Object.Id);
+						HandleArrival(notification.Object);
+						break;
+					case WatchNotificationKind.Update:
+						_logger.DnsSdInstanceUpdate(notification.Object.Id);
+						HandleArrival(notification.Object);
+						break;
+					case WatchNotificationKind.Remove:
+						_logger.DnsSdInstanceRemoval(notification.Object.Id);
+						HandleRemoval(notification.Object);
+						break;
+					}
 				}
 			}
 		}
@@ -164,18 +171,12 @@ public sealed class DnsSdDiscoverySubsystem :
 
 	private void HandleArrival(DeviceObjectInformation device)
 	{
-		lock (_lock)
-		{
-			TryGetSink()?.HandleArrival(new(this, device));
-		}
+		TryGetSink()?.HandleArrival(new(this, device));
 	}
 
 	private void HandleRemoval(DeviceObjectInformation device)
 	{
-		lock (_lock)
-		{
-			TryGetSink()?.HandleRemoval(device.Id);
-		}
+		TryGetSink()?.HandleRemoval(device.Id);
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out DnsSdFactoryDetails parsedFactoryDetails)

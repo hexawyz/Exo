@@ -318,7 +318,40 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 							{
 								if (typeof(TComponent) == typeof(Driver))
 								{
-									Orchestrator.Logger.DiscoveryDriverCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+									if (ex is DeviceOfflineException oex)
+									{
+										if (oex.DeviceId is not null && oex.DeviceName is not null)
+										{
+											Orchestrator.Logger.DiscoveryDriverCreationDeviceOfflineForDeviceWithId(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, oex.DeviceName, oex.DeviceId.GetValueOrDefault());
+										}
+										else if (oex.DeviceName is not null)
+										{
+											Orchestrator.Logger.DiscoveryDriverCreationDeviceOfflineForDevice(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, oex.DeviceName);
+										}
+										else
+										{
+											Orchestrator.Logger.DiscoveryDriverCreationDeviceOffline(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName);
+										}
+									}
+									else if (ex is MissingKernelDriverException kex)
+									{
+										if (kex.DeviceId is not null && kex.DeviceName is not null)
+										{
+											Orchestrator.Logger.DiscoveryDriverCreationMissingKernelDriverForDeviceWithId(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, kex.DeviceName, kex.DeviceId.GetValueOrDefault());
+										}
+										else if (kex.DeviceName is not null)
+										{
+											Orchestrator.Logger.DiscoveryDriverCreationMissingKernelDriverForDevice(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, kex.DeviceName);
+										}
+										else
+										{
+											Orchestrator.Logger.DiscoveryDriverCreationMissingKernelDriver(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName);
+										}
+									}
+									else
+									{
+										Orchestrator.Logger.DiscoveryDriverCreationFailure(details.MethodReference.Signature.MethodName, details.MethodReference.TypeName, details.AssemblyName.FullName, ex);
+									}
 								}
 								else
 								{

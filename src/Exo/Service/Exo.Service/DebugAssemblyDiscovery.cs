@@ -43,6 +43,7 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 			("Devices", @"Exo.Devices.Razer.Legacy"),
 			("Devices", @"Exo.Devices.Eaton.Ups"),
 			("Devices", @"Exo.Devices.Elgato.StreamDeck"),
+			("Devices", @"Exo.Devices.Elgato.Lights"),
 			("Devices", @"Exo.Devices.Intel"),
 			("Devices", @"Exo.Devices.NVidia"),
 			("Devices", @"Exo.Devices.Asus.Aura"),

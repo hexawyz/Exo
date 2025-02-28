@@ -14,16 +14,19 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1003, EventName = "DnsSdInstanceArrival", Level = LogLevel.Debug, Message = "Arrival of DNS-SD instance: \"{InstanceName}\".")]
 	public static partial void DnsSdInstanceArrival(this ILogger logger, string instanceName);
 
-	[LoggerMessage(EventId = 1004, EventName = "DnsSdInstanceRemoval", Level = LogLevel.Debug, Message = "Removal of DNS-SD instance: \"{InstanceName}\".")]
+	[LoggerMessage(EventId = 1004, EventName = "DnsSdInstanceUpdate", Level = LogLevel.Debug, Message = "Update of DNS-SD instance: \"{InstanceName}\".")]
+	public static partial void DnsSdInstanceUpdate(this ILogger logger, string instanceName);
+
+	[LoggerMessage(EventId = 1005, EventName = "DnsSdInstanceRemoval", Level = LogLevel.Debug, Message = "Removal of DNS-SD instance: \"{InstanceName}\".")]
 	public static partial void DnsSdInstanceRemoval(this ILogger logger, string instanceName);
 
-	[LoggerMessage(EventId = 1005,
+	[LoggerMessage(EventId = 1006,
 		EventName = "DnsSdFactoryMissingKeys",
 		Level = LogLevel.Error,
 		Message = "The factory did not define any valid keys for DNS-SD discovery.")]
 	public static partial void DnsSdFactoryMissingKeys(this ILogger logger);
 
-	[LoggerMessage(EventId = 1006,
+	[LoggerMessage(EventId = 1007,
 		EventName = "DnsSdServiceTypeDuplicateKey",
 		Level = LogLevel.Error,
 		Message = "The factory defines more than one key for {ServiceType}.")]
@@ -33,7 +36,7 @@ internal static partial class LoggerExtensions
 		string serviceType
 	);
 
-	[LoggerMessage(EventId = 1007,
+	[LoggerMessage(EventId = 1008,
 		EventName = "DnsSdServiceTypeRegistrationConflict",
 		Level = LogLevel.Error,
 		Message = "A factory for service type {ServiceType} was already registered.")]

@@ -74,6 +74,7 @@
     <Project Path="src/Exo/Devices/Exo.Devices.Asus.Aura/Exo.Devices.Asus.Aura.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Corsair.PowerSupplies/Exo.Devices.Corsair.PowerSupplies.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Eaton.Ups/Exo.Devices.Eaton.Ups.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Elgato.Lights/Exo.Devices.Elgato.Lights.csproj" Id="5bb80aae-7564-449f-a0d7-364f22750106" />
     <Project Path="src/Exo/Devices/Exo.Devices.Elgato.StreamDeck/Exo.Devices.Elgato.StreamDeck.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Gigabyte/Exo.Devices.Gigabyte.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Intel/Exo.Devices.Intel.csproj" />
