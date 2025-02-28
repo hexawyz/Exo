@@ -41,7 +41,7 @@ public abstract class DiscoveryService<TSelf, TKey, TParsedFactoryDetails, TDisc
 		ComponentCreationParameters<TKey, TCreationContext> creationParameters,
 		CancellationToken cancellationToken
 	)
-		=> factory(creationParameters.CreationContext, cancellationToken);
+		=> factory(creationParameters.CreationContext!, cancellationToken);
 }
 
 /// <summary>A base class to inherit for providing a discovery service.</summary>

@@ -72,5 +72,5 @@ public interface IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContex
 		SimpleComponentFactory<TCreationContext, TResult> factory,
 		ComponentCreationParameters<TKey, TCreationContext> creationParameters,
 		CancellationToken cancellationToken
-	) => factory(creationParameters.CreationContext, cancellationToken);
+	) => factory(creationParameters.CreationContext!, cancellationToken);
 }
