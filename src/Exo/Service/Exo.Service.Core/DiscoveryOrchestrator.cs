@@ -378,7 +378,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 					var sharedReference = Orchestrator.ComponentReferences.GetOrCreateValue(result.Component);
 
-					var disposableDependencies = creationParameters.CreationContext.CollectDisposableDependencies();
+					var disposableDependencies = creationParameters.CreationContext?.CollectDisposableDependencies() ?? [];
 					try
 					{
 						await sharedReference.AddReferenceAsync(result.Component, disposableDependencies, cancellationToken).ConfigureAwait(false);
