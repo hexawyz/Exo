@@ -11,7 +11,22 @@ public interface ILightControllerFeature : ILightDeviceFeature
 
 public interface IPolledLightControllerFeature : ILightDeviceFeature
 {
-	ValueTask RefreshAsync(CancellationToken cancellationToken);
+	/// <summary>Requests a refresh of the lights.</summary>
+	/// <remarks>
+	/// <para>
+	/// Calling this method notifies the driver of a request for recent data.
+	/// The driver is free to decide the right moment to refresh light states.
+	/// This method does not imply an immediate refresh of the light states.
+	/// Instead, a driver can decide to keep a timestamp of when the last update occurred and decide to ignore refresh requests when appropriate.
+	/// The caller must never expect any observable change as a result of calling this method. (It <b>can</b> happen. It is not guaranteed.)
+	/// </para>
+	/// <para>
+	/// Update notifications will be sent through <see cref="ILight{TState}.Changed"/> for each of the affected lights, if there is an actual change observed.
+	/// </para>
+	/// </remarks>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	ValueTask RequestRefreshAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>The base implementation for a light.</summary>

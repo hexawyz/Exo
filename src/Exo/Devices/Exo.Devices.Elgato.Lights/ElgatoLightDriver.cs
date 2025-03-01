@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -13,7 +14,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<ILightDeviceFeature>,
 	IDeviceSerialNumberFeature,
-	ILightControllerFeature
+	ILightControllerFeature,
+	IPolledLightControllerFeature
 {
 	private static readonly JsonSerializerOptions JsonSerializerOptions = new(JsonSerializerDefaults.Web)
 	{
@@ -110,11 +112,16 @@ public sealed partial class ElgatoLightDriver : Driver,
 	private static bool IsTimeoutOrConnectionReset(IOException ex) => ex.InnerException is SocketException sex && IsTimeoutOrConnectionReset(sex);
 	private static bool IsTimeoutOrConnectionReset(SocketException ex) => ex.SocketErrorCode is SocketError.ConnectionReset or SocketError.TimedOut;
 
+	// Define a reasonable status update interval to avoid too frequent HTTP requests.
+	// For now, le'ts assume that refreshing more than once every 10s is unreasonnable.
+	private static readonly ulong UpdateInterval = (ulong)(10 * Stopwatch.Frequency);
+
 	private readonly LightState[] _lights;
 	private readonly HttpClient _httpClient;
 	private readonly AsyncLock _lock;
 	private readonly MemoryStream _updateStream;
 	private readonly DnsSdDeviceLifetime _lifetime;
+	private ulong _lastUpdateTimestamp;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 	private readonly IDeviceFeatureSet<ILightDeviceFeature> _lightFeatures;
@@ -133,6 +140,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 		{
 			lightStates[i] = new(this, lights[i], (uint)i);
 		}
+		_lastUpdateTimestamp = (ulong)Stopwatch.GetTimestamp();
 		_lights = lightStates;
 		_httpClient = httpClient;
 		_lifetime = lifetime;
@@ -166,6 +174,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 	{
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
+			if ((ulong)Stopwatch.GetTimestamp() - _lastUpdateTimestamp < UpdateInterval) return;
+
 			ElgatoLights lights;
 			try
 			{
@@ -176,7 +186,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 				_lifetime.NotifyDeviceOffline();
 				return;
 			}
-			Update(lights);
+			UpdateLightStates(lights);
 		}
 	}
 
@@ -208,7 +218,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 			}
 			using (response)
 			{
-				Update(JsonSerializer.Deserialize<ElgatoLights>(await response.Content.ReadAsStreamAsync(), JsonSerializerOptions));
+				UpdateLightStates(JsonSerializer.Deserialize<ElgatoLights>(await response.Content.ReadAsStreamAsync(), JsonSerializerOptions));
 			}
 		}
 	}
@@ -229,8 +239,10 @@ public sealed partial class ElgatoLightDriver : Driver,
 		await SendUpdateAsync(index, new() { Temperature = temperature }, cancellationToken);
 	}
 
-	private void Update(ElgatoLights lights)
+	private void UpdateLightStates(ElgatoLights lights)
 	{
+		_lastUpdateTimestamp = (ulong)Stopwatch.GetTimestamp();
+
 		var src = lights.Lights;
 		var dst = _lights;
 
@@ -254,6 +266,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
 	ImmutableArray<ILight> ILightControllerFeature.Lights { get; }
+
+	ValueTask IPolledLightControllerFeature.RequestRefreshAsync(CancellationToken cancellationToken) => new(RefreshLightsAsync(cancellationToken));
 
 	private sealed class LightState : ILight, ILightBrightness, ILightTemperature, ILight<TemperatureAdjustableDimmableLightState>
 	{
@@ -288,6 +302,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 			}
 			if (isChanged && Changed is { } changed)
 			{
+				// NB: This will be called inside the device lock. Just to keep in mind in case this cause problems.
+				// Probably another reason to migrate from events to event queues :(
 				changed.Invoke(_driver, State);
 			}
 		}
