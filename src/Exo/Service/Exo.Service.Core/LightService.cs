@@ -69,7 +69,7 @@ internal sealed partial class LightService : IAsyncDisposable
 			{
 				lights[i++] = light.CreateInformation();
 			}
-			return new LightDeviceInformation() { DeviceId = _id, Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights) };
+			return new LightDeviceInformation() { DeviceId = _id, Capabilities = default, Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights) };
 		}
 
 		public void OnLightChanged(LightChangeNotification notification)
@@ -676,6 +676,7 @@ internal sealed partial class LightService : IAsyncDisposable
 public readonly struct LightDeviceInformation
 {
 	public required Guid DeviceId { get; init; }
+	public required LightDeviceCapabilities Capabilities { get; init; }
 	public required ImmutableArray<LightInformation> Lights { get; init; }
 }
 

@@ -124,4 +124,5 @@ public enum GrpcService
 	EmbeddedMonitor = 4,
 	Sensor = 5,
 	Cooling = 6,
+	Light = 7,
 }

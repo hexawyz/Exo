@@ -15,6 +15,11 @@ using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
 using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
 using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
+using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
+using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
+using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
+using GrpcLightCapabilities = Exo.Contracts.Ui.Settings.LightCapabilities;
+using GrpcLightChangeNotification = Exo.Contracts.Ui.Settings.LightChangeNotification;
 using GrpcLightingPersistenceMode = Exo.Contracts.Ui.Settings.LightingPersistenceMode;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
@@ -514,5 +519,34 @@ internal static class GrpcConvert
 			ImageFormat.WebPLossy => GrpcImageFormat.WebPLossy,
 			ImageFormat.WebPLossless => GrpcImageFormat.WebPLossless,
 			_ => throw new NotImplementedException(),
+		};
+
+	public static GrpcLightDeviceInformation ToGrpc(this LightDeviceInformation information)
+		=> new()
+		{
+			DeviceId = information.DeviceId,
+			Capabilities = (GrpcLightDeviceCapabilities)information.Capabilities,
+			Lights = ImmutableArray.CreateRange(information.Lights, ToGrpc),
+		};
+
+	public static GrpcLightInformation ToGrpc(this LightInformation information)
+		=> new()
+		{
+			LightId = information.LightId,
+			Capabilities = (GrpcLightCapabilities)information.Capabilities,
+			MinimumBrightness = information.MinimumBrightness,
+			MaximumBrightness = information.MaximumBrightness,
+			MinimumTemperature = information.MinimumTemperature,
+			MaximumTemperature = information.MaximumTemperature,
+		};
+
+	public static GrpcLightChangeNotification ToGrpc(this LightChangeNotification notification)
+		=> new()
+		{
+			DeviceId = notification.DeviceId,
+			LightId = notification.LightId,
+			IsOn = notification.IsOn,
+			Brightness = notification.Brightness,
+			Temperature = notification.Temperature,
 		};
 }
