@@ -49,29 +49,38 @@ public interface ILight
 	ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// 
-/// </summary>
+/// <summary>Exposes the light state as a single value, allowing to react to changes.</summary>
+/// <remarks>This interface must always be implemented on <see cref="ILight"/> implementations, by providing the state type matching the light capabilities.</remarks>
 /// <typeparam name="TState">Can be one of the allowed states: <see cref="LightState"/>, <see cref="DimmableLightState"/>, <see cref="TemperatureAdjustableLightState"/> or <see cref="TemperatureAdjustableDimmableLightState"/>.</typeparam>
 public interface ILight<TState> : ILight
 	where TState : struct, ILightState
 {
 	event LightChangeHandler<TState> Changed;
+	/// <summary>Gets the last known state.</summary>
+	/// <remarks>
+	/// In general, it is better to rely on <see cref="Changed"/> to access the state.
+	/// However, first reads will need to come from this property.
+	/// </remarks>
+	TState CurrentState { get; }
 	ValueTask UpdateAsync(TState state, CancellationToken cancellationToken);
 }
 
+/// <summary>Allows controlling the brightness of the light directly.</summary>
 public interface ILightBrightness : ILight
 {
 	byte Minimum => 0;
 	byte Maximum => 100;
+	/// <summary>Gets the last known value for the brightness.</summary>
 	byte Value { get; }
 	ValueTask SetBrightnessAsync(byte brightness, CancellationToken cancellationToken);
 }
 
+/// <summary>Allows controlling the color temperature of the light directly.</summary>
 public interface ILightTemperature : ILight
 {
 	uint Minimum { get; }
 	uint Maximum { get; }
+	/// <summary>Gets the last known value for the temperature.</summary>
 	uint Value { get; }
 	ValueTask SetTemperatureAsync(uint temperature, CancellationToken cancellationToken);
 }

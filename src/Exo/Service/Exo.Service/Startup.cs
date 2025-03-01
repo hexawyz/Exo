@@ -119,6 +119,16 @@ public class Startup
 		);
 		services.AddSingleton
 		(
+			sp => LightService.CreateAsync
+			(
+				sp.GetRequiredService<ILogger<LightService>>(),
+				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
+				sp.GetRequiredService<IDeviceWatcher>(),
+				default
+			).GetAwaiter().GetResult()
+		);
+		services.AddSingleton
+		(
 			sp => EmbeddedMonitorService.CreateAsync
 			(
 				sp.GetRequiredService<ILogger<EmbeddedMonitorService>>(),

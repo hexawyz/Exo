@@ -1,4 +1,4 @@
-﻿namespace Exo.Service;
+namespace Exo.Service;
 
 [Flags]
 public enum EmbeddedMonitorCapabilities : uint

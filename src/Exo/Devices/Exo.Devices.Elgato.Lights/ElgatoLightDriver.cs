@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Exo.Discovery;
@@ -265,7 +266,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
-	ImmutableArray<ILight> ILightControllerFeature.Lights { get; }
+	ImmutableArray<ILight> ILightControllerFeature.Lights => ImmutableCollectionsMarshal.AsImmutableArray(Unsafe.As<ILight[]>(_lights));
 
 	ValueTask IPolledLightControllerFeature.RequestRefreshAsync(CancellationToken cancellationToken) => new(RefreshLightsAsync(cancellationToken));
 
@@ -330,6 +331,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 
 		ValueTask ILightTemperature.SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
 			=> new(_driver.SetTemperatureAsync(_index, TemperatureToInternalValue(temperature), cancellationToken));
+
+		TemperatureAdjustableDimmableLightState ILight<TemperatureAdjustableDimmableLightState>.CurrentState => new(_isOn, _brightness, InternalValueToTemperature(_temperature));
 
 		event LightChangeHandler<TemperatureAdjustableDimmableLightState> ILight<TemperatureAdjustableDimmableLightState>.Changed
 		{

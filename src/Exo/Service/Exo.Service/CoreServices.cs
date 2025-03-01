@@ -15,6 +15,7 @@ internal sealed class CoreServices : IHostedService
 #endif
 		MotherboardService motherboardService,
 		LightingService lightingService,
+		LightService lightService,
 		EmbeddedMonitorService embeddedMonitorService,
 		PowerService batteryService,
 		KeyboardService keyboardService,
@@ -30,6 +31,7 @@ internal sealed class CoreServices : IHostedService
 	)
 	{
 		programmingService.RegisterModule(lightingService);
+		programmingService.RegisterModule(lightService);
 		programmingService.RegisterModule(embeddedMonitorService);
 		programmingService.RegisterModule(batteryService);
 		programmingService.RegisterModule(keyboardService);
