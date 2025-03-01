@@ -5,12 +5,15 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.Lights;
 
 namespace Exo.Devices.Elgato.Lights;
 
 public class ElgatoLightDriver : Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
-	IDeviceSerialNumberFeature
+	IDeviceDriver<ILightDeviceFeature>,
+	IDeviceSerialNumberFeature,
+	ILightControllerFeature
 {
 	private static readonly JsonSerializerOptions JsonSerializerOptions = new(JsonSerializerDefaults.Web)
 	{
@@ -114,6 +117,7 @@ public class ElgatoLightDriver : Driver,
 	private readonly DnsSdDeviceLifetime _lifetime;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<ILightDeviceFeature> _lightFeatures;
 
 	private ElgatoLightDriver
 	(
@@ -124,12 +128,18 @@ public class ElgatoLightDriver : Driver,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
-		_lights = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(lights)!, l => new LightState(l));
+		var lightStates = new LightState[lights.Length];
+		for (int i = 0; i < lights.Length; i++)
+		{
+			lightStates[i] = new(this, lights[i], (uint)i);
+		}
+		_lights = lightStates;
 		_httpClient = httpClient;
 		_lifetime = lifetime;
 		_genericFeatures = configurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, ElgatoLightDriver, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Empty<IGenericDeviceFeature>();
+		_lightFeatures = FeatureSet.Create<ILightDeviceFeature, ElgatoLightDriver, ILightControllerFeature>(this);
 		_lock = new();
 		_updateStream = new(GC.AllocateUninitializedArray<byte>(128, false), 0, 128, true, true);
 		_cancellationTokenSource = new();
@@ -170,6 +180,13 @@ public class ElgatoLightDriver : Driver,
 		}
 	}
 
+	private Task SendUpdateAsync(uint index, ElgatoLightUpdate update, CancellationToken cancellationToken)
+	{
+		var lights = new ElgatoLightUpdate[index + 1];
+		lights[index] = update;
+		return SendUpdateAsync(new ElgatoLightsUpdate { Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights) }, cancellationToken);
+	}
+
 	private async Task SendUpdateAsync(ElgatoLightsUpdate update, CancellationToken cancellationToken)
 	{
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
@@ -196,20 +213,20 @@ public class ElgatoLightDriver : Driver,
 		}
 	}
 
-	private Task SwitchLightAsync(bool isOn, CancellationToken cancellationToken)
-		=> SendUpdateAsync(new() { Lights = [new() { On = isOn ? (byte)1 : (byte)0 }] }, cancellationToken);
+	private Task SwitchLightAsync(uint index, bool isOn, CancellationToken cancellationToken)
+		=> SendUpdateAsync(index, new() { On = isOn ? (byte)1 : (byte)0 }, cancellationToken);
 
-	private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+	private async Task SetBrightnessAsync(uint index, byte brightness, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
-		await SendUpdateAsync(new() { Lights = [new() { Brightness = brightness }] }, cancellationToken);
+		await SendUpdateAsync(index, new() { Brightness = brightness }, cancellationToken);
 	}
 
-	private async Task SetTemperatureAsync(ushort temperature, CancellationToken cancellationToken)
+	private async Task SetTemperatureAsync(uint index, ushort temperature, CancellationToken cancellationToken)
 	{
 		ArgumentOutOfRangeException.ThrowIfLessThan(temperature, 143);
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(temperature, 344);
-		await SendUpdateAsync(new() { Lights = [new() { Temperature = temperature }] }, cancellationToken);
+		await SendUpdateAsync(index, new() { Temperature = temperature }, cancellationToken);
 	}
 
 	private void Update(ElgatoLights lights)
@@ -225,26 +242,75 @@ public class ElgatoLightDriver : Driver,
 		}
 	}
 
+	private static uint InternalValueToTemperature(ushort value) => 1000000 / Math.Clamp((uint)value, 143, 344);
+
+	private static ushort TemperatureToInternalValue(uint temperature) => (ushort)(1000000 / Math.Clamp(temperature, 2906, 6993));
+
 	public override DeviceCategory DeviceCategory => DeviceCategory.Light;
 
-	public IDeviceFeatureSet<IGenericDeviceFeature> Features => _genericFeatures;
+	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<ILightDeviceFeature> IDeviceDriver<ILightDeviceFeature>.Features => _lightFeatures;
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
-	private sealed class LightState
+	ImmutableArray<ILight> ILightControllerFeature.Lights { get; }
+
+	private sealed class LightState : ILight, ILightBrightness, ILightTemperature, ILight<TemperatureAdjustableDimmableLightState>
 	{
+		private readonly ElgatoLightDriver _driver;
+		private event LightChangeHandler<TemperatureAdjustableDimmableLightState>? Changed;
 		private bool _isOn;
 		private byte _brightness;
 		private ushort _temperature;
+		private readonly uint _index;
 
-		public LightState(ElgatoLight light) => Update(light);
+		public LightState(ElgatoLightDriver driver, ElgatoLight light, uint index)
+		{
+			_driver = driver;
+			_index = index;
+			Update(light);
+		}
 
-		public void Update(ElgatoLight light)
+		internal void Update(ElgatoLight light)
 		{
 			_isOn = light.On != 0;
 			_brightness = light.Brightness;
 			_temperature = light.Temperature;
+			if (Changed is { } changed)
+			{
+				changed.Invoke(_driver, State);
+			}
 		}
+
+		private TemperatureAdjustableDimmableLightState State => new(_isOn, _brightness, InternalValueToTemperature(_temperature));
+
+		bool ILight.IsOn => _isOn;
+
+		ValueTask ILight.SwitchAsync(bool isOn, CancellationToken cancellationToken)
+			=> new(_driver.SwitchLightAsync(_index, isOn, cancellationToken));
+
+		byte ILightBrightness.Value => _brightness;
+
+		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+			=> new(_driver.SetBrightnessAsync(_index, brightness, cancellationToken));
+
+		// It is simpler to straight up map the temperature values to what the conversion formula gives, which is a K value between 2906 to 6993.
+		// That way, we are able to expose enough granularity to the UI.
+		uint ILightTemperature.Minimum => 2906;
+		uint ILightTemperature.Maximum => 6993;
+		uint ILightTemperature.Value => InternalValueToTemperature(_temperature);
+
+		ValueTask ILightTemperature.SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
+			=> new(_driver.SetTemperatureAsync(_index, TemperatureToInternalValue(temperature), cancellationToken));
+
+		event LightChangeHandler<TemperatureAdjustableDimmableLightState> ILight<TemperatureAdjustableDimmableLightState>.Changed
+		{
+			add => Changed += value;
+			remove => Changed -= value;
+		}
+
+		ValueTask ILight<TemperatureAdjustableDimmableLightState>.UpdateAsync(TemperatureAdjustableDimmableLightState state, CancellationToken cancellationToken)
+			=> new(_driver.SendUpdateAsync(_index, new() { On = state.IsOn ? (byte)1 : (byte)0, Brightness = state.Brightness, Temperature = TemperatureToInternalValue(state.Temperature) }, cancellationToken));
 	}
 }
 

@@ -87,6 +87,26 @@ public interface ILightingDeviceFeature : IDeviceFeature
 {
 }
 
+/// <summary>Define features related to lights.</summary>
+/// <remarks>
+/// <para>
+/// There will necessarily be overlap between this feature category and <see cref="ILightingDeviceFeature"/>, as both control lighting devices in some way.
+/// However, there will hopefully be a clear enough distinction of the capabilities of the two devices.
+/// </para>
+/// <para>
+/// Light devices should behave more like a classical lamp, in that they can be turned on and off instantaneously and are not controlled exclusively by one software. (Though ideally they would be 🙂)
+/// They should always be able to report their current status to the software. Status reporting will ideally be done in a reactive way when the hardware allows it. Otherwise, polling can be controlled by the software.
+/// </para>
+/// <para>
+/// Lights will expose simple controls such as on/off, brightness, temperature and color.
+/// If a light features effect, it may benefit from also or exclusively exposing <see cref="ILightingDeviceFeature"/>.
+/// </para>
+/// </remarks>
+[TypeId(0x11F4E098, 0x2110, 0x4CFC, 0x86, 0x93, 0xC8, 0x04, 0xD9, 0x2A, 0x4B, 0x2D)]
+public interface ILightDeviceFeature : IDeviceFeature
+{
+}
+
 [TypeId(0xA6A121D7, 0xE5A3, 0x49A6, 0x88, 0xBE, 0xE7, 0x52, 0x39, 0xED, 0x9E, 0x3A)]
 public interface IMotherboardDeviceFeature : IDeviceFeature
 {
