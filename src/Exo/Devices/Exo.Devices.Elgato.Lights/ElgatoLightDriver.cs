@@ -9,7 +9,7 @@ using Exo.Features.Lights;
 
 namespace Exo.Devices.Elgato.Lights;
 
-public class ElgatoLightDriver : Driver,
+public sealed partial class ElgatoLightDriver : Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
 	IDeviceDriver<ILightDeviceFeature>,
 	IDeviceSerialNumberFeature,
@@ -74,9 +74,9 @@ public class ElgatoLightDriver : Driver,
 			// The device is very touchy on the kind of requests it accepts and will reject chunked encoding.
 			// However, it does seemingly not require any particular header to be specified.
 
-			if (lights.NumberOfLights != 1)
+			if ((uint)lights.NumberOfLights > (uint)LightIds.Count)
 			{
-				throw new InvalidOperationException("Support for devices with more than one light is not yet implemented.");
+				throw new InvalidOperationException($"Devices with {lights.NumberOfLights} lights are not yet supported. Please submit a support request to increase the limit.");
 			}
 		}
 		catch
@@ -293,6 +293,8 @@ public class ElgatoLightDriver : Driver,
 		}
 
 		private TemperatureAdjustableDimmableLightState State => new(_isOn, _brightness, InternalValueToTemperature(_temperature));
+
+		Guid ILight.Id => LightIds[(int)_index];
 
 		bool ILight.IsOn => _isOn;
 

@@ -21,6 +21,15 @@ public interface IPolledLightControllerFeature : ILightDeviceFeature
 /// </remarks>
 public interface ILight
 {
+	/// <summary>Gets an unique ID for the light.</summary>
+	/// <remarks>
+	/// <para>
+	/// Similar to IDs used to other features, this ID is supposed to be well-known and only expected to be unique within a device instance.
+	/// It is expected that two identical devices would use the same ID for the same ID.
+	/// </para>
+	/// <para>That well-known ID will optionally be used to provide more information abut the light in metadata. (For example a graphical illustration)</para>
+	/// </remarks>
+	Guid Id { get; }
 	bool IsOn { get; }
 	ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken);
 }
