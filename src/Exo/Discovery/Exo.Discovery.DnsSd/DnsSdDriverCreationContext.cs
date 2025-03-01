@@ -39,6 +39,9 @@ public sealed class DnsSdDriverCreationContext : DriverCreationContext
 	protected override INestedDriverRegistryProvider NestedDriverRegistryProvider => _discoverySubsystem.DriverRegistry;
 	public override ILoggerFactory LoggerFactory => _discoverySubsystem.LoggerFactory;
 
+	private readonly DnsSdDeviceLifetime _lifetime;
+	internal DnsSdDeviceLifetime Lifetime => _lifetime;
+
 	internal DnsSdDriverCreationContext
 	(
 		DnsSdDiscoverySubsystem discoverySubsystem,
@@ -49,5 +52,12 @@ public sealed class DnsSdDriverCreationContext : DriverCreationContext
 		_discoverySubsystem = discoverySubsystem;
 		Keys = keys;
 		_instanceInformation = instanceInformation;
+		_lifetime = _discoverySubsystem.CreateLifetime(keys[0].ToString());
+	}
+
+	protected override void CollectDisposableDependencies(ref DisposableDependencyBuilder builder)
+	{
+		base.CollectDisposableDependencies(ref builder);
+		builder.Add(_lifetime);
 	}
 }

@@ -2,16 +2,16 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using DeviceTools;
-using Exo.Features;
-using Exo.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
 
+public delegate ValueTask<DriverCreationResult<DnsSdInstanceId>?> DnsSdDriverFactory(DnsSdDeviceLifetime deviceLifetime, DnsSdDriverCreationContext context, CancellationToken cancellationToken);
+
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
 public sealed class DnsSdDiscoverySubsystem :
-	DiscoveryService<DnsSdDiscoverySubsystem, DnsSdInstanceId, DnsSdFactoryDetails, DnsSdDiscoveryContext, DnsSdDriverCreationContext, Driver, DriverCreationResult<DnsSdInstanceId>>
+	DiscoveryService<DnsSdDiscoverySubsystem, DnsSdDriverFactory, DnsSdInstanceId, DnsSdFactoryDetails, DnsSdDiscoveryContext, DnsSdDriverCreationContext, Driver, DriverCreationResult<DnsSdInstanceId>>
 {
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(DnsSdDiscoverySubsystem))]
@@ -36,6 +36,7 @@ public sealed class DnsSdDiscoverySubsystem :
 	}
 
 	private readonly Dictionary<string, Guid> _serviceTypeFactories;
+	private readonly Dictionary<string, DnsSdDeviceLifetime> _lifetimes;
 
 	private readonly ILogger<DnsSdDiscoverySubsystem> _logger;
 	internal ILoggerFactory LoggerFactory { get; }
@@ -57,6 +58,7 @@ public sealed class DnsSdDiscoverySubsystem :
 		_logger = loggerFactory.CreateLogger<DnsSdDiscoverySubsystem>();
 
 		_serviceTypeFactories = new();
+		_lifetimes = new();
 
 		_cancellationTokenSource = new();
 		_lock = new();
@@ -154,11 +156,11 @@ public sealed class DnsSdDiscoverySubsystem :
 						break;
 					case WatchNotificationKind.Update:
 						_logger.DnsSdInstanceUpdate(notification.Object.Id);
-						HandleArrival(notification.Object);
+						HandleUpdate(notification.Object);
 						break;
 					case WatchNotificationKind.Remove:
 						_logger.DnsSdInstanceRemoval(notification.Object.Id);
-						HandleRemoval(notification.Object);
+						HandleRemoval(notification.Object.Id);
 						break;
 					}
 				}
@@ -174,9 +176,57 @@ public sealed class DnsSdDiscoverySubsystem :
 		TryGetSink()?.HandleArrival(new(this, device));
 	}
 
-	private void HandleRemoval(DeviceObjectInformation device)
+	private void HandleUpdate(DeviceObjectInformation device)
 	{
-		TryGetSink()?.HandleRemoval(device.Id);
+		if (_lifetimes.TryGetValue(device.Id, out var lifetime))
+		{
+			lifetime.NotifyDeviceUpdated();
+		}
+		else
+		{
+			HandleArrival(device);
+		}
+	}
+
+	private void HandleRemoval(string instanceId)
+	{
+		TryGetSink()?.HandleRemoval(instanceId);
+		if (_lifetimes.Remove(instanceId, out var lifetime))
+		{
+			lifetime.MarkDisposed();
+		}
+	}
+
+	internal void OnRemoval(DnsSdDeviceLifetime lifetime)
+	{
+		lock (_lock)
+		{
+			if (((IDictionary<string, DnsSdDeviceLifetime>)_lifetimes).Remove(new KeyValuePair<string, DnsSdDeviceLifetime>(lifetime.InstanceId, lifetime)))
+			{
+				_logger.DnsSdInstanceRemoval(lifetime.InstanceId);
+				TryGetSink()?.HandleRemoval(lifetime.InstanceId);
+			}
+		}
+	}
+
+	internal DnsSdDeviceLifetime CreateLifetime(string instanceId)
+	{
+		lock (_lock)
+		{
+			if (_lifetimes.ContainsKey(instanceId)) throw new Exception();
+
+			var lifetime = new DnsSdDeviceLifetime(this, instanceId);
+			_lifetimes.Add(instanceId, lifetime);
+			return lifetime;
+		}
+	}
+
+	internal void ReleaseLifetime(DnsSdDeviceLifetime lifetime)
+	{
+		lock (_lock)
+		{
+			_lifetimes.Remove(lifetime.InstanceId, lifetime);
+		}
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out DnsSdFactoryDetails parsedFactoryDetails)
@@ -257,4 +307,68 @@ public sealed class DnsSdDiscoverySubsystem :
 		}
 		return [];
 	}
+
+	public override ValueTask<DriverCreationResult<DnsSdInstanceId>?> InvokeFactoryAsync
+	(
+		DnsSdDriverFactory factory,
+		ComponentCreationParameters<DnsSdInstanceId, DnsSdDriverCreationContext> creationParameters,
+		CancellationToken cancellationToken
+	)
+		=> factory(creationParameters.CreationContext!.Lifetime, creationParameters.CreationContext!, cancellationToken);
+}
+
+/// <summary>This manages the lifetime of a DNS-SD device.</summary>
+/// <remarks>
+/// <para>
+/// Because the service discovery itself has no means to detect when a device gets offline, instances of this type <b>must</b> be used by drivers to notify when the device is offline.
+/// </para>
+/// <para>When the discovery subsystem is notified that the device is offline, the driver will be unregistered and disposed with the regular process.</para>
+/// <para>
+/// It is possible that a device will become offline then online without a driver noticing.
+/// In such an event, the <see cref="DeviceUpdated"/> event will be raised.
+/// That event being raised in itself does not imply any change on the device, but it is an opportunity for drivers to check on the state of the device if necessary.
+/// </para>
+/// </remarks>
+public sealed class DnsSdDeviceLifetime : IDisposable, IAsyncDisposable
+{
+	private readonly DnsSdDiscoverySubsystem _subsystem;
+	private readonly string _instanceId;
+	private bool _isNotified;
+
+	internal string InstanceId => _instanceId;
+
+	/// <summary>This event will be used to notify of a state update.</summary>
+	public event EventHandler? DeviceUpdated;
+
+	internal DnsSdDeviceLifetime(DnsSdDiscoverySubsystem subsystem, string instanceId)
+	{
+		_subsystem = subsystem;
+		_instanceId = instanceId;
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		Dispose();
+		return ValueTask.CompletedTask;
+	}
+
+	public void Dispose()
+	{
+		if (!Interlocked.Exchange(ref _isNotified, true))
+		{
+			_subsystem.ReleaseLifetime(this);
+		}
+	}
+
+	internal void MarkDisposed() => Volatile.Write(ref _isNotified, true);
+
+	public void NotifyDeviceOffline()
+	{
+		if (!Interlocked.Exchange(ref _isNotified, true))
+		{
+			_subsystem.OnRemoval(this);
+		}
+	}
+
+	internal void NotifyDeviceUpdated() => DeviceUpdated?.Invoke(this, EventArgs.Empty);
 }

@@ -17,6 +17,7 @@ public class ElgatoLightDriver : Driver,
 	[DnsSdServiceType("_elg._tcp")]
 	public static async ValueTask<DriverCreationResult<DnsSdInstanceId>> CreateAsync
 	(
+		DnsSdDeviceLifetime deviceLifetime,
 		ImmutableArray<DnsSdInstanceId> keys,
 		string fullName,
 		string instanceName,
@@ -48,18 +49,27 @@ public class ElgatoLightDriver : Driver,
 			throw;
 		}
 
-		return new(keys, new ElgatoLightDriver(httpClient, instanceName, new DeviceConfigurationKey("elg", fullName, fullName, accessoryInfo.SerialNumber)));
+		return new(keys, new ElgatoLightDriver(deviceLifetime, httpClient, instanceName, new DeviceConfigurationKey("elg", fullName, fullName, accessoryInfo.SerialNumber)));
 	}
 
+	private readonly DnsSdDeviceLifetime _lifetime;
 	private readonly HttpClient _httpClient;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 
-	private ElgatoLightDriver(HttpClient httpClient, string friendlyName, DeviceConfigurationKey configurationKey) : base(friendlyName, configurationKey)
+	private ElgatoLightDriver
+	(
+		DnsSdDeviceLifetime lifetime,
+		HttpClient httpClient,
+		string friendlyName,
+		DeviceConfigurationKey configurationKey
+	) : base(friendlyName, configurationKey)
 	{
+		_lifetime = lifetime;
 		_httpClient = httpClient;
 		_genericFeatures = configurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, ElgatoLightDriver, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Empty<IGenericDeviceFeature>();
+		lifetime.DeviceUpdated += OnDeviceUpdated;
 	}
 
 	public override ValueTask DisposeAsync()
@@ -73,6 +83,10 @@ public class ElgatoLightDriver : Driver,
 	public IDeviceFeatureSet<IGenericDeviceFeature> Features => _genericFeatures;
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
+
+	private void OnDeviceUpdated(object? sender, EventArgs e)
+	{
+	}
 }
 
 internal readonly struct ElgatoAccessoryInfo

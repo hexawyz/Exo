@@ -1000,13 +1000,6 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		}
 	}
 
-	private DiscoveredAssemblyDetails ParseAssembly(AssemblyName assemblyName)
-	{
-		using var context = AssemblyLoader.CreateMetadataLoadContext(assemblyName);
-		var assembly = context.LoadFromAssemblyName(assemblyName);
-		return ParseAssembly(assembly);
-	}
-
 	private static DiscoveredAssemblyDetails ParseAssembly(Assembly assembly)
 	{
 		var factoryMethods = ImmutableArray.CreateBuilder<DiscoveredTypeDetails>();
