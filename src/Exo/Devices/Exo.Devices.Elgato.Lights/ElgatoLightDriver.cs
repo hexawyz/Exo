@@ -273,10 +273,20 @@ public class ElgatoLightDriver : Driver,
 
 		internal void Update(ElgatoLight light)
 		{
-			_isOn = light.On != 0;
-			_brightness = light.Brightness;
-			_temperature = light.Temperature;
-			if (Changed is { } changed)
+			bool isOn = light.On != 0;
+			bool isChanged = isChanged = isOn ^ _isOn;
+			_isOn = isOn;
+			if (_brightness != light.Brightness)
+			{
+				_brightness = light.Brightness;
+				isChanged = true;
+			}
+			if (_temperature != light.Temperature)
+			{
+				_temperature = light.Temperature;
+				isChanged = true;
+			}
+			if (isChanged && Changed is { } changed)
 			{
 				changed.Invoke(_driver, State);
 			}
