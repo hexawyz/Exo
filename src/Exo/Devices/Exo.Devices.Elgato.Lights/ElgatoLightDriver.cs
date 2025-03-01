@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Sockets;
-using System.Text;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Exo.Discovery;
 using Exo.Features;
@@ -71,14 +70,6 @@ public class ElgatoLightDriver : Driver,
 			// It can perhaps be simplified a bit, but don't be fooled.
 			// The device is very touchy on the kind of requests it accepts and will reject chunked encoding.
 			// However, it does seemingly not require any particular header to be specified.
-			//var update = new ElgatoLightsUpdate() { Lights = [new() { On = 1 }] };
-			//using (var ms = new MemoryStream())
-			//{
-			//	JsonSerializer.Serialize(ms, update, JsonSerializerOptions);
-			//	using var json = new ByteArrayContent(ms.ToArray());
-			//	using var request = new HttpRequestMessage(HttpMethod.Put, LightsPath) { Content = json };
-			//	using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-			//}
 
 			if (lights.NumberOfLights != 1)
 			{
@@ -106,8 +97,22 @@ public class ElgatoLightDriver : Driver,
 	private static bool IsTimeout(HttpRequestException ex) => ex.InnerException is SocketException sex && IsTimeout(sex);
 	private static bool IsTimeout(SocketException ex) => ex.SocketErrorCode == SocketError.TimedOut;
 
-	private readonly DnsSdDeviceLifetime _lifetime;
+	private static bool IsTimeoutOrConnectionReset(HttpRequestException ex) => ex.InnerException switch
+	{
+		IOException ioex => IsTimeoutOrConnectionReset(ioex),
+		SocketException sex => IsTimeoutOrConnectionReset(sex),
+		_ => false
+	};
+
+	private static bool IsTimeoutOrConnectionReset(IOException ex) => ex.InnerException is SocketException sex && IsTimeoutOrConnectionReset(sex);
+	private static bool IsTimeoutOrConnectionReset(SocketException ex) => ex.SocketErrorCode is SocketError.ConnectionReset or SocketError.TimedOut;
+
+	private readonly LightState[] _lights;
 	private readonly HttpClient _httpClient;
+	private readonly AsyncLock _lock;
+	private readonly MemoryStream _updateStream;
+	private readonly DnsSdDeviceLifetime _lifetime;
+	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
 
 	private ElgatoLightDriver
@@ -119,18 +124,105 @@ public class ElgatoLightDriver : Driver,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
 	{
-		_lifetime = lifetime;
+		_lights = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(lights)!, l => new LightState(l));
 		_httpClient = httpClient;
+		_lifetime = lifetime;
 		_genericFeatures = configurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, ElgatoLightDriver, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Empty<IGenericDeviceFeature>();
+		_lock = new();
+		_updateStream = new(GC.AllocateUninitializedArray<byte>(128, false), 0, 128, true, true);
+		_cancellationTokenSource = new();
 		lifetime.DeviceUpdated += OnDeviceUpdated;
 	}
 
 	public override ValueTask DisposeAsync()
 	{
-		_httpClient.Dispose();
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
+		{
+			cts.Cancel();
+			_lifetime.Dispose();
+			_httpClient.Dispose();
+		}
 		return ValueTask.CompletedTask;
+	}
+
+	private async void OnDeviceUpdated(object? sender, EventArgs e)
+	{
+		await RefreshLightsAsync(_cancellationTokenSource!.Token).ConfigureAwait(false);
+	}
+
+	private async Task RefreshLightsAsync(CancellationToken cancellationToken)
+	{
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			ElgatoLights lights;
+			try
+			{
+				lights = await _httpClient.GetFromJsonAsync<ElgatoLights>(LightsPath, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+			}
+			catch (HttpRequestException ex) when (IsTimeoutOrConnectionReset(ex))
+			{
+				_lifetime.NotifyDeviceOffline();
+				return;
+			}
+			Update(lights);
+		}
+	}
+
+	private async Task SendUpdateAsync(ElgatoLightsUpdate update, CancellationToken cancellationToken)
+	{
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var stream = _updateStream;
+			stream.SetLength(0);
+			JsonSerializer.Serialize(stream, update, JsonSerializerOptions);
+			using var json = new ByteArrayContent(stream.GetBuffer(), 0, (int)stream.Position);
+			using var request = new HttpRequestMessage(HttpMethod.Put, LightsPath) { Content = json };
+			HttpResponseMessage response;
+			try
+			{
+				response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+			}
+			catch (HttpRequestException ex) when (IsTimeoutOrConnectionReset(ex))
+			{
+				_lifetime.NotifyDeviceOffline();
+				return;
+			}
+			using (response)
+			{
+				Update(JsonSerializer.Deserialize<ElgatoLights>(await response.Content.ReadAsStreamAsync(), JsonSerializerOptions));
+			}
+		}
+	}
+
+	private Task SwitchLightAsync(bool isOn, CancellationToken cancellationToken)
+		=> SendUpdateAsync(new() { Lights = [new() { On = isOn ? (byte)1 : (byte)0 }] }, cancellationToken);
+
+	private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+		await SendUpdateAsync(new() { Lights = [new() { Brightness = brightness }] }, cancellationToken);
+	}
+
+	private async Task SetTemperatureAsync(ushort temperature, CancellationToken cancellationToken)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(temperature, 143);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(temperature, 344);
+		await SendUpdateAsync(new() { Lights = [new() { Temperature = temperature }] }, cancellationToken);
+	}
+
+	private void Update(ElgatoLights lights)
+	{
+		var src = lights.Lights;
+		var dst = _lights;
+
+		if (src.Length != dst.Length) throw new InvalidOperationException();
+
+		for (int i = 0; i < src.Length; i++)
+		{
+			dst[i].Update(src[i]);
+		}
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Light;
@@ -139,8 +231,20 @@ public class ElgatoLightDriver : Driver,
 
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
 
-	private void OnDeviceUpdated(object? sender, EventArgs e)
+	private sealed class LightState
 	{
+		private bool _isOn;
+		private byte _brightness;
+		private ushort _temperature;
+
+		public LightState(ElgatoLight light) => Update(light);
+
+		public void Update(ElgatoLight light)
+		{
+			_isOn = light.On != 0;
+			_brightness = light.Brightness;
+			_temperature = light.Temperature;
+		}
 	}
 }
 
