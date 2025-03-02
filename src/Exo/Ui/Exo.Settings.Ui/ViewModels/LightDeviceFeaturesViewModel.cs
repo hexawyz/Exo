@@ -101,6 +101,18 @@ internal sealed class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 			_pendingLightChanges.Add(configuration.LightId, configuration);
 		}
 	}
+
+	// We use this opportunity to realign the internal UI states for each of the lights.
+	// This allows the lights to recover a realistic status when the device is back on later.
+	internal void OnDeviceOffline() => ResetTemporaryStates();
+
+	private void ResetTemporaryStates()
+	{
+		foreach (var lights in _lights)
+		{
+			lights.ResetTemporaryStates();
+		}
+	}
 }
 
 internal sealed class LightViewModel : BindableObject
@@ -291,6 +303,20 @@ internal sealed class LightViewModel : BindableObject
 			}
 			_temperature = notification.Temperature;
 		}
+		if (isOnChanged) NotifyPropertyChanged(ChangedProperty.IsOn);
+		if (brightnessChanged) NotifyPropertyChanged(ChangedProperty.Brightness);
+		if (temperatureChanged) NotifyPropertyChanged(ChangedProperty.Temperature);
+	}
+
+	internal void ResetTemporaryStates()
+	{
+		bool isOnChanged;
+		bool brightnessChanged;
+		bool temperatureChanged;
+
+		if (isOnChanged = _isOn != _liveIsOn) _isOn = _liveIsOn;
+		if (brightnessChanged = _brightness != _liveBrightness) _brightness = _liveBrightness;
+		if (temperatureChanged = _temperature != _liveTemperature) _temperature = _liveTemperature;
 		if (isOnChanged) NotifyPropertyChanged(ChangedProperty.IsOn);
 		if (brightnessChanged) NotifyPropertyChanged(ChangedProperty.Brightness);
 		if (temperatureChanged) NotifyPropertyChanged(ChangedProperty.Temperature);

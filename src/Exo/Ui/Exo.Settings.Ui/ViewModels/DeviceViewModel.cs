@@ -125,7 +125,13 @@ internal class DeviceViewModel : BindableObject, IDisposable
 	public bool IsAvailable
 	{
 		get => _isAvailable;
-		set => SetValue(ref _isAvailable, value, ChangedProperty.IsAvailable);
+		set
+		{
+			if (SetValue(ref _isAvailable, value, ChangedProperty.IsAvailable) && !value)
+			{
+				LightFeatures?.OnDeviceOffline();
+			}
+		}
 	}
 
 	private string? _serialNumber;
