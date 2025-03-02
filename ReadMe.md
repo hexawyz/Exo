@@ -1,3 +1,4 @@
+
 [![Build Status](https://github.com/hexawyz/Exo/actions/workflows/build.yml/badge.svg)](https://github.com/hexawyz/Exo/actions/workflows/build.yml)
 
 # [Exo](https://exo-app.io)
@@ -52,6 +53,11 @@ Exo currently support the following features, provided that there is a custom dr
 	* Hardware lighting effects are supported, as exposed by the drivers for the devices
 	* Hardware persistence of lighting effects, if supported by the device
 	* Software persistence of lighting effects, for all devices
+* Lamps
+    * Live status updates (if the light is changed externally)
+    * On/Off
+    * Brightness
+    * Color Temperature
 * Embedded monitors
 	* Setting images to be displayed on devices equipped with controllable displays. (For example Stream Deck and Kraken Z)
 	* Image library: Management of the list of images used by the service. All image need to be imported within the service before they are used. Animated images are of course supported.
@@ -134,6 +140,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* 27GP950 Monitor (DP/HDMI): Standard Monitor control (if connected through supported GPU)
 * Elgato
 	* SteamDeck XL: Assigning images to buttons (⚠️ If you played with this and want to get rid of the images you assigned, you will have to manually delete the button configuration in `%ProgramFiles%\Exo\Exo.Service\cfg\dev\<RANDOM_DEVICE_ID>\scr`)
+    * Ring Light, Key Light: On/Off, Brightness, Color Temperature
 * Corsair
 	* HX1200i: Sensors accessible via Corsair Link. (e.g. Temperature), Cooling control
 * Eaton
@@ -166,7 +173,7 @@ Exo relies on these runtimes, that you can download from the official websites:
 
 Some devices come with kernel drivers that are made by the manufacturer and help with providing support for the device features.
 When these drivers are installed on the system, the features exposed to the OS can be different.
-In some cases, Exo will require drivers from the manufacturer, and in other cases it will require them.
+In some cases, Exo will require drivers from the manufacturer, and in other cases it will not require them.
 
 In any case, manufacturer drivers can't be bundled with Exo, for obvious reasons.
 
@@ -319,6 +326,7 @@ Currently available discovery subsystems are:
 * PCI in `Exo.Discovery.Pci`, which is in charge of instantiating drivers for PCI devices. (NB: currently only supports GPUs)
 * SMBIOS in `Exo.Discovery.SmBios`, which is in charge of instantiating drivers for devices detected through the SMBIOS tables. (NB: currently only support RAM devices)
 * Monitor in `Exo.Discovery.Monitor`, which is in charge of instantiating drivers for monitor devices.
+* DNS-SD in `Exo.Discovery.DnsSd`, which is in charge of instantiating drivers for IP devices (services) discovered through DNS Service Discovery (also called mDNS or Bonjour).
 
 NB: Except for the root discovery subsystem, which is used to pull all the other ones, all discovery subsystems are themselves implemented as discoverable components.
 This means that adding a discovery subsystem into the mix is very easy.
@@ -411,7 +419,7 @@ All devices having a controllable cooler would usually expose it through the `IC
 
 Support for various monitors can be improved or greatly improved by providing a custom configuration for your monitor.
 
-Custom monitor configurations are located in [Exo.Devices.Monitors/Definitions](Exo.Devices.Monitors/Definitions/) in JSON format.
+Custom monitor configurations are located in [src/Exo/Devices/Exo.Devices.Monitors/Definitions](src/Exo/Devices/Exo.Devices.Monitors/Definitions/) in JSON format.
 Those configurations will be parsed transformed into binary format during the build, in order to provide efficient runtime lookup.
 
 ## Determine if a custom configuration is needed
@@ -433,7 +441,7 @@ You may need a custom monitor configuration if:
 
 ## Format of a custom configuration
 
-The custom configuration model is defined in [Exo.Core/Monitors/MonitorDefinition.cs](Exo.Core/Monitors/MonitorDefinition.cs).
+The custom configuration model is defined in [src/Exo/Core/Exo.Core/Monitors/MonitorDefinition.cs](src/Exo/Core/Exo.Core/Monitors/MonitorDefinition.cs).
 
 ````json
 {
