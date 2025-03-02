@@ -148,7 +148,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 		_genericFeatures = configurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, ElgatoLightDriver, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Empty<IGenericDeviceFeature>();
-		_lightFeatures = FeatureSet.Create<ILightDeviceFeature, ElgatoLightDriver, ILightControllerFeature>(this);
+		_lightFeatures = FeatureSet.Create<ILightDeviceFeature, ElgatoLightDriver, ILightControllerFeature, IPolledLightControllerFeature>(this);
 		_lock = new();
 		_updateStream = new(GC.AllocateUninitializedArray<byte>(128, false), 0, 128, true, true);
 		_cancellationTokenSource = new();
@@ -289,7 +289,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 		internal void Update(ElgatoLight light)
 		{
 			bool isOn = light.On != 0;
-			bool isChanged = isChanged = isOn ^ _isOn;
+			bool isChanged = isOn ^ _isOn;
 			_isOn = isOn;
 			if (_brightness != light.Brightness)
 			{
