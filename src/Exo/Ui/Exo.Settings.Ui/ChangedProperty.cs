@@ -80,5 +80,11 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs SelectedMonitor = new (nameof(SelectedMonitor));
 	public static readonly PropertyChangedEventArgs HasBrightness = new (nameof(HasBrightness));
 	public static readonly PropertyChangedEventArgs HasTemperature = new (nameof(HasTemperature));
-	public static readonly PropertyChangedEventArgs IsOn = new (nameof(IsOn));
+	public static readonly PropertyChangedEventArgs MinimumBrightness = new(nameof(MinimumBrightness));
+	public static readonly PropertyChangedEventArgs MinimumTemperature = new(nameof(MinimumTemperature));
+	public static readonly PropertyChangedEventArgs MaximumBrightness = new(nameof(MaximumBrightness));
+	public static readonly PropertyChangedEventArgs MaximumTemperature = new(nameof(MaximumTemperature));
+	public static readonly PropertyChangedEventArgs IsOn = new(nameof(IsOn));
+	public static readonly PropertyChangedEventArgs Brightness = new(nameof(Brightness));
+	public static readonly PropertyChangedEventArgs Temperature = new(nameof(Temperature));
 }

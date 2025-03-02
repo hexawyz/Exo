@@ -384,4 +384,10 @@
   <data name="LightSettingsSectionHeader.Text" xml:space="preserve">
     <value>灯</value>
   </data>
+  <data name="LightBrightnessLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>輝度</value>
+  </data>
+  <data name="LightTemperatureLabel.ToolTipService.ToolTip" xml:space="preserve">
+    <value>色温度</value>
+  </data>
 </root>

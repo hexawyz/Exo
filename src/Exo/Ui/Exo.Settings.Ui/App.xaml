@@ -74,6 +74,7 @@
             <lconverters:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
             <lconverters:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
             <lconverters:UInt16ToDoubleConverter x:Key="UInt16ToDoubleConverter" />
+            <lconverters:UInt32ToDoubleConverter x:Key="UInt32ToDoubleConverter" />
             <lconverters:StringResourceConverter x:Key="StringResourceConverter" />
             <lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
             <lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />
@@ -100,6 +101,11 @@
             <LinearGradientBrush x:Key="BrightnessLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
                 <GradientStop Color="Black" Offset="0" />
                 <GradientStop Color="White" Offset="1" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="ColorTemperatureLinearGradientBrush" ColorInterpolationMode="ScRgbLinearInterpolation">
+                <GradientStop Color="#FEB166" Offset="0" />
+                <GradientStop Color="#96D0EC" Offset="1" />
             </LinearGradientBrush>
 
             <!-- NB: In case of video gain, the gradient over sRGB values should be more representative than a gradient over linear RGB values -->
@@ -350,6 +356,11 @@
             -->
             <Style x:Key="BrightnessSliderStyle" TargetType="Slider" BasedOn="{StaticResource ColorSliderStyle}">
                 <Setter Property="Background" Value="{StaticResource BrightnessLinearGradientBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource BrightnessSliderForeground}" />
+            </Style>
+            
+            <Style x:Key="ColorTemperatureSliderStyle" TargetType="Slider" BasedOn="{StaticResource ColorSliderStyle}">
+                <Setter Property="Background" Value="{StaticResource ColorTemperatureLinearGradientBrush}" />
                 <Setter Property="Foreground" Value="{StaticResource BrightnessSliderForeground}" />
             </Style>
 

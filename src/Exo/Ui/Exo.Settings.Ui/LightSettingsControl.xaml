@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Exo.Settings.Ui"
+    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
     xmlns:vm="using:Exo.Settings.Ui.ViewModels"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -15,16 +16,74 @@
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate>
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <ToggleButton Grid.Column="0" IsChecked="{Binding IsOn, Mode=TwoWay}">
-                            <ToggleButton.Content>
-                                <FontIcon Glyph="&#xE7E8;" />
-                            </ToggleButton.Content>
-                        </ToggleButton>
-                        <TextBlock Grid.Column="1" Margin="{StaticResource RowContentLabelIconMargin}" Text="{Binding DisplayName}" />
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ToggleButton Grid.Column="0" IsChecked="{Binding IsOn, Mode=TwoWay}">
+                                <ToggleButton.Content>
+                                    <FontIcon Glyph="&#xE7E8;" />
+                                </ToggleButton.Content>
+                            </ToggleButton>
+                            <TextBlock Grid.Column="1" Margin="{StaticResource RowContentLabelIconMargin}" Text="{Binding DisplayName}" />
+                        </Grid>
+                        <Grid Grid.Row="1" Visibility="{Binding HasBrightness, Mode=OneWay}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                x:Uid="LightBrightnessLabel"
+                                Margin="{StaticResource RowContentLabelMargin}"
+                                Glyph="&#xE706;"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Stretch" />
+                            <Slider
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Margin="{StaticResource RowContentLabelMargin}"
+                                Maximum="{Binding MaximumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
+                                Minimum="{Binding MinimumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
+                                Value="{Binding Brightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+                                HorizontalAlignment="Stretch"
+                                Style="{StaticResource BrightnessSliderStyle}">
+                                <Slider.ThumbToolTipValueConverter>
+                                    <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumBrightness, Mode=OneTime}" />
+                                </Slider.ThumbToolTipValueConverter>
+                            </Slider>
+                        </Grid>
+                        <Grid Grid.Row="2" Visibility="{Binding HasTemperature, Mode=OneWay}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                x:Uid="LightTemperatureLabel"
+                                Margin="{StaticResource RowContentLabelMargin}"
+                                Glyph="&#xE9CA;"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Stretch" />
+                            <Slider
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Margin="{StaticResource RowContentLabelMargin}"
+                                Value="{Binding Temperature, Mode=TwoWay, Converter={StaticResource UInt32ToDoubleConverter}}"
+                                Maximum="{Binding MaximumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
+                                Minimum="{Binding MinimumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
+                                HorizontalAlignment="Stretch"
+                                Style="{StaticResource ColorTemperatureSliderStyle}">
+                            </Slider>
+                        </Grid>
                     </Grid>
                 </DataTemplate>
             </ItemsRepeater.ItemTemplate>

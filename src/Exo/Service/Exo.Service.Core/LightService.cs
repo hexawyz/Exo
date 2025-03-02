@@ -577,11 +577,11 @@ internal sealed partial class LightService : IAsyncDisposable
 			{
 				changedLights.Remove(light.Id);
 			}
-			foreach (var deletedlightId in changedLights)
+			foreach (var deletedLightId in changedLights)
 			{
-				if (deviceState.Lights.Remove(deletedlightId))
+				if (deviceState.Lights.Remove(deletedLightId))
 				{
-					await deviceState.LampsConfigurationContainer.DeleteValuesAsync(deletedlightId);
+					await deviceState.LampsConfigurationContainer.DeleteValuesAsync(deletedLightId);
 				}
 			}
 			changedLights.Clear();
