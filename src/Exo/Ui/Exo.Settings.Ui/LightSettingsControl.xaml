@@ -26,12 +26,10 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <ToggleButton Grid.Column="0" IsChecked="{Binding IsOn, Mode=TwoWay}">
-                                <ToggleButton.Content>
-                                    <FontIcon Glyph="&#xE7E8;" />
-                                </ToggleButton.Content>
+                            <ToggleButton Grid.Column="0" Margin="{StaticResource RowLabelMargin}" IsChecked="{Binding IsOn, Mode=TwoWay}">
+                                <FontIcon Glyph="&#xE7E8;" FontSize="14" />
                             </ToggleButton>
-                            <TextBlock Grid.Column="1" Margin="{StaticResource RowContentLabelIconMargin}" Text="{Binding DisplayName}" />
+                            <TextBlock Grid.Column="1" Margin="{StaticResource SmallButtonNeighborMargin}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
                         </Grid>
                         <Grid Grid.Row="1" Visibility="{Binding HasBrightness, Mode=OneWay}">
                             <Grid.ColumnDefinitions>
