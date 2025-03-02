@@ -33,7 +33,16 @@ internal partial class OverlayWindow : Window
 			// Positioning Windows using WPF APIs is very broken on multi-monitor systems with a mix of different per-monitor DPIs.
 			// See https://github.com/dotnet/wpf/issues/4127 for the issue.
 			// NB: The code here should address that, but it has not been tested under these conditions.
-			var point = GetCursorPos();
+			NativeMethods.Point point;
+			try
+			{
+				point = GetCursorPos();
+			}
+			catch (UnauthorizedAccessException)
+			{
+				// What's *so great* is that this call can fail when the session is… not started and the app has been started even though it should never have been.
+				return;
+			}
 			var monitor = LogicalMonitor.GetNearestFromPoint(point.X, point.Y);
 			var dpi = monitor.GetDpi();
 			var bounds = monitor.GetMonitorInformation().MonitorArea;
