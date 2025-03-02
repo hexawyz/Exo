@@ -91,7 +91,7 @@
                 </DataTemplate>
             </ItemsRepeater.ItemTemplate>
             <ItemsRepeater.Layout>
-                <UniformGridLayout MinItemWidth="200" />
+                <UniformGridLayout MinItemWidth="250" />
             </ItemsRepeater.Layout>
         </ItemsRepeater>
     </Grid>
