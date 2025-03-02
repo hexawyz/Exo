@@ -320,8 +320,9 @@ public sealed partial class ElgatoLightDriver : Driver,
 
 		byte ILightBrightness.Value => _brightness;
 
+		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
 		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
-			=> new(_driver.SetBrightnessAsync(_index, brightness, cancellationToken));
+			=> brightness != _brightness ? new (_driver.SetBrightnessAsync(_index, brightness, cancellationToken)) : ValueTask.CompletedTask;
 
 		// It is simpler to straight up map the temperature values to what the conversion formula gives, which is a K value between 2906 to 6993.
 		// That way, we are able to expose enough granularity to the UI.
@@ -329,8 +330,10 @@ public sealed partial class ElgatoLightDriver : Driver,
 		uint ILightTemperature.Maximum => 6993;
 		uint ILightTemperature.Value => InternalValueToTemperature(_temperature);
 
+		// We avoid sending updates to the device for temperature values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
+		// This should be especially useful for temperature, as when driven by a UI, the UI will not be able to tell that two values end up in the same bucket.
 		ValueTask ILightTemperature.SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
-			=> new(_driver.SetTemperatureAsync(_index, TemperatureToInternalValue(temperature), cancellationToken));
+			=> TemperatureToInternalValue(temperature) is ushort value && value != _temperature ? new(_driver.SetTemperatureAsync(_index, value, cancellationToken)) : ValueTask.CompletedTask;
 
 		TemperatureAdjustableDimmableLightState ILight<TemperatureAdjustableDimmableLightState>.CurrentState => new(_isOn, _brightness, InternalValueToTemperature(_temperature));
 

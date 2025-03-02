@@ -75,7 +75,7 @@
                     <TextBlock x:Uid="LightSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
                 </StackPanel>
             </Expander.Header>
-            <local:LightSettingsControl DataContext="{Binding LightFeatures, Mode=OneWay}" />
+            <local:LightSettingsControl DataContext="{Binding LightFeatures.Lights, Mode=OneWay}" />
         </Expander>
         <Expander
             Margin="{StaticResource VerticalItemSpacing}"

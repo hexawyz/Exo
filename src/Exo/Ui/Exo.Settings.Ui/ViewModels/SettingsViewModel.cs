@@ -74,6 +74,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly BatteryDevicesViewModel _batteryDevicesViewModel;
+	private readonly LightsViewModel _lightsViewModel;
 	private readonly LightingViewModel _lightingViewModel;
 	private readonly ImagesViewModel _imagesViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
@@ -138,6 +139,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_imagesViewModel = new(ConnectionManager, fileOpenDialog, this);
 		_devicesViewModel = new(ConnectionManager, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
+		_lightsViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
@@ -186,6 +188,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 
 	public DevicesViewModel Devices => _devicesViewModel;
 	public BatteryDevicesViewModel BatteryDevices => _batteryDevicesViewModel;
+	public LightsViewModel Lights => _lightsViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
 	public SensorsViewModel Sensors => _sensorsViewModel;
 	public CoolingViewModel Cooling => _coolingViewModel;

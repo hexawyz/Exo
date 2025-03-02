@@ -390,4 +390,7 @@
   <data name="LightTemperatureLabel.ToolTipService.ToolTip" xml:space="preserve">
     <value>色温度</value>
   </data>
+  <data name="LampsTitleTextBlock.Text" xml:space="preserve">
+    <value>灯</value>
+  </data>
 </root>
