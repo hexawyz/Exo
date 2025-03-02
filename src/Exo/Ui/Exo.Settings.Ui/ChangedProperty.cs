@@ -78,4 +78,7 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs HasBuiltInGraphics = new (nameof(HasBuiltInGraphics));
 	public static readonly PropertyChangedEventArgs CurrentGraphics = new (nameof(CurrentGraphics));
 	public static readonly PropertyChangedEventArgs SelectedMonitor = new (nameof(SelectedMonitor));
+	public static readonly PropertyChangedEventArgs HasBrightness = new (nameof(HasBrightness));
+	public static readonly PropertyChangedEventArgs HasTemperature = new (nameof(HasTemperature));
+	public static readonly PropertyChangedEventArgs IsOn = new (nameof(IsOn));
 }

@@ -556,7 +556,7 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 	}
 }
 
-public readonly struct NumberWithUnit
+internal readonly struct NumberWithUnit
 {
 	public NumberWithUnit(double value, string? symbol)
 	{

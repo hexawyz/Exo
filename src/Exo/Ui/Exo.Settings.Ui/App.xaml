@@ -59,6 +59,7 @@
             <Thickness x:Key="RowLabelMargin">0,6,0,6</Thickness>
             <Thickness x:Key="RowContentMargin">6,0,6,0</Thickness>
             <Thickness x:Key="RowContentLabelMargin">6,6,6,6</Thickness>
+            <Thickness x:Key="RowContentLabelIconMargin">12,6,6,6</Thickness>
 
             <GridLength x:Key="PropertyLabelColumnWidth">200</GridLength>
 

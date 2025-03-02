@@ -17,6 +17,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 		IPowerService powerService,
 		IMouseService mouseService,
 		IEmbeddedMonitorService embeddedMonitorService,
+		ILightService lightService,
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		DeviceInformation deviceInformation
 	)
@@ -45,6 +46,10 @@ internal class DeviceViewModel : BindableObject, IDisposable
 				else if (featureId == WellKnownGuids.MonitorDeviceFeature)
 				{
 					MonitorFeatures ??= new(this, metadataService, connectionManager);
+				}
+				else if (featureId == WellKnownGuids.LightDeviceFeature)
+				{
+					LightFeatures ??= new(this, metadataService, lightService, notificationSystem);
 				}
 				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
 				{
@@ -141,4 +146,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 
 	// If the device has embedded monitors, this hosts the embedded monitor-related features.
 	public EmbeddedMonitorFeaturesViewModel? EmbeddedMonitorFeatures { get; }
+
+	// If the device has embedded monitors, this hosts the light-related features.
+	public LightDeviceFeaturesViewModel? LightFeatures { get; }
 }

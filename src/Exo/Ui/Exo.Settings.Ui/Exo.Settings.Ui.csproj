@@ -38,6 +38,7 @@
     <None Remove="HomePage.xaml" />
     <None Remove="LightingPage.xaml" />
     <None Remove="LightingZoneControl.xaml" />
+    <None Remove="LightSettingsControl.xaml" />
     <None Remove="MonitorMiscSettingsControl.xaml" />
     <None Remove="MonitorPerformanceSettingsControl.xaml" />
     <None Remove="MonitorRgbSettingsControl.xaml" />
@@ -91,6 +92,12 @@
     <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
     <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Page Update="LightSettingsControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 	
   <ItemGroup>

@@ -72,9 +72,8 @@ internal sealed partial class LightService : IAsyncDisposable
 			return new LightDeviceInformation() { DeviceId = _id, Capabilities = default, Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights) };
 		}
 
-		public void OnLightChanged(LightChangeNotification notification)
-		{
-		}
+        public void OnLightChanged(LightChangeNotification notification)
+            => _service?._lightChangeListeners.TryWrite(notification);
 	}
 
 	private sealed class LightState
@@ -170,6 +169,8 @@ internal sealed partial class LightService : IAsyncDisposable
 			default:
 				throw new InvalidOperationException("This light type is unsupported at the moment.");
 			}
+
+            _light = light;
 
 			if (isChanged)
 			{
