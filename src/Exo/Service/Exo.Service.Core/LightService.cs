@@ -237,6 +237,12 @@ internal sealed partial class LightService : IAsyncDisposable
 		public ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken)
 			=> _light is not null ? _light.SwitchAsync(isOn, cancellationToken) : ValueTask.CompletedTask;
 
+		public ValueTask SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+			=> _light is ILightBrightness lightBrightness ? lightBrightness.SetBrightnessAsync(brightness, cancellationToken) : ValueTask.CompletedTask;
+
+		public ValueTask SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
+			=> _light is ILightTemperature lightTemperature ? lightTemperature.SetTemperatureAsync(temperature, cancellationToken) : ValueTask.CompletedTask;
+
 		private void OnLightChanged(Driver driver, Features.Lights.LightState state)
 			=> _device.OnLightChanged(CreateNotification(state));
 
@@ -632,6 +638,17 @@ internal sealed partial class LightService : IAsyncDisposable
 			{
 				deviceListeners.TryWrite(deviceState.CreateInformation());
 			}
+
+			if (_lightChangeListeners is { } changeListeners)
+			{
+				foreach (var light in deviceState.Lights.Values)
+				{
+					if (light.TryCreateChangeNotification(out var changeNotification))
+					{
+						changeListeners.TryWrite(changeNotification);
+					}
+				}
+			}
 		}
 	}
 
@@ -707,6 +724,30 @@ internal sealed partial class LightService : IAsyncDisposable
 			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new InvalidOperationException("Light not found.");
 
 			await lightState.SwitchAsync(isOn, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	public async ValueTask SetBrightnessAsync(Guid deviceId, Guid lightId, byte brightness, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+
+		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new InvalidOperationException("Light not found.");
+
+			await lightState.SetBrightnessAsync(brightness, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	public async ValueTask SetTemperatureAsync(Guid deviceId, Guid lightId, uint temperature, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+
+		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new InvalidOperationException("Light not found.");
+
+			await lightState.SetTemperatureAsync(temperature, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

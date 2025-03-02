@@ -58,17 +58,17 @@ internal sealed class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 	internal void UpdateInformation(LightDeviceInformation information)
 	{
 		var lightIds = new HashSet<Guid>();
-		foreach (var monitorInformation in information.Lights)
+		foreach (var lightInformation in information.Lights)
 		{
-			lightIds.Add(monitorInformation.LightId);
+			lightIds.Add(lightInformation.LightId);
 		}
 		for (int i = 0; i < _lights.Count; i++)
 		{
-			var embeddedMonitor = _lights[i];
-			if (!lightIds.Contains(embeddedMonitor.LightId))
+			var light = _lights[i];
+			if (!lightIds.Contains(light.LightId))
 			{
 				_lights.RemoveAt(i--);
-				_lightById.Remove(embeddedMonitor.LightId);
+				_lightById.Remove(light.LightId);
 			}
 		}
 		foreach (var lightInformation in information.Lights)
@@ -128,6 +128,8 @@ internal sealed class LightViewModel : BindableObject
 		_maximumBrightness = information.MaximumBrightness;
 		_minimumTemperature = information.MinimumTemperature;
 		_maximumTemperature = information.MaximumTemperature;
+		_liveBrightness = _brightness = information.MinimumBrightness;
+		_liveTemperature = _temperature = information.MinimumTemperature;
 	}
 
 	public Guid LightId => _lightId;
@@ -220,11 +222,44 @@ internal sealed class LightViewModel : BindableObject
 
 	internal void UpdateInformation(LightInformation information)
 	{
-		Capabilities = information.Capabilities;
+		// Try to avoid weird state changes relative to the state by updating the values above their new minimum before updating the minimum.
+		// This may still need some tweaking later.
+		bool isBrightnessChanged = false;
+		bool isTemperatureChanged = false;
+		if (_liveBrightness < information.MinimumBrightness)
+		{
+			if (isBrightnessChanged = _liveBrightness == _brightness)
+			{
+				_brightness = information.MinimumBrightness;
+			}
+			_liveBrightness = information.MinimumBrightness;
+		}
+		if (_brightness < information.MinimumBrightness)
+		{
+			_brightness = information.MinimumBrightness;
+			isBrightnessChanged = true;
+		}
+		if (_liveTemperature < information.MinimumTemperature)
+		{
+			if (isTemperatureChanged = _liveTemperature == _temperature)
+			{
+				_temperature = information.MinimumTemperature;
+			}
+			_liveTemperature = information.MinimumTemperature;
+		}
+		if (_temperature < information.MinimumTemperature)
+		{
+			_temperature = information.MinimumTemperature;
+			isTemperatureChanged = true;
+		}
+		if (isBrightnessChanged) NotifyPropertyChanged(ChangedProperty.Brightness);
+		if (isTemperatureChanged) NotifyPropertyChanged(ChangedProperty.Temperature);
+
 		MinimumBrightness = information.MinimumBrightness;
 		MaximumBrightness = information.MaximumBrightness;
 		MinimumTemperature = information.MinimumTemperature;
 		MaximumTemperature = information.MaximumTemperature;
+		Capabilities = information.Capabilities;
 	}
 
 	internal void UpdateState(LightChangeNotification notification)
@@ -291,7 +326,7 @@ internal sealed class LightViewModel : BindableObject
 
 	private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
 	{
-		//await _owner.LightService.SwitchLightAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, IsOn = isOn }, cancellationToken);
+		await _owner.LightService.SetBrightnessAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, Brightness = brightness }, cancellationToken);
 	}
 
 	private async void SetTemperature(uint temperature)
@@ -307,6 +342,6 @@ internal sealed class LightViewModel : BindableObject
 
 	private async Task SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
 	{
-		//await _owner.LightService.SwitchLightAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, IsOn = isOn }, cancellationToken);
+		await _owner.LightService.SetTemperatureAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, Temperature = temperature }, cancellationToken);
 	}
 }

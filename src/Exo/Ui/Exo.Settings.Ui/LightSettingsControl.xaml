@@ -50,9 +50,9 @@
                                 Grid.Row="0"
                                 Grid.Column="1"
                                 Margin="{StaticResource RowContentLabelMargin}"
+                                Value="{Binding Brightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
                                 Maximum="{Binding MaximumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
                                 Minimum="{Binding MinimumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
-                                Value="{Binding Brightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
                                 HorizontalAlignment="Stretch"
                                 Style="{StaticResource BrightnessSliderStyle}">
                                 <Slider.ThumbToolTipValueConverter>
@@ -81,7 +81,8 @@
                                 Maximum="{Binding MaximumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
                                 Minimum="{Binding MinimumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
                                 HorizontalAlignment="Stretch"
-                                Style="{StaticResource ColorTemperatureSliderStyle}">
+                                Style="{StaticResource ColorTemperatureSliderStyle}"
+                                ThumbToolTipValueConverter="{StaticResource KelvinConverter}">
                             </Slider>
                         </Grid>
                     </Grid>

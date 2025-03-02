@@ -65,4 +65,38 @@ internal sealed class GrpcLightService : ILightService
 			throw new RpcException(new(StatusCode.Unknown, ex.Message));
 		}
 	}
+
+	public async ValueTask SetBrightnessAsync(LightBrightnessRequest request, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await _lightService.SetBrightnessAsync(request.DeviceId, request.LightId, request.Brightness, cancellationToken).ConfigureAwait(false);
+		}
+		// TODO: Add an exception for "not found" so that we can report that status
+		catch (ArgumentException ex)
+		{
+			throw new RpcException(new(StatusCode.InvalidArgument, ex.Message));
+		}
+		catch (Exception ex)
+		{
+			throw new RpcException(new(StatusCode.Unknown, ex.Message));
+		}
+	}
+
+	public async ValueTask SetTemperatureAsync(LightTemperatureRequest request, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await _lightService.SetTemperatureAsync(request.DeviceId, request.LightId, request.Temperature, cancellationToken).ConfigureAwait(false);
+		}
+		// TODO: Add an exception for "not found" so that we can report that status
+		catch (ArgumentException ex)
+		{
+			throw new RpcException(new(StatusCode.InvalidArgument, ex.Message));
+		}
+		catch (Exception ex)
+		{
+			throw new RpcException(new(StatusCode.Unknown, ex.Message));
+		}
+	}
 }

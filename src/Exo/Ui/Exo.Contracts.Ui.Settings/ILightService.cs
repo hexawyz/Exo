@@ -13,4 +13,10 @@ public interface ILightService
 
 	[OperationContract(Name = "SwitchLight")]
 	ValueTask SwitchLightAsync(LightSwitchRequest request, CancellationToken cancellationToken);
+
+	[OperationContract(Name = "SetBrightness")]
+	ValueTask SetBrightnessAsync(LightBrightnessRequest request, CancellationToken cancellationToken);
+
+	[OperationContract(Name = "SetTemperature")]
+	ValueTask SetTemperatureAsync(LightTemperatureRequest request, CancellationToken cancellationToken);
 }

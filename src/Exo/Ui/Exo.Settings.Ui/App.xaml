@@ -78,6 +78,7 @@
             <lconverters:StringResourceConverter x:Key="StringResourceConverter" />
             <lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
             <lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />
+            <lconverters:NumberWithUnitConverter x:Key="KelvinConverter" Unit="K" NumberFormat="N0" />
             <lconverters:BatteryLevelToColorConverter x:Key="BatteryLevelToColorConverter" />
             <lconverters:BatteryStateToExternalPowerVisibilityConverter x:Key="BatteryStateToExternalPowerVisibilityConverter" />
             <lconverters:HalfProbabilityToDoublePercentageConverter x:Key="HalfProbabilityToDoublePercentageConverter" />
