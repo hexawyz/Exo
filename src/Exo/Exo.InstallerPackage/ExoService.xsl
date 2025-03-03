@@ -47,6 +47,9 @@
 					<xsl:attribute name="Id">Dhcp</xsl:attribute>
 				</xsl:element>
 				<xsl:element name="wix:ServiceDependency">
+					<xsl:attribute name="Id">HTTP</xsl:attribute>
+				</xsl:element>
+				<xsl:element name="wix:ServiceDependency">
 					<xsl:attribute name="Id">Dnscache</xsl:attribute>
 				</xsl:element>
 				<xsl:element name="wix:ServiceDependency">
@@ -56,6 +59,7 @@
 					<xsl:attribute name="Id">DevQueryBroker</xsl:attribute>
 				</xsl:element>
             </xsl:element>
+
             <xsl:element name="wix:ServiceControl">
                 <xsl:attribute name="Id">ServiceController</xsl:attribute>
                 <xsl:attribute name="Name">Exo</xsl:attribute>
