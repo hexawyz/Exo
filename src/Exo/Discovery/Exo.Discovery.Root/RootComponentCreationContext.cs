@@ -17,6 +17,7 @@ public sealed class RootComponentCreationContext : ComponentCreationContext
 	public override ILoggerFactory LoggerFactory => _discoverySubsystem.LoggerFactory;
 	public IDiscoveryOrchestrator DiscoveryOrchestrator => _discoverySubsystem.DiscoveryOrchestrator;
 	public IDeviceNotificationService DeviceNotificationService => _discoverySubsystem.DeviceNotificationService;
+	public IPowerNotificationService PowerNotificationService => _discoverySubsystem.PowerNotificationService;
 	public II2cBusProvider I2cBusProvider => _discoverySubsystem.I2CBusProvider;
 	public ISystemManagementBusProvider SystemManagementBusProvider => _discoverySubsystem.SystemManagementBusProvider;
 	public Func<string, IDisplayAdapterI2cBusProviderFeature> FallbackI2cBusProviderFeatureProvider => _discoverySubsystem.FallbackI2cBusProviderFeatureProvider;

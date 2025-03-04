@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Exo.Services;
 using Exo.DeviceNotifications;
+using Exo.PowerNotifications;
 using static Interop.Advapi32;
 
 namespace System.ServiceProcess
@@ -35,6 +36,7 @@ namespace System.ServiceProcess
         private object _stopLock = new object();
         private EventLog? _eventLog;
         private DeviceNotificationEngine? _deviceNotificationEngine;
+        private PowerNotificationEngine? _powerNotificationEngine;
 
         /// <summary>
         /// Indicates the maximum size for a service name.
@@ -114,6 +116,33 @@ namespace System.ServiceProcess
             set
             {
                 _status.win32ExitCode = value;
+            }
+        }
+
+        /// <summary>
+        ///  Indicates whether the service can be handle notifications on
+        ///  computer power status changes.
+        /// </summary>
+        [DefaultValue(false)]
+        public bool CanHandleUserModeRebootEvent
+        {
+            get
+            {
+                return (_acceptedCommands & AcceptOptions.ACCEPT_USERMODEREBOOT) != 0;
+            }
+            set
+            {
+                if (_commandPropsFrozen)
+                    throw new InvalidOperationException(SR.CannotChangeProperties);
+
+                if (value)
+                {
+                    _acceptedCommands |= AcceptOptions.ACCEPT_USERMODEREBOOT;
+                }
+                else
+                {
+                    _acceptedCommands &= ~AcceptOptions.ACCEPT_USERMODEREBOOT;
+                }
             }
         }
 
@@ -333,17 +362,6 @@ namespace System.ServiceProcess
         }
 
         /// <summary>
-        ///    <para>
-        ///         When implemented in a derived class, executes when the computer's
-        ///         power status has changed.
-        ///    </para>
-        /// </summary>
-        protected virtual bool OnPowerEvent(PowerBroadcastStatus powerStatus)
-        {
-            return true;
-        }
-
-        /// <summary>
         ///    <para>When implemented in a derived class,
         ///       executes when a Terminal Server session change event is received.</para>
         /// </summary>
@@ -389,6 +407,10 @@ namespace System.ServiceProcess
         ///       running.</para>
         /// </summary>
         protected virtual void OnStop()
+        {
+        }
+
+        protected virtual void OnUserModeReboot()
         {
         }
 
@@ -461,28 +483,6 @@ namespace System.ServiceProcess
             }
         }
 
-        private void DeferredPowerEvent(int eventType, IntPtr eventData)
-        {
-            // Note: The eventData pointer might point to an invalid location
-            // This might happen because, between the time the eventData ptr was
-            // captured and the time this deferred code runs, the ptr might have
-            // already been freed.
-            try
-            {
-                OnPowerEvent((PowerBroadcastStatus)eventType);
-
-                WriteLogEntry(SR.PowerEventOK);
-            }
-            catch (Exception e)
-            {
-                WriteLogEntry(SR.Format(SR.PowerEventFailed, e), EventLogEntryType.Error);
-
-                // We rethrow the exception so that advapi32 code can report
-                // ERROR_EXCEPTION_IN_SERVICE as it would for native services.
-                throw;
-            }
-        }
-
         private void DeferredSessionChange(int eventType, int sessionId)
         {
             try
@@ -492,6 +492,22 @@ namespace System.ServiceProcess
             catch (Exception e)
             {
                 WriteLogEntry(SR.Format(SR.SessionChangeFailed, e), EventLogEntryType.Error);
+
+                // We rethrow the exception so that advapi32 code can report
+                // ERROR_EXCEPTION_IN_SERVICE as it would for native services.
+                throw;
+            }
+        }
+
+        private void DeferredUserModeReboot()
+        {
+            try
+            {
+                OnUserModeReboot();
+            }
+            catch (Exception e)
+            {
+                WriteLogEntry(SR.Format(SR.UserModeRebootFailed, e), EventLogEntryType.Error);
 
                 // We rethrow the exception so that advapi32 code can report
                 // ERROR_EXCEPTION_IN_SERVICE as it would for native services.
@@ -721,17 +737,40 @@ namespace System.ServiceProcess
 
                 case ControlOptions.CONTROL_POWEREVENT:
                     {
-                        ThreadPool.QueueUserWorkItem(_ => DeferredPowerEvent(eventType, eventData));
+                        try
+                        {
+                            if (_powerNotificationEngine is { } powerNotificationEngine)
+                            {
+                                return powerNotificationEngine.HandleNotification(eventType, eventData);
+                            }
+
+                            WriteLogEntry(SR.PowerEventOK);
+                        }
+                        catch (Exception e)
+                        {
+                            WriteLogEntry(SR.Format(SR.PowerEventFailed, e), EventLogEntryType.Error);
+
+                            // We rethrow the exception so that advapi32 code can report
+                            // ERROR_EXCEPTION_IN_SERVICE as it would for native services.
+                            throw;
+                        }
                         break;
                     }
 
                 case ControlOptions.CONTROL_SESSIONCHANGE:
+                    unsafe
                     {
                         // The eventData pointer can be released between now and when the DeferredDelegate gets called.
                         // So we capture the session id at this point
-                        WTSSESSION_NOTIFICATION sessionNotification = new WTSSESSION_NOTIFICATION();
-                        Marshal.PtrToStructure(eventData, sessionNotification);
-                        ThreadPool.QueueUserWorkItem(_ => DeferredSessionChange(eventType, sessionNotification.sessionId));
+                        int sessionId = (int)((WTSSESSION_NOTIFICATION*)eventData)->sessionId;
+                        ThreadPool.QueueUserWorkItem(_ => DeferredSessionChange(eventType, sessionId));
+                        break;
+                    }
+
+                case ControlOptions.CONTROL_USERMODEREBOOT:
+                    unsafe
+                    {
+                        ThreadPool.QueueUserWorkItem(_ => DeferredUserModeReboot());
                         break;
                     }
 
@@ -994,6 +1033,29 @@ namespace System.ServiceProcess
             // NB: Directly returning the reference to DeviceNotificationEngine will indirectly expose
             // the HandleNotification method, but this not something harmful to the service itself.
             return deviceNotificationEngine;
+        }
+
+        /// <summary>Gets the power notification service associated with this instance.</summary>
+        /// <remarks>The first call to this method will initialize the notification service.</remarks>
+        public IPowerNotificationService GetPowerNotificationService()
+        {
+            var powerNotificationEngine = Volatile.Read(ref _powerNotificationEngine);
+            if (powerNotificationEngine is null)
+            {
+                var newDeviceNotificationEngine = PowerNotificationEngine.CreateForService(ServiceHandle);
+                powerNotificationEngine = Interlocked.CompareExchange(ref _powerNotificationEngine, newDeviceNotificationEngine, null);
+                if (powerNotificationEngine is not null)
+                {
+                    newDeviceNotificationEngine.Dispose();
+                }
+                else
+                {
+                    powerNotificationEngine = newDeviceNotificationEngine;
+                }
+            }
+            // NB: Directly returning the reference to DeviceNotificationEngine will indirectly expose
+            // the HandleNotification method, but this not something harmful to the service itself.
+            return powerNotificationEngine;
         }
     }
 }

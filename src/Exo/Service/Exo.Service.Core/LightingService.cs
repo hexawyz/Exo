@@ -9,14 +9,16 @@ using Exo.Features;
 using Exo.Features.Lighting;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Exo.PowerManagement;
 using Exo.Programming.Annotations;
+using Exo.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
 [Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
-internal sealed partial class LightingService : IAsyncDisposable, ILightingServiceInternal
+internal sealed partial class LightingService : IAsyncDisposable, ILightingServiceInternal, IPowerNotificationSink
 {
 	private sealed class DeviceState
 	{
@@ -128,6 +130,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		ILogger<LightingService> logger,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
+		IPowerNotificationService powerNotificationService,
 		LightingEffectMetadataService lightingEffectMetadataService,
 		CancellationToken cancellationToken
 	)
@@ -231,13 +234,15 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			}
 		}
 
-		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, lightingEffectMetadataService, deviceStates);
+		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, powerNotificationService, lightingEffectMetadataService, deviceStates);
 	}
 
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, DeviceState> _lightingDeviceStates;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly object _changeLock;
+	private readonly AsyncLock _restoreLock;
+	private TaskCompletionSource _restoreTaskCompletionSource;
 	private ChannelWriter<LightingDeviceInformation>[]? _deviceListeners;
 	private ChannelWriter<LightingEffectWatchNotification>[]? _effectChangeListeners;
 	private ChannelWriter<LightingDeviceConfigurationWatchNotification>[]? _configurationChangeListeners;
@@ -246,12 +251,15 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _watchTask;
+	private readonly Task _watchSuspendResumeTask;
+	private readonly IDisposable _powerNotificationsRegistration;
 
 	private LightingService
 	(
 		ILogger<LightingService> logger,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
+		IPowerNotificationService powerNotificationService,
 		LightingEffectMetadataService lightingEffectMetadataService,
 		ConcurrentDictionary<Guid, DeviceState> lightingDeviceStates
 	)
@@ -262,8 +270,12 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingDeviceStates = lightingDeviceStates;
 		_changeLock = new();
+		_restoreLock = new();
+		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
+		_watchSuspendResumeTask = WatchSuspendResumeAsync(_cancellationTokenSource.Token);
+		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -271,8 +283,11 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{
 			cts.Cancel();
-			cts.Dispose();
+			_restoreTaskCompletionSource.TrySetCanceled(cts.Token);
 			await _watchTask.ConfigureAwait(false);
+			await _watchSuspendResumeTask.ConfigureAwait(false);
+			_powerNotificationsRegistration.Dispose();
+			cts.Dispose();
 		}
 	}
 
@@ -291,30 +306,94 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		{
 			await foreach (var notification in _deviceWatcher.WatchAvailableAsync<ILightingDeviceFeature>(cancellationToken))
 			{
-				switch (notification.Kind)
+				using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
-				case WatchNotificationKind.Enumeration:
-				case WatchNotificationKind.Addition:
-					try
+					switch (notification.Kind)
 					{
-						await HandleArrivalAsync(notification, cancellationToken).ConfigureAwait(false);
+					case WatchNotificationKind.Enumeration:
+					case WatchNotificationKind.Addition:
+						try
+						{
+							await HandleArrivalAsync(notification, cancellationToken).ConfigureAwait(false);
+						}
+						catch (Exception ex)
+						{
+							_logger.LightingServiceDeviceArrivalError(notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, ex);
+						}
+						break;
+					case WatchNotificationKind.Removal:
+						try
+						{
+							OnDriverRemoved(notification);
+						}
+						catch (Exception ex)
+						{
+							_logger.LightingServiceDeviceRemovalError(notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, ex);
+						}
+						break;
 					}
-					catch (Exception ex)
-					{
-						_logger.LightingServiceDeviceArrivalError(notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, ex);
-					}
-					break;
-				case WatchNotificationKind.Removal:
-					try
-					{
-						OnDriverRemoved(notification);
-					}
-					catch (Exception ex)
-					{
-						_logger.LightingServiceDeviceRemovalError(notification.DeviceInformation.Id, notification.DeviceInformation.FriendlyName, ex);
-					}
-					break;
 				}
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+	}
+
+	private async Task WatchSuspendResumeAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await _restoreTaskCompletionSource.Task.ConfigureAwait(false);
+			Volatile.Write(ref _restoreTaskCompletionSource, new(TaskCreationOptions.RunContinuationsAsynchronously));
+			using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				List<ValueTask>? applyChangeTasks = null;
+				foreach (var (deviceId, deviceState) in _lightingDeviceStates)
+				{
+					cancellationToken.ThrowIfCancellationRequested();
+					lock (deviceState.Lock)
+					{
+						if (deviceState.Driver is null) continue;
+
+						if (deviceState.IsUnifiedLightingEnabled)
+						{
+							var zoneState = deviceState.LightingZones[deviceState.UnifiedLightingZoneId];
+							if (zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
+							EffectSerializer.DeserializeAndRestore(this, deviceId, deviceState.UnifiedLightingZoneId, zoneState.SerializedCurrentEffect);
+						}
+						else
+						{
+							foreach (var (zoneId, zoneState) in deviceState.LightingZones)
+							{
+								if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
+								EffectSerializer.DeserializeAndRestore(this, deviceId, zoneId, zoneState.SerializedCurrentEffect);
+							}
+						}
+
+						var applyChangesTask = ApplyChangesAsync(deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>(), false);
+						if (!applyChangesTask.IsCompletedSuccessfully)
+						{
+							(applyChangeTasks ??= new()).Add(applyChangesTask);
+						}
+					}
+				}
+				if (applyChangeTasks is not null)
+				{
+					foreach (var applyChangeTask in applyChangeTasks)
+					{
+						cancellationToken.ThrowIfCancellationRequested();
+						try
+						{
+							await applyChangeTask.ConfigureAwait(false);
+						}
+						catch (Exception)
+						{
+							// TODO: Log
+						}
+					}
+				}
+				applyChangeTasks = null;
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -937,7 +1016,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					deviceState.IsUnifiedLightingEnabled = isUnifiedLightingZone;
 
 					// When switching from unified lighting to non-unified lighting, all the other lighting zones need to be restored.
-					// This will cause the lock to be re-entered, which is not something I personally like, but since we the unified lighting state above
+					// This will cause the lock to be re-entered, which is not something I personally like, but since we restored the unified lighting state above
 					// and ensured that the operations are restore operations, there should not be more than one level of recursion here.
 					if (!isUnifiedLightingZone)
 					{
@@ -1088,4 +1167,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 	private ValueTask PersistDeviceConfigurationAsync(IConfigurationContainer deviceConfigurationContainer, PersistedLightingDeviceConfiguration configuration, CancellationToken cancellationToken)
 		=> deviceConfigurationContainer.WriteValueAsync(configuration, cancellationToken);
+
+	void IPowerNotificationSink.OnResumeAutomatic() => _restoreTaskCompletionSource.TrySetResult();
 }

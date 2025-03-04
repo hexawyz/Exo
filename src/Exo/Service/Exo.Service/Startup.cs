@@ -42,6 +42,14 @@ public class Startup
 		);
 		services.AddSingleton
 		(
+			// Remember: We use a Custom implementation of ServiceBase here…
+			sp => sp.GetRequiredService<IHostLifetime>() is WindowsServiceLifetime windowsService ?
+				windowsService.GetPowerNotificationService() :
+				// Reuse the same notification window as for device notifications.
+				(IPowerNotificationService)sp.GetRequiredService<IDeviceNotificationService>()
+		);
+		services.AddSingleton
+		(
 			sp =>
 			{
 				var configurationService = new ConfigurationService(Path.Combine(baseDirectory, "cfg"));
@@ -113,6 +121,7 @@ public class Startup
 				sp.GetRequiredService<ILogger<LightingService>>(),
 				sp.GetRequiredKeyedService<IConfigurationContainer<Guid>>(ConfigurationContainerNames.Devices),
 				sp.GetRequiredService<IDeviceWatcher>(),
+				sp.GetRequiredService<IPowerNotificationService>(),
 				sp.GetRequiredService<LightingEffectMetadataService>(),
 				default
 			).GetAwaiter().GetResult()
@@ -246,6 +255,7 @@ public class Startup
 					sp.GetRequiredService<INestedDriverRegistryProvider>(),
 					sp.GetRequiredService<IDiscoveryOrchestrator>(),
 					sp.GetRequiredService<IDeviceNotificationService>(),
+					sp.GetRequiredService<IPowerNotificationService>(),
 					sp.GetRequiredService<II2cBusProvider>(),
 					sp.GetRequiredService<ISystemManagementBusProvider>(),
 					(deviceName) => new FallbackDisplayAdapterI2cBusProviderFeature(i2cProvider, deviceName)

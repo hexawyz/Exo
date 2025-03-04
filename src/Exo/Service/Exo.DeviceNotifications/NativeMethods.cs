@@ -86,7 +86,7 @@ namespace Exo.DeviceNotifications
 		protected override bool ReleaseHandle()
 		{
 			NativeMethods.UnregisterDeviceNotification(handle);
-			return false;
+			return true;
 		}
 
 		public override bool IsInvalid => handle == IntPtr.Zero;

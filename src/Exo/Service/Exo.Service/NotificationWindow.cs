@@ -5,6 +5,8 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security;
 using Exo.DeviceNotifications;
+using Exo.PowerManagement;
+using Exo.PowerNotifications;
 using Exo.Services;
 using Microsoft.Win32.SafeHandles;
 
@@ -12,7 +14,7 @@ namespace Exo.Service;
 
 /// <summary>A notification window to replace service notifications when the app is not run as a service.</summary>
 /// <remarks>This code is not expected to be used in the release version.</remarks>
-internal sealed class NotificationWindow : IDeviceNotificationService, IDisposable
+internal sealed class NotificationWindow : IDeviceNotificationService, IPowerNotificationService, IDisposable
 {
 #pragma warning disable CS0649
 	[DllImport("kernel32", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
@@ -123,11 +125,18 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 		{
 			PostQuitMessage(0);
 		}
+		else if (message == WmPowerBroadcast)
+		{
+			if (NotificationWindows.TryGetValue(windowHandle, out var weakReference) && weakReference.TryGetTarget(out var window))
+			{
+				return window._powerNotificationEngine!.HandleNotification((int)wParam, lParam);
+			}
+		}
 		else if (message == WmDeviceChange)
 		{
 			if (NotificationWindows.TryGetValue(windowHandle, out var weakReference) && weakReference.TryGetTarget(out var window))
 			{
-				return (IntPtr)window._deviceNotificationEngine!.HandleNotification((int)wParam, lParam);
+				return window._deviceNotificationEngine!.HandleNotification((int)wParam, lParam);
 			}
 		}
 
@@ -154,11 +163,13 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 
 	private const int WmDestroy = 0x0002;
 	private const int WmClose = 0x0010;
+	private const int WmPowerBroadcast = 0x218;
 	private const int WmDeviceChange = 0x0219;
 
 	private readonly Thread _messageThread = new(MessageLoopThreadProcedure);
 	private IntPtr _handle;
 	private DeviceNotificationEngine? _deviceNotificationEngine;
+	private PowerNotificationEngine? _powerNotificationEngine;
 	private int _isDisposed;
 
 	public NotificationWindow()
@@ -193,6 +204,7 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 		}
 
 		_deviceNotificationEngine = DeviceNotificationEngine.CreateForWindow(handle);
+		_powerNotificationEngine = PowerNotificationEngine.CreateForWindow(handle);
 
 		NotificationWindows.TryAdd(handle, new WeakReference<NotificationWindow>(this));
 
@@ -237,4 +249,7 @@ internal sealed class NotificationWindow : IDeviceNotificationService, IDisposab
 
 	public IDisposable RegisterDeviceNotifications(IDeviceNotificationSink sink)
 		=> _deviceNotificationEngine!.RegisterDeviceNotifications(sink);
+
+	public IDisposable Register(IPowerNotificationSink sink, PowerSettings powerSettings)
+		=> _powerNotificationEngine!.Register(sink, powerSettings);
 }

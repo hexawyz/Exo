@@ -56,6 +56,9 @@ namespace Microsoft.Extensions.Hosting.WindowsServices
             Logger = loggerFactory.CreateLogger("Microsoft.Hosting.Lifetime");
             _hostOptions = optionsAccessor.Value;
             ServiceName = windowsServiceOptionsAccessor.Value.ServiceName;
+            CanHandlePowerEvent = windowsServiceOptionsAccessor.Value.CanHandlePowerEvent;
+            CanHandleSessionChangeEvent = windowsServiceOptionsAccessor.Value.CanHandleSessionChangeEvent;
+            CanHandleUserModeRebootEvent = windowsServiceOptionsAccessor.Value.CanHandleUserModeRebootEvent;
             CanShutdown = true;
         }
 

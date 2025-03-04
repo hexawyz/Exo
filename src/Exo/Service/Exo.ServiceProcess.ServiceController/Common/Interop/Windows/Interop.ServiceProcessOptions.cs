@@ -10,23 +10,41 @@ internal static partial class Interop
     {
         internal static partial class AcceptOptions
         {
-            internal const int ACCEPT_POWEREVENT = 0x00000040;
-            internal const int ACCEPT_PAUSE_CONTINUE = 0x00000002;
-            internal const int ACCEPT_SESSIONCHANGE = 0x00000080;
-            internal const int ACCEPT_SHUTDOWN = 0x00000004;
             internal const int ACCEPT_STOP = 0x00000001;
+            internal const int ACCEPT_PAUSE_CONTINUE = 0x00000002;
+            internal const int ACCEPT_SHUTDOWN = 0x00000004;
+            internal const int ACCEPT_PARAMCHANGE = 0x00000008;
+            internal const int ACCEPT_NETBINDCHANGE = 0x00000010;
+            internal const int ACCEPT_HARDWAREPROFILECHANGE = 0x00000020;
+            internal const int ACCEPT_POWEREVENT = 0x00000040;
+            internal const int ACCEPT_SESSIONCHANGE = 0x00000080;
+            internal const int ACCEPT_PRESHUTDOWN = 0x00000100;
+            internal const int ACCEPT_TIMECHANGE = 0x00000200;
+            internal const int ACCEPT_TRIGGEREVENT = 0x00000400;
+            internal const int ACCEPT_USERMODEREBOOT = 0x00000800;
         }
 
         internal static partial class ControlOptions
         {
+            internal const int CONTROL_STOP = 0x00000001;
+            internal const int CONTROL_PAUSE = 0x00000002;
             internal const int CONTROL_CONTINUE = 0x00000003;
             internal const int CONTROL_INTERROGATE = 0x00000004;
-            internal const int CONTROL_PAUSE = 0x00000002;
+            internal const int CONTROL_SHUTDOWN = 0x00000005;
+            internal const int CONTROL_PARAMCHANGE = 0x00000006;
+            internal const int CONTROL_NETBINDADD = 0x00000007;
+            internal const int CONTROL_NETBINDREMOVE = 0x00000008;
+            internal const int CONTROL_NETBINDENABLE = 0x00000009;
+            internal const int CONTROL_NETBINDDISABLE = 0x0000000A;
             internal const int CONTROL_DEVICEEVENT = 0x0000000B;
+            internal const int CONTROL_HARDWAREPROFILECHANGE = 0x0000000C;
             internal const int CONTROL_POWEREVENT = 0x0000000D;
             internal const int CONTROL_SESSIONCHANGE = 0x0000000E;
-            internal const int CONTROL_SHUTDOWN = 0x00000005;
-            internal const int CONTROL_STOP = 0x00000001;
+            internal const int CONTROL_PRESHUTDOWN = 0x0000000F;
+            internal const int CONTROL_TIMECHANGE = 0x00000010;
+            //internal const int CONTROL_USER_LOGOFF = 0x00000011;
+            internal const int CONTROL_TRIGGEREVENT = 0x00000020;
+            internal const int CONTROL_USERMODEREBOOT = 0x00000040;
         }
 
         internal static partial class ServiceConfigOptions
@@ -170,19 +188,6 @@ internal static partial class Interop
                 SC_MANAGER_LOCK |
                 SC_MANAGER_QUERY_LOCK_STATUS |
                 SC_MANAGER_MODIFY_BOOT_CONFIG;
-        }
-
-        internal static partial class PowerBroadcastStatus
-        {
-            internal const int PBT_APMBATTERYLOW = 0x0009;
-            internal const int PBT_APMOEMEVENT = 0x000B;
-            internal const int PBT_APMPOWERSTATUSCHANGE = 0x000A;
-            internal const int PBT_APMQUERYSUSPEND = 0x0000;
-            internal const int PBT_APMQUERYSUSPENDFAILED = 0x0002;
-            internal const int PBT_APMRESUMEAUTOMATIC = 0x0012;
-            internal const int PBT_APMRESUMECRITICAL = 0x0006;
-            internal const int PBT_APMRESUMESUSPEND = 0x0007;
-            internal const int PBT_APMSUSPEND = 0x0004;
         }
 
         internal static partial class SessionStateChange

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0-windows</TargetFramework>
@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Exo.PowerNotifications\Exo.PowerNotifications.csproj" />
     <ProjectReference Include="..\Exo.DeviceNotifications\Exo.DeviceNotifications.csproj" />
   </ItemGroup>
 
@@ -28,11 +29,7 @@
   
   <ItemGroup>
     <EmbeddedResource Remove="$(StringResourcesPath)" Condition="'$(EnableDefaultEmbeddedResourceItems)' == 'true'" />
-    <EmbeddedResource Include="$(StringResourcesPath)"
-                      Visible="true"
-                      ManifestResourceName="$(StringResourcesName)"
-                      GenerateSource="true"
-                      ClassName="$(StringResourcesNamespace).$(StringResourcesClassName)" />
+    <EmbeddedResource Include="$(StringResourcesPath)" Visible="true" ManifestResourceName="$(StringResourcesName)" GenerateSource="true" ClassName="$(StringResourcesNamespace).$(StringResourcesClassName)" />
   </ItemGroup>
 
 </Project>

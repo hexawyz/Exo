@@ -38,7 +38,14 @@ public static class Program
 
 	public static IHostBuilder CreateHostBuilder(string[] args) =>
 		Host.CreateDefaultBuilder(args)
-			.UseWindowsService()
+			.UseWindowsService(
+				o =>
+				{
+					o.CanHandlePowerEvent = true;
+					o.CanHandleSessionChangeEvent = true;
+					o.CanHandleUserModeRebootEvent = true;
+				}
+			)
 			.ConfigureWebHost
 			(
 				webBuilder => webBuilder.UseStartup<Startup>()

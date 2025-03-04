@@ -18,6 +18,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	internal IDiscoveryOrchestrator DiscoveryOrchestrator { get; }
 	internal IDeviceNotificationService DeviceNotificationService { get; }
+	internal IPowerNotificationService PowerNotificationService { get; }
 	internal II2cBusProvider I2CBusProvider { get; }
 	internal ISystemManagementBusProvider SystemManagementBusProvider { get; }
 	internal Func<string, IDisplayAdapterI2cBusProviderFeature> FallbackI2cBusProviderFeatureProvider { get; }
@@ -32,12 +33,13 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
+		IPowerNotificationService powerNotificationService,
 		II2cBusProvider i2cBusProvider,
 		ISystemManagementBusProvider systemManagementBusProvider,
 		Func<string, IDisplayAdapterI2cBusProviderFeature> fallbackI2cBusProviderFeatureProvider
 	)
 	{
-		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, i2cBusProvider, systemManagementBusProvider, fallbackI2cBusProviderFeatureProvider);
+		var service = new RootDiscoverySubsystem(loggerFactory, driverRegistry, discoveryOrchestrator, deviceNotificationService, powerNotificationService, i2cBusProvider, systemManagementBusProvider, fallbackI2cBusProviderFeatureProvider);
 		try
 		{
 			await service.RegisterAsync(discoveryOrchestrator);
@@ -56,6 +58,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		INestedDriverRegistryProvider driverRegistry,
 		IDiscoveryOrchestrator discoveryOrchestrator,
 		IDeviceNotificationService deviceNotificationService,
+		IPowerNotificationService powerNotificationService,
 		II2cBusProvider i2cBusProvider,
 		ISystemManagementBusProvider systemManagementBusProvider,
 		Func<string, IDisplayAdapterI2cBusProviderFeature> fallbackI2cBusProviderFeatureProvider
@@ -67,6 +70,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		DeviceNotificationService = deviceNotificationService;
 		I2CBusProvider = i2cBusProvider;
 		SystemManagementBusProvider = systemManagementBusProvider;
+		PowerNotificationService = powerNotificationService;
 		RegisteredFactories = new();
 		_pendingArrivals = new();
 		FallbackI2cBusProviderFeatureProvider = fallbackI2cBusProviderFeatureProvider;

@@ -14,5 +14,8 @@ namespace Microsoft.Extensions.Hosting
         /// The name used to identify the service to the system.
         /// </summary>
         public string ServiceName { get; set; } = string.Empty;
+        public bool CanHandlePowerEvent { get; set; } = false;
+        public bool CanHandleSessionChangeEvent { get; set; } = false;
+        public bool CanHandleUserModeRebootEvent { get; set; } = false;
     }
 }

@@ -264,18 +264,27 @@ public class GuidsGenerator : IIncrementalGenerator
 			string indent2 = indent + "\t";
 			foreach (var g in c.Guids)
 			{
+				string name = g.Name;
+				string accessibility = "private";
+				if (name.StartsWith("public:"))
+				{
+					accessibility = "public";
+					name = name.Substring(7);
+				}
 				if (g.GuidCount == 0)
 				{
 					sb.Append(indent2)
-						.Append("private static Guid ")
-						.Append(g.Name)
+						.Append(accessibility)
+						.Append(" static Guid ")
+						.Append(name)
 						.Append(" => new(global::").Append(RootNamespace).Append(".Internal.ꅔ.ꁘ.Slice(").Append(g.GuidIndex * 16).AppendLine(", 16));");
 				}
 				else
 				{
 					sb.Append(indent2)
-						.Append("private static global::").Append(RootNamespace).Append(".ImmutableGuidArray ")
-						.Append(g.Name)
+						.Append(accessibility)
+						.Append(" static global::").Append(RootNamespace).Append(".ImmutableGuidArray ")
+						.Append(name)
 						.Append(" => new(").Append(g.GuidIndex).Append(", ").Append(g.GuidCount).AppendLine(");");
 				}
 			}

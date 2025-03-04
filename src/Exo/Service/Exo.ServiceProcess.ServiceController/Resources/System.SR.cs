@@ -70,6 +70,8 @@ namespace System
         internal static string @ContinueFailed => GetResourceString("ContinueFailed", @"Failed to continue service. {0}");
         /// <summary>Failed to process session change. {0}</summary>
         internal static string @SessionChangeFailed => GetResourceString("SessionChangeFailed", @"Failed to process session change. {0}");
+        /// <summary>Failed to process user-mode reboot. {0}</summary>
+        internal static string @UserModeRebootFailed => GetResourceString("SessionChangeFailed", @"Failed to process user-mode reboot. {0}");
         /// <summary>Failed to process service command. {0}</summary>
         internal static string @CommandFailed => GetResourceString("CommandFailed", @"Failed to process service command. {0}");
         /// <summary>Service has been successfully shut down.</summary>

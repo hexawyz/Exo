@@ -1,0 +1,9 @@
+{
+    "Exo.PowerManagement": {
+        "PowerSettingGuids": {
+            "public:MinPowerSavings": "8C5E7FDA-E8BF-4A96-9A85-A6E23A8C635C",
+            "public:MaxPowerSavings": "A1841308-3541-4FAB-BC81-F71556F20B4A",
+            "public:TypicalPowerSavings": "381B4222-F694-41F0-9685-FF5BB260DF2E"
+        }
+    }
+}

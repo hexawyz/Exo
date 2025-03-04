@@ -125,7 +125,7 @@ namespace Exo.DeviceNotifications
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public unsafe int HandleNotification(int eventType, IntPtr eventData)
 		{
-			// Filter events that this code does not handle. (e.g. DBT_DEVNODES_CHANGED, DBT_QUERYCHANGECONFIG, DBT_CONFIGCHANGED, DBT_CONFIGCHANEGCANCELED)
+			// Filter events that this code does not handle. (e.g. DBT_DEVNODES_CHANGED, DBT_QUERYCHANGECONFIG, DBT_CONFIGCHANGED, DBT_CONFIGCHANGECANCELED)
 			if (eventType < 0x8000 || eventType > 0x8006 && eventType != 0xFFFF) return 0;
 
 			switch (((DeviceBroadcastHeader*)eventData)->DeviceType)
@@ -566,6 +566,7 @@ namespace Exo.DeviceNotifications
 				{
 					SafeRemove(_engine._deviceInterfaceClassNotificationRegistrations, DeviceInterfaceClassGuid.GetValueOrDefault(), this);
 				}
+				_safeDeviceNotificationHandle?.Dispose();
 			}
 
 			internal void OnDeviceArrival(Guid deviceInterfaceClassGuid, string deviceName)
