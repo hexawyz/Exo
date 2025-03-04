@@ -168,7 +168,18 @@ public sealed partial class ElgatoLightDriver : Driver,
 
 	private async void OnDeviceUpdated(object? sender, EventArgs e)
 	{
-		await RefreshLightsAsync(_cancellationTokenSource!.Token).ConfigureAwait(false);
+		var cancellationToken = _cancellationTokenSource!.Token;
+		try
+		{
+			await RefreshLightsAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log.
+		}
 	}
 
 	private async Task RefreshLightsAsync(CancellationToken cancellationToken)
