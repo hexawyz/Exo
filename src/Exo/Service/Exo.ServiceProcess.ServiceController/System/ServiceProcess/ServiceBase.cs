@@ -761,7 +761,7 @@ namespace System.ServiceProcess
                     unsafe
                     {
                         // The eventData pointer can be released between now and when the DeferredDelegate gets called.
-                        // So we capture the session id at this point
+                        // So we capture the session id at this point.
                         int sessionId = (int)((WTSSESSION_NOTIFICATION*)eventData)->sessionId;
                         ThreadPool.QueueUserWorkItem(_ => DeferredSessionChange(eventType, sessionId));
                         break;

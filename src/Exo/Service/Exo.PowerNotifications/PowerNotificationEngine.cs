@@ -42,6 +42,9 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 	private readonly IntPtr _targetHandle;
 	private readonly bool _isServiceHandle;
 
+	// Documentation says to return 1 for WM_POWERBROADCAST 🤷
+	private int DefaultResult => _isServiceHandle ? 0 : 1;
+
 	public static PowerNotificationEngine CreateForWindow(IntPtr handle)
 		=> new(handle, false);
 
@@ -133,7 +136,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 				}
 			}
 		}
-		return 0;
+		return DefaultResult;
 	}
 
 	private int OnResumeSuspend()
@@ -152,7 +155,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 				}
 			}
 		}
-		return 0;
+		return DefaultResult;
 	}
 
 	private int OnPowerStatusChange()
@@ -171,7 +174,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 				}
 			}
 		}
-		return 0;
+		return DefaultResult;
 	}
 
 	private int OnResumeAutomatic()
@@ -190,7 +193,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 				}
 			}
 		}
-		return 0;
+		return DefaultResult;
 	}
 
 	private unsafe int OnPowerSettingChange(nint eventData)
@@ -286,8 +289,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 				OnAwayModeChanged(_powerSettingSystemAwayModeSinks, *(int*)&((PowerBroadcastSetting*)eventData)->Data == 1);
 			}
 		}
-		// Documentation says to return 1 for WM_POWERBROADCAST 🤷
-		return _isServiceHandle ? 0 : 1;
+		return DefaultResult;
 	}
 
 	private static void OnPowerSourceChanged(IPowerNotificationSink[]? sinks, SystemPowerCondition powerSource)
@@ -572,7 +574,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 		}
 	}
 
-	private static unsafe SafePowerSettingNotificationHandle RegisterPowerSettingNotification(IntPtr handle, bool isServiceHandle, Guid powerSettingGuid)
+	private static SafePowerSettingNotificationHandle RegisterPowerSettingNotification(IntPtr handle, bool isServiceHandle, Guid powerSettingGuid)
 	{
 		var flags = isServiceHandle ? NativeMethods.DeviceNotificationFlags.ServiceHandle : NativeMethods.DeviceNotificationFlags.WindowHandle;
 
