@@ -42,7 +42,7 @@ public static class Program
 				o =>
 				{
 					o.CanHandlePowerEvent = true;
-					//o.CanHandleSessionChangeEvent = true;
+					o.CanHandleSessionChangeEvent = true;
 					//o.CanHandleUserModeRebootEvent = true;
 				}
 			)

@@ -768,7 +768,6 @@ namespace System.ServiceProcess
                     }
 
                 case ControlOptions.CONTROL_USERMODEREBOOT:
-                    unsafe
                     {
                         ThreadPool.QueueUserWorkItem(_ => DeferredUserModeReboot());
                         break;
