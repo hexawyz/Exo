@@ -9,8 +9,10 @@
     <UseWPF>true</UseWPF>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<PublishSingleFile>true</PublishSingleFile>
-		<!-- Try this afterwards.
+		<!-- Sadly, it seems that AOT is still not even close to usable for WPF :(
 		<PublishAot>true</PublishAot>
+		<SelfContained>true</SelfContained>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<_SuppressWpfTrimError>true</_SuppressWpfTrimError>
 		-->
 		<ApplicationManifest>app.manifest</ApplicationManifest>
