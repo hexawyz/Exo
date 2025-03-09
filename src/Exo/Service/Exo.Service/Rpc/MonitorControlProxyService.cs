@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
@@ -6,20 +5,18 @@ using System.Threading.Channels;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Contracts.Ui.Overlay;
-using Exo.Features.Monitors;
-using Exo.I2C;
-using ProtoBuf.Grpc;
 
-namespace Exo.Service.Grpc;
+namespace Exo.Service.Rpc;
 
 /// <summary>This is the connector for the monitor control proxy.</summary>
 /// <remarks>
 /// This is certainly the most complex external-facing service, as it does some heavy marshalling logic for a service provided from within the UI helper app.
 /// Exposing this here does not impose a heavy risk on the service, as in the worst case, a malicious client would intercept monitor control requests and/or break proper function of the monitor feature.
 /// </remarks>
-internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMonitorControlService
+internal class MonitorControlProxyService : IMonitorControlService
 {
 	private static readonly BoundedChannelOptions BoundedChannelOptions = new(10) { AllowSynchronousContinuations = true, FullMode = BoundedChannelFullMode.Wait, SingleWriter = true, SingleReader = true };
+	private static readonly UnboundedChannelOptions UnboundedChannelOptions = new() { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true };
 
 	/// <summary>This represents one instance of a connected service.</summary>
 	/// <remarks>
@@ -32,10 +29,10 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 	/// Because we have the knowledge and are able to handle individual client instances in a structured way, this will make state management on the consumer side of this service easier.
 	/// </para>
 	/// </remarks>
-	private sealed class Session : IAsyncDisposable
+	private sealed class Session : DisposableChannel<MonitorControlProxyResponse, MonitorControlProxyRequest>, IAsyncDisposable
 	{
 		private readonly Dictionary<uint, (MonitorControlProxyRequestResponseOneOfCase RequestType, object TaskCompletionSource)> _pendingRequests;
-		private readonly GrpcMonitorControlProxyService _service;
+		private readonly MonitorControlProxyService _service;
 		private readonly ChannelWriter<MonitorControlProxyRequest> _requests;
 		private uint _requestId;
 
@@ -44,9 +41,14 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		private CancellationTokenSource? _cancellationTokenSource;
 		private readonly Task _runTask;
 
-		public Session(GrpcMonitorControlProxyService service, ChannelWriter<MonitorControlProxyRequest> requests, IAsyncEnumerable<MonitorControlProxyResponse> responses)
+		public Session(MonitorControlProxyService service)
 		{
 			_service = service;
+			var requests = Channel.CreateBounded<MonitorControlProxyRequest>(BoundedChannelOptions);
+			var responses = Channel.CreateUnbounded<MonitorControlProxyResponse>(UnboundedChannelOptions);
+			// This is exposed to clients as an asymmetric channel, so the implementation is not leaked.
+			Reader = requests;
+			Writer = responses;
 			_requests = requests;
 			_pendingRequests = new();
 			_cancellationTokenSource = new();
@@ -56,7 +58,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 
 		public bool IsDisposed => _cancellationTokenSource is null;
 
-		public async ValueTask DisposeAsync()
+		public override async ValueTask DisposeAsync()
 		{
 			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
 
@@ -99,11 +101,11 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			}
 		}
 
-		private async Task RunAsync(IAsyncEnumerable<MonitorControlProxyResponse> responses, CancellationToken cancellationToken)
+		private async Task RunAsync(ChannelReader<MonitorControlProxyResponse> responses, CancellationToken cancellationToken)
 		{
 			try
 			{
-				await foreach (var response in responses.ConfigureAwait(false))
+				await foreach (var response in responses.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 				{
 					lock (_pendingRequests)
 					{
@@ -113,22 +115,22 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 							switch (requestType)
 							{
 							case MonitorControlProxyRequestResponseOneOfCase.Adapter:
-								CompleteRequest(response.Status, response.Content.AdapterResponse, tcs);
+								CompleteRequest(response.Status, response as AdapterResponse, tcs);
 								break;
-							case MonitorControlProxyRequestResponseOneOfCase.Monitor:
-								CompleteRequest(response.Status, response.Content.MonitorResponse, tcs);
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorAcquire:
+								CompleteRequest(response.Status, response as MonitorAcquireResponse, tcs);
 								break;
 							case MonitorControlProxyRequestResponseOneOfCase.MonitorRelease:
-								CompleteRequest(response.Status, response.Content.MonitorReleaseResponse, tcs);
+								CompleteRequest(response.Status, response as MonitorReleaseResponse, tcs);
 								break;
 							case MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities:
-								CompleteRequest(response.Status, response.Content.MonitorCapabilitiesResponse, tcs);
+								CompleteRequest(response.Status, response as MonitorCapabilitiesResponse, tcs);
 								break;
 							case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet:
-								CompleteRequest(response.Status, response.Content.MonitorVcpGetResponse, tcs);
+								CompleteRequest(response.Status, response as MonitorVcpGetResponse, tcs);
 								break;
 							case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet:
-								CompleteRequest(response.Status, response.Content.MonitorVcpSetResponse, tcs);
+								CompleteRequest(response.Status, response as MonitorVcpSetResponse, tcs);
 								break;
 							default:
 								// We control the type of requests that we send, so if this case is reached, this can only be a bug in the code. (Or a solar flare)
@@ -162,8 +164,8 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 							case MonitorControlProxyRequestResponseOneOfCase.Adapter:
 								FailRequest<AdapterResponse>(tcs, exception);
 								break;
-							case MonitorControlProxyRequestResponseOneOfCase.Monitor:
-								FailRequest<MonitorResponse>(tcs, exception);
+							case MonitorControlProxyRequestResponseOneOfCase.MonitorAcquire:
+								FailRequest<MonitorAcquireResponse>(tcs, exception);
 								break;
 							case MonitorControlProxyRequestResponseOneOfCase.MonitorRelease:
 								FailRequest<MonitorReleaseResponse>(tcs, exception);
@@ -222,23 +224,25 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			}
 		}
 
-		public ValueTask<AdapterResponse> SendRequestAsync(AdapterRequest request, CancellationToken cancellationToken)
-			=> SendRequestAsync<AdapterResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+		public uint NextRequestId() => Interlocked.Increment(ref _requestId);
 
-		public ValueTask<MonitorResponse> SendRequestAsync(MonitorRequest request, CancellationToken cancellationToken)
-			=> SendRequestAsync<MonitorResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+		public ValueTask<AdapterResponse> SendRequestAsync(AdapterRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<AdapterResponse>(request, cancellationToken);
+
+		public ValueTask<MonitorAcquireResponse> SendRequestAsync(MonitorAcquireRequest request, CancellationToken cancellationToken)
+			=> SendRequestAsync<MonitorAcquireResponse>(request, cancellationToken);
 
 		public ValueTask<MonitorReleaseResponse> SendRequestAsync(MonitorReleaseRequest request, CancellationToken cancellationToken)
-			=> SendRequestAsync<MonitorReleaseResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+			=> SendRequestAsync<MonitorReleaseResponse>(request, cancellationToken);
 
 		public ValueTask<MonitorCapabilitiesResponse> SendRequestAsync(MonitorCapabilitiesRequest request, CancellationToken cancellationToken)
-			=> SendRequestAsync<MonitorCapabilitiesResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+			=> SendRequestAsync<MonitorCapabilitiesResponse>(request, cancellationToken);
 
 		public ValueTask<MonitorVcpGetResponse> SendRequestAsync(MonitorVcpGetRequest request, CancellationToken cancellationToken)
-			=> SendRequestAsync<MonitorVcpGetResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+			=> SendRequestAsync<MonitorVcpGetResponse>(request, cancellationToken);
 
 		public ValueTask<MonitorVcpSetResponse> SendRequestAsync(MonitorVcpSetRequest request, CancellationToken cancellationToken)
-			=> SendRequestAsync<MonitorVcpSetResponse>(new MonitorControlProxyRequest() { RequestId = Interlocked.Increment(ref _requestId), Content = request }, cancellationToken);
+			=> SendRequestAsync<MonitorVcpSetResponse>(request, cancellationToken);
 
 		private async ValueTask<TResponse> SendRequestAsync<TResponse>(MonitorControlProxyRequest request, CancellationToken cancellationToken)
 		{
@@ -247,7 +251,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			lock (_pendingRequests)
 			{
 				tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-				_pendingRequests.Add(requestId, (request.Content.RequestType, tcs));
+				_pendingRequests.Add(requestId, (request.RequestType, tcs));
 			}
 			try
 			{
@@ -292,14 +296,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		{
 			var response = await _session.SendRequestAsync
 			(
-				new MonitorRequest()
-				{
-					AdapterId = _adapterId,
-					EdidVendorId = vendorId,
-					EdidProductId = productId,
-					IdSerialNumber = idSerialNumber,
-					SerialNumber = serialNumber,
-				},
+				new MonitorAcquireRequest(_session.NextRequestId(), _adapterId, vendorId, productId, idSerialNumber, serialNumber),
 				cancellationToken
 			).ConfigureAwait(false);
 			return new Monitor(_session, response.MonitorHandle);
@@ -324,7 +321,7 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 			{
 				try
 				{
-					await _session.SendRequestAsync(new MonitorReleaseRequest() { MonitorHandle = _monitorHandle }, default).ConfigureAwait(false);
+					await _session.SendRequestAsync(new MonitorReleaseRequest(_session.NextRequestId(), _monitorHandle), default).ConfigureAwait(false);
 				}
 				catch
 				{
@@ -346,21 +343,21 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 		async Task<ImmutableArray<byte>> IMonitorControlMonitor.GetCapabilitiesAsync(CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
-			var response = await _session.SendRequestAsync(new MonitorCapabilitiesRequest() { MonitorHandle = _monitorHandle }, cancellationToken).ConfigureAwait(false);
+			var response = await _session.SendRequestAsync(new MonitorCapabilitiesRequest(_session.NextRequestId(), _monitorHandle), cancellationToken).ConfigureAwait(false);
 			return response.Utf8Capabilities;
 		}
 
 		async Task<VcpFeatureReply> IMonitorControlMonitor.GetVcpFeatureAsync(byte vcpCode, CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
-			var response = await _session.SendRequestAsync(new MonitorVcpGetRequest() { MonitorHandle = _monitorHandle, VcpCode = vcpCode }, cancellationToken).ConfigureAwait(false);
+			var response = await _session.SendRequestAsync(new MonitorVcpGetRequest(_session.NextRequestId(), _monitorHandle, vcpCode), cancellationToken).ConfigureAwait(false);
 			return new(response.CurrentValue, response.MaximumValue, response.IsMomentary);
 		}
 
 		async Task IMonitorControlMonitor.SetVcpFeatureAsync(byte vcpCode, ushort value, CancellationToken cancellationToken)
 		{
 			EnsureNotDisposed();
-			var response = await _session.SendRequestAsync(new MonitorVcpSetRequest() { MonitorHandle = _monitorHandle, VcpCode = vcpCode, Value = value }, cancellationToken).ConfigureAwait(false);
+			var response = await _session.SendRequestAsync(new MonitorVcpSetRequest(_session.NextRequestId(), _monitorHandle, vcpCode, value), cancellationToken).ConfigureAwait(false);
 		}
 	}
 
@@ -435,17 +432,10 @@ internal class GrpcMonitorControlProxyService : IMonitorControlProxyService, IMo
 	async Task<IMonitorControlAdapter> IMonitorControlService.ResolveAdapterAsync(string deviceName, CancellationToken cancellationToken)
 	{
 		var session = await GetSessionAsync(cancellationToken).ConfigureAwait(false);
-		var response = await session.SendRequestAsync(new AdapterRequest() { DeviceName = deviceName }, cancellationToken).ConfigureAwait(false);
+		var response = await session.SendRequestAsync(new AdapterRequest(session.NextRequestId(), deviceName), cancellationToken).ConfigureAwait(false);
 		return new Adapter(session, response.AdapterId);
 	}
 
-	async IAsyncEnumerable<MonitorControlProxyRequest> IMonitorControlProxyService.ProcessRequestsAsync(IAsyncEnumerable<MonitorControlProxyResponse> responses, [EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		var requests = Channel.CreateBounded<MonitorControlProxyRequest>(BoundedChannelOptions);
-		await using var session = new Session(this, requests, responses);
-		await foreach (var request in requests.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-		{
-			yield return request;
-		}
-	}
+	public DisposableChannel<MonitorControlProxyResponse, MonitorControlProxyRequest> CreateChannel()
+		=> new Session(this);
 }

@@ -7,11 +7,6 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Grpc.Net.Client" />
-		<PackageReference Include="protobuf-net.Grpc" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
 	</ItemGroup>
 

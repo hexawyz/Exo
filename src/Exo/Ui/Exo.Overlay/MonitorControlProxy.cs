@@ -25,28 +25,18 @@ namespace Exo.Overlay;
 /// </remarks>
 internal sealed class MonitorControlProxy : IAsyncDisposable
 {
-	private static readonly BoundedChannelOptions BoundedChannelOptions = new(10)
-	{
-		AllowSynchronousContinuations = true,
-		FullMode = BoundedChannelFullMode.Wait,
-		SingleReader = true,
-		SingleWriter = true,
-	};
-
-	private readonly ServiceConnectionManager _serviceConnectionManager;
 	private readonly Dictionary<uint, PhysicalMonitor> _physicalMonitors;
 	private readonly Lock _lock;
 	private uint _lastMonitorHandle;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _runTask;
 
-	public MonitorControlProxy(ServiceConnectionManager serviceConnectionManager)
+	public MonitorControlProxy(IEnumerable<ChannelReader<MonitorControlProxyRequest>> requestReaders, IMonitorControlProxyResponseWriter responseWriter)
 	{
-		_serviceConnectionManager = serviceConnectionManager;
 		_physicalMonitors = new();
 		_lock = new();
 		_cancellationTokenSource = new();
-		_runTask = RunAsync(_cancellationTokenSource.Token);
+		_runTask = RunAsync(requestReaders, responseWriter, _cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -58,16 +48,15 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 		cts.Dispose();
 	}
 
-	private async Task RunAsync(CancellationToken cancellationToken)
+	private async Task RunAsync(IEnumerable<ChannelReader<MonitorControlProxyRequest>> requestReaders, IMonitorControlProxyResponseWriter responseWriter, CancellationToken cancellationToken)
 	{
 		try
 		{
-			while (!cancellationToken.IsCancellationRequested)
+			foreach (var reader in requestReaders)
 			{
-				var monitorProxyService = await _serviceConnectionManager.CreateServiceAsync<IMonitorControlProxyService>(cancellationToken).ConfigureAwait(false);
 				try
 				{
-					await ProcessRequestsAsync(monitorProxyService, cancellationToken);
+					await ProcessRequestsAsync(reader, responseWriter, cancellationToken);
 				}
 				catch
 				{
@@ -95,47 +84,46 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 		}
 	}
 
-	private async Task ProcessRequestsAsync(IMonitorControlProxyService monitorProxyService, CancellationToken cancellationToken)
+	private async Task ProcessRequestsAsync(ChannelReader<MonitorControlProxyRequest> reader, IMonitorControlProxyResponseWriter responseWriter, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var channel = Channel.CreateBounded<MonitorControlProxyResponse>(BoundedChannelOptions);
 			try
 			{
-				await foreach (var request in monitorProxyService.ProcessRequestsAsync(channel.Reader.ReadAllAsync(cancellationToken), cancellationToken).ConfigureAwait(false))
+				await foreach (var request in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
 				{
 					MonitorControlProxyResponse response;
 					try
 					{
-						response = request.Content.RequestType switch
+						response = request.RequestType switch
 						{
-							MonitorControlProxyRequestResponseOneOfCase.Adapter => ProcessAdapterRequest(request.RequestId, request.Content.AdapterRequest!),
-							MonitorControlProxyRequestResponseOneOfCase.Monitor => ProcessMonitorRequest(request.RequestId, request.Content.MonitorRequest!),
-							MonitorControlProxyRequestResponseOneOfCase.MonitorRelease => ProcessMonitorReleaseRequest(request.RequestId, request.Content.MonitorReleaseRequest!),
-							MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities => ProcessCapabilitiesRequest(request.RequestId, request.Content.MonitorCapabilitiesRequest!),
-							MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet => ProcessVcpGetRequest(request.RequestId, request.Content.MonitorVcpGetRequest!),
-							MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet => ProcessVcpSetRequest(request.RequestId, request.Content.MonitorVcpSetRequest!),
+							MonitorControlProxyRequestResponseOneOfCase.Adapter => ProcessAdapterRequest((AdapterRequest)request),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorAcquire => ProcessMonitorRequest((MonitorAcquireRequest)request),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorRelease => ProcessMonitorReleaseRequest((MonitorReleaseRequest)request),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities => ProcessCapabilitiesRequest((MonitorCapabilitiesRequest)request),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet => ProcessVcpGetRequest((MonitorVcpGetRequest)request),
+							MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet => ProcessVcpSetRequest((MonitorVcpSetRequest)request),
 							_ => throw new InvalidOperationException("Unsupported request.")
 						};
 					}
 					catch (VcpCodeNotSupportedException)
 					{
-						response = new() { RequestId = request.RequestId, Status = MonitorControlResponseStatus.InvalidVcpCode };
+						response = new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.InvalidVcpCode);
 					}
 					catch
 					{
-						response = new() { RequestId = request.RequestId, Status = MonitorControlResponseStatus.Error };
+						response = new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.Error);
 					}
-					channel.Writer.TryWrite(response);
+					// TODO: This could try to write something on a transmission pipe that has been closed then reopened.
+					// Code could be improved to guarantee avoiding this. Likely provide a full-duplex pair of channel reader and writers.
+					await responseWriter.WriteAsync(response, cancellationToken).ConfigureAwait(false);
 				}
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 			{
-				channel.Writer.TryComplete();
 			}
 			catch (Exception ex)
 			{
-				channel.Writer.TryComplete(ex);
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -143,7 +131,7 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 		}
 	}
 
-	private MonitorControlProxyResponse ProcessAdapterRequest(uint requestId, AdapterRequest request)
+	private MonitorControlProxyResponse ProcessAdapterRequest(AdapterRequest request)
 	{
 		ulong adapterId;
 		var displayConfiguration = DisplayConfiguration.GetForActivePaths();
@@ -154,13 +142,13 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 			if (adapterDeviceName == request.DeviceName)
 			{
 				adapterId = (ulong)path.SourceInfo.Adapter.Id;
-				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new AdapterResponse { AdapterId = adapterId } };
+				return new AdapterResponse(request.RequestId, adapterId);
 			}
 		}
-		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+		return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.NotFound);
 	}
 
-	private MonitorControlProxyResponse ProcessMonitorRequest(uint requestId, MonitorRequest request)
+	private MonitorControlProxyResponse ProcessMonitorRequest(MonitorAcquireRequest request)
 	{
 		uint monitorHandle;
 		PhysicalMonitor physicalMonitor;
@@ -232,17 +220,17 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 					{
 						physicalMonitors[k].Dispose();
 					}
-					return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorResponse { MonitorHandle = monitorHandle } };
+					return new MonitorAcquireResponse(request.RequestId, monitorHandle);
 				}
 				// If the physical monitor is not a match dispose it.
 				currentPhysicalMonitor.Dispose();
 			}
 		}
 	DisplayConfigurationMismatch:;
-		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+		return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.NotFound);
 	}
 
-	private MonitorControlProxyResponse ProcessCapabilitiesRequest(uint requestId, MonitorCapabilitiesRequest request)
+	private MonitorControlProxyResponse ProcessCapabilitiesRequest(MonitorCapabilitiesRequest request)
 	{
 		ImmutableArray<byte> utf8Capabilities;
 		lock (_lock)
@@ -250,13 +238,13 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
 			{
 				utf8Capabilities = physicalMonitor.GetCapabilitiesUtf8String().Span.ToImmutableArray();
-				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorCapabilitiesResponse { Utf8Capabilities = utf8Capabilities } };
+				return new MonitorCapabilitiesResponse(request.RequestId, utf8Capabilities);
 			}
 		}
-		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+		return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.NotFound);
 	}
 
-	private MonitorControlProxyResponse ProcessVcpGetRequest(uint requestId, MonitorVcpGetRequest request)
+	private MonitorControlProxyResponse ProcessVcpGetRequest(MonitorVcpGetRequest request)
 	{
 		VcpFeatureReply reply;
 		lock (_lock)
@@ -264,35 +252,40 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
 			{
 				reply = physicalMonitor.GetVcpFeature(request.VcpCode);
-				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorVcpGetResponse { CurrentValue = reply.CurrentValue, MaximumValue = reply.MaximumValue, IsMomentary = reply.IsMomentary } };
+				return new MonitorVcpGetResponse(request.RequestId, reply.CurrentValue, reply.MaximumValue, reply.IsMomentary);
 			}
 		}
-		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+		return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.NotFound);
 	}
 
-	private MonitorControlProxyResponse ProcessVcpSetRequest(uint requestId, MonitorVcpSetRequest request)
+	private MonitorControlProxyResponse ProcessVcpSetRequest(MonitorVcpSetRequest request)
 	{
 		lock (_lock)
 		{
 			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
 			{
 				physicalMonitor.SetVcpFeature(request.VcpCode, request.Value);
-				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorVcpSetResponse() };
+				return new MonitorVcpSetResponse(request.RequestId);
 			}
 		}
-		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+		return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.NotFound);
 	}
 
-	private MonitorControlProxyResponse ProcessMonitorReleaseRequest(uint requestId, MonitorReleaseRequest request)
+	private MonitorControlProxyResponse ProcessMonitorReleaseRequest(MonitorReleaseRequest request)
 	{
 		lock (_lock)
 		{
 			if (_physicalMonitors.Remove(request.MonitorHandle, out var physicalMonitor))
 			{
 				physicalMonitor.Dispose();
-				return new() { RequestId = requestId, Status = MonitorControlResponseStatus.Success, Content = new MonitorReleaseResponse() };
+				return new MonitorReleaseResponse(request.RequestId);
 			}
 		}
-		return new() { RequestId = requestId, Status = MonitorControlResponseStatus.NotFound };
+		return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.NotFound);
 	}
+}
+
+internal interface IMonitorControlProxyResponseWriter
+{
+	ValueTask WriteAsync(MonitorControlProxyResponse response, CancellationToken cancellationToken);
 }

@@ -43,6 +43,15 @@ public ref struct BufferWriter
 		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), (uint)value.Length);
 	}
 
+	public void WriteVariableBytes(ReadOnlySpan<byte> data)
+	{
+		var writer = this;
+		writer.WriteVariable((uint)data.Length);
+		if ((uint)data.Length > writer.RemainingLength) throw new EndOfStreamException();
+		data.CopyTo(MemoryMarshal.CreateSpan(ref writer._current, data.Length));
+		_current = ref Unsafe.AddByteOffset(ref writer._current, (uint)data.Length);
+	}
+
 	public void WriteVariableString(ReadOnlySpan<char> text)
 	{
 		// If the string has a small length, we know for sure that the length will fit in a single byte.

@@ -9,6 +9,10 @@
     <UseWPF>true</UseWPF>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<PublishSingleFile>true</PublishSingleFile>
+		<!-- Try this afterwards.
+		<PublishAot>true</PublishAot>
+		<_SuppressWpfTrimError>true</_SuppressWpfTrimError>
+		-->
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
 	</PropertyGroup>
@@ -16,11 +20,6 @@
   <ItemGroup>
     <None Remove="FluentSystemIcons-Resizable.ttf" />
   </ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Grpc.Net.Client" />
-		<PackageReference Include="protobuf-net.Grpc" />
-	</ItemGroup>
 	
 	<ItemGroup>
 		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />

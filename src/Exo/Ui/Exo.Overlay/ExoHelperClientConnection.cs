@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Overlay;
@@ -186,30 +186,153 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 
 	private void ProcessAdapterRequest(ReadOnlySpan<byte> data)
 	{
+		var channelWriter = _monitorControlProxyRequestChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		channelWriter.TryWrite(new AdapterRequest(reader.Read<uint>(), reader.ReadVariableString() ?? ""));
 	}
 
 	private void ProcessMonitorAcquireRequest(ReadOnlySpan<byte> data)
 	{
+		var channelWriter = _monitorControlProxyRequestChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		channelWriter.TryWrite(new MonitorAcquireRequest(reader.Read<uint>(), reader.Read<ulong>(), reader.Read<ushort>(), reader.Read<ushort>(), reader.Read<uint>(), reader.ReadVariableString()));
 	}
 
 	private void ProcessMonitorReleaseRequest(ReadOnlySpan<byte> data)
 	{
+		var channelWriter = _monitorControlProxyRequestChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		channelWriter.TryWrite(new MonitorReleaseRequest(reader.Read<uint>(), reader.Read<uint>()));
 	}
 
 	private void ProcessMonitorCapabilitiesRequest(ReadOnlySpan<byte> data)
 	{
+		var channelWriter = _monitorControlProxyRequestChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		channelWriter.TryWrite(new MonitorCapabilitiesRequest(reader.Read<uint>(), reader.Read<uint>()));
 	}
 
 	private void ProcessMonitorVcpGetRequest(ReadOnlySpan<byte> data)
 	{
+		var channelWriter = _monitorControlProxyRequestChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		channelWriter.TryWrite(new MonitorVcpGetRequest(reader.Read<uint>(), reader.Read<uint>(), reader.ReadByte()));
 	}
 
 	private void ProcessMonitorVcpSetRequest(ReadOnlySpan<byte> data)
 	{
+		var channelWriter = _monitorControlProxyRequestChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		channelWriter.TryWrite(new MonitorVcpSetRequest(reader.Read<uint>(), reader.Read<uint>(), reader.ReadByte(), reader.Read<ushort>()));
+	}
+
+	internal async ValueTask WriteMonitorControlProxyResponseAsync(MonitorControlProxyResponse response, CancellationToken cancellationToken)
+	{
+		using var cts = CreateWriteCancellationTokenSource(cancellationToken);
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			var buffer = WriteBuffer;
+			FillBuffer(buffer.Span, response);
+			await WriteAsync(buffer, cts.Token).ConfigureAwait(false);
+		}
+
+		static int FillBuffer(Span<byte> buffer, MonitorControlProxyResponse response)
+		{
+			ref byte message = ref buffer[0];
+			var data = buffer[1..];
+			switch (response.ResponseType)
+			{
+			case MonitorControlProxyRequestResponseOneOfCase.None:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyErrorResponse;
+				return WriteErrorResponse(data, (MonitorControlProxyErrorResponse)response) + 1;
+			case MonitorControlProxyRequestResponseOneOfCase.Adapter:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyAdapterResponse;
+				return WriteAdapterResponse(data, (AdapterResponse)response) + 1;
+			case MonitorControlProxyRequestResponseOneOfCase.MonitorAcquire:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyMonitorAcquireResponse;
+				return WriteMonitorAcquireResponse(data, (MonitorAcquireResponse)response) + 1;
+			case MonitorControlProxyRequestResponseOneOfCase.MonitorRelease:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyMonitorReleaseResponse;
+				return WriteMonitorReleaseResponse(data, (MonitorReleaseResponse)response) + 1;
+			case MonitorControlProxyRequestResponseOneOfCase.MonitorCapabilities:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyMonitorCapabilitiesResponse;
+				return WriteMonitorCapabilitiesResponse(data, (MonitorCapabilitiesResponse)response) + 1;
+			case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpGet:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyMonitorVcpGetResponse;
+				return WriteMonitorVcpGetResponse(data, (MonitorVcpGetResponse)response) + 1;
+			case MonitorControlProxyRequestResponseOneOfCase.MonitorVcpSet:
+				message = (byte)ExoHelperProtocolClientMessage.MonitorProxyMonitorVcpSetResponse;
+				return WriteMonitorVcpSetResponse(data, (MonitorVcpSetResponse)response) + 1;
+			default:
+				throw new UnreachableException();
+			}
+		}
+
+		static int WriteErrorResponse(Span<byte> buffer, MonitorControlProxyErrorResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			writer.Write((byte)response.Status);
+			return (int)writer.Length;
+		}
+
+		static int WriteAdapterResponse(Span<byte> buffer, AdapterResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			writer.Write(response.AdapterId);
+			return (int)writer.Length;
+		}
+
+		static int WriteMonitorAcquireResponse(Span<byte> buffer, MonitorAcquireResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			writer.Write(response.MonitorHandle);
+			return (int)writer.Length;
+		}
+
+		static int WriteMonitorReleaseResponse(Span<byte> buffer, MonitorReleaseResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			return (int)writer.Length;
+		}
+
+		static int WriteMonitorCapabilitiesResponse(Span<byte> buffer, MonitorCapabilitiesResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			writer.WriteVariableBytes(ImmutableCollectionsMarshal.AsArray(response.Utf8Capabilities) ?? []);
+			return (int)writer.Length;
+		}
+
+		static int WriteMonitorVcpGetResponse(Span<byte> buffer, MonitorVcpGetResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			writer.Write(response.CurrentValue);
+			writer.Write(response.MaximumValue);
+			writer.Write(response.IsMomentary ? (byte)1 : (byte)0);
+			return (int)writer.Length;
+		}
+
+		static int WriteMonitorVcpSetResponse(Span<byte> buffer, MonitorVcpSetResponse response)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write(response.RequestId);
+			return (int)writer.Length;
+		}
 	}
 }
 
-internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>, IMenuItemInvoker
+internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>, IMenuItemInvoker, IMonitorControlProxyResponseWriter
 {
 	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
 	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
@@ -220,7 +343,7 @@ internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection
 		string pipeName,
 		ChannelWriter<OverlayRequest> overlayRequestWriter,
 		ResettableChannel<MenuChangeNotification> menuChannel,
-		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
+		ResettableChannel<Contracts.Ui.Overlay.MonitorControlProxyRequest> monitorControlProxyRequestChannel
 	) : base(pipeName, PipeTransmissionMode.Message
 	)
 	{
@@ -234,6 +357,14 @@ internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection
 		if (CurrentConnection is { } connection)
 		{
 			await connection.InvokeMenuItemAsync(menuItemId, cancellationToken);
+		}
+	}
+
+	public async ValueTask WriteAsync(MonitorControlProxyResponse response, CancellationToken cancellationToken)
+	{
+		if (CurrentConnection is { } connection)
+		{
+			await connection.WriteMonitorControlProxyResponseAsync(response, cancellationToken);
 		}
 	}
 }

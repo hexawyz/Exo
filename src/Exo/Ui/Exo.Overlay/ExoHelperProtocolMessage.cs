@@ -19,23 +19,26 @@ internal enum ExoHelperProtocolClientMessage : byte
 	/// <summary>Invokes a menu command.</summary>
 	/// <remarks>Contents: 16 bytes (GUID)</remarks>
 	InvokeMenuCommand = 2,
+	/// <summary>Error response to a monitor control proxy request.</summary>
+	/// <remarks></remarks>
+	MonitorProxyErrorResponse = 3,
 	/// <summary>Response to an adapter request.</summary>
 	/// <remarks></remarks>
-	MonitorProxyAdapterResponse = 3,
+	MonitorProxyAdapterResponse = 4,
 	/// <summary>Response for acquiring control over a monitor.</summary>
-	/// <remarks>
-	/// <para>There is no response for the release, as it is always presumed successful.</para>
-	/// </remarks>
-	MonitorProxyMonitorAcquireResponse = 4,
+	MonitorProxyMonitorAcquireResponse = 5,
+	/// <summary>Response for releasing control over a monitor.</summary>
+	/// <remarks>This response is only provided as opposed to an error response.</remarks>
+	MonitorProxyMonitorReleaseResponse = 6,
 	/// <summary>Response for monitor capabilities.</summary>
 	/// <remarks></remarks>
-	MonitorProxyMonitorCapabilitiesResponse = 5,
+	MonitorProxyMonitorCapabilitiesResponse = 7,
 	/// <summary>Response for monitor VCP get.</summary>
 	/// <remarks></remarks>
-	MonitorProxyMonitorVcpGetResponse = 6,
+	MonitorProxyMonitorVcpGetResponse = 8,
 	/// <summary>Response for monitor VCP set.</summary>
 	/// <remarks></remarks>
-	MonitorProxyMonitorVcpSetResponse = 7,
+	MonitorProxyMonitorVcpSetResponse = 9,
 }
 
 // Defines messages sent by the server to the client.

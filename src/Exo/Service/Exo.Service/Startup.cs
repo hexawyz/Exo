@@ -7,6 +7,7 @@ using Exo.Discovery;
 using Exo.I2C;
 using Exo.Rpc;
 using Exo.Service.Grpc;
+using Exo.Service.Rpc;
 using Exo.Services;
 using Exo.SystemManagementBus;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -279,8 +280,8 @@ public class Startup
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
 		services.AddHostedService<HelperRpcService>();
-		services.AddSingleton<GrpcMonitorControlProxyService>();
-		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
+		services.AddSingleton<MonitorControlProxyService>();
+		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
 		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcPowerService>();
@@ -339,7 +340,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMetadataService>().AddEndpointFilter(settingsEndpointFilter);
-			endpoints.MapGrpcService<GrpcMonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);
+			endpoints.MapGrpcService<MonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);
 			endpoints.MapRazorPages();
 		});

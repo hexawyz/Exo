@@ -1,10 +1,6 @@
 using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Overlay;
-using Exo.Ui;
-using Grpc.Core;
 
 namespace Exo.Overlay;
 

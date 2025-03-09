@@ -127,6 +127,13 @@ public ref struct BufferReader
 		return value;
 	}
 
+	public byte[]? ReadVariableBytes()
+	{
+		var length = ReadVariableUInt32();
+		if (length == 0) return null;
+		return ReadBytes(length);
+	}
+
 	public byte[] ReadBytes(uint length)
 	{
 		if (length == 0) return [];

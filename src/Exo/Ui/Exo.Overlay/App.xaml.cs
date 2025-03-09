@@ -1,11 +1,8 @@
 using System.IO;
-using System.IO.Pipes;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Rpc;
-using Exo.Ui;
 using Application = System.Windows.Application;
 
 namespace Exo.Overlay;
@@ -19,17 +16,6 @@ internal partial class App : Application
 	//private static readonly Guid IconGuid = new(0x7DBD82ED, 0x40E8, 0x430C, 0x9B, 0x92, 0x55, 0x57, 0x95, 0x65, 0x66, 0x03);
 
 	public static readonly string? SettingsUiExecutablePath = LocateSettingsUi();
-
-	private readonly ServiceConnectionManager _connectionManager = new
-	(
-		"Local\\Exo.Service.Overlay",
-		100,
-#if DEBUG
-		null
-#else
-		Exo.Utils.GitCommitHelper.GetCommitIdString(typeof(App).Assembly)
-#endif
-	);
 
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
 	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
@@ -59,7 +45,7 @@ internal partial class App : Application
 		NativeMethods.SetPreferredAppMode(1);
 
 		_notifyIconService = await NotifyIconService.CreateAsync(_menuChannel, _client).ConfigureAwait(false);
-		_monitorControlProxy = new MonitorControlProxy(_connectionManager);
+		_monitorControlProxy = new MonitorControlProxy(_monitorControlProxyRequestChannel, _client);
 	}
 
 	private static string? LocateSettingsUi()
@@ -93,7 +79,7 @@ internal partial class App : Application
 		{
 			await monitorControlProxy.DisposeAsync().ConfigureAwait(false);
 		}
-		await _connectionManager.DisposeAsync().ConfigureAwait(false);
+		await _client.DisposeAsync().ConfigureAwait(false);
 		await Dispatcher.InvokeAsync(() => Shutdown(0));
 	}
 }
