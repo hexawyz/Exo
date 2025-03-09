@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Exo.Contracts.Ui.Overlay;
 
 [DataContract]
-public enum OverlayNotificationKind
+public enum OverlayNotificationKind : byte
 {
 	/// <summary>Indicates a notification that has no predefined meaning.</summary>
 	[EnumMember]

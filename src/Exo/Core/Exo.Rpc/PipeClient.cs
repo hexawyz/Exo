@@ -8,7 +8,7 @@ public abstract class PipeClient
 	internal abstract CancellationToken CancellationToken { get; }
 }
 
-public sealed class PipeClient<TConnection> : PipeClient, IAsyncDisposable
+public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 	where TConnection : PipeClientConnection, IPipeClientConnection<TConnection>
 {
 	private readonly byte[] _buffers;
@@ -45,7 +45,7 @@ public sealed class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 	{
 		try
 		{
-				TConnection? connection = null;
+			TConnection? connection = null;
 			while (true)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
@@ -75,7 +75,7 @@ public sealed class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 				}
 				finally
 				{
-					if (connection is not null)await connection.DisposeAsync();
+					if (connection is not null) await connection.DisposeAsync();
 					connection = null;
 				}
 			}

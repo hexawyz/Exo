@@ -1,6 +1,8 @@
 using System.IO;
 using System.IO.Pipes;
+using System.Threading.Channels;
 using System.Threading.Tasks;
+using Exo.Contracts.Ui.Overlay;
 using Exo.Rpc;
 using Exo.Ui;
 using Application = System.Windows.Application;
@@ -28,9 +30,9 @@ internal partial class App : Application
 #endif
 	);
 
-	//private readonly PipeClient<ExoHelperClientConnection> _client = new("Local\\Exo.Service.Helper", PipeTransmissionMode.Message);
+	private readonly ExoHelperPipeClient _client;
 
-	private OverlayViewModel? _overlayViewModel;
+	private readonly OverlayViewModel _overlayViewModel;
 	private NotifyIconService? _notifyIconService;
 	private MonitorControlProxy? _monitorControlProxy;
 
@@ -38,12 +40,17 @@ internal partial class App : Application
 
 	public OverlayViewModel OverlayViewModel => _overlayViewModel!;
 
+	private App()
+	{
+		var overlayRequestChannel = Channel.CreateUnbounded<OverlayRequest>(new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
+		_client = new("Local\\Exo.Service.Helper", overlayRequestChannel);
+		_overlayViewModel = new(overlayRequestChannel);
+	}
+
 	protected override async void OnStartup(System.Windows.StartupEventArgs e)
 	{
 		// Use this undocumented uxtheme API (always… why!) to allow system dark mode for classical UI.
 		NativeMethods.SetPreferredAppMode(1);
-
-		_overlayViewModel = new(_connectionManager);
 
 		_notifyIconService = await NotifyIconService.CreateAsync(_connectionManager).ConfigureAwait(false);
 		_monitorControlProxy = new MonitorControlProxy(_connectionManager);

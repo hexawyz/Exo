@@ -7,7 +7,7 @@ public abstract class PipeServer
 	internal abstract CancellationToken CancellationToken { get; }
 }
 
-public sealed class PipeServer<TConnection> : PipeServer, IAsyncDisposable
+public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 	where TConnection : PipeServerConnection, IPipeServerConnection<TConnection>
 {
 	private readonly string _pipeName;

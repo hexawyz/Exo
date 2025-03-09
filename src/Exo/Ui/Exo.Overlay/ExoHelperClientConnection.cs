@@ -1,6 +1,10 @@
 using System.Collections.Immutable;
 using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Channels;
+using Exo.Contracts.Ui.Overlay;
 using Exo.Rpc;
 using Exo.Utils;
 
@@ -10,9 +14,15 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 {
 	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoHelperClientConnection).Assembly);
 
-	public static ExoHelperClientConnection Create(PipeClient<ExoHelperClientConnection> client, NamedPipeClientStream stream) => new(client, stream);
+	public static ExoHelperClientConnection Create(PipeClient<ExoHelperClientConnection> client, NamedPipeClientStream stream)
+		=> new(client, stream, ((ExoHelperPipeClient)client).OverlayRequestWriter);
 
-	private ExoHelperClientConnection(PipeClient client, NamedPipeClientStream stream) : base(client, stream) { }
+	private readonly ChannelWriter<OverlayRequest> _overlayRequestWriter;
+
+	private ExoHelperClientConnection(PipeClient client, NamedPipeClientStream stream, ChannelWriter<OverlayRequest> overlayRequestWriter) : base(client, stream)
+	{
+		_overlayRequestWriter = overlayRequestWriter;
+	}
 
 	protected override async Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken)
 	{
@@ -43,6 +53,7 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 #endif
 			return true;
 		case ExoHelperProtocolServerMessage.Overlay:
+			ProcessOverlayRequest(data);
 			return true;
 		case ExoHelperProtocolServerMessage.CustomMenuItemEnumeration:
 		case ExoHelperProtocolServerMessage.CustomMenuItemAdd:
@@ -76,5 +87,36 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 			buffer[0] = (byte)ExoHelperProtocolClientMessage.GitVersion;
 			ImmutableCollectionsMarshal.AsArray(version)!.CopyTo(buffer[1..]);
 		}
+	}
+
+	private void ProcessOverlayRequest(ReadOnlySpan<byte> data)
+	{
+		if (data.Length < 18) throw new ArgumentException();
+
+		byte deviceNameLength = data[17];
+
+		if (data.Length < 18 + deviceNameLength) throw new ArgumentException();
+
+		_overlayRequestWriter.TryWrite
+		(
+			new()
+			{
+				NotificationKind = (OverlayNotificationKind)data[0],
+				Level = Unsafe.ReadUnaligned<uint>(in data[1]),
+				MaxLevel = Unsafe.ReadUnaligned<uint>(in data[5]),
+				Value = Unsafe.ReadUnaligned<long>(in data[9]),
+				DeviceName = deviceNameLength > 0 ? Encoding.UTF8.GetString(data.Slice(18, deviceNameLength)) : null,
+			}
+		);
+	}
+}
+
+internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>
+{
+	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
+
+	public ExoHelperPipeClient(string pipeName, ChannelWriter<OverlayRequest> overlayRequestWriter) : base(pipeName, PipeTransmissionMode.Message)
+	{
+		OverlayRequestWriter = overlayRequestWriter;
 	}
 }

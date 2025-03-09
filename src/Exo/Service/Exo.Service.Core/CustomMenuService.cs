@@ -172,7 +172,7 @@ internal sealed class CustomMenuService
 				}
 			}
 
-			// Push the actual menu item update before pushing the notifications.
+			// Publish the actual menu item update before pushing the notifications.
 			_menuItems = menuItems;
 
 			foreach (var notification in pendingNotifications)
