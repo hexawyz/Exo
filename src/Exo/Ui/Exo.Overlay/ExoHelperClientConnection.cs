@@ -18,22 +18,25 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 	public static ExoHelperClientConnection Create(PipeClient<ExoHelperClientConnection> client, NamedPipeClientStream stream)
 	{
 		var helperPipeClient = (ExoHelperPipeClient)client;
-		return new(client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel);
+		return new(client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel, helperPipeClient.MonitorControlProxyRequestChannel);
 	}
 
 	private readonly ChannelWriter<OverlayRequest> _overlayRequestWriter;
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
+	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
 
 	private ExoHelperClientConnection
 	(
 		PipeClient client,
 		NamedPipeClientStream stream,
 		ChannelWriter<OverlayRequest> overlayRequestWriter,
-		ResettableChannel<MenuChangeNotification> menuChannel
+		ResettableChannel<MenuChangeNotification> menuChannel,
+		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
 	) : base(client, stream)
 	{
 		_overlayRequestWriter = overlayRequestWriter;
 		_menuChannel = menuChannel;
+		_monitorControlProxyRequestChannel = monitorControlProxyRequestChannel;
 	}
 
 	protected override async Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken)
@@ -51,6 +54,7 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 		finally
 		{
 			_menuChannel.Reset();
+			_monitorControlProxyRequestChannel.Reset();
 		}
 	}
 
@@ -87,11 +91,22 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 			ProcessCustomMenu(WatchNotificationKind.Update, data);
 			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyAdapterRequest:
+			ProcessAdapterRequest(data);
+			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorAcquireRequest:
+			ProcessMonitorAcquireRequest(data);
+			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorReleaseRequest:
+			ProcessMonitorReleaseRequest(data);
+			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorCapabilitiesRequest:
+			ProcessMonitorCapabilitiesRequest(data);
+			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorVcpGetRequest:
+			ProcessMonitorVcpGetRequest(data);
+			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorVcpSetRequest:
+			ProcessMonitorVcpSetRequest(data);
 			return true;
 		}
 		return false;
@@ -118,51 +133,36 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 
 	private void ProcessOverlayRequest(ReadOnlySpan<byte> data)
 	{
-		if (data.Length < 18) throw new ArgumentException();
-
-		byte deviceNameLength = data[17];
-
-		if (data.Length < 18 + deviceNameLength) throw new ArgumentException();
+		var reader = new BufferReader(data);
 
 		_overlayRequestWriter.TryWrite
 		(
 			new()
 			{
-				NotificationKind = (OverlayNotificationKind)data[0],
-				Level = Unsafe.ReadUnaligned<uint>(in data[1]),
-				MaxLevel = Unsafe.ReadUnaligned<uint>(in data[5]),
-				Value = Unsafe.ReadUnaligned<long>(in data[9]),
-				DeviceName = deviceNameLength > 0 ? Encoding.UTF8.GetString(data.Slice(18, deviceNameLength)) : null,
+				NotificationKind = (OverlayNotificationKind)reader.ReadByte(),
+				Level = reader.Read<uint>(),
+				MaxLevel = reader.Read<uint>(),
+				Value = reader.Read<long>(),
+				DeviceName = reader.ReadVariableString(),
 			}
 		);
 	}
 
 	private void ProcessCustomMenu(WatchNotificationKind kind, ReadOnlySpan<byte> data)
 	{
-		var writer = _menuChannel.CurrentWriter;
+		var channelWriter = _menuChannel.CurrentWriter;
+		var reader = new BufferReader(data);
 
-		if (data.Length < 37) throw new ArgumentException();
-
-		var type = (MenuItemType)data[36];
-		byte textLength = 0;
-
-		if (type is MenuItemType.Default or MenuItemType.SubMenu)
-		{
-			if (data.Length < 38) throw new ArgumentException();
-			textLength = data[37];
-			if (data.Length < 38 + textLength) throw new ArgumentException();
-		}
-
-		writer.TryWrite
+		channelWriter.TryWrite
 		(
 			new()
 			{
 				Kind = kind,
-				ParentItemId = Unsafe.ReadUnaligned<Guid>(in data[0]),
-				Position = Unsafe.ReadUnaligned<uint>(in data[16]),
-				ItemId = Unsafe.ReadUnaligned<Guid>(in data[20]),
-				ItemType = type,
-				Text = textLength > 0 ? Encoding.UTF8.GetString(data.Slice(38, textLength)) : null
+				ParentItemId = reader.Read<Guid>(),
+				Position = reader.Read<uint>(),
+				ItemId = reader.Read<Guid>(),
+				ItemType = (MenuItemType)reader.ReadByte(),
+				Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 			}
 		);
 	}
@@ -183,22 +183,50 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 			Unsafe.WriteUnaligned(ref buffer[1], menuItemId);
 		}
 	}
+
+	private void ProcessAdapterRequest(ReadOnlySpan<byte> data)
+	{
+	}
+
+	private void ProcessMonitorAcquireRequest(ReadOnlySpan<byte> data)
+	{
+	}
+
+	private void ProcessMonitorReleaseRequest(ReadOnlySpan<byte> data)
+	{
+	}
+
+	private void ProcessMonitorCapabilitiesRequest(ReadOnlySpan<byte> data)
+	{
+	}
+
+	private void ProcessMonitorVcpGetRequest(ReadOnlySpan<byte> data)
+	{
+	}
+
+	private void ProcessMonitorVcpSetRequest(ReadOnlySpan<byte> data)
+	{
+	}
 }
 
 internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>, IMenuItemInvoker
 {
 	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
 	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
+	internal ResettableChannel<MonitorControlProxyRequest> MonitorControlProxyRequestChannel { get; }
 
 	public ExoHelperPipeClient
 	(
 		string pipeName,
 		ChannelWriter<OverlayRequest> overlayRequestWriter,
-		ResettableChannel<MenuChangeNotification> menuChannel) : base(pipeName, PipeTransmissionMode.Message
+		ResettableChannel<MenuChangeNotification> menuChannel,
+		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
+	) : base(pipeName, PipeTransmissionMode.Message
 	)
 	{
 		OverlayRequestWriter = overlayRequestWriter;
 		MenuChannel = menuChannel;
+		MonitorControlProxyRequestChannel = monitorControlProxyRequestChannel;
 	}
 
 	public async ValueTask InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)

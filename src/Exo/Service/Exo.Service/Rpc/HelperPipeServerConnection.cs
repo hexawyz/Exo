@@ -53,18 +53,13 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 
 				static int WriteRequest(Span<byte> buffer, OverlayRequest request)
 				{
-					int count;
-					// TODO: Refactor to have a kind of writer struct able to write variable integers.
-					buffer[0] = (byte)request.NotificationKind;
-					Unsafe.WriteUnaligned(ref buffer[1], request.Level);
-					Unsafe.WriteUnaligned(ref buffer[5], request.MaxLevel);
-					Unsafe.WriteUnaligned(ref buffer[9], request.Value);
-					count = 17;
-					var text = (request.DeviceName ?? "").AsSpan();
-					// TODO: Make the length into a var int later on. Truncate for now.
-					if (text.Length > 63) text = text[0..63];
-					count = count + 1 + (buffer[17] = (byte)Encoding.UTF8.GetBytes(text, buffer[18..]));
-					return count;
+					var writer = new BufferWriter(buffer);
+					writer.Write((byte)request.NotificationKind);
+					writer.Write(request.Level);
+					writer.Write(request.MaxLevel);
+					writer.Write(request.Value);
+					writer.WriteVariableString(request.DeviceName ?? "");
+					return (int)writer.Length;
 				}
 			}
 		}
@@ -102,21 +97,16 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 
 				static int WriteNotificationData(Span<byte> buffer, MenuItemWatchNotification notification)
 				{
-					int count;
-					// TODO: Refactor to have a kind of writer struct able to write variable integers.
-					Unsafe.WriteUnaligned(ref buffer[0], notification.ParentItemId);
-					Unsafe.WriteUnaligned(ref buffer[16], notification.Position);
-					Unsafe.WriteUnaligned(ref buffer[20], notification.MenuItem.ItemId);
-					buffer[36] = (byte)notification.MenuItem.Type;
-					count = 37;
+					var writer = new BufferWriter(buffer);
+					writer.Write(notification.ParentItemId);
+					writer.Write(notification.Position);
+					writer.Write(notification.MenuItem.ItemId);
+					writer.Write((byte)notification.MenuItem.Type);
 					if (notification.MenuItem.Type is Contracts.Ui.MenuItemType.Default or Contracts.Ui.MenuItemType.SubMenu)
 					{
-						var text = (notification.MenuItem as TextMenuItem)?.Text ?? "".AsSpan();
-						// TODO: Make the length into a var int later on. Truncate for now.
-						if (text.Length > 63) text = text[0..63];
-						count = count + 1 + (buffer[37] = (byte)Encoding.UTF8.GetBytes(text, buffer[38..]));
+						writer.WriteVariableString((notification.MenuItem as TextMenuItem)?.Text ?? "");
 					}
-					return count;
+					return (int)writer.Length;
 				}
 			}
 		}

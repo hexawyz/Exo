@@ -32,6 +32,7 @@ internal partial class App : Application
 	);
 
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
+	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
 	private readonly ExoHelperPipeClient _client;
 
 	private readonly OverlayViewModel _overlayViewModel;
@@ -46,8 +47,9 @@ internal partial class App : Application
 	{
 		var channelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false };
 		var overlayRequestChannel = Channel.CreateUnbounded<OverlayRequest>(channelOptions);
-		_menuChannel = new ResettableChannel<MenuChangeNotification>(channelOptions);
-		_client = new("Local\\Exo.Service.Helper", overlayRequestChannel, _menuChannel);
+		_menuChannel = new(channelOptions);
+		_monitorControlProxyRequestChannel = new(channelOptions);
+		_client = new("Local\\Exo.Service.Helper", overlayRequestChannel, _menuChannel, _monitorControlProxyRequestChannel);
 		_overlayViewModel = new(overlayRequestChannel);
 	}
 
