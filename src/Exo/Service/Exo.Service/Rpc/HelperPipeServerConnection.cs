@@ -96,20 +96,25 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 
 				static int FillBuffer(Span<byte> buffer, ExoHelperProtocolServerMessage message, MenuItemWatchNotification notification)
 				{
-					int count = 0;
-					// TODO: Refactor to have a kind of writer struct able to write variable integers.
 					buffer[0] = (byte)message;
-					Unsafe.WriteUnaligned(ref buffer[1], notification.ParentItemId);
-					Unsafe.WriteUnaligned(ref buffer[17], notification.Position);
-					Unsafe.WriteUnaligned(ref buffer[21], notification.MenuItem.ItemId);
-					buffer[37] = (byte)notification.MenuItem.Type;
-					count = 38;
-					if (notification.MenuItem.Type == Contracts.Ui.MenuItemType.Default)
+					return WriteNotificationData(buffer[1..], notification) + 1;
+				}
+
+				static int WriteNotificationData(Span<byte> buffer, MenuItemWatchNotification notification)
+				{
+					int count;
+					// TODO: Refactor to have a kind of writer struct able to write variable integers.
+					Unsafe.WriteUnaligned(ref buffer[0], notification.ParentItemId);
+					Unsafe.WriteUnaligned(ref buffer[16], notification.Position);
+					Unsafe.WriteUnaligned(ref buffer[20], notification.MenuItem.ItemId);
+					buffer[36] = (byte)notification.MenuItem.Type;
+					count = 37;
+					if (notification.MenuItem.Type is Contracts.Ui.MenuItemType.Default or Contracts.Ui.MenuItemType.SubMenu)
 					{
 						var text = (notification.MenuItem as TextMenuItem)?.Text ?? "".AsSpan();
 						// TODO: Make the length into a var int later on. Truncate for now.
 						if (text.Length > 63) text = text[0..63];
-						count = count + 1 + (buffer[38] = (byte)Encoding.UTF8.GetBytes(text, buffer[39..]));
+						count = count + 1 + (buffer[37] = (byte)Encoding.UTF8.GetBytes(text, buffer[38..]));
 					}
 					return count;
 				}

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Channels;
+using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Rpc;
 using Exo.Utils;
@@ -15,23 +16,41 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoHelperClientConnection).Assembly);
 
 	public static ExoHelperClientConnection Create(PipeClient<ExoHelperClientConnection> client, NamedPipeClientStream stream)
-		=> new(client, stream, ((ExoHelperPipeClient)client).OverlayRequestWriter);
+	{
+		var helperPipeClient = (ExoHelperPipeClient)client;
+		return new(client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel);
+	}
 
 	private readonly ChannelWriter<OverlayRequest> _overlayRequestWriter;
+	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
 
-	private ExoHelperClientConnection(PipeClient client, NamedPipeClientStream stream, ChannelWriter<OverlayRequest> overlayRequestWriter) : base(client, stream)
+	private ExoHelperClientConnection
+	(
+		PipeClient client,
+		NamedPipeClientStream stream,
+		ChannelWriter<OverlayRequest> overlayRequestWriter,
+		ResettableChannel<MenuChangeNotification> menuChannel
+	) : base(client, stream)
 	{
 		_overlayRequestWriter = overlayRequestWriter;
+		_menuChannel = menuChannel;
 	}
 
 	protected override async Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken)
 	{
-		while (true)
+		try
 		{
-			int count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-			if (count == 0) return;
-			// If the message processing does not indicate success, we can close the connection.
-			if (!ProcessMessage(buffer.Span[..count])) return;
+			while (true)
+			{
+				int count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+				if (count == 0) return;
+				// If the message processing does not indicate success, we can close the connection.
+				if (!ProcessMessage(buffer.Span[..count])) return;
+			}
+		}
+		finally
+		{
+			_menuChannel.Reset();
 		}
 	}
 
@@ -56,9 +75,17 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 			ProcessOverlayRequest(data);
 			return true;
 		case ExoHelperProtocolServerMessage.CustomMenuItemEnumeration:
+			ProcessCustomMenu(WatchNotificationKind.Enumeration, data);
+			return true;
 		case ExoHelperProtocolServerMessage.CustomMenuItemAdd:
+			ProcessCustomMenu(WatchNotificationKind.Addition, data);
+			return true;
 		case ExoHelperProtocolServerMessage.CustomMenuItemRemove:
+			ProcessCustomMenu(WatchNotificationKind.Removal, data);
+			return true;
 		case ExoHelperProtocolServerMessage.CustomMenuItemUpdate:
+			ProcessCustomMenu(WatchNotificationKind.Update, data);
+			return true;
 		case ExoHelperProtocolServerMessage.MonitorProxyAdapterRequest:
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorAcquireRequest:
 		case ExoHelperProtocolServerMessage.MonitorProxyMonitorReleaseRequest:
@@ -109,14 +136,76 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 			}
 		);
 	}
+
+	private void ProcessCustomMenu(WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	{
+		var writer = _menuChannel.CurrentWriter;
+
+		if (data.Length < 37) throw new ArgumentException();
+
+		var type = (MenuItemType)data[36];
+		byte textLength = 0;
+
+		if (type is MenuItemType.Default or MenuItemType.SubMenu)
+		{
+			if (data.Length < 38) throw new ArgumentException();
+			textLength = data[37];
+			if (data.Length < 38 + textLength) throw new ArgumentException();
+		}
+
+		writer.TryWrite
+		(
+			new()
+			{
+				Kind = kind,
+				ParentItemId = Unsafe.ReadUnaligned<Guid>(in data[0]),
+				Position = Unsafe.ReadUnaligned<uint>(in data[16]),
+				ItemId = Unsafe.ReadUnaligned<Guid>(in data[20]),
+				ItemType = type,
+				Text = textLength > 0 ? Encoding.UTF8.GetString(data.Slice(38, textLength)) : null
+			}
+		);
+	}
+
+	internal async ValueTask InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
+	{
+		using var cts = CreateWriteCancellationTokenSource(cancellationToken);
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			var buffer = WriteBuffer[0..17];
+			FillBuffer(buffer.Span, menuItemId);
+			await WriteAsync(buffer, cts.Token).ConfigureAwait(false);
+		}
+
+		static void FillBuffer(Span<byte> buffer, Guid menuItemId)
+		{
+			buffer[0] = (byte)ExoHelperProtocolClientMessage.InvokeMenuCommand;
+			Unsafe.WriteUnaligned(ref buffer[1], menuItemId);
+		}
+	}
 }
 
-internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>
+internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>, IMenuItemInvoker
 {
 	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
+	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
 
-	public ExoHelperPipeClient(string pipeName, ChannelWriter<OverlayRequest> overlayRequestWriter) : base(pipeName, PipeTransmissionMode.Message)
+	public ExoHelperPipeClient
+	(
+		string pipeName,
+		ChannelWriter<OverlayRequest> overlayRequestWriter,
+		ResettableChannel<MenuChangeNotification> menuChannel) : base(pipeName, PipeTransmissionMode.Message
+	)
 	{
 		OverlayRequestWriter = overlayRequestWriter;
+		MenuChannel = menuChannel;
+	}
+
+	public async ValueTask InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
+	{
+		if (CurrentConnection is { } connection)
+		{
+			await connection.InvokeMenuItemAsync(menuItemId, cancellationToken);
+		}
 	}
 }

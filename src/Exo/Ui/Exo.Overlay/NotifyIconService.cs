@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
+using System.Threading.Channels;
 using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Overlay;
 using Exo.Ui;
@@ -9,18 +10,18 @@ namespace Exo.Overlay;
 
 internal sealed class NotifyIconService : IAsyncDisposable
 {
-	public static async ValueTask<NotifyIconService> CreateAsync(ServiceConnectionManager serviceConnectionManager)
+	public static async ValueTask<NotifyIconService> CreateAsync(IEnumerable<ChannelReader<MenuChangeNotification>> menuChangeReaders, IMenuItemInvoker menuItemInvoker)
 	{
 		// Setup the notification icon using interop code in order to get the native UI.
 		// Sadly, the current state of notification icons is a total mess, and each app uses its own shitty implementation so there is no coherence at all.
 		// Using native calls at least gives the basic look&feel, but then we're still out of style…
 		var window = await NotificationWindow.GetOrCreateAsync().ConfigureAwait(false);
 		await window.SwitchTo();
-		return new NotifyIconService(window, serviceConnectionManager);
+		return new NotifyIconService(window, menuChangeReaders, menuItemInvoker);
 	}
 
-	private readonly ServiceConnectionManager _serviceConnectionManager;
-	private TaskCompletionSource<IOverlayCustomMenuService> _customMenuServiceTaskCompletionSource;
+	private readonly IEnumerable<ChannelReader<MenuChangeNotification>> _menuChangeReaders;
+	private readonly IMenuItemInvoker _menuItemInvoker;
 
 	private readonly NotificationWindow _window;
 	private readonly NotifyIcon _icon;
@@ -31,10 +32,9 @@ internal sealed class NotifyIconService : IAsyncDisposable
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _watchTask;
 
-	public NotifyIconService(NotificationWindow window, ServiceConnectionManager serviceConnectionManager)
+	public NotifyIconService(NotificationWindow window, IEnumerable<ChannelReader<MenuChangeNotification>> menuChangeReaders, IMenuItemInvoker menuItemInvoker)
 	{
-		_serviceConnectionManager = serviceConnectionManager;
-		_customMenuServiceTaskCompletionSource = new();
+		_menuChangeReaders = menuChangeReaders;
 		_window = window;
 		_icon = window.CreateNotifyIcon(0, 32512, "Exo");
 		var menu = _icon.ContextMenu;
@@ -52,6 +52,7 @@ internal sealed class NotifyIconService : IAsyncDisposable
 		_customMenuItemEventHandler = new EventHandler(OnCustomMenuItemClick);
 		_cancellationTokenSource = new();
 		_watchTask = WatchMenuChangesAsync(_cancellationTokenSource.Token);
+		_menuItemInvoker = menuItemInvoker;
 	}
 
 	public async ValueTask DisposeAsync()
@@ -75,13 +76,11 @@ internal sealed class NotifyIconService : IAsyncDisposable
 		{
 			await _window.SwitchTo();
 
-			while (!cancellationToken.IsCancellationRequested)
+			foreach (var reader in _menuChangeReaders)
 			{
-				var customMenuService = await _serviceConnectionManager.CreateServiceAsync<IOverlayCustomMenuService>(cancellationToken);
-				_customMenuServiceTaskCompletionSource.TrySetResult(customMenuService);
 				try
 				{
-					await foreach (var notification in customMenuService.WatchMenuChangesAsync(cancellationToken))
+					await foreach (var notification in reader.ReadAllAsync(cancellationToken))
 					{
 						ProcessCustomMenuChangeNotification(notification);
 					}
@@ -94,8 +93,10 @@ internal sealed class NotifyIconService : IAsyncDisposable
 				{
 					// TODO: See what exceptions can be thrown when the service is disconnected or the channel is shutdown.
 				}
-				_customMenuServiceTaskCompletionSource = new();
-				ResetCustomMenu();
+				finally
+				{
+					ResetCustomMenu();
+				}
 			}
 		}
 		catch (ObjectDisposedException)
@@ -103,12 +104,6 @@ internal sealed class NotifyIconService : IAsyncDisposable
 		}
 		catch (Exception) when (cancellationToken.IsCancellationRequested)
 		{
-		}
-		var objectDisposedException = ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(NotifyIconService).FullName));
-		if (!_customMenuServiceTaskCompletionSource.TrySetException(objectDisposedException))
-		{
-			_customMenuServiceTaskCompletionSource = new();
-			_customMenuServiceTaskCompletionSource.TrySetException(objectDisposedException);
 		}
 	}
 
@@ -232,18 +227,12 @@ internal sealed class NotifyIconService : IAsyncDisposable
 	{
 		try
 		{
-			while (true)
+			try
 			{
-				// TODO: Properly detect connection errors and validate that the command is not invoked twice. (i.e. if the exception is a true exception
-				try
-				{
-					var customMenuService = await _customMenuServiceTaskCompletionSource.Task;
-					await customMenuService.InvokeMenuItemAsync(new MenuItemReference { Id = (Guid)((MenuItem)sender!).Tag! }, default).ConfigureAwait(false);
-				}
-				catch (ObjectDisposedException)
-				{
-				}
-				return;
+				await _menuItemInvoker.InvokeMenuItemAsync((Guid)((MenuItem)sender!).Tag!, default).ConfigureAwait(false);
+			}
+			catch (ObjectDisposedException)
+			{
 			}
 		}
 		catch

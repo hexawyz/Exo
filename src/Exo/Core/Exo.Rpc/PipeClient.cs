@@ -13,6 +13,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 {
 	private readonly byte[] _buffers;
 	private readonly string _pipeName;
+	private TConnection? _currentConnection;
 	private readonly PipeTransmissionMode _transmissionMode;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private readonly Task _runTask;
@@ -38,6 +39,9 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 		}
 	}
 
+	// Maybe we want to make this async at some point?
+	protected TConnection? CurrentConnection => Volatile.Read(ref _currentConnection);
+
 	internal override byte[] Buffers => _buffers;
 	internal override CancellationToken CancellationToken => (Volatile.Read(ref _cancellationTokenSource) ?? throw new ObjectDisposedException(GetType().FullName)).Token;
 
@@ -45,7 +49,6 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 	{
 		try
 		{
-			TConnection? connection = null;
 			while (true)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
@@ -57,7 +60,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 					stream.ReadMode = _transmissionMode;
 					try
 					{
-						connection = TConnection.Create(this, stream);
+						Volatile.Write(ref _currentConnection, TConnection.Create(this, stream));
 					}
 					catch
 					{
@@ -66,7 +69,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 					}
 					try
 					{
-						await connection.StartAndGetRunTask().WaitAsync(cancellationToken).ConfigureAwait(false);
+						await _currentConnection.StartAndGetRunTask().WaitAsync(cancellationToken).ConfigureAwait(false);
 					}
 					catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
 					{
@@ -75,8 +78,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 				}
 				finally
 				{
-					if (connection is not null) await connection.DisposeAsync();
-					connection = null;
+					if (Interlocked.Exchange(ref _currentConnection, null) is { } connection) await connection.DisposeAsync();
 				}
 			}
 		}
