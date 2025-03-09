@@ -7,7 +7,7 @@ using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Service.Grpc;
 
-internal sealed class GrpcCustomMenuService : IOverlayCustomMenuService, ISettingsCustomMenuService
+internal sealed class GrpcCustomMenuService : ISettingsCustomMenuService
 {
 	private readonly CustomMenuService _customMenuService;
 

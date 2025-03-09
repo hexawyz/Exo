@@ -296,7 +296,6 @@ public class Startup
 		services.AddSingleton<GrpcCustomMenuService>();
 		services.AddSingleton(sp => new GrpcMetadataService(typeof(Startup).Assembly.Location, sp.GetRequiredService<IMetadataSourceProvider>()));
 		services.AddSingleton<GrpcServiceLifetimeService>();
-		services.AddSingleton<IOverlayCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddSingleton<ISettingsCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
 		services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = 512 * 1024);
 	}
@@ -340,9 +339,7 @@ public class Startup
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMetadataService>().AddEndpointFilter(settingsEndpointFilter);
-			endpoints.MapGrpcService<GrpcOverlayNotificationService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<GrpcMonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);
-			endpoints.MapGrpcService<IOverlayCustomMenuService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);
 			endpoints.MapRazorPages();
 		});
