@@ -136,7 +136,7 @@ public partial class App : Application
 #if DEBUG
 				null,
 #else
-				Exo.Utils.GitCommitHelper.GetCommitId(typeof(SettingsViewModel).Assembly),
+				Exo.Utils.GitCommitHelper.GetCommitIdString(typeof(SettingsViewModel).Assembly),
 #endif
 				sp.GetRequiredService<ConnectionViewModel>().OnConnectionStatusChanged
 			)

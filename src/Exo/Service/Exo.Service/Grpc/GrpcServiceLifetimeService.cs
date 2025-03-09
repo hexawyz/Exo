@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Exo.Contracts.Ui;
 using Exo.Utils;
 
@@ -13,6 +14,13 @@ internal sealed class GrpcServiceLifetimeService : IServiceLifetimeService
 		hostApplicationLifetime.ApplicationStopping.Register(state => _taskCompletionSource.TrySetResult(), _taskCompletionSource, false);
 	}
 
-	ValueTask<string?> IServiceLifetimeService.TryGetVersionAsync(CancellationToken cancellationToken) => ValueTask.FromResult(_taskCompletionSource.Task.IsCompleted ? null : Program.GitCommitId ?? "UNKNOWN");
+	ValueTask<string?> IServiceLifetimeService.TryGetVersionAsync(CancellationToken cancellationToken)
+		=> ValueTask.FromResult
+		(
+			_taskCompletionSource.Task.IsCompleted ?
+				null :
+				Program.GitCommitId.IsDefaultOrEmpty ? "UNKNOWN" : Convert.ToHexString(ImmutableCollectionsMarshal.AsArray(Program.GitCommitId)!)
+		);
+
 	Task IServiceLifetimeService.WaitForStopAsync(CancellationToken cancellationToken) => _taskCompletionSource.Task.WaitAsync(cancellationToken);
 }

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Exo.Configuration;
 
 namespace Exo.Service;
@@ -11,13 +13,15 @@ internal static class ConfigurationMigrationService
 		public string? GitCommitId { get; init; }
 	}
 
-	public static async Task InitializeAsync(ConfigurationService configurationService, string? gitCommitId, CancellationToken cancellationToken)
+	public static async Task InitializeAsync(ConfigurationService configurationService, ImmutableArray<byte> gitCommitId, CancellationToken cancellationToken)
 	{
 		var rootContainer = configurationService.GetRootContainer();
 
 		var result = await rootContainer.ReadValueAsync<ConfigurationVersionDetails>(cancellationToken).ConfigureAwait(false);
 
-		bool shouldResetAssemblyCaches = !result.Found || result.Value.GitCommitId is null || result.Value.GitCommitId != gitCommitId;
+		string? commitIdString = !gitCommitId.IsDefaultOrEmpty ? Convert.ToHexString(ImmutableCollectionsMarshal.AsArray(gitCommitId)!) : null;
+
+		bool shouldResetAssemblyCaches = !result.Found || result.Value.GitCommitId is null || result.Value.GitCommitId != commitIdString;
 		if (shouldResetAssemblyCaches)
 		{
 			// TODO: This is a very naive implementation of the cleanup, but it will guarantee that assembly discovery stuff is cleared, as well as possible other caches.
@@ -28,10 +32,10 @@ internal static class ConfigurationMigrationService
 
 		const int ConfigurationVersion = 1;
 
-		bool hasConfigurationChanged = !result.Found || result.Value.ConfigurationVersion != ConfigurationVersion || result.Value.GitCommitId != gitCommitId;
+		bool hasConfigurationChanged = !result.Found || result.Value.ConfigurationVersion != ConfigurationVersion || result.Value.GitCommitId != commitIdString;
 		if (hasConfigurationChanged)
 		{
-			await rootContainer.WriteValueAsync(new ConfigurationVersionDetails { ConfigurationVersion = ConfigurationVersion, GitCommitId = gitCommitId }, cancellationToken).ConfigureAwait(false);
+			await rootContainer.WriteValueAsync(new ConfigurationVersionDetails { ConfigurationVersion = ConfigurationVersion, GitCommitId = commitIdString }, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

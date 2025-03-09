@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Exo</RootNamespace>
 		<Nullable>enable</Nullable>
 		<EnableExoGuidGeneration>true</EnableExoGuidGeneration>
-  </PropertyGroup>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
@@ -21,11 +21,12 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" />
-    <ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
-    <ProjectReference Include="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
-    <ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.HumanInterfaceDevices\DeviceTools.HumanInterfaceDevices.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
+		<ProjectReference Include="..\Exo.Primitives\Exo.Primitives.csproj" />
+	</ItemGroup>
 
 </Project>

@@ -5,6 +5,7 @@ using Exo.Contracts.Ui.Overlay;
 using Exo.Contracts.Ui.Settings;
 using Exo.Discovery;
 using Exo.I2C;
+using Exo.Rpc;
 using Exo.Service.Grpc;
 using Exo.Services;
 using Exo.SystemManagementBus;
@@ -277,6 +278,7 @@ public class Startup
 		services.AddSingleton<IDiscoveryOrchestrator>(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
+		services.AddHostedService<HelperRpcService>();
 		services.AddSingleton<GrpcMonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<GrpcMonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));

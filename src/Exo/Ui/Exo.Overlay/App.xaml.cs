@@ -1,4 +1,7 @@
 using System.IO;
+using System.IO.Pipes;
+using System.Threading.Tasks;
+using Exo.Rpc;
 using Exo.Ui;
 using Application = System.Windows.Application;
 
@@ -21,9 +24,11 @@ internal partial class App : Application
 #if DEBUG
 		null
 #else
-		Exo.Utils.GitCommitHelper.GetCommitId(typeof(App).Assembly)
+		Exo.Utils.GitCommitHelper.GetCommitIdString(typeof(App).Assembly)
 #endif
 	);
+
+	//private readonly PipeClient<ExoHelperClientConnection> _client = new("Local\\Exo.Service.Helper", PipeTransmissionMode.Message);
 
 	private OverlayViewModel? _overlayViewModel;
 	private NotifyIconService? _notifyIconService;
@@ -49,7 +54,7 @@ internal partial class App : Application
 #pragma warning disable IL3000 // Avoid accessing Assembly file path when publishing as a single file
 		var applicationDirectory = typeof(App).Assembly.Location;
 #pragma warning restore IL3000 // Avoid accessing Assembly file path when publishing as a single file
-		applicationDirectory = applicationDirectory is not { Length: > 0 } ? AppContext.BaseDirectory : Path.GetDirectoryName(applicationDirectory);
+		applicationDirectory = applicationDirectory is not { Length: > 0 } ? AppContext.BaseDirectory : Path.GetDirectoryName(applicationDirectory);
 
 		if (applicationDirectory is not { Length: > 0 }) return null;
 
@@ -79,4 +84,3 @@ internal partial class App : Application
 		await Dispatcher.InvokeAsync(() => Shutdown(0));
 	}
 }
-

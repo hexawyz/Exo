@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -12,7 +13,7 @@ namespace Exo.Service;
 
 public static class Program
 {
-	public static readonly string? GitCommitId = GitCommitHelper.GetCommitId(typeof(Program).Assembly);
+	public static ImmutableArray<byte> GitCommitId => GitCommitHelper.GetCommitId(typeof(Program).Assembly);
 
 	public static void Main(string[] args)
 	{
