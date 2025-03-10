@@ -634,9 +634,17 @@ public partial class NVidiaGpuDriver :
 				}
 			}
 		}
+		catch (NvApiException ex) when (ex.Status == NvApiError.GpuNotPowered)
+		{
+			var thermalSensors = _thermalTargetSensors;
+			for (int i = 0; i < thermalSensors.Length; i++)
+			{
+				thermalSensors[i]?.OnValueRead(0);
+			}
+		}
 		catch (Exception ex)
 		{
-			_logger.GpuClockFrequenciesQueryFailure(FriendlyName, ex);
+			_logger.GpuThermalSettingsQueryFailure(FriendlyName, ex);
 		}
 	}
 

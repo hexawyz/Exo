@@ -86,6 +86,7 @@ internal static partial class LoggerExtensions
 		string deviceFriendlyName,
 		Exception exception
 	);
+
 	[LoggerMessage(EventId = 10202,
 		EventName = "GpuDynamicPStatesQueryFailure",
 		Level = LogLevel.Error,
