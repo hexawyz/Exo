@@ -47,6 +47,8 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 
 	private async Task RunAsync(CancellationToken cancellationToken)
 	{
+		// TODO: Fix this better so that we wait for derived constructor initialization :(
+		await Task.Yield();
 		try
 		{
 			while (true)
