@@ -229,7 +229,8 @@ public partial class NVidiaGpuDriver :
 		}
 
 		var thermalSensors = new NvApi.Gpu.ThermalSensor[3];
-		int sensorCount = foundGpu.GetThermalSettings(thermalSensors);
+		// TODO: Investigate this more to find why on iGPUs the call sometimes succeeds and sometimes fail…
+		int thermalSensorCount = foundGpu.GetThermalSettings(thermalSensors);
 
 		var clockFrequencies = new NvApi.GpuClockFrequency[32];
 		int clockFrequencyCount = 0;
@@ -290,7 +291,7 @@ public partial class NVidiaGpuDriver :
 					fanInfos.AsSpan(0, fanInfoCount),
 					fanStatuses.AsSpan(0, fanStatusCount),
 					fanControls.AsSpan(0, fanControlCount),
-					thermalSensors.AsSpan(0, sensorCount),
+					thermalSensors.AsSpan(0, thermalSensorCount),
 					clockFrequencies.AsSpan(0, clockFrequencyCount),
 					dynamicPStateInfos.AsSpan(0, dynamicPStateCount)
 				)
