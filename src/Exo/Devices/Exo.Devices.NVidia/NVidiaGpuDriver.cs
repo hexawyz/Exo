@@ -232,13 +232,39 @@ public partial class NVidiaGpuDriver :
 		int sensorCount = foundGpu.GetThermalSettings(thermalSensors);
 
 		var clockFrequencies = new NvApi.GpuClockFrequency[32];
-		int clockFrequencyCount = foundGpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
+		int clockFrequencyCount = 0;
+		try
+		{
+			clockFrequencyCount = foundGpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
+		}
+		catch (NvApiException ex) when (ex.Status == NvApiError.GpuNotPowered)
+		{
+			// TODO: Log a warning.
+			// We can still retrieve the base frequencies if the GPU is not powered.
+			// For all intents and purposes, we will consider the frequencies to be zero.
+			clockFrequencyCount = foundGpu.GetClockFrequencies(NvApi.Gpu.ClockType.Base, clockFrequencies);
+			for (int i = 0; i < clockFrequencyCount; i++)
+			{
+				clockFrequencies[i] = new(clockFrequencies[i].Clock, 0);
+			}
+		}
 
 		var dynamicPStateInfos = new NvApi.GpuDynamicPStateInfo[8];
 		int dynamicPStateCount = 0;
 		try
 		{
 			dynamicPStateCount = foundGpu.GetDynamicPStatesInfoEx(dynamicPStateInfos);
+		}
+		catch (NvApiException ex) when (ex.Status == NvApiError.GpuNotPowered)
+		{
+			// TODO: Log a warning.
+			// When the API returns NVAPI_GPU_NOT_POWERED, assume that all known sensors are available.
+			// This is not perfect, but it is better than nothing.
+			dynamicPStateInfos[0] = new(NvApi.Gpu.Client.UtilizationDomain.Graphics, 0);
+			dynamicPStateInfos[1] = new(NvApi.Gpu.Client.UtilizationDomain.FrameBuffer, 0);
+			dynamicPStateInfos[2] = new(NvApi.Gpu.Client.UtilizationDomain.Video, 0);
+			dynamicPStateInfos[3] = new(NvApi.Gpu.Client.UtilizationDomain.Bus, 0);
+			dynamicPStateCount = 4;
 		}
 		catch
 		{
@@ -598,12 +624,13 @@ public partial class NVidiaGpuDriver :
 		{
 			int thermalSensorCount = _gpu.GetThermalSettings(sensors);
 
+			var thermalSensors = _thermalTargetSensors;
 			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
-			if (thermalSensorCount == _thermalTargetSensors.Length)
+			if (thermalSensorCount == thermalSensors.Length)
 			{
 				for (int i = 0; i < thermalSensorCount; i++)
 				{
-					_thermalTargetSensors[i].OnValueRead((short)sensors[i].CurrentTemp);
+					thermalSensors[i].OnValueRead((short)sensors[i].CurrentTemp);
 				}
 			}
 		}
@@ -623,14 +650,22 @@ public partial class NVidiaGpuDriver :
 		{
 			int clockFrequencyCount = _gpu.GetClockFrequencies(NvApi.Gpu.ClockType.Current, clockFrequencies);
 
-			var sensors = _dynamicPStateSensors;
+			var sensors = _clockSensors;
 			// The number of sensors is not supposed to change, and it will probably never happen, but we don't want to throw an exception here, as other sensor systems have to be queried.
-			if (clockFrequencyCount == _clockSensors.Length)
+			if (clockFrequencyCount == sensors.Length)
 			{
-				for (int i = 0; i < _clockSensors.Length; i++)
+				for (int i = 0; i < sensors.Length; i++)
 				{
-					_clockSensors[i]?.OnValueRead(clockFrequencies[i].FrequencyInKiloHertz);
+					sensors[i]?.OnValueRead(clockFrequencies[i].FrequencyInKiloHertz);
 				}
+			}
+		}
+		catch (NvApiException ex) when (ex.Status == NvApiError.GpuNotPowered)
+		{
+			var sensors = _clockSensors;
+			for (int i = 0; i < sensors.Length; i++)
+			{
+				sensors[i]?.OnValueRead(0);
 			}
 		}
 		catch (Exception ex)
@@ -657,6 +692,14 @@ public partial class NVidiaGpuDriver :
 				{
 					sensors[i]?.OnValueRead(dynamicPStateInfos[i].Percent);
 				}
+			}
+		}
+		catch (NvApiException ex) when (ex.Status == NvApiError.GpuNotPowered)
+		{
+			var sensors = _dynamicPStateSensors;
+			for (int i = 0; i < sensors.Length; i++)
+			{
+				sensors[i]?.OnValueRead(0);
 			}
 		}
 		catch (Exception ex)

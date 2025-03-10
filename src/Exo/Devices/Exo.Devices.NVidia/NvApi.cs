@@ -16,6 +16,8 @@ internal sealed class NvApi
 	public static readonly uint DriverVersion;
 	public static readonly string DriverBranch;
 
+
+
 	public static bool HasI2c => DriverVersion >= 85_00;
 	public static bool HasThermals => DriverVersion >= 85_00;
 	public static bool HasClockFrequencies => DriverVersion >= 285_00;
@@ -1069,7 +1071,7 @@ internal sealed class NvApi
 		if (status != 0) ThrowExceptionForInvalidResult(status);
 	}
 
-	private static void ThrowExceptionForInvalidResult(uint status) => throw new NvApiException(status, GetErrorMessage(status));
+	private static void ThrowExceptionForInvalidResult(uint status) => throw new NvApiException((NvApiError)status, GetErrorMessage(status));
 
 	public static unsafe string? GetErrorMessage(uint status)
 	{

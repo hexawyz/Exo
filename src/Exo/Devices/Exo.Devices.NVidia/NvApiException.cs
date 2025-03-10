@@ -1,10 +1,10 @@
-﻿namespace Exo.Devices.NVidia;
+namespace Exo.Devices.NVidia;
 
 internal sealed class NvApiException : Exception
 {
-	public uint Status { get; }
+	public NvApiError Status { get; }
 
-	public NvApiException(uint status, string? message) : base(message)
+	public NvApiException(NvApiError status, string? message) : base(message)
 	{
 		Status = status;
 	}
