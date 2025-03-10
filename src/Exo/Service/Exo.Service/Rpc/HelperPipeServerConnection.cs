@@ -261,6 +261,10 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 						if (!ProcessMessage(buffer.Span[..count])) return;
 					}
 				}
+				catch (Exception ex)
+				{
+					// TODO: Log
+				}
 				finally
 				{
 					watchCancellationTokenSource.Cancel();
@@ -342,42 +346,42 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 
 	private void ProcessMonitorProxyErrorResponse(ReadOnlySpan<byte> data)
 	{
-		var reader = new BufferReader();
+		var reader = new BufferReader(data);
 
 		TryWriteMonitorControlProxyResponse(new MonitorControlProxyErrorResponse(reader.Read<uint>(), (MonitorControlResponseStatus)reader.ReadByte()));
 	}
 
 	private void ProcessAdapterResponse(ReadOnlySpan<byte> data)
 	{
-		var reader = new BufferReader();
+		var reader = new BufferReader(data);
 
 		TryWriteMonitorControlProxyResponse(new AdapterResponse(reader.Read<uint>(), reader.Read<ulong>()));
 	}
 
 	private void ProcessMonitorAcquireResponse(ReadOnlySpan<byte> data)
 	{
-		var reader = new BufferReader();
+		var reader = new BufferReader(data);
 
 		TryWriteMonitorControlProxyResponse(new MonitorAcquireResponse(reader.Read<uint>(), reader.Read<uint>()));
 	}
 
 	private void ProcessMonitorCapabilitiesResponse(ReadOnlySpan<byte> data)
 	{
-		var reader = new BufferReader();
+		var reader = new BufferReader(data);
 
 		TryWriteMonitorControlProxyResponse(new MonitorCapabilitiesResponse(reader.Read<uint>(), ImmutableCollectionsMarshal.AsImmutableArray(reader.ReadVariableBytes())));
 	}
 
 	private void ProcessMonitorVcpGetResponse(ReadOnlySpan<byte> data)
 	{
-		var reader = new BufferReader();
+		var reader = new BufferReader(data);
 
 		TryWriteMonitorControlProxyResponse(new MonitorVcpGetResponse(reader.Read<uint>(), reader.Read<ushort>(), reader.Read<ushort>(), reader.ReadByte() != 0));
 	}
 
 	private void ProcessMonitorVcpSetResponse(ReadOnlySpan<byte> data)
 	{
-		var reader = new BufferReader();
+		var reader = new BufferReader(data);
 
 		TryWriteMonitorControlProxyResponse(new MonitorVcpSetResponse(reader.Read<uint>()));
 	}

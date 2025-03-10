@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -8,6 +9,10 @@ public ref struct BufferReader
 {
 	private ref readonly byte _current;
 	private readonly ref readonly byte _end;
+
+	[Obsolete]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public BufferReader() => throw new InvalidOperationException();
 
 	public BufferReader(ReadOnlySpan<byte> buffer)
 	{

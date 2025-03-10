@@ -37,5 +37,18 @@
         "Action": "Start"
       }
     ]
+  },
+  {
+    "Name": "Service and Overlay",
+    "Projects": [
+      {
+        "Path": "src\\Exo\\Service\\Exo.Service\\Exo.Service.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\Exo\\Ui\\Exo.Overlay\\Exo.Overlay.csproj",
+        "Action": "Start"
+      }
+    ]
   }
 ]

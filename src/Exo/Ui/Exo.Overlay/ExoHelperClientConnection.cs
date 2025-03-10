@@ -238,8 +238,8 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
 			var buffer = WriteBuffer;
-			FillBuffer(buffer.Span, response);
-			await WriteAsync(buffer, cts.Token).ConfigureAwait(false);
+			int count = FillBuffer(buffer.Span, response);
+			await WriteAsync(buffer[..count], cts.Token).ConfigureAwait(false);
 		}
 
 		static int FillBuffer(Span<byte> buffer, MonitorControlProxyResponse response)

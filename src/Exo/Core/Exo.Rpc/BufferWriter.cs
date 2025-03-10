@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -9,6 +10,10 @@ public ref struct BufferWriter
 	private ref byte _current;
 	private readonly ref readonly byte _end;
 	private readonly ref readonly byte _start;
+
+	[Obsolete]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public BufferWriter() => throw new InvalidOperationException();
 
 	public BufferWriter(Span<byte> buffer)
 	{
