@@ -16,7 +16,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 	private TConnection? _currentConnection;
 	private readonly PipeTransmissionMode _transmissionMode;
 	private CancellationTokenSource? _cancellationTokenSource;
-	private readonly Task _runTask;
+	private Task _runTask;
 
 	public PipeClient(string pipeName) : this(pipeName, PipeTransmissionMode.Message) { }
 
@@ -26,7 +26,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 		_pipeName = pipeName;
 		_transmissionMode = transmissionMode;
 		_cancellationTokenSource = new();
-		_runTask = RunAsync(_cancellationTokenSource.Token);
+		_runTask = Task.CompletedTask;
 	}
 
 	public async ValueTask DisposeAsync()
@@ -39,16 +39,44 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 		}
 	}
 
+	public async ValueTask StartAsync(CancellationToken cancellationToken)
+	{
+		if (Volatile.Read(ref _cancellationTokenSource) is not { } cts) throw new ObjectDisposedException(GetType().FullName);
+		if (!ReferenceEquals(Volatile.Read(ref _runTask), Task.CompletedTask)) throw new InvalidOperationException("The client was already started.");
+		NamedPipeClientStream stream;
+		try
+		{
+			stream = await ConnectAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			// When there is an OperationCanceledException, we assume that the state of the object has not been altered in a significantly negative way.
+			// A subsequent StartAsync operation, although unlikely, should be able to succeed.
+			throw;
+		}
+		catch
+		{
+			// Dispose the instance if there was an exception, so that the Start method cannot be called in a loop.
+			// This isn't high very quality, but if you are doing this, you are already using the class wrong anyway.
+			_ = DisposeAsync();
+			throw;
+		}
+		_runTask = RunAsync(stream, cts.Token);
+	}
+
+	// This method will throw UnauthorizedAccessException if PipeOptions.FirstPipeInstance is used.
+	// That way, we can propagate initialization problems to clients and avoid any problem.
+	private NamedPipeClientStream CreateStream(PipeOptions options)
+		=> new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, options);
+
 	// Maybe we want to make this async at some point?
 	protected TConnection? CurrentConnection => Volatile.Read(ref _currentConnection);
 
 	internal override byte[] Buffers => _buffers;
 	internal override CancellationToken CancellationToken => (Volatile.Read(ref _cancellationTokenSource) ?? throw new ObjectDisposedException(GetType().FullName)).Token;
 
-	private async Task RunAsync(CancellationToken cancellationToken)
+	private async Task RunAsync(NamedPipeClientStream? stream, CancellationToken cancellationToken)
 	{
-		// TODO: Fix this better so that we wait for derived constructor initialization :(
-		await Task.Yield();
 		try
 		{
 			while (true)
@@ -57,9 +85,10 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 
 				try
 				{
-					var stream = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
-					await stream.ConnectAsync(cancellationToken).ConfigureAwait(false);
-					stream.ReadMode = _transmissionMode;
+					if (stream is null)
+					{
+						stream = await ConnectAsync(cancellationToken).ConfigureAwait(false);
+					}
 					try
 					{
 						Volatile.Write(ref _currentConnection, TConnection.Create(this, stream));
@@ -80,12 +109,29 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 				}
 				finally
 				{
-					if (Interlocked.Exchange(ref _currentConnection, null) is { } connection) await connection.DisposeAsync();
+					if (Interlocked.Exchange(ref _currentConnection, null) is { } connection) await connection.DisposeAsync();
+					stream = null;
 				}
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 		}
+	}
+
+	private async Task<NamedPipeClientStream> ConnectAsync(CancellationToken cancellationToken)
+	{
+		var stream = CreateStream(PipeOptions.WriteThrough | PipeOptions.Asynchronous);
+		try
+		{
+			await stream.ConnectAsync(cancellationToken).ConfigureAwait(false);
+			stream.ReadMode = _transmissionMode;
+		}
+		catch
+		{
+			await stream.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
+		return stream;
 	}
 }

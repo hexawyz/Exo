@@ -44,6 +44,23 @@ internal partial class App : Application
 		// Use this undocumented uxtheme API (always… why!) to allow system dark mode for classical UI.
 		NativeMethods.SetPreferredAppMode(1);
 
+		using (var cts = new CancellationTokenSource(60_000))
+		{
+			try
+			{
+				await _client.StartAsync(cts.Token);
+			}
+			catch (OperationCanceledException)
+			{
+				Shutdown(-1);
+				return;
+			}
+			catch
+			{
+				Shutdown(-2);
+				return;
+			}
+		}
 		_notifyIconService = await NotifyIconService.CreateAsync(_menuChannel, _client).ConfigureAwait(false);
 		_monitorControlProxy = new MonitorControlProxy(_monitorControlProxyRequestChannel, _client);
 	}

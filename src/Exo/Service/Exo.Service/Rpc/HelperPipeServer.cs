@@ -12,10 +12,11 @@ internal sealed class HelperPipeServer : PipeServer<HelperPipeServerConnection>
 	public HelperPipeServer
 	(
 		string pipeName,
+		PipeSecurity? pipeSecurity,
 		OverlayNotificationService overlayNotificationService,
 		CustomMenuService customMenuService,
 		MonitorControlProxyService monitorControlProxyService
-	) : base(pipeName, 2, PipeTransmissionMode.Message)
+	) : base(pipeName, 2, PipeTransmissionMode.Message, pipeSecurity)
 	{
 		OverlayNotificationService = overlayNotificationService;
 		CustomMenuService = customMenuService;

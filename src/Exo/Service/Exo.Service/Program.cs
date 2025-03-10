@@ -70,7 +70,6 @@ public static class Program
 						o =>
 						{
 							o.ListenNamedPipe(@"Local\Exo.Service.Configuration", listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
-							o.ListenNamedPipe(@"Local\Exo.Service.Overlay", listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
 						}
 					),
 				o => { }
