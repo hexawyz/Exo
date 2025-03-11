@@ -77,7 +77,6 @@ internal sealed class LightsViewModel : IDisposable
 
 		private void OnLightsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
 		{
-			if (!_isAvailable) return;
 			switch (e.Action)
 			{
 			case NotifyCollectionChangedAction.Add:
