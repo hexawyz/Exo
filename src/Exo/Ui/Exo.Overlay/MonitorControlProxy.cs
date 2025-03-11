@@ -73,6 +73,7 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 					}
 					_lastMonitorHandle = new();
 				}
+				if (cancellationToken.IsCancellationRequested) return;
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
