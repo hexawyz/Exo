@@ -108,6 +108,10 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 		}
+		catch (Exception ex)
+		{
+			// TODO: Log
+		}
 	}
 
 	private async ValueTask<bool> ConnectAsync(NamedPipeServerStream stream, CancellationToken cancellationToken)

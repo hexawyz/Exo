@@ -24,11 +24,26 @@ internal sealed class HelperRpcService : IHostedService
 	{
 		if (_server is not null) return Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException()));
 		var pipeSecurity = new PipeSecurity();
+
+		SecurityIdentifier? currentUser;
+		using (var currentIdentity = WindowsIdentity.GetCurrent())
+		{
+			currentUser = currentIdentity.Owner;
+		}
 		pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.InteractiveSid, null), PipeAccessRights.ReadWrite, AccessControlType.Allow));
-		// NB: The translation to NTAccount does not seem to be actually needed for any of those? Will fix later if this causes problems.
-		//pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null)), PipeAccessRights.ReadWrite, AccessControlType.Allow));
-		pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
-		pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
+		// Add the current user as explicit owner of the pipe if possible.
+		// Otherwise, fallback to adding admin and system as owners. (We only need one of the two. Hopefully we will always know which is the current user.
+		if (currentUser is not null)
+		{
+			pipeSecurity.AddAccessRule(new(currentUser, PipeAccessRights.FullControl, AccessControlType.Allow));
+		}
+		else
+		{
+			// NB: The translation to NTAccount does not seem to be actually needed for any of those? Will fix later if this causes problems.
+			//pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null)), PipeAccessRights.ReadWrite, AccessControlType.Allow));
+			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
+			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
+		}
 		_server = new("Local\\Exo.Service.Helper", pipeSecurity, _overlayNotificationService, _customMenuService, _monitorControlProxyService);
 		_server.Start();
 		return Task.CompletedTask;
