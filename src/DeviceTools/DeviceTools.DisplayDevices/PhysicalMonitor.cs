@@ -29,9 +29,9 @@ public sealed class PhysicalMonitor : IDisposable
 	/// <exception cref="Win32Exception"></exception>
 	public unsafe ReadOnlyMemory<byte> GetCapabilitiesUtf8String()
 	{
-		const int InitialRetryCount = 3;
+		const int InitialRetryCount = 4;
 		// Kinda arbitrary, but we don't want to wait too little, as there might be programs running concurrently with each other.
-		const int InitialRetryDelay = 100;
+		const int InitialRetryDelay = 200;
 
 		// NB: We need to have a retry logic in there because monitors can occasionally fail to correctly answer the DDC/CI commands.
 		// This is likely due to conflicts with other devices on the bus such as shitty HDCP stuff.
