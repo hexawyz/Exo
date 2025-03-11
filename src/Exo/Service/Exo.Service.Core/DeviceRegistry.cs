@@ -664,15 +664,14 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		var channel = Watcher.CreateChannel<NotificationDetails>();
 
-		DeviceWatchNotification[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<DeviceWatchNotification>? initialNotifications;
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
+			initialNotifications = new(16);
 			foreach (var state in _deviceStates.Values)
 			{
-				initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
+				initialNotifications.Add(new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver));
 			}
 
 			ArrayExtensions.InterlockedAdd(ref _deviceChangeListeners, channel);
@@ -682,14 +681,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			try
 			{
-				for (int i = 0; i < initialNotificationCount; i++)
+				foreach (var notification in initialNotifications)
 				{
-					yield return initialNotifications[i];
+					yield return notification;
 				}
 			}
 			finally
 			{
-				ArrayPool<DeviceWatchNotification>.Shared.Return(initialNotifications, true);
 				initialNotifications = null;
 			}
 
@@ -722,17 +720,16 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		var channel = Watcher.CreateChannel<NotificationDetails>();
 
-		DeviceWatchNotification[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<DeviceWatchNotification>? initialNotifications;
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
+			initialNotifications = new(16);
 			foreach (var state in _deviceStates.Values)
 			{
 				if (state.Driver is not null)
 				{
-					initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
+					initialNotifications.Add(new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver));
 				}
 			}
 
@@ -743,14 +740,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			try
 			{
-				for (int i = 0; i < initialNotificationCount; i++)
+				foreach (var notification in initialNotifications)
 				{
-					yield return initialNotifications[i];
+					yield return notification;
 				}
 			}
 			finally
 			{
-				ArrayPool<DeviceWatchNotification>.Shared.Return(initialNotifications, true);
 				initialNotifications = null;
 			}
 
@@ -793,19 +789,18 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		var channel = Watcher.CreateChannel<NotificationDetails>();
 
-		DeviceWatchNotification[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<DeviceWatchNotification>? initialNotifications;
 		// We need to be aware of the feature ID for when the devices are disconnected.
 		var featureId = TypeId.Get<TFeature>();
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
+			initialNotifications = new(16);
 			foreach (var state in _deviceStates.Values)
 			{
 				if (state.DeviceInformation.SupportedFeatureIds.Contains(featureId))
 				{
-					initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver);
+					initialNotifications.Add(new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver));
 				}
 			}
 
@@ -816,14 +811,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			try
 			{
-				for (int i = 0; i < initialNotificationCount; i++)
+				foreach (var notification in initialNotifications)
 				{
-					yield return initialNotifications[i];
+					yield return notification;
 				}
 			}
 			finally
 			{
-				ArrayPool<DeviceWatchNotification>.Shared.Return(initialNotifications, true);
 				initialNotifications = null;
 			}
 
@@ -866,19 +860,18 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 	{
 		var channel = Watcher.CreateChannel<NotificationDetails>();
 
-		DeviceWatchNotification[]? initialNotifications;
-		int initialNotificationCount = 0;
+		List<DeviceWatchNotification>? initialNotifications;
 		var featureId = TypeId.Get<TFeature>();
 		var connectedDeviceIds = new HashSet<Guid>();
 
 		lock (_lock)
 		{
-			initialNotifications = ArrayPool<DeviceWatchNotification>.Shared.Rent(Math.Max(_deviceStates.Count, 10));
+			initialNotifications = new(16);
 			foreach (var state in _deviceStates.Values)
 			{
 				if (state.Driver is { } driver && driver.GetFeatureSet<TFeature>() is { IsEmpty: false } featureSet)
 				{
-					initialNotifications[initialNotificationCount++] = new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver, featureSet);
+					initialNotifications.Add(new(WatchNotificationKind.Enumeration, state.GetDeviceStateInformation(), state.Driver, featureSet));
 					connectedDeviceIds.Add(state.DeviceId);
 				}
 			}
@@ -890,14 +883,13 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		{
 			try
 			{
-				for (int i = 0; i < initialNotificationCount; i++)
+				foreach (var notification in initialNotifications)
 				{
-					yield return initialNotifications[i];
+					yield return notification;
 				}
 			}
 			finally
 			{
-				ArrayPool<DeviceWatchNotification>.Shared.Return(initialNotifications, true);
 				initialNotifications = null;
 			}
 
