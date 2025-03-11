@@ -24,6 +24,7 @@ internal partial class App : Application
 	private readonly OverlayViewModel _overlayViewModel;
 	private NotifyIconService? _notifyIconService;
 	private MonitorControlProxy? _monitorControlProxy;
+	private readonly CancellationTokenSource _cancellationTokenSource;
 
 	public static new App Current => (App)Application.Current;
 
@@ -31,6 +32,7 @@ internal partial class App : Application
 
 	private App()
 	{
+		_cancellationTokenSource = new();
 		var channelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false };
 		var overlayRequestChannel = Channel.CreateUnbounded<OverlayRequest>(channelOptions);
 		_menuChannel = new(channelOptions);
@@ -44,25 +46,26 @@ internal partial class App : Application
 		// Use this undocumented uxtheme API (always… why!) to allow system dark mode for classical UI.
 		NativeMethods.SetPreferredAppMode(1);
 
-		using (var cts = new CancellationTokenSource(60_000))
-		{
-			try
-			{
-				await _client.StartAsync(cts.Token);
-			}
-			catch (OperationCanceledException)
-			{
-				Shutdown(-1);
-				return;
-			}
-			catch
-			{
-				Shutdown(-2);
-				return;
-			}
-		}
 		_notifyIconService = await NotifyIconService.CreateAsync(_menuChannel, _client).ConfigureAwait(false);
 		_monitorControlProxy = new MonitorControlProxy(_monitorControlProxyRequestChannel, _client);
+
+		try
+		{
+			await _client.StartAsync(_cancellationTokenSource.Token);
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (ObjectDisposedException)
+		{
+			return;
+		}
+		catch
+		{
+			Shutdown(-1);
+			return;
+		}
 	}
 
 	private static string? LocateSettingsUi()
@@ -88,6 +91,7 @@ internal partial class App : Application
 
 	internal async ValueTask RequestShutdown()
 	{
+		_cancellationTokenSource.Cancel();
 		if (_notifyIconService is { } notifyIconService)
 		{
 			await notifyIconService.DisposeAsync().ConfigureAwait(false);

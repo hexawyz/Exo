@@ -44,22 +44,33 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 		if (Volatile.Read(ref _cancellationTokenSource) is not { } cts) throw new ObjectDisposedException(GetType().FullName);
 		if (!ReferenceEquals(Volatile.Read(ref _runTask), Task.CompletedTask)) throw new InvalidOperationException("The client was already started.");
 		NamedPipeClientStream stream;
-		try
+		using (var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token))
 		{
-			stream = await ConnectAsync(cancellationToken).ConfigureAwait(false);
-		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-		{
-			// When there is an OperationCanceledException, we assume that the state of the object has not been altered in a significantly negative way.
-			// A subsequent StartAsync operation, although unlikely, should be able to succeed.
-			throw;
-		}
-		catch
-		{
-			// Dispose the instance if there was an exception, so that the Start method cannot be called in a loop.
-			// This isn't high very quality, but if you are doing this, you are already using the class wrong anyway.
-			_ = DisposeAsync();
-			throw;
+			try
+			{
+				stream = await ConnectAsync(cts2.Token).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException)
+			{
+				if (cancellationToken.IsCancellationRequested)
+				{
+					// When there is an OperationCanceledException, we assume that the state of the object has not been altered in a significantly negative way.
+					// A subsequent StartAsync operation, although unlikely, should be able to succeed.
+					throw;
+				}
+				else
+				{
+					// However, if the main cancellation token has been canceled, throw an ObjectDisposedException instead.
+					throw new ObjectDisposedException(GetType().FullName);
+				}
+			}
+			catch
+			{
+				// Dispose the instance if there was an exception, so that the Start method cannot be called in a loop.
+				// This isn't high very quality, but if you are doing this, you are already using the class wrong anyway.
+				_ = DisposeAsync();
+				throw;
+			}
 		}
 		_runTask = RunAsync(stream, cts.Token);
 	}
