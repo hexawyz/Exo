@@ -126,7 +126,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 			await stream.DisposeAsync().ConfigureAwait(false);
 			return false;
 		}
-		IDisposable lockRegistration;
+		AsyncLock.Registration lockRegistration;
 		try
 		{
 			lockRegistration = await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -146,6 +146,10 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 			// TODO: Log
 			await stream.DisposeAsync().ConfigureAwait(false);
 			throw;
+		}
+		finally
+		{
+			lockRegistration.Dispose();
 		}
 		return true;
 	}
