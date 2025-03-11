@@ -29,9 +29,14 @@ public sealed class PhysicalMonitor : IDisposable
 	/// <exception cref="Win32Exception"></exception>
 	public unsafe ReadOnlyMemory<byte> GetCapabilitiesUtf8String()
 	{
+		const int InitialRetryCount = 3;
+		// Kinda arbitrary, but we don't want to wait too little, as there might be programs running concurrently with each other.
+		const int InitialRetryDelay = 100;
+
 		// NB: We need to have a retry logic in there because monitors can occasionally fail to correctly answer the DDC/CI commands.
 		// This is likely due to conflicts with other devices on the bus such as shitty HDCP stuff.
-		int retryCount = 1;
+		int retryCount = InitialRetryCount;
+		int retryDelay = InitialRetryDelay;
 		uint capabilitiesStringLength;
 		while (true)
 		{
@@ -46,6 +51,10 @@ public sealed class PhysicalMonitor : IDisposable
 			{
 				throw new Win32Exception(errorCode);
 			}
+
+			// Thread.Sleep is not ideal as we are might be running on the thread pool. Let's do something better if necessary.
+			Thread.Sleep(retryDelay);
+			retryDelay *= 2;
 		}
 
 		if (capabilitiesStringLength == 0)
@@ -56,7 +65,8 @@ public sealed class PhysicalMonitor : IDisposable
 		var buffer = new byte[capabilitiesStringLength];
 		fixed (byte* bufferStart = buffer)
 		{
-			retryCount = 1;
+			retryCount = InitialRetryCount;
+			retryDelay = InitialRetryDelay;
 			while (true)
 			{
 				if (NativeMethods.CapabilitiesRequestAndCapabilitiesReply(Handle, bufferStart, capabilitiesStringLength) != 0) break;
@@ -70,6 +80,10 @@ public sealed class PhysicalMonitor : IDisposable
 				{
 					throw new Win32Exception(errorCode);
 				}
+
+				// Thread.Sleep is not ideal as we are might be running on the thread pool. Let's do something better if necessary.
+				Thread.Sleep(retryDelay);
+				retryDelay *= 2;
 			}
 		}
 
