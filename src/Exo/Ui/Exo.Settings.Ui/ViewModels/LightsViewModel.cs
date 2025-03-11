@@ -21,7 +21,7 @@ internal sealed class LightsViewModel : IDisposable
 		{
 			_owner = owner;
 			_device = device;
-			_knownLights = new();
+			_knownLights = [.. _device.LightFeatures!.Lights];
 			if (_device.IsAvailable) SetOnline();
 			else SetOffline();
 			device.PropertyChanged += OnPropertyChanged;
