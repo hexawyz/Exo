@@ -76,7 +76,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 			(
 				_pipeName,
 				PipeDirection.InOut,
-				_maxNumberOfServerInstances,
+				NamedPipeServerStream.MaxAllowedServerInstances,
 				_transmissionMode,
 				options,
 				0,
@@ -86,7 +86,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 		}
 		else
 		{
-			return new NamedPipeServerStream(_pipeName, PipeDirection.InOut, _maxNumberOfServerInstances, _transmissionMode, options);
+			return new NamedPipeServerStream(_pipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances, _transmissionMode, options);
 		}
 	}
 
