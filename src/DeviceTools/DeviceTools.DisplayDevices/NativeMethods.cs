@@ -11,10 +11,16 @@ namespace DeviceTools.DisplayDevices;
 [SuppressUnmanagedCodeSecurity]
 internal static partial class NativeMethods
 {
+	public const int ErrorGraphicsI2cNotSupported = unchecked((int)0xC0262580);
+	public const int ErrorGraphicsI2cDeviceDoesNotExist = unchecked((int)0xC0262581);
+	public const int ErrorGraphicsI2cErrorTransmittingData = unchecked((int)0xC0262582);
+	public const int ErrorGraphicsI2cErrorReceivingData = unchecked((int)0xC0262583);
 	public const int ErrorGraphicsDdcCiVcpNotSupported = unchecked((int)0xC0262584);
 	public const int ErrorGraphicsDdcCiInvalidMessageCommand = unchecked((int)0xC0262589);
 	public const int ErrorGraphicsDdcCiInvalidMessageLength = unchecked((int)0xC026258A);
 	public const int ErrorGraphicsDdcCiInvalidMessageChecksum = unchecked((int)0xC026258B);
+	public const int ErrorGraphicsInvalidPhysicalMonitorHandle = unchecked((int)0xC026258C);
+	public const int ErrorGraphicsMonitorNoLongerExists = unchecked((int)0xC026258D);
 	public const int ErrorInsufficientBuffer = 122;
 	public const int ErrorInvalidParameter = 0x57;
 

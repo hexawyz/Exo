@@ -233,12 +233,41 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 
 	private MonitorControlProxyResponse ProcessCapabilitiesRequest(MonitorCapabilitiesRequest request)
 	{
+		const int InitialRetryCount = 4;
+		const int InitialRetryDelay = 200;
+		const int MaxRetryDelay = 2000;
+
 		ImmutableArray<byte> utf8Capabilities;
 		lock (_lock)
 		{
 			if (_physicalMonitors.TryGetValue(request.MonitorHandle, out var physicalMonitor))
 			{
-				utf8Capabilities = physicalMonitor.GetCapabilitiesUtf8String().Span.ToImmutableArray();
+				int retryCount = InitialRetryCount;
+				int retryDelay = InitialRetryDelay;
+				while (true)
+				{
+					try
+					{
+						if (physicalMonitor.TryGetCapabilitiesUtf8String() is { } quickCapabilities)
+						{
+							utf8Capabilities = ImmutableCollectionsMarshal.AsImmutableArray(quickCapabilities);
+							goto Success;
+						}
+						else
+						{
+							break;
+						}
+					}
+					catch (MonitorControlCommunicationException)
+					{
+						if (retryCount == 0) throw;
+						retryCount--;
+						Thread.Sleep(retryDelay);
+						retryDelay = (int)Math.Min((uint)retryDelay * 2, (uint)MaxRetryDelay);
+					}
+				}
+				utf8Capabilities = physicalMonitor.GetCapabilitiesUtf8String(InitialRetryCount, InitialRetryDelay, MaxRetryDelay).Span.ToImmutableArray();
+			Success:;
 				return new MonitorCapabilitiesResponse(request.RequestId, utf8Capabilities);
 			}
 		}
