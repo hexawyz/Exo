@@ -608,7 +608,7 @@ internal sealed partial class LightService : IAsyncDisposable
             {
                 try
                 {
-                    await _devicesConfigurationContainer.WriteValueAsync(notification.DeviceInformation.Id, deviceState.CreateInformation(), cancellationToken).ConfigureAwait(false);
+                    await _devicesConfigurationContainer.WriteValueAsync(notification.DeviceInformation.Id, deviceState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {

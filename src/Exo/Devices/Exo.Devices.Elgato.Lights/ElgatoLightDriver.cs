@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Http.Json;
@@ -5,6 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Lights;
@@ -18,11 +20,6 @@ public sealed partial class ElgatoLightDriver : Driver,
 	ILightControllerFeature,
 	IPolledLightControllerFeature
 {
-	private static readonly JsonSerializerOptions JsonSerializerOptions = new(JsonSerializerDefaults.Web)
-	{
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault
-	};
-
 	private const string AccessoryInfoPath = "/elgato/accessory-info";
 	private const string LightsPath = "/elgato/lights";
 
@@ -49,7 +46,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 		{
 			try
 			{
-				accessoryInfo = await httpClient.GetFromJsonAsync<ElgatoAccessoryInfo>(AccessoryInfoPath, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+				using var stream = await httpClient.GetStreamAsync(AccessoryInfoPath, cancellationToken).ConfigureAwait(false);
+				accessoryInfo = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ElgatoAccessoryInfo);
 			}
 			catch (HttpRequestException ex) when (IsTimeout(ex))
 			{
@@ -64,7 +62,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 
 			try
 			{
-				lights = await httpClient.GetFromJsonAsync<ElgatoLights>(LightsPath, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+				using var stream = await httpClient.GetStreamAsync(LightsPath, cancellationToken).ConfigureAwait(false);
+				lights = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ElgatoLights);
 			}
 			catch (HttpRequestException ex) when (IsTimeout(ex))
 			{
@@ -120,7 +119,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 	private readonly LightState[] _lights;
 	private readonly HttpClient _httpClient;
 	private readonly AsyncLock _lock;
-	private readonly MemoryStream _updateStream;
+	private readonly FixedSizeBufferWriter _updateBufferWriter;
+	private readonly Utf8JsonWriter _updateWriter;
 	private readonly DnsSdDeviceLifetime _lifetime;
 	private ulong _lastUpdateTimestamp;
 	private CancellationTokenSource? _cancellationTokenSource;
@@ -150,7 +150,9 @@ public sealed partial class ElgatoLightDriver : Driver,
 			FeatureSet.Empty<IGenericDeviceFeature>();
 		_lightFeatures = FeatureSet.Create<ILightDeviceFeature, ElgatoLightDriver, ILightControllerFeature, IPolledLightControllerFeature>(this);
 		_lock = new();
-		_updateStream = new(GC.AllocateUninitializedArray<byte>(128, false), 0, 128, true, true);
+		// This is not ideal, as it requires allocating an array way larger than what is actually necessary, but it will do for now. (At least it will avoid further allocations)
+		_updateBufferWriter = new(1024);
+		_updateWriter = new(_updateBufferWriter);
 		_cancellationTokenSource = new();
 		lifetime.DeviceUpdated += OnDeviceUpdated;
 	}
@@ -191,7 +193,8 @@ public sealed partial class ElgatoLightDriver : Driver,
 			ElgatoLights lights;
 			try
 			{
-				lights = await _httpClient.GetFromJsonAsync<ElgatoLights>(LightsPath, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+				using var stream = await _httpClient.GetStreamAsync(LightsPath, cancellationToken).ConfigureAwait(false);
+				lights = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ElgatoLights);
 			}
 			catch (HttpRequestException ex) when (IsTimeoutOrConnectionReset(ex))
 			{
@@ -213,10 +216,12 @@ public sealed partial class ElgatoLightDriver : Driver,
 	{
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			var stream = _updateStream;
-			stream.SetLength(0);
-			JsonSerializer.Serialize(stream, update, JsonSerializerOptions);
-			using var json = new ByteArrayContent(stream.GetBuffer(), 0, (int)stream.Position);
+			var bufferWriter = _updateBufferWriter;
+			_updateBufferWriter.Reset();
+			var writer = _updateWriter;
+			_updateWriter.Reset();
+			JsonSerializer.Serialize(writer, update, SourceGenerationContext.Default.ElgatoLightsUpdate);
+			using var json = new ByteArrayContent(bufferWriter.GetBuffer(), 0, bufferWriter.Length);
 			using var request = new HttpRequestMessage(HttpMethod.Put, LightsPath) { Content = json };
 			HttpResponseMessage response;
 			try
@@ -229,8 +234,9 @@ public sealed partial class ElgatoLightDriver : Driver,
 				return;
 			}
 			using (response)
+			using (var readStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
 			{
-				UpdateLightStates(JsonSerializer.Deserialize<ElgatoLights>(await response.Content.ReadAsStreamAsync(), JsonSerializerOptions));
+				UpdateLightStates(JsonSerializer.Deserialize(readStream, SourceGenerationContext.Default.ElgatoLights));
 			}
 		}
 	}
@@ -333,7 +339,7 @@ public sealed partial class ElgatoLightDriver : Driver,
 
 		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
 		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
-			=> brightness != _brightness ? new (_driver.SetBrightnessAsync(_index, brightness, cancellationToken)) : ValueTask.CompletedTask;
+			=> brightness != _brightness ? new(_driver.SetBrightnessAsync(_index, brightness, cancellationToken)) : ValueTask.CompletedTask;
 
 		// It is simpler to straight up map the temperature values to what the conversion formula gives, which is a K value between 2906 to 6993.
 		// That way, we are able to expose enough granularity to the UI.
@@ -357,6 +363,32 @@ public sealed partial class ElgatoLightDriver : Driver,
 		ValueTask ILight<TemperatureAdjustableDimmableLightState>.UpdateAsync(TemperatureAdjustableDimmableLightState state, CancellationToken cancellationToken)
 			=> new(_driver.SendUpdateAsync(_index, new() { On = state.IsOn ? (byte)1 : (byte)0, Brightness = state.Brightness, Temperature = TemperatureToInternalValue(state.Temperature) }, cancellationToken));
 	}
+}
+
+internal sealed class FixedSizeBufferWriter : IBufferWriter<byte>
+{
+	private readonly byte[] _data;
+	private int _length;
+
+	public FixedSizeBufferWriter(int capacity) => _data = GC.AllocateUninitializedArray<byte>(capacity, false);
+
+	public void Reset() => _length = 0;
+
+	public int Capacity => _data.Length;
+	public int Length => _length;
+
+	public byte[] GetBuffer() => _data;
+
+	void IBufferWriter<byte>.Advance(int count)
+	{
+		int length = _length + count;
+		if (length > _data.Length) throw new InvalidOperationException("This operation would go over the allocated buffer size.");
+		_length = length;
+	}
+
+	Memory<byte> IBufferWriter<byte>.GetMemory(int sizeHint) => sizeHint > 0 ? _data.AsMemory(_length, sizeHint) : _data.AsMemory(_length);
+
+	Span<byte> IBufferWriter<byte>.GetSpan(int sizeHint) => sizeHint > 0 ? _data.AsSpan(_length, sizeHint) : _data.AsSpan(_length);
 }
 
 internal readonly struct ElgatoAccessoryInfo
@@ -410,4 +442,12 @@ internal readonly struct ElgatoLightUpdate
 	public byte? On { get; init; }
 	public byte? Brightness { get; init; }
 	public ushort? Temperature { get; init; }
+}
+
+[JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(ElgatoAccessoryInfo), GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSerializable(typeof(ElgatoLights), GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSerializable(typeof(ElgatoLightsUpdate), GenerationMode = JsonSourceGenerationMode.Serialization)]
+internal partial class SourceGenerationContext : JsonSerializerContext
+{
 }
