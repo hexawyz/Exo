@@ -79,6 +79,7 @@
     <Project Path="src/Exo/Devices/Exo.Devices.Elgato.Lights/Exo.Devices.Elgato.Lights.csproj" Id="5bb80aae-7564-449f-a0d7-364f22750106" />
     <Project Path="src/Exo/Devices/Exo.Devices.Elgato.StreamDeck/Exo.Devices.Elgato.StreamDeck.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Gigabyte/Exo.Devices.Gigabyte.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Intel.Cpu/Exo.Devices.Intel.Cpu.csproj" Id="df3fae8b-ee7d-420c-9b1c-1430f05a2334" />
     <Project Path="src/Exo/Devices/Exo.Devices.Intel/Exo.Devices.Intel.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Lg.Monitors/Exo.Devices.Lg.Monitors.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Logitech/Exo.Devices.Logitech.csproj" />
@@ -91,6 +92,7 @@
   </Folder>
   <Folder Name="/Exo/Discovery/" Id="76fbe4c7-5fe3-355e-e7ed-dc9c973067f2">
     <Project Path="src/Exo/Discovery/Exo.Debug/Exo.Debug.csproj" />
+    <Project Path="src/Exo/Discovery/Exo.Discovery.Cpu/Exo.Discovery.Cpu.csproj" Id="8be4d23a-da8d-4174-9eb0-be3c08a1c0c7" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.DnsSd/Exo.Discovery.DnsSd.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.Hid/Exo.Discovery.Hid.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.Monitor/Exo.Discovery.Monitor.csproj" />
