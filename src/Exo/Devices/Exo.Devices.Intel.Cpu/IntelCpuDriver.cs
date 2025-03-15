@@ -42,7 +42,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 		try
 		{
-			// TODO: Switch to the correct CPU
+			NativeMethods.SetThreadGroupAffinity(NativeMethods.GetCurrentThread(), 1, 0);
 
 			int eax, ebx, ecx, edx;
 
@@ -156,6 +156,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 	private void ReadPackageTemperatures()
 	{
+		NativeMethods.SetThreadGroupAffinity(NativeMethods.GetCurrentThread(), 1, 0);
 		while (true)
 		{
 			_packageReadRequestManualResetEvent!.WaitOne();
