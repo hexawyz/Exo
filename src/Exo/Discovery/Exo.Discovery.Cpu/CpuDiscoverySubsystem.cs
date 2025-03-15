@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Intrinsics.X86;
-using Exo.SystemManagementBus;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;

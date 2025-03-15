@@ -1,0 +1,7 @@
+{
+    "Exo.Devices.Intel.Cpu": {
+        "IntelCpuDriver": {
+            "ProcessorPackageTemperatureSensorId": "b75a807e-32d5-47a2-ad20-49653824fc77"
+        }
+    }
+}
