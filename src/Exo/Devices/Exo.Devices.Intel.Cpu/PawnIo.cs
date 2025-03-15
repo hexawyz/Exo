@@ -52,7 +52,7 @@ internal sealed class PawnIo : IDisposable
 		nint* return_size
 	);
 
-	[DllImport("PawnIOLib", PreserveSig = false)]
+	[DllImport("PawnIOLib", ExactSpelling = true, PreserveSig = true)]
 	private static extern uint pawnio_close(nint handle);
 
 	private nint _handle;
