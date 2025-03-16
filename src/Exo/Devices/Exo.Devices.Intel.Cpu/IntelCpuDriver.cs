@@ -143,13 +143,38 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 			// Also, this sensor code might be expensive for high core count, as we spawn a thread for each core.
 			// While this is the easiest way to handle everything, it might be worth it to use the same thread for N cores at the cost of rescheduling.
 			sensors = new Sensor[packageInformation.Cores.Length > 1 ? 1 + packageInformation.Cores.Length : 1];
-			sensors[0] = new PackageTemperatureSensor(this, new Thread(new ParameterizedThreadStart(ReadPackageSensors), ThreadStackSize) { IsBackground = true });
+			sensors[0] = new PackageTemperatureSensor
+			(
+				this,
+				new Thread
+				(
+					new ParameterizedThreadStart(ReadPackageSensors),
+					ThreadStackSize
+				)
+				{
+					IsBackground = true,
+					Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorIndex} - Metrics")
+				}
+			);
 			if (sensors.Length > 1)
 			{
 				var readCoreSensors = new ParameterizedThreadStart(ReadCoreSensors);
 				for (int i = 1; i < sensors.Length; i++)
 				{
-					sensors[i] = new CoreTemperatureSensor(this, new Thread(readCoreSensors, ThreadStackSize) { IsBackground = true }, i - 1);
+					sensors[i] = new CoreTemperatureSensor
+					(
+						this,
+						new Thread
+						(
+							readCoreSensors,
+							ThreadStackSize
+						)
+						{
+							IsBackground = true,
+							Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorIndex} Core #{i} - Metrics")
+						},
+						i - 1
+					);
 				}
 			}
 		}
