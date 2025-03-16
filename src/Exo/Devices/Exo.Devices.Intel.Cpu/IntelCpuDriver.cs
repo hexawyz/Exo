@@ -134,6 +134,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		_packageInformation = packageInformation;
 		_tccActivationTemperature = tccActivationTemperature;
 		Sensor[] sensors;
+		// For user-friendliness and consistence in the naming of threads.
+		int processorNumber = processorIndex + 1;
 		if (_pawnIo is not null && tccActivationTemperature > 0)
 		{
 			// This will hopefully be enough to process the small amount of operations of each thread.
@@ -153,7 +155,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				)
 				{
 					IsBackground = true,
-					Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorIndex} - Metrics")
+					Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} - Metrics")
 				}
 			);
 			if (sensors.Length > 1)
@@ -171,7 +173,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 						)
 						{
 							IsBackground = true,
-							Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorIndex} Core #{i} - Metrics")
+							Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} Core #{i} - Metrics")
 						},
 						i - 1
 					);
