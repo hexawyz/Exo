@@ -344,7 +344,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private sealed class SensorReadValueTaskSource<T> : IValueTaskSource<T>
 		where T : unmanaged
 	{
-		private ManualResetValueTaskSourceCore<T> _core;
+		private ManualResetValueTaskSourceCore<T> _core = new() { RunContinuationsAsynchronously = true };
 
 		public void SetResult(T result) => _core.SetResult(result);
 		public void SetDisposed() => _core.SetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(IntelCpuDriver).FullName)));
