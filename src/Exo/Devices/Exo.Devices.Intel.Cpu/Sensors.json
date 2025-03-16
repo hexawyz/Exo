@@ -6,5 +6,3590 @@
         "minimumValue": -50,
         "maximumValue": 150,
         "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    // All possible 512 core temperature sensors
+    "228c57a0-b22c-4dbe-948d-dd36767c218e": {
+        "nameStringId": "b49babfa-4d96-4ebb-ab00-9aace2a33e82",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "199cc697-f0a6-451e-bdfd-3ae0e2c6b851": {
+        "nameStringId": "c3ce4962-98d7-46cb-8249-e436dc0e5a7d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "95850e2a-95ca-4cb8-81ae-d81d4db576f3": {
+        "nameStringId": "96745f77-7e42-48a0-8df5-b29c8375beca",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "83c065e7-2977-4692-be20-de4abafda008": {
+        "nameStringId": "20753a06-eb00-4479-839e-7c16d393a6b1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "603e1f04-5731-4d45-b4ba-b0f8a4cf7075": {
+        "nameStringId": "e4f1cbcc-150b-401d-8c50-314664c070c6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bd0a0616-a2d0-480b-9fad-97632c848a27": {
+        "nameStringId": "016c3265-9c01-4efb-bb34-1f150a9ffe01",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "dd4a6e7e-48e2-4401-92e3-ad080a9b5aa5": {
+        "nameStringId": "25103f04-82ad-43ab-8d53-4b187ded0116",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "83ed07a5-3c3f-44fb-b890-c17128b63168": {
+        "nameStringId": "f7261bc1-2c10-40b0-9a8c-b9bf3f3a943b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e126a008-12ab-461b-ad5e-923cf5a8c97c": {
+        "nameStringId": "b39b2857-ee8b-4896-a487-ed7c770f1d39",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e86e3c75-6b6b-475c-9503-c06b89125134": {
+        "nameStringId": "2b4d6bf6-2da6-4f79-8b12-68e9c56f60a4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2a4df928-16a3-4edb-8637-ff108043d1f7": {
+        "nameStringId": "46fc8b63-6e50-49ff-8c93-50d7584ff0b1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "57da7b76-c94d-4cfe-958c-3fbb2c2673cd": {
+        "nameStringId": "c37fd8e1-4cf3-4442-bf26-d7445cd6a05d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "caedd491-cd91-43f0-ac22-d80f22f7d068": {
+        "nameStringId": "0f28c6fd-6fa6-4964-81b3-3860f22ad824",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ea518447-c8ed-4e61-9c2e-fb0b7e244485": {
+        "nameStringId": "7cb8015c-99a2-4d28-a10d-9a000f426955",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d6b035a2-cada-4e9f-8532-6dbf6af1ac90": {
+        "nameStringId": "de749ed6-3181-4426-b6ce-d7f34385a4de",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bdce3a76-6f99-41cf-81d3-adaf32520eb2": {
+        "nameStringId": "b0a9f262-929a-4163-973d-f4216b8aa28f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2c66d5a7-f18c-4ea7-a603-bca40ed85610": {
+        "nameStringId": "5849d46f-5100-4919-b2d1-f28ea7f83872",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5cdb81a3-c4e7-4555-a632-468c165a1789": {
+        "nameStringId": "c814201f-c6f3-443e-bbef-58d0a8dc5a44",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c5ad18ae-dfa1-4582-9ee6-eddecf7ee21e": {
+        "nameStringId": "f3b56fa3-daa7-498e-aaa9-71e7dac7c62a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b6b217db-93a2-46f0-a63a-84511c5b7743": {
+        "nameStringId": "2d9650bb-e5de-42bd-8476-18e43549de51",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b9ac751a-6278-4202-9d43-1b9d692f4234": {
+        "nameStringId": "550af3c1-8fed-426d-b5b9-624cce4c87fc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0a08b305-1313-4641-b846-790537b4678e": {
+        "nameStringId": "cdeec73e-247a-4da2-a7cb-c55ddcf5a4e5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "72628c56-da77-4573-9355-9563ee963da3": {
+        "nameStringId": "406685ee-8948-4c8b-b17d-e2a86f5a8766",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b852cd60-2ede-4052-a554-9ec658e09c63": {
+        "nameStringId": "5647bd7a-48bc-43bc-abc4-cfee16fb333c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "02eb5e70-31d7-4e19-b6f5-0d7d3fb801ec": {
+        "nameStringId": "272d9a4f-1e65-4175-b438-03bf604da3a4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "195f92f4-465c-46e1-a084-cc29d2b03285": {
+        "nameStringId": "afa4e4f6-baaa-40ce-946d-a7b0bc79bfd2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3f3118bd-9640-44ca-9039-6489dc756e66": {
+        "nameStringId": "7eb1c1e9-c27c-4e78-a7dd-3431c6048e67",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4c798842-702c-4a16-978c-d46661cd22b5": {
+        "nameStringId": "00bbd593-4f26-466a-864f-b11f3d946f42",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0f89658f-d1e4-4b9f-a19e-8e380c6ae7c5": {
+        "nameStringId": "07fa337e-40cd-47fd-907c-5ea479c051b8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "23be26a0-db35-4863-95d8-334e8f6e0eda": {
+        "nameStringId": "eebf2eaa-a9c9-474b-a912-9f6cb3d0740c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0d55a00c-dbf8-4eaa-aea5-00583c5efcb3": {
+        "nameStringId": "580dd2a6-28e1-4bbd-b319-b415926e2931",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7463b548-3e5d-43a7-8b35-d098485d0e08": {
+        "nameStringId": "6ab849dd-f121-4c67-9830-da05c465e8a4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a0dfb7cf-4700-4561-8191-ea024a929346": {
+        "nameStringId": "fb3d8238-deae-480c-a744-8f438c8535d3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "793fba5b-9878-4150-b878-5e016b4ca129": {
+        "nameStringId": "4763be63-369b-4c9c-80f0-67944c5be936",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e90829a3-98f4-4ed2-8506-2bee80bea07f": {
+        "nameStringId": "eea5b15b-0039-48cc-8a06-1b4df5283929",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "260989c0-2f24-42e1-a5a3-f45086146792": {
+        "nameStringId": "9936d85d-ecde-45dd-90f6-b02af8a59324",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6a46f771-0411-4052-aef5-2c5ec039b5e7": {
+        "nameStringId": "1e1db876-cf86-482c-971f-5209a3a28f65",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "adb910b5-8754-40b8-b025-a26e8d08498a": {
+        "nameStringId": "f4feeafc-5992-442d-b22d-fffd564572bd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "81a0a4d8-13be-47f9-a6d2-00afbad2b8c5": {
+        "nameStringId": "f167d431-442d-410b-b0d9-1bb798b707d0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5b5890db-efcc-40e3-a15f-ff66f3a148e4": {
+        "nameStringId": "fc851fbf-6b2e-4c67-b3fc-37049a350b4b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "55e45255-57ad-433f-9b33-c3e18ddbaf54": {
+        "nameStringId": "fc3d30f8-bac0-4daa-81bd-49d488c7fb68",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0bc88963-1bc8-424a-8c22-020e2d5abb00": {
+        "nameStringId": "e9bf62aa-ee58-4fb0-99d1-d0aca4cf64eb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "18571c6f-40bc-4a51-8d4c-b7ff967cae8d": {
+        "nameStringId": "5ae0e7f0-001a-4585-9ac6-2e8bb820e2b4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "87b28de2-dfa5-43a2-8052-b9bbe05e2ab1": {
+        "nameStringId": "f5bd36f2-7b94-4de4-98cd-27a2ba2f7824",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d3747f24-2f1f-456b-91f2-7e9dedec2c9d": {
+        "nameStringId": "8cceca1f-95d2-492e-b656-ec99473d0c3c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fdabc712-3188-4426-b7c5-4f22523413d0": {
+        "nameStringId": "abd86ab5-d13e-4b93-9e72-b0acfabbcff7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "20aa56c6-8601-41c1-9547-197bc2487b77": {
+        "nameStringId": "faf99045-e68c-4e8d-ab73-d7dd141fec29",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4c2f61b1-991e-4254-b4b6-8971065c3acd": {
+        "nameStringId": "7df97687-15b0-4351-81f8-fc50e1887542",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "889c0a9c-d0d8-4127-96b4-499a4d22b010": {
+        "nameStringId": "38c7cb5c-6b6b-47a5-90ea-6e3b13395d50",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "da37e4c1-a2b3-4419-ab25-45ece4849807": {
+        "nameStringId": "186bfdcb-7cdf-4fe4-bbcb-92b10e05d113",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "dbd3b9c3-21fe-40fd-a266-d4d6041ff159": {
+        "nameStringId": "37f97bee-8915-4af2-aa5e-77ae5c95db29",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b002b596-bf98-42af-bd48-cd72608d047b": {
+        "nameStringId": "1caf3ea9-6680-4b9e-8c6a-4bca5188101c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "02978f29-89d2-4bb3-ba86-26de13c755fd": {
+        "nameStringId": "ebbbe5f2-f9af-4921-a028-2a6c29d87b7f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d1c4d5eb-251a-4b8a-a4e1-a7d8bdcfe0d3": {
+        "nameStringId": "27750071-daee-4fba-949b-eceb376eccd6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "15844c3a-b398-49db-aa78-48e3cc2d1dfb": {
+        "nameStringId": "be1dcaea-82a3-4584-ad72-d4dc7ba31cf0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f4e97b26-b622-42fa-9397-37a35458d494": {
+        "nameStringId": "d79db5f7-3a63-4e13-aa7c-4d9a99b7bf18",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b03a0b57-e899-4760-95fa-8d98a3534ecd": {
+        "nameStringId": "c20be363-d213-4d1e-8dea-585c88dd95e7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "aed19b71-d217-435c-a1f5-f363cda6fbae": {
+        "nameStringId": "cb3e307d-7186-4294-a0ec-1196d96b844b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d53b0876-0d6e-41b9-8315-061d998b1eb4": {
+        "nameStringId": "3feaa671-e5c5-46b3-a323-15391d6a22d6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "57c50c89-d579-47e4-9bda-a149060c85fc": {
+        "nameStringId": "fae2d7d3-b632-45b9-b31c-4c39d57df02a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "eeb04b13-b440-42ad-8c10-728de5d6759c": {
+        "nameStringId": "f07002f4-4f81-480c-9f2a-41fc93cbc0fc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e4a47be5-73ba-48ee-920d-994a93a0aa57": {
+        "nameStringId": "397fe8c8-9e67-48b3-9aa3-0b491ea9037c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5fa352a8-adda-4247-9591-ee7eb4f5e866": {
+        "nameStringId": "140f7319-c663-4fe5-af22-6f91c33c89ed",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cfc2f756-9c22-49f3-b48b-12dc087a470e": {
+        "nameStringId": "49802d69-5ec3-4db8-b474-dc3366cacea6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "77564056-cfd8-4eaf-a667-949e3beab2bc": {
+        "nameStringId": "2b603249-df37-41c6-8ecf-27c95cfac339",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7d4e14d1-e4a7-43ee-a334-62190510a129": {
+        "nameStringId": "5ee62f43-67ad-446a-837c-85804634f6f6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3b5a6f85-2533-4822-a307-179ad3fce7a9": {
+        "nameStringId": "22dc7f32-6394-49bb-8f5d-740128625892",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d1b5f048-8d49-4b78-ab5a-dfe7a5f1b8a7": {
+        "nameStringId": "394c7fff-3f1a-463e-9016-9dda5c61addc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "27fc57ab-eff7-4457-ac9d-e1fdeabf0115": {
+        "nameStringId": "4c905ffd-cb72-4653-bd8a-6e3166845dc2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7c441c3c-db1c-4ad0-976d-8793ef3a635f": {
+        "nameStringId": "71497642-34ac-4cdb-a93a-9fc0c0ffe11a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4e97e650-b333-42ad-b5f3-80d9ffdce2ba": {
+        "nameStringId": "f0dc13fd-b0fa-4578-882d-6c8a251374d3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "695cd722-cb1c-462a-b51f-6570117e920b": {
+        "nameStringId": "b1be4416-9a08-4f3b-b5a9-514acd597055",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a03b6677-38ad-44d8-9f4d-1fe4034e2dde": {
+        "nameStringId": "3fb034a2-4fa5-4413-8872-675fa455623a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9ef82889-6052-4b45-b23c-8aea4affd6e3": {
+        "nameStringId": "aa48991e-0ee4-405d-a33e-618b9fe7374c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "788fa9c9-7836-4582-8a5a-17cdb479e658": {
+        "nameStringId": "d2106213-5ae5-4fc6-a24e-9a70e34e11a6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2a69997b-9e47-4406-a937-c1073e931bc9": {
+        "nameStringId": "d4416f67-f957-4511-8fb7-57bb2ebdf1e1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d70d0a99-4e77-4e07-9fb2-f190d6c9cf71": {
+        "nameStringId": "ab676d64-0a7b-4aa8-91aa-1f239a254059",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "da036119-2843-4153-84b5-8442368eeb2c": {
+        "nameStringId": "1694b4f4-f998-47e4-b524-16dc9178cc80",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5525a0a3-85ea-4c0a-8721-bcdc982dcd5c": {
+        "nameStringId": "80e94904-dfd6-4d6c-a3f5-aee6f5cf98e5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4efefc16-d9c1-4cdf-ba83-73976db1f6b7": {
+        "nameStringId": "bcae7199-681a-47c7-9d55-cae6c1b68f0a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1afe319d-9705-42f5-8c8d-85de37d71f44": {
+        "nameStringId": "9a338de8-3b33-4e57-9caf-31aa6db53c56",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9665b7b0-1417-4ddc-846b-37e716fda134": {
+        "nameStringId": "4912e0f9-16fd-485b-b13b-c9acb0e01d6a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "224e2745-faed-45a6-8bf9-97e1ec0c2492": {
+        "nameStringId": "92fc7459-b37f-4436-b638-02d416399a7c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bd0a4c2c-e5de-4a35-8463-f4d16bf29bc3": {
+        "nameStringId": "0a06c425-a437-4bc7-989c-343b614491b1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "236c5686-1f6a-45c4-b508-5b26e184e670": {
+        "nameStringId": "1d0c3c10-906a-491d-a474-ce8ba2936157",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e88cde72-566a-4ea7-a74d-1e61b46deae8": {
+        "nameStringId": "7a42d502-3c0f-48ea-b600-442cfcae669b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "af6d5cfd-c18e-49dc-8d0f-ad4e7ac4c4dc": {
+        "nameStringId": "c6c52147-0727-481c-adec-2d6af7de3792",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "75ee0d08-0eb4-408d-b4de-923cf22b1a18": {
+        "nameStringId": "f22e9100-f1a0-4312-aef8-0ddab0b0e8e9",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "10bfe450-da65-4a67-874e-83db882831a0": {
+        "nameStringId": "0b467f67-4362-4977-be27-4f480855b27f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "adb36207-0ced-43fb-b043-55d4dfbb1392": {
+        "nameStringId": "aa56580f-abd6-48de-bcae-c82d107cd2d7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0d5dd099-720b-4c8b-94df-43c88da69187": {
+        "nameStringId": "cc431b81-6277-40b0-a5e2-d2bf53ba7565",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e822b18a-edca-4ee6-bb6d-57698237507e": {
+        "nameStringId": "62dccea4-f56d-4323-baaf-eba8199e2268",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "347c25cd-c85b-4a1e-bde3-4b0d95fd7f61": {
+        "nameStringId": "0d7cdf1e-978c-4465-88c8-b4b8b5a955d6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3383dbdc-a835-41a4-b829-49d5dbee2607": {
+        "nameStringId": "07e6ed5a-8df4-4ef4-a618-a7c3169b5f3d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5b20b022-7044-435c-9031-763170b3519a": {
+        "nameStringId": "4a1c8b6b-89fe-4dcc-9ef7-5d2ef73b17db",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b314a4a0-2895-4fac-8541-d44fea83a8ef": {
+        "nameStringId": "94470633-deac-4a11-89ff-6ebe533ea497",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5b581a01-285a-4775-a584-9b3b974778b5": {
+        "nameStringId": "57abc147-b884-45c2-acf7-a8849b196ec4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "788a04fa-562d-4427-a36f-13806212d7df": {
+        "nameStringId": "e55ae00f-0bbe-44da-8e6c-ab6cb41285df",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d62fa695-1bbe-4b4d-837b-33460fecb403": {
+        "nameStringId": "37531266-bfbf-4bcf-a143-34d19c9daa0b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b604158d-14d6-41a7-b9b9-9a315c3f923d": {
+        "nameStringId": "0bcdc138-19f0-44eb-82a2-93f2540c4baf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c8454538-8859-4b03-9409-da6a73db2b59": {
+        "nameStringId": "397a1d38-c5de-4a93-8744-fa5483679bb3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "60a8ab5b-7259-46b7-854d-41adb51ae2fa": {
+        "nameStringId": "a26e8011-8c17-4c9e-ae0d-9dffb3274f4b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "da0bc048-0d5c-4109-8544-01add38de1b6": {
+        "nameStringId": "e07493f9-29ac-4d0a-99ac-66e859cf799d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fadd7237-7e46-4bee-9fa5-87b92b747eeb": {
+        "nameStringId": "48a12a1c-175f-40bb-b2b8-733c91f54cb2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bc3ee6d0-bb68-4b9a-974a-71c0579e92b6": {
+        "nameStringId": "40f44157-ec03-425d-952b-2b9d225b1ad6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fc515320-3d2e-4c5c-a1ba-4d426790da35": {
+        "nameStringId": "0660b551-b956-4951-a30d-395dfdba5580",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "952fec9b-b74c-4567-aeb4-47aab90c3404": {
+        "nameStringId": "36dbf88c-c7e5-46f2-a862-06193a50856e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "76f98d4a-1353-4be1-9bbf-2866d830d470": {
+        "nameStringId": "8cb0e917-3a03-4186-aac0-c7496b0053f0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "388bc04c-5ef9-46cf-8280-855209d30d36": {
+        "nameStringId": "c12bfe10-324f-4290-9202-be425479b20e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4175ef4e-590b-4110-bf4b-6115358be4cd": {
+        "nameStringId": "57324a24-53ca-4236-b1ca-d9d49016f68c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "45ee8fa3-a612-4199-86b0-def4c44cdade": {
+        "nameStringId": "fa540744-56b6-427e-a487-4c690b4290ce",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2448c282-ac96-491a-9423-86a76dea0343": {
+        "nameStringId": "791a3119-78f5-4d73-a67b-5b4ddf8fe6b1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "46755845-6ff5-4149-b3e5-255e9873e969": {
+        "nameStringId": "f94787a9-622f-45da-8014-e2d8fb122198",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a09b172c-229a-4a24-87fb-534c95dc18da": {
+        "nameStringId": "dbdfda16-8527-45da-86e7-c3603ea65553",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6521264c-1f9a-4437-8f49-f41c33242a0a": {
+        "nameStringId": "c34c4bc3-c3fb-4beb-a607-6585a50008ce",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e3cbd004-b242-43d6-bca2-8ee68eab00ff": {
+        "nameStringId": "2b369beb-afe8-4149-a74a-528f809d1a44",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "531323e3-7e98-46c4-850b-26e633d70eef": {
+        "nameStringId": "79a8ea76-b0b8-4e6f-a0cb-3fb3d4617c4d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6c2bc729-cbd7-4da4-a9b3-ee29dfe808d1": {
+        "nameStringId": "ca90db06-ffde-457e-a013-877ee88c34a8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b3ce1f92-85f7-4ecd-a2ca-ce677112498d": {
+        "nameStringId": "0f202fe4-45b0-4691-a530-766fddae568c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d7daf374-353d-4c73-99ea-fc08efe1359b": {
+        "nameStringId": "643b463d-3ddf-41fe-ac0b-2d61ae3a0c88",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fd3d0c4a-21e4-4877-9346-62eddfc4adad": {
+        "nameStringId": "147f75c1-ad7f-4355-bbc4-77b072d79d01",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7cc348c0-7976-43b9-afbf-ef846567c0b8": {
+        "nameStringId": "64b857cf-1289-48b7-babd-d6d9cd55e7bb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7eac07f2-ecd0-4909-a049-bb1e22a2158a": {
+        "nameStringId": "e2017776-cf8e-425f-b581-a65f4db87cc2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "de7e3254-1998-4e6c-8835-a303137b9c47": {
+        "nameStringId": "bbc50cbb-5b8c-4145-8ba9-d4983e6312a2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cb5fc1cf-8e62-41d4-87ec-0923ba2b62fb": {
+        "nameStringId": "fc650eac-d1c7-40d6-9126-2d6b2f97d8e3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2ec90a48-788b-412c-a28e-d84d224ef931": {
+        "nameStringId": "695966d1-051c-460e-9fd1-e9955f8aebea",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "31d81521-bfd4-491a-8cc5-7fd44724288a": {
+        "nameStringId": "7abb0302-c002-40b1-8846-6acfbcd81c02",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "893cf3c9-3ded-451e-af6a-5ae8a3ef56e9": {
+        "nameStringId": "8a9067bc-2681-4222-b5e3-7c0614c8ddfb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3cbf438d-f0c2-415d-8854-31962a17b6ef": {
+        "nameStringId": "4ddae6b7-53ff-450d-892c-45fcd2210de1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "72b0fec9-1d93-4387-affc-d4c0f321dbfe": {
+        "nameStringId": "67fd78b5-ba8c-4161-859e-16dcc1623212",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a26b3b06-34fc-4060-bef7-58b7456baa88": {
+        "nameStringId": "8dd012eb-eeeb-4844-b865-e62d6b9fae4f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "26cf3ef1-c3c9-4249-ba86-01fd5e37754e": {
+        "nameStringId": "c4af0389-9467-4973-b291-f055fb743f79",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6dea1820-51b7-4b8d-b48c-adf81f383e47": {
+        "nameStringId": "6885e975-1d41-4a4b-a629-fd6a999f8e82",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6a31c05f-35d4-478b-a14c-4b1ee576922f": {
+        "nameStringId": "7167a8b7-7659-4114-9f59-b9684d88e749",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "28e0406a-04bb-41ea-9415-68257a02f992": {
+        "nameStringId": "c6aab2a4-cb90-41dc-91e2-2f0c99bb0d8b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1e0b04fc-9014-455b-84da-f1530df7c5c8": {
+        "nameStringId": "0e10675e-e047-48b6-ae77-eca23551af4c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6e2dd31b-dcbd-4daa-9063-62424693c4da": {
+        "nameStringId": "246662ea-2968-4187-a1d5-4814313cff90",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bf379b02-bf04-4d3a-81d1-6f7b50ee9396": {
+        "nameStringId": "d7d6b1d1-bdfa-4e9e-bbd6-8dbc9e3c8ada",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ab983aa2-0c08-432e-ad5e-ad691056e07b": {
+        "nameStringId": "36e55ee8-781a-48ef-ae90-3568b67eff98",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1362f86a-2049-492e-930f-555daf127e58": {
+        "nameStringId": "15f9c059-b648-4596-9ef6-35e17fbfc543",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b7d9e412-1e72-46ae-b917-9a9d90fb103b": {
+        "nameStringId": "808a0eb7-8e55-4077-bfad-61a122617810",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3f4b7483-6f61-4a70-91f8-537be3dd70d1": {
+        "nameStringId": "02eeee19-5c6f-4f2e-b013-65c1ca63a6e2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0cda4e99-9168-4ecf-b912-9f48b852c0d6": {
+        "nameStringId": "4c06555f-c248-42c5-9324-c7b785d67785",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "93aef8f8-34dd-45b0-b69a-fb4ad1d80288": {
+        "nameStringId": "4017c0d8-4fe3-4afc-b2ae-3b86c4108dc4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "dc52754f-46ac-4614-94a6-5901899757c3": {
+        "nameStringId": "059f6f71-7d60-41fa-bd30-882d3107b1bb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7a510479-ad1a-4724-a760-af3d48928458": {
+        "nameStringId": "a67704bd-6c8d-4a45-a45c-3ff3a85029a2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "67011042-5876-4e4d-93f2-aae20b280f4b": {
+        "nameStringId": "fc2cd299-7922-40c9-b155-1e91202d32d1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "645239d1-1b26-4c50-b470-7aa1698c47b4": {
+        "nameStringId": "f589269a-3fa9-4fb2-9b80-400244e1c762",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bd1f7154-9920-433f-916f-f0152215916e": {
+        "nameStringId": "56a50ce1-1172-4224-9d26-29e48ecc92c8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1be508cb-7810-4035-ad88-7d21ebd06db0": {
+        "nameStringId": "1276d718-ef20-4304-92ab-bb2c7a43c476",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "94bad636-5a41-408e-9ed1-32a3d0bdc759": {
+        "nameStringId": "ff613867-c039-4551-98c1-b253e80de410",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0a00989a-8889-4676-933f-2f36a9b9bdf7": {
+        "nameStringId": "45279a69-cbc7-46ce-add6-6fcad8f59a79",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7a74bfda-229b-4a9f-b58c-4714589a6b7f": {
+        "nameStringId": "f1ad5f66-2260-481e-9e1e-7b8e0fdc9814",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2450214d-1689-43cd-8efd-39b35624e74b": {
+        "nameStringId": "38da0d97-b69d-4077-b44c-19a64860e8fc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b469f0ab-c72e-444e-ad19-4111f33ec54f": {
+        "nameStringId": "516891f9-01d5-41a3-8fa2-b6c907c8053a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "614c879e-348d-4b3a-a517-6a1aaae9fa00": {
+        "nameStringId": "c31a86ae-ade3-4e95-9b20-a84b02155645",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2eb9abdf-c63e-44a4-84b6-c9b17304c7d6": {
+        "nameStringId": "dcf00024-34be-472f-bca4-08b8efc66e4b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0b62183c-bbb6-4050-b989-2bc76b3baa8e": {
+        "nameStringId": "b55b956c-01fd-4562-905a-b4a1cfae8c24",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9d022388-3546-477b-88d9-7d07c8ba8093": {
+        "nameStringId": "d6194e6b-6a83-4f3c-9177-16cf164b67f7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9c2cb544-a70c-4539-9075-678a5a1feabb": {
+        "nameStringId": "ab1dbc1a-1781-4d0d-8dcf-498f8f429eb3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7997919d-ff40-4cb7-a4e8-343fb403c35f": {
+        "nameStringId": "91ce3bb5-9647-48c2-863d-84370d3b5652",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1afed421-830e-4238-9bfc-6f7bbc0a1259": {
+        "nameStringId": "cc117342-01c3-4288-8393-49ceb55f820e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ed266f92-7623-4961-a90b-54817777495e": {
+        "nameStringId": "2254c98d-ea18-419e-a3c8-49924bfdcb16",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e7014f17-c49c-48b1-a6e4-29b3945eaf83": {
+        "nameStringId": "657f3ba3-5d39-46fb-8da3-424a1b10b3b8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e6fb1374-3e52-421e-a22e-c88f940b3477": {
+        "nameStringId": "f9ff4a71-4c77-4fd3-b724-d456aa176f70",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "142f3bd4-1c81-4474-b54c-6d83c5a9d381": {
+        "nameStringId": "f739126a-250c-40d7-841f-eab88f6a8e46",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "70a62b1a-8ee8-44fb-bb3d-f514e454887f": {
+        "nameStringId": "e70facd5-42db-451c-b3ca-8a1a15251965",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9465790c-8305-4762-b03a-6dc747f2e12c": {
+        "nameStringId": "c1123258-8f4b-4efd-a1e6-55b347844856",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f1ed74a2-7b61-48af-9d70-60948828e123": {
+        "nameStringId": "bd535b33-aedc-41c3-97a5-a4c04abe58c3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "47ebbca8-2531-40e4-adab-06b7ca685381": {
+        "nameStringId": "f070471e-8b95-4d52-8520-612297a71170",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "304ee49c-89db-42b8-8eac-f2576f4eb1b3": {
+        "nameStringId": "fd53d63e-fe4c-46d9-9126-386423548368",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2ac21241-2158-473c-8643-731dc409b9f4": {
+        "nameStringId": "2880cb90-4f1b-48a5-bbca-5d6b1a0b07db",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "40f23347-bcad-4087-985d-9a27b73ef8f9": {
+        "nameStringId": "abffd600-d0c7-4614-bf86-9d96f6488095",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5fe9b0bc-df02-42e8-9302-128c077df53b": {
+        "nameStringId": "b299e862-2c07-4240-9e5c-adf7b3328b61",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "96609f35-f1ac-45f5-8252-af5391822fe1": {
+        "nameStringId": "25c0d5e5-a0a2-40db-a117-6d21a899c646",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "042b098a-ca44-48ba-b141-9f7dbdf57508": {
+        "nameStringId": "0cb8250f-5369-4f97-b00b-3bed32bb4d32",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1f4c7c38-7539-43a0-889f-42b491e00fbd": {
+        "nameStringId": "9b27f2a7-eb32-4c0d-89e0-449908964651",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "953a00c0-f360-49dd-be92-f345cd0d7331": {
+        "nameStringId": "c6a992f4-877f-40ba-95c4-b4887041de50",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e61f06e7-5acc-4912-9299-9f2710d84e3c": {
+        "nameStringId": "c1f44f26-12e4-4f5c-a7df-e7f02df9799e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cb3c48da-7106-4f22-ae81-08a5381a9643": {
+        "nameStringId": "37251d82-b45b-4934-af65-d5da4abba180",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9da67ce7-ac78-490a-8227-ca9dde109cde": {
+        "nameStringId": "2e31b8a5-2154-43fa-abcf-3bf7355c2c14",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8114d2a8-8140-4bef-8f70-581e9e90f62a": {
+        "nameStringId": "53217f06-5fe3-4b74-a091-32a07cb88662",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c1b4f514-d6a9-4d19-839c-329f9e1ce99c": {
+        "nameStringId": "1da11a3b-17ce-4f7d-ae05-4d57f29fe1a6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9b8e6fee-4fe1-4480-80a0-e40318d41652": {
+        "nameStringId": "4166d173-b5cb-4fc9-b2e0-9d961f0c449a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a4893d71-258f-4c5e-94ff-80874ce705e0": {
+        "nameStringId": "16970f4f-ca90-4323-bccf-e5b5a22fab01",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c4e7e428-eb87-4128-bd40-e0c40fc00685": {
+        "nameStringId": "887778ba-9029-458a-9d59-0e344c78afb5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6f970ff8-a662-413c-acc7-2cd20209ebbc": {
+        "nameStringId": "054feeaa-fc21-4efd-ae7a-b6c6282bf19c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "230f7e63-bb5a-4d16-98ba-0681e84b9dd6": {
+        "nameStringId": "2d49c85c-f085-45ef-984a-4a8c1f1a07d0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "00505dc5-65e2-40eb-ad02-8bbf628cc40e": {
+        "nameStringId": "9c8c6788-9388-4936-b19d-a26e15cee80f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "412ec715-d765-4278-86bf-236c4c81472d": {
+        "nameStringId": "c2984700-4813-4925-92a0-841146e56317",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3d8ab114-4366-41dd-be41-22cc9f42d853": {
+        "nameStringId": "632262fc-9666-4b88-a653-fa2e349ac117",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "073e0722-d696-46fd-96d3-608bed195fc1": {
+        "nameStringId": "b61ea0b1-207a-400c-8c43-ed7cd72feb88",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8f11e467-d6ef-4519-b1cd-913decdaec68": {
+        "nameStringId": "a4e136ce-1668-4508-8956-d44efe6baf88",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2e6913d8-6331-4219-a67a-a03742c638fc": {
+        "nameStringId": "3a67a10f-7bf1-4cb0-85d8-82f1d1566883",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5eddcb2f-80cc-43bb-b483-2bab4a5c54df": {
+        "nameStringId": "5b731a26-6ebf-450a-ae0e-2bf5372b97fb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b078e958-5d37-4815-ade3-8fec0049b1ed": {
+        "nameStringId": "56aab0c6-dad6-414f-b698-7fed1efb4973",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2774c9f9-b630-412e-ac6b-404a9ef73f28": {
+        "nameStringId": "963760e6-4739-4f17-b261-f4997627dfa6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "49df0ab7-25ba-4665-b564-678f30e899b3": {
+        "nameStringId": "c87aab20-045c-49a1-a8e3-9bcf819cd015",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a5a862d8-2b83-42a2-b359-241f295d687b": {
+        "nameStringId": "42182f78-98c3-46be-bbb6-8456828d6163",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0b7e235d-ed39-4f46-b56a-553198b0433f": {
+        "nameStringId": "29552dbe-d9a8-48a7-a7bd-a85dfe345e7d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "11a890e5-8b56-4bb4-8b44-2bef2537abc8": {
+        "nameStringId": "e83e127c-aa43-485f-a96c-3bbedeedae2e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3414b459-5369-4483-a748-6ae3995d9be1": {
+        "nameStringId": "6f58ad47-f0f9-4dd7-9cd7-834bdec7f0ee",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ea828696-08f9-4217-a78f-502759a1cd38": {
+        "nameStringId": "30196b35-5e3b-4590-89e6-1130e6ad129e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e47fedf7-2d81-42cd-a600-d339b8b44a14": {
+        "nameStringId": "d856efdd-d767-4af1-8113-2076b787b8ad",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6bc1f2c1-f7f0-4e06-8adc-8be2b66b6eae": {
+        "nameStringId": "b6c726ce-608a-4362-bbdb-2d5f527cd3eb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6e25ecc8-0e3a-430c-9939-2b1d5f02e278": {
+        "nameStringId": "7a5e8718-4c73-48b2-9d27-10229d65d44e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7ac5937e-7801-4cc4-9dda-8ea6f0f1cdb7": {
+        "nameStringId": "1d08f3ba-982d-4af8-a9c5-31d0bba56f09",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "65f956e3-0dbf-4990-b0f8-9a1564025fb8": {
+        "nameStringId": "0d0c12a2-2ae7-49e3-8de1-b9a3ead31baf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3b7d97ee-e43b-4593-b3fe-5acb91b21ea4": {
+        "nameStringId": "1e8a7914-f7cf-4560-b27a-3e0e1766ce7b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0dad8200-46e1-4645-9d7d-ebe76cb19275": {
+        "nameStringId": "63bcb6e9-7a7d-492b-a677-b61d925500a3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "02640eec-dca1-4e4d-b02f-d4b13de64adb": {
+        "nameStringId": "0dc62a8b-d195-4a1d-ba72-b890711ef3f4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "aa277acd-60b0-40eb-a3f6-6ecdf18aed95": {
+        "nameStringId": "b08ccf0b-692e-40d4-bf4b-d0cbc48a4ff0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d6792b94-79db-4fff-9c76-451248f1881c": {
+        "nameStringId": "bcda9943-c5ea-4097-baab-d085ffad4582",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "76339d7b-59f4-4866-a59f-59b20aee2595": {
+        "nameStringId": "db36c11c-1972-4aad-b542-01f057ad763f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3253cd7a-4598-4099-9fbb-065fbe8fa6c4": {
+        "nameStringId": "604b90b0-4fb7-4afb-a03c-2a167a5ecb1e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d1a584f6-2d21-402d-a188-653aee9b5920": {
+        "nameStringId": "12aa20b0-f2f2-412d-94c2-e44d43cd3ee0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cdec0024-0535-46bd-888a-8ffc489d085f": {
+        "nameStringId": "4d441a23-7679-437d-91d1-a00e20bff212",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b03f526c-2cc8-4ddf-9441-243d4f6b9210": {
+        "nameStringId": "0ed233f7-a4ea-4f0b-800f-b91db592af65",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "78ceaeca-02db-4138-9652-74435a8fe1c0": {
+        "nameStringId": "be8864c7-8f6d-48f0-9e63-166fe696b22a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7b93e7a5-29db-4262-ad65-1955670a7dad": {
+        "nameStringId": "73e1b689-61ea-41d4-8ad8-af9f1f5b0d34",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b9f4ef29-754a-4c2e-8298-e3c2ab418d36": {
+        "nameStringId": "46917a5a-c7d3-4231-930f-7a4577123dc3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f7b26d8f-62db-4cb3-b8da-e960a332c419": {
+        "nameStringId": "197a4a58-8b8f-4ae0-ac3d-1e553a3169ef",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8e8440d4-2a99-4d70-81d0-17864904da78": {
+        "nameStringId": "9cacfab3-c2ac-442a-a393-aa93fc32993c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5b0ce706-1439-4185-9156-59440bf5e577": {
+        "nameStringId": "86d503c9-4ba3-4aeb-bcc7-42bd792e95e5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e44d7738-fd5c-4b38-84c5-5abbc10bac89": {
+        "nameStringId": "f6630172-168c-41d9-9422-74c76c01d354",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8d01e4af-2828-44cf-9cc8-0de975600f34": {
+        "nameStringId": "d9962f48-2b02-44f5-a3d4-b2944ef747ce",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "68ba1f34-9097-4de8-84cf-2a65bd3d7923": {
+        "nameStringId": "07f3fa76-7036-4750-a720-abd145e27b0a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "096ed155-1568-4d2e-94b1-e0a029ec1c03": {
+        "nameStringId": "e9aaeb2a-aeea-49d5-b827-cc8eeea4c4f8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b2b90e0f-00a3-4354-bc16-688a7cd5b4c2": {
+        "nameStringId": "246702eb-e59c-4bdf-a9e5-6dae0054b567",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9890c638-59e3-42c6-a305-f88a1863a79c": {
+        "nameStringId": "5c0a558f-0954-4cfb-a9d7-8dc7a39313d2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ade606a7-c9ff-48aa-ade0-b1f28f0aa95a": {
+        "nameStringId": "16a8765b-0e36-4b0e-8fb7-d9d65d8bf6d6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9f46ad68-6505-46d6-b313-ed5a0712f32d": {
+        "nameStringId": "c78af907-7aa3-4358-8ef6-a1c9fb448000",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "47984b02-55ad-4ed0-8ba9-4c2877e0e811": {
+        "nameStringId": "5f1a27dd-59d7-420e-8a55-3407d6ca423b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7cc70d83-89f6-416d-b6e7-2251233fc67f": {
+        "nameStringId": "858a7066-489b-4aa6-9b20-bb405b9bfd79",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6383958a-49a6-4c84-9a20-1b95b9053137": {
+        "nameStringId": "f5df6adb-39d2-4c4d-b6af-c525203cbcbf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9477aa9a-7099-43ad-8a28-658d2dafb6e9": {
+        "nameStringId": "9aa1afb0-3a71-4807-8e02-99446c40ae70",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7f89171e-2fc5-406d-915c-8a7e80930509": {
+        "nameStringId": "054fe6ce-4435-462e-91ff-05fe9cd1d45d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3f820a7d-66a1-4c57-a17e-5af794517884": {
+        "nameStringId": "3209dcd4-0bce-409c-8a6d-249690798dfc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "604ea83d-371c-43b0-86fd-76c12c6d25ac": {
+        "nameStringId": "9cc82ba3-7ab2-40af-bf90-ffd978908a64",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "166964c3-2c03-424a-9b8d-9bdfe1169c72": {
+        "nameStringId": "7bdb21d7-8ec4-40e1-85b8-53bd548ed476",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a158681c-4890-4bd4-b302-24477ab3494c": {
+        "nameStringId": "179101c9-21a0-4ac8-ae3c-2744e7cf7c3a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5855663e-37c5-4a13-ac1e-d303d7576269": {
+        "nameStringId": "5a5b1954-9cd0-4292-b2e9-b0143252958b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d3746a83-0b56-451d-aa2c-05a2503abf0e": {
+        "nameStringId": "a072541b-e9c6-4258-9b3f-99b8388115c7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "67197b26-a03a-44b2-a69d-d7992bb1fe2d": {
+        "nameStringId": "3fc86942-c7d3-48d7-b94f-7c25d21236e4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "105117cb-1ff2-4711-906f-19413a11607c": {
+        "nameStringId": "e481edcc-092e-4c9a-b3c9-375f5d0f3ac7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "43860829-fa15-42c2-959a-c82d5a7375d6": {
+        "nameStringId": "fc9ac632-a383-4bed-8617-e62d8a37e2cd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e44ab519-a70f-42f3-ae3d-7872ca814803": {
+        "nameStringId": "4c32190e-9187-4676-9fdf-4cad4fbdecb1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e9e632f3-3209-4503-a52d-93f19353abad": {
+        "nameStringId": "47922774-802d-4ee2-8f20-193ec0b2512e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0499494e-626b-4f4c-8acb-fe7e19e00cf2": {
+        "nameStringId": "76f29e3d-15b3-4bd7-9428-d03a4d286f94",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f1fa39f6-1fea-42b9-ad01-85b2466cd60f": {
+        "nameStringId": "1ce4662a-7e4a-4163-b85c-5be8c2c25fae",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3f8e9fc2-e5cd-4cf2-9e80-f8e7e10bc3e1": {
+        "nameStringId": "058b3e72-204e-4692-9806-5b6bf418f598",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0db4907e-01ef-474a-b9dc-c71516b06393": {
+        "nameStringId": "2b221162-2c8f-4129-8ed0-8a276ebfb461",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "52523eec-6a35-447e-b1c6-e6a5c057228f": {
+        "nameStringId": "99ee99ba-ee4a-4b44-bb17-9be601eef37d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "45add8a6-ba1c-43a9-a3bd-20f74e4b856b": {
+        "nameStringId": "df363314-7034-4099-8942-001b61631f03",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2bfb682b-d182-4405-b962-cb10665cacc1": {
+        "nameStringId": "1fbfa2e1-a3e0-4050-a9b7-a74e9d44b199",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c5738cda-0e4f-4534-ba04-2b4e6a45a547": {
+        "nameStringId": "a864d3d2-51f9-4082-bf76-e27e8fd6b888",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f1bb0e8e-4f87-41f9-951f-ff8b382f301c": {
+        "nameStringId": "e32e73f0-f108-4203-9178-2d08711848d6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8f8343fe-eb48-404b-b9da-7eebbef591bb": {
+        "nameStringId": "b32355f9-3c32-4d28-b156-ce1dbf2c6fef",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "863d4116-4bee-46c8-a74d-19ce00e06943": {
+        "nameStringId": "5ec71be7-1beb-4072-90c6-0303d88c75ed",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a1f94e98-3c9e-456f-81bd-e81aafacc8e1": {
+        "nameStringId": "2f972879-fc41-45cc-b246-350b0796390b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2f89cdb1-1eb9-42f3-8fac-81df570f46ba": {
+        "nameStringId": "00fabc03-2c30-489a-8f50-1ae68546d0fc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "dbdb7778-0319-4af5-baf5-4a7ea9ee230a": {
+        "nameStringId": "7499ae45-802c-473b-bc34-373bca2074b7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1ef1f84a-7567-4e12-b8dd-e6fdac629904": {
+        "nameStringId": "8fea2dd0-be66-4a2f-84c8-3a72cdaf553a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3af36669-3939-4d43-b6e6-f68240d5782c": {
+        "nameStringId": "7870dbdd-b36d-4a04-bf46-752b6c680584",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "05f3cc8b-e360-47ef-a308-6f6df640fb5c": {
+        "nameStringId": "a9061c70-fbe7-416b-846d-0ec0a72b96fe",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8bbab97a-5498-40c9-b3fe-eb7994cc486f": {
+        "nameStringId": "5a7b5407-2b30-4c12-9c14-280764de150a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7b1e983c-3c8c-48df-90ac-dcf3d7e8e6cf": {
+        "nameStringId": "c3aba590-e877-45fe-82c9-221d43656056",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "db9b8c45-f792-469e-b8a0-b7efb7e1cf07": {
+        "nameStringId": "2976ff9a-7a06-493a-92dd-b6b0432aa993",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b6bad579-0f75-4318-ad96-e435771c4269": {
+        "nameStringId": "6b1cd161-ad66-4a46-8c2f-a0a6a5ebcfee",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "29353c21-6478-4a4d-8342-0d81528eb878": {
+        "nameStringId": "5d223209-8e3d-43e3-af99-480cd2577036",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "746b3b99-47a5-4347-b16d-071dd67bee10": {
+        "nameStringId": "fc220529-9aa4-4f27-9fb2-40a99dabdf3d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b4cdc7c8-3df8-40c8-92d2-688cd6dbac59": {
+        "nameStringId": "c0c0ae45-bb81-46a3-a9d6-71611ec2606d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8e8c11fd-d4e2-4ad8-8eab-259753136229": {
+        "nameStringId": "68756549-5feb-4dcb-b8a6-26c0615f739a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d87831be-1604-4a03-a51e-1934af79ba8e": {
+        "nameStringId": "2ce44348-bdc7-4ce9-997e-082769e7370e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b070576e-f725-4d7c-b947-5e44ccf023e8": {
+        "nameStringId": "05c0ec45-da2a-4e8c-b91b-fb9f8dd83e03",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c035af23-4955-4bf1-ae37-e2fbae31e9be": {
+        "nameStringId": "e111389b-1bc2-4cfd-b71a-a0114c235967",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "43164c6b-fbd1-4c38-ae98-e20bba26142d": {
+        "nameStringId": "503c8c53-8340-44ff-9c66-477fb53e7251",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0d3bc3f1-3906-4f17-845a-216b9ddb9a1b": {
+        "nameStringId": "7c789751-6d21-41d6-9108-85b6b920ac45",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cfa972c7-203b-4dde-a74a-9ea9fb266444": {
+        "nameStringId": "89f3628d-bc58-4d2d-9231-0f2f86b16723",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "be1ca4b4-b1b4-4534-9893-64e32cd38dc4": {
+        "nameStringId": "8b9d45c5-ebcd-4c81-b05a-992cac1eafa2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a537a080-97ba-4d33-89d1-833dad3d9c4f": {
+        "nameStringId": "21387902-4af4-4eb6-8bb0-f5e441c1a955",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b4c0b090-ace8-4031-8468-e85abe0924b1": {
+        "nameStringId": "ea3f03d8-7403-4806-afcf-40e18ee1e4a3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ab163cee-3b22-48bc-8fbf-c3dfa388deaf": {
+        "nameStringId": "ec8a3c0f-1dff-4836-852d-57d5385d9b2d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c7566443-b18e-47c0-b567-e5a5eeccea54": {
+        "nameStringId": "c7a3415a-1c90-403e-8cdf-10113d731a80",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d52b722a-f7f5-4f0a-970a-1197d26b2341": {
+        "nameStringId": "bebca509-45ed-4c90-9920-876144ed9344",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "dbc4df7f-5d0b-4169-8c31-a5b9f8cb7857": {
+        "nameStringId": "28702bbf-2987-42e8-96ff-2cb624cbfe10",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9aa8a135-e89f-4f22-9a5c-9cf3cc819182": {
+        "nameStringId": "1c61e1c2-d9f7-4ac8-a337-9c2f647a9655",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0f4b7d29-9b47-46b1-8754-137e9b6fd22d": {
+        "nameStringId": "2e39e855-1531-4a6d-a2b0-11260e576209",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fe3f2b1a-1f75-4a3b-a828-0e07889a326f": {
+        "nameStringId": "17804e46-a96d-4ffc-8f47-d9df7609bfb7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a2900aea-0c5f-40eb-96fa-e29f3366f151": {
+        "nameStringId": "39e5f223-a2a2-4af1-b943-d44d21a7fe1b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "27ff0109-053c-42ee-bec4-27ccfb365b79": {
+        "nameStringId": "9ed94f0a-9b5b-417b-891e-e3dd546f3de3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bdfda298-4d38-47f9-8064-af2ced323e45": {
+        "nameStringId": "fd12794e-e9c5-4447-856d-76296100373f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "15828b26-7e55-45bf-b495-df9247a22c66": {
+        "nameStringId": "35d89832-df0c-41a5-ad66-adb79234e194",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "469d8ff4-debf-47ba-9fa5-8d7621cc66e2": {
+        "nameStringId": "9ea37dcb-f89a-48f7-b70e-51a0d2a6f07d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7ad7f76e-455e-4ee1-b316-c210c6a6ad44": {
+        "nameStringId": "3b2f4b5e-ef93-4bb2-9f9b-316a82785875",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "72971db9-d003-41f0-a247-f02ea8436df0": {
+        "nameStringId": "cbbd18b8-b294-4f0e-9dfc-086ee44feecf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "033ad50d-8dcc-4b80-84fd-e116bcb33d2e": {
+        "nameStringId": "7b191c90-6cf6-4137-873f-96f4bfb0e159",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bbc6f147-c42c-43ae-94a4-ee40250a1cbe": {
+        "nameStringId": "d1701dcf-4b3c-40b4-aaa5-e90765e5cef0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8b12b66c-8cb2-4366-aea0-ea080be15991": {
+        "nameStringId": "c9f51457-c559-4c8a-a7d2-df25989465b9",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fc6b56f7-2737-4a17-863f-39fec81bc19a": {
+        "nameStringId": "d2147c1a-c6f1-4f05-87fe-7beafd850a91",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e8ba4229-4130-4063-b38d-28a39ea8afc1": {
+        "nameStringId": "cd0e263c-289d-48e7-a9a3-3c9888b84ccf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a4f413ce-ec25-467c-b13a-651fe64d35d9": {
+        "nameStringId": "04b055b7-5b52-4f4b-8a39-4104dd1375d2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e2d58c6c-4c06-4247-add0-c35c7cbfd8c8": {
+        "nameStringId": "04baa224-9f6d-4350-9c11-197639376938",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3cb637ae-0b59-40d6-a4ba-ac8ace852e82": {
+        "nameStringId": "ad5e2d81-ef68-4095-8507-a82c24bb8224",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a7bb3497-2e40-41dd-b3bf-d3cf35ed620f": {
+        "nameStringId": "39ffc4e6-9e2d-4168-a779-731e4ebf8387",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7d4a21ca-1351-47aa-aae6-39ae9094b934": {
+        "nameStringId": "f92f2874-9038-4af7-82a2-90daf40f6759",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "751aa1b6-e696-476c-9e34-8da5faaaac03": {
+        "nameStringId": "cc4338d7-56b2-454a-8690-a53ddb4c7427",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3117ff97-ce7e-4d50-9a2b-0a9ddfbca6ed": {
+        "nameStringId": "7a5bc269-ff4d-47b9-806d-f96a36dea5dd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3a86836d-3a67-4ecd-a0ec-6bf377e6c4cd": {
+        "nameStringId": "c552123f-ea31-4dd7-975f-48f6ee5db7f0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8ae03931-1a06-4842-882d-ef0e6d29eb6f": {
+        "nameStringId": "8919db4a-3e17-4e9b-826e-3ab885a2c2c5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "685697c9-4672-49a4-a00e-dc5a57121a4c": {
+        "nameStringId": "ba96fae8-4806-47e5-ae34-bbcaec72c58a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b4773c9f-3bf5-46dd-a96f-236c72fecf7d": {
+        "nameStringId": "fd0e1a25-136d-4b00-8d18-a3667ed320c2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a76e3113-8530-46b6-8ceb-952885e0363d": {
+        "nameStringId": "15ff4c94-f3a7-4154-8e83-2671f689acb1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d99534d4-e4c7-4699-8006-eba781bb5511": {
+        "nameStringId": "c02d9e88-869b-4b2a-86bc-358d35b8662e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3d2ab353-3c62-4b07-a037-fc9569ef2870": {
+        "nameStringId": "5e3eff2a-e9ae-4b4d-b063-9cdc777735e4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "da75a3f3-f82c-422c-bf4f-dc6b5b7f3c83": {
+        "nameStringId": "c22cda47-c479-4218-9d66-1953c8dae7e5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e9fd417e-151f-4b1c-b32a-5d6f716c552c": {
+        "nameStringId": "a4830f40-3bbf-4180-80b0-d3b1646fa39f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9a3ac04e-4b12-49b9-9ffa-2fa8af1ed26a": {
+        "nameStringId": "43bdc428-b328-4d03-be77-c24afb03c7a9",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0ffa0ed6-fef2-449b-8e80-30e263185b1d": {
+        "nameStringId": "ff0a41bf-d0f6-46bd-a2bf-239cca8f9ae6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "475e55be-dc1b-4111-8245-e704a83a17ad": {
+        "nameStringId": "4fcdfe23-55d3-46e9-b26c-61f640dab4cc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "80ef9323-d215-49db-849a-3e03987516e8": {
+        "nameStringId": "14d604ac-6d36-4557-8dd9-29444b102e2e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "611c25c3-cda1-4f27-addd-af2f98edc58b": {
+        "nameStringId": "70e134f8-0eea-4843-86fc-87f0a495cebd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "80d7fd3d-6696-4765-b6ac-1608f957a501": {
+        "nameStringId": "74bc0c73-6e08-497c-9e8d-3c33a0fe5250",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3b225e9b-2ddc-47c1-b7ab-2af55894885f": {
+        "nameStringId": "c5cafa56-2e42-41a5-a3b0-e9b0019ddac2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0b3b82c6-6a71-446b-aa7f-3cdd6f83cad5": {
+        "nameStringId": "99950983-1b2b-4e5b-a63d-f2515dd0588d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f5275d91-bcfb-4574-a271-866aabba9405": {
+        "nameStringId": "106de794-1a1c-44dd-9163-e767e86dc5a3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fb3286de-a3ce-414b-bd50-f1b5743ce911": {
+        "nameStringId": "5f1c8d90-6937-409a-80f3-a3dceb35c311",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b60e30a2-d685-44d8-9143-603949ad36d7": {
+        "nameStringId": "7a80364c-9fe8-436f-bd6a-ebfafded33e1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a58fc1ae-fe4a-4896-9033-6b76080c1266": {
+        "nameStringId": "96a00c71-5f79-40eb-ae5a-146605c00a88",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5f733f43-704b-4101-86ec-3f765d5f6873": {
+        "nameStringId": "acc05a2a-7068-4dbc-98e3-5119f8edeffe",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "aaa5f11a-02b5-455e-9627-5bb307cc9b2a": {
+        "nameStringId": "32413179-8cb2-4df3-ac56-96e858ff77c3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "723a546d-7a3c-4ea7-b0b0-66d988c9fe0c": {
+        "nameStringId": "00672175-cf79-49ae-8b41-f46e1c3a27fb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "76e5dd4a-b7d2-428a-aced-baa8675915bc": {
+        "nameStringId": "f8a491ab-05ec-49aa-a3c6-8c69971619d0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2b0aafcf-39d5-499a-956e-42b98c669842": {
+        "nameStringId": "be86114f-6a17-4778-9988-a05eeb469e3a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c3526b45-f238-41e9-9d1b-8ed2caf6e6a8": {
+        "nameStringId": "604c4293-174b-4c08-ae14-b3e3d2f94fc1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f4a97066-19d2-44d0-bac8-1a118068dce7": {
+        "nameStringId": "b17a3de7-840f-42f2-a6e4-73935ba8bb98",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "70825014-fa62-4b2a-973f-fb630c72687b": {
+        "nameStringId": "cb28b629-186f-457d-9e32-4d567dece51c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1a0eacca-8d92-4a0e-ab63-4ad4172892cc": {
+        "nameStringId": "a34cb23b-2dbf-41bf-b913-b14a42f41260",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "88822a98-ebfd-4fcd-ba1c-81a1e090cb80": {
+        "nameStringId": "b94f2e5e-d98b-4d97-b85a-882690e62ba2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f6b671b6-7875-4375-97f4-fe4e3d7c21fc": {
+        "nameStringId": "d26aeb50-1edb-4e5f-a4eb-ee7116d0c134",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d0765574-684c-41a2-b840-3be4b57f764d": {
+        "nameStringId": "53f2e81d-5597-4606-8f0e-939ccd1ce6aa",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "39a19cec-3dc6-443b-8647-802c367c1db4": {
+        "nameStringId": "3a3e5daa-cbdd-4549-9d76-ad9614da9df6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "52b1e63b-6338-44ba-8f90-6aea19e586ae": {
+        "nameStringId": "9dcc2d95-6d59-4e79-bd05-4f5976a4362e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "481b6ef8-2f2a-4596-9133-53aefcd27cc7": {
+        "nameStringId": "49212c35-7004-49e6-a0e1-74e243f2524b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b3718090-86cd-48d6-85fa-54ffab2f602b": {
+        "nameStringId": "c892850a-297a-4d37-a173-8188b289315d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ee5757d3-0b6f-45e6-b8ff-942063e02754": {
+        "nameStringId": "bad22f3c-b02a-4d7a-b4a8-b9f90ab937b1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "47a405e7-63ac-4266-9f7d-7cedc8907003": {
+        "nameStringId": "e6ab560b-c39c-48a5-8e06-ab5a3911e67c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "69c3db51-05e5-4b53-b6b7-6aa366893e93": {
+        "nameStringId": "6af6664b-4c27-4e47-8e09-9c7c81707e3d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ac84721b-eb66-49cb-b0ad-83ae854a2e78": {
+        "nameStringId": "26765e9f-1330-498a-b3b1-95dcf9e1d0ac",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a399b487-1305-46c9-a8b3-997d2d1beae8": {
+        "nameStringId": "8516b2d9-67eb-4f96-b819-31b94e7186f8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4db81794-ccfd-4556-878c-0c50018a7143": {
+        "nameStringId": "ed5baa8a-e012-4fbf-bcf1-2705042ec71d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2bcfd718-afc5-4ae1-af6d-8d104b013e2d": {
+        "nameStringId": "45acf5d0-8d86-4227-8582-784680a35308",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0aadfce4-a38e-4708-9fd7-98d34f18483b": {
+        "nameStringId": "7a715984-01b7-442e-9e39-c61f79a76cba",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "628b6422-2c10-4c27-bbdb-18bb71635963": {
+        "nameStringId": "19fcb27f-da93-4072-ab1f-cf62a355643d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "de039685-303b-47e0-8e1c-153f5e161ecc": {
+        "nameStringId": "28dcea98-ee17-4ea5-8fb0-f147ee450399",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a263913d-40e7-4b35-a35c-3eafdfb32a20": {
+        "nameStringId": "64b45015-4caa-4ae1-9b8f-902eeb72b57b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "04b9f4fe-4a21-4127-9102-de9244224cc2": {
+        "nameStringId": "4e48552c-e748-4c21-a3fd-f19836cc5a05",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3d0bed2d-b859-44c1-a042-7e57dfbaaba9": {
+        "nameStringId": "69b14a55-ec08-4feb-894b-8b97e91a758b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a35c0401-6bb6-4fef-aa1f-33973a49b623": {
+        "nameStringId": "4d9751cf-404a-4f58-a809-968284079a3b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a14a7134-4899-45fd-92b1-afe1ecfb10e9": {
+        "nameStringId": "ef87414a-4bcb-4dc2-b24e-b06d250ade0a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "002f7346-f86b-4be7-b69c-2773f435e613": {
+        "nameStringId": "f08bf355-f14c-4419-b2b2-dfcfa788470c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0a1f0386-424c-429e-8efe-b773fa85b288": {
+        "nameStringId": "19f80155-6841-4ae1-8547-5ac54b2e49c1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3df1b154-0594-427a-b2dc-836a56440b3e": {
+        "nameStringId": "d3012a65-1c53-49bf-bcb2-dccd17253acd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "36868395-138e-44e2-a5f0-ccbcbec443ff": {
+        "nameStringId": "f1629e5d-3827-4746-a814-893ae72d579b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c28717d9-dcb3-43b4-8577-5193010a3602": {
+        "nameStringId": "e4fc3255-0a50-4839-9130-48d415118212",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4496f701-012e-484d-a796-46ca78509de8": {
+        "nameStringId": "305d4353-986e-4b79-8686-7ba9e32e69ce",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2fcd0a90-159e-490d-b8fd-ec3e072c4c3e": {
+        "nameStringId": "7204e0d9-9e5d-4fd5-9b07-9d8be782baed",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2383ce2a-36b3-4790-9825-3c286d27aae5": {
+        "nameStringId": "77f16ed2-1d4f-4ab9-8e93-2e1b8e2db847",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "be6e9fbf-ca24-41d1-b73b-95fcbac13eb9": {
+        "nameStringId": "c0be683d-b431-47ab-a176-3eb711abe934",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cb5f1de3-342d-421f-b7e8-6098cbd8ff7b": {
+        "nameStringId": "c5882178-9349-4120-ae93-eaca28450e44",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "912e4e56-96f4-4259-924b-1e9d2111c7d6": {
+        "nameStringId": "a31db973-a8f6-4bea-86e3-d91fe9ac4471",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "94f63f0c-8b54-4318-a8c1-4d85f5dd88b6": {
+        "nameStringId": "64ee550c-9921-4360-8d9b-3e61ef57542f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "50993f8f-51f3-4979-aefc-b82b170d4f68": {
+        "nameStringId": "22f3fc26-fca1-4826-9c6a-b444e13f6487",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "87176cb7-8ce7-496f-849c-50020dc6834d": {
+        "nameStringId": "fb1a85d1-7a53-4ca5-a542-318c2a788124",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8c67532d-2d73-4443-934f-cb95bf4dfe29": {
+        "nameStringId": "5d2f5834-0589-4cef-b639-7a86afa66da8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f5cd7c53-b7f2-40d8-808f-91a3604c9931": {
+        "nameStringId": "4d33d7e8-628b-4b74-87ca-1fca1efa0bde",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f98f6b1f-16ec-4f32-a2fb-c999b71ba172": {
+        "nameStringId": "440e6cc5-214c-4551-a1f1-02d7c9bb91a8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f6d4bcfc-d4f9-405e-85cc-9a54fc2f7a24": {
+        "nameStringId": "c5538284-f1b8-46ca-921b-a9f48c5d824f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "af921a0f-e21b-4086-a891-33c161639d45": {
+        "nameStringId": "fbc6765f-0231-4741-bc11-9fdf0beb0d16",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "914b43c6-7dbc-428b-93b4-a2780d669654": {
+        "nameStringId": "e6ff620b-f03c-45ed-9d24-b872aac536f2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f454a225-ca8c-4d48-a17f-14cdbf2a5f22": {
+        "nameStringId": "c033e59c-a55d-4e61-92f1-cfb46bb79d38",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2bdb0f06-7249-4338-a92e-431c3d062186": {
+        "nameStringId": "88352553-c5cf-443f-a3fd-ac240b4b8487",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b124f7f7-2ae3-40c8-9c22-ea4aa582ddb5": {
+        "nameStringId": "ddeb51c7-c6a9-4dfe-be80-ee63dd5f2592",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0be749fb-4905-47d2-86b6-abff3f2d512e": {
+        "nameStringId": "2d6b8acd-b878-40c8-9442-a2e712702167",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a096f880-6922-4dce-884b-1e5da147e25c": {
+        "nameStringId": "97ded660-7bbb-48f3-9e3a-b42a2af51de8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c0a31444-5aa6-49a8-b406-0f0f762ed9c9": {
+        "nameStringId": "265cecfc-2bb7-40e1-88df-7b7bcc6ab73d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f1e0480b-93da-4acb-991f-b9370d5b6fc6": {
+        "nameStringId": "2f7f40fb-4634-488e-9254-139c685df0e6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "17cfd857-1104-4c23-a56f-fcf9ac671ae1": {
+        "nameStringId": "eebc7899-1a74-49c8-8200-24af1030eaea",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "53c3383b-655d-474f-977d-890e573b189c": {
+        "nameStringId": "3736e531-ed67-4ce6-839f-71e24e2bf25f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7efcda67-f147-47ff-bfd8-a48bd418475c": {
+        "nameStringId": "934b5ab2-e69c-407d-928b-57db8140d00f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7ad8f8b6-7cd4-4aad-a641-a54bfc707918": {
+        "nameStringId": "cdc1ac36-7a51-4d95-915e-63ad24c27137",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "145e05da-13cc-4e18-aaaa-1e9e109a499d": {
+        "nameStringId": "c5ca7e91-7b58-416b-a606-8d01e3213f80",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f73bb5f7-d975-4205-b243-555c9f244194": {
+        "nameStringId": "05303c4c-87fa-4212-91ce-91f976474b72",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3cec7046-94f7-4347-a9b8-8b4dd4000170": {
+        "nameStringId": "0019d55c-7a3f-43cc-8374-7edef4401e69",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "77acc10b-9cd2-415f-b65c-96845c26b942": {
+        "nameStringId": "6146feaf-6ec5-4edc-90ea-759b8edfb339",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "33ea3955-0e63-4b48-bb4a-d272838f2a62": {
+        "nameStringId": "9b09c541-1b56-411d-84bd-aedb2189cd78",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "91d0bbe3-08a0-4d0a-b168-aa55c4e92b67": {
+        "nameStringId": "ffc21787-646e-464e-b4d8-e08e4ae3fcf3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "50056f49-a042-4508-8201-362cd2eaf437": {
+        "nameStringId": "3a0a5b5b-a36b-40ba-b965-ab957174f2f5",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "721f4bd1-a002-4dfa-84de-d0a70d932e13": {
+        "nameStringId": "f395fef1-7018-405e-be47-2713524e7f88",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "54983e33-8b43-446c-9ab1-8f0c2c1965e4": {
+        "nameStringId": "8e5dd761-2c55-4ffe-a51d-0cf3e8764bae",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8d79cc22-2f4c-40a3-9caf-32da7510256b": {
+        "nameStringId": "47771f44-ef27-44c5-b79a-83df625fdd59",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1c960860-7bfb-4670-8134-b36769bc39da": {
+        "nameStringId": "16ec9834-ea82-4afa-9d29-69db251b1ba4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6155bab7-2677-4d3c-854c-44ee428927db": {
+        "nameStringId": "af4496e2-3975-4341-bb88-4b847ce5b493",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3acbb153-53b7-4691-99fc-36815e303b56": {
+        "nameStringId": "e9288672-a154-4ade-b11e-b702402b6b2f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d8d85234-b47f-4186-8059-6509d9c8b7ad": {
+        "nameStringId": "a083efd4-dd33-467c-8ec1-d9f9cea8520c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "23c5f8fa-aba8-4cb6-9613-50e36dbcecd1": {
+        "nameStringId": "94b97795-6c0f-43dc-b911-53d0ff075d1b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5c108498-64ea-457b-87e6-4df9bc9655cb": {
+        "nameStringId": "aa2e2ad5-fb7d-4e3c-afc3-3c6d2d79afcb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "42de0051-5ead-4c24-b7a7-5d6caeec4d90": {
+        "nameStringId": "c2f98937-94d8-4ef6-99aa-60cd732b5549",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "59acc620-5474-41a9-a96a-343140802b03": {
+        "nameStringId": "c73b32eb-173a-4ed2-ace4-572ec89d3287",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "66eb4ab9-00e9-46a4-90b2-42b3e1655b59": {
+        "nameStringId": "e4e2d7f5-4b87-46ef-b812-4954451f6cc4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "59b207e7-afd7-4ed8-98af-99dddb5e73c0": {
+        "nameStringId": "3393330f-a73b-4325-8191-4e9bd24ddbb4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cd4977ce-3928-4c70-8aeb-cdc3ad899f58": {
+        "nameStringId": "dde6075b-8513-4121-8cd6-4b1a3c638be7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "821a39b3-9bb4-4dc6-9d2b-56ce24e9553b": {
+        "nameStringId": "2bfc7b7a-3ceb-4085-8328-170d89a4959a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3fca7248-7c9a-4d8d-97be-2c24e03b3085": {
+        "nameStringId": "5f47c5c6-3a5b-4d25-82e4-9dd425223ea0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "24f616bf-30e5-4e97-b006-3fe91c9493fb": {
+        "nameStringId": "41b0956c-4331-4d25-b9c3-304628179633",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "800a471e-31fe-49d8-bdb2-3a4b45f41974": {
+        "nameStringId": "43b5ba5d-9172-4ab0-be44-9d0bf6fc5e02",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0a08ea40-9b54-432f-aff2-ae1f0434d379": {
+        "nameStringId": "ba9034ec-038b-4bbb-854f-0f68c8c473b6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c803a412-4a7a-452d-958b-b8e4b9627e93": {
+        "nameStringId": "bb896bbf-ac98-4569-a02a-f85e4d07484b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e6aacb2c-784a-4daa-b131-18d1d277eb57": {
+        "nameStringId": "0c181310-038a-4346-b69d-bbaa7e67f44e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "70f6dfe5-7efa-4db2-a60a-adb70802b5fe": {
+        "nameStringId": "5d032861-a919-4dff-93c2-8cf89adfcaa9",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4c063a2b-8802-41a1-975f-e842949a5fbb": {
+        "nameStringId": "ea3d4a3c-63e0-44b3-9888-4f94753a4555",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ad477187-137a-4bf8-8c11-2b9dd244b19c": {
+        "nameStringId": "f49ad92c-d1ac-4ac3-b7d3-dd65e4999bd7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2b9588fa-a2db-4b9d-8422-1d10799eee14": {
+        "nameStringId": "9930ae53-b96b-49f9-9ddc-1bd19ca29185",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fd9adccc-b390-4c71-a9f3-bd98f0de9b47": {
+        "nameStringId": "cb9b32bd-a361-44da-bc0d-264a681c93aa",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c399b6fa-acb1-498f-8993-1fda263092b8": {
+        "nameStringId": "05958a0d-a8e4-4d97-8d52-30f0e3d79dc7",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "66117229-bb07-45c3-97ab-d6f6f18ff437": {
+        "nameStringId": "747b48a5-57f8-47e8-9090-cd570e54a0e1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "97e5cd66-8faa-4fb4-83a7-1799a3a9678e": {
+        "nameStringId": "59e22291-cfdd-414d-9383-87b3fba08d7c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6a2f9086-bd5b-4b8c-818e-bd84040e4077": {
+        "nameStringId": "5e1bd81f-e756-4db8-9539-abfb16806c0b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "40cd8f27-5018-4e0a-a0d4-ad5655b31bdd": {
+        "nameStringId": "7490001c-6f63-4250-ba4c-8b7a653644fd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1fe50b21-71a7-4a53-8df2-cc0d965e456c": {
+        "nameStringId": "59177b8d-b9a4-4b71-a4ca-84f59ec89a0a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "36617082-a957-45ab-84d6-93b9c9d91f3f": {
+        "nameStringId": "c3e093bb-31d9-40e3-ae3b-83ac4911ca73",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fdbb45cb-6ac1-4b10-83b2-881411abb78b": {
+        "nameStringId": "1fc96473-ad5e-4deb-a962-ae44154e3072",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e86596c6-e1e7-4248-9555-dfe1fa7e226d": {
+        "nameStringId": "506a65e9-b380-4aa7-9b8e-e38a3c78d9b3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d206ee26-b03e-4a2e-8884-7e069bd7ac23": {
+        "nameStringId": "c010f01c-821a-4ca2-97c5-f978c81e5c63",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d6493939-499d-4244-8af8-1ab38953b502": {
+        "nameStringId": "a77468c4-eeff-450d-9c5b-80f9b1b0e375",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5bdb279f-12b6-4c64-8700-bb9956d96c46": {
+        "nameStringId": "3c7ce5ab-13ba-44e0-b99d-ae6b19f907b8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0ca88c97-d8f8-4fa1-af6a-b5e61b7e8e27": {
+        "nameStringId": "a7939ad3-1efa-4fd5-80e0-6a812fbe1a78",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "61efa47a-e393-4c8f-84ba-f2964275066d": {
+        "nameStringId": "c73e80af-b253-4fcf-91fd-622f01231087",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "38fda486-d5cf-49cc-b428-645e24d7f5f5": {
+        "nameStringId": "dd98cd75-0423-4b78-b375-301081e17827",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "71604f84-0a4a-4655-9ce0-702750b539b4": {
+        "nameStringId": "4926a4ef-9062-47f2-9535-e52ca24c07aa",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cf38e031-7069-40e2-8bbf-6fbcf710dcf7": {
+        "nameStringId": "0f9496c7-2706-4133-b3c3-332a6176d7f1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bce21464-1492-4af2-bdc1-95389bba78c3": {
+        "nameStringId": "998b24aa-3d1e-4528-b141-3e38d8416f7b",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a253ede3-4ab3-4920-a1a8-168ff95a0fb3": {
+        "nameStringId": "53490624-5da1-462f-9f93-b906d54a78fb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b5efc976-8c1e-4044-a904-4259264b9fc2": {
+        "nameStringId": "73111178-352d-4e7b-a91f-fbe619ead4e6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "415d9995-2b04-4962-aefc-2a60bcd0a126": {
+        "nameStringId": "48428e1d-22eb-437a-b4cf-e857a58f2160",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a75369b2-89fc-46a7-a952-b426c34a5215": {
+        "nameStringId": "fa496217-56ba-470c-bb7c-39a15afe465c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d8143b54-24b8-46a1-81c7-18335811837d": {
+        "nameStringId": "a023e0c2-85bf-4482-bb02-b5320ac3f3e1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b7108595-577c-41e6-99b6-bc1d28683bc5": {
+        "nameStringId": "7bc1390e-c4b9-4938-a360-af0ecfc92ac1",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "51055295-abcc-464e-b22e-79471b121d6c": {
+        "nameStringId": "63bce93f-3d02-4b47-8457-404eeb789b94",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d86a227c-f8b5-46cd-9698-568ef17a9342": {
+        "nameStringId": "f5e78a6d-29b0-4440-84c2-0afcaa257d31",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b471ecfa-7241-481d-a297-7b41ff94cd81": {
+        "nameStringId": "4ac745d0-b306-4f2c-86b0-2089d976cf22",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0fd5a389-080e-409a-9c72-3c9d0f3b2ae0": {
+        "nameStringId": "8a344d35-13bb-4d9f-a23c-a91c6a20a6a8",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e3ce6014-ae73-4b40-807f-24b2951f3394": {
+        "nameStringId": "880a1b2b-2360-487a-aa60-cb121f7a66c0",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "74332d21-374e-451c-b1b6-33e07054bebe": {
+        "nameStringId": "ca4f2833-b091-4fc3-9977-7e0f02b5059e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "bdc6f592-d3fd-42d5-8726-3d1094d8edca": {
+        "nameStringId": "2a5cd527-1525-452d-bbb6-064151abbf7c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a9a2ead3-db36-4ed9-b9cb-6089fc779931": {
+        "nameStringId": "eacb88c4-40f9-4e89-910a-e006adc11181",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1d545304-1d66-45d4-91b5-0f34aab1d0f0": {
+        "nameStringId": "846803ec-96e3-403b-9b57-46c1e4b3ff6a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "fb82dc0d-4831-4bfd-b094-b421aad70c40": {
+        "nameStringId": "bb5fad64-6673-4fad-a266-75a8394bb81d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "19251abd-d13c-428e-9b54-9dd61cf7ce42": {
+        "nameStringId": "c2d089c4-30b9-407d-96c9-a7825fb176ed",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "b6207896-c289-420a-892c-e01933629f75": {
+        "nameStringId": "a4607c34-08c3-4c3b-98cf-35fa2bdefbd4",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "6f3b4d00-4558-4870-baa0-7efd46889712": {
+        "nameStringId": "c9a76bb9-a978-4e44-b272-70aff9ba7ac3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "11819e8f-d644-4933-b0f4-4e4d2fd384cc": {
+        "nameStringId": "7f34c9ce-b22f-4213-9789-dee24ad23241",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a91bd39d-1e26-4d2f-8037-810116b4dd73": {
+        "nameStringId": "bb8f4911-3494-4921-8c84-c7881ce63b24",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a969afa6-a45f-44d8-a761-ab8055761763": {
+        "nameStringId": "7cd54314-1133-442f-be5f-8418400867c3",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "75bc6144-88c9-4a5a-898b-ff032cd84cfb": {
+        "nameStringId": "19a1c47a-734e-4fd8-87be-3a254bc7082e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4c7bfbca-4e43-4c44-baf0-97f6b2ab2548": {
+        "nameStringId": "a5521671-dbbb-4d68-81e1-8ff472d4fb27",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d344e8ca-fba3-4902-91b7-afb95050fe8d": {
+        "nameStringId": "8f8935b7-c886-42e0-9ef6-5619a356fa3e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "5cd8895a-4f8c-472b-9913-779c7cd1e9f4": {
+        "nameStringId": "16a0065f-78db-4c14-a7d3-4c9b2c67518f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7c0df7f4-1839-4fcc-9969-6274156ee7b3": {
+        "nameStringId": "66bd16b3-614c-40ff-81c4-2baa333c1742",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "088c0cb8-689b-4dc0-b13c-9a9b70caf854": {
+        "nameStringId": "c4d12565-330c-4925-9eff-6f9934b9c84d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "2c99b15b-4b30-49a6-9e62-75ee22088b31": {
+        "nameStringId": "80227d90-b7c4-45b6-990f-7042240dffe6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ef314f55-7389-4c91-98ba-b1dbbb43c9d2": {
+        "nameStringId": "f59dc2b1-5553-4db8-b4a5-061d31173fcf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "437f4d6c-ed8c-4481-9b2a-2deec71e19f1": {
+        "nameStringId": "08bdcd70-ad9f-4c0d-981c-5be8b5d8e3af",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f38ed19f-1894-4b7c-91d4-0ddb5b32ab4b": {
+        "nameStringId": "a84606b9-c915-4a08-a0be-6f38f02fde0d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3e6b1349-e69f-41bc-9593-159346a728b6": {
+        "nameStringId": "ae4427d7-31a3-4834-9222-ce6d4a197b5f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4851e180-5b86-47b3-8b11-f2ab4e152d21": {
+        "nameStringId": "7339991e-3bcf-4d6f-ac1d-afaea9db4e14",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "4aa6bd87-13b2-4e8c-90a0-c6de3f67a6fd": {
+        "nameStringId": "95432015-d62c-4421-9a48-1fcb38b24e4d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1c1e9203-e741-4794-9226-70b56bc287c4": {
+        "nameStringId": "664112cf-b3a1-4a91-a0c7-058def47fc35",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "696c4788-e637-4ded-858c-d9353e976fee": {
+        "nameStringId": "ed83a13a-a9db-4504-b44a-183f7fa1976e",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e80a0ef2-e164-4cbd-9e91-1e8e4c85cebc": {
+        "nameStringId": "6e2af343-c1ef-4445-89b0-ba2c6a684751",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1103675e-ea42-4842-b65e-d7ae9b02c7b6": {
+        "nameStringId": "f3d5c8f6-33dd-487e-83c6-b2710c0087bf",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "c7123064-d804-472b-892e-e2bd75143688": {
+        "nameStringId": "4739469a-62e3-46a6-a8bd-239cc5a1ca04",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "862abd12-8bb9-4c1d-a16a-a9d2710dda43": {
+        "nameStringId": "c3b1e6e4-2fe4-4f96-844e-921dfbd6433c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "9b4ab8d1-83be-48db-a80c-80b18ebf090c": {
+        "nameStringId": "fecac444-5e9d-44e7-9316-c5eb163ff582",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "256005a2-3527-4b33-8be3-ddcd7f64d4c8": {
+        "nameStringId": "296ddd5e-913b-471c-9cdd-e2595d05f19f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3d5474df-675e-4903-a852-43676b3ff119": {
+        "nameStringId": "81197e27-434a-4aef-b831-0be711846e90",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "31e944c2-892a-4570-b9d3-8bfb38e71d80": {
+        "nameStringId": "db410172-a949-42ae-b5aa-e37c12b1c0aa",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8d03aad1-82dd-4a12-b78f-94f9650599df": {
+        "nameStringId": "7d13ffd6-6c28-4d05-9366-666d67e18106",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "cb6685a5-a98b-47bd-9aa0-200a7a2b9c68": {
+        "nameStringId": "e5dc8cd8-74ff-4e1c-9107-1aade0e772eb",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ec760607-35f3-47df-b7db-84bc0ae2aaf0": {
+        "nameStringId": "759e738a-b881-4e76-99e2-3922d98c89b2",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "525915fd-466d-4a96-87c8-61a0d78015c1": {
+        "nameStringId": "96cb1d75-fc79-4cd2-b752-f7e675219b97",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "df1d3ed0-5a25-4a78-b185-c7b307d1938f": {
+        "nameStringId": "b95d0ef1-e185-48e3-b48b-6ad3ea34fd11",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "a43b21a2-ad93-4644-9c8e-49ce7327f07b": {
+        "nameStringId": "d32c33ec-6300-4e19-a2cf-80491b3baa20",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "e8cf319e-0a3f-405b-a701-1ec78c8877fd": {
+        "nameStringId": "6f4e67df-3b59-4dba-b56f-82998a960d2f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8ff7947c-45a4-4a3e-b869-fbd38b90ed85": {
+        "nameStringId": "880772cc-bdd4-475f-b83a-00fd6b2422d6",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "298d5616-34d5-46e4-ba0c-6b606fc4f56f": {
+        "nameStringId": "457f9280-09e4-41c5-bb46-6927a4ff4462",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1b6e3fd6-1455-4bda-a238-2364e9338af2": {
+        "nameStringId": "500db530-b700-4779-aa36-bfb593219a16",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "93632251-461e-44df-bb00-b96ef7239368": {
+        "nameStringId": "a32cd01b-fea8-430b-befe-0348004c0076",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "32df0f2e-46a0-441f-9d4b-11dbf081fc6c": {
+        "nameStringId": "25567b6b-7605-45b7-946b-a4d4c556b581",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "387223d2-ba19-4089-8af0-3bd69509d985": {
+        "nameStringId": "e3c14545-6d81-48e1-bf0f-8a44614e4bcc",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "ace896fc-b1ad-4f99-aa4f-60d20ccf1b11": {
+        "nameStringId": "e7f189c0-38b8-4f8b-aa1f-b977bc82e5de",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "7dc059cc-447d-42b6-91fa-c4711d7dea68": {
+        "nameStringId": "f0054c6b-fcef-499e-8c1d-b16f42c9309d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "d1f0e43f-d999-4333-aefc-8ced3e040198": {
+        "nameStringId": "bf9d1935-24cf-4889-9c37-2df1ed5759fd",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "0e1b45af-7842-4982-9523-75e740605b6e": {
+        "nameStringId": "96135999-fb18-4e07-a87e-8380d02a1b54",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "8f8330a3-bbb0-4419-b021-585e943b6eca": {
+        "nameStringId": "c5e5055d-ac29-4b73-b00b-bc6fac76d01c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3b2a1009-803c-4db2-b049-e016306c0fa1": {
+        "nameStringId": "0838db3c-7c82-4e3c-b62e-66db86c5c441",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "3f2ee78f-8a97-44e7-b085-cad9346a7bd0": {
+        "nameStringId": "5872862e-e03a-4d1f-a1a0-68fd4bb7d417",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "244b1bc0-2fdd-4743-9afb-9b7f092ebebb": {
+        "nameStringId": "57004a47-113c-49c2-ac3c-b076b99fdd8f",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "1ee4cf1c-c35f-45db-8aa3-9269357c6afe": {
+        "nameStringId": "53facd38-ed5a-474e-b94a-04c791637809",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "f2016fa9-06f9-4d2f-846e-700e753a1aa7": {
+        "nameStringId": "6802097c-e58b-412b-8989-02b9a91c076c",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "17867ab8-6b8b-4734-b81d-0294b0b33f89": {
+        "nameStringId": "8b9bef42-bfa5-45a5-a724-3843d31f096d",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
+    },
+    "000ac7d5-b0c3-4cd0-959d-24c4932f59bd": {
+        "nameStringId": "58538897-31c9-4484-99a8-567d34c8483a",
+        "category": "temperature",
+        "minimumValue": -50,
+        "maximumValue": 150,
+        "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     }
 }

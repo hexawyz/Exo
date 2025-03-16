@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
@@ -115,11 +116,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private readonly PawnIo? _pawnIo;
 	private readonly ProcessorPackageInformation _packageInformation;
 	private readonly uint _tccActivationTemperature;
-	private readonly ManualResetEvent? _packageReadRequestManualResetEvent;
-	private SensorReadValueTaskSource<short>? _packageTemperatureReadValueTaskSource;
 	private readonly ImmutableArray<ISensor> _sensors;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
-	private readonly Thread? _packageReadThread;
 	private bool _isDisposed;
 
 	private IntelCpuDriver
@@ -135,23 +133,46 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		_pawnIo = pawnIo;
 		_packageInformation = packageInformation;
 		_tccActivationTemperature = tccActivationTemperature;
+		Sensor[] sensors;
 		if (_pawnIo is not null && tccActivationTemperature > 0)
 		{
-			_packageReadRequestManualResetEvent = new(false);
-			_packageTemperatureReadValueTaskSource = new();
-			_sensors = [new PackageTemperatureSensor(this)];
-			_packageReadThread = new Thread(new ThreadStart(ReadPackageTemperatures)) { IsBackground = true };
+			// This will hopefully be enough to process the small amount of operations of each thread.
+			const int ThreadStackSize = 4096;
+
+			// We likely shouldn't try to expose per-core temperature sensors if there is only one CPU core?
+			// Also, this sensor code might be expensive for high core count, as we spawn a thread for each core.
+			// While this is the easiest way to handle everything, it might be worth it to use the same thread for N cores at the cost of rescheduling.
+			sensors = new Sensor[packageInformation.Cores.Length > 1 ? 1 + packageInformation.Cores.Length : 1];
+			sensors[0] = new PackageTemperatureSensor(this, new Thread(new ParameterizedThreadStart(ReadPackageSensors), ThreadStackSize) { IsBackground = true });
+			if (sensors.Length > 1)
+			{
+				var readCoreSensors = new ParameterizedThreadStart(ReadCoreSensors);
+				for (int i = 1; i < sensors.Length; i++)
+				{
+					sensors[i] = new CoreTemperatureSensor(this, new Thread(readCoreSensors, ThreadStackSize) { IsBackground = true }, i - 1);
+				}
+			}
 		}
+		else
+		{
+			sensors = [];
+		}
+		_sensors = ImmutableCollectionsMarshal.AsImmutableArray(Unsafe.As<ISensor[]>(sensors));
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, IntelCpuDriver, ISensorsFeature>(this);
-		_packageReadThread?.Start();
+		foreach (var sensor in sensors)
+		{
+			sensor.Start();
+		}
 	}
 
 	public override ValueTask DisposeAsync()
 	{
 		if (!Interlocked.Exchange(ref _isDisposed, true))
 		{
-			_packageReadRequestManualResetEvent?.Set();
-			_packageReadThread?.Join();
+			foreach (var sensor in _sensors)
+			{
+				Unsafe.As<Sensor>(sensor).SetEvent();
+			}
 			_pawnIo?.Dispose();
 		}
 		return ValueTask.CompletedTask;
@@ -162,30 +183,49 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		if (Volatile.Read(ref _isDisposed)) throw new ObjectDisposedException(GetType().FullName);
 	}
 
-	private void ReadPackageTemperatures()
+	private void ReadPackageSensors(object? state)
+		=> ReadPackageSensors(Unsafe.As<PackageTemperatureSensor>(state!));
+
+	private void ReadPackageSensors(PackageTemperatureSensor sensor)
 	{
 		// TODO: Same as during init. CPU Sets API would be nice for CPUs with many cores.
 		ProcessorAffinity.SetForCurrentThread((nuint)_packageInformation.GroupAffinities[0].Mask, _packageInformation.GroupAffinities[0].Group);
 		while (true)
 		{
-			_packageReadRequestManualResetEvent!.WaitOne();
+			sensor!.WaitEvent();
 			if (Volatile.Read(ref _isDisposed))
 			{
-				Interlocked.Exchange(ref _packageTemperatureReadValueTaskSource, null)?.SetDisposed();
+				sensor.MarkDisposed();
 				return;
 			}
-			_packageTemperatureReadValueTaskSource!.SetResult((short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32PackageThermStatus) >> 16) & 0x7F));
-			_packageReadRequestManualResetEvent.Reset();
+			sensor._readValueTaskSource!.SetResult((short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32PackageThermStatus) >> 16) & 0x7F));
+			sensor.ResetEvent();
 		}
 	}
 
-	// NB: This will break if the method is called more than once at a time.
-	private ValueTask<short> ReadPackageTemperatureAsync()
+	private void ReadCoreSensors(object? state)
+		=> ReadCoreSensors(Unsafe.As<CoreTemperatureSensor>(state!));
+
+	private void ReadCoreSensors(CoreTemperatureSensor sensor)
 	{
-		ThrowIfDisposed();
-		_packageReadRequestManualResetEvent!.Set();
-		if (_packageTemperatureReadValueTaskSource is not { } vts) throw new ObjectDisposedException(GetType().FullName);
-		return vts.AsValueTask();
+		SetAffinityForCore(sensor.CoreIndex);
+		while (true)
+		{
+			sensor!.WaitEvent();
+			if (Volatile.Read(ref _isDisposed))
+			{
+				sensor.MarkDisposed();
+				return;
+			}
+			sensor._readValueTaskSource!.SetResult((short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32ThermStatus) >> 16) & 0x7F));
+			sensor.ResetEvent();
+		}
+	}
+
+	private void SetAffinityForCore(int coreIndex)
+	{
+		var core = _packageInformation.Cores[coreIndex];
+		ProcessorAffinity.SetForCurrentThread((nuint)core.GroupAffinity.Mask, core.GroupAffinity.Group);
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Processor;
@@ -193,21 +233,85 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => _sensors;
 
-	private sealed class PackageTemperatureSensor : IPolledSensor<short>
+	private abstract class Sensor
 	{
 		private readonly IntelCpuDriver _driver;
+		private readonly ManualResetEvent _manualResetEvent;
+		internal readonly Thread _thread;
 
-		public PackageTemperatureSensor(IntelCpuDriver driver)
+		protected Sensor(IntelCpuDriver driver, Thread thread)
 		{
 			_driver = driver;
+			_manualResetEvent = new(false);
+			_thread = thread;
 		}
 
-		short? ISensor<short>.ScaleMinimumValue => (short)(_driver._tccActivationTemperature - 0x7F);
-		short? ISensor<short>.ScaleMaximumValue => (short)_driver._tccActivationTemperature;
+		protected IntelCpuDriver Driver => _driver;
+
+		internal virtual void MarkDisposed() => _manualResetEvent.Dispose();
+		internal void Start() => _thread.Start(this);
+		internal void Join() => _thread.Join();
+		internal void WaitEvent() => _manualResetEvent.WaitOne();
+		internal void SetEvent() => _manualResetEvent.Set();
+		internal void ResetEvent() => _manualResetEvent.Reset();
+	}
+
+	private abstract class Sensor<T> : Sensor
+		where T : unmanaged
+	{
+		internal SensorReadValueTaskSource<T>? _readValueTaskSource;
+
+		protected Sensor(IntelCpuDriver driver, Thread thread) : base(driver, thread)
+		{
+			_readValueTaskSource = new();
+		}
+
+		internal sealed override void MarkDisposed()
+		{
+			Interlocked.Exchange(ref _readValueTaskSource, null)?.SetDisposed();
+			base.MarkDisposed();
+		}
+
+		// NB: This will break if the method is called more than once at a time.
+		protected ValueTask<T> GetValueAsync(CancellationToken cancellationToken)
+		{
+			Driver.ThrowIfDisposed();
+			SetEvent();
+			if (_readValueTaskSource is not { } vts) throw new ObjectDisposedException(GetType().FullName);
+			return vts.AsValueTask();
+		}
+	}
+
+	private sealed class PackageTemperatureSensor : Sensor<short>, IPolledSensor<short>
+	{
+		public PackageTemperatureSensor(IntelCpuDriver driver, Thread thread) : base(driver, thread)
+		{
+		}
+
+		short? ISensor<short>.ScaleMinimumValue => (short)(Driver._tccActivationTemperature - 0x7F);
+		short? ISensor<short>.ScaleMaximumValue => (short)Driver._tccActivationTemperature;
 		Guid ISensor.SensorId => ProcessorPackageTemperatureSensorId;
 		SensorUnit ISensor.Unit => SensorUnit.Celsius;
 
-		ValueTask<short> IPolledSensor<short>.GetValueAsync(CancellationToken cancellationToken) => _driver.ReadPackageTemperatureAsync();
+		ValueTask<short> IPolledSensor<short>.GetValueAsync(CancellationToken cancellationToken) => GetValueAsync(cancellationToken);
+	}
+
+	private sealed class CoreTemperatureSensor : Sensor<short>, IPolledSensor<short>
+	{
+		public int CoreIndex { get; }
+
+		public CoreTemperatureSensor(IntelCpuDriver driver, Thread thread, int coreIndex) : base(driver, thread)
+		{
+			if (coreIndex > ProcessorCoreTemperatureSensorIds.Count) throw new PlatformNotSupportedException();
+			CoreIndex = coreIndex;
+		}
+
+		short? ISensor<short>.ScaleMinimumValue => (short)(Driver._tccActivationTemperature - 0x7F);
+		short? ISensor<short>.ScaleMaximumValue => (short)Driver._tccActivationTemperature;
+		Guid ISensor.SensorId => ProcessorCoreTemperatureSensorIds[CoreIndex];
+		SensorUnit ISensor.Unit => SensorUnit.Celsius;
+
+		ValueTask<short> IPolledSensor<short>.GetValueAsync(CancellationToken cancellationToken) => GetValueAsync(cancellationToken);
 	}
 
 	private sealed class SensorReadValueTaskSource<T> : IValueTaskSource<T>
