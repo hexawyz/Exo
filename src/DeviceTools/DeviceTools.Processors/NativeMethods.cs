@@ -17,6 +17,8 @@ internal static class NativeMethods
 	public static extern unsafe uint SetThreadGroupAffinity(nint threadHandle, GroupAffinity* groupAffinity, GroupAffinity* previousGroupAffinity);
 	[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
 	public static extern unsafe uint GetLogicalProcessorInformationEx(int relationshipType, void* buffer, uint* returnedLength);
+	[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+	public static extern unsafe uint SetThreadSelectedCpuSetMasks(nint threadHandle, GroupAffinity* groupAffinities, ushort groupAffinityCount);
 
 	public struct GroupAffinity
 	{

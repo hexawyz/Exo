@@ -219,8 +219,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 	private void ReadPackageSensors(PackageTemperatureSensor sensor)
 	{
-		// TODO: Same as during init. CPU Sets API would be nice for CPUs with many cores.
-		ProcessorAffinity.SetForCurrentThread((nuint)_packageInformation.GroupAffinities[0].Mask, _packageInformation.GroupAffinities[0].Group);
+		ProcessorAffinity.SetForCurrentThread(_packageInformation.GroupAffinities);
 		while (true)
 		{
 			sensor!.WaitEvent();
