@@ -130,7 +130,8 @@ NB: Support of a device does not mean that all of its features will be exposed i
 	* GeForce RTX 3090 FE and select other GPUs: RGB lighting
 * Intel
 	* WIP: Should at term be able to expose the I2C interface to control connected monitors, however the IGCL library support is currently very poor and doesn't work on many not-too-old configurations.
-	* Monitor control via the I2C fallback (for when the IGCL library is unavailable, which is very frequent) 
+	* Monitor control via the I2C fallback (for when the IGCL library is unavailable, which is very frequent)
+    * CPU: Temperature sensors.
 * Gigabyte
 	* Z490 VISION D and other similar motherboards:
 		* IT5702 RGB controller: RGB lighting
@@ -154,9 +155,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 
 Features are being added bit by bit, and while some are not yet fully designed, there is actually a vision on what to be done:
 
-* Support for a "Light" feature, slightly different than "Lighting" feature, in that lights are independent entities that can be turned on and off externally.
 * Programming system that will allow creating customized complex setups to fit any user need, with predictable state transitions.
-* CPU temperature sensor (Sadly requires a Kernel driver)
 
 # Running Exo
 
@@ -168,6 +167,10 @@ Exo relies on these runtimes, that you can download from the official websites:
 
 * .NET 9.0.200 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
 * Windows App SDK 1.6 Runtime: https://aka.ms/windowsappsdk/1.6/1.6.250205002/windowsappruntimeinstall-x64.exe
+* PawnIO 2.0.0: https://github.com/namazso/PawnIO.Setup/releases/download/2.0.0/PawnIO_setup.exe
+
+ℹ️ PawnIO is used for accessing low-level platform features in a safe way.
+You will need it to get things like CPU temperature sensors working.
 
 ### Optional
 
