@@ -45,10 +45,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 		try
 		{
-			// TODO: Use the CPU Sets API to bind to more than one group for processors that have more than 64 cores.
-			// The code below is still valid, but we increase our chance of being scheduled if we increase the number of allowed cores.
-			var groupAffinities = t.Item5.GroupAffinities;
-			ProcessorAffinity.SetForCurrentThread((nuint)groupAffinities[0].Mask, groupAffinities[0].Group);
+			ProcessorAffinity.SetForCurrentThread(t.Item5.GroupAffinities);
 
 			int eax, ebx, ecx, edx;
 
