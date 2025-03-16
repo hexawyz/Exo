@@ -151,7 +151,6 @@ internal partial class CoolingService
 				var activeState = _activeState;
 				if (activeState is SoftwareCurveCoolerState dynamicState)
 				{
-					dynamicState.Reset();
 					dynamicState.Start();
 				}
 				else if (activeState is HardwareCurveCoolerState hardwareCurveState)

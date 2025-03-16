@@ -17,13 +17,21 @@ internal partial class CoolingService
 		protected SoftwareCurveCoolerState(CoolerState coolerState)
 		{
 			_coolerState = coolerState;
-			_cancellationTokenSource = new();
 		}
 
+		/// <summary>Starts the current state.</summary>
+		/// <remarks>
+		/// <para>
+		/// This also supports restarting operations after the state has been stopped as a result to a previous call to <see cref="StopAsync"/>.
+		/// This is somewhat of a niche use case because cooling devices are expected to always be online.
+		/// However, there are still some reasons that could cause a cooling device to go offline, so we want to support that.
+		/// </para>
+		/// <para></para>
+		/// </remarks>
+		/// <exception cref="InvalidOperationException">The state is still running.</exception>
 		internal void Start()
 		{
-			if (_cancellationTokenSource is null) throw new InvalidOperationException();
-			if (_runTask is not null) throw new InvalidOperationException();
+			if (Interlocked.CompareExchange(ref _cancellationTokenSource, new CancellationTokenSource(), null) is not null || _runTask is not null) throw new InvalidOperationException();
 			_runTask = RunAsync(_cancellationTokenSource!.Token);
 		}
 
@@ -36,17 +44,6 @@ internal partial class CoolingService
 				await _runTask.ConfigureAwait(false);
 			}
 			cts.Dispose();
-		}
-
-		/// <summary>Resets the state, after it has been stopped.</summary>
-		/// <remarks>
-		/// This operation is important to allow for restarting a dynamic state after a device came back online from a previous time.
-		/// This is actually a niche use case as cooling devices would generally be always on. However, devices can go offline for many reasons, so we definitely want to have this working.
-		/// </remarks>
-		/// <returns></returns>
-		internal void Reset()
-		{
-			if (Interlocked.CompareExchange(ref _cancellationTokenSource, new CancellationTokenSource(), null) is not null) throw new InvalidOperationException();
 		}
 
 		/// <summary>Runs this dynamic state until it is requested to stop.</summary>
@@ -66,7 +63,8 @@ internal partial class CoolingService
 		private readonly Guid _sensorId;
 		private readonly byte _fallbackValue;
 
-		public SoftwareCurveCoolerState(CoolerState coolerState, Guid sensorDeviceId, Guid sensorId, byte fallbackValue, InterpolatedSegmentControlCurve<TInput, byte> controlCurve) : base(coolerState)
+		public SoftwareCurveCoolerState(CoolerState coolerState, Guid sensorDeviceId, Guid sensorId, byte fallbackValue, InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
+			: base(coolerState)
 		{
 			_sensorDeviceId = sensorDeviceId;
 			_sensorId = sensorId;
