@@ -22,6 +22,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Processors\DeviceTools.Processors.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Cpu\Exo.Discovery.Cpu.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>

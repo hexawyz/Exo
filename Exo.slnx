@@ -24,6 +24,7 @@
     <Project Path="src/DeviceTools/DeviceTools.Logitech.HidPlusPlus/DeviceTools.Logitech.HidPlusPlus.csproj" />
     <Project Path="src/DeviceTools/DeviceTools.Numerics.Tests/DeviceTools.Numerics.Tests.csproj" />
     <Project Path="src/DeviceTools/DeviceTools.Numerics/DeviceTools.Numerics.csproj" />
+    <Project Path="src/DeviceTools/DeviceTools.Processors/DeviceTools.Processors.csproj" Id="3570d127-7ab6-40d5-b1fd-f07d89bdbfd9" />
     <Project Path="src/DeviceTools/DeviceTools.RawInput/DeviceTools.RawInput.csproj" />
     <Project Path="src/DeviceTools/DeviceTools.SourceGenerators/DeviceTools.SourceGenerators.csproj" />
     <Project Path="src/DeviceTools/DeviceTools.Usb/DeviceTools.Usb.csproj" />

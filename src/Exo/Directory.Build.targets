@@ -24,6 +24,7 @@
 		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Cpu\Exo.Discovery.Cpu.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\Discovery\Exo.Discovery.DnsSd\Exo.Discovery.DnsSd.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Processors\DeviceTools.Processors.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.Numerics\DeviceTools.Numerics.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.DeviceIds.Databases\DeviceTools.DeviceIds.Databases.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\..\DeviceTools\DeviceTools.DeviceIds.Usb\DeviceTools.DeviceIds.Usb.csproj" Private="false" ExcludeAssets="runtime" />

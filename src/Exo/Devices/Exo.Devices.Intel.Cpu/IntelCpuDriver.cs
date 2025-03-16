@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Threading.Tasks.Sources;
+using DeviceTools.Processors;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Sensors;
@@ -25,12 +26,13 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	(
 		ILogger<IntelCpuDriver> logger,
 		ImmutableArray<SystemCpuDeviceKey> keys,
-		int processorIndex
+		int processorIndex,
+		ProcessorPackageInformation packageInformation
 	)
 	{
 		var tcs = new TaskCompletionSource<DriverCreationResult<SystemCpuDeviceKey>?>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var thread = new Thread(InitializeCpu) { IsBackground = true };
-		thread.Start(Tuple.Create(tcs, logger, keys, processorIndex));
+		thread.Start(Tuple.Create(tcs, logger, keys, processorIndex, packageInformation));
 		return tcs.Task;
 	}
 
@@ -38,11 +40,14 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	{
 		ArgumentNullException.ThrowIfNull(state);
 
-		var t = (Tuple<TaskCompletionSource<DriverCreationResult<SystemCpuDeviceKey>?>, ILogger<IntelCpuDriver>, ImmutableArray<SystemCpuDeviceKey>, int>)state;
+		var t = (Tuple<TaskCompletionSource<DriverCreationResult<SystemCpuDeviceKey>?>, ILogger<IntelCpuDriver>, ImmutableArray<SystemCpuDeviceKey>, int, ProcessorPackageInformation>)state;
 
 		try
 		{
-			NativeMethods.SetThreadGroupAffinity(NativeMethods.GetCurrentThread(), 1, 0);
+			// TODO: Use the CPU Sets API to bind to more than one group for processors that have more than 64 cores.
+			// The code below is still valid, but we increase our chance of being scheduled if we increase the number of allowed cores.
+			var groupAffinities = t.Item5.GroupAffinities;
+			ProcessorAffinity.SetForCurrentThread((nuint)groupAffinities[0].Mask, groupAffinities[0].Group);
 
 			int eax, ebx, ecx, edx;
 
@@ -75,7 +80,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			t.Item1.TrySetResult
 			(
-				new(t.Item3, new IntelCpuDriver(t.Item2, pawnIo, tccActivationTemperature, ReadBrandString(), t.Item4))
+				new(t.Item3, new IntelCpuDriver(t.Item2, pawnIo, t.Item5, tccActivationTemperature, ReadBrandString(), t.Item4))
 			);
 		}
 		catch (Exception ex)
@@ -108,6 +113,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	}
 
 	private readonly PawnIo? _pawnIo;
+	private readonly ProcessorPackageInformation _packageInformation;
 	private readonly uint _tccActivationTemperature;
 	private readonly ManualResetEvent? _packageReadRequestManualResetEvent;
 	private SensorReadValueTaskSource<short>? _packageTemperatureReadValueTaskSource;
@@ -120,12 +126,14 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	(
 		ILogger<IntelCpuDriver> logger,
 		PawnIo? pawnIo,
+		ProcessorPackageInformation packageInformation,
 		byte tccActivationTemperature,
 		string brandString,
 		int processorIndex
 	) : base(brandString, new("IntelX86", string.Create(CultureInfo.InvariantCulture, $"{processorIndex}:{brandString}"), brandString, null))
 	{
 		_pawnIo = pawnIo;
+		_packageInformation = packageInformation;
 		_tccActivationTemperature = tccActivationTemperature;
 		if (_pawnIo is not null && tccActivationTemperature > 0)
 		{
@@ -156,7 +164,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 	private void ReadPackageTemperatures()
 	{
-		NativeMethods.SetThreadGroupAffinity(NativeMethods.GetCurrentThread(), 1, 0);
+		// TODO: Same as during init. CPU Sets API would be nice for CPUs with many cores.
+		ProcessorAffinity.SetForCurrentThread((nuint)_packageInformation.GroupAffinities[0].Mask, _packageInformation.GroupAffinities[0].Group);
 		while (true)
 		{
 			_packageReadRequestManualResetEvent!.WaitOne();

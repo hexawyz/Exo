@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Intrinsics.X86;
+using DeviceTools.Processors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
@@ -24,7 +25,8 @@ public sealed class CpuDiscoverySubsystem :
 		// For now, there should never be a case where we have heterogeneous vendors or even CPU packages, so we can just ake the CPUID from a random core on the system.
 		var vendorId = X86VendorId.ForCurrentCpu();
 
-		var service = new CpuDiscoverySubsystem(loggerFactory, driverRegistry, vendorId , 1);
+		var processorPackages = ProcessorPackageInformation.GetAll();
+		var service = new CpuDiscoverySubsystem(loggerFactory, driverRegistry, vendorId, processorPackages);
 		try
 		{
 			await service.RegisterAsync(discoveryOrchestrator);
@@ -41,7 +43,7 @@ public sealed class CpuDiscoverySubsystem :
 
 	private readonly ILogger<CpuDiscoverySubsystem> _logger;
 	private readonly X86VendorId _vendorId;
-	private readonly int _processorPackageCount;
+	private readonly ImmutableArray<ProcessorPackageInformation> _processorPackages;
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 
@@ -52,14 +54,14 @@ public sealed class CpuDiscoverySubsystem :
 		ILoggerFactory loggerFactory,
 		INestedDriverRegistryProvider driverRegistry,
 		X86VendorId vendorId,
-		int processorPackageCount
+		ImmutableArray<ProcessorPackageInformation> processorPackages
 	)
 	{
 		_logger = loggerFactory.CreateLogger<CpuDiscoverySubsystem>();
 		LoggerFactory = loggerFactory;
 		DriverRegistry = driverRegistry;
 		_vendorId = vendorId;
-		_processorPackageCount = processorPackageCount;
+		_processorPackages = processorPackages;
 
 		_cpuFactories = new();
 
@@ -67,6 +69,8 @@ public sealed class CpuDiscoverySubsystem :
 	}
 
 	public override string FriendlyName => "CPU Discovery";
+
+	internal ImmutableArray<ProcessorPackageInformation> ProcessorPackages => _processorPackages;
 
 	protected override ValueTask StartAsync(IDiscoverySink<SystemCpuDeviceKey, CpuDiscoveryContext, CpuDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
@@ -77,7 +81,7 @@ public sealed class CpuDiscoverySubsystem :
 			if (_cpuFactories.Count == 0 || !_cpuFactories.TryGetValue(_vendorId, out factoryId)) return ValueTask.CompletedTask;
 		}
 
-		for (int i = 0; i < _processorPackageCount; i++)
+		for (int i = 0; i < _processorPackages.Length; i++)
 		{
 			sink.HandleArrival(new(this, _vendorId, i, factoryId));
 		}
@@ -91,7 +95,7 @@ public sealed class CpuDiscoverySubsystem :
 		foreach (var attribute in attributes)
 		{
 			if (attribute.Matches<X86CpuVendorIdAttribute>() &&
-				attribute.ConstructorArguments is [ { Value: string vendorId } ] &&
+				attribute.ConstructorArguments is [{ Value: string vendorId }] &&
 				vendorId is { Length: 12 })
 			{
 				keys.Add(new(vendorId));
