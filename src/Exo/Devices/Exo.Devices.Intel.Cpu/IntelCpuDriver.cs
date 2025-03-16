@@ -200,6 +200,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 			{
 				Unsafe.As<Sensor>(sensor).SetEvent();
 			}
+			foreach (var sensor in _sensors)
+			{
+				Unsafe.As<Sensor>(sensor).Join();
+			}
 			_pawnIo?.Dispose();
 		}
 		return ValueTask.CompletedTask;
