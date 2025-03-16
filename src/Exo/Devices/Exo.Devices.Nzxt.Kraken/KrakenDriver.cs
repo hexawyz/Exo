@@ -422,7 +422,7 @@ public partial class KrakenDriver :
 
 	private async ValueTask UpdateFanPowerAsync(CancellationToken cancellationToken)
 	{
-		if ((_pumpState & CoolingStateCurve) != 0)
+		if ((_fanState & CoolingStateCurve) != 0)
 		{
 			await _hidTransport.SetFanPowerCurveAsync(_fanCoolingCurve, cancellationToken).ConfigureAwait(false);
 			_fanState = CoolingStateCurve;
