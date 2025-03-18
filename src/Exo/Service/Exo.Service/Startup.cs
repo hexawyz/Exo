@@ -60,13 +60,13 @@ public class Startup
 			}
 		);
 		services.AddKeyedSingleton(RootConfigurationContainerKey, (sp, _) => sp.GetRequiredService<ConfigurationService>().GetRootContainer());
-		services.AddKeyedSingleton(ConfigurationContainerNames.Devices, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, GuidNameSerializer.Instance));
-		services.AddKeyedSingleton(ConfigurationContainerNames.Discovery, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
-		services.AddKeyedSingleton(ConfigurationContainerNames.DiscoveryFactory, (sp, name) => sp.GetRequiredKeyedService<IConfigurationContainer>(ConfigurationContainerNames.Discovery).GetContainer((string)name, GuidNameSerializer.Instance));
-		services.AddKeyedSingleton(ConfigurationContainerNames.Assembly, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, AssemblyNameSerializer.Instance));
-		services.AddKeyedSingleton(ConfigurationContainerNames.CustomMenu, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
-		services.AddKeyedSingleton(ConfigurationContainerNames.Lighting, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name));
-		services.AddKeyedSingleton(ConfigurationContainerNames.Images, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name, ImageNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Devices, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name!, GuidNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Discovery, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name!));
+		services.AddKeyedSingleton(ConfigurationContainerNames.DiscoveryFactory, (sp, name) => sp.GetRequiredKeyedService<IConfigurationContainer>(ConfigurationContainerNames.Discovery).GetContainer((string)name!, GuidNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Assembly, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name!, AssemblyNameSerializer.Instance));
+		services.AddKeyedSingleton(ConfigurationContainerNames.CustomMenu, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name!));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Lighting, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name!));
+		services.AddKeyedSingleton(ConfigurationContainerNames.Images, (sp, name) => sp.GetRequiredService<ConfigurationService>().GetContainer((string)name!, ImageNameSerializer.Instance));
 		if (Environment.IsDevelopment())
 		{
 			services.AddSingleton<IAssemblyDiscovery, DebugAssemblyDiscovery>();

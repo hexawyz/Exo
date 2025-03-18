@@ -165,8 +165,8 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 
 Exo relies on these runtimes, that you can download from the official websites:
 
-* .NET 9.0.200 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
-* Windows App SDK 1.6 Runtime: https://aka.ms/windowsappsdk/1.6/1.6.250205002/windowsappruntimeinstall-x64.exe
+* .NET 9.0.202 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
+* Windows App SDK 1.7 Runtime: https://aka.ms/windowsappsdk/1.7/1.7.250310001/windowsappruntimeinstall-x64.exe
 * PawnIO 2.0.0: https://github.com/namazso/PawnIO.Setup/releases/download/2.0.0/PawnIO_setup.exe
 
 ℹ️ PawnIO is used for accessing low-level platform features in a safe way.
