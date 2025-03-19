@@ -226,9 +226,13 @@ internal sealed partial class SensorService
 				// When the state is disposed, the channel will be completed with an exception, so that watchers are made aware of the operation completion.
 				// Generally, if a sensor is watched from the UI, the UI would cancel watching anyway, so there would never be a call to WatchAsync hanging.
 				// However, if a sensor is watched internally, such as for cooling curves, we absolutely need a deterministic way to detect that the sensor has become (temporarily) unavailable.
-				await foreach (var dataPoint in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+				var reader = channel.Reader;
+				while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
 				{
-					yield return dataPoint;
+					while (reader.TryRead(out var dataPoint))
+					{
+						yield return dataPoint;
+					}
 				}
 			}
 			finally

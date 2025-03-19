@@ -84,7 +84,10 @@ internal partial class CoolingService
 					await CoolerState.SensorService.WaitForSensorAsync(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false);
 					try
 					{
-						await foreach (var dataPoint in CoolerState.SensorService.WatchValuesAsync<TInput>(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false))
+						// TODO: We can certainly make this "even better" by returning an object that exposes the channel.
+						// As most of the code is internal, it makes sense to trade convenience for more performance. (Avoiding abstractions in this case)
+						var watcher = await CoolerState.SensorService.GetValueWatcherAsync<TInput>(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false);
+						await foreach (var dataPoint in watcher.ConfigureAwait(false))
 						{
 							// NB: The state lock is not acquired here, as we are guaranteed that this dynamic state will be disposed before any other update can occur.
 							CoolerState.SendManualPowerUpdate(_controlCurve[dataPoint.Value]);
