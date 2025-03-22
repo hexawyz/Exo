@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using Exo.Rpc;
 using Exo.Sensors;
 
@@ -11,6 +12,8 @@ namespace Exo.Service.Rpc;
 
 internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServerConnection<UiPipeServerConnection>
 {
+	private static readonly UnboundedChannelOptions SensorChannelOptions = new() { SingleWriter = false, SingleReader = true, AllowSynchronousContinuations = true };
+
 	public static UiPipeServerConnection Create(PipeServer<UiPipeServerConnection> server, NamedPipeServerStream stream)
 	{
 		var uiPipeServer = (UiPipeServer)server;
@@ -21,6 +24,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	private readonly SensorService _sensorService;
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
+	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
 
 	private UiPipeServerConnection
 	(
@@ -33,6 +37,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		_customMenuService = customMenuService;
 		_sensorService = sensorService;
 		_sensorWatchStates = new();
+		_sensorUpdateChannel = Channel.CreateUnbounded<SensorUpdate>(SensorChannelOptions);
 	}
 
 	protected override ValueTask OnDisposedAsync() => ValueTask.CompletedTask;
@@ -40,6 +45,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	private async Task WatchEventsAsync(CancellationToken cancellationToken)
 	{
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
+		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 
 		await Task.WhenAll(customMenuWatchTask).ConfigureAwait(false);
 	}
@@ -88,6 +94,60 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
+		}
+	}
+
+	private async Task WatchSensorUpdates(ChannelReader<SensorUpdate> reader, CancellationToken cancellationToken)
+	{
+		while (true)
+		{
+			try
+			{
+				await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+			using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				var buffer = WriteBuffer;
+				while (reader.TryRead(out var update))
+				{
+					bool isStop = update.Length < 0;
+					uint streamId = update.StreamId;
+					int count = WriteUpdate(buffer.Span, update);
+					try
+					{
+						await WriteAsync(buffer[..count], cancellationToken).ConfigureAwait(false);
+					}
+					catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+					{
+						return;
+					}
+					if (update.Length < 0)
+					{
+						_sensorWatchStates.Remove(streamId);
+					}
+				}
+			}
+		}
+
+		static int WriteUpdate(Span<byte> buffer, in SensorUpdate update)
+		{
+			var writer = new BufferWriter(buffer);
+			if (update.Length < 0)
+			{
+				writer.Write((byte)ExoUiProtocolServerMessage.SensorStop);
+				writer.WriteVariable(update.StreamId);
+			}
+			else
+			{
+				writer.Write((byte)ExoUiProtocolServerMessage.SensorValue);
+				writer.WriteVariable(update.StreamId);
+				writer.Write(SensorUpdate.GetData(in update));
+			}
+			return (int)writer.Length;
 		}
 	}
 
@@ -315,14 +375,6 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		protected abstract ValueTask DisposeOnceAsync(CancellationToken canceledToken);
 
 		public abstract void Start();
-
-		protected static nuint WriteStop(Span<byte> buffer, uint streamId)
-		{
-			var writer = new BufferWriter(buffer);
-			writer.Write((byte)ExoUiProtocolServerMessage.SensorStop);
-			writer.WriteVariable(streamId);
-			return writer.Length;
-		}
 	}
 
 	private sealed class SensorWatchState<TValue> : SensorWatchState
@@ -335,7 +387,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			: base(connection, streamId)
 		{
 			_taskCompletionSource = new();
-			_task = WatchValuesAsync(enumerable, CancellationToken);
+			_task = WatchValuesAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken);
 		}
 
 		protected override ValueTask DisposeOnceAsync(CancellationToken canceledToken)
@@ -346,7 +398,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 		public override void Start() => Interlocked.Exchange(ref _taskCompletionSource, null)?.TrySetResult();
 
-		private async Task WatchValuesAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, CancellationToken cancellationToken)
+		private async Task WatchValuesAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
 		{
 			await _taskCompletionSource!.Task.ConfigureAwait(false);
 			try
@@ -355,12 +407,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				{
 					await foreach (var value in enumerable.ConfigureAwait(false))
 					{
-						using (await Connection.WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
-						{
-							var buffer = Connection.WriteBuffer;
-							nuint length = Write(buffer.Span, StreamId, value.Value);
-							await Connection.WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
-						}
+						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
 					}
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -374,36 +421,59 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				// Calling this helper method will be the simplest way for now, as it avoids dragging along the connection's cancellation token.
 				if (Connection.TryGetDefaultWriteCancellationToken(out var writeCancellationToken))
 				{
-					using (await Connection.WriteLock.WaitAsync(writeCancellationToken).ConfigureAwait(false))
-					{
-						var buffer = Connection.WriteBuffer;
-						nuint length = WriteStop(buffer.Span, StreamId);
-						await Connection.WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
-						// We only need to remove the state from the global state if the connection is still open, which will be the case only if this code is reached.
-						// In other cases, the connection will be trashed, so no need for complex handling.
-						Connection._sensorWatchStates.Remove(StreamId);
-					}
+					writer.TryWrite(SensorUpdate.CreateEndOfStream(StreamId));
 				}
 			}
 			catch (OperationCanceledException)
 			{
 			}
-
-			static nuint Write(Span<byte> buffer, uint streamId, TValue value)
-			{
-				var writer = new BufferWriter(buffer);
-				writer.Write((byte)ExoUiProtocolServerMessage.SensorValue);
-				writer.WriteVariable(streamId);
-				if (typeof(TValue) == typeof(byte))
-				{
-					writer.Write(Unsafe.BitCast<TValue, byte>(value));
-				}
-				else
-				{
-					writer.Write(value);
-				}
-				return writer.Length;
-			}
 		}
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	private readonly struct SensorUpdate
+	{
+		[SkipLocalsInit]
+		public static SensorUpdate CreateEndOfStream(uint streamId)
+		{
+			var update = new SensorUpdate();
+			Unsafe.AsRef(in update.StreamId) = streamId;
+			Unsafe.AsRef(in update.Length) = -1;
+			return update;
+		}
+
+		[SkipLocalsInit]
+		public static SensorUpdate Create<TValue>(uint streamId, TValue value)
+			where TValue : unmanaged, INumber<TValue>
+		{
+			var update = new SensorUpdate();
+			Unsafe.AsRef(in update.StreamId) = streamId;
+			Unsafe.AsRef(in update.Length) = Unsafe.SizeOf<TValue>();
+			Unsafe.As<byte, TValue>(ref Unsafe.AsRef(in update._data0)) = value;
+			return update;
+		}
+
+		public static ReadOnlySpan<byte> GetData(scoped in SensorUpdate update)
+			=> MemoryMarshal.CreateReadOnlySpan(in update._data0, update.Length);
+
+		// < 0 if stream end
+		public readonly uint StreamId;
+		public readonly int Length;
+		private readonly byte _data0;
+		private readonly byte _data1;
+		private readonly byte _data2;
+		private readonly byte _data3;
+		private readonly byte _data4;
+		private readonly byte _data5;
+		private readonly byte _data6;
+		private readonly byte _data7;
+		private readonly byte _data8;
+		private readonly byte _data9;
+		private readonly byte _dataA;
+		private readonly byte _dataB;
+		private readonly byte _dataC;
+		private readonly byte _dataD;
+		private readonly byte _dataE;
+		private readonly byte _dataF;
 	}
 }

@@ -603,26 +603,6 @@ internal sealed partial class SensorService
 		}
 	}
 
-	[Obsolete("To be removed. While convenient, this method will be less efficient than calling GetValueWatcherAsync to retrieve the async enumerable.")]
-	public async IAsyncEnumerable<SensorDataPoint<TValue>> WatchValuesAsync<TValue>(Guid deviceId, Guid sensorId, [EnumeratorCancellation] CancellationToken cancellationToken)
-		where TValue : struct, INumber<TValue>
-	{
-		if (!_deviceStates.TryGetValue(deviceId, out var state)) yield break;
-		IAsyncEnumerable<SensorDataPoint<TValue>> dataPointEnumerable;
-		using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			if (state.SensorStates is null) yield break;
-			if (!state.SensorStates.TryGetValue(sensorId, out var sensorState)) yield break;
-
-			// NB: This can throw InvalidCastException if TValue is not correct, which is intended behavior.
-			dataPointEnumerable = ((SensorState<TValue>)sensorState).WatchAsync(cancellationToken);
-		}
-		await foreach (var dataPoint in dataPointEnumerable.ConfigureAwait(false))
-		{
-			yield return dataPoint;
-		}
-	}
-
 	public bool TryGetSensorInformation(Guid deviceId, Guid sensorId, out SensorInformation info)
 	{
 		if (_deviceStates.TryGetValue(deviceId, out var state))
