@@ -44,7 +44,7 @@ public ref struct BufferWriter
 	{
 		if (RemainingLength < (nuint)value.Length) throw new EndOfStreamException();
 
-		Unsafe.WriteUnaligned(ref _current, value);
+		Unsafe.CopyBlock(ref _current, ref MemoryMarshal.GetReference(value), (uint)value.Length);
 		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), (uint)value.Length);
 	}
 
