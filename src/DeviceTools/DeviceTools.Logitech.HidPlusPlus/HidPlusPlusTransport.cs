@@ -14,6 +14,10 @@ namespace DeviceTools.Logitech.HidPlusPlus;
 // The transport will be mostly version-agnostic, while the wrapper will be specialized for either version.
 public sealed class HidPlusPlusTransport : IAsyncDisposable
 {
+	// Use a minimum timer delay of 62ms, because we are never in dire emergency to process timeouts.
+	// This would wait for close to 4 Windows default timer ticks. (64Hz)
+	private const int MinimumTimeoutDelay = 62;
+
 	public const int ShortReportId = 0x10;
 	public const int LongReportId = 0x11;
 	public const int VeryLongReportId = 0x12;
@@ -377,7 +381,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 		=> timer.Change(GetNextDelay(expirationTimestamp, now), Timeout.Infinite);
 
 	private static long GetNextDelay(long expirationTimestamp, long now)
-		=> Math.Max(0, (long)((expirationTimestamp - now) * StopwatchTicksToMilliseconds));
+		=> Math.Max(MinimumTimeoutDelay, (long)((expirationTimestamp - now) * StopwatchTicksToMilliseconds));
 
 	private void ProcessTimeoutsAndUpdateTimer()
 	{
@@ -419,7 +423,7 @@ public sealed class HidPlusPlusTransport : IAsyncDisposable
 				// If that is the case, we'll just do another iteration of the loop and process those operations.
 				if (delay <= 0) goto Retry;
 
-				_timeoutTimer.Change(delay, Timeout.Infinite);
+				_timeoutTimer.Change(Math.Max(MinimumTimeoutDelay, delay), Timeout.Infinite);
 			}
 		}
 	}
