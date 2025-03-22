@@ -17,7 +17,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	public static UiPipeServerConnection Create(PipeServer<UiPipeServerConnection> server, NamedPipeServerStream stream)
 	{
 		var uiPipeServer = (UiPipeServer)server;
-		return new(server, stream, uiPipeServer.CustomMenuService, uiPipeServer.SensorService);
+		return new(server, stream, uiPipeServer.ConnectionLogger, uiPipeServer.CustomMenuService, uiPipeServer.SensorService);
 	}
 
 	private readonly CustomMenuService _customMenuService;
@@ -25,15 +25,18 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
+	private readonly ILogger<UiPipeServerConnection> _logger;
 
 	private UiPipeServerConnection
 	(
 		PipeServer server,
 		NamedPipeServerStream stream,
+		ILogger<UiPipeServerConnection> logger,
 		CustomMenuService customMenuService,
 		SensorService sensorService
-	) : base(server, stream)
+		) : base(server, stream)
 	{
+		_logger = logger;
 		_customMenuService = customMenuService;
 		_sensorService = sensorService;
 		_sensorWatchStates = new();
@@ -318,6 +321,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 					goto Success;
 				}
 				await WriteSensorStartStatusAsync(streamId, SensorStartStatus.Success, cancellationToken).ConfigureAwait(false);
+				_logger.UiSensorServiceSensorWatchStart(deviceId, sensorId, streamId);
 				state.Start();
 			}
 		}
@@ -387,7 +391,9 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			: base(connection, streamId)
 		{
 			_taskCompletionSource = new();
-			_task = WatchValuesAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken);
+			_task = Connection._logger.IsEnabled(LogLevel.Trace) ?
+				WatchValuesWithLoggingAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken) :
+				WatchValuesAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken);
 		}
 
 		protected override ValueTask DisposeOnceAsync(CancellationToken canceledToken)
@@ -398,7 +404,8 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 		public override void Start() => Interlocked.Exchange(ref _taskCompletionSource, null)?.TrySetResult();
 
-		private async Task WatchValuesAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
+		// A version of the watcher that will log received values.
+		private async Task WatchValuesWithLoggingAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
 		{
 			await _taskCompletionSource!.Task.ConfigureAwait(false);
 			try
@@ -408,6 +415,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 					await foreach (var value in enumerable.ConfigureAwait(false))
 					{
 						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
+						Connection._logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
 					}
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -426,6 +434,46 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			}
 			catch (OperationCanceledException)
 			{
+			}
+			finally
+			{
+				Connection._logger.UiSensorServiceSensorWatchStop(StreamId);
+			}
+		}
+
+		private async Task WatchValuesAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
+		{
+			await _taskCompletionSource!.Task.ConfigureAwait(false);
+			try
+			{
+				try
+				{
+					await foreach (var value in enumerable.ConfigureAwait(false))
+					{
+						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
+						Connection._logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+					}
+				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+				{
+				}
+				catch (Exception ex)
+				{
+					throw;
+				}
+				// We want to notify the client of the stream end.
+				// Calling this helper method will be the simplest way for now, as it avoids dragging along the connection's cancellation token.
+				if (Connection.TryGetDefaultWriteCancellationToken(out var writeCancellationToken))
+				{
+					writer.TryWrite(SensorUpdate.CreateEndOfStream(StreamId));
+				}
+			}
+			catch (OperationCanceledException)
+			{
+			}
+			finally
+			{
+				Connection._logger.UiSensorServiceSensorWatchStop(StreamId);
 			}
 		}
 	}

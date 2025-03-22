@@ -5,6 +5,7 @@ namespace Exo.Service.Rpc;
 
 internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 {
+	internal ILogger<UiPipeServerConnection> ConnectionLogger { get; }
 	internal CustomMenuService CustomMenuService { get; }
 	internal SensorService SensorService { get; }
 
@@ -12,10 +13,12 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 	(
 		string pipeName,
 		PipeSecurity? pipeSecurity,
+		ILogger<UiPipeServerConnection> connectionLogger,
 		CustomMenuService customMenuService,
 		SensorService sensorService
 	) : base(pipeName, 2, PipeTransmissionMode.Message, pipeSecurity)
 	{
+		ConnectionLogger = connectionLogger;
 		CustomMenuService = customMenuService;
 		SensorService = sensorService;
 	}
