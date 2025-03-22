@@ -18,9 +18,10 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	public static UiPipeServerConnection Create(PipeServer<UiPipeServerConnection> server, NamedPipeServerStream stream)
 	{
 		var uiPipeServer = (UiPipeServer)server;
-		return new(server, stream, uiPipeServer.ConnectionLogger, uiPipeServer.CustomMenuService, uiPipeServer.SensorService);
+		return new(server, stream, uiPipeServer.ConnectionLogger, uiPipeServer.MetadataSourceProvider, uiPipeServer.CustomMenuService, uiPipeServer.SensorService);
 	}
 
+	private readonly IMetadataSourceProvider _metadataSourceProvider;
 	private readonly CustomMenuService _customMenuService;
 	private readonly SensorService _sensorService;
 	private int _state;
@@ -33,11 +34,13 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		PipeServer server,
 		NamedPipeServerStream stream,
 		ILogger<UiPipeServerConnection> logger,
+		IMetadataSourceProvider metadataSourceProvider,
 		CustomMenuService customMenuService,
 		SensorService sensorService
 	) : base(server, stream)
 	{
 		_logger = logger;
+		_metadataSourceProvider = metadataSourceProvider;
 		_customMenuService = customMenuService;
 		_sensorService = sensorService;
 		_sensorWatchStates = new();
@@ -48,11 +51,78 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private async Task WatchEventsAsync(CancellationToken cancellationToken)
 	{
+		var metadataWatchTask = WatchMetadataChangesAsync(cancellationToken);
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 
 		await Task.WhenAll(customMenuWatchTask, sensorDeviceWatchTask, sensorWatchTask).ConfigureAwait(false);
+	}
+
+	private async Task WatchMetadataChangesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var notification in _metadataSourceProvider.WatchMetadataSourceChangesAsync(cancellationToken))
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					int count = WriteNotification(buffer.Span, notification);
+					await WriteAsync(buffer[..count], cancellationToken).ConfigureAwait(false);
+				}
+			}
+
+			static int WriteNotification(Span<byte> buffer, MetadataSourceChangeNotification notification)
+			{
+				var writer = new BufferWriter(buffer);
+				switch (notification.NotificationKind)
+				{
+				case WatchNotificationKind.Enumeration:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
+					break;
+				case WatchNotificationKind.Addition:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesAdd);
+					break;
+				case WatchNotificationKind.Removal:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesRemove);
+					break;
+				case WatchNotificationKind.Update:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesUpdate);
+					goto Completed;
+				default: throw new UnreachableException();
+				}
+				WriteSources(ref writer, notification.Sources);
+			Completed:;
+				return (int)writer.Length;
+			}
+
+			static int WriteInitialization(Span<byte> buffer, ImmutableArray<MetadataSourceInformation> sources)
+			{
+				var writer = new BufferWriter(buffer);
+				writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
+				WriteSources(ref writer, sources);
+				return (int)writer.Length;
+			}
+
+			static void WriteSources(ref BufferWriter writer, ImmutableArray<MetadataSourceInformation> sources)
+			{
+				writer.WriteVariable((uint)sources.Length);
+				for (int i = 0; i < sources.Length; i++)
+				{
+					WriteSource(ref writer, sources[i]);
+				}
+			}
+
+			static void WriteSource(ref BufferWriter writer, MetadataSourceInformation source)
+			{
+				writer.Write((byte)source.Category);
+				writer.WriteVariableString(source.ArchivePath);
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
 	}
 
 	private async Task WatchCustomMenuChangesAsync(CancellationToken cancellationToken)

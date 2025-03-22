@@ -1,6 +1,6 @@
 namespace Exo.Service;
 
-public enum MetadataArchiveCategory
+public enum MetadataArchiveCategory : byte
 {
 	Strings = 0,
 	LightingEffects = 1,

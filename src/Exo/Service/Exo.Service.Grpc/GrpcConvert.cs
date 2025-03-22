@@ -34,7 +34,6 @@ using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformat
 using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
 using GrpcLightingPersistenceMode = Exo.Contracts.Ui.Settings.LightingPersistenceMode;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
-using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
@@ -450,17 +449,6 @@ internal static class GrpcConvert
 			GrpcMonitorSetting.BlueLightFilterLevel => MonitorSetting.BlueLightFilterLevel,
 			GrpcMonitorSetting.OsdLanguage => MonitorSetting.OsdLanguage,
 			GrpcMonitorSetting.PowerIndicator => MonitorSetting.PowerIndicator,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcMetadataArchiveCategory ToGrpc(this MetadataArchiveCategory category)
-		=> category switch
-		{
-			MetadataArchiveCategory.Strings => GrpcMetadataArchiveCategory.Strings,
-			MetadataArchiveCategory.LightingEffects => GrpcMetadataArchiveCategory.LightingEffects,
-			MetadataArchiveCategory.LightingZones => GrpcMetadataArchiveCategory.LightingZones,
-			MetadataArchiveCategory.Sensors => GrpcMetadataArchiveCategory.Sensors,
-			MetadataArchiveCategory.Coolers => GrpcMetadataArchiveCategory.Coolers,
 			_ => throw new NotImplementedException()
 		};
 

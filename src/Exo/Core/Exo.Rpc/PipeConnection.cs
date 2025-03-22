@@ -16,8 +16,8 @@ namespace Exo.Rpc;
 public abstract class PipeConnection : IAsyncDisposable
 {
 	// These default sizes can be tweaked later on.
-	internal const int ReadBufferSize = 1024;
-	internal const int WriteBufferSize = 1024;
+	internal const int ReadBufferSize = 2048;
+	internal const int WriteBufferSize = 2048;
 
 	private readonly byte[] _buffers;
 	private PipeStream? _stream;

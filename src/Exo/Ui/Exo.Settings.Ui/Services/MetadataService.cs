@@ -1,38 +1,36 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Settings;
+using System.Threading.Channels;
 using Exo.Metadata;
+using Exo.Service;
 
 namespace Exo.Settings.Ui.Services;
 
-internal sealed class MetadataService : ISettingsMetadataService, IConnectedState, IDisposable
+internal sealed class MetadataService : ISettingsMetadataService, IDisposable
 {
 	private StringMetadataResolver? _stringMetadataResolver;
 	private DeviceMetadataResolver<LightingEffectMetadata>? _lightingEffectMetadataResolver;
 	private DeviceMetadataResolver<LightingZoneMetadata>? _lightingZoneMetadataResolver;
 	private DeviceMetadataResolver<SensorMetadata>? _sensorMetadataResolver;
 	private DeviceMetadataResolver<CoolerMetadata>? _coolerMetadataResolver;
+	private readonly IEnumerable<ChannelReader<MetadataSourceChangeNotification>> _metadataSourceReaders;
 	private object _availabilitySignal;
 
-	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly IDisposable _stateRegistration;
+	private readonly Task _watchChangesTask;
 
-	public MetadataService(SettingsServiceConnectionManager connectionManager)
+	public MetadataService(IEnumerable<ChannelReader<MetadataSourceChangeNotification>> metadataSourceReaders)
 	{
-		_cancellationTokenSource = new CancellationTokenSource();
-		_stateRegistration = connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
-		_connectionManager = connectionManager;
+		_metadataSourceReaders = metadataSourceReaders;
 		_availabilitySignal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		_cancellationTokenSource = new CancellationTokenSource();
+		_watchChangesTask = WatchChangesAsync(_cancellationTokenSource.Token);
 	}
 
 	public void Dispose()
 	{
 		_cancellationTokenSource.Cancel();
-		_stateRegistration.Dispose();
-		Reset();
 	}
 
 	public Task WaitForAvailabilityAsync(CancellationToken cancellationToken)
@@ -47,60 +45,78 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 		}
 	}
 
-	private void Reset()
-	{
-		if (_availabilitySignal is TaskCompletionSource tcs)
-		{
-			tcs.TrySetCanceled();
-		}
-		_availabilitySignal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-		Dispose(ref _stringMetadataResolver);
-		Dispose(ref _lightingEffectMetadataResolver);
-		Dispose(ref _lightingZoneMetadataResolver);
-		Dispose(ref _sensorMetadataResolver);
-		Dispose(ref _coolerMetadataResolver);
-	}
-
 	private static void Dispose<T>(ref T? resolver)
 		where T : class, IDisposable
 		=> Interlocked.Exchange(ref resolver, null)?.Dispose();
 
-	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
-	{
-		if (_cancellationTokenSource.IsCancellationRequested) return;
-		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
-		{
-			await WatchChangesAsync(cancellationToken);
-		}
-	}
-
 	private async Task WatchChangesAsync(CancellationToken cancellationToken)
 	{
-		var metadataService = await _connectionManager.GetMetadataServiceAsync(cancellationToken);
-		_stringMetadataResolver = new(await metadataService.GetMainStringArchivePathAsync(cancellationToken));
-		_lightingEffectMetadataResolver = new(await metadataService.GetMainLightingEffectArchivePathAsync(cancellationToken));
-		_lightingZoneMetadataResolver = new();
-		_sensorMetadataResolver = new();
-		_coolerMetadataResolver = new();
-		await foreach (var notification in metadataService.WatchMetadataSourceChangesAsync(cancellationToken))
+		try
 		{
-			switch (notification.NotificationKind)
+			foreach (var reader in _metadataSourceReaders)
 			{
-			case WatchNotificationKind.Enumeration:
-				AddArchives(notification.Sources);
-				if (_availabilitySignal is TaskCompletionSource tcs)
+				try
 				{
-					tcs.TrySetResult();
-					_availabilitySignal = Task.CompletedTask;
+					int state = 0;
+					await foreach (var notification in reader.ReadAllAsync(cancellationToken))
+					{
+						switch (notification.NotificationKind)
+						{
+						case WatchNotificationKind.Enumeration:
+							if (state == 0)
+							{
+								_stringMetadataResolver = new(notification.Sources.First(x => x.Category == MetadataArchiveCategory.Strings).ArchivePath);
+								_lightingEffectMetadataResolver = new(notification.Sources.First(x => x.Category == MetadataArchiveCategory.LightingEffects).ArchivePath);
+								_lightingZoneMetadataResolver = new();
+								_sensorMetadataResolver = new();
+								_coolerMetadataResolver = new();
+								state = 1;
+							}
+							else if (state == 1)
+							{
+								AddArchives(notification.Sources);
+							}
+							else
+							{
+								throw new InvalidOperationException();
+							}
+							break;
+						case WatchNotificationKind.Addition:
+							if (state != 2) throw new InvalidOperationException();
+							AddArchives(notification.Sources);
+							break;
+						case WatchNotificationKind.Removal:
+							if (state != 2) throw new InvalidOperationException();
+							RemoveArchives(notification.Sources);
+							break;
+						case WatchNotificationKind.Update:
+							if (state != 1) throw new InvalidOperationException();
+							if (_availabilitySignal is TaskCompletionSource tcs)
+							{
+								tcs.TrySetResult();
+								_availabilitySignal = Task.CompletedTask;
+							}
+							break;
+						}
+					}
 				}
-				break;
-			case WatchNotificationKind.Addition:
-				AddArchives(notification.Sources);
-				break;
-			case WatchNotificationKind.Removal:
-				RemoveArchives(notification.Sources);
-				break;
+				finally
+				{
+					if (_availabilitySignal is TaskCompletionSource tcs)
+					{
+						tcs.TrySetCanceled();
+					}
+					_availabilitySignal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+					Dispose(ref _stringMetadataResolver);
+					Dispose(ref _lightingEffectMetadataResolver);
+					Dispose(ref _lightingZoneMetadataResolver);
+					Dispose(ref _sensorMetadataResolver);
+					Dispose(ref _coolerMetadataResolver);
+				}
 			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
 		}
 	}
 
@@ -132,8 +148,6 @@ internal sealed class MetadataService : ISettingsMetadataService, IConnectedStat
 			MetadataArchiveCategory.Coolers => _coolerMetadataResolver!,
 			_ => throw new InvalidOperationException(),
 		};
-
-	void IConnectedState.Reset() => Reset();
 
 	public string? GetString(CultureInfo? culture, Guid stringId)
 		=> _stringMetadataResolver?.GetStringAsync(culture, stringId);

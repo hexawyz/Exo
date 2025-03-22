@@ -20,10 +20,11 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	public static ExoUiPipeClientConnection Create(PipeClient<ExoUiPipeClientConnection> client, NamedPipeClientStream stream)
 	{
-		var helperPipeClient = (ExoUiPipeClient)client;
-		return new(client, stream, helperPipeClient.MenuChannel, helperPipeClient.SensorDeviceChannel);
+		var uiPipeClient = (ExoUiPipeClient)client;
+		return new(client, stream, uiPipeClient.MetadataChannel, uiPipeClient.MenuChannel, uiPipeClient.SensorDeviceChannel);
 	}
 
+	private readonly ResettableChannel<MetadataSourceChangeNotification> _metadataChannel;
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
 	private readonly ResettableChannel<SensorDeviceInformation> _sensorDeviceChannel;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
@@ -32,10 +33,12 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	(
 		PipeClient client,
 		NamedPipeClientStream stream,
+		ResettableChannel<MetadataSourceChangeNotification> metadataChannel,
 		ResettableChannel<MenuChangeNotification> menuChannel,
 		ResettableChannel<SensorDeviceInformation> sensorDeviceChannel
 	) : base(client, stream)
 	{
+		_metadataChannel = metadataChannel;
 		_menuChannel = menuChannel;
 		_sensorDeviceChannel = sensorDeviceChannel;
 	}
@@ -54,6 +57,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 		finally
 		{
+			_metadataChannel.Reset();
 			_menuChannel.Reset();
 			_sensorDeviceChannel.Reset();
 		}
@@ -91,17 +95,29 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			else ConfirmVersion(GitCommitId);
 #endif
 			goto Success;
+		case ExoUiProtocolServerMessage.MetadataSourcesEnumeration:
+			ProcessMetadataSource(Service.WatchNotificationKind.Enumeration, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MetadataSourcesAdd:
+			ProcessMetadataSource(Service.WatchNotificationKind.Addition, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MetadataSourcesRemove:
+			ProcessMetadataSource(Service.WatchNotificationKind.Removal, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MetadataSourcesUpdate:
+			ProcessMetadataSource(Service.WatchNotificationKind.Update, data);
+			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemEnumeration:
-			ProcessCustomMenu(WatchNotificationKind.Enumeration, data);
+			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Enumeration, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemAdd:
-			ProcessCustomMenu(WatchNotificationKind.Addition, data);
+			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Addition, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemRemove:
-			ProcessCustomMenu(WatchNotificationKind.Removal, data);
+			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Removal, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
-			ProcessCustomMenu(WatchNotificationKind.Update, data);
+			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.SensorDevice:
 			ProcessSensorDevice(data);
@@ -140,7 +156,24 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
-	private void ProcessCustomMenu(WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	private void ProcessMetadataSource(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	{
+		var writer = _metadataChannel.CurrentWriter;
+		if (kind == Service.WatchNotificationKind.Update)
+		{
+			writer.TryWrite(new(kind, []));
+			return;
+		}
+		var reader = new BufferReader(data);
+		var sources = new MetadataSourceInformation[reader.ReadVariableUInt32()];
+		for (int i = 0; i < sources.Length; i++)
+		{
+			sources[i] = new() { Category = (MetadataArchiveCategory)reader.ReadByte(), ArchivePath = reader.ReadVariableString() ?? "" };
+		}
+		writer.TryWrite(new(kind, ImmutableCollectionsMarshal.AsImmutableArray(sources)));
+	}
+
+	private void ProcessCustomMenu(Contracts.Ui.WatchNotificationKind kind, ReadOnlySpan<byte> data)
 	{
 		var channelWriter = _menuChannel.CurrentWriter;
 		var reader = new BufferReader(data);
@@ -343,16 +376,19 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 internal sealed class ExoUiPipeClient : PipeClient<ExoUiPipeClientConnection>, ISensorService
 {
+	internal ResettableChannel<MetadataSourceChangeNotification> MetadataChannel { get; }
 	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
 	internal ResettableChannel<SensorDeviceInformation> SensorDeviceChannel { get; }
 
 	public ExoUiPipeClient
 	(
 		string pipeName,
+		ResettableChannel<MetadataSourceChangeNotification> metadataChannel,
 		ResettableChannel<MenuChangeNotification> menuChannel,
 		ResettableChannel<SensorDeviceInformation> sensorDeviceChannel
 	) : base(pipeName, PipeTransmissionMode.Message)
 	{
+		MetadataChannel = metadataChannel;
 		MenuChannel = menuChannel;
 		SensorDeviceChannel = sensorDeviceChannel;
 	}

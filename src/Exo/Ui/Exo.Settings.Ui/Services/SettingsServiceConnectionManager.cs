@@ -159,7 +159,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
 	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
-	private TaskCompletionSource<IMetadataService> _metadataServiceTaskCompletionSource;
 	private CancellationToken _disconnectionToken;
 	private ConnectionStatus _connectionStatus;
 
@@ -183,7 +182,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_coolingServiceTaskCompletionSource = new();
 		_customMenuServiceTaskCompletionSource = new();
 		_programmingServiceTaskCompletionSource = new();
-		_metadataServiceTaskCompletionSource = new();
 		_synchronizationContext = SynchronizationContext.Current;
 		_connectionStatusChangeHandler = connectionStatusChangeHandler;
 	}
@@ -220,9 +218,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public Task<IProgrammingService> GetProgrammingServiceAsync(CancellationToken cancellationToken)
 		=> _programmingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
-
-	public Task<IMetadataService> GetMetadataServiceAsync(CancellationToken cancellationToken)
-		=> _metadataServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	private void NotifyConnectionStatusChanged(ConnectionStatus connectionStatus)
 	{
@@ -262,7 +257,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Connect(channel, _coolingServiceTaskCompletionSource);
 		Connect(channel, _customMenuServiceTaskCompletionSource);
 		Connect(channel, _programmingServiceTaskCompletionSource);
-		Connect(channel, _metadataServiceTaskCompletionSource);
 
 		Task startStatesTask;
 		lock (_connectedStates)
@@ -288,7 +282,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		Reset(ref _coolingServiceTaskCompletionSource);
 		Reset(ref _customMenuServiceTaskCompletionSource);
 		Reset(ref _programmingServiceTaskCompletionSource);
-		Reset(ref _metadataServiceTaskCompletionSource);
 
 		Task waitStatesTask;
 		lock (_connectedStates)

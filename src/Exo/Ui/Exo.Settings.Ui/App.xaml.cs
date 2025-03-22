@@ -147,11 +147,22 @@ public partial class App : Application
 			)
 		);
 
+		services.AddSingleton(_ => new ResettableChannel<MetadataSourceChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<SensorDeviceInformation>(UnboundedChannelOptions));
+		services.AddSingleton<IEnumerable<ChannelReader<MetadataSourceChangeNotification>>>(sp => sp.GetRequiredService<ResettableChannel<MetadataSourceChangeNotification>>());
 		services.AddSingleton<IEnumerable<ChannelReader<SensorDeviceInformation>>>(sp => sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>());
 
-		services.AddSingleton(sp => new ExoUiPipeClient("Local\\Exo.Service.Ui", sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>(), sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>()));
+		services.AddSingleton
+		(
+			sp => new ExoUiPipeClient
+			(
+				"Local\\Exo.Service.Ui",
+				sp.GetRequiredService<ResettableChannel<MetadataSourceChangeNotification>>(),
+				sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>(),
+				sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>()
+			)
+		);
 
 		services.AddSingleton<ISensorService>(sp => sp.GetRequiredService<ExoUiPipeClient>());
 

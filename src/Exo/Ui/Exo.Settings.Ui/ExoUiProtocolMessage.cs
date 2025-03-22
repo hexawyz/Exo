@@ -61,6 +61,18 @@ internal enum ExoUiProtocolServerMessage : byte
 	Settings,
 	/// <summary>Reports system configuration errors, such as missing kernel driver.</summary>
 	ConfigurationError,
+	/// <summary>Enumeration of initial metadata archives.</summary>
+	/// <remarks>
+	/// The first message of this kind on any connection will always be the default archives.
+	/// Any of these messages will never be repeated.
+	/// </remarks>
+	MetadataSourcesEnumeration,
+	/// <summary>Addition of metadata archives.</summary>
+	MetadataSourcesAdd,
+	/// <summary>Removal of metadata archives.</summary>
+	MetadataSourcesRemove,
+	/// <summary>Update of metadata archives. Specifically, signals the end of initialization.</summary>
+	MetadataSourcesUpdate,
 	/// <summary>Initial enumeration of a custom menu item.</summary>
 	/// <remarks></remarks>
 	CustomMenuItemEnumeration,

@@ -35,6 +35,7 @@ public readonly struct VariantNumber
 	public static ReadOnlySpan<byte> GetData(in VariantNumber value)
 		=> MemoryMarshal.CreateReadOnlySpan(in value._data0, 16);
 
+#pragma warning disable IDE0051
 	private readonly byte _data0;
 	private readonly byte _data1;
 	private readonly byte _data2;
@@ -51,6 +52,7 @@ public readonly struct VariantNumber
 	private readonly byte _dataD;
 	private readonly byte _dataE;
 	private readonly byte _dataF;
+#pragma warning restore IDE0051
 
 	public static implicit operator VariantNumber(byte value) => Create(value);
 	public static implicit operator VariantNumber(ushort value) => Create(value);
