@@ -23,4 +23,7 @@ internal static partial class LoggerExtensions
 
 	[LoggerMessage(EventId = 10_306, EventName = "UiSensorServiceSensorWatchNotification", Level = LogLevel.Trace, Message = "New data point for stream #{StreamId}: {SensorDataPointValue} [{SensorDataPointDateTime}].")]
 	public static partial void UiSensorServiceSensorWatchNotification(this ILogger logger, uint streamId, DateTime sensorDataPointDateTime, object sensorDataPointValue);
+
+	[LoggerMessage(EventId = 10_307, EventName = "UiSensorServiceSensorWatchError", Level = LogLevel.Error, Message = "An error occurred while processing stream #{StreamId}.")]
+	public static partial void UiSensorServiceSensorWatchError(this ILogger logger, uint streamId, Exception ex);
 }

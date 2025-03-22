@@ -6,7 +6,6 @@ using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Contracts.Ui.Overlay;
-using Exo.Ui;
 using Microsoft.Win32;
 
 namespace Exo.Overlay;

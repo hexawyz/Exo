@@ -34,7 +34,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		ILogger<UiPipeServerConnection> logger,
 		CustomMenuService customMenuService,
 		SensorService sensorService
-		) : base(server, stream)
+	) : base(server, stream)
 	{
 		_logger = logger;
 		_customMenuService = customMenuService;
@@ -421,10 +421,6 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 				{
 				}
-				catch (Exception ex)
-				{
-					throw;
-				}
 				// We want to notify the client of the stream end.
 				// Calling this helper method will be the simplest way for now, as it avoids dragging along the connection's cancellation token.
 				if (Connection.TryGetDefaultWriteCancellationToken(out var writeCancellationToken))
@@ -434,6 +430,10 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			}
 			catch (OperationCanceledException)
 			{
+			}
+			catch (Exception ex)
+			{
+				Connection._logger.UiSensorServiceSensorWatchError(StreamId, ex);
 			}
 			finally
 			{
@@ -457,10 +457,6 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 				{
 				}
-				catch (Exception ex)
-				{
-					throw;
-				}
 				// We want to notify the client of the stream end.
 				// Calling this helper method will be the simplest way for now, as it avoids dragging along the connection's cancellation token.
 				if (Connection.TryGetDefaultWriteCancellationToken(out var writeCancellationToken))
@@ -470,6 +466,10 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			}
 			catch (OperationCanceledException)
 			{
+			}
+			catch (Exception ex)
+			{
+				Connection._logger.UiSensorServiceSensorWatchError(StreamId, ex);
 			}
 			finally
 			{
