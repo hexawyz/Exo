@@ -6,9 +6,9 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Settings;
 using Exo.Primitives;
 using Exo.Rpc;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 
@@ -175,25 +175,10 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			string unit = reader.ReadVariableString() ?? "";
 			VariantNumber minimumValue = (capabilities & SensorCapabilities.HasMinimumValue) != 0 ? Read(ref reader, dataType) : default;
 			VariantNumber maximumValue = (capabilities & SensorCapabilities.HasMaximumValue) != 0 ? Read(ref reader, dataType) : default;
-			sensors[i] = new()
-			{
-				SensorId = sensorId,
-				DataType = dataType,
-				Capabilities = capabilities,
-				Unit = unit,
-				ScaleMinimumValue = minimumValue,
-				ScaleMaximumValue = maximumValue,
-			};
+			sensors[i] = new(sensorId, dataType, capabilities, unit, minimumValue, maximumValue);
 		}
 
-		channelWriter.TryWrite
-		(
-			new()
-			{
-				DeviceId = deviceId,
-				Sensors = ImmutableCollectionsMarshal.AsImmutableArray(sensors),
-			}
-		);
+		channelWriter.TryWrite(new(deviceId, ImmutableCollectionsMarshal.AsImmutableArray(sensors)));
 
 		static VariantNumber Read(ref BufferReader reader, SensorDataType dataType)
 		{

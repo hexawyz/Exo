@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Threading.Channels;
 using System.Windows.Input;
-using Exo.Contracts.Ui.Settings;
-using Exo.Metadata;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 

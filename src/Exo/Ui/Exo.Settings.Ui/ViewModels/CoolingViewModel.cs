@@ -13,6 +13,7 @@ using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Settings;
 using Exo.Contracts.Ui.Settings.Cooling;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using RawCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;

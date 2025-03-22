@@ -53,6 +53,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Include="..\..\Service\Exo.Service.Core\SensorCapabilities.cs" Link="Definitions\SensorCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\SensorDataType.cs" Link="Definitions\SensorDataType.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\SensorDeviceInformation.cs" Link="Definitions\SensorDeviceInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\SensorInformation.cs" Link="Definitions\SensorInformation.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Include="Assets\SplashScreen.scale-200.png" />
 		<Content Include="Assets\LockScreenLogo.scale-200.png" />
 		<Content Include="Assets\Square150x150Logo.scale-200.png" />
@@ -234,6 +241,9 @@
 		<Page Update="DevicesPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Definitions\" />
 	</ItemGroup>
 
 	<!-- 

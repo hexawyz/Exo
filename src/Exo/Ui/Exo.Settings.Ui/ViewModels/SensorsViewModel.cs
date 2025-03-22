@@ -10,6 +10,7 @@ using System.Threading.Channels;
 using Exo.Contracts.Ui.Settings;
 using Exo.Metadata;
 using Exo.Primitives;
+using Exo.Service;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
