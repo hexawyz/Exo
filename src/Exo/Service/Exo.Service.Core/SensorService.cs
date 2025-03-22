@@ -591,6 +591,18 @@ internal sealed partial class SensorService
 		}
 	}
 
+	public async ValueTask<(SensorDataType, object)> GetValueWatcherAsync(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var state)) throw new DeviceNotFoundException();
+		using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (state.SensorStates is null || !state.SensorStates.TryGetValue(sensorId, out var sensorState)) throw new SensorNotFoundException();
+
+			// NB: This can throw InvalidCastException if TValue is not correct, which is intended behavior.
+			return (sensorState.DataType, sensorState.GetValueWatcher(cancellationToken));
+		}
+	}
+
 	[Obsolete("To be removed. While convenient, this method will be less efficient than calling GetValueWatcherAsync to retrieve the async enumerable.")]
 	public async IAsyncEnumerable<SensorDataPoint<TValue>> WatchValuesAsync<TValue>(Guid deviceId, Guid sensorId, [EnumeratorCancellation] CancellationToken cancellationToken)
 		where TValue : struct, INumber<TValue>

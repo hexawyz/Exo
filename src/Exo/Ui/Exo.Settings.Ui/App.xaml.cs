@@ -1,8 +1,11 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using Exo.Contracts.Ui;
+using Exo.Overlay;
 using Exo.Programming;
+using Exo.Rpc;
 using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Exo.Ui;
@@ -28,6 +31,8 @@ public partial class App : Application
 	private static extern nint GetModuleHandle(nint zero);
 	[DllImport("user32", EntryPoint = "LoadImageW", ExactSpelling = true, CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true)]
 	private static extern nint LoadImage(nint instanceHandle, nint resourceId, uint type, int cx, int cy, uint flags);
+
+	private static readonly UnboundedChannelOptions UnboundedChannelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false };
 
 	/// <summary>
 	/// Initializes the singleton application object.  This is the first line of authored code
@@ -95,6 +100,7 @@ public partial class App : Application
 			_rasterizationScaleController.RasterizationScale = xamlRoot.RasterizationScale;
 			xamlRoot.Changed += OnXamlRootChanged;
 		};
+		Services.GetRequiredService<ExoUiPipeClient>().StartAsync(default).GetAwaiter().GetResult();
 	}
 
 	private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
@@ -141,6 +147,12 @@ public partial class App : Application
 				sp.GetRequiredService<ConnectionViewModel>().OnConnectionStatusChanged
 			)
 		);
+
+		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));
+
+		services.AddSingleton(sp => new ExoUiPipeClient("Local\\Exo.Service.Ui", sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>()));
+
+		services.AddSingleton<ISensorService>(sp => sp.GetRequiredService<ExoUiPipeClient>());
 
 		services.AddSingleton<SettingsViewModel>();
 

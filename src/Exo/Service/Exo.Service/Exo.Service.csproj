@@ -55,6 +55,7 @@
 		<DevicePluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..\..\Devices', 'Exo.Devices.*'))" />
 		<DiscoveryPluginProjectDirectory Include="$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)..\..\Discovery', 'Exo.Discovery.*'))" Exclude="..\..\Discovery\Exo.Discovery.Root" />
 		<Compile Include="..\..\Ui\Exo.Overlay\ExoHelperProtocolMessage.cs" Link="Rpc\ExoHelperProtocolMessage.cs" />
+		<Compile Include="..\..\Ui\Exo.Settings.Ui\ExoUiProtocolMessage.cs" Link="Rpc\ExoUiProtocolMessage.cs" />
 		<DevicePluginProject Include="@(DevicePluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
 		<DiscoveryPluginProject Include="@(DiscoveryPluginProjectDirectory-&gt;'%(Filename)%(Extension)'-&gt;ClearMetadata())" />
 		<PluginProjectReference Include="@(DevicePluginProject-&gt;'..\..\Devices\%(Identity)\%(Identity).csproj'-&gt;ClearMetadata())" />

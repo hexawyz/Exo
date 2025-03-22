@@ -157,6 +157,10 @@ internal sealed partial class SensorService
 		// Once the instance is disposed, this method can never execute.
 		// Execution of this method will always be completed before CleanupValueListeners is called.
 		protected abstract ValueTask WatchValuesAsync(CancellationToken cancellationToken);
+
+		public abstract object GetValueWatcher(CancellationToken cancellationToken);
+
+		public SensorDataType DataType => TypeToSensorDataTypeMapping[_sensor.ValueType];
 	}
 
 	private abstract class SensorState<TValue> : SensorState
@@ -240,6 +244,9 @@ internal sealed partial class SensorService
 				RemoveListener(channel);
 			}
 		}
+
+		public override object GetValueWatcher(CancellationToken cancellationToken)
+			=> WatchAsync(cancellationToken);
 	}
 
 	private sealed class InternalSensorState<TValue> : SensorState<TValue>
@@ -251,6 +258,8 @@ internal sealed partial class SensorService
 
 		protected override ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 			=> ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("This sensor can not be watched.")));
+
+		public override object GetValueWatcher(CancellationToken cancellationToken) => throw new InvalidOperationException("This sensor can not be watched.");
 	}
 
 	private sealed class PolledSensorState<TValue> : SensorState<TValue>, IPolledSensorState

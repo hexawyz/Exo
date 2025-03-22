@@ -105,6 +105,29 @@ public abstract class PipeConnection : IAsyncDisposable
 	/// <returns></returns>
 	protected abstract Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken);
 
+	protected CancellationToken GetDefaultWriteCancellationToken()
+	{
+		if (TryGetDefaultWriteCancellationToken(out var cancellationToken)) return cancellationToken;
+		throw new PipeClosedException();
+	}
+
+	protected bool TryGetDefaultWriteCancellationToken(out CancellationToken cancellationToken)
+	{
+		if (Volatile.Read(ref _cancellationTokenSource) is { } cts)
+		{
+			try
+			{
+				cancellationToken = cts.Token;
+				return !cancellationToken.IsCancellationRequested;
+			}
+			catch (ObjectDisposedException)
+			{
+			}
+		}
+		cancellationToken = default;
+		return false;
+	}
+
 	protected CancellationTokenSource CreateWriteCancellationTokenSource(CancellationToken cancellationToken)
 	{
 		if (Volatile.Read(ref _cancellationTokenSource) is { } cts)

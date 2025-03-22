@@ -2,8 +2,10 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Metadata;
@@ -17,6 +19,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
+	private readonly Services.ISensorService _sensorService;
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
 	private readonly ObservableCollection<SensorViewModel> _sensorsAvailableForCoolingControlCurves;
@@ -29,10 +32,11 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsAvailableForCoolingControlCurves;
 
-	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
+	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, Services.ISensorService sensorService, ISettingsMetadataService metadataService)
 	{
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
+		_sensorService = sensorService;
 		_metadataService = metadataService;
 		_sensorDevices = new();
 		_sensorsAvailableForCoolingControlCurves = new();
@@ -159,8 +163,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		}
 	}
 
-	public Task<ISensorService> GetSensorServiceAsync(CancellationToken cancellationToken)
-		=> _connectionManager.GetSensorServiceAsync(cancellationToken);
+	public Services.ISensorService SensorService => _sensorService;
 
 	public SensorDeviceViewModel? GetDevice(Guid deviceId)
 	{
@@ -493,57 +496,22 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 	{
 		try
 		{
-			var sensorService = await _sensor.Device.SensorsViewModel.GetSensorServiceAsync(cancellationToken);
-			await foreach (var dataPoint in sensorService.WatchValuesAsync(new() { DeviceId = _sensor.Device.Id, SensorId = _sensor.Id }, cancellationToken))
+			switch (_sensor.DataType)
 			{
-				// Get the timestamp for the current data point.
-				var now = DateTime.UtcNow;
-				var currentTimestamp = GetTimestamp();
-				ulong delta = currentTimestamp - _currentTimestampInSeconds;
-				// Backfill any missing data points using the previous value.
-				if (delta > 1)
-				{
-					// If we are late for longer than the window size, we can just clear up the whole window and restart at index 0.
-					// NB: In the very unlikely occasion where the timer would wrap-around, it would be handled by this condition. We'd end up resetting the history, which is not that terrible.
-					if (delta > (ulong)_dataPoints.Length)
-					{
-						Array.Fill(_dataPoints, _currentValue, 0, _dataPoints.Length);
-						_currentPointIndex = 0;
-					}
-					else
-					{
-						// If we are late for less than the window size, the operation might need to be split in two.
-						int endIndex = _currentPointIndex + (int)delta;
-						if (++_currentPointIndex < _dataPoints.Length)
-						{
-							Array.Fill(_dataPoints, _currentValue, _currentPointIndex, Math.Min(_dataPoints.Length, endIndex) - _currentPointIndex);
-						}
-						if (endIndex >= _dataPoints.Length)
-						{
-							_currentPointIndex = endIndex - _dataPoints.Length;
-							if (_currentPointIndex > 0)
-							{
-								Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
-							}
-						}
-						else
-						{
-							_currentPointIndex = endIndex;
-						}
-					}
-				}
-				else if (delta == 1)
-				{
-					// Increase the index
-					if (++_currentPointIndex == _dataPoints.Length) _currentPointIndex = 0;
-				}
-				_currentValueTime = now;
-				_currentTimestampInSeconds = currentTimestamp;
-				_dataPoints[_currentPointIndex] = dataPoint.Value;
-				if (dataPoint.Value < _minValue) _minValue = dataPoint.Value;
-				if (dataPoint.Value > _maxValue) _maxValue = dataPoint.Value;
-				SetValue(ref _currentValue, dataPoint.Value, ChangedProperty.CurrentValue);
-				History.NotifyChange();
+			case SensorDataType.UInt8: await WatchAsync<byte>(cancellationToken).ConfigureAwait(false);break;
+			case SensorDataType.UInt16: await WatchAsync<ushort>(cancellationToken).ConfigureAwait(false);break;
+			case SensorDataType.UInt32: await WatchAsync<uint>(cancellationToken).ConfigureAwait(false);break;
+			case SensorDataType.UInt64: await WatchAsync<ulong>(cancellationToken).ConfigureAwait(false);break;
+			case SensorDataType.UInt128: await WatchAsync<UInt128>(cancellationToken).ConfigureAwait(false);break;
+			case SensorDataType.SInt8: await WatchAsync<sbyte>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.SInt16: await WatchAsync<short>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.SInt32: await WatchAsync<int>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.SInt64: await WatchAsync<long>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.SInt128: await WatchAsync<Int128>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.Float16: await WatchAsync<Half>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.Float32: await WatchAsync<float>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.Float64: await WatchAsync<double>(cancellationToken).ConfigureAwait(false); break;
+			default: throw new InvalidOperationException("Unsupported data type.");
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -552,6 +520,64 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 		catch (Exception)
 		{
 			// NB: Should generally be an RpcException or ObjectDisposedException.
+		}
+	}
+
+	private async Task WatchAsync<TValue>(CancellationToken cancellationToken)
+		where TValue : unmanaged, INumber<TValue>
+	{
+		var sensorService = _sensor.Device.SensorsViewModel.SensorService;
+		await foreach (var dataPoint in sensorService.WatchValuesAsync<TValue>(_sensor.Device.Id, _sensor.Id, cancellationToken))
+		{
+			// Get the timestamp for the current data point.
+			var now = DateTime.UtcNow;
+			var currentTimestamp = GetTimestamp();
+			ulong delta = currentTimestamp - _currentTimestampInSeconds;
+			// Backfill any missing data points using the previous value.
+			if (delta > 1)
+			{
+				// If we are late for longer than the window size, we can just clear up the whole window and restart at index 0.
+				// NB: In the very unlikely occasion where the timer would wrap-around, it would be handled by this condition. We'd end up resetting the history, which is not that terrible.
+				if (delta > (ulong)_dataPoints.Length)
+				{
+					Array.Fill(_dataPoints, _currentValue, 0, _dataPoints.Length);
+					_currentPointIndex = 0;
+				}
+				else
+				{
+					// If we are late for less than the window size, the operation might need to be split in two.
+					int endIndex = _currentPointIndex + (int)delta;
+					if (++_currentPointIndex < _dataPoints.Length)
+					{
+						Array.Fill(_dataPoints, _currentValue, _currentPointIndex, Math.Min(_dataPoints.Length, endIndex) - _currentPointIndex);
+					}
+					if (endIndex >= _dataPoints.Length)
+					{
+						_currentPointIndex = endIndex - _dataPoints.Length;
+						if (_currentPointIndex > 0)
+						{
+							Array.Fill(_dataPoints, _currentValue, 0, _currentPointIndex - 1);
+						}
+					}
+					else
+					{
+						_currentPointIndex = endIndex;
+					}
+				}
+			}
+			else if (delta == 1)
+			{
+				// Increase the index
+				if (++_currentPointIndex == _dataPoints.Length) _currentPointIndex = 0;
+			}
+			_currentValueTime = now;
+			_currentTimestampInSeconds = currentTimestamp;
+			var doubleValue = double.CreateSaturating(dataPoint);
+			_dataPoints[_currentPointIndex] = doubleValue;
+			if (doubleValue < _minValue) _minValue = doubleValue;
+			if (doubleValue > _maxValue) _maxValue = doubleValue;
+			SetValue(ref _currentValue, doubleValue, ChangedProperty.CurrentValue);
+			History.NotifyChange();
 		}
 	}
 }

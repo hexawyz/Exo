@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <WindowsSdkPackageVersion>10.0.22621.48</WindowsSdkPackageVersion>		
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+		<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+		<WindowsSdkPackageVersion>10.0.22621.48</WindowsSdkPackageVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Exo.Settings.Ui</RootNamespace>
 		<Nullable>enable</Nullable>
@@ -11,236 +11,237 @@
 		<Platforms>x86;x64;ARM64</Platforms>
 		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &gt;= 8">win-x86;win-x64;win-arm64</RuntimeIdentifiers>
 		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &lt; 8">win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
-    <PublishProfile>win10-$(Platform).pubxml</PublishProfile>
-    <UseWinUI>true</UseWinUI>
-    <EnableMsixTooling>true</EnableMsixTooling>
+		<PublishProfile>win10-$(Platform).pubxml</PublishProfile>
+		<UseWinUI>true</UseWinUI>
+		<EnableMsixTooling>true</EnableMsixTooling>
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<NeutralLanguage>en-US</NeutralLanguage>
-  </PropertyGroup>
-	
-  <ItemGroup>
-    <None Remove="Controls\Gauge.xaml" />
-    <None Remove="Controls\LineChart.xaml" />
-    <None Remove="Controls\PowerControlCurveEditor.xaml" />
-    <None Remove="CoolingPage.xaml" />
-    <None Remove="CustomMenuPage.xaml" />
-    <None Remove="DataTemplates.xaml" />
-    <None Remove="DevicePage.xaml" />
-    <None Remove="DevicesPage.xaml" />
-    <None Remove="EditionToolbar.xaml" />
-    <None Remove="EmbeddedMonitorDeviceSettingsControl.xaml" />
-    <None Remove="EmbeddedMonitorImageSettingsControl.xaml" />
-    <None Remove="EmbeddedMonitorSettingControl.xaml" />
-    <None Remove="HomePage.xaml" />
-    <None Remove="LightingPage.xaml" />
-    <None Remove="LightingZoneControl.xaml" />
-    <None Remove="LightSettingsControl.xaml" />
-    <None Remove="MonitorMiscSettingsControl.xaml" />
-    <None Remove="MonitorPerformanceSettingsControl.xaml" />
-    <None Remove="MonitorRgbSettingsControl.xaml" />
-    <None Remove="MonitorSettingControl.xaml" />
-    <None Remove="MonitorSettingsControl.xaml" />
-    <None Remove="MonitorSixAxisSettingsControl.xaml" />
-    <None Remove="MousePerformanceSettingsControl.xaml" />
-    <None Remove="PowerManagementSettingsControl.xaml" />
-    <None Remove="ProgrammingPage.xaml" />
-    <None Remove="RootPage.xaml" />
-    <None Remove="SensorsPage.xaml" />
-  </ItemGroup>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="Assets\SplashScreen.scale-200.png" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
-    <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-    <Content Include="Assets\StoreLogo.png" />
-    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="Controls\Gauge.xaml" />
+		<None Remove="Controls\LineChart.xaml" />
+		<None Remove="Controls\PowerControlCurveEditor.xaml" />
+		<None Remove="CoolingPage.xaml" />
+		<None Remove="CustomMenuPage.xaml" />
+		<None Remove="DataTemplates.xaml" />
+		<None Remove="DevicePage.xaml" />
+		<None Remove="DevicesPage.xaml" />
+		<None Remove="EditionToolbar.xaml" />
+		<None Remove="EmbeddedMonitorDeviceSettingsControl.xaml" />
+		<None Remove="EmbeddedMonitorImageSettingsControl.xaml" />
+		<None Remove="EmbeddedMonitorSettingControl.xaml" />
+		<None Remove="HomePage.xaml" />
+		<None Remove="LightingPage.xaml" />
+		<None Remove="LightingZoneControl.xaml" />
+		<None Remove="LightSettingsControl.xaml" />
+		<None Remove="MonitorMiscSettingsControl.xaml" />
+		<None Remove="MonitorPerformanceSettingsControl.xaml" />
+		<None Remove="MonitorRgbSettingsControl.xaml" />
+		<None Remove="MonitorSettingControl.xaml" />
+		<None Remove="MonitorSettingsControl.xaml" />
+		<None Remove="MonitorSixAxisSettingsControl.xaml" />
+		<None Remove="MousePerformanceSettingsControl.xaml" />
+		<None Remove="PowerManagementSettingsControl.xaml" />
+		<None Remove="ProgrammingPage.xaml" />
+		<None Remove="RootPage.xaml" />
+		<None Remove="SensorsPage.xaml" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.1.240916" />
-    <PackageReference Include="CommunityToolkit.WinUI.Controls.ImageCropper" Version="8.1.240916" />
+	<ItemGroup>
+		<Content Include="Assets\SplashScreen.scale-200.png" />
+		<Content Include="Assets\LockScreenLogo.scale-200.png" />
+		<Content Include="Assets\Square150x150Logo.scale-200.png" />
+		<Content Include="Assets\Square44x44Logo.scale-200.png" />
+		<Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+		<Content Include="Assets\StoreLogo.png" />
+		<Content Include="Assets\Wide310x150Logo.scale-200.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.1.240916" />
+		<PackageReference Include="CommunityToolkit.WinUI.Controls.ImageCropper" Version="8.1.240916" />
 		<PackageReference Include="CommunityToolkit.WinUI.Extensions" Version="8.1.240916" />
 		<PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.1.240916" />
-    <PackageReference Include="Grpc.Net.Client" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" IncludeAssets="None" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
-    <PackageReference Include="protobuf-net.Grpc" />
-    <Manifest Include="$(ApplicationManifest)" />
-  </ItemGroup>
+		<PackageReference Include="Grpc.Net.Client" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" IncludeAssets="None" />
+		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+		<PackageReference Include="protobuf-net.Grpc" />
+		<Manifest Include="$(ApplicationManifest)" />
+	</ItemGroup>
 
-  <!-- 
+	<!-- 
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
     Tools extension to be activated for this project even if the Windows App SDK Nuget
     package has not yet been restored.
   -->
-  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-    <ProjectCapability Include="Msix" />
-  </ItemGroup>
-	
-  <ItemGroup>
-    <ProjectReference Include="..\..\Core\Exo.Memory\Exo.Memory.csproj" />
-    <ProjectReference Include="..\..\Core\Exo.Metadata\Exo.Metadata.csproj" />
-    <ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
-    <ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
-    <ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
-		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="LightSettingsControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="EmbeddedMonitorImageSettingsControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="EmbeddedMonitorSettingControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="EmbeddedMonitorDeviceSettingsControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="ImageCollectionPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="PowerManagementSettingsControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="MousePerformanceSettingsControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-	
-  <ItemGroup>
-    <Page Update="Controls\Gauge.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Controls\PowerControlCurveEditor.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="CoolingPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="HomePage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Controls\LineChart.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Update="MonitorPerformanceSettingsControl.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="MonitorMiscSettingsControl.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="MonitorSixAxisSettingsControl.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="MonitorRgbSettingsControl.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="SensorsPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="EditionToolbar.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="DataTemplates.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="MonitorSettingControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="MonitorSettingsControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Update="CustomMenuPage.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="ProgrammingPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="DevicePage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="LightingZoneControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="LightingPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="RootPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="DevicesPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
+	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+		<ProjectCapability Include="Msix" />
+	</ItemGroup>
 
-  <!-- 
+	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Exo.Memory\Exo.Memory.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Metadata\Exo.Metadata.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Rpc\Exo.Rpc.csproj" />
+		<ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
+		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="LightSettingsControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="EmbeddedMonitorImageSettingsControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="EmbeddedMonitorSettingControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="EmbeddedMonitorDeviceSettingsControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="ImageCollectionPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="PowerManagementSettingsControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="MousePerformanceSettingsControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="Controls\Gauge.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+		<Page Update="Controls\PowerControlCurveEditor.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+		<Page Update="CoolingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="HomePage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Controls\LineChart.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Update="MonitorPerformanceSettingsControl.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+		<Page Update="MonitorMiscSettingsControl.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+		<Page Update="MonitorSixAxisSettingsControl.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+		<Page Update="MonitorRgbSettingsControl.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="SensorsPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="EditionToolbar.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="DataTemplates.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="MonitorSettingControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="MonitorSettingsControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Update="CustomMenuPage.xaml">
+			<XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+			<SubType>Designer</SubType>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="ProgrammingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="DevicePage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="LightingZoneControl.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="LightingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="RootPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="DevicesPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+
+	<!-- 
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
     Explorer "Package and Publish" context menu entry to be enabled for this project even if 
     the Windows App SDK Nuget package has not yet been restored.
   -->
-  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+		<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+	</PropertyGroup>
 </Project>

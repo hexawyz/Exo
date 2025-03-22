@@ -280,6 +280,7 @@ public class Startup
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
 		services.AddHostedService<HelperRpcService>();
+		services.AddHostedService<UiRpcService>();
 		services.AddSingleton<MonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));

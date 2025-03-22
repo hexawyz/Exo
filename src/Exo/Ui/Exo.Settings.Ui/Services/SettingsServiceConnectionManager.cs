@@ -156,7 +156,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private TaskCompletionSource<ILightService> _lightServiceTaskCompletionSource;
 	private TaskCompletionSource<IEmbeddedMonitorService> _embeddedMonitorServiceTaskCompletionSource;
 	private TaskCompletionSource<IImageService> _imageServiceTaskCompletionSource;
-	private TaskCompletionSource<ISensorService> _sensorServiceTaskCompletionSource;
+	private TaskCompletionSource<Contracts.Ui.Settings.ISensorService> _sensorServiceTaskCompletionSource;
 	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
 	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
@@ -214,7 +214,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	public Task<IImageService> GetImageServiceAsync(CancellationToken cancellationToken)
 		=> _imageServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
-	public Task<ISensorService> GetSensorServiceAsync(CancellationToken cancellationToken)
+	public Task<Contracts.Ui.Settings.ISensorService> GetSensorServiceAsync(CancellationToken cancellationToken)
 		=> _sensorServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ICoolingService> GetCoolingServiceAsync(CancellationToken cancellationToken)
