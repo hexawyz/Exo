@@ -33,12 +33,6 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 10_203, EventName = "GrpcBatteryServiceWatchNotification", Level = LogLevel.Trace, Message = "Battery notification: {NotificationKind} for {DeviceId}. From level {OldBatteryLevel} to {NewBatteryLevel}. From {OldBatteryStatus} to {NewBatteryStatus}. External power from {OldExternalPowerStatus} to {NewExternalPowerStatus}.")]
 	public static partial void GrpcBatteryServiceWatchNotification(this ILogger logger, WatchNotificationKind notificationKind, Guid deviceId, float? oldBatteryLevel, float? newBatteryLevel, BatteryStatus oldBatteryStatus, BatteryStatus newBatteryStatus, ExternalPowerStatus oldExternalPowerStatus, ExternalPowerStatus newExternalPowerStatus);
 
-	[LoggerMessage(EventId = 10_301, EventName = "GrpcSensorServiceDeviceWatchStart", Level = LogLevel.Debug, Message = "Started watching sensor devices.")]
-	public static partial void GrpcSensorServiceDeviceWatchStart(this ILogger logger);
-
-	[LoggerMessage(EventId = 10_302, EventName = "GrpcSensorServiceDeviceWatchStop", Level = LogLevel.Debug, Message = "Stopped watching sensor devices.")]
-	public static partial void GrpcSensorServiceDeviceWatchStop(this ILogger logger);
-
 	[LoggerMessage(EventId = 10_401, EventName = "GrpcLightingServiceDeviceWatchStart", Level = LogLevel.Debug, Message = "Started watching lighting devices.")]
 	public static partial void GrpcLightingServiceDeviceWatchStart(this ILogger logger);
 

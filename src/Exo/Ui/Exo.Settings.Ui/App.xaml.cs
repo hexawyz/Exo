@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
+using Exo.Contracts.Ui.Settings;
 using Exo.Overlay;
 using Exo.Programming;
 using Exo.Rpc;
@@ -149,8 +150,10 @@ public partial class App : Application
 		);
 
 		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));
+		services.AddSingleton(_ => new ResettableChannel<SensorDeviceInformation>(UnboundedChannelOptions));
+		services.AddSingleton<IEnumerable<ChannelReader<SensorDeviceInformation>>>(sp => sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>());
 
-		services.AddSingleton(sp => new ExoUiPipeClient("Local\\Exo.Service.Ui", sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>()));
+		services.AddSingleton(sp => new ExoUiPipeClient("Local\\Exo.Service.Ui", sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>(), sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>()));
 
 		services.AddSingleton<ISensorService>(sp => sp.GetRequiredService<ExoUiPipeClient>());
 

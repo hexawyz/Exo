@@ -2,13 +2,14 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using Exo.Contracts.Ui.Settings;
 using Exo.Metadata;
+using Exo.Primitives;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
@@ -19,6 +20,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
+	private readonly IEnumerable<ChannelReader<SensorDeviceInformation>> _sensorDeviceReaders;
 	private readonly Services.ISensorService _sensorService;
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
@@ -28,14 +30,23 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 	private readonly IDisposable _stateRegistration;
+	private readonly Task _watchDevicesTask;
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsAvailableForCoolingControlCurves;
 
-	public SensorsViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, Services.ISensorService sensorService, ISettingsMetadataService metadataService)
+	public SensorsViewModel
+	(
+		SettingsServiceConnectionManager connectionManager,
+		DevicesViewModel devicesViewModel,
+		IEnumerable<ChannelReader<SensorDeviceInformation>> sensorDeviceReaders,
+		ISensorService sensorService,
+		ISettingsMetadataService metadataService
+	)
 	{
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
+		_sensorDeviceReaders = sensorDeviceReaders;
 		_sensorService = sensorService;
 		_metadataService = metadataService;
 		_sensorDevices = new();
@@ -45,13 +56,14 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		_cancellationTokenSource = new();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
 		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
+		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
 	}
 
 	public ValueTask DisposeAsync()
 	{
 		_cancellationTokenSource.Cancel();
 		_stateRegistration.Dispose();
-		return ValueTask.CompletedTask;
+		return new(_watchDevicesTask);
 	}
 
 	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
@@ -60,46 +72,56 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
 			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
-			await WatchDevicesAsync(cts.Token);
 		}
 	}
 
-	void IConnectedState.Reset()
-	{
-		_sensorDevicesById.Clear();
-		_pendingDeviceInformations.Clear();
-
-		foreach (var device in _sensorDevices)
-		{
-			device.Dispose();
-		}
-
-		_sensorDevices.Clear();
-		_sensorsAvailableForCoolingControlCurves.Clear();
-	}
+	void IConnectedState.Reset() { }
 
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
 	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
 	{
 		try
 		{
-			var sensorService = await _connectionManager.GetSensorServiceAsync(cancellationToken);
-			await foreach (var info in sensorService.WatchSensorDevicesAsync(cancellationToken))
+			foreach (var reader in _sensorDeviceReaders)
 			{
-				if (_sensorDevicesById.TryGetValue(info.DeviceId, out var vm))
+				await _metadataService.WaitForAvailabilityAsync(cancellationToken);
+				try
 				{
-					OnDeviceChanged(vm, info);
+					await foreach (var info in reader.ReadAllAsync(cancellationToken))
+					{
+						if (_sensorDevicesById.TryGetValue(info.DeviceId, out var vm))
+						{
+							OnDeviceChanged(vm, info);
+						}
+						else
+						{
+							if (_devicesViewModel.TryGetDevice(info.DeviceId, out var device))
+							{
+								OnDeviceAdded(device, info);
+							}
+							else if (!_devicesViewModel.IsRemovedId(info.DeviceId))
+							{
+								_pendingDeviceInformations[info.DeviceId] = info;
+							}
+						}
+					}
 				}
-				else
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 				{
-					if (_devicesViewModel.TryGetDevice(info.DeviceId, out var device))
+					return;
+				}
+				finally
+				{
+					_sensorDevicesById.Clear();
+					_pendingDeviceInformations.Clear();
+
+					foreach (var device in _sensorDevices)
 					{
-						OnDeviceAdded(device, info);
+						device.Dispose();
 					}
-					else if (!_devicesViewModel.IsRemovedId(info.DeviceId))
-					{
-						_pendingDeviceInformations[info.DeviceId] = info;
-					}
+
+					_sensorDevices.Clear();
+					_sensorsAvailableForCoolingControlCurves.Clear();
 				}
 			}
 		}
@@ -376,8 +398,8 @@ internal sealed class SensorViewModel : BindableObject
 	public SensorDataType DataType => _sensorInformation.DataType;
 	public string Unit => _sensorInformation.Unit;
 	public SensorCapabilities Capabilities => _sensorInformation.Capabilities;
-	public double? ScaleMinimumValue => _sensorInformation.ScaleMinimumValue ?? _metadataMinimumValue;
-	public double? ScaleMaximumValue => _sensorInformation.ScaleMaximumValue ?? _metadataMaximumValue;
+	public double? ScaleMinimumValue => (_sensorInformation.Capabilities & SensorCapabilities.HasMinimumValue) != 0 ? ToDouble(_sensorInformation.DataType, _sensorInformation.ScaleMinimumValue) : _metadataMinimumValue;
+	public double? ScaleMaximumValue => (_sensorInformation.Capabilities & SensorCapabilities.HasMaximumValue) != 0 ? ToDouble(_sensorInformation.DataType, _sensorInformation.ScaleMaximumValue) : _metadataMaximumValue;
 	public LiveSensorDetailsViewModel? LiveDetails => _liveDetails;
 	public SensorCategory Category => _sensorCategory;
 	public ImmutableArray<double> PresetControlCurveSteps => ImmutableCollectionsMarshal.AsImmutableArray(_presetControlCurveSteps);
@@ -416,6 +438,25 @@ internal sealed class SensorViewModel : BindableObject
 		await liveDetails.DisposeAsync();
 		NotifyPropertyChanged(ChangedProperty.LiveDetails);
 	}
+
+	private static double ToDouble(SensorDataType dataType, VariantNumber value)
+		=> dataType switch
+		{
+			SensorDataType.UInt8 => (byte)value,
+			SensorDataType.UInt16 => (ushort)value,
+			SensorDataType.UInt32 => (uint)value,
+			SensorDataType.UInt64 => (ulong)value,
+			SensorDataType.UInt128 => (double)(UInt128)value,
+			SensorDataType.SInt8 => (sbyte)value,
+			SensorDataType.SInt16 => (short)value,
+			SensorDataType.SInt32 => (int)value,
+			SensorDataType.SInt64 => (long)value,
+			SensorDataType.SInt128 => (double)(Int128)value,
+			SensorDataType.Float16 => (double)(Half)value,
+			SensorDataType.Float32 => (float)value,
+			SensorDataType.Float64 => (double)value,
+			_ => throw new InvalidOperationException("Unsupported data type."),
+		};
 }
 
 internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposable
@@ -498,11 +539,11 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 		{
 			switch (_sensor.DataType)
 			{
-			case SensorDataType.UInt8: await WatchAsync<byte>(cancellationToken).ConfigureAwait(false);break;
-			case SensorDataType.UInt16: await WatchAsync<ushort>(cancellationToken).ConfigureAwait(false);break;
-			case SensorDataType.UInt32: await WatchAsync<uint>(cancellationToken).ConfigureAwait(false);break;
-			case SensorDataType.UInt64: await WatchAsync<ulong>(cancellationToken).ConfigureAwait(false);break;
-			case SensorDataType.UInt128: await WatchAsync<UInt128>(cancellationToken).ConfigureAwait(false);break;
+			case SensorDataType.UInt8: await WatchAsync<byte>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.UInt16: await WatchAsync<ushort>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.UInt32: await WatchAsync<uint>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.UInt64: await WatchAsync<ulong>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.UInt128: await WatchAsync<UInt128>(cancellationToken).ConfigureAwait(false); break;
 			case SensorDataType.SInt8: await WatchAsync<sbyte>(cancellationToken).ConfigureAwait(false); break;
 			case SensorDataType.SInt16: await WatchAsync<short>(cancellationToken).ConfigureAwait(false); break;
 			case SensorDataType.SInt32: await WatchAsync<int>(cancellationToken).ConfigureAwait(false); break;

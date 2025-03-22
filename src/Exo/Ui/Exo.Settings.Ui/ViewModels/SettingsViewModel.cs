@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Threading.Channels;
 using System.Windows.Input;
+using Exo.Contracts.Ui.Settings;
 using Exo.Metadata;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
@@ -127,6 +129,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		IEditionService editionService,
 		IFileOpenDialog fileOpenDialog,
 		ISensorService sensorService,
+		IEnumerable<ChannelReader<SensorDeviceInformation>> sensorDeviceReaders,
 		ISettingsMetadataService metadataService
 	)
 	{
@@ -142,7 +145,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightsViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
-		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, sensorService, _metadataService);
+		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, sensorDeviceReaders, sensorService, _metadataService);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);
 		_customMenuViewModel = new(ConnectionManager);

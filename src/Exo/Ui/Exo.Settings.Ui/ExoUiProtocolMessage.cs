@@ -77,6 +77,8 @@ internal enum ExoUiProtocolServerMessage : byte
 	DeviceAdd,
 	DeviceRemove,
 	DeviceUpdate,
+	/// <summary>Provides information about a sensor device.</summary>
+	SensorDevice,
 	/// <summary>Acknowledges a sensor request.</summary>
 	/// <remarks>
 	/// For simplicity and avoiding any ambiguities, all sensor requests will receive an answer.

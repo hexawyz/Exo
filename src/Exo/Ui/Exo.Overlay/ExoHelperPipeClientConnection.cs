@@ -11,11 +11,11 @@ using Exo.Utils;
 
 namespace Exo.Overlay;
 
-internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeClientConnection<ExoHelperClientConnection>
+internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPipeClientConnection<ExoHelperPipeClientConnection>
 {
-	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoHelperClientConnection).Assembly);
+	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoHelperPipeClientConnection).Assembly);
 
-	public static ExoHelperClientConnection Create(PipeClient<ExoHelperClientConnection> client, NamedPipeClientStream stream)
+	public static ExoHelperPipeClientConnection Create(PipeClient<ExoHelperPipeClientConnection> client, NamedPipeClientStream stream)
 	{
 		var helperPipeClient = (ExoHelperPipeClient)client;
 		return new(client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel, helperPipeClient.MonitorControlProxyRequestChannel);
@@ -25,7 +25,7 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
 	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
 
-	private ExoHelperClientConnection
+	private ExoHelperPipeClientConnection
 	(
 		PipeClient client,
 		NamedPipeClientStream stream,
@@ -332,7 +332,7 @@ internal sealed class ExoHelperClientConnection : PipeClientConnection, IPipeCli
 	}
 }
 
-internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection>, IMenuItemInvoker, IMonitorControlProxyResponseWriter
+internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperPipeClientConnection>, IMenuItemInvoker, IMonitorControlProxyResponseWriter
 {
 	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
 	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
@@ -343,7 +343,7 @@ internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperClientConnection
 		string pipeName,
 		ChannelWriter<OverlayRequest> overlayRequestWriter,
 		ResettableChannel<MenuChangeNotification> menuChannel,
-		ResettableChannel<Contracts.Ui.Overlay.MonitorControlProxyRequest> monitorControlProxyRequestChannel
+		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
 	) : base(pipeName, PipeTransmissionMode.Message
 	)
 	{

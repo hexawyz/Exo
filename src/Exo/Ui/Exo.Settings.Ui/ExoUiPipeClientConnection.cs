@@ -6,33 +6,38 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
+using Exo.Contracts.Ui.Settings;
+using Exo.Primitives;
 using Exo.Rpc;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 
 namespace Exo.Overlay;
 
-internal sealed class ExoUiClientConnection : PipeClientConnection, IPipeClientConnection<ExoUiClientConnection>
+internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeClientConnection<ExoUiPipeClientConnection>
 {
-	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoUiClientConnection).Assembly);
+	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoUiPipeClientConnection).Assembly);
 
-	public static ExoUiClientConnection Create(PipeClient<ExoUiClientConnection> client, NamedPipeClientStream stream)
+	public static ExoUiPipeClientConnection Create(PipeClient<ExoUiPipeClientConnection> client, NamedPipeClientStream stream)
 	{
 		var helperPipeClient = (ExoUiPipeClient)client;
-		return new(client, stream, helperPipeClient.MenuChannel);
+		return new(client, stream, helperPipeClient.MenuChannel, helperPipeClient.SensorDeviceChannel);
 	}
 
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
+	private readonly ResettableChannel<SensorDeviceInformation> _sensorDeviceChannel;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
 
-	private ExoUiClientConnection
+	private ExoUiPipeClientConnection
 	(
 		PipeClient client,
 		NamedPipeClientStream stream,
-		ResettableChannel<MenuChangeNotification> menuChannel
+		ResettableChannel<MenuChangeNotification> menuChannel,
+		ResettableChannel<SensorDeviceInformation> sensorDeviceChannel
 	) : base(client, stream)
 	{
 		_menuChannel = menuChannel;
+		_sensorDeviceChannel = sensorDeviceChannel;
 	}
 
 	protected override async Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken)
@@ -50,6 +55,7 @@ internal sealed class ExoUiClientConnection : PipeClientConnection, IPipeClientC
 		finally
 		{
 			_menuChannel.Reset();
+			_sensorDeviceChannel.Reset();
 		}
 	}
 
@@ -96,6 +102,9 @@ internal sealed class ExoUiClientConnection : PipeClientConnection, IPipeClientC
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
 			ProcessCustomMenu(WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.SensorDevice:
+			ProcessSensorDevice(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.SensorStart:
 			ProcessSensorStart(data);
@@ -148,6 +157,64 @@ internal sealed class ExoUiClientConnection : PipeClientConnection, IPipeClientC
 				Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 			}
 		);
+	}
+
+	private void ProcessSensorDevice(ReadOnlySpan<byte> data)
+	{
+		var channelWriter = _sensorDeviceChannel.CurrentWriter;
+		var reader = new BufferReader(data);
+
+		var deviceId = reader.ReadGuid();
+		var sensors = new SensorInformation[reader.ReadVariableUInt32()];
+
+		for (int i = 0; i < sensors.Length; i++)
+		{
+			var sensorId = reader.ReadGuid();
+			var dataType = (SensorDataType)reader.ReadByte();
+			var capabilities = (SensorCapabilities)reader.ReadByte();
+			string unit = reader.ReadVariableString() ?? "";
+			VariantNumber minimumValue = (capabilities & SensorCapabilities.HasMinimumValue) != 0 ? Read(ref reader, dataType) : default;
+			VariantNumber maximumValue = (capabilities & SensorCapabilities.HasMaximumValue) != 0 ? Read(ref reader, dataType) : default;
+			sensors[i] = new()
+			{
+				SensorId = sensorId,
+				DataType = dataType,
+				Capabilities = capabilities,
+				Unit = unit,
+				ScaleMinimumValue = minimumValue,
+				ScaleMaximumValue = maximumValue,
+			};
+		}
+
+		channelWriter.TryWrite
+		(
+			new()
+			{
+				DeviceId = deviceId,
+				Sensors = ImmutableCollectionsMarshal.AsImmutableArray(sensors),
+			}
+		);
+
+		static VariantNumber Read(ref BufferReader reader, SensorDataType dataType)
+		{
+			switch (dataType)
+			{
+			case SensorDataType.UInt8: return reader.ReadByte();
+			case SensorDataType.UInt16: return reader.Read<ushort>();
+			case SensorDataType.UInt32: return reader.Read<uint>();
+			case SensorDataType.UInt64: return reader.Read<ulong>();
+			case SensorDataType.UInt128: return reader.Read<UInt128>();
+			case SensorDataType.SInt8: goto case SensorDataType.UInt8;
+			case SensorDataType.SInt16: goto case SensorDataType.UInt16;
+			case SensorDataType.SInt32: goto case SensorDataType.UInt32;
+			case SensorDataType.SInt64: goto case SensorDataType.UInt64;
+			case SensorDataType.SInt128: goto case SensorDataType.UInt128;
+			case SensorDataType.Float16: goto case SensorDataType.UInt16;
+			case SensorDataType.Float32: goto case SensorDataType.UInt32;
+			case SensorDataType.Float64: goto case SensorDataType.UInt64;
+			default: throw new InvalidOperationException();
+			}
+		}
 	}
 
 	private void ProcessSensorStart(ReadOnlySpan<byte> data)
@@ -289,17 +356,20 @@ internal sealed class ExoUiClientConnection : PipeClientConnection, IPipeClientC
 	}
 }
 
-internal sealed class ExoUiPipeClient : PipeClient<ExoUiClientConnection>, ISensorService
+internal sealed class ExoUiPipeClient : PipeClient<ExoUiPipeClientConnection>, ISensorService
 {
 	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
+	internal ResettableChannel<SensorDeviceInformation> SensorDeviceChannel { get; }
 
 	public ExoUiPipeClient
 	(
 		string pipeName,
-		ResettableChannel<MenuChangeNotification> menuChannel
+		ResettableChannel<MenuChangeNotification> menuChannel,
+		ResettableChannel<SensorDeviceInformation> sensorDeviceChannel
 	) : base(pipeName, PipeTransmissionMode.Message)
 	{
 		MenuChannel = menuChannel;
+		SensorDeviceChannel = sensorDeviceChannel;
 	}
 
 	public async ValueTask InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
@@ -316,7 +386,7 @@ internal sealed class ExoUiPipeClient : PipeClient<ExoUiClientConnection>, ISens
 		else return EmptyAsyncEnumerable<TValue>.Instance;
 	}
 
-	private static async IAsyncEnumerable<TValue> WatchSensorValuesAsync<TValue>(ExoUiClientConnection connection, Guid deviceId, Guid sensorId, [EnumeratorCancellation] CancellationToken cancellationToken)
+	private static async IAsyncEnumerable<TValue> WatchSensorValuesAsync<TValue>(ExoUiPipeClientConnection connection, Guid deviceId, Guid sensorId, [EnumeratorCancellation] CancellationToken cancellationToken)
 		where TValue : unmanaged, INumber<TValue>
 	{
 		var operation = await connection.WatchSensorValuesAsync<TValue>(deviceId, sensorId, cancellationToken).ConfigureAwait(false);
@@ -369,12 +439,12 @@ internal abstract class SensorWatchOperation : IAsyncDisposable
 	private const uint StateStopped = 4;
 
 	private object _channelOrTaskCompletionSource;
-	private readonly ExoUiClientConnection _connection;
+	private readonly ExoUiPipeClientConnection _connection;
 	private readonly uint _streamId;
 	private uint _state;
 	private TaskCompletionSource? _disposeTaskCompletionSource;
 
-	private protected SensorWatchOperation(object channelOrTaskCompletionSource, ExoUiClientConnection connection, uint streamId)
+	private protected SensorWatchOperation(object channelOrTaskCompletionSource, ExoUiPipeClientConnection connection, uint streamId)
 	{
 		_channelOrTaskCompletionSource = channelOrTaskCompletionSource;
 		_connection = connection;
@@ -553,7 +623,7 @@ internal abstract class SensorWatchOperation : IAsyncDisposable
 internal sealed class SensorWatchOperation<TValue> : SensorWatchOperation
 	where TValue : unmanaged, INumber<TValue>
 {
-	public SensorWatchOperation(ExoUiClientConnection connection, uint streamId)
+	public SensorWatchOperation(ExoUiPipeClientConnection connection, uint streamId)
 		: base(new TaskCompletionSource<SensorWatchOperation>(TaskCreationOptions.RunContinuationsAsynchronously), connection, streamId)
 	{
 	}

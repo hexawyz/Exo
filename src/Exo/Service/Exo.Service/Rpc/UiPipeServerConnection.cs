@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
+using Exo.Primitives;
 using Exo.Rpc;
 using Exo.Sensors;
 
@@ -48,9 +49,10 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	private async Task WatchEventsAsync(CancellationToken cancellationToken)
 	{
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
+		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 
-		await Task.WhenAll(customMenuWatchTask).ConfigureAwait(false);
+		await Task.WhenAll(customMenuWatchTask, sensorDeviceWatchTask, sensorWatchTask).ConfigureAwait(false);
 	}
 
 	private async Task WatchCustomMenuChangesAsync(CancellationToken cancellationToken)
@@ -97,6 +99,64 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
+		}
+	}
+
+	private async Task WatchSensorDevicesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var info in _sensorService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					int length = WriteUpdate(buffer.Span, info);
+					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+
+		static int WriteUpdate(Span<byte> buffer, in SensorDeviceInformation device)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.SensorDevice);
+			writer.Write(device.DeviceId);
+			writer.WriteVariable(device.Sensors.IsDefault ? 0 : (uint)device.Sensors.Length);
+			foreach (var sensor in device.Sensors)
+			{
+				writer.Write(sensor.SensorId);
+				writer.Write((byte)sensor.DataType);
+				writer.Write((byte)sensor.Capabilities);
+				writer.WriteVariableString(sensor.Unit);
+				if ((sensor.Capabilities & SensorCapabilities.HasMinimumValue) != 0) Write(ref writer, sensor.DataType, sensor.ScaleMinimumValue);
+				if ((sensor.Capabilities & SensorCapabilities.HasMaximumValue) != 0) Write(ref writer, sensor.DataType, sensor.ScaleMaximumValue);
+			}
+			return (int)writer.Length;
+		}
+
+		static void Write(ref BufferWriter writer, SensorDataType dataType, VariantNumber value)
+		{
+			switch (dataType)
+			{
+			case SensorDataType.UInt8: writer.Write((byte)value); break;
+			case SensorDataType.UInt16: writer.Write((ushort)value); break;
+			case SensorDataType.UInt32: writer.Write((uint)value); break;
+			case SensorDataType.UInt64: writer.Write((ulong)value); break;
+			case SensorDataType.UInt128: writer.Write((UInt128)value); break;
+			case SensorDataType.SInt8: goto case SensorDataType.UInt8;
+			case SensorDataType.SInt16: goto case SensorDataType.UInt16;
+			case SensorDataType.SInt32: goto case SensorDataType.UInt32;
+			case SensorDataType.SInt64: goto case SensorDataType.UInt64;
+			case SensorDataType.SInt128: goto case SensorDataType.UInt128;
+			case SensorDataType.Float16: goto case SensorDataType.UInt16;
+			case SensorDataType.Float32: goto case SensorDataType.UInt32;
+			case SensorDataType.Float64: goto case SensorDataType.UInt64;
+			default: throw new InvalidOperationException();
+			}
 		}
 	}
 

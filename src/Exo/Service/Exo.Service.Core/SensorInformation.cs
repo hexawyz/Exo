@@ -1,8 +1,10 @@
+using Exo.Primitives;
+
 namespace Exo.Service;
 
 internal record struct SensorInformation
 {
-	public SensorInformation(Guid sensorId, SensorDataType dataType, string unit, SensorCapabilities capabilities, object? scaleMinimumValue, object? scaleMaximumValue)
+	public SensorInformation(Guid sensorId, SensorDataType dataType, SensorCapabilities capabilities, string unit, VariantNumber scaleMinimumValue, VariantNumber scaleMaximumValue)
 	{
 		SensorId = sensorId;
 		DataType = dataType;
@@ -14,8 +16,8 @@ internal record struct SensorInformation
 
 	public Guid SensorId { get; }
 	public SensorDataType DataType { get; }
+	public SensorCapabilities Capabilities { get; }
 	public string Unit { get; }
-	public SensorCapabilities Capabilities { get; init; }
-	public object? ScaleMinimumValue { get; }
-	public object? ScaleMaximumValue { get; }
+	public VariantNumber ScaleMinimumValue { get; }
+	public VariantNumber ScaleMaximumValue { get; }
 }

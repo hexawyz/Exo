@@ -9,6 +9,7 @@ using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
 using Exo.Features.Sensors;
+using Exo.Primitives;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
@@ -42,8 +43,8 @@ internal sealed partial class SensorService
 		public SensorDataType DataType { get; init; }
 		public string UnitSymbol { get; init; }
 		public SensorCapabilities Capabilities { get; init; }
-		public object? ScaleMinimumValue { get; init; }
-		public object? ScaleMaximumValue { get; init; }
+		public VariantNumber ScaleMinimumValue { get; init; }
+		public VariantNumber ScaleMaximumValue { get; init; }
 	}
 
 	// Custom serializer to ensure that min/max values are serialized using the proper format.
@@ -84,8 +85,8 @@ internal sealed partial class SensorService
 			default: throw new JsonException();
 			}
 
-			object? maxValue = null;
-			object? minValue = null;
+			VariantNumber maxValue = default;
+			VariantNumber minValue = default;
 			reader.Read();
 			if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
 			if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
@@ -94,6 +95,7 @@ internal sealed partial class SensorService
 			case nameof(PersistedSensorInformation.ScaleMinimumValue):
 				reader.Read();
 				minValue = ReadNumericValue(ref reader, dataType, options);
+				capabilities |= SensorCapabilities.HasMinimumValue;
 				reader.Read();
 				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
 				if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.ScaleMaximumValue)) throw new JsonException();
@@ -101,6 +103,7 @@ internal sealed partial class SensorService
 			case nameof(PersistedSensorInformation.ScaleMaximumValue):
 				reader.Read();
 				maxValue = ReadNumericValue(ref reader, dataType, options);
+				capabilities |= SensorCapabilities.HasMaximumValue;
 				reader.Read();
 				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
 				goto default;
@@ -118,7 +121,7 @@ internal sealed partial class SensorService
 			};
 		}
 
-		private static object ReadNumericValue(ref Utf8JsonReader reader, SensorDataType dataType, JsonSerializerOptions options)
+		private static VariantNumber ReadNumericValue(ref Utf8JsonReader reader, SensorDataType dataType, JsonSerializerOptions options)
 			=> dataType switch
 			{
 				SensorDataType.UInt8 => reader.GetByte(),
@@ -137,7 +140,7 @@ internal sealed partial class SensorService
 				_ => throw new InvalidOperationException(),
 			};
 
-		private static void WriteNumericProperty(Utf8JsonWriter writer, SensorDataType dataType, string propertyName, object value, JsonSerializerOptions options)
+		private static void WriteNumericProperty(Utf8JsonWriter writer, SensorDataType dataType, string propertyName, VariantNumber value, JsonSerializerOptions options)
 		{
 			writer.WritePropertyName(propertyName);
 			switch (dataType)
@@ -156,7 +159,8 @@ internal sealed partial class SensorService
 			case SensorDataType.Float32: writer.WriteNumberValue((float)value); break;
 			case SensorDataType.Float64: writer.WriteNumberValue((double)value); break;
 			default: throw new InvalidOperationException();
-			};
+			}
+			;
 		}
 
 		public override void Write(Utf8JsonWriter writer, PersistedSensorInformation value, JsonSerializerOptions options)
@@ -167,11 +171,11 @@ internal sealed partial class SensorService
 			writer.WriteString(nameof(PersistedSensorInformation.UnitSymbol), value.UnitSymbol);
 			writer.WritePropertyName(nameof(PersistedSensorInformation.Capabilities));
 			JsonSerializer.Serialize(writer, value.Capabilities, options);
-			if (value.ScaleMinimumValue is not null)
+			if ((value.Capabilities & SensorCapabilities.HasMinimumValue) != 0)
 			{
 				WriteNumericProperty(writer, value.DataType, nameof(PersistedSensorInformation.ScaleMinimumValue), value.ScaleMinimumValue, options);
 			}
-			if (value.ScaleMaximumValue is not null)
+			if ((value.Capabilities & SensorCapabilities.HasMaximumValue) != 0)
 			{
 				WriteNumericProperty(writer, value.DataType, nameof(PersistedSensorInformation.ScaleMaximumValue), value.ScaleMaximumValue, options);
 			}
@@ -252,7 +256,7 @@ internal sealed partial class SensorService
 				var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorInformation>(sensorId, cancellationToken).ConfigureAwait(false);
 				if (!result.Found) continue;
 				var info = result.Value;
-				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.UnitSymbol, info.Capabilities, info.ScaleMinimumValue, info.ScaleMaximumValue));
+				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.Capabilities, info.UnitSymbol, info.ScaleMinimumValue, info.ScaleMaximumValue));
 			}
 
 			if (sensorInformations.Count > 0)
@@ -499,12 +503,35 @@ internal sealed partial class SensorService
 	}
 
 	private static SensorInformation BuildSensorInformation<T>(ISensor sensor, SensorDataType dataType)
-		where T : struct, INumber<T>
+		where T : unmanaged, INumber<T>
 		=> BuildSensorInformation((ISensor<T>)sensor, dataType);
 
 	private static SensorInformation BuildSensorInformation<T>(ISensor<T> sensor, SensorDataType dataType)
-		where T : struct, INumber<T>
-		=> new SensorInformation(sensor.SensorId, dataType, sensor.Unit.Symbol, GetCapabilities(sensor), sensor.ScaleMinimumValue, sensor.ScaleMaximumValue);
+		where T : unmanaged, INumber<T>
+	{
+		var capabilities = GetCapabilities(sensor);
+		VariantNumber minimumValue;
+		VariantNumber maximumValue;
+		if (sensor.ScaleMinimumValue is not null)
+		{
+			capabilities |= SensorCapabilities.HasMinimumValue;
+			minimumValue = VariantNumber.Create(sensor.ScaleMinimumValue.GetValueOrDefault());
+		}
+		else
+		{
+			minimumValue = default;
+		}
+		if (sensor.ScaleMaximumValue is not null)
+		{
+			capabilities |= SensorCapabilities.HasMaximumValue;
+			maximumValue = VariantNumber.Create(sensor.ScaleMaximumValue.GetValueOrDefault());
+		}
+		else
+		{
+			maximumValue = default;
+		}
+		return new SensorInformation(sensor.SensorId, dataType, capabilities, sensor.Unit.Symbol, minimumValue, maximumValue);
+	}
 
 	private static SensorCapabilities GetCapabilities(ISensor sensor)
 	{

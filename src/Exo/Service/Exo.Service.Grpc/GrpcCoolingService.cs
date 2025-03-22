@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling;
-using Exo.Cooling.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Grpc;
@@ -11,9 +10,9 @@ namespace Exo.Service.Grpc;
 internal sealed class GrpcCoolingService : ICoolingService
 {
 	private readonly CoolingService _coolingService;
-	private readonly ILogger<GrpcSensorService> _logger;
+	private readonly ILogger<GrpcCoolingService> _logger;
 
-	public GrpcCoolingService(CoolingService coolingService, ILogger<GrpcSensorService> logger)
+	public GrpcCoolingService(CoolingService coolingService, ILogger<GrpcCoolingService> logger)
 	{
 		_coolingService = coolingService;
 		_logger = logger;

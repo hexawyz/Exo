@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-	
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 			<_Parameter1>Exo.Service</_Parameter1>
@@ -15,15 +15,16 @@
 		</AssemblyAttribute>
 	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="protobuf-net" />
-    <PackageReference Include="protobuf-net.Grpc" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="protobuf-net" />
+		<PackageReference Include="protobuf-net.Grpc" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
-    <ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
-    <ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Primitives\Exo.Primitives.csproj" />
+		<ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
+	</ItemGroup>
 
 </Project>

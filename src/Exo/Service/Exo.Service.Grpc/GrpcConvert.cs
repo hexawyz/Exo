@@ -1,57 +1,53 @@
 using System.Collections.Immutable;
+using System.Numerics;
+using Exo.Contracts.Ui.Settings.Cooling;
+using Exo.Cooling.Configuration;
+using Exo.Features.EmbeddedMonitors;
 using Exo.Features.Monitors;
+using Exo.Images;
 using Exo.Lighting;
+using Exo.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
 using DeviceId = DeviceTools.DeviceId;
 using DeviceIdSource = DeviceTools.DeviceIdSource;
 using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
 using GrpcCoolerPowerLimits = Exo.Contracts.Ui.Settings.CoolerPowerLimits;
 using GrpcCoolerType = Exo.Contracts.Ui.Settings.CoolerType;
-using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
-using GrpcCoolingParameters = Exo.Contracts.Ui.Settings.Cooling.CoolingParameters;
 using GrpcCoolingControlCurve = Exo.Contracts.Ui.Settings.Cooling.CoolingControlCurve;
+using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
 using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
+using GrpcCoolingParameters = Exo.Contracts.Ui.Settings.Cooling.CoolingParameters;
 using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
 using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
 using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
 using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
-using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
-using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
-using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
+using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.EmbeddedMonitorConfigurationUpdate;
+using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
+using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
+using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
+using GrpcImageFormat = Exo.Contracts.Ui.Settings.ImageFormat;
+using GrpcImageInformation = Exo.Contracts.Ui.Settings.ImageInformation;
 using GrpcLightCapabilities = Exo.Contracts.Ui.Settings.LightCapabilities;
 using GrpcLightChangeNotification = Exo.Contracts.Ui.Settings.LightChangeNotification;
+using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
+using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
+using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
 using GrpcLightingPersistenceMode = Exo.Contracts.Ui.Settings.LightingPersistenceMode;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMetadataArchiveCategory = Exo.Contracts.Ui.Settings.MetadataArchiveCategory;
 using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
 using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
+using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
 using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
 using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
-using GrpcSensorDataType = Exo.Contracts.Ui.Settings.SensorDataType;
-using GrpcSensorCapabilities = Exo.Contracts.Ui.Settings.SensorCapabilities;
-using GrpcSensorDeviceInformation = Exo.Contracts.Ui.Settings.SensorDeviceInformation;
-using GrpcSensorInformation = Exo.Contracts.Ui.Settings.SensorInformation;
-using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
-using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
-using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.EmbeddedMonitorConfigurationUpdate;
-using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
-using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
+using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
+using GrpcSize = Exo.Contracts.Ui.Settings.Size;
 using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
-using GrpcImageInformation = Exo.Contracts.Ui.Settings.ImageInformation;
-using GrpcImageFormat = Exo.Contracts.Ui.Settings.ImageFormat;
-using GrpcSize = Exo.Contracts.Ui.Settings.Size;
-using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
 using VendorIdSource = DeviceTools.VendorIdSource;
-using Exo.Contracts.Ui.Settings.Cooling;
-using Exo.Cooling.Configuration;
-using System.Numerics;
-using Exo.Images;
-using Exo.Monitors;
-using Exo.Features.EmbeddedMonitors;
 
 namespace Exo.Service.Grpc;
 
@@ -132,24 +128,6 @@ internal static class GrpcConvert
 		{
 			ZoneId = zoneInformation.ZoneId,
 			SupportedEffectIds = zoneInformation.SupportedEffectTypeIds,
-		};
-
-	public static GrpcSensorDeviceInformation ToGrpc(this SensorDeviceInformation sensorDeviceInformation)
-		=> new()
-		{
-			DeviceId = sensorDeviceInformation.DeviceId,
-			Sensors = ImmutableArray.CreateRange(sensorDeviceInformation.Sensors, ToGrpc),
-		};
-
-	public static GrpcSensorInformation ToGrpc(this SensorInformation sensorInformation)
-		=> new()
-		{
-			SensorId = sensorInformation.SensorId,
-			DataType = sensorInformation.DataType.ToGrpc(),
-			Unit = sensorInformation.Unit,
-			Capabilities = sensorInformation.Capabilities.ToGrpc(),
-			ScaleMinimumValue = sensorInformation.ScaleMinimumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMinimumValue) : null,
-			ScaleMaximumValue = sensorInformation.ScaleMaximumValue is not null ? Convert.ToDouble(sensorInformation.ScaleMaximumValue) : null,
 		};
 
 	public static GrpcEmbeddedMonitorDeviceInformation ToGrpc(this EmbeddedMonitorDeviceInformation embeddedMonitorDeviceInformation)
@@ -385,28 +363,6 @@ internal static class GrpcConvert
 			VendorIdSource.Bluetooth => GrpcVendorIdSource.Bluetooth,
 			_ => throw new NotImplementedException()
 		};
-
-	public static GrpcSensorDataType ToGrpc(this SensorDataType dataType)
-		=> dataType switch
-		{
-			SensorDataType.UInt8 => GrpcSensorDataType.UInt8,
-			SensorDataType.UInt16 => GrpcSensorDataType.UInt16,
-			SensorDataType.UInt32 => GrpcSensorDataType.UInt32,
-			SensorDataType.UInt64 => GrpcSensorDataType.UInt64,
-			SensorDataType.UInt128 => GrpcSensorDataType.UInt128,
-			SensorDataType.SInt8 => GrpcSensorDataType.SInt8,
-			SensorDataType.SInt16 => GrpcSensorDataType.SInt16,
-			SensorDataType.SInt32 => GrpcSensorDataType.SInt32,
-			SensorDataType.SInt64 => GrpcSensorDataType.SInt64,
-			SensorDataType.SInt128 => GrpcSensorDataType.SInt128,
-			SensorDataType.Float16 => GrpcSensorDataType.Float16,
-			SensorDataType.Float32 => GrpcSensorDataType.Float32,
-			SensorDataType.Float64 => GrpcSensorDataType.Float64,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcSensorCapabilities ToGrpc(this SensorCapabilities capabilities)
-		=> (GrpcSensorCapabilities)capabilities;
 
 	public static GrpcMonitorInformation ToGrpc(this MonitorInformation information)
 		=> new()

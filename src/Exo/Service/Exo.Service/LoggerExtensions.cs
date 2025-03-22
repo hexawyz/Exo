@@ -14,16 +14,15 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(EventId = 1003, EventName = "AssemblyLoaderAfterAssemblyLoadError", Level = LogLevel.Error, Message = "An error occurred in the even handler AfterAssemblyLoad for assembly {AssemblyName}.")]
 	public static partial void AssemblyLoaderAfterAssemblyLoadError(this ILogger logger, string assemblyName, Exception exception);
 
-
-	[LoggerMessage(EventId = 10_304, EventName = "UiSensorServiceSensorWatchStart", Level = LogLevel.Debug, Message = "Started watching sensor values for sensor {SensorId} of device {DeviceId} as stream #{StreamId}.")]
+	[LoggerMessage(EventId = 10_301, EventName = "UiSensorServiceSensorWatchStart", Level = LogLevel.Debug, Message = "Started watching sensor values for sensor {SensorId} of device {DeviceId} as stream #{StreamId}.")]
 	public static partial void UiSensorServiceSensorWatchStart(this ILogger logger, Guid deviceId, Guid sensorId, uint streamId);
 
-	[LoggerMessage(EventId = 10_305, EventName = "UiSensorServiceSensorWatchStop", Level = LogLevel.Debug, Message = "Stopped watching sensor values for stream #{StreamId}.")]
+	[LoggerMessage(EventId = 10_302, EventName = "UiSensorServiceSensorWatchStop", Level = LogLevel.Debug, Message = "Stopped watching sensor values for stream #{StreamId}.")]
 	public static partial void UiSensorServiceSensorWatchStop(this ILogger logger, uint streamId);
 
-	[LoggerMessage(EventId = 10_306, EventName = "UiSensorServiceSensorWatchNotification", Level = LogLevel.Trace, Message = "New data point for stream #{StreamId}: {SensorDataPointValue} [{SensorDataPointDateTime}].")]
+	[LoggerMessage(EventId = 10_303, EventName = "UiSensorServiceSensorWatchNotification", Level = LogLevel.Trace, Message = "New data point for stream #{StreamId}: {SensorDataPointValue} [{SensorDataPointDateTime}].")]
 	public static partial void UiSensorServiceSensorWatchNotification(this ILogger logger, uint streamId, DateTime sensorDataPointDateTime, object sensorDataPointValue);
 
-	[LoggerMessage(EventId = 10_307, EventName = "UiSensorServiceSensorWatchError", Level = LogLevel.Error, Message = "An error occurred while processing stream #{StreamId}.")]
+	[LoggerMessage(EventId = 10_304, EventName = "UiSensorServiceSensorWatchError", Level = LogLevel.Error, Message = "An error occurred while processing stream #{StreamId}.")]
 	public static partial void UiSensorServiceSensorWatchError(this ILogger logger, uint streamId, Exception ex);
 }
