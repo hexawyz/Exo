@@ -104,14 +104,6 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				return (int)writer.Length;
 			}
 
-			static int WriteInitialization(Span<byte> buffer, ImmutableArray<MetadataSourceInformation> sources)
-			{
-				var writer = new BufferWriter(buffer);
-				writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
-				WriteSources(ref writer, sources);
-				return (int)writer.Length;
-			}
-
 			static void WriteSources(ref BufferWriter writer, ImmutableArray<MetadataSourceInformation> sources)
 			{
 				writer.WriteVariable((uint)sources.Length);

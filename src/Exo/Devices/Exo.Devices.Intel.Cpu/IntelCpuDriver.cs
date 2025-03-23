@@ -53,8 +53,11 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			if ((eax & int.MinValue) == 0 || eax - unchecked((int)0x80000004U) < 4) throw new PlatformNotSupportedException("Brand String is not supported.");
 
-			// TODO: Interpret processor information stuff if necessary. (For now, the brand name seems to be enough?)
-			//(eax, ebx, ecx, edx) = X86Base.CpuId(1, 0);
+			// We need to identify the CPU models for some subset of capabilities
+			(eax, ebx, ecx, edx) = X86Base.CpuId(1, 0);
+
+			var processorInformation = ParseProcessorInformation((uint)eax);
+			t.Item2.IntelProcessorInformation((ushort)(t.Item4 + 1), processorInformation.ProcessorType, processorInformation.FamilyId, processorInformation.ModelId, processorInformation.SteppingId); 
 
 			// Read CPU thermal information.
 			(eax, ebx, ecx, edx) = X86Base.CpuId(6, 0);
@@ -93,6 +96,31 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		ulong result = 0;
 		_ = pawnIo.Execute("ioctl_read_msr\0"u8, new(ref msr), new(ref result));
 		return result;
+	}
+
+	private static ProcessorInformation ParseProcessorInformation(nuint eax)
+	{
+		nuint steppingId = eax & 0xF;
+		nuint modelId = (eax >>> 4) & 0xF;
+		nuint familyId = (eax >>> 8) & 0xF;
+		nuint processorType = (eax >> 12) & 0x3;
+
+		if (familyId == 0xF)
+		{
+			familyId += (byte)(eax >>> 20);
+			goto IdentifyExtendedModelId;
+		}
+		else if (familyId == 0x6)
+		{
+			goto IdentifyExtendedModelId;
+		}
+		goto ModelIdIdentified;
+
+	IdentifyExtendedModelId:;
+		modelId |= (eax >> 12) & 0xF0;
+	ModelIdIdentified:;
+
+		return new((byte)steppingId, (byte)modelId, (ushort)familyId, (ProcessorType)(byte)processorType);
 	}
 
 	private static string ReadBrandString()
