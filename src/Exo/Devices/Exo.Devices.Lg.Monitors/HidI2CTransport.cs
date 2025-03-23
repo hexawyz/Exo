@@ -2,7 +2,6 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.I2C;
-using Exo.Service;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Lg.Monitors;

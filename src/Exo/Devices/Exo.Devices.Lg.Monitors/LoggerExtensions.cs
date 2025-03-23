@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Exo.Service;
+namespace Exo.Devices.Lg.Monitors;
 
 internal static partial class LoggerExtensions
 {
