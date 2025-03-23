@@ -145,11 +145,19 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 		{
 			_ = TConnection.Create(this, stream).StartAndGetRunTask();
 		}
+		catch (UnauthorizedAccessException)
+		{
+			await stream.DisposeAsync().ConfigureAwait(false);
+		}
 		catch (Exception ex)
 		{
 			// TODO: Log
 			await stream.DisposeAsync().ConfigureAwait(false);
-			throw;
+			// TODO: Log if the access was not authorized.
+			if (ex is not UnauthorizedAccessException)
+			{
+				throw;
+			}
 		}
 		finally
 		{

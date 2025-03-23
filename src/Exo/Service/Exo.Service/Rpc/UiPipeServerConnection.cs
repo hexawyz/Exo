@@ -43,6 +43,13 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		_metadataSourceProvider = metadataSourceProvider;
 		_customMenuService = customMenuService;
 		_sensorService = sensorService;
+		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
+		{
+			if (callingProcess.ProcessName != "Exo.Settings.Ui")
+			{
+				throw new UnauthorizedAccessException("The client is not authorized.");
+			}
+		}
 		_sensorWatchStates = new();
 		_sensorUpdateChannel = Channel.CreateUnbounded<SensorUpdate>(SensorChannelOptions);
 	}

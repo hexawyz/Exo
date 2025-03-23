@@ -32,6 +32,13 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 	{
 		_overlayNotificationService = overlayNotificationService;
 		_customMenuService = customMenuService;
+		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
+		{
+			if (callingProcess.ProcessName != "Exo.Overlay")
+			{
+				throw new UnauthorizedAccessException("The client is not authorized.");
+			}
+		}
 		_monitorControlProxyChannel = monitorControlProxyService.CreateChannel();
 	}
 
