@@ -169,11 +169,11 @@ internal sealed partial class SensorService
 			state.PendingOperation = GroupedPolledSensorPendingOperation.None;
 			int index = Array.IndexOf(_activeSensorStates, state, 0, _referenceCount);
 			if (index < 0) throw new InvalidOperationException();
-			if (--_referenceCount == 0)
+			bool isLast = --_referenceCount == 0;
+			if (isLast)
 			{
 				ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
 				_sensorService._pollingScheduler.Release();
-				return false;
 			}
 			else if ((uint)index < (uint)_referenceCount)
 			{
@@ -181,7 +181,7 @@ internal sealed partial class SensorService
 			}
 			_activeSensorStates[_referenceCount] = null;
 			if (wasEnabled) _groupedQueryFeature.RemoveSensor(state.Sensor);
-			return true;
+			return !isLast;
 		}
 	}
 }
