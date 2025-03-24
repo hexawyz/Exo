@@ -409,7 +409,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		if (!sensor._isQueried) return;
 		Volatile.Write(ref sensor._isQueried, false);
 		var threadState = sensor.GetThreadState();
-		if (Interlocked.Increment(ref threadState.ActiveSensorCount) != 0) return;
+		if (Interlocked.Decrement(ref threadState.ActiveSensorCount) != 0) return;
 		--_groupQueryThreadCount;
 	}
 
