@@ -7,6 +7,27 @@
         "maximumValue": 150,
         "presetControlCurveSteps": [ 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ]
     },
+    // Package power
+    "fb5e3dc0-2edc-417a-b263-72bc9f1fc24c": {
+        "nameStringId": "892ed99a-ec9f-4279-873b-74f98f321a46",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 500
+    },
+    // Core power
+    "3803b733-c1cf-4f47-a158-c005edefd3f5": {
+        "nameStringId": "7cdaa2e2-2664-4845-90de-d83d67dda90e",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 500
+    },
+    // Uncore power
+    "52871a97-7a56-4dcb-aabc-4912c90df49d": {
+        "nameStringId": "b002f7d3-82aa-4f28-a346-599ab6a86499",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 500
+    },
     // All possible 512 core temperature sensors
     "228c57a0-b22c-4dbe-948d-dd36767c218e": {
         "nameStringId": "b49babfa-4d96-4ebb-ab00-9aace2a33e82",

@@ -1,0 +1,17 @@
+{
+	"892ed99a-ec9f-4279-873b-74f98f321a46": {
+		"en": "Power consumption",
+		"fr": "Puissance consommée",
+		"ja": "消費電力"
+	},
+	"7cdaa2e2-2664-4845-90de-d83d67dda90e": {
+		"en": "Power consumption (Cores)",
+		"fr": "Puissance consommée (Cœurs)",
+		"ja": "消費電力（コア）"
+	},
+	"b002f7d3-82aa-4f28-a346-599ab6a86499": {
+		"en": "Power consumption (Uncore)",
+		"fr": "Puissance consommée (Autre)",
+		"ja": "消費電力 (その他)"
+	}
+}
