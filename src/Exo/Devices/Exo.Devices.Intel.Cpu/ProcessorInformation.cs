@@ -1,4 +1,4 @@
-﻿namespace Exo.Devices.Intel.Cpu;
+namespace Exo.Devices.Intel.Cpu;
 
 internal readonly struct ProcessorInformation
 {

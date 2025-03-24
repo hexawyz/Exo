@@ -101,7 +101,7 @@ internal sealed class PawnIo : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	public void Dispose(bool disposing)
+	private void Dispose(bool disposing)
 	{
 		nint handle = Interlocked.Exchange(ref _handle, 0);
 		if (handle != 0) pawnio_close(_handle);
