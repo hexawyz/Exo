@@ -23,7 +23,9 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private const uint Ia32PackageThermStatus = 0x1B1;
 	private const uint MsrRaplPowerUnit = 0x606;
 	private const uint MsrPkgEnergyStatus = 0x611;
+	private const uint MsrPkgPowerInfo = 0x614;
 	private const uint MsrPp0EnergyStatus = 0x639;
+	private const uint MsrPp1EnergyStatus = 0x641;
 
 	[DiscoverySubsystem<CpuDiscoverySubsystem>]
 	[X86CpuVendorId("GenuineIntel")]
@@ -108,6 +110,16 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			// There doesn't seem to be any flag to indicate that energy sensors are present. So for now, assume that they always are.
 			capabilities |= ProcessorCapabilities.EnergySensor;
+			// TODO: Find a way to reliably detect if the CPU has PP1. (From what I understand, pretty much every CPU have "uncore", but the documentation seems a bit contradictory about what PP1 is)
+			// For now, trying to read the register and verify that it is 0 might be the easiest way to proceed. Although it might be safer to combine this with an explicit list of supported CPUs.
+			if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
+			else
+			{
+				// In the extreme event where we would have been unlucky enough to read PP1 as 0 once, retry after a few ms.
+				// If still 0, there is either no iGPU or it is disabled.
+				Thread.Sleep(10);
+				if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
+			}
 
 			ulong powerUnits = ReadMsr(pawnIo, MsrRaplPowerUnit);
 
@@ -238,7 +250,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				int threadIndex = 0;
 
 				if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensorCount += 1;
-				if ((capabilities & ProcessorCapabilities.EnergySensor) != 0) sensorCount += 2;
+				if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
+				{
+					sensorCount += (capabilities & ProcessorCapabilities.UncoreSensors) != 0 ? 3 : 2;
+				}
 				threadCount += 1;
 
 				if (packageInformation.Cores.Length > 1)
@@ -268,15 +283,20 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 					PackageTemperatureSensor? temperatureSensor = null;
 					PackagePowerSensor? powerSensor = null;
 					PackageCorePowerSensor? corePowerSensor = null;
+					PackageUncorePowerSensor? uncorePowerSensor = null;
 
 					if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensors[sensorIndex++] = temperatureSensor = new PackageTemperatureSensor(this);
 					if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
 					{
 						sensors[sensorIndex++] = powerSensor = new PackagePowerSensor(this);
 						sensors[sensorIndex++] = corePowerSensor = new PackageCorePowerSensor(this);
+						if ((capabilities & ProcessorCapabilities.UncoreSensors) != 0)
+						{
+							sensors[sensorIndex++] = uncorePowerSensor = new PackageUncorePowerSensor(this);
+						}
 					}
 
-					var state = new MonitoringThreadState(@event, thread, temperatureSensor, powerSensor, corePowerSensor);
+					var state = new PackageMonitoringThreadState(@event, thread, temperatureSensor, powerSensor, corePowerSensor, uncorePowerSensor);
 					monitoringThreads[threadIndex++] = state;
 					thread.Start(state);
 				}
@@ -301,7 +321,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 						var temperatureSensor = new CoreTemperatureSensor(this, i);
 						sensors[sensorIndex++] = temperatureSensor;
 
-						var state = new MonitoringThreadState(@event, thread, temperatureSensor, null, null);
+						var state = new CoreMonitoringThreadState(@event, thread, temperatureSensor);
 						monitoringThreads[threadIndex++] = state;
 						thread.Start(state);
 					}
@@ -352,52 +372,40 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 	private void EnableSensor(Sensor sensor)
 	{
-		lock (this)
-		{
-			if (sensor._isQueried) return;
-			Volatile.Write(ref sensor._isQueried, true);
-			var threadState = sensor.GetThreadState();
-			if (threadState.IsEnabled) return;
-			Volatile.Write(ref threadState.IsEnabled, true);
-			threadState.Event.Set();
-			++_groupQueryThreadCount;
-		}
+		if (sensor._isQueried) return;
+		Volatile.Write(ref sensor._isQueried, true);
+		var threadState = sensor.GetThreadState();
+		if (Interlocked.Increment(ref threadState.ActiveSensorCount) != 1) return;
+		++_groupQueryThreadCount;
+		threadState.Event.Set();
 	}
 
 	private void DisableSensor(Sensor sensor)
 	{
-		lock (this)
-		{
-			if (!sensor._isQueried) return;
-			Volatile.Write(ref sensor._isQueried, false);
-			var threadState = sensor.GetThreadState();
-			if (!threadState.IsEnabled) return;
-			Volatile.Write(ref threadState.IsEnabled, false);
-			threadState.Event.Reset();
-			--_groupQueryThreadCount;
-		}
+		if (!sensor._isQueried) return;
+		Volatile.Write(ref sensor._isQueried, false);
+		var threadState = sensor.GetThreadState();
+		if (Interlocked.Increment(ref threadState.ActiveSensorCount) != 0) return;
+		--_groupQueryThreadCount;
 	}
 
 	// NB: This will break if the method is called more than once at a time.
 	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
-		lock (this)
+		if (_groupedQueryEventRed is null || _groupedQueryEventBlue is null || Volatile.Read(ref _isDisposed) || _groupQueryThreadCount == 0) return ValueTask.CompletedTask;
+		if (Volatile.Read(ref _pendingGroupQueryThreadCount) != 0) throw new InvalidOperationException("There should not be any running query at the moment.");
+		Volatile.Write(ref _pendingGroupQueryThreadCount, _groupQueryThreadCount);
+		if (_groupedQueryColor)
 		{
-			if (_groupedQueryEventRed is null || _groupedQueryEventBlue is null || Volatile.Read(ref _isDisposed) || _groupQueryThreadCount == 0) return ValueTask.CompletedTask;
-			if (Volatile.Read(ref _pendingGroupQueryThreadCount) != 0) throw new InvalidOperationException("There should not be any running query at the moment.");
-			Volatile.Write(ref _pendingGroupQueryThreadCount, _groupQueryThreadCount);
-			if (_groupedQueryColor)
-			{
-				_groupedQueryEventBlue.Reset();
-				_groupedQueryColor = false;
-				_groupedQueryEventRed.Set();
-			}
-			else
-			{
-				_groupedQueryEventRed.Reset();
-				_groupedQueryColor = true;
-				_groupedQueryEventBlue.Set();
-			}
+			_groupedQueryEventBlue.Reset();
+			_groupedQueryColor = false;
+			_groupedQueryEventRed.Set();
+		}
+		else
+		{
+			_groupedQueryEventRed.Reset();
+			_groupedQueryColor = true;
+			_groupedQueryEventBlue.Set();
 		}
 		return _groupedQueryValueTaskSource!.AsValueTask();
 	}
@@ -423,10 +431,13 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		if (Volatile.Read(ref _isDisposed)) throw new ObjectDisposedException(GetType().FullName);
 	}
 
-	private void ReadPackageSensors(object? state)
-		=> ReadPackageSensors(Unsafe.As<MonitoringThreadState>(state!));
+	// Gets the current event to wait for in the alternated red / blue sequence.
+	private ManualResetEvent GetEvent() => Volatile.Read(ref _groupedQueryColor) ? _groupedQueryEventRed! : _groupedQueryEventBlue!;
 
-	private void ReadPackageSensors(MonitoringThreadState state)
+	private void ReadPackageSensors(object? state)
+		=> ReadPackageSensors(Unsafe.As<PackageMonitoringThreadState>(state!));
+
+	private void ReadPackageSensors(PackageMonitoringThreadState state)
 	{
 		ProcessorAffinity.SetForCurrentThread(_packageInformation.GroupAffinities);
 		// Start counting time 100s in the past. (That way, we invalidate any possible reading)
@@ -437,15 +448,25 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		uint powerReading = 0;
 		uint lastCorePowerReading = 0;
 		uint corePowerReading = 0;
+		uint lastUncorePowerReading = 0;
+		uint uncorePowerReading = 0;
+		ManualResetEvent globalEvent;
 		while (true)
 		{
-			state.Event.WaitOne();
+			// Wait for the start event unless the thread has been resurrected while the event was being reset.
+			if (Volatile.Read(ref state.ActiveSensorCount) == 0) state.Event.WaitOne();
 
 			if (Volatile.Read(ref _isDisposed)) return;
 
+			globalEvent = GetEvent();
+
 			while (true)
 			{
-				(_groupedQueryColor ? _groupedQueryEventRed : _groupedQueryEventBlue)!.WaitOne();
+				// Always first wait then check if the thread should still be alive, then get the next event in cycle.
+				// It is important that the new event is fetched before any thread (supposedly this one) has the opportunity to complete the current refresh cycle.
+				globalEvent.WaitOne();
+				if (Volatile.Read(ref state.ActiveSensorCount) == 0) break;
+				globalEvent = GetEvent();
 
 				readingTimestamp = (ulong)Stopwatch.GetTimestamp();
 
@@ -461,48 +482,67 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 						powerReading = (uint)ReadMsr(_pawnIo!, MsrPkgEnergyStatus);
 						corePowerReading = (uint)ReadMsr(_pawnIo!, MsrPp0EnergyStatus);
 					}
-
-					// Only update the reading if the last value wasn't too old.
-					if (state.PowerSensor is not null && readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
+					if (state.UncorePowerSensor is not null)
 					{
-						state.PowerSensor._value = (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
-						state.CorePowerSensor!._value = (corePowerReading - lastCorePowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						uncorePowerReading = (uint)ReadMsr(_pawnIo!, MsrPp1EnergyStatus);
+					}
+					// Only update the reading if the last value wasn't too old.
+					if (readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
+					{
+						if (state.PowerSensor is not null)
+						{
+							state.PowerSensor._value = (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+							state.CorePowerSensor!._value = (corePowerReading - lastCorePowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						}
+						if (state.UncorePowerSensor is not null)
+						{
+							state.UncorePowerSensor._value = (uncorePowerReading - lastUncorePowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						}
 					}
 
 					lastPowerReading = powerReading;
 					lastCorePowerReading = corePowerReading;
+					lastUncorePowerReading = uncorePowerReading;
 					lastReadingTimestamp = readingTimestamp;
 				}
 
 				if (Interlocked.Decrement(ref _pendingGroupQueryThreadCount) == 0) _groupedQueryValueTaskSource!.SetResult();
 
 				if (Volatile.Read(ref _isDisposed)) return;
-
-				if (!(state.TemperatureSensor?._isQueried == true || state.PowerSensor?._isQueried == true)) break;
 			}
 
 			state.Event.Reset();
+
+			if (Volatile.Read(ref _isDisposed)) return;
 		}
 	}
 
 	private void ReadCoreSensors(object? state)
-		=> ReadCoreSensors(Unsafe.As<MonitoringThreadState>(state!));
+		=> ReadCoreSensors(Unsafe.As<CoreMonitoringThreadState>(state!));
 
-	private void ReadCoreSensors(MonitoringThreadState state)
+	private void ReadCoreSensors(CoreMonitoringThreadState state)
 	{
-		SetAffinityForCore(Unsafe.As<CoreTemperatureSensor>(state.TemperatureSensor)!.CoreIndex);
+		SetAffinityForCore(Unsafe.As<CoreTemperatureSensor>(state.TemperatureSensor).CoreIndex);
 		// Start counting time 100s in the past. (That way, we invalidate any possible reading)
 		ulong lastReadingTimestamp = (ulong)(Stopwatch.GetTimestamp() - 100 * Stopwatch.Frequency);
 		ulong readingTimestamp = lastReadingTimestamp;
+		ManualResetEvent globalEvent;
 		while (true)
 		{
-			state.Event.WaitOne();
+			// Wait for the start event unless the thread has been resurrected while the event was being reset.
+			if (Volatile.Read(ref state.ActiveSensorCount) == 0) state.Event.WaitOne();
 
 			if (Volatile.Read(ref _isDisposed)) return;
 
+			globalEvent = GetEvent();
+
 			while (true)
 			{
-				(_groupedQueryColor ? _groupedQueryEventRed : _groupedQueryEventBlue)!.WaitOne();
+				// Always first wait then check if the thread should still be alive, then get the next event in cycle.
+				// It is important that the new event is fetched before any thread (supposedly this one) has the opportunity to complete the current refresh cycle.
+				globalEvent.WaitOne();
+				if (Volatile.Read(ref state.ActiveSensorCount) == 0) break;
+				globalEvent = GetEvent();
 
 				readingTimestamp = (ulong)Stopwatch.GetTimestamp();
 
@@ -516,11 +556,11 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				if (Interlocked.Decrement(ref _pendingGroupQueryThreadCount) == 0) _groupedQueryValueTaskSource!.SetResult();
 
 				if (Volatile.Read(ref _isDisposed)) return;
-
-				if (!state.TemperatureSensor!._isQueried) break;
 			}
 
 			state.Event.Reset();
+
+			if (Volatile.Read(ref _isDisposed)) return;
 		}
 	}
 
@@ -617,13 +657,13 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
 
-	private sealed class PackageGpuPowerSensor : PackageSensor<double>, IPolledSensor<double>
+	private sealed class PackageUncorePowerSensor : PackageSensor<double>, IPolledSensor<double>
 	{
-		public PackageGpuPowerSensor(IntelCpuDriver driver) : base(driver) { }
+		public PackageUncorePowerSensor(IntelCpuDriver driver) : base(driver) { }
 
 		double? ISensor<double>.ScaleMinimumValue => 0;
 		double? ISensor<double>.ScaleMaximumValue => 500;
-		Guid ISensor.SensorId => ProcessorPackagePowerSensorId;
+		Guid ISensor.SensorId => ProcessorPackageUncorePowerSensorId;
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
 
@@ -658,14 +698,25 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		public ValueTask AsValueTask() => new(this, _core.Version);
 	}
 
-	private sealed class MonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short>? temperatureSensor, Sensor<double>? powerSensor, Sensor<double>? corePowerSensor)
+	private class MonitoringThreadState(ManualResetEvent @event, Thread thread)
 	{
 		public readonly ManualResetEvent Event = @event;
 		public readonly Thread Thread = thread;
+		public int ActiveSensorCount;
+	}
+
+	private class PackageMonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short>? temperatureSensor, Sensor<double>? powerSensor, Sensor<double>? corePowerSensor, Sensor<double>? uncorePowerSensor)
+		: MonitoringThreadState(@event, thread)
+	{
 		public readonly Sensor<short>? TemperatureSensor = temperatureSensor;
 		public readonly Sensor<double>? PowerSensor = powerSensor;
 		public readonly Sensor<double>? CorePowerSensor = corePowerSensor;
-		public bool IsEnabled;
+		public readonly Sensor<double>? UncorePowerSensor = uncorePowerSensor;
+	}
+
+	private class CoreMonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short> temperatureSensor) : MonitoringThreadState(@event, thread)
+	{
+		public readonly Sensor<short> TemperatureSensor = temperatureSensor;
 	}
 
 	[Flags]
@@ -675,5 +726,6 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		TemperatureSensor = 1,
 		EnergySensor = 2,
 		EnergyUnitPositivePowerOfTwo = 4,
+		UncoreSensors = 8,
 	}
 }
