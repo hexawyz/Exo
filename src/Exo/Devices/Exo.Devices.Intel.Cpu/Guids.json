@@ -3,6 +3,7 @@
         "IntelCpuDriver": {
             "ProcessorPackageTemperatureSensorId": "b75a807e-32d5-47a2-ad20-49653824fc77",
             "ProcessorPackagePowerSensorId": "fb5e3dc0-2edc-417a-b263-72bc9f1fc24c",
+            "ProcessorPackageCorePowerSensorId": "3803b733-c1cf-4f47-a158-c005edefd3f5",
             // This is really stupid, but this pre-creates GUIDs for up to 512 cores.
             // Current processor with the largest number of cores should be 288 currently.
             "ProcessorCoreTemperatureSensorIds": [
@@ -518,7 +519,7 @@
                 "f2016fa9-06f9-4d2f-846e-700e753a1aa7",
                 "17867ab8-6b8b-4734-b81d-0294b0b33f89",
                 "000ac7d5-b0c3-4cd0-959d-24c4932f59bd"
-            ],
+            ] /*,
             "ProcessorCorePowerSensorIds": [
                 "60b8bdc4-088e-4836-aa1d-d6874394b72d",
                 "c2f08d6f-4512-4f74-9cfd-66f5bf307b21",
@@ -1032,7 +1033,7 @@
                 "7af1b5e7-ea29-42da-91e0-35a2b57a550a",
                 "36a83c63-1254-4b67-8512-0dd892616567",
                 "9c584f8b-265c-4433-86df-da455f9e3f2f"
-            ]
+            ]*/
         }
     }
 }

@@ -214,8 +214,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		{
 			// The energy counters are expressed in joules but we will compute the diff, which will give us a value per second.
 			_energyFactor = (capabilities & ProcessorCapabilities.EnergyUnitPositivePowerOfTwo) != 0
-				? (1 << _energyUnit) / 1000d
-				: 1d / (1 << _energyUnit);
+				? Stopwatch.Frequency * (1 << _energyUnit) / 1000d
+				: (double)Stopwatch.Frequency / (1 << _energyUnit);
 		}
 
 		Sensor[] sensors = [];
@@ -238,14 +238,16 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				int threadIndex = 0;
 
 				if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensorCount += 1;
-				if ((capabilities & ProcessorCapabilities.EnergySensor) != 0) sensorCount += 1;
+				if ((capabilities & ProcessorCapabilities.EnergySensor) != 0) sensorCount += 2;
 				threadCount += 1;
 
 				if (packageInformation.Cores.Length > 1)
 				{
-					if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensorCount += packageInformation.Cores.Length;
-					if ((capabilities & ProcessorCapabilities.EnergySensor) != 0) sensorCount += packageInformation.Cores.Length;
-					threadCount += packageInformation.Cores.Length;
+					if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0)
+					{
+						sensorCount += packageInformation.Cores.Length;
+						threadCount += packageInformation.Cores.Length;
+					}
 				}
 
 				sensors = new Sensor[sensorCount];
@@ -265,16 +267,21 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 					PackageTemperatureSensor? temperatureSensor = null;
 					PackagePowerSensor? powerSensor = null;
+					PackageCorePowerSensor? corePowerSensor = null;
 
 					if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensors[sensorIndex++] = temperatureSensor = new PackageTemperatureSensor(this);
-					if ((capabilities & ProcessorCapabilities.EnergySensor) != 0) sensors[sensorIndex++] = powerSensor = new PackagePowerSensor(this);
+					if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
+					{
+						sensors[sensorIndex++] = powerSensor = new PackagePowerSensor(this);
+						sensors[sensorIndex++] = corePowerSensor = new PackageCorePowerSensor(this);
+					}
 
-					var state = new MonitoringThreadState(@event, thread, temperatureSensor, powerSensor);
+					var state = new MonitoringThreadState(@event, thread, temperatureSensor, powerSensor, corePowerSensor);
 					monitoringThreads[threadIndex++] = state;
 					thread.Start(state);
 				}
 
-				if (packageInformation.Cores.Length > 1)
+				if (packageInformation.Cores.Length > 1 && (capabilities & ProcessorCapabilities.TemperatureSensor) != 0)
 				{
 					var readCoreSensors = new ParameterizedThreadStart(ReadCoreSensors);
 
@@ -291,13 +298,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 							Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} Core #{i} - Metrics"),
 						};
 
-						CoreTemperatureSensor? temperatureSensor = null;
-						CorePowerSensor? powerSensor = null;
+						var temperatureSensor = new CoreTemperatureSensor(this, i);
+						sensors[sensorIndex++] = temperatureSensor;
 
-						if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensors[sensorIndex++] = temperatureSensor = new CoreTemperatureSensor(this, i);
-						if ((capabilities & ProcessorCapabilities.EnergySensor) != 0) sensors[sensorIndex++] = powerSensor = new CorePowerSensor(this, i);
-
-						var state = new MonitoringThreadState(@event, thread, temperatureSensor, powerSensor);
+						var state = new MonitoringThreadState(@event, thread, temperatureSensor, null, null);
 						monitoringThreads[threadIndex++] = state;
 						thread.Start(state);
 					}
@@ -431,6 +435,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		short temperature = 0;
 		uint lastPowerReading = 0;
 		uint powerReading = 0;
+		uint lastCorePowerReading = 0;
+		uint corePowerReading = 0;
 		while (true)
 		{
 			state.Event.WaitOne();
@@ -453,16 +459,18 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 					if (state.PowerSensor is not null)
 					{
 						powerReading = (uint)ReadMsr(_pawnIo!, MsrPkgEnergyStatus);
-
-						// Only update the reading if the last value wasn't too old.
-						if (state.PowerSensor is not null && readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
-						{
-							state.PowerSensor._value = (ulong)Stopwatch.Frequency * (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
-						}
-
-						lastPowerReading = powerReading;
+						corePowerReading = (uint)ReadMsr(_pawnIo!, MsrPp0EnergyStatus);
 					}
 
+					// Only update the reading if the last value wasn't too old.
+					if (state.PowerSensor is not null && readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
+					{
+						state.PowerSensor._value = (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						state.CorePowerSensor!._value = (corePowerReading - lastCorePowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+					}
+
+					lastPowerReading = powerReading;
+					lastCorePowerReading = corePowerReading;
 					lastReadingTimestamp = readingTimestamp;
 				}
 
@@ -482,13 +490,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 	private void ReadCoreSensors(MonitoringThreadState state)
 	{
-		SetAffinityForCore(Unsafe.As<CoreTemperatureSensor>(state.TemperatureSensor)?.CoreIndex ?? Unsafe.As<CorePowerSensor>(state.TemperatureSensor)!.CoreIndex);
+		SetAffinityForCore(Unsafe.As<CoreTemperatureSensor>(state.TemperatureSensor)!.CoreIndex);
 		// Start counting time 100s in the past. (That way, we invalidate any possible reading)
 		ulong lastReadingTimestamp = (ulong)(Stopwatch.GetTimestamp() - 100 * Stopwatch.Frequency);
 		ulong readingTimestamp = lastReadingTimestamp;
-		short temperature = 0;
-		uint lastPowerReading = 0;
-		uint powerReading = 0;
 		while (true)
 		{
 			state.Event.WaitOne();
@@ -503,23 +508,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 				if (readingTimestamp - lastReadingTimestamp >= (ulong)Stopwatch.Frequency)
 				{
-					if (state.TemperatureSensor is not null)
-					{
-						temperature = (short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32ThermStatus) >> 16) & 0x7F);
-						state.TemperatureSensor._value = temperature;
-					}
-					if (state.PowerSensor is not null)
-					{
-						powerReading = (uint)ReadMsr(_pawnIo!, MsrPp0EnergyStatus);
-
-						// Only update the reading if the last value wasn't too old.
-						if (state.PowerSensor is not null && readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
-						{
-							state.PowerSensor._value = (ulong)Stopwatch.Frequency * (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
-						}
-
-						lastPowerReading = powerReading;
-					}
+					state.TemperatureSensor!._value = (short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32ThermStatus) >> 16) & 0x7F);
 
 					lastReadingTimestamp = readingTimestamp;
 				}
@@ -528,7 +517,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 				if (Volatile.Read(ref _isDisposed)) return;
 
-				if (!(state.TemperatureSensor?._isQueried == true || state.PowerSensor?._isQueried == true)) break;
+				if (!state.TemperatureSensor!._isQueried) break;
 			}
 
 			state.Event.Reset();
@@ -618,6 +607,26 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
 
+	private sealed class PackageCorePowerSensor : PackageSensor<double>, IPolledSensor<double>
+	{
+		public PackageCorePowerSensor(IntelCpuDriver driver) : base(driver) { }
+
+		double? ISensor<double>.ScaleMinimumValue => 0;
+		double? ISensor<double>.ScaleMaximumValue => 500;
+		Guid ISensor.SensorId => ProcessorPackageCorePowerSensorId;
+		SensorUnit ISensor.Unit => SensorUnit.Watts;
+	}
+
+	private sealed class PackageGpuPowerSensor : PackageSensor<double>, IPolledSensor<double>
+	{
+		public PackageGpuPowerSensor(IntelCpuDriver driver) : base(driver) { }
+
+		double? ISensor<double>.ScaleMinimumValue => 0;
+		double? ISensor<double>.ScaleMaximumValue => 500;
+		Guid ISensor.SensorId => ProcessorPackagePowerSensorId;
+		SensorUnit ISensor.Unit => SensorUnit.Watts;
+	}
+
 	private sealed class CoreTemperatureSensor : CoreSensor<short>, IPolledSensor<short>
 	{
 		public CoreTemperatureSensor(IntelCpuDriver driver, int coreIndex) : base(driver, coreIndex) { }
@@ -626,16 +635,6 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		short? ISensor<short>.ScaleMaximumValue => (short)Driver._tccActivationTemperature;
 		Guid ISensor.SensorId => ProcessorCoreTemperatureSensorIds[CoreIndex];
 		SensorUnit ISensor.Unit => SensorUnit.Celsius;
-	}
-
-	private sealed class CorePowerSensor : CoreSensor<double>, IPolledSensor<double>
-	{
-		public CorePowerSensor(IntelCpuDriver driver, int coreIndex) : base(driver, coreIndex) { }
-
-		double? ISensor<double>.ScaleMinimumValue => 0;
-		double? ISensor<double>.ScaleMaximumValue => 500;
-		Guid ISensor.SensorId => ProcessorCorePowerSensorIds[CoreIndex];
-		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
 
 	private sealed class GroupedQueryValueTaskSource : IValueTaskSource
@@ -659,12 +658,13 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		public ValueTask AsValueTask() => new(this, _core.Version);
 	}
 
-	private sealed class MonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short>? temperatureSensor, Sensor<double>? powerSensor)
+	private sealed class MonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short>? temperatureSensor, Sensor<double>? powerSensor, Sensor<double>? corePowerSensor)
 	{
 		public readonly ManualResetEvent Event = @event;
 		public readonly Thread Thread = thread;
 		public readonly Sensor<short>? TemperatureSensor = temperatureSensor;
 		public readonly Sensor<double>? PowerSensor = powerSensor;
+		public readonly Sensor<double>? CorePowerSensor = corePowerSensor;
 		public bool IsEnabled;
 	}
 
