@@ -445,19 +445,24 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 				if (readingTimestamp - lastReadingTimestamp >= (ulong)Stopwatch.Frequency)
 				{
-					if (state.TemperatureSensor is not null) temperature = (short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32PackageThermStatus) >> 16) & 0x7F);
-					if (state.PowerSensor is not null) powerReading = (uint)ReadMsr(_pawnIo!, MsrPkgEnergyStatus);
-
-					if (state.TemperatureSensor is not null) state.TemperatureSensor._value = temperature;
-					// Generate a NaN reading if the previous data point was too old.
+					if (state.TemperatureSensor is not null)
+					{
+						temperature = (short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32PackageThermStatus) >> 16) & 0x7F);
+						state.TemperatureSensor._value = temperature;
+					}
 					if (state.PowerSensor is not null)
 					{
-						state.PowerSensor._value = readingTimestamp - lastReadingTimestamp >= 60 * (ulong)Stopwatch.Frequency ?
-							double.NaN :
-							(ulong)Stopwatch.Frequency * (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						powerReading = (uint)ReadMsr(_pawnIo!, MsrPkgEnergyStatus);
+
+						// Only update the reading if the last value wasn't too old.
+						if (state.PowerSensor is not null && readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
+						{
+							state.PowerSensor._value = (ulong)Stopwatch.Frequency * (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						}
+
+						lastPowerReading = powerReading;
 					}
 
-					lastPowerReading = powerReading;
 					lastReadingTimestamp = readingTimestamp;
 				}
 
@@ -479,7 +484,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	{
 		SetAffinityForCore(Unsafe.As<CoreTemperatureSensor>(state.TemperatureSensor)?.CoreIndex ?? Unsafe.As<CorePowerSensor>(state.TemperatureSensor)!.CoreIndex);
 		// Start counting time 100s in the past. (That way, we invalidate any possible reading)
-		ulong lastReadingTimestamp = (ulong)(Stopwatch.GetTimestamp() - 10 * Stopwatch.Frequency);
+		ulong lastReadingTimestamp = (ulong)(Stopwatch.GetTimestamp() - 100 * Stopwatch.Frequency);
 		ulong readingTimestamp = lastReadingTimestamp;
 		short temperature = 0;
 		uint lastPowerReading = 0;
@@ -498,19 +503,24 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 				if (readingTimestamp - lastReadingTimestamp >= (ulong)Stopwatch.Frequency)
 				{
-					if (state.TemperatureSensor is not null) temperature = (short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32ThermStatus) >> 16) & 0x7F);
-					if (state.PowerSensor is not null) powerReading = (uint)ReadMsr(_pawnIo!, MsrPp0EnergyStatus);
-
-					if (state.TemperatureSensor is not null) state.TemperatureSensor._value = temperature;
-					// Generate a NaN reading if the previous data point was too old.
+					if (state.TemperatureSensor is not null)
+					{
+						temperature = (short)(_tccActivationTemperature - (ReadMsr(_pawnIo!, Ia32ThermStatus) >> 16) & 0x7F);
+						state.TemperatureSensor._value = temperature;
+					}
 					if (state.PowerSensor is not null)
 					{
-						state.PowerSensor._value = readingTimestamp - lastReadingTimestamp >= 60 * (ulong)Stopwatch.Frequency ?
-							double.NaN :
-							(ulong)Stopwatch.Frequency * (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						powerReading = (uint)ReadMsr(_pawnIo!, MsrPp0EnergyStatus);
+
+						// Only update the reading if the last value wasn't too old.
+						if (state.PowerSensor is not null && readingTimestamp - lastReadingTimestamp < 60 * (ulong)Stopwatch.Frequency)
+						{
+							state.PowerSensor._value = (ulong)Stopwatch.Frequency * (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						}
+
+						lastPowerReading = powerReading;
 					}
 
-					lastPowerReading = powerReading;
 					lastReadingTimestamp = readingTimestamp;
 				}
 
