@@ -25,8 +25,17 @@ internal sealed partial class SensorService
 
 	private interface IGroupedPolledSensorState
 	{
-		public IPolledSensor Sensor { get; }
+		IPolledSensor Sensor { get; }
+		GroupedPolledSensorPendingOperation PendingOperation { get; set; }
 		void RefreshDataPoint(DateTime dateTime);
+	}
+
+	private enum GroupedPolledSensorPendingOperation : byte
+	{
+		None = 0,
+		EnableDisabled = 1,
+		DisableEnabled = 2,
+		DisableNotEnabled = 1,
 	}
 
 	private abstract class SensorState : IAsyncDisposable
@@ -302,6 +311,7 @@ internal sealed partial class SensorService
 
 		private readonly SensorService _sensorService;
 		private readonly GroupedQueryState _groupedQueryState;
+		private GroupedPolledSensorPendingOperation _pendingOperation;
 
 		public GroupedPolledSensorState(ILogger<SensorState> logger, SensorService sensorService, GroupedQueryState groupedQueryState, IPolledSensor<TValue> sensor)
 			: base(logger, sensor)
@@ -332,6 +342,8 @@ internal sealed partial class SensorService
 				OnDataPointReceived(dateTime, value);
 			}
 		}
+
+		public GroupedPolledSensorPendingOperation PendingOperation { get => _pendingOperation; set => _pendingOperation = value; }
 	}
 
 	private sealed class StreamedSensorState<TValue> : SensorState<TValue>

@@ -41,12 +41,25 @@ internal sealed partial class SensorService
 
 		// This function is called by a sensor state to setup grouped querying for it.
 		// NB: The sensor state *WILL* ensure that this method is never called twice in succession for a given sensor.
+		// NB: This method reserves a slot for the new state and starts periodic polling if necessary, but the actual enabling of the sensor will be done in the polling loop.
 		public void Acquire(IGroupedPolledSensorState state)
 		{
-			_groupedQueryFeature.AddSensor(state.Sensor);
 			lock (_lock)
 			{
+				// If the same sensor is disabled then enabled in a quick succession, we can just revert the status to how it was previously.
+				if (state.PendingOperation is GroupedPolledSensorPendingOperation.DisableEnabled)
+				{
+					state.PendingOperation = GroupedPolledSensorPendingOperation.None;
+					return;
+				}
+				else if (state.PendingOperation is GroupedPolledSensorPendingOperation.DisableNotEnabled)
+				{
+					state.PendingOperation = GroupedPolledSensorPendingOperation.EnableDisabled;
+					return;
+				}
+
 				int index = _referenceCount;
+				state.PendingOperation = GroupedPolledSensorPendingOperation.EnableDisabled;
 				_activeSensorStates[index] = state;
 				if (_referenceCount++ == 0)
 				{
@@ -58,24 +71,16 @@ internal sealed partial class SensorService
 
 		// This function is called by a sensor state to cancel grouped querying for it.
 		// NB: The sensor state *WILL* ensure that this method is never called twice in succession for a given sensor.
+		// NB: This method will only signal the state as to be cleaned up. Everything will happen as part of the polling loop.
 		public void Release(IGroupedPolledSensorState state)
 		{
 			lock (_lock)
 			{
-				int index = Array.IndexOf(_activeSensorStates, state, 0, _referenceCount);
-				if (index < 0) throw new InvalidOperationException();
-				if (--_referenceCount == 0)
-				{
-					ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
-					_sensorService._pollingScheduler.Release();
-				}
-				else if ((uint)index < (uint)_referenceCount)
-				{
-					Array.Copy(_activeSensorStates, index + 1, _activeSensorStates, index, _referenceCount - index);
-				}
-				_activeSensorStates[_referenceCount] = null;
+				// If the sensor is still in the enable state, we must signal that to the polling loop for proper cleanup.
+				state.PendingOperation = state.PendingOperation == GroupedPolledSensorPendingOperation.EnableDisabled ?
+					GroupedPolledSensorPendingOperation.DisableNotEnabled :
+					GroupedPolledSensorPendingOperation.DisableEnabled;
 			}
-			_groupedQueryFeature.RemoveSensor(state.Sensor);
 		}
 
 		private async Task RunAsync(CancellationToken cancellationToken)
@@ -124,14 +129,31 @@ internal sealed partial class SensorService
 			while (true)
 			{
 				var now = DateTime.UtcNow;
-				// TODO: Make it so that we don't require a lock here. For now it is simpler to have a lock ensure consistency (specifically for removal operations), but there are ways to avoid this.
-				lock (_activeSensorStates)
+				// TODO: See if it is still possible to avoid locking here. Seems complicated to avoid but maybe there is a way.
+				lock (_lock)
 				{
+					// This loop will enable or disable sensors whose status has changed before requesting an update value.
+					// That way, we avoid having concurrent calls of methods of the ISensorsGroupedQueryFeature interface and make implementations easier.
+					// NB: There would generally be no problematic race conditions, but things become complex if implementations need to manage threads.
+					// As such, it is better to enforce strict serialization of operations here.
 					foreach (var state in _activeSensorStates)
 					{
 						// If we encounter a null value, this is the end of the list.
 						// We could use the _referenceCount, but it would not avoid the need for a null check, and would require bounds-checking.
 						if (state is null) break;
+						if (state.PendingOperation != GroupedPolledSensorPendingOperation.None)
+						{
+							if (state.PendingOperation is GroupedPolledSensorPendingOperation.EnableDisabled)
+							{
+								_groupedQueryFeature.AddSensor(state.Sensor);
+								state.PendingOperation = GroupedPolledSensorPendingOperation.None;
+							}
+							else
+							{
+								if (!ProcessRemove(state, state.PendingOperation != GroupedPolledSensorPendingOperation.DisableNotEnabled)) return;
+								continue;
+							}
+						}
 						state.RefreshDataPoint(now);
 					}
 				}
@@ -140,6 +162,26 @@ internal sealed partial class SensorService
 				cancellationToken.ThrowIfCancellationRequested();
 				await _sensorService._pollingScheduler.WaitAsync(cancellationToken).ConfigureAwait(false);
 			}
+		}
+
+		private bool ProcessRemove(IGroupedPolledSensorState state, bool wasEnabled)
+		{
+			state.PendingOperation = GroupedPolledSensorPendingOperation.None;
+			int index = Array.IndexOf(_activeSensorStates, state, 0, _referenceCount);
+			if (index < 0) throw new InvalidOperationException();
+			if (--_referenceCount == 0)
+			{
+				ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
+				_sensorService._pollingScheduler.Release();
+				return false;
+			}
+			else if ((uint)index < (uint)_referenceCount)
+			{
+				Array.Copy(_activeSensorStates, index + 1, _activeSensorStates, index, _referenceCount - index);
+			}
+			_activeSensorStates[_referenceCount] = null;
+			if (wasEnabled) _groupedQueryFeature.RemoveSensor(state.Sensor);
+			return true;
 		}
 	}
 }
