@@ -110,22 +110,30 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			// There doesn't seem to be any flag to indicate that energy sensors are present. So for now, assume that they always are.
 			capabilities |= ProcessorCapabilities.EnergySensor;
-			// TODO: Find a way to reliably detect if the CPU has PP1. (From what I understand, pretty much every CPU have "uncore", but the documentation seems a bit contradictory about what PP1 is)
-			// For now, trying to read the register and verify that it is 0 might be the easiest way to proceed. Although it might be safer to combine this with an explicit list of supported CPUs.
-			if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
-			else
+
+			ulong packagePowerInfo = 0;
+
+			if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
 			{
-				// In the extreme event where we would have been unlucky enough to read PP1 as 0 once, retry after a few ms.
-				// If still 0, there is either no iGPU or it is disabled.
-				Thread.Sleep(10);
+				packagePowerInfo = ReadMsr(pawnIo, MsrPkgPowerInfo);
+
+				// TODO: Find a way to reliably detect if the CPU has PP1. (From what I understand, pretty much every CPU have "uncore", but the documentation seems a bit contradictory about what PP1 is)
+				// For now, trying to read the register and verify that it is 0 might be the easiest way to proceed. Although it might be safer to combine this with an explicit list of supported CPUs.
 				if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
+				else
+				{
+					// In the extreme event where we would have been unlucky enough to read PP1 as 0 once, retry after a few ms.
+					// If still 0, there is either no iGPU or it is disabled.
+					Thread.Sleep(10);
+					if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
+				}
 			}
 
 			ulong powerUnits = ReadMsr(pawnIo, MsrRaplPowerUnit);
 
 			t.Item1.TrySetResult
 			(
-				new(t.Item3, new IntelCpuDriver(t.Item2, pawnIo, t.Item5, tccActivationTemperature, brandString, t.Item4, capabilities, powerUnits))
+				new(t.Item3, new IntelCpuDriver(t.Item2, pawnIo, t.Item5, tccActivationTemperature, brandString, t.Item4, capabilities, packagePowerInfo, powerUnits))
 			);
 		}
 		catch (Exception ex)
@@ -192,6 +200,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private readonly ImmutableArray<ISensor> _sensors;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly double _energyFactor;
+	private readonly double _maximumPower;
 	private uint _groupQueryThreadCount;
 	private uint _pendingGroupQueryThreadCount;
 	private bool _groupedQueryColor;
@@ -211,6 +220,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		string brandString,
 		int processorIndex,
 		ProcessorCapabilities capabilities,
+		ulong packagePowerInfo,
 		ulong powerUnits
 	) : base(brandString, new("IntelX86", string.Create(CultureInfo.InvariantCulture, $"{processorIndex}:{brandString}"), brandString, null))
 	{
@@ -220,14 +230,28 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		_capabilities = capabilities;
 		_powerUnit = (byte)(powerUnits & 0xF);
 		_energyUnit = (byte)((powerUnits >>> 8) & 0xF);
-		_powerUnit = (byte)((powerUnits >>> 16) & 0xF);
+		_timeUnit = (byte)((powerUnits >>> 16) & 0xF);
 
 		if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
 		{
 			// The energy counters are expressed in joules but we will compute the diff, which will give us a value per second.
-			_energyFactor = (capabilities & ProcessorCapabilities.EnergyUnitPositivePowerOfTwo) != 0
-				? Stopwatch.Frequency * (1 << _energyUnit) / 1000d
-				: (double)Stopwatch.Frequency / (1 << _energyUnit);
+			_energyFactor = (capabilities & ProcessorCapabilities.EnergyUnitPositivePowerOfTwo) != 0 ?
+				Stopwatch.Frequency * (1 << _energyUnit) / 1000000d :
+				(double)Stopwatch.Frequency / (1 << _energyUnit);
+
+			// It seems that the maximum power is not always provided? In that case, use the spec power. If nothing is provided, use 500 as a default maximum.
+			uint maximumPower = (uint)(packagePowerInfo >> 32 & 0x3FFF);
+			if (maximumPower == 0) maximumPower = (uint)(packagePowerInfo & 0x3FFF);
+			if (maximumPower != 0)
+			{
+				_maximumPower = (capabilities & ProcessorCapabilities.EnergyUnitPositivePowerOfTwo) != 0 ?
+					maximumPower * (1 << _powerUnit) / 1000d :
+					(double)maximumPower / (1 << _powerUnit);
+			}
+			else
+			{
+				_maximumPower = 500;
+			}
 		}
 
 		Sensor[] sensors = [];
@@ -642,7 +666,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		public PackagePowerSensor(IntelCpuDriver driver) : base(driver) { }
 
 		double? ISensor<double>.ScaleMinimumValue => 0;
-		double? ISensor<double>.ScaleMaximumValue => 500;
+		double? ISensor<double>.ScaleMaximumValue => Driver._maximumPower;
 		Guid ISensor.SensorId => ProcessorPackagePowerSensorId;
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
@@ -652,7 +676,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		public PackageCorePowerSensor(IntelCpuDriver driver) : base(driver) { }
 
 		double? ISensor<double>.ScaleMinimumValue => 0;
-		double? ISensor<double>.ScaleMaximumValue => 500;
+		double? ISensor<double>.ScaleMaximumValue => Driver._maximumPower;
 		Guid ISensor.SensorId => ProcessorPackageCorePowerSensorId;
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
@@ -662,7 +686,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		public PackageUncorePowerSensor(IntelCpuDriver driver) : base(driver) { }
 
 		double? ISensor<double>.ScaleMinimumValue => 0;
-		double? ISensor<double>.ScaleMaximumValue => 500;
+		double? ISensor<double>.ScaleMaximumValue => Driver._maximumPower;
 		Guid ISensor.SensorId => ProcessorPackageUncorePowerSensorId;
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
