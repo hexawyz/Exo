@@ -202,8 +202,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private readonly double _energyFactor;
 	private readonly double _maximumPower;
 	private uint _groupQueryThreadCount;
-	private uint _pendingGroupQueryThreadCount;
-	private bool _groupedQueryColor;
+	private uint _pendingGroupQueryThreadCountAndColor;
 	private readonly ProcessorCapabilities _capabilities;
 	private readonly byte _powerUnit;
 	private readonly byte _energyUnit;
@@ -399,8 +398,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		if (sensor._isQueried) return;
 		Volatile.Write(ref sensor._isQueried, true);
 		var threadState = sensor.GetThreadState();
-		if (Interlocked.Increment(ref threadState.ActiveSensorCount) != 1) return;
-		++_groupQueryThreadCount;
+		if (Interlocked.Increment(ref threadState.ActiveSensorCount) == 1) ++_groupQueryThreadCount;
 		threadState.Event.Set();
 	}
 
@@ -409,26 +407,32 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		if (!sensor._isQueried) return;
 		Volatile.Write(ref sensor._isQueried, false);
 		var threadState = sensor.GetThreadState();
-		if (Interlocked.Decrement(ref threadState.ActiveSensorCount) != 0) return;
-		--_groupQueryThreadCount;
+		if (Interlocked.Decrement(ref threadState.ActiveSensorCount) == 0) --_groupQueryThreadCount;
 	}
 
 	// NB: This will break if the method is called more than once at a time.
 	ValueTask ISensorsGroupedQueryFeature.QueryValuesAsync(CancellationToken cancellationToken)
 	{
 		if (_groupedQueryEventRed is null || _groupedQueryEventBlue is null || Volatile.Read(ref _isDisposed) || _groupQueryThreadCount == 0) return ValueTask.CompletedTask;
-		if (Volatile.Read(ref _pendingGroupQueryThreadCount) != 0) throw new InvalidOperationException("There should not be any running query at the moment.");
-		Volatile.Write(ref _pendingGroupQueryThreadCount, _groupQueryThreadCount);
-		if (_groupedQueryColor)
+		var threadCountAndColor = Volatile.Read(ref _pendingGroupQueryThreadCountAndColor);
+		if ((ushort)threadCountAndColor != 0) throw new InvalidOperationException("There should not be any running query at the moment.");
+		// Pick one of the two color paths. Order of the operations on either path is *VERY* important, as some threads could have been awoken by EnableSensor just earlier.
+		// First, resetting the "other color event" makes sure that any thread that would progress quickly will be able to wait on the next read request.
+		// Then, we simultaneously update both the color and the *non-zero* number of request threads.
+		// Finally, we signal the "current color event".
+		// Updating both color and thread count allows freshly awoken threads to know on which event they must wait for their first iteration.
+		// Either they read the color early so the count is zero and this indicates the correct event, or they read it later so the count is non-zero and it indicates the opposite event.
+		// As every awoken thread should be included in the counter, we are guaranteed that the counter is at least 1 when any thread reads it.
+		if ((int)threadCountAndColor < 0)
 		{
 			_groupedQueryEventBlue.Reset();
-			_groupedQueryColor = false;
+			Volatile.Write(ref _pendingGroupQueryThreadCountAndColor, _groupQueryThreadCount);
 			_groupedQueryEventRed.Set();
 		}
 		else
 		{
 			_groupedQueryEventRed.Reset();
-			_groupedQueryColor = true;
+			Volatile.Write(ref _pendingGroupQueryThreadCountAndColor, _groupQueryThreadCount | 0x80000000);
 			_groupedQueryEventBlue.Set();
 		}
 		return _groupedQueryValueTaskSource!.AsValueTask();
@@ -456,7 +460,14 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	}
 
 	// Gets the current event to wait for in the alternated red / blue sequence.
-	private ManualResetEvent GetEvent() => Volatile.Read(ref _groupedQueryColor) ? _groupedQueryEventRed! : _groupedQueryEventBlue!;
+	private ManualResetEvent QuickGetEvent() => (int)Volatile.Read(ref _pendingGroupQueryThreadCountAndColor) < 0 ? _groupedQueryEventRed! : _groupedQueryEventBlue!;
+
+	// A safer retrieval of the correct event for threads that have just awoken.
+	private ManualResetEvent SafeGetEvent()
+	{
+		var countAndColor = Volatile.Read(ref _pendingGroupQueryThreadCountAndColor);
+		return ((int)countAndColor < 0) ^ ((ushort)countAndColor != 0) ? _groupedQueryEventRed! : _groupedQueryEventBlue!;
+	}
 
 	private void ReadPackageSensors(object? state)
 		=> ReadPackageSensors(Unsafe.As<PackageMonitoringThreadState>(state!));
@@ -482,7 +493,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			if (Volatile.Read(ref _isDisposed)) return;
 
-			globalEvent = GetEvent();
+			globalEvent = SafeGetEvent();
 
 			while (true)
 			{
@@ -490,7 +501,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				// It is important that the new event is fetched before any thread (supposedly this one) has the opportunity to complete the current refresh cycle.
 				globalEvent.WaitOne();
 				if (Volatile.Read(ref state.ActiveSensorCount) == 0) break;
-				globalEvent = GetEvent();
+				globalEvent = QuickGetEvent();
 
 				readingTimestamp = (ulong)Stopwatch.GetTimestamp();
 
@@ -530,7 +541,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 					lastReadingTimestamp = readingTimestamp;
 				}
 
-				if (Interlocked.Decrement(ref _pendingGroupQueryThreadCount) == 0) _groupedQueryValueTaskSource!.SetResult();
+				if ((ushort)Interlocked.Decrement(ref _pendingGroupQueryThreadCountAndColor) == 0) _groupedQueryValueTaskSource!.SetResult();
 
 				if (Volatile.Read(ref _isDisposed)) return;
 			}
@@ -558,7 +569,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			if (Volatile.Read(ref _isDisposed)) return;
 
-			globalEvent = GetEvent();
+			globalEvent = SafeGetEvent();
 
 			while (true)
 			{
@@ -566,7 +577,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				// It is important that the new event is fetched before any thread (supposedly this one) has the opportunity to complete the current refresh cycle.
 				globalEvent.WaitOne();
 				if (Volatile.Read(ref state.ActiveSensorCount) == 0) break;
-				globalEvent = GetEvent();
+				globalEvent = QuickGetEvent();
 
 				readingTimestamp = (ulong)Stopwatch.GetTimestamp();
 
@@ -577,7 +588,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 					lastReadingTimestamp = readingTimestamp;
 				}
 
-				if (Interlocked.Decrement(ref _pendingGroupQueryThreadCount) == 0) _groupedQueryValueTaskSource!.SetResult();
+				if ((ushort)Interlocked.Decrement(ref _pendingGroupQueryThreadCountAndColor) == 0) _groupedQueryValueTaskSource!.SetResult();
 
 				if (Volatile.Read(ref _isDisposed)) return;
 			}
