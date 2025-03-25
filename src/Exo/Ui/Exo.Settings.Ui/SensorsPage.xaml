@@ -31,7 +31,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="*" />
                                         </Grid.RowDefinitions>
-                                        <TextBlock Grid.Row="0" Text="{Binding DisplayName}" />
+                                        <TextBlock Grid.Row="0" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource CaptionTextBlockStyle}" />
                                         <lc:LineChart
                                             Grid.Row="1"
                                             Margin="6"
