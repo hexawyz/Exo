@@ -55,6 +55,8 @@ public partial class App : Application
 
 		_rasterizationScaleController = new();
 
+		_cancellationTokenSource = new();
+
 		Services = ConfigureServices(_rasterizationScaleController);
 
 		InitializeComponent();
@@ -99,7 +101,29 @@ public partial class App : Application
 			_rasterizationScaleController.RasterizationScale = xamlRoot.RasterizationScale;
 			xamlRoot.Changed += OnXamlRootChanged;
 		};
-		Services.GetRequiredService<ExoUiPipeClient>().StartAsync(default).GetAwaiter().GetResult();
+		StartPipeClient();
+	}
+
+	private async void StartPipeClient()
+	{
+		try
+		{
+			// TODO: Find out if/when we should cancel that token. (It will not prevent the app from closing, but it is a bit dirty)
+			await Services.GetRequiredService<ExoUiPipeClient>().StartAsync(_cancellationTokenSource.Token);
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (ObjectDisposedException)
+		{
+			return;
+		}
+		catch
+		{
+			Exit();
+			return;
+		}
 	}
 
 	private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
@@ -109,6 +133,7 @@ public partial class App : Application
 
 	private Window? _window;
 	private readonly RasterizationScaleController _rasterizationScaleController;
+	private readonly CancellationTokenSource _cancellationTokenSource;
 
 	public new static App Current => (App)Application.Current;
 
