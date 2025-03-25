@@ -17,4 +17,6 @@ internal readonly struct ProcessorInformation
 	public byte ModelId => _modelId;
 	public ushort FamilyId => _familyId;
 	public ProcessorType ProcessorType => (ProcessorType)(byte)(_steppingIdAndProcessorType >>> 4);
+
+	public uint FamilyAndModel => (uint)((nuint)_familyId << 8 | _modelId);
 }

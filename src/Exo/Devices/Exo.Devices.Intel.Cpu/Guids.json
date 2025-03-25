@@ -3,6 +3,7 @@
         "IntelCpuDriver": {
             "ProcessorPackageTemperatureSensorId": "b75a807e-32d5-47a2-ad20-49653824fc77",
             "ProcessorPackagePowerSensorId": "fb5e3dc0-2edc-417a-b263-72bc9f1fc24c",
+            "ProcessorDramPowerSensorId": "9f6bc937-a687-4c27-a2dc-b227feb4ae28",
             "ProcessorPackageCorePowerSensorId": "3803b733-c1cf-4f47-a158-c005edefd3f5",
             "ProcessorPackageUncorePowerSensorId": "52871a97-7a56-4dcb-aabc-4912c90df49d",
             // This is really stupid, but this pre-creates GUIDs for up to 512 cores.

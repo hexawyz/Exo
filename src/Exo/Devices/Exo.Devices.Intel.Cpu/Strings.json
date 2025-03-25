@@ -4,6 +4,11 @@
 		"fr": "Puissance consommée",
 		"ja": "消費電力"
 	},
+	"72b765bc-4986-4020-a049-ebe46446c2fe": {
+		"en": "Power consumption (DRAM)",
+		"fr": "Puissance consommée (DRAM)",
+		"ja": "消費電力（DRAM）"
+	},
 	"7cdaa2e2-2664-4845-90de-d83d67dda90e": {
 		"en": "Power consumption (Cores)",
 		"fr": "Puissance consommée (Cœurs)",

@@ -14,6 +14,13 @@
         "minimumValue": 0,
         "maximumValue": 500
     },
+    // DRAM power
+    "9f6bc937-a687-4c27-a2dc-b227feb4ae28": {
+        "nameStringId": "72b765bc-4986-4020-a049-ebe46446c2fe",
+        "category": "power",
+        "minimumValue": 0,
+        "maximumValue": 100
+    },
     // Core power
     "3803b733-c1cf-4f47-a158-c005edefd3f5": {
         "nameStringId": "7cdaa2e2-2664-4845-90de-d83d67dda90e",

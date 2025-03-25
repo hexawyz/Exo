@@ -24,6 +24,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private const uint MsrRaplPowerUnit = 0x606;
 	private const uint MsrPkgEnergyStatus = 0x611;
 	private const uint MsrPkgPowerInfo = 0x614;
+	private const uint MsrDramEnergyStatus = 0x619;
+	private const uint MsrDramPowerInfo = 0x61C;
 	private const uint MsrPp0EnergyStatus = 0x639;
 	private const uint MsrPp1EnergyStatus = 0x641;
 
@@ -112,20 +114,39 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 			capabilities |= ProcessorCapabilities.EnergySensor;
 
 			ulong packagePowerInfo = 0;
+			ulong dramPowerInfo = 0;
 
+			// TODO: Find a way to reliably detect if the CPU is "server platform". We either have PP1 or DRAM energy sensors, but it is not clear how to determine this.
+			// CPUID Family + Model seem to have a lot of overlap between Intel Core and Xeon CPUs, so there must be another way.
+			// For now, let's try our luck with just trying the MSR and check for an error.
+			// Querying the DRAM info seems to just geenrate an error on non-server platforms, so I assume the opposite is the same.
 			if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
 			{
 				packagePowerInfo = ReadMsr(pawnIo, MsrPkgPowerInfo);
-
-				// TODO: Find a way to reliably detect if the CPU has PP1. (From what I understand, pretty much every CPU have "uncore", but the documentation seems a bit contradictory about what PP1 is)
-				// For now, trying to read the register and verify that it is 0 might be the easiest way to proceed. Although it might be safer to combine this with an explicit list of supported CPUs.
-				if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
-				else
+				// "Check" for DRAM sensor
+				try
 				{
-					// In the extreme event where we would have been unlucky enough to read PP1 as 0 once, retry after a few ms.
-					// If still 0, there is either no iGPU or it is disabled.
-					Thread.Sleep(10);
+					dramPowerInfo = ReadMsr(pawnIo, MsrDramPowerInfo);
+					capabilities |= ProcessorCapabilities.DramSensors;
+				}
+				catch
+				{
+				}
+
+				// "Check" for Uncore sensor
+				try
+				{
 					if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
+					else
+					{
+						// In the extreme event where we would have been unlucky enough to read PP1 as 0 once, retry after a few ms.
+						// If still 0, there is either no iGPU or it is disabled.
+						Thread.Sleep(10);
+						if ((uint)ReadMsr(pawnIo, MsrPp1EnergyStatus) != 0) capabilities |= ProcessorCapabilities.UncoreSensors;
+					}
+				}
+				catch
+				{
 				}
 			}
 
@@ -133,7 +154,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 			t.Item1.TrySetResult
 			(
-				new(t.Item3, new IntelCpuDriver(t.Item2, pawnIo, t.Item5, tccActivationTemperature, brandString, t.Item4, capabilities, packagePowerInfo, powerUnits))
+				new(t.Item3, new IntelCpuDriver(t.Item2, pawnIo, t.Item5, tccActivationTemperature, brandString, t.Item4, capabilities, packagePowerInfo, dramPowerInfo, powerUnits))
 			);
 		}
 		catch (Exception ex)
@@ -201,6 +222,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly double _energyFactor;
 	private readonly double _maximumPower;
+	private readonly double _dramMaximumPower;
 	private uint _groupQueryThreadCount;
 	private uint _pendingGroupQueryThreadCountAndColor;
 	private readonly ProcessorCapabilities _capabilities;
@@ -220,6 +242,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		int processorIndex,
 		ProcessorCapabilities capabilities,
 		ulong packagePowerInfo,
+		ulong dramPowerInfo,
 		ulong powerUnits
 	) : base(brandString, new("IntelX86", string.Create(CultureInfo.InvariantCulture, $"{processorIndex}:{brandString}"), brandString, null))
 	{
@@ -239,121 +262,31 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 				(double)Stopwatch.Frequency / (1 << _energyUnit);
 
 			// It seems that the maximum power is not always provided? In that case, use the spec power. If nothing is provided, use 500 as a default maximum.
-			uint maximumPower = (uint)(packagePowerInfo >> 32 & 0x3FFF);
-			if (maximumPower == 0) maximumPower = (uint)(packagePowerInfo & 0x3FFF);
-			if (maximumPower != 0)
+			_maximumPower = GetMaximumPower(capabilities, packagePowerInfo, _powerUnit, 500);
+			_dramMaximumPower = GetMaximumPower(capabilities, dramPowerInfo, _powerUnit, 100);
+		}
+		try
+		{
+
+			Sensor[] sensors;
+			MonitoringThreadState[] monitoringThreads;
+
+			if (pawnIo is not null)
 			{
-				_maximumPower = (capabilities & ProcessorCapabilities.EnergyUnitPositivePowerOfTwo) != 0 ?
-					maximumPower * (1 << _powerUnit) / 1000d :
-					(double)maximumPower / (1 << _powerUnit);
+				(sensors, monitoringThreads) = CreateSensors(pawnIo, packageInformation, processorIndex, capabilities);
 			}
 			else
 			{
-				_maximumPower = 500;
+				(sensors, monitoringThreads) = ([], []);
 			}
-		}
 
-		Sensor[] sensors = [];
-		MonitoringThreadState[] monitoringThreads = [];
-		try
-		{
-			// For user-friendliness and consistence in the naming of threads.
-			int processorNumber = processorIndex + 1;
-			if (_pawnIo is not null && (capabilities & (ProcessorCapabilities.TemperatureSensor | ProcessorCapabilities.EnergySensor)) != 0)
+			if (monitoringThreads.Length > 0)
 			{
-				// This will hopefully be enough to process the small amount of operations of each thread.
-				const int ThreadStackSize = 4096;
-
-				// We likely shouldn't try to expose per-core temperature sensors if there is only one CPU core?
-				// Also, this sensor code might be expensive for high core count, as we spawn a thread for each core.
-				// While this is the easiest way to handle everything, it might be worth it to use the same thread for N cores at the cost of rescheduling.
-				int sensorCount = 0;
-				int threadCount = 0;
-				int sensorIndex = 0;
-				int threadIndex = 0;
-
-				if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensorCount += 1;
-				if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
-				{
-					sensorCount += (capabilities & ProcessorCapabilities.UncoreSensors) != 0 ? 3 : 2;
-				}
-				threadCount += 1;
-
-				if (packageInformation.Cores.Length > 1)
-				{
-					if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0)
-					{
-						sensorCount += packageInformation.Cores.Length;
-						threadCount += packageInformation.Cores.Length;
-					}
-				}
-
-				sensors = new Sensor[sensorCount];
-				monitoringThreads = new MonitoringThreadState[threadCount];
-
-				{
-					var @event = new ManualResetEvent(false);
-					var thread = new Thread
-					(
-						new ParameterizedThreadStart(ReadPackageSensors),
-						ThreadStackSize
-					)
-					{
-						IsBackground = true,
-						Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} - Metrics"),
-					};
-
-					PackageTemperatureSensor? temperatureSensor = null;
-					PackagePowerSensor? powerSensor = null;
-					PackageCorePowerSensor? corePowerSensor = null;
-					PackageUncorePowerSensor? uncorePowerSensor = null;
-
-					if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensors[sensorIndex++] = temperatureSensor = new PackageTemperatureSensor(this);
-					if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
-					{
-						sensors[sensorIndex++] = powerSensor = new PackagePowerSensor(this);
-						sensors[sensorIndex++] = corePowerSensor = new PackageCorePowerSensor(this);
-						if ((capabilities & ProcessorCapabilities.UncoreSensors) != 0)
-						{
-							sensors[sensorIndex++] = uncorePowerSensor = new PackageUncorePowerSensor(this);
-						}
-					}
-
-					var state = new PackageMonitoringThreadState(@event, thread, temperatureSensor, powerSensor, corePowerSensor, uncorePowerSensor);
-					monitoringThreads[threadIndex++] = state;
-					thread.Start(state);
-				}
-
-				if (packageInformation.Cores.Length > 1 && (capabilities & ProcessorCapabilities.TemperatureSensor) != 0)
-				{
-					var readCoreSensors = new ParameterizedThreadStart(ReadCoreSensors);
-
-					for (int i = 0; i < packageInformation.Cores.Length; i++)
-					{
-						var @event = new ManualResetEvent(false);
-						var thread = new Thread
-						(
-							readCoreSensors,
-							ThreadStackSize
-						)
-						{
-							IsBackground = true,
-							Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} Core #{i} - Metrics"),
-						};
-
-						var temperatureSensor = new CoreTemperatureSensor(this, i);
-						sensors[sensorIndex++] = temperatureSensor;
-
-						var state = new CoreMonitoringThreadState(@event, thread, temperatureSensor);
-						monitoringThreads[threadIndex++] = state;
-						thread.Start(state);
-					}
-				}
-
 				_groupedQueryEventRed = new(false);
 				_groupedQueryEventBlue = new(false);
 				_groupedQueryValueTaskSource = new();
 			}
+
 			_monitoringThreads = monitoringThreads;
 			_sensors = ImmutableCollectionsMarshal.AsImmutableArray(Unsafe.As<ISensor[]>(sensors));
 			_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, IntelCpuDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
@@ -362,9 +295,132 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		{
 			// In case of error, make sure to clean up all the threads.
 			Volatile.Write(ref _isDisposed, true);
+			_groupedQueryEventRed?.Set();
+			_groupedQueryEventBlue?.Set();
 			SignalAndWaitAllThreads();
 			throw;
 		}
+	}
+
+	private static double GetMaximumPower(ProcessorCapabilities capabilities, ulong packagePowerInfo, byte powerUnit, uint defaultValue)
+	{
+		uint maximumPower = (uint)(packagePowerInfo >> 32 & 0x3FFF);
+		if (maximumPower == 0) maximumPower = (uint)(packagePowerInfo & 0x3FFF);
+		if (maximumPower != 0)
+		{
+			return (capabilities & ProcessorCapabilities.EnergyUnitPositivePowerOfTwo) != 0 ?
+				maximumPower * (1 << powerUnit) / 1000d :
+				(double)maximumPower / (1 << powerUnit);
+		}
+		return defaultValue;
+	}
+
+	private (Sensor[], MonitoringThreadState[]) CreateSensors(PawnIo pawnIo, ProcessorPackageInformation packageInformation, int processorIndex, ProcessorCapabilities capabilities)
+	{
+		Sensor[] sensors = [];
+		MonitoringThreadState[] monitoringThreads = [];
+
+		// For user-friendliness and consistence in the naming of threads.
+		int processorNumber = processorIndex + 1;
+		if ((capabilities & (ProcessorCapabilities.TemperatureSensor | ProcessorCapabilities.EnergySensor)) != 0)
+		{
+			// This will hopefully be enough to process the small amount of operations of each thread.
+			const int ThreadStackSize = 4096;
+
+			// We likely shouldn't try to expose per-core temperature sensors if there is only one CPU core?
+			// Also, this sensor code might be expensive for high core count, as we spawn a thread for each core.
+			// While this is the easiest way to handle everything, it might be worth it to use the same thread for N cores at the cost of rescheduling.
+			int sensorCount = 0;
+			int threadCount = 0;
+			int sensorIndex = 0;
+			int threadIndex = 0;
+
+			if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensorCount += 1;
+			if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
+			{
+				sensorCount += 2;
+				if ((capabilities & ProcessorCapabilities.DramSensors) != 0) sensorCount++;
+				if ((capabilities & ProcessorCapabilities.UncoreSensors) != 0) sensorCount++;
+			}
+			threadCount += 1;
+
+			if (packageInformation.Cores.Length > 1)
+			{
+				if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0)
+				{
+					sensorCount += packageInformation.Cores.Length;
+					threadCount += packageInformation.Cores.Length;
+				}
+			}
+
+			sensors = new Sensor[sensorCount];
+			monitoringThreads = new MonitoringThreadState[threadCount];
+
+			{
+				var @event = new ManualResetEvent(false);
+				var thread = new Thread
+				(
+					new ParameterizedThreadStart(ReadPackageSensors),
+					ThreadStackSize
+				)
+				{
+					IsBackground = true,
+					Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} - Metrics"),
+				};
+
+				PackageTemperatureSensor? temperatureSensor = null;
+				PackagePowerSensor? powerSensor = null;
+				DramPowerSensor? dramPowerSensor = null;
+				PackageCorePowerSensor? corePowerSensor = null;
+				PackageUncorePowerSensor? uncorePowerSensor = null;
+
+				if ((capabilities & ProcessorCapabilities.TemperatureSensor) != 0) sensors[sensorIndex++] = temperatureSensor = new PackageTemperatureSensor(this);
+				if ((capabilities & ProcessorCapabilities.EnergySensor) != 0)
+				{
+					sensors[sensorIndex++] = powerSensor = new PackagePowerSensor(this);
+					if ((capabilities & ProcessorCapabilities.DramSensors) != 0)
+					{
+						sensors[sensorIndex++] = dramPowerSensor = new DramPowerSensor(this);
+					}
+					sensors[sensorIndex++] = corePowerSensor = new PackageCorePowerSensor(this);
+					if ((capabilities & ProcessorCapabilities.UncoreSensors) != 0)
+					{
+						sensors[sensorIndex++] = uncorePowerSensor = new PackageUncorePowerSensor(this);
+					}
+				}
+
+				var state = new PackageMonitoringThreadState(@event, thread, temperatureSensor, powerSensor, dramPowerSensor, corePowerSensor, uncorePowerSensor);
+				monitoringThreads[threadIndex++] = state;
+				thread.Start(state);
+			}
+
+			if (packageInformation.Cores.Length > 1 && (capabilities & ProcessorCapabilities.TemperatureSensor) != 0)
+			{
+				var readCoreSensors = new ParameterizedThreadStart(ReadCoreSensors);
+
+				for (int i = 0; i < packageInformation.Cores.Length; i++)
+				{
+					var @event = new ManualResetEvent(false);
+					var thread = new Thread
+					(
+						readCoreSensors,
+						ThreadStackSize
+					)
+					{
+						IsBackground = true,
+						Name = string.Create(CultureInfo.InvariantCulture, $"Intel CPU #{processorNumber} Core #{i} - Metrics"),
+					};
+
+					var temperatureSensor = new CoreTemperatureSensor(this, i);
+					sensors[sensorIndex++] = temperatureSensor;
+
+					var state = new CoreMonitoringThreadState(@event, thread, temperatureSensor);
+					monitoringThreads[threadIndex++] = state;
+					thread.Start(state);
+				}
+			}
+		}
+		return (sensors, monitoringThreads);
 	}
 
 	public override ValueTask DisposeAsync()
@@ -481,6 +537,8 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		short temperature = 0;
 		uint lastPowerReading = 0;
 		uint powerReading = 0;
+		uint lastDramPowerReading = 0;
+		uint dramPowerReading = 0;
 		uint lastCorePowerReading = 0;
 		uint corePowerReading = 0;
 		uint lastUncorePowerReading = 0;
@@ -517,6 +575,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 						powerReading = (uint)ReadMsr(_pawnIo!, MsrPkgEnergyStatus);
 						corePowerReading = (uint)ReadMsr(_pawnIo!, MsrPp0EnergyStatus);
 					}
+					if (state.DramPowerSensor is not null)
+					{
+						dramPowerReading = (uint)ReadMsr(_pawnIo!, MsrPp1EnergyStatus);
+					}
 					if (state.UncorePowerSensor is not null)
 					{
 						uncorePowerReading = (uint)ReadMsr(_pawnIo!, MsrPp1EnergyStatus);
@@ -529,6 +591,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 							state.PowerSensor._value = (powerReading - lastPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
 							state.CorePowerSensor!._value = (corePowerReading - lastCorePowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
 						}
+						if (state.DramPowerSensor is not null)
+						{
+							state.DramPowerSensor._value = (dramPowerReading - lastDramPowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
+						}
 						if (state.UncorePowerSensor is not null)
 						{
 							state.UncorePowerSensor._value = (uncorePowerReading - lastUncorePowerReading) * _energyFactor / (readingTimestamp - lastReadingTimestamp);
@@ -537,6 +603,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 
 					lastPowerReading = powerReading;
 					lastCorePowerReading = corePowerReading;
+					lastDramPowerReading = dramPowerReading;
 					lastUncorePowerReading = uncorePowerReading;
 					lastReadingTimestamp = readingTimestamp;
 				}
@@ -702,6 +769,16 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		SensorUnit ISensor.Unit => SensorUnit.Watts;
 	}
 
+	private sealed class DramPowerSensor : PackageSensor<double>, IPolledSensor<double>
+	{
+		public DramPowerSensor(IntelCpuDriver driver) : base(driver) { }
+
+		double? ISensor<double>.ScaleMinimumValue => 0;
+		double? ISensor<double>.ScaleMaximumValue => Driver._dramMaximumPower;
+		Guid ISensor.SensorId => ProcessorDramPowerSensorId;
+		SensorUnit ISensor.Unit => SensorUnit.Watts;
+	}
+
 	private sealed class CoreTemperatureSensor : CoreSensor<short>, IPolledSensor<short>
 	{
 		public CoreTemperatureSensor(IntelCpuDriver driver, int coreIndex) : base(driver, coreIndex) { }
@@ -733,23 +810,24 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		public ValueTask AsValueTask() => new(this, _core.Version);
 	}
 
-	private class MonitoringThreadState(ManualResetEvent @event, Thread thread)
+	private abstract class MonitoringThreadState(ManualResetEvent @event, Thread thread)
 	{
 		public readonly ManualResetEvent Event = @event;
 		public readonly Thread Thread = thread;
 		public int ActiveSensorCount;
 	}
 
-	private class PackageMonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short>? temperatureSensor, Sensor<double>? powerSensor, Sensor<double>? corePowerSensor, Sensor<double>? uncorePowerSensor)
+	private sealed class PackageMonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short>? temperatureSensor, Sensor<double>? powerSensor, Sensor<double>? dramPowerSensor, Sensor<double>? corePowerSensor, Sensor<double>? uncorePowerSensor)
 		: MonitoringThreadState(@event, thread)
 	{
 		public readonly Sensor<short>? TemperatureSensor = temperatureSensor;
 		public readonly Sensor<double>? PowerSensor = powerSensor;
+		public readonly Sensor<double>? DramPowerSensor = dramPowerSensor;
 		public readonly Sensor<double>? CorePowerSensor = corePowerSensor;
 		public readonly Sensor<double>? UncorePowerSensor = uncorePowerSensor;
 	}
 
-	private class CoreMonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short> temperatureSensor) : MonitoringThreadState(@event, thread)
+	private sealed class CoreMonitoringThreadState(ManualResetEvent @event, Thread thread, Sensor<short> temperatureSensor) : MonitoringThreadState(@event, thread)
 	{
 		public readonly Sensor<short> TemperatureSensor = temperatureSensor;
 	}
@@ -762,5 +840,6 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		EnergySensor = 2,
 		EnergyUnitPositivePowerOfTwo = 4,
 		UncoreSensors = 8,
+		DramSensors = 16,
 	}
 }
