@@ -17,6 +17,7 @@
                 <ResourceDictionary Source="Controls\Gauge.xaml" />
                 <ResourceDictionary Source="Controls\LineChart.xaml" />
                 <ResourceDictionary Source="Controls\PowerControlCurveEditor.xaml" />
+                <ResourceDictionary Source="Controls\GlyphToggleButton.xaml" />
             </ResourceDictionary.MergedDictionaries>
             
             <ResourceDictionary.ThemeDictionaries>

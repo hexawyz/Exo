@@ -107,6 +107,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Page Update="Controls\GlyphToggleButton.xaml">
+		  <SubType>Designer</SubType>
+		</Page>
 		<Page Update="LightSettingsControl.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
