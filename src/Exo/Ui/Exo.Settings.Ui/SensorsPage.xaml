@@ -37,7 +37,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource CaptionTextBlockStyle}" />
-											<lc:GlyphToggleButton Grid.Column="1" />
+											<lc:GlyphToggleButton Grid.Column="1" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="3,3,0,0" />
 										</Grid>
                                         <StackPanel Orientation="Horizontal">
                                         </StackPanel>
