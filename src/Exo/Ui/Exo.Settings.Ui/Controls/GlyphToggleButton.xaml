@@ -74,9 +74,6 @@
 								</VisualState>
 								<VisualState x:Name="Pressed">
 									<Storyboard>
-										<ObjectAnimationUsingKeyFrames Storyboard.TargetName="Icon" Storyboard.TargetProperty="Foreground">
-											<DiscreteObjectKeyFrame KeyTime="0" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=CheckedForeground}" />
-										</ObjectAnimationUsingKeyFrames>
 										<ObjectAnimationUsingKeyFrames Storyboard.TargetName="Icon" Storyboard.TargetProperty="Glyph">
 											<DiscreteObjectKeyFrame KeyTime="0" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=CheckedGlyph}" />
 										</ObjectAnimationUsingKeyFrames>

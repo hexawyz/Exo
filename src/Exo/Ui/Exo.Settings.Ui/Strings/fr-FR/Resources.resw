@@ -393,4 +393,7 @@
   <data name="LampsTitleTextBlock.Text" xml:space="preserve">
     <value>Lampes</value>
   </data>
+  <data name="FavoriteSensorsTitleTextBlock.Text" xml:space="preserve">
+    <value>Capteurs</value>
+  </data>
 </root>

@@ -11,68 +11,131 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <TextBlock x:Uid="WelcomeTextBlock" />
-        <StackPanel
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+		<TextBlock x:Uid="WelcomeTextBlock" />
+		<StackPanel
             Grid.Row="1"
             Margin="{StaticResource RowLabelMargin}"
             Orientation="Vertical"
             Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
-            <TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
-            <Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-                <ItemsRepeater ItemsSource="{Binding BatteryDevices.ConnectedBatteryDevices}">
-                    <ItemsRepeater.Layout>
-                        <UniformGridLayout MinColumnSpacing="6" MinRowSpacing="6" />
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource ControlCornerRadius}">
-                                <Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}" Width="150">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid DataContext="{Binding PowerFeatures}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="*" />
-                                        </Grid.RowDefinitions>
-                                        <lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
-                                            <lc:Gauge.ForegroundArcStroke>
-                                                <SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
-                                            </lc:Gauge.ForegroundArcStroke>
-                                        </lc:Gauge>
-                                        <FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
-                                    </Grid>
-                                    <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" ToolTipService.ToolTip="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </Border>
-        </StackPanel>
-        <StackPanel
+			<TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
+			<Border
+				Padding="6"
+				HorizontalAlignment="Stretch"
+				Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+				BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}"
+				BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
+				CornerRadius="{ThemeResource OverlayCornerRadius}">
+				<ItemsRepeater ItemsSource="{Binding BatteryDevices.ConnectedBatteryDevices}">
+					<ItemsRepeater.Layout>
+						<UniformGridLayout MinColumnSpacing="6" MinRowSpacing="6" />
+					</ItemsRepeater.Layout>
+					<ItemsRepeater.ItemTemplate>
+						<DataTemplate>
+							<Border
+								Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+								BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+								BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
+								CornerRadius="{ThemeResource ControlCornerRadius}">
+								<Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}" Width="150">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="*" />
+										<RowDefinition Height="Auto" />
+									</Grid.RowDefinitions>
+									<Grid DataContext="{Binding PowerFeatures}">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*" />
+											<ColumnDefinition Width="Auto" />
+										</Grid.ColumnDefinitions>
+										<Grid.RowDefinitions>
+											<RowDefinition Height="Auto" />
+											<RowDefinition Height="*" />
+										</Grid.RowDefinitions>
+										<lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
+											<lc:Gauge.ForegroundArcStroke>
+												<SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
+											</lc:Gauge.ForegroundArcStroke>
+										</lc:Gauge>
+										<FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
+									</Grid>
+									<TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" ToolTipService.ToolTip="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsRepeater.ItemTemplate>
+				</ItemsRepeater>
+			</Border>
+		</StackPanel>
+		<StackPanel
             Grid.Row="2"
             Margin="{StaticResource RowLabelMargin}"
             Orientation="Vertical"
             Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
-            <TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
-            <Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-                <local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
-            </Border>
-        </StackPanel>
-    </Grid>
+			<TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
+			<Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
+				<local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
+			</Border>
+		</StackPanel>
+		<StackPanel
+            Grid.Row="3"
+            Margin="{StaticResource RowLabelMargin}"
+            Orientation="Vertical"
+            Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+			<TextBlock x:Uid="FavoriteSensorsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
+			<Border
+				Padding="6"
+				HorizontalAlignment="Stretch"
+				Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+				BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}"
+				BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
+				CornerRadius="{ThemeResource OverlayCornerRadius}">
+				<ItemsRepeater ItemsSource="{Binding FavoriteSensors.ConnectedSensors}">
+					<ItemsRepeater.Layout>
+						<UniformGridLayout MinColumnSpacing="6" MinRowSpacing="6" />
+					</ItemsRepeater.Layout>
+					<ItemsRepeater.ItemTemplate>
+						<DataTemplate x:DataType="vm:SensorViewModel">
+							<Border Width="150" Height="150"
+								Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+								BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+								BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
+								CornerRadius="{ThemeResource ControlCornerRadius}">
+								<Grid Margin="6" AutomationProperties.Name="{Binding FriendlyName}">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto" />
+										<RowDefinition Height="*" />
+									</Grid.RowDefinitions>
+									<TextBlock Grid.Row="0" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource CaptionTextBlockStyle}" />
+									<lc:LineChart
+                                        Grid.Row="1"
+                                        Margin="6"
+                                        HorizontalAlignment="Center"
+                                        StrokeThickness="1.5"
+                                        Style="{Binding Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}}"
+                                        Series="{Binding LiveDetails.History}"
+                                        ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
+                                        ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
+									<TextBlock
+                                        Grid.Row="1"
+                                        Text="{Binding LiveDetails.CurrentValue}"
+                                        VerticalAlignment="Bottom"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,0,8,6" />
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsRepeater.ItemTemplate>
+				</ItemsRepeater>
+			</Border>
+		</StackPanel>
+	</Grid>
 </Page>

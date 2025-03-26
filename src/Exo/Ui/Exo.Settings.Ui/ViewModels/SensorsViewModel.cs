@@ -22,7 +22,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly IEnumerable<ChannelReader<SensorDeviceInformation>> _sensorDeviceReaders;
-	private readonly Services.ISensorService _sensorService;
+	private readonly ISensorService _sensorService;
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
 	private readonly ObservableCollection<SensorViewModel> _sensorsAvailableForCoolingControlCurves;
@@ -361,6 +361,7 @@ internal sealed class SensorViewModel : BindableObject
 	private readonly double? _metadataMinimumValue;
 	private readonly double? _metadataMaximumValue;
 	private readonly double[] _presetControlCurveSteps;
+	private bool _isFavorite;
 
 	public Guid Id => _sensorInformation.SensorId;
 
@@ -405,6 +406,12 @@ internal sealed class SensorViewModel : BindableObject
 	public SensorCategory Category => _sensorCategory;
 	public ImmutableArray<double> PresetControlCurveSteps => ImmutableCollectionsMarshal.AsImmutableArray(_presetControlCurveSteps);
 	public string FullDisplayName => $"{Device.FriendlyName} - {_displayName}";
+
+	public bool IsFavorite
+	{
+		get => _isFavorite;
+		set => SetValue(ref _isFavorite, value, ChangedProperty.IsFavorite);
+	}
 
 	public void SetOnline() => StartWatching();
 

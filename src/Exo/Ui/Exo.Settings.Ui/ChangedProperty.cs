@@ -87,4 +87,5 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs IsOn = new(nameof(IsOn));
 	public static readonly PropertyChangedEventArgs Brightness = new(nameof(Brightness));
 	public static readonly PropertyChangedEventArgs Temperature = new(nameof(Temperature));
+	public static readonly PropertyChangedEventArgs IsFavorite = new(nameof(IsFavorite));
 }

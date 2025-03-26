@@ -76,6 +76,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly BatteryDevicesViewModel _batteryDevicesViewModel;
 	private readonly LightsViewModel _lightsViewModel;
+	private readonly FavoriteSensorsViewModel _favoriteSensorsViewModel;
 	private readonly LightingViewModel _lightingViewModel;
 	private readonly ImagesViewModel _imagesViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
@@ -145,6 +146,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_lightsViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
 		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, sensorDeviceReaders, sensorService, _metadataService);
+		_favoriteSensorsViewModel = new(_sensorsViewModel);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);
 		_customMenuViewModel = new(ConnectionManager);
@@ -194,6 +196,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 	public LightsViewModel Lights => _lightsViewModel;
 	public LightingViewModel Lighting => _lightingViewModel;
 	public SensorsViewModel Sensors => _sensorsViewModel;
+	public FavoriteSensorsViewModel FavoriteSensors => _favoriteSensorsViewModel;
 	public CoolingViewModel Cooling => _coolingViewModel;
 	public ImagesViewModel Images => _imagesViewModel;
 	public ProgrammingViewModel Programming => _programmingViewModel;
