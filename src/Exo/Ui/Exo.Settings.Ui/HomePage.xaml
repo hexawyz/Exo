@@ -79,16 +79,6 @@
 						Grid.Row="2"
 						Margin="{StaticResource RowLabelMargin}"
 						Orientation="Vertical"
-						Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
-			<TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
-			<Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-				<local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
-			</Border>
-		</StackPanel>
-		<StackPanel
-						Grid.Row="3"
-						Margin="{StaticResource RowLabelMargin}"
-						Orientation="Vertical"
 						Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="FavoriteSensorsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border
@@ -137,6 +127,16 @@
 						</DataTemplate>
 					</ItemsRepeater.ItemTemplate>
 				</ItemsRepeater>
+			</Border>
+		</StackPanel>
+		<StackPanel
+						Grid.Row="3"
+						Margin="{StaticResource RowLabelMargin}"
+						Orientation="Vertical"
+						Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+			<TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
+			<Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
+				<local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
 			</Border>
 		</StackPanel>
 	</Grid>
