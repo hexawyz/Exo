@@ -16,6 +16,7 @@ internal sealed partial class SensorService
 		public SensorDeviceInformation Information { get; set; }
 		public GroupedQueryState? GroupedQueryState { get; set; }
 		public Dictionary<Guid, SensorState>? SensorStates { get; set; }
+		public Dictionary<Guid, SensorConfiguration> SensorConfigurations { get; set; }
 		// Stores either a single signal in the form of a TaskCompletionSource or SensorArrivalTaskCompletionSource, or an array of those.
 		// It is expected that in many cases, there will only be a single signal registered, if any at all, so this will avoid an unnecessary array allocation.
 		private object? _arrivalSignals;
@@ -27,7 +28,8 @@ internal sealed partial class SensorService
 			bool isConnected,
 			SensorDeviceInformation information,
 			GroupedQueryState? groupedQueryState,
-			Dictionary<Guid, SensorState>? sensorStates
+			Dictionary<Guid, SensorState>? sensorStates,
+			Dictionary<Guid, SensorConfiguration> sensorConfigurations
 		)
 		{
 			Lock = new();
@@ -37,30 +39,31 @@ internal sealed partial class SensorService
 			Information = information;
 			GroupedQueryState = groupedQueryState;
 			SensorStates = sensorStates;
+			SensorConfigurations = sensorConfigurations;
 		}
 
 		public async ValueTask OnDeviceArrivalAsync(bool isConnected, SensorDeviceInformation information, GroupedQueryState? groupedQueryState, Dictionary<Guid, SensorState> sensorStates, CancellationToken cancellationToken)
 		{
-			using (await Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-			{
-				IsConnected = isConnected;
-				Information = information;
-				GroupedQueryState = groupedQueryState;
-				SensorStates = sensorStates;
+			//using (await Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			//{
+			IsConnected = isConnected;
+			Information = information;
+			GroupedQueryState = groupedQueryState;
+			SensorStates = sensorStates;
 
-				var signals = _arrivalSignals;
-				if (signals is not null)
+			var signals = _arrivalSignals;
+			if (signals is not null)
+			{
+				if (signals is TaskCompletionSource[] array)
 				{
-					if (signals is TaskCompletionSource[] array)
-					{
-						HandleArrival(array, sensorStates);
-					}
-					else
-					{
-						HandleArrival(Unsafe.As<TaskCompletionSource>(signals), sensorStates);
-					}
+					HandleArrival(array, sensorStates);
+				}
+				else
+				{
+					HandleArrival(Unsafe.As<TaskCompletionSource>(signals), sensorStates);
 				}
 			}
+			//}
 		}
 
 		private static void HandleArrival(SensorArrivalTaskCompletionSource taskCompletionSource, Dictionary<Guid, SensorState> sensorStates)

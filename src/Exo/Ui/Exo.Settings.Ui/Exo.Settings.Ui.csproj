@@ -57,6 +57,7 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataSourceChangeNotification.cs" Link="Definitions\MetadataSourceChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataSourceInformation.cs" Link="Definitions\MetadataSourceInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorCapabilities.cs" Link="Definitions\SensorCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\SensorConfigurationUpdate.cs" Link="Definitions\SensorConfigurationUpdate.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorDataType.cs" Link="Definitions\SensorDataType.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorDeviceInformation.cs" Link="Definitions\SensorDeviceInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorInformation.cs" Link="Definitions\SensorInformation.cs" />

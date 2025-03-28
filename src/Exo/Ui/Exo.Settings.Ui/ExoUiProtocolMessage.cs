@@ -38,6 +38,9 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// </remarks>
 	SensorStart,
 	SensorStop,
+	/// <summary>Sets a sensor as favorite.</summary>
+	/// <remarks>This allows the service to remember the change.</remarks>
+	SensorFavorite,
 }
 
 // Defines messages sent by the server to the client.
@@ -112,6 +115,9 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// </para>
 	/// </remarks>
 	SensorStop,
+	/// <summary>Provides information about user-configuration of a sensor.</summary>
+	/// <remarks>User configuration is purely cosmetic, only non-default configurations will be propagated.</remarks>
+	SensorConfiguration,
 }
 
 internal enum SensorStartStatus : byte

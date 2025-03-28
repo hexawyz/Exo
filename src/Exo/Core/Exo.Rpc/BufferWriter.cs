@@ -32,6 +32,8 @@ public ref struct BufferWriter
 		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), 1);
 	}
 
+	public void Write(bool value) => Write(value ? (byte)1 : (byte)0);
+
 	public void Write<T>(T value) where T : unmanaged
 	{
 		if (RemainingLength < (nuint)Unsafe.SizeOf<T>()) throw new EndOfStreamException();

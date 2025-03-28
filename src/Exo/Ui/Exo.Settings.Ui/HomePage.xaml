@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Exo.Settings.Ui.HomePage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:lc="using:Exo.Settings.Ui.Controls"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+		x:Class="Exo.Settings.Ui.HomePage"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:local="using:Exo.Settings.Ui"
+		xmlns:lc="using:Exo.Settings.Ui.Controls"
+		xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d"
+		d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -23,10 +23,10 @@
 		</Grid.RowDefinitions>
 		<TextBlock x:Uid="WelcomeTextBlock" />
 		<StackPanel
-            Grid.Row="1"
-            Margin="{StaticResource RowLabelMargin}"
-            Orientation="Vertical"
-            Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+						Grid.Row="1"
+						Margin="{StaticResource RowLabelMargin}"
+						Orientation="Vertical"
+						Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border
 				Padding="6"
@@ -76,20 +76,20 @@
 			</Border>
 		</StackPanel>
 		<StackPanel
-            Grid.Row="2"
-            Margin="{StaticResource RowLabelMargin}"
-            Orientation="Vertical"
-            Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+						Grid.Row="2"
+						Margin="{StaticResource RowLabelMargin}"
+						Orientation="Vertical"
+						Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
 				<local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
 			</Border>
 		</StackPanel>
 		<StackPanel
-            Grid.Row="3"
-            Margin="{StaticResource RowLabelMargin}"
-            Orientation="Vertical"
-            Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+						Grid.Row="3"
+						Margin="{StaticResource RowLabelMargin}"
+						Orientation="Vertical"
+						Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="FavoriteSensorsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border
 				Padding="6"
@@ -104,32 +104,34 @@
 					</ItemsRepeater.Layout>
 					<ItemsRepeater.ItemTemplate>
 						<DataTemplate x:DataType="vm:SensorViewModel">
-							<Border Width="150" Height="150"
+							<Border Width="170" Height="180"
 								Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
 								BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
 								BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
 								CornerRadius="{ThemeResource ControlCornerRadius}">
-								<Grid Margin="6" AutomationProperties.Name="{Binding FriendlyName}">
+								<Grid Margin="6" AutomationProperties.Name="{Binding FullDisplayName}">
 									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto" />
 										<RowDefinition Height="Auto" />
 										<RowDefinition Height="*" />
 									</Grid.RowDefinitions>
-									<TextBlock Grid.Row="0" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource CaptionTextBlockStyle}" />
+									<TextBlock Grid.Row="0" Text="{Binding Device.FriendlyName}" ToolTipService.ToolTip="{Binding Device.FriendlyName}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="SemiBold" FontSize="12" TextWrapping="NoWrap" />
+									<TextBlock Grid.Row="1" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="Normal" FontSize="10" TextWrapping="NoWrap" />
 									<lc:LineChart
-                                        Grid.Row="1"
-                                        Margin="6"
-                                        HorizontalAlignment="Center"
-                                        StrokeThickness="1.5"
-                                        Style="{Binding Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}}"
-                                        Series="{Binding LiveDetails.History}"
-                                        ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
-                                        ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
+										Grid.Row="2"
+										Margin="6"
+										HorizontalAlignment="Center"
+										StrokeThickness="1.5"
+										Style="{Binding Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}}"
+										Series="{Binding LiveDetails.History}"
+										ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
+										ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
 									<TextBlock
-                                        Grid.Row="1"
-                                        Text="{Binding LiveDetails.CurrentValue}"
-                                        VerticalAlignment="Bottom"
-                                        HorizontalAlignment="Right"
-                                        Margin="0,0,8,6" />
+										Grid.Row="2"
+										Text="{Binding LiveDetails.CurrentValue}"
+										VerticalAlignment="Bottom"
+										HorizontalAlignment="Right"
+										Margin="0,0,8,6" />
 								</Grid>
 							</Border>
 						</DataTemplate>

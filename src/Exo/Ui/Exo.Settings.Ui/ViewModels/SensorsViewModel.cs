@@ -17,21 +17,22 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
+internal sealed class SensorsViewModel : IAsyncDisposable
 {
 	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly IEnumerable<ChannelReader<SensorDeviceInformation>> _sensorDeviceReaders;
+	private readonly IEnumerable<ChannelReader<SensorConfigurationUpdate>> _sensorUpdateReaders;
 	private readonly ISensorService _sensorService;
 	private readonly ISettingsMetadataService _metadataService;
 	private readonly ObservableCollection<SensorDeviceViewModel> _sensorDevices;
 	private readonly ObservableCollection<SensorViewModel> _sensorsAvailableForCoolingControlCurves;
 	private readonly Dictionary<Guid, SensorDeviceViewModel> _sensorDevicesById;
 	private readonly Dictionary<Guid, SensorDeviceInformation> _pendingDeviceInformations;
+	private readonly Dictionary<Guid, List<SensorConfigurationUpdate>> _pendingSensorConfigurationUpdates;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly IDisposable _stateRegistration;
-	private readonly Task _watchDevicesTask;
+	private readonly Task _runTask;
 
 	public ObservableCollection<SensorDeviceViewModel> Devices => _sensorDevices;
 	public ObservableCollection<SensorViewModel> SensorsAvailableForCoolingControlCurves => _sensorsAvailableForCoolingControlCurves;
@@ -41,6 +42,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		SettingsServiceConnectionManager connectionManager,
 		DevicesViewModel devicesViewModel,
 		IEnumerable<ChannelReader<SensorDeviceInformation>> sensorDeviceReaders,
+		IEnumerable<ChannelReader<SensorConfigurationUpdate>> sensorUpdateReaders,
 		ISensorService sensorService,
 		ISettingsMetadataService metadataService
 	)
@@ -48,35 +50,30 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
 		_sensorDeviceReaders = sensorDeviceReaders;
+		_sensorUpdateReaders = sensorUpdateReaders;
 		_sensorService = sensorService;
 		_metadataService = metadataService;
 		_sensorDevices = new();
 		_sensorsAvailableForCoolingControlCurves = new();
 		_sensorDevicesById = new();
 		_pendingDeviceInformations = new();
+		_pendingSensorConfigurationUpdates = new();
 		_cancellationTokenSource = new();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
-		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
-		_watchDevicesTask = WatchDevicesAsync(_cancellationTokenSource.Token);
+		_runTask = RunAsync(_cancellationTokenSource.Token);
 	}
 
 	public ValueTask DisposeAsync()
 	{
 		_cancellationTokenSource.Cancel();
-		_stateRegistration.Dispose();
-		return new(_watchDevicesTask);
+		return new(_runTask);
 	}
 
-	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	private async Task RunAsync(CancellationToken cancellationToken)
 	{
 		if (_cancellationTokenSource.IsCancellationRequested) return;
-		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
-		{
-			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
-		}
+		await Task.WhenAll(WatchDevicesAsync(cancellationToken), WatchConfigurationUpdatesAsync(cancellationToken));
 	}
-
-	void IConnectedState.Reset() { }
 
 	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
 	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
@@ -131,6 +128,48 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		}
 	}
 
+	private async Task WatchConfigurationUpdatesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			foreach (var reader in _sensorUpdateReaders)
+			{
+				try
+				{
+					await foreach (var update in reader.ReadAllAsync(cancellationToken))
+					{
+						if (_sensorDevicesById.TryGetValue(update.DeviceId, out var vm))
+						{
+							if (vm.GetSensor(update.SensorId) is { } sensor)
+							{
+								sensor.OnConfigurationUpdate(update);
+							}
+						}
+						else if (!_devicesViewModel.IsRemovedId(update.DeviceId))
+						{
+							if (!_pendingSensorConfigurationUpdates.TryGetValue(update.DeviceId, out var updates))
+							{
+								_pendingSensorConfigurationUpdates.Add(update.DeviceId, updates = new());
+							}
+							updates.Add(update);
+						}
+					}
+				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+				{
+					return;
+				}
+				finally
+				{
+					_pendingSensorConfigurationUpdates.Clear();
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+	}
+
 	private void OnDevicesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
 	{
 		if (e.Action == NotifyCollectionChangedAction.Add)
@@ -138,7 +177,14 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 			var vm = (DeviceViewModel)e.NewItems![0]!;
 			if (_pendingDeviceInformations.Remove(vm.Id, out var info))
 			{
-				OnDeviceAdded(vm, info);
+				var svm = OnDeviceAdded(vm, info);
+				if (_pendingSensorConfigurationUpdates.Remove(svm.Id, out var updates))
+				{
+					foreach (var update in updates)
+					{
+						svm.GetSensor(update.SensorId)?.OnConfigurationUpdate(update);
+					}
+				}
 			}
 		}
 		else if (e.Action == NotifyCollectionChangedAction.Remove)
@@ -148,6 +194,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 			{
 				OnDeviceRemoved(vm.Id);
 			}
+			_pendingSensorConfigurationUpdates.Remove(vm.Id);
 		}
 		else if (e.Action == NotifyCollectionChangedAction.Reset)
 		{
@@ -160,11 +207,12 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		}
 	}
 
-	private void OnDeviceAdded(DeviceViewModel device, SensorDeviceInformation sensorDeviceInformation)
+	private SensorDeviceViewModel OnDeviceAdded(DeviceViewModel device, SensorDeviceInformation sensorDeviceInformation)
 	{
 		var vm = new SensorDeviceViewModel(this, device, sensorDeviceInformation, _metadataService, _sensorsAvailableForCoolingControlCurves);
 		_sensorDevices.Add(vm);
 		_sensorDevicesById[vm.Id] = vm;
+		return vm;
 	}
 
 	private void OnDeviceChanged(SensorDeviceViewModel viewModel, SensorDeviceInformation sensorDeviceInformation)
@@ -186,7 +234,7 @@ internal sealed class SensorsViewModel : IAsyncDisposable, IConnectedState
 		}
 	}
 
-	public Services.ISensorService SensorService => _sensorService;
+	public ISensorService SensorService => _sensorService;
 
 	public SensorDeviceViewModel? GetDevice(Guid deviceId)
 	{
@@ -410,7 +458,18 @@ internal sealed class SensorViewModel : BindableObject
 	public bool IsFavorite
 	{
 		get => _isFavorite;
-		set => SetValue(ref _isFavorite, value, ChangedProperty.IsFavorite);
+		set
+		{
+			if (SetValue(ref _isFavorite, value, ChangedProperty.IsFavorite))
+			{
+				UpdateFavoriteStatus();
+			}
+		}
+	}
+
+	private async void UpdateFavoriteStatus()
+	{
+		await Device.SensorsViewModel.SensorService.SetFavoriteAsync(Device.Id, Id, _isFavorite, default);
 	}
 
 	public void SetOnline() => StartWatching();
@@ -465,6 +524,11 @@ internal sealed class SensorViewModel : BindableObject
 			SensorDataType.Float64 => (double)value,
 			_ => throw new InvalidOperationException("Unsupported data type."),
 		};
+
+	internal void OnConfigurationUpdate(SensorConfigurationUpdate update)
+	{
+		SetValue(ref _isFavorite, update.IsFavorite, ChangedProperty.IsFavorite);
+	}
 }
 
 internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposable

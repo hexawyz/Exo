@@ -47,6 +47,35 @@ internal sealed partial class SensorService
 		public VariantNumber ScaleMaximumValue { get; init; }
 	}
 
+	[TypeId(0x30F5EF48, 0x2C47, 0x465D, 0x97, 0xD6, 0x86, 0xFF, 0x1C, 0xBD, 0x22, 0xCA)]
+	private readonly struct PersistedSensorConfiguration
+	{
+		public string? FriendlyName { get; init; }
+		public bool IsFavorite { get; init; }
+	}
+
+	// TODO: See if this can be merged with sensor states.
+	// Currently, and contrary to other services, sensor states are cleared when the device is offline.
+	// We would need to make it so the states stay online, but that could be problematic if the characteristics of a sensor change.
+	private sealed class SensorConfiguration
+	{
+		public string? FriendlyName { get; set; }
+		public bool IsFavorite { get; set; }
+
+		public bool IsDefault => FriendlyName is null && !IsFavorite;
+
+		public SensorConfiguration() { }
+
+		public SensorConfiguration(PersistedSensorConfiguration value)
+		{
+			FriendlyName = value.FriendlyName;
+			IsFavorite = value.IsFavorite;
+		}
+
+		public PersistedSensorConfiguration CreatePersistedSensorConfiguration()
+			=> new() { FriendlyName = FriendlyName, IsFavorite = IsFavorite };
+	}
+
 	// Custom serializer to ensure that min/max values are serialized using the proper format.
 	// Perhaps another way is possible using generic types, however deserialization would always be somewhat of a problem.
 	private class PersistedSensorInformationJsonConverter : JsonConverter<PersistedSensorInformation>
@@ -73,16 +102,16 @@ internal sealed partial class SensorService
 
 			switch (reader.GetString())
 			{
-			// Backwards compatibility stuff.
-			case "IsPolled":
-				reader.Read();
-				if (reader.GetBoolean()) capabilities |= SensorCapabilities.Polled;
-				break;
-			case nameof(PersistedSensorInformation.Capabilities):
-				reader.Read();
-				capabilities = JsonSerializer.Deserialize<SensorCapabilities>(ref reader, options);
-				break;
-			default: throw new JsonException();
+				// Backwards compatibility stuff.
+				case "IsPolled":
+					reader.Read();
+					if (reader.GetBoolean()) capabilities |= SensorCapabilities.Polled;
+					break;
+				case nameof(PersistedSensorInformation.Capabilities):
+					reader.Read();
+					capabilities = JsonSerializer.Deserialize<SensorCapabilities>(ref reader, options);
+					break;
+				default: throw new JsonException();
 			}
 
 			VariantNumber maxValue = default;
@@ -92,23 +121,23 @@ internal sealed partial class SensorService
 			if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
 			switch (reader.GetString())
 			{
-			case nameof(PersistedSensorInformation.ScaleMinimumValue):
-				reader.Read();
-				minValue = ReadNumericValue(ref reader, dataType, options);
-				capabilities |= SensorCapabilities.HasMinimumValue;
-				reader.Read();
-				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
-				if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.ScaleMaximumValue)) throw new JsonException();
-				goto case nameof(PersistedSensorInformation.ScaleMaximumValue);
-			case nameof(PersistedSensorInformation.ScaleMaximumValue):
-				reader.Read();
-				maxValue = ReadNumericValue(ref reader, dataType, options);
-				capabilities |= SensorCapabilities.HasMaximumValue;
-				reader.Read();
-				if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
-				goto default;
-			default:
-				throw new JsonException();
+				case nameof(PersistedSensorInformation.ScaleMinimumValue):
+					reader.Read();
+					minValue = ReadNumericValue(ref reader, dataType, options);
+					capabilities |= SensorCapabilities.HasMinimumValue;
+					reader.Read();
+					if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
+					if (reader.TokenType != JsonTokenType.PropertyName && reader.GetString() != nameof(PersistedSensorInformation.ScaleMaximumValue)) throw new JsonException();
+					goto case nameof(PersistedSensorInformation.ScaleMaximumValue);
+				case nameof(PersistedSensorInformation.ScaleMaximumValue):
+					reader.Read();
+					maxValue = ReadNumericValue(ref reader, dataType, options);
+					capabilities |= SensorCapabilities.HasMaximumValue;
+					reader.Read();
+					if (reader.TokenType == JsonTokenType.EndObject) goto Complete;
+					goto default;
+				default:
+					throw new JsonException();
 			}
 		Complete:;
 			return new()
@@ -145,20 +174,20 @@ internal sealed partial class SensorService
 			writer.WritePropertyName(propertyName);
 			switch (dataType)
 			{
-			case SensorDataType.UInt8: writer.WriteNumberValue((byte)value); break;
-			case SensorDataType.UInt16: writer.WriteNumberValue((ushort)value); break;
-			case SensorDataType.UInt32: writer.WriteNumberValue((uint)value); break;
-			case SensorDataType.UInt64: writer.WriteNumberValue((ulong)value); break;
-			case SensorDataType.UInt128: JsonSerializer.Serialize(writer, (UInt128)value, options); break;
-			case SensorDataType.SInt8: writer.WriteNumberValue((sbyte)value); break;
-			case SensorDataType.SInt16: writer.WriteNumberValue((short)value); break;
-			case SensorDataType.SInt32: writer.WriteNumberValue((int)value); break;
-			case SensorDataType.SInt64: writer.WriteNumberValue((long)value); break;
-			case SensorDataType.SInt128: JsonSerializer.Serialize(writer, (Int128)value, options); break;
-			case SensorDataType.Float16: JsonSerializer.Serialize(writer, (Half)value, options); break;
-			case SensorDataType.Float32: writer.WriteNumberValue((float)value); break;
-			case SensorDataType.Float64: writer.WriteNumberValue((double)value); break;
-			default: throw new InvalidOperationException();
+				case SensorDataType.UInt8: writer.WriteNumberValue((byte)value); break;
+				case SensorDataType.UInt16: writer.WriteNumberValue((ushort)value); break;
+				case SensorDataType.UInt32: writer.WriteNumberValue((uint)value); break;
+				case SensorDataType.UInt64: writer.WriteNumberValue((ulong)value); break;
+				case SensorDataType.UInt128: JsonSerializer.Serialize(writer, (UInt128)value, options); break;
+				case SensorDataType.SInt8: writer.WriteNumberValue((sbyte)value); break;
+				case SensorDataType.SInt16: writer.WriteNumberValue((short)value); break;
+				case SensorDataType.SInt32: writer.WriteNumberValue((int)value); break;
+				case SensorDataType.SInt64: writer.WriteNumberValue((long)value); break;
+				case SensorDataType.SInt128: JsonSerializer.Serialize(writer, (Int128)value, options); break;
+				case SensorDataType.Float16: JsonSerializer.Serialize(writer, (Half)value, options); break;
+				case SensorDataType.Float32: writer.WriteNumberValue((float)value); break;
+				case SensorDataType.Float64: writer.WriteNumberValue((double)value); break;
+				default: throw new InvalidOperationException();
 			}
 			;
 		}
@@ -250,13 +279,20 @@ internal sealed partial class SensorService
 			}
 
 			var sensorInformations = ImmutableArray.CreateBuilder<SensorInformation>();
+			var sensorConfigurations = new Dictionary<Guid, SensorConfiguration>();
 
 			foreach (var sensorId in sensorIds)
 			{
-				var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorInformation>(sensorId, cancellationToken).ConfigureAwait(false);
-				if (!result.Found) continue;
-				var info = result.Value;
-				sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.Capabilities, info.UnitSymbol, info.ScaleMinimumValue, info.ScaleMaximumValue));
+				{
+					var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorInformation>(sensorId, cancellationToken).ConfigureAwait(false);
+					if (!result.Found) continue;
+					var info = result.Value;
+					sensorInformations.Add(new SensorInformation(sensorId, info.DataType, info.Capabilities, info.UnitSymbol, info.ScaleMinimumValue, info.ScaleMaximumValue));
+				}
+				{
+					var result = await sensorsConfigurationConfigurationContainer.ReadValueAsync<PersistedSensorConfiguration>(sensorId, cancellationToken).ConfigureAwait(false);
+					sensorConfigurations.Add(sensorId, new SensorConfiguration(result.Found ? result.Value : new()));
+				}
 			}
 
 			if (sensorInformations.Count > 0)
@@ -271,7 +307,8 @@ internal sealed partial class SensorService
 						false,
 						new(deviceId, sensorInformations.DrainToImmutable()),
 						null,
-						null
+						null,
+						sensorConfigurations
 					)
 				);
 			}
@@ -284,6 +321,7 @@ internal sealed partial class SensorService
 	private readonly AsyncLock _lock;
 	private readonly PollingScheduler _pollingScheduler;
 	private ChannelWriter<SensorDeviceInformation>[]? _changeListeners;
+	private ChannelWriter<SensorConfigurationUpdate>[]? _configurationChangeListeners;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly ILogger<SensorService> _logger;
 	private readonly ILogger<SensorState> _sensorStateLogger;
@@ -317,10 +355,7 @@ internal sealed partial class SensorService
 			{
 				try
 				{
-					using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
-					{
-						await DetachDeviceStateAsync(state).ConfigureAwait(false);
-					}
+					await DetachDeviceStateAsync(state).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
@@ -342,20 +377,20 @@ internal sealed partial class SensorService
 				{
 					switch (notification.Kind)
 					{
-					case WatchNotificationKind.Enumeration:
-					case WatchNotificationKind.Addition:
-						using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-						{
-							await HandleArrivalAsync(notification, cancellationToken).ConfigureAwait(false);
-						}
-						break;
-					case WatchNotificationKind.Removal:
-						using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-						{
-							// NB: Removal should not be cancelled. We need all the states to be cleared away.
-							await HandleRemovalAsync(notification).ConfigureAwait(false);
-						}
-						break;
+						case WatchNotificationKind.Enumeration:
+						case WatchNotificationKind.Addition:
+							using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+							{
+								await HandleArrivalAsync(notification, cancellationToken).ConfigureAwait(false);
+							}
+							break;
+						case WatchNotificationKind.Removal:
+							using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+							{
+								// NB: Removal should not be cancelled. We need all the states to be cleared away.
+								await HandleRemovalAsync(notification).ConfigureAwait(false);
+							}
+							break;
 					}
 				}
 				catch (Exception ex)
@@ -412,11 +447,14 @@ internal sealed partial class SensorService
 					var deviceContainer = _devicesConfigurationContainer.GetContainer(notification.DeviceInformation.Id);
 					sensorsContainer = deviceContainer.GetContainer(SensorsConfigurationContainerName, GuidNameSerializer.Instance);
 
+					var sensorConfigurations = new Dictionary<Guid, SensorConfiguration>();
+
 					// For sanity, remove the pre-existing sensor containers, although there should be none initially.
 					await sensorsContainer.DeleteAllContainersAsync().ConfigureAwait(false);
 					foreach (var info in sensorInfos)
 					{
 						await sensorsContainer.WriteValueAsync(info.SensorId, new PersistedSensorInformation(info), cancellationToken);
+						sensorConfigurations.Add(info.SensorId, new());
 					}
 
 					state = new
@@ -426,47 +464,55 @@ internal sealed partial class SensorService
 						notification.DeviceInformation.IsAvailable,
 						new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
 						groupedQueryState,
-						sensorStates
+						sensorStates,
+						sensorConfigurations
 					);
 
 					_deviceStates.TryAdd(notification.DeviceInformation.Id, state);
 				}
 				else
 				{
-					sensorsContainer = state.SensorsConfigurationContainer;
-
-					foreach (var previousInfo in state.Information.Sensors)
+					using (await state.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 					{
-						// Remove all pre-existing sensor info from the dictionary that was build earlier so that only new entries remain in the end.
-						// Appropriate updates for previous sensors will be done depending on the result of that removal.
-						if (!addedSensorInfosById.Remove(previousInfo.SensorId, out var currentInfo))
+						sensorsContainer = state.SensorsConfigurationContainer;
+						var sensorConfigurations = state.SensorConfigurations;
+
+						foreach (var previousInfo in state.Information.Sensors)
 						{
-							// Remove existing sensor configuration if the sensor is not reported by the device anymore.
-							await sensorsContainer.DeleteValuesAsync(previousInfo.SensorId).ConfigureAwait(false);
+							// Remove all pre-existing sensor info from the dictionary that was build earlier so that only new entries remain in the end.
+							// Appropriate updates for previous sensors will be done depending on the result of that removal.
+							if (!addedSensorInfosById.Remove(previousInfo.SensorId, out var currentInfo))
+							{
+								// Remove existing sensor configuration if the sensor is not reported by the device anymore.
+								await sensorsContainer.DeleteValuesAsync(previousInfo.SensorId).ConfigureAwait(false);
+								sensorConfigurations.Remove(previousInfo.SensorId);
+							}
+							else if (currentInfo != previousInfo)
+							{
+								// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
+								await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
+							}
 						}
-						else if (currentInfo != previousInfo)
+
+						// Finally, persist the information for the newly discovered sensors.
+						foreach (var currentInfo in addedSensorInfosById.Values)
 						{
-							// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
 							await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
+							sensorConfigurations.Add(currentInfo.SensorId, new());
 						}
-					}
 
-					// Finally, persist the information for the newly discovered sensors.
-					foreach (var currentInfo in addedSensorInfosById.Values)
-					{
-						await sensorsContainer.WriteValueAsync(currentInfo.SensorId, new PersistedSensorInformation(currentInfo), cancellationToken).ConfigureAwait(false);
+						await state.OnDeviceArrivalAsync
+						(
+							notification.DeviceInformation.IsAvailable,
+							new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
+							groupedQueryState,
+							sensorStates,
+							cancellationToken
+						).ConfigureAwait(false);
 					}
-
-					await state.OnDeviceArrivalAsync
-					(
-						notification.DeviceInformation.IsAvailable,
-						new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
-						groupedQueryState,
-						sensorStates,
-						cancellationToken
-					).ConfigureAwait(false);
 				}
 				_changeListeners.TryWrite(state.Information);
+				// NB: THere is no need to transmit any sensor change information, as all new sensors start with an empty configuration.
 			}
 		}
 		catch (Exception)
@@ -539,10 +585,10 @@ internal sealed partial class SensorService
 
 		switch (sensor.Kind)
 		{
-		case SensorKind.Internal: break;
-		case SensorKind.Polled: capabilities |= SensorCapabilities.Polled; break;
-		case SensorKind.Streamed: capabilities |= SensorCapabilities.Streamed; break;
-		default: throw new InvalidOperationException("Unsupported enum value.");
+			case SensorKind.Internal: break;
+			case SensorKind.Polled: capabilities |= SensorCapabilities.Polled; break;
+			case SensorKind.Streamed: capabilities |= SensorCapabilities.Streamed; break;
+			default: throw new InvalidOperationException("Unsupported enum value.");
 		}
 
 		return capabilities;
@@ -583,14 +629,17 @@ internal sealed partial class SensorService
 		SensorDeviceInformation[]? initialDeviceInfos = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialDeviceInfos = _deviceStates.Values.Select(state => state.Information).ToArray();
+			initialDeviceInfos = [.. _deviceStates.Values.Select(state => state.Information)];
 			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
 		}
 		try
 		{
-			foreach (var info in initialDeviceInfos)
+			if (initialDeviceInfos is not null)
 			{
-				yield return info;
+				foreach (var info in initialDeviceInfos)
+				{
+					yield return info;
+				}
 			}
 			initialDeviceInfos = null;
 
@@ -602,6 +651,55 @@ internal sealed partial class SensorService
 		finally
 		{
 			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
+		}
+	}
+
+	public async IAsyncEnumerable<SensorConfigurationUpdate> WatchSensorConfigurationChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var channel = Watcher.CreateSingleWriterChannel<SensorConfigurationUpdate>();
+
+		List<SensorConfigurationUpdate>? initialUpdates = null;
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			foreach (var (deviceId, deviceState) in _deviceStates)
+			{
+				foreach (var (sensorId, sensorConfiguration) in deviceState.SensorConfigurations)
+				{
+					// We should not need to push information for any default configuration, as all sensors default to an empty configuration. (Configuration is purely user-controlled)
+					if (sensorConfiguration.IsDefault) continue;
+					(initialUpdates ??= []).Add
+					(
+						new SensorConfigurationUpdate()
+						{
+							DeviceId = deviceId,
+							SensorId = sensorId,
+							FriendlyName = sensorConfiguration.FriendlyName,
+							IsFavorite = sensorConfiguration.IsFavorite
+						}
+					);
+				}
+			}
+			ArrayExtensions.InterlockedAdd(ref _configurationChangeListeners, channel);
+		}
+		try
+		{
+			if (initialUpdates is not null)
+			{
+				foreach (var update in initialUpdates)
+				{
+					yield return update;
+				}
+				initialUpdates = null;
+			}
+
+			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+			{
+				yield return info;
+			}
+		}
+		finally
+		{
+			ArrayExtensions.InterlockedRemove(ref _configurationChangeListeners, channel);
 		}
 	}
 
@@ -669,5 +767,28 @@ internal sealed partial class SensorService
 		}
 
 		throw new SensorNotAvailableException();
+	}
+
+	public async ValueTask SetFavoriteAsync(Guid deviceId, Guid sensorId, bool isFavorite, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+
+		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			if (deviceState.SensorConfigurations.TryGetValue(sensorId, out var sensorConfiguration))
+			{
+				if (sensorConfiguration.IsFavorite != isFavorite)
+				{
+					sensorConfiguration.IsFavorite = isFavorite;
+
+					if (_configurationChangeListeners is { } changeListeners)
+					{
+						changeListeners.TryWrite(new() { DeviceId = deviceId, SensorId = sensorId, FriendlyName = sensorConfiguration.FriendlyName, IsFavorite = sensorConfiguration.IsFavorite });
+					}
+
+					await deviceState.SensorsConfigurationContainer.WriteValueAsync(sensorId, sensorConfiguration.CreatePersistedSensorConfiguration(), cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
 	}
 }

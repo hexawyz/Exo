@@ -175,8 +175,10 @@ public partial class App : Application
 		services.AddSingleton(_ => new ResettableChannel<MetadataSourceChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<SensorDeviceInformation>(UnboundedChannelOptions));
+		services.AddSingleton(_ => new ResettableChannel<SensorConfigurationUpdate>(UnboundedChannelOptions));
 		services.AddSingleton<IEnumerable<ChannelReader<MetadataSourceChangeNotification>>>(sp => sp.GetRequiredService<ResettableChannel<MetadataSourceChangeNotification>>());
 		services.AddSingleton<IEnumerable<ChannelReader<SensorDeviceInformation>>>(sp => sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>());
+		services.AddSingleton<IEnumerable<ChannelReader<SensorConfigurationUpdate>>>(sp => sp.GetRequiredService<ResettableChannel<SensorConfigurationUpdate>>());
 
 		services.AddSingleton
 		(
@@ -185,7 +187,8 @@ public partial class App : Application
 				"Local\\Exo.Service.Ui",
 				sp.GetRequiredService<ResettableChannel<MetadataSourceChangeNotification>>(),
 				sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>(),
-				sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>()
+				sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>(),
+				sp.GetRequiredService<ResettableChannel<SensorConfigurationUpdate>>()
 			)
 		);
 
