@@ -100,6 +100,14 @@ internal sealed class MetadataService : ISettingsMetadataService, IDisposable
 						}
 					}
 				}
+				catch (Exception ex) when (ex is not OperationCanceledException)
+				{
+					if (_availabilitySignal is TaskCompletionSource tcs)
+					{
+						tcs.TrySetException(ex);
+					}
+					throw;
+				}
 				finally
 				{
 					if (_availabilitySignal is TaskCompletionSource tcs)
