@@ -611,19 +611,19 @@ internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposa
 		{
 			switch (_sensor.DataType)
 			{
-			case SensorDataType.UInt8: await WatchAsync<byte>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.UInt16: await WatchAsync<ushort>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.UInt32: await WatchAsync<uint>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.UInt64: await WatchAsync<ulong>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.UInt128: await WatchAsync<UInt128>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.SInt8: await WatchAsync<sbyte>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.SInt16: await WatchAsync<short>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.SInt32: await WatchAsync<int>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.SInt64: await WatchAsync<long>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.SInt128: await WatchAsync<Int128>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.Float16: await WatchAsync<Half>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.Float32: await WatchAsync<float>(cancellationToken).ConfigureAwait(false); break;
-			case SensorDataType.Float64: await WatchAsync<double>(cancellationToken).ConfigureAwait(false); break;
+			case SensorDataType.UInt8: await WatchAsync<byte>(cancellationToken); break;
+			case SensorDataType.UInt16: await WatchAsync<ushort>(cancellationToken); break;
+			case SensorDataType.UInt32: await WatchAsync<uint>(cancellationToken); break;
+			case SensorDataType.UInt64: await WatchAsync<ulong>(cancellationToken); break;
+			case SensorDataType.UInt128: await WatchAsync<UInt128>(cancellationToken); break;
+			case SensorDataType.SInt8: await WatchAsync<sbyte>(cancellationToken); break;
+			case SensorDataType.SInt16: await WatchAsync<short>(cancellationToken); break;
+			case SensorDataType.SInt32: await WatchAsync<int>(cancellationToken); break;
+			case SensorDataType.SInt64: await WatchAsync<long>(cancellationToken); break;
+			case SensorDataType.SInt128: await WatchAsync<Int128>(cancellationToken); break;
+			case SensorDataType.Float16: await WatchAsync<Half>(cancellationToken); break;
+			case SensorDataType.Float32: await WatchAsync<float>(cancellationToken); break;
+			case SensorDataType.Float64: await WatchAsync<double>(cancellationToken); break;
 			default: throw new InvalidOperationException("Unsupported data type.");
 			}
 		}

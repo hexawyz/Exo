@@ -362,7 +362,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		IsNotBusy = false;
 		try
 		{
-			await _imageService.RemoveImageAsync(new ImageReference { ImageName = _selectedImage.Name }, cancellationToken).ConfigureAwait(false);
+			await _imageService.RemoveImageAsync(new ImageReference { ImageName = _selectedImage.Name }, cancellationToken);
 		}
 		finally
 		{

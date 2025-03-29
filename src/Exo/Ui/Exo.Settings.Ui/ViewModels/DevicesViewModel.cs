@@ -132,12 +132,12 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		if (_cancellationTokenSource.IsCancellationRequested) return;
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
-			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken).ConfigureAwait(false);
-			var powerService = await _connectionManager.GetPowerServiceAsync(cancellationToken).ConfigureAwait(false);
-			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken).ConfigureAwait(false);
-			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken).ConfigureAwait(false);
-			var embeddedMonitorService = await _connectionManager.GetEmbeddedMonitorServiceAsync(cancellationToken).ConfigureAwait(false);
-			var lightService = await _connectionManager.GetLightServiceAsync(cancellationToken).ConfigureAwait(false);
+			var deviceService = await _connectionManager.GetDeviceServiceAsync(cancellationToken);
+			var powerService = await _connectionManager.GetPowerServiceAsync(cancellationToken);
+			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
+			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
+			var embeddedMonitorService = await _connectionManager.GetEmbeddedMonitorServiceAsync(cancellationToken);
+			var lightService = await _connectionManager.GetLightServiceAsync(cancellationToken);
 
 			var deviceWatchTask = WatchDevicesAsync(deviceService, powerService, mouseService, embeddedMonitorService, lightService, cts.Token);
 
