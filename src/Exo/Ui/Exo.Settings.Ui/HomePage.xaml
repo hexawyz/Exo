@@ -23,10 +23,10 @@
 		</Grid.RowDefinitions>
 		<TextBlock x:Uid="WelcomeTextBlock" />
 		<StackPanel
-						Grid.Row="1"
-						Margin="{StaticResource RowLabelMargin}"
-						Orientation="Vertical"
-						Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+			Grid.Row="1"
+			Margin="{StaticResource RowLabelMargin}"
+			Orientation="Vertical"
+			Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border
 				Padding="6"
@@ -76,10 +76,10 @@
 			</Border>
 		</StackPanel>
 		<StackPanel
-						Grid.Row="2"
-						Margin="{StaticResource RowLabelMargin}"
-						Orientation="Vertical"
-						Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+			Grid.Row="2"
+			Margin="{StaticResource RowLabelMargin}"
+			Orientation="Vertical"
+			Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="FavoriteSensorsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border
 				Padding="6"
@@ -130,10 +130,10 @@
 			</Border>
 		</StackPanel>
 		<StackPanel
-						Grid.Row="3"
-						Margin="{StaticResource RowLabelMargin}"
-						Orientation="Vertical"
-						Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+			Grid.Row="3"
+			Margin="{StaticResource RowLabelMargin}"
+			Orientation="Vertical"
+			Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
 			<TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 			<Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
 				<local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
