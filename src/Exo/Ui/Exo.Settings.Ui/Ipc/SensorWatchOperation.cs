@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
-using Exo.Rpc;
+using Exo.Ipc;
 
 namespace Exo.Settings.Ui.Ipc;
 

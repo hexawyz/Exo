@@ -1,7 +1,7 @@
 using System.IO.Pipes;
-using Exo.Rpc;
+using Exo.Ipc;
 
-namespace Exo.Service.Rpc;
+namespace Exo.Service.Ipc;
 
 internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 {

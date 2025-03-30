@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Threading.Channels;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 /// <summary>Provides the feature for transmissions that can be reset.</summary>
 /// <remarks>

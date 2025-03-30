@@ -4,9 +4,9 @@ using System.IO.Pipes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Exo.Contracts.Ui.Overlay;
-using Exo.Rpc;
+using Exo.Ipc;
 
-namespace Exo.Service.Rpc;
+namespace Exo.Service.Ipc;
 
 internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeServerConnection<HelperPipeServerConnection>
 {

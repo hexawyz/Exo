@@ -1,4 +1,4 @@
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 public sealed class PipeClosedException : Exception
 {

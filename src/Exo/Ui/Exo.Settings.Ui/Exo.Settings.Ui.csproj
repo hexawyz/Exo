@@ -101,7 +101,7 @@
 		<ProjectReference Include="..\..\Core\Exo.Memory\Exo.Memory.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Metadata\Exo.Metadata.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
-		<ProjectReference Include="..\..\Core\Exo.Rpc\Exo.Rpc.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Ipc\Exo.Ipc.csproj" />
 		<ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />

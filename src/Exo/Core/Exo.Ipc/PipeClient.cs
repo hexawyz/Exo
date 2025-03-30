@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 public abstract class PipeClient
 {

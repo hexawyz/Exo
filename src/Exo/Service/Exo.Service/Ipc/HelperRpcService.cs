@@ -3,24 +3,22 @@ using System.Runtime.ExceptionServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
-namespace Exo.Service.Rpc;
+namespace Exo.Service.Ipc;
 
-internal sealed class UiRpcService : IHostedService
+internal sealed class HelperRpcService : IHostedService
 {
-	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
-	private readonly IMetadataSourceProvider _metadataSourceProvider;
+	private readonly OverlayNotificationService _overlayNotificationService;
 	private readonly CustomMenuService _customMenuService;
-	private readonly SensorService _sensorService;
+	private readonly MonitorControlProxyService _monitorControlProxyService;
 
-	public UiRpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, SensorService sensorService)
+	public HelperRpcService(OverlayNotificationService overlayNotificationService, CustomMenuService customMenuService, MonitorControlProxyService monitorControlProxyService)
 	{
-		_connectionLogger = connectionLogger;
-		_metadataSourceProvider = metadataSourceProvider;
+		_overlayNotificationService = overlayNotificationService;
 		_customMenuService = customMenuService;
-		_sensorService = sensorService;
+		_monitorControlProxyService = monitorControlProxyService;
 	}
 
-	private UiPipeServer? _server;
+	private HelperPipeServer? _server;
 
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
@@ -46,7 +44,7 @@ internal sealed class UiRpcService : IHostedService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _sensorService);
+		_server = new("Local\\Exo.Service.Helper", pipeSecurity, _overlayNotificationService, _customMenuService, _monitorControlProxyService);
 		_server.Start();
 		return Task.CompletedTask;
 	}

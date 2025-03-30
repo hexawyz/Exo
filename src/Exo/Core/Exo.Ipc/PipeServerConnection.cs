@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 /// <summary>Base implementation for pipe server connections.</summary>
 /// <remarks>Rules are similar to the ones for <see cref="PipeClient"/>, just on the opposite side of the communication.</remarks>

@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 /// <summary>Defines the constructor for connections used in a pipe server.</summary>
 /// <typeparam name="TConnection">The type of the object implementing this interface.</typeparam>

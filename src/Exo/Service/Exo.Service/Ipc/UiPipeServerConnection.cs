@@ -6,11 +6,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Primitives;
-using Exo.Rpc;
+using Exo.Ipc;
 using Exo.Sensors;
 using Exo.Settings.Ui.Ipc;
 
-namespace Exo.Service.Rpc;
+namespace Exo.Service.Ipc;
 
 internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServerConnection<UiPipeServerConnection>
 {

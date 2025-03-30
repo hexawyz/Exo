@@ -1,7 +1,7 @@
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 /// <summary>Base implementation for pipe connections.</summary>
 /// <remarks>

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 public ref struct BufferWriter
 {

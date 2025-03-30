@@ -1,4 +1,4 @@
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 // Defines messages sent by the client to the server.
 internal enum ExoHelperProtocolClientMessage : byte

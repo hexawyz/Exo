@@ -6,7 +6,7 @@ using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Contracts.Ui.Overlay;
 
-namespace Exo.Service.Rpc;
+namespace Exo.Service.Ipc;
 
 /// <summary>This is the connector for the monitor control proxy.</summary>
 /// <remarks>

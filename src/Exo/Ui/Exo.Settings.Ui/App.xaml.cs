@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
 using Exo.Programming;
-using Exo.Rpc;
+using Exo.Ipc;
 using Exo.Service;
 using Exo.Settings.Ui.Ipc;
 using Exo.Settings.Ui.Services;
@@ -178,9 +178,6 @@ public partial class App : Application
 		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<SensorDeviceInformation>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<SensorConfigurationUpdate>(UnboundedChannelOptions));
-		services.AddSingleton<IEnumerable<ChannelReader<MetadataSourceChangeNotification>>>(sp => sp.GetRequiredService<ResettableChannel<MetadataSourceChangeNotification>>());
-		services.AddSingleton<IEnumerable<ChannelReader<SensorDeviceInformation>>>(sp => sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>());
-		services.AddSingleton<IEnumerable<ChannelReader<SensorConfigurationUpdate>>>(sp => sp.GetRequiredService<ResettableChannel<SensorConfigurationUpdate>>());
 
 		services.AddSingleton<SettingsViewModel>();
 		services.AddSingleton<IServiceClient, ExoServiceClient>();

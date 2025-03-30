@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace Exo.Rpc;
+namespace Exo.Ipc;
 
 /// <summary>Base implementation for pipe clients.</summary>
 /// <remarks>

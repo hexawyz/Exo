@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Exo.Contracts.Ui;
 using Exo.Primitives;
-using Exo.Rpc;
+using Exo.Ipc;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;

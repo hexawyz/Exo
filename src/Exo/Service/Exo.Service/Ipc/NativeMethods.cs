@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using Microsoft.Win32.SafeHandles;
 
-namespace Exo.Service.Rpc;
+namespace Exo.Service.Ipc;
 
 [SuppressUnmanagedCodeSecurity]
 internal static class NativeMethods

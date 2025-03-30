@@ -1,5 +1,5 @@
 using System.IO.Pipes;
-using Exo.Rpc;
+using Exo.Ipc;
 using Microsoft.UI.Dispatching;
 
 namespace Exo.Settings.Ui.Ipc;
