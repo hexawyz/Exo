@@ -1,4 +1,4 @@
-namespace Exo.Rpc;
+namespace Exo.Settings.Ui.Ipc;
 
 // Defines messages sent by the client to the server.
 // ⚠️ Except for the NoOp and GitVersion commands, these messages are subject to changing at every release.

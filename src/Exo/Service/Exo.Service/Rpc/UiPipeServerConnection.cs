@@ -8,6 +8,7 @@ using System.Threading.Channels;
 using Exo.Primitives;
 using Exo.Rpc;
 using Exo.Sensors;
+using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Rpc;
 

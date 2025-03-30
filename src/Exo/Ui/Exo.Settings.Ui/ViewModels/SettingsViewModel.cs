@@ -128,9 +128,6 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		IEditionService editionService,
 		IFileOpenDialog fileOpenDialog,
-		ISensorService sensorService,
-		IEnumerable<ChannelReader<SensorDeviceInformation>> sensorDeviceReaders,
-		IEnumerable<ChannelReader<SensorConfigurationUpdate>> sensorUpdateReaders,
 		ISettingsMetadataService metadataService
 	)
 	{
@@ -146,7 +143,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightsViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(ConnectionManager, _devicesViewModel, _metadataService);
-		_sensorsViewModel = new(ConnectionManager, _devicesViewModel, sensorDeviceReaders, sensorUpdateReaders, sensorService, _metadataService);
+		_sensorsViewModel = new(_devicesViewModel, _metadataService);
 		_favoriteSensorsViewModel = new(_sensorsViewModel);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new(ConnectionManager);

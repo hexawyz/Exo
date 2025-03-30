@@ -2,15 +2,16 @@ using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts.Ui;
-using Exo.Overlay;
 using Exo.Programming;
 using Exo.Rpc;
 using Exo.Service;
+using Exo.Settings.Ui.Ipc;
 using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Exo.Ui;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using ProtoBuf.Grpc.Client;
@@ -153,7 +154,8 @@ public partial class App : Application
 
 		services.AddSingleton(rasterizationScaleProvider);
 
-		services.AddSingleton<ISettingsMetadataService, MetadataService>();
+		services.AddSingleton<MetadataService>();
+		services.AddSingleton<ISettingsMetadataService>(sp => sp.GetRequiredService<MetadataService>());
 
 		services.AddSingleton<IFileOpenDialog, FileOpenDialog>();
 
@@ -180,21 +182,22 @@ public partial class App : Application
 		services.AddSingleton<IEnumerable<ChannelReader<SensorDeviceInformation>>>(sp => sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>());
 		services.AddSingleton<IEnumerable<ChannelReader<SensorConfigurationUpdate>>>(sp => sp.GetRequiredService<ResettableChannel<SensorConfigurationUpdate>>());
 
+		services.AddSingleton<SettingsViewModel>();
+		services.AddSingleton<IServiceClient, ExoServiceClient>();
+
+		var dispatcher = DispatcherQueue.GetForCurrentThread();
+
+		services.AddSingleton(dispatcher);
+
 		services.AddSingleton
 		(
 			sp => new ExoUiPipeClient
 			(
 				"Local\\Exo.Service.Ui",
-				sp.GetRequiredService<ResettableChannel<MetadataSourceChangeNotification>>(),
-				sp.GetRequiredService<ResettableChannel<MenuChangeNotification>>(),
-				sp.GetRequiredService<ResettableChannel<SensorDeviceInformation>>(),
-				sp.GetRequiredService<ResettableChannel<SensorConfigurationUpdate>>()
+				sp.GetRequiredService<DispatcherQueue>(),
+				sp.GetRequiredService<IServiceClient>()
 			)
 		);
-
-		services.AddSingleton<ISensorService>(sp => sp.GetRequiredService<ExoUiPipeClient>());
-
-		services.AddSingleton<SettingsViewModel>();
 
 		return services.BuildServiceProvider();
 	}
