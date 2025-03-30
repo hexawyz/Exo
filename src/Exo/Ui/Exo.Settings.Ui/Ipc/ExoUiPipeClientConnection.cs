@@ -10,6 +10,7 @@ using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 using Microsoft.UI.Dispatching;
+using DeviceTools;
 
 namespace Exo.Settings.Ui.Ipc;
 
@@ -111,6 +112,18 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
 			goto Success;
+		case ExoUiProtocolServerMessage.DeviceEnumeration:
+			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.DeviceAdd:
+			ProcessDevice(Service.WatchNotificationKind.Addition, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.DeviceRemove:
+			ProcessDevice(Service.WatchNotificationKind.Removal, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.DeviceUpdate:
+			ProcessDevice(Service.WatchNotificationKind.Update, data);
+			goto Success;
 		case ExoUiProtocolServerMessage.SensorDevice:
 			ProcessSensorDevice(data);
 			goto Success;
@@ -188,6 +201,31 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMenuUpdate(notification));
+	}
+
+	private void ProcessDevice(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		string friendlyName = reader.ReadVariableString() ?? "";
+		string userFriendlyName = reader.ReadVariableString() ?? "";
+		var category = (DeviceCategory)reader.ReadByte();
+		var featureCount = reader.ReadVariableUInt32();
+		var featureIds = new HashSet<Guid>();
+		for (int i = 0; i < featureCount; i++)
+		{
+			featureIds.Add(reader.ReadGuid());
+		}
+		var deviceIds = new DeviceId[reader.ReadVariableUInt32()];
+		for (int i = 0; i < deviceIds.Length; i++)
+		{
+			deviceIds[i] = new((DeviceIdSource)reader.ReadByte(), (VendorIdSource)reader.ReadByte(), reader.Read<ushort>(), reader.Read<ushort>(), reader.Read<ushort>());
+		}
+		byte flags = reader.ReadByte();
+		int? mainDeviceIdIndex = (flags & 0x2) != 0 ? (int)reader.ReadVariableUInt32() : null;
+		string? serialNumber = reader.ReadVariableString();
+		var information = new DeviceStateInformation(deviceId, friendlyName, userFriendlyName, category, featureIds, ImmutableCollectionsMarshal.AsImmutableArray(deviceIds), mainDeviceIdIndex, serialNumber, (flags & 0x1) != 0);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnDeviceNotification(kind, information));
 	}
 
 	private void ProcessSensorDevice(ReadOnlySpan<byte> data)

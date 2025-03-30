@@ -1,5 +1,5 @@
 using System.Globalization;
-using Exo.Contracts.Ui.Settings;
+using DeviceTools;
 
 namespace Exo.Settings.Ui.ViewModels;
 

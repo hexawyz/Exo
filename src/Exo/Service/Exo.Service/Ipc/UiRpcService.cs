@@ -10,13 +10,15 @@ internal sealed class UiRpcService : IHostedService
 	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
 	private readonly IMetadataSourceProvider _metadataSourceProvider;
 	private readonly CustomMenuService _customMenuService;
+	private readonly DeviceRegistry _deviceRegistry;
 	private readonly SensorService _sensorService;
 
-	public UiRpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, SensorService sensorService)
+	public UiRpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, SensorService sensorService)
 	{
 		_connectionLogger = connectionLogger;
 		_metadataSourceProvider = metadataSourceProvider;
 		_customMenuService = customMenuService;
+		_deviceRegistry = deviceRegistry;
 		_sensorService = sensorService;
 	}
 
@@ -46,7 +48,7 @@ internal sealed class UiRpcService : IHostedService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _sensorService);
+		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _deviceRegistry, _sensorService);
 		_server.Start();
 		return Task.CompletedTask;
 	}

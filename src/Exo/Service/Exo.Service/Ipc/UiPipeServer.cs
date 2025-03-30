@@ -7,6 +7,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 {
 	internal ILogger<UiPipeServerConnection> ConnectionLogger { get; }
 	internal CustomMenuService CustomMenuService { get; }
+	public DeviceRegistry DeviceRegistry { get; }
 	internal SensorService SensorService { get; }
 	internal IMetadataSourceProvider MetadataSourceProvider { get; }
 
@@ -17,12 +18,14 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		ILogger<UiPipeServerConnection> connectionLogger,
 		IMetadataSourceProvider metadataSourceProvider,
 		CustomMenuService customMenuService,
+		DeviceRegistry deviceRegistry,
 		SensorService sensorService
 	) : base(pipeName, 2, PipeTransmissionMode.Message, pipeSecurity)
 	{
 		ConnectionLogger = connectionLogger;
 		MetadataSourceProvider = metadataSourceProvider;
 		CustomMenuService = customMenuService;
+		DeviceRegistry = deviceRegistry;
 		SensorService = sensorService;
 	}
 }

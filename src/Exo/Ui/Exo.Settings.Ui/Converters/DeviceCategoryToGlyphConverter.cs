@@ -1,6 +1,3 @@
-using System;
-using Exo.Contracts.Ui.Settings;
-using System.Collections.Generic;
 using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;

@@ -53,6 +53,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\BluetoothVendorIdSource.cs" Link="Definitions\BluetoothVendorIdSource.cs" />
+	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceId.cs" Link="Definitions\DeviceId.cs" />
+	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceIdSource.cs" Link="Definitions\DeviceIdSource.cs" />
+	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\PnpVendorId.cs" Link="Definitions\PnpVendorId.cs" />
+	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSource.cs" Link="Definitions\VendorIdSource.cs" />
+	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSourceExtensions.cs" Link="Definitions\VendorIdSourceExtensions.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\DeviceCategory.cs" Link="Definitions\DeviceCategory.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceStateInformation.cs" Link="Definitions\DeviceStateInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataSourceChangeNotification.cs" Link="Definitions\MetadataSourceChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataSourceInformation.cs" Link="Definitions\MetadataSourceInformation.cs" />

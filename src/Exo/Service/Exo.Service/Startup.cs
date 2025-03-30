@@ -1,11 +1,9 @@
 using System.Reflection;
 using System.Threading.Channels;
 using Exo.Configuration;
-using Exo.Contracts.Ui.Overlay;
 using Exo.Contracts.Ui.Settings;
 using Exo.Discovery;
 using Exo.I2C;
-using Exo.Ipc;
 using Exo.Service.Grpc;
 using Exo.Service.Ipc;
 using Exo.Services;
@@ -285,7 +283,6 @@ public class Startup
 		services.AddSingleton<MonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
-		services.AddSingleton<GrpcDeviceService>();
 		services.AddSingleton<GrpcPowerService>();
 		services.AddSingleton<GrpcLightingService>();
 		services.AddSingleton<GrpcLightService>();
@@ -327,7 +324,6 @@ public class Startup
 
 		app.UseEndpoints(endpoints =>
 		{
-			endpoints.MapGrpcService<GrpcDeviceService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcPowerService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightService>().AddEndpointFilter(settingsEndpointFilter);

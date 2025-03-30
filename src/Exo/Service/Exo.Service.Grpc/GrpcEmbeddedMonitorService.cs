@@ -7,10 +7,10 @@ namespace Exo.Service.Grpc;
 
 internal sealed class GrpcEmbeddedMonitorService : IEmbeddedMonitorService
 {
-	private readonly ILogger<GrpcDeviceService> _logger;
+	private readonly ILogger<GrpcEmbeddedMonitorService> _logger;
 	private readonly EmbeddedMonitorService _embeddedMonitorService;
 
-	public GrpcEmbeddedMonitorService(ILogger<GrpcDeviceService> logger, EmbeddedMonitorService embeddedMonitorService)
+	public GrpcEmbeddedMonitorService(ILogger<GrpcEmbeddedMonitorService> logger, EmbeddedMonitorService embeddedMonitorService)
 	{
 		_logger = logger;
 		_embeddedMonitorService = embeddedMonitorService;

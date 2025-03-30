@@ -148,7 +148,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	// NB: The proper implementation should be the usage of weak references and ConditionalWeakTable here.
 	// If we end up needing to dynamically register components at some point, the implementation should be upgraded.
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
-	private TaskCompletionSource<IDeviceService> _deviceServiceTaskCompletionSource;
 	private TaskCompletionSource<IPowerService> _powerServiceTaskCompletionSource;
 	private TaskCompletionSource<IMouseService> _mouseServiceTaskCompletionSource;
 	private TaskCompletionSource<IMonitorService> _monitorServiceTaskCompletionSource;
@@ -171,7 +170,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		: base(pipeName, reconnectDelay, version)
 	{
 		_connectedStates = new();
-		_deviceServiceTaskCompletionSource = new();
 		_powerServiceTaskCompletionSource = new();
 		_mouseServiceTaskCompletionSource = new();
 		_monitorServiceTaskCompletionSource = new();
@@ -185,9 +183,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_synchronizationContext = SynchronizationContext.Current;
 		_connectionStatusChangeHandler = connectionStatusChangeHandler;
 	}
-
-	public Task<IDeviceService> GetDeviceServiceAsync(CancellationToken cancellationToken)
-		=> _deviceServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<IPowerService> GetPowerServiceAsync(CancellationToken cancellationToken)
 		=> _powerServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -246,7 +241,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	protected override async Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken)
 	{
-		Connect(channel, _deviceServiceTaskCompletionSource);
 		Connect(channel, _powerServiceTaskCompletionSource);
 		Connect(channel, _mouseServiceTaskCompletionSource);
 		Connect(channel, _monitorServiceTaskCompletionSource);
@@ -271,7 +265,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	protected override async Task OnDisconnectedAsync()
 	{
-		Reset(ref _deviceServiceTaskCompletionSource);
 		Reset(ref _powerServiceTaskCompletionSource);
 		Reset(ref _mouseServiceTaskCompletionSource);
 		Reset(ref _monitorServiceTaskCompletionSource);

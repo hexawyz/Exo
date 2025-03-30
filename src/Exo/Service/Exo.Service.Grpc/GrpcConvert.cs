@@ -8,8 +8,6 @@ using Exo.Images;
 using Exo.Lighting;
 using Exo.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
-using DeviceId = DeviceTools.DeviceId;
-using DeviceIdSource = DeviceTools.DeviceIdSource;
 using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
 using GrpcCoolerPowerLimits = Exo.Contracts.Ui.Settings.CoolerPowerLimits;
 using GrpcCoolerType = Exo.Contracts.Ui.Settings.CoolerType;
@@ -17,9 +15,6 @@ using GrpcCoolingControlCurve = Exo.Contracts.Ui.Settings.Cooling.CoolingControl
 using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
 using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcCoolingParameters = Exo.Contracts.Ui.Settings.Cooling.CoolingParameters;
-using GrpcDeviceId = Exo.Contracts.Ui.Settings.DeviceId;
-using GrpcDeviceIdSource = Exo.Contracts.Ui.Settings.DeviceIdSource;
-using GrpcDeviceInformation = Exo.Contracts.Ui.Settings.DeviceInformation;
 using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
 using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.EmbeddedMonitorConfigurationUpdate;
 using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
@@ -44,27 +39,12 @@ using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
 using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
 using GrpcSize = Exo.Contracts.Ui.Settings.Size;
-using GrpcVendorIdSource = Exo.Contracts.Ui.Settings.VendorIdSource;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
-using VendorIdSource = DeviceTools.VendorIdSource;
 
 namespace Exo.Service.Grpc;
 
 internal static class GrpcConvert
 {
-	public static GrpcDeviceInformation ToGrpc(this DeviceStateInformation deviceInformation)
-		=> new()
-		{
-			Id = deviceInformation.Id,
-			FriendlyName = deviceInformation.FriendlyName,
-			Category = (Exo.Contracts.Ui.Settings.DeviceCategory)deviceInformation.Category,
-			FeatureIds = deviceInformation.FeatureIds,
-			DeviceIds = ImmutableArray.CreateRange(deviceInformation.DeviceIds, id => id.ToGrpc()),
-			MainDeviceIdIndex = deviceInformation.MainDeviceIdIndex,
-			SerialNumber = deviceInformation.SerialNumber,
-			IsAvailable = deviceInformation.IsAvailable,
-		};
-
 	public static GrpcPowerDeviceInformation ToGrpc(this PowerDeviceInformation powerDeviceInformation)
 		=> new()
 		{
@@ -325,41 +305,6 @@ internal static class GrpcConvert
 			WatchNotificationKind.Addition => GrpcWatchNotificationKind.Addition,
 			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
 			WatchNotificationKind.Update => GrpcWatchNotificationKind.Update,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcDeviceId ToGrpc(this DeviceId deviceId)
-		=> new()
-		{
-			VendorIdSource = deviceId.VendorIdSource.ToGrpc(),
-			Source = deviceId.Source.ToGrpc(),
-			VendorId = deviceId.VendorId,
-			ProductId = deviceId.ProductId,
-			Version = deviceId.Version,
-		};
-
-	public static GrpcDeviceIdSource ToGrpc(this DeviceIdSource deviceIdSource)
-		=> deviceIdSource switch
-		{
-			DeviceIdSource.Unknown => GrpcDeviceIdSource.Unknown,
-			DeviceIdSource.PlugAndPlay => GrpcDeviceIdSource.PlugAndPlay,
-			DeviceIdSource.Display => GrpcDeviceIdSource.Display,
-			DeviceIdSource.Pci => GrpcDeviceIdSource.Pci,
-			DeviceIdSource.Usb => GrpcDeviceIdSource.Usb,
-			DeviceIdSource.Bluetooth => GrpcDeviceIdSource.Bluetooth,
-			DeviceIdSource.BluetoothLowEnergy => GrpcDeviceIdSource.BluetoothLowEnergy,
-			DeviceIdSource.EQuad => GrpcDeviceIdSource.EQuad,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcVendorIdSource ToGrpc(this VendorIdSource deviceIdSource)
-		=> deviceIdSource switch
-		{
-			VendorIdSource.Unknown => GrpcVendorIdSource.Unknown,
-			VendorIdSource.PlugAndPlay => GrpcVendorIdSource.PlugAndPlay,
-			VendorIdSource.Pci => GrpcVendorIdSource.Pci,
-			VendorIdSource.Usb => GrpcVendorIdSource.Usb,
-			VendorIdSource.Bluetooth => GrpcVendorIdSource.Bluetooth,
 			_ => throw new NotImplementedException()
 		};
 

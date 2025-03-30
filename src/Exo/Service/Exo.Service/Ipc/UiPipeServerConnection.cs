@@ -5,8 +5,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
-using Exo.Primitives;
 using Exo.Ipc;
+using Exo.Primitives;
 using Exo.Sensors;
 using Exo.Settings.Ui.Ipc;
 
@@ -19,11 +19,12 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	public static UiPipeServerConnection Create(PipeServer<UiPipeServerConnection> server, NamedPipeServerStream stream)
 	{
 		var uiPipeServer = (UiPipeServer)server;
-		return new(server, stream, uiPipeServer.ConnectionLogger, uiPipeServer.MetadataSourceProvider, uiPipeServer.CustomMenuService, uiPipeServer.SensorService);
+		return new(server, stream, uiPipeServer.ConnectionLogger, uiPipeServer.MetadataSourceProvider, uiPipeServer.CustomMenuService, uiPipeServer.DeviceRegistry, uiPipeServer.SensorService);
 	}
 
 	private readonly IMetadataSourceProvider _metadataSourceProvider;
 	private readonly CustomMenuService _customMenuService;
+	private readonly DeviceRegistry _deviceRegistry;
 	private readonly SensorService _sensorService;
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
@@ -38,12 +39,14 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		ILogger<UiPipeServerConnection> logger,
 		IMetadataSourceProvider metadataSourceProvider,
 		CustomMenuService customMenuService,
+		DeviceRegistry deviceRegistry,
 		SensorService sensorService
 	) : base(server, stream)
 	{
 		_logger = logger;
 		_metadataSourceProvider = metadataSourceProvider;
 		_customMenuService = customMenuService;
+		_deviceRegistry = deviceRegistry;
 		_sensorService = sensorService;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
@@ -63,12 +66,13 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	{
 		var metadataWatchTask = WatchMetadataChangesAsync(cancellationToken);
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
+		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 		var sensorConfigurationWatchTask = WatchSensorConfigurationUpdatesAsync(cancellationToken);
 		var sensorFavoritingTask = ProcessSensorFavoritingAsync(_sensorFavoritingChannel.Reader, cancellationToken);
 
-		await Task.WhenAll(customMenuWatchTask, sensorDeviceWatchTask, sensorWatchTask, sensorConfigurationWatchTask).ConfigureAwait(false);
+		await Task.WhenAll(customMenuWatchTask, deviceWatchTask, sensorDeviceWatchTask, sensorWatchTask, sensorConfigurationWatchTask, sensorFavoritingTask).ConfigureAwait(false);
 	}
 
 	private async Task WatchMetadataChangesAsync(CancellationToken cancellationToken)
@@ -90,19 +94,19 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				var writer = new BufferWriter(buffer);
 				switch (notification.NotificationKind)
 				{
-					case WatchNotificationKind.Enumeration:
-						writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
-						break;
-					case WatchNotificationKind.Addition:
-						writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesAdd);
-						break;
-					case WatchNotificationKind.Removal:
-						writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesRemove);
-						break;
-					case WatchNotificationKind.Update:
-						writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesUpdate);
-						goto Completed;
-					default: throw new UnreachableException();
+				case WatchNotificationKind.Enumeration:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
+					break;
+				case WatchNotificationKind.Addition:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesAdd);
+					break;
+				case WatchNotificationKind.Removal:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesRemove);
+					break;
+				case WatchNotificationKind.Update:
+					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesUpdate);
+					goto Completed;
+				default: throw new UnreachableException();
 				}
 				WriteSources(ref writer, notification.Sources);
 			Completed:;
@@ -176,6 +180,74 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		}
 	}
 
+	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var info in _deviceRegistry.WatchAllAsync(cancellationToken).ConfigureAwait(false))
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					int length = WriteUpdate(buffer.Span, info);
+					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+
+		static int WriteUpdate(Span<byte> buffer, in DeviceWatchNotification notification)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write
+			(
+				(byte)
+				(
+					notification.Kind switch
+					{
+						WatchNotificationKind.Enumeration => ExoUiProtocolServerMessage.DeviceEnumeration,
+						WatchNotificationKind.Addition => ExoUiProtocolServerMessage.DeviceAdd,
+						WatchNotificationKind.Removal => ExoUiProtocolServerMessage.DeviceRemove,
+						WatchNotificationKind.Update => ExoUiProtocolServerMessage.DeviceUpdate,
+						_ => throw new UnreachableException()
+					}
+				)
+			);
+			WriteInformation(ref writer, notification.DeviceInformation);
+			return (int)writer.Length;
+		}
+
+		static void WriteInformation(ref BufferWriter writer, DeviceStateInformation information)
+		{
+			writer.Write(information.Id);
+			writer.WriteVariableString(information.FriendlyName);
+			writer.WriteVariableString(information.UserFriendlyName);
+			writer.Write((byte)information.Category);
+			writer.WriteVariable((uint)information.FeatureIds.Count);
+			foreach (var featureId in information.FeatureIds)
+			{
+				writer.Write(featureId);
+			}
+			writer.WriteVariable((uint)information.DeviceIds.Length);
+			foreach (var deviceId in information.DeviceIds)
+			{
+				writer.Write((byte)deviceId.Source);
+				writer.Write((byte)deviceId.VendorIdSource);
+				writer.Write(deviceId.VendorId);
+				writer.Write(deviceId.ProductId);
+				writer.Write(deviceId.Version);
+			}
+			byte flags = 0;
+			if (information.IsAvailable) flags |= 1;
+			if (information.MainDeviceIdIndex is not null) flags |= 2;
+			writer.Write(flags);
+			if (information.MainDeviceIdIndex is not null) writer.WriteVariable((uint)information.MainDeviceIdIndex.GetValueOrDefault());
+			writer.WriteVariableString(information.SerialNumber);
+		}
+	}
+
 	private async Task WatchSensorDevicesAsync(CancellationToken cancellationToken)
 	{
 		try
@@ -216,20 +288,20 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		{
 			switch (dataType)
 			{
-				case SensorDataType.UInt8: writer.Write((byte)value); break;
-				case SensorDataType.UInt16: writer.Write((ushort)value); break;
-				case SensorDataType.UInt32: writer.Write((uint)value); break;
-				case SensorDataType.UInt64: writer.Write((ulong)value); break;
-				case SensorDataType.UInt128: writer.Write((UInt128)value); break;
-				case SensorDataType.SInt8: goto case SensorDataType.UInt8;
-				case SensorDataType.SInt16: goto case SensorDataType.UInt16;
-				case SensorDataType.SInt32: goto case SensorDataType.UInt32;
-				case SensorDataType.SInt64: goto case SensorDataType.UInt64;
-				case SensorDataType.SInt128: goto case SensorDataType.UInt128;
-				case SensorDataType.Float16: goto case SensorDataType.UInt16;
-				case SensorDataType.Float32: goto case SensorDataType.UInt32;
-				case SensorDataType.Float64: goto case SensorDataType.UInt64;
-				default: throw new InvalidOperationException();
+			case SensorDataType.UInt8: writer.Write((byte)value); break;
+			case SensorDataType.UInt16: writer.Write((ushort)value); break;
+			case SensorDataType.UInt32: writer.Write((uint)value); break;
+			case SensorDataType.UInt64: writer.Write((ulong)value); break;
+			case SensorDataType.UInt128: writer.Write((UInt128)value); break;
+			case SensorDataType.SInt8: goto case SensorDataType.UInt8;
+			case SensorDataType.SInt16: goto case SensorDataType.UInt16;
+			case SensorDataType.SInt32: goto case SensorDataType.UInt32;
+			case SensorDataType.SInt64: goto case SensorDataType.UInt64;
+			case SensorDataType.SInt128: goto case SensorDataType.UInt128;
+			case SensorDataType.Float16: goto case SensorDataType.UInt16;
+			case SensorDataType.Float32: goto case SensorDataType.UInt32;
+			case SensorDataType.Float64: goto case SensorDataType.UInt64;
+			default: throw new InvalidOperationException();
 			}
 		}
 	}
@@ -415,23 +487,23 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		if (_state == 0 && message != ExoUiProtocolClientMessage.GitVersion) goto Failure;
 		switch (message)
 		{
-			case ExoUiProtocolClientMessage.NoOp:
-				goto Success;
-			case ExoUiProtocolClientMessage.GitVersion:
-				if (data.Length != 20) goto Failure;
-				_state = Program.GitCommitId.IsDefaultOrEmpty || !data.SequenceEqual(ImmutableCollectionsMarshal.AsArray(Program.GitCommitId)!) ? -1 : 1;
-				goto Success;
-			case ExoUiProtocolClientMessage.InvokeMenuCommand:
-				if (data.Length != 16) goto Failure;
-				ProcessMenuItemInvocation(Unsafe.ReadUnaligned<Guid>(in data[0]));
-				goto Success;
-			case ExoUiProtocolClientMessage.UpdateSettings:
-				goto Success;
-			case ExoUiProtocolClientMessage.SensorStart:
-				return ProcessSensorRequestAsync(data, cancellationToken);
-			case ExoUiProtocolClientMessage.SensorFavorite:
-				ProcessSensorFavoriteRequest(data);
-				goto Success;
+		case ExoUiProtocolClientMessage.NoOp:
+			goto Success;
+		case ExoUiProtocolClientMessage.GitVersion:
+			if (data.Length != 20) goto Failure;
+			_state = Program.GitCommitId.IsDefaultOrEmpty || !data.SequenceEqual(ImmutableCollectionsMarshal.AsArray(Program.GitCommitId)!) ? -1 : 1;
+			goto Success;
+		case ExoUiProtocolClientMessage.InvokeMenuCommand:
+			if (data.Length != 16) goto Failure;
+			ProcessMenuItemInvocation(Unsafe.ReadUnaligned<Guid>(in data[0]));
+			goto Success;
+		case ExoUiProtocolClientMessage.UpdateSettings:
+			goto Success;
+		case ExoUiProtocolClientMessage.SensorStart:
+			return ProcessSensorRequestAsync(data, cancellationToken);
+		case ExoUiProtocolClientMessage.SensorFavorite:
+			ProcessSensorFavoriteRequest(data);
+			goto Success;
 		}
 	Failure:;
 		return new(false);

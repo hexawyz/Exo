@@ -35,6 +35,11 @@ internal class ExoServiceClient : IServiceClient
 		_settingsViewModel.Sensors.Reset();
 	}
 
+	void IServiceClient.OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation)
+	{
+		_settingsViewModel.Devices.HandleDeviceNotification(kind, deviceInformation);
+	}
+
 	void IServiceClient.OnMetadataSourceNotification(MetadataSourceChangeNotification notification)
 	{
 		_metadataService.HandleMetadataSourceNotification(notification);
