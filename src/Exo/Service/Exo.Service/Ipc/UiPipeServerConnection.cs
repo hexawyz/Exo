@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Ipc;
+using Exo.Monitors;
 using Exo.Primitives;
 using Exo.Sensors;
 using Exo.Settings.Ui.Ipc;
@@ -19,12 +20,23 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	public static UiPipeServerConnection Create(PipeServer<UiPipeServerConnection> server, NamedPipeServerStream stream)
 	{
 		var uiPipeServer = (UiPipeServer)server;
-		return new(server, stream, uiPipeServer.ConnectionLogger, uiPipeServer.MetadataSourceProvider, uiPipeServer.CustomMenuService, uiPipeServer.DeviceRegistry, uiPipeServer.SensorService);
+		return new
+		(
+			server,
+			stream,
+			uiPipeServer.ConnectionLogger,
+			uiPipeServer.MetadataSourceProvider,
+			uiPipeServer.CustomMenuService,
+			uiPipeServer.DeviceRegistry,
+			uiPipeServer.MonitorService,
+			uiPipeServer.SensorService
+		);
 	}
 
 	private readonly IMetadataSourceProvider _metadataSourceProvider;
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
+	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
@@ -40,6 +52,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		IMetadataSourceProvider metadataSourceProvider,
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
+		MonitorService monitorService,
 		SensorService sensorService
 	) : base(server, stream)
 	{
@@ -47,6 +60,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		_metadataSourceProvider = metadataSourceProvider;
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
+		_monitorService = monitorService;
 		_sensorService = sensorService;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
@@ -64,15 +78,39 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private async Task WatchEventsAsync(CancellationToken cancellationToken)
 	{
+		// The order here is somewhat important.
+		// Ideally, we'd be able to guarantee that initial updates for all of those methods would be sent before the next one gets called.
+		// In practice, we are only guaranteed that the first write (if any) of each of those methods will happen before the first write of the one called after.
+
+		// The ultimate goal would be to be able to guarantee to the client that updates are provided in a consistent order.
+		// However, that is not a straightforward goal to achieve.
+		// It is fixable for initialization by reworking the watching logic, however, providing synchronization between different services would be a touch more complex.
+		// e.g. We would need to always send a "new device" notification before we send a "new monitor" notification.
+
 		var metadataWatchTask = WatchMetadataChangesAsync(cancellationToken);
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
+
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
+		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
+
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
+		var monitorSettingWatchTask = WatchMonitorSettingsAsync(cancellationToken);
+
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 		var sensorConfigurationWatchTask = WatchSensorConfigurationUpdatesAsync(cancellationToken);
 		var sensorFavoritingTask = ProcessSensorFavoritingAsync(_sensorFavoritingChannel.Reader, cancellationToken);
 
-		await Task.WhenAll(customMenuWatchTask, deviceWatchTask, sensorDeviceWatchTask, sensorWatchTask, sensorConfigurationWatchTask, sensorFavoritingTask).ConfigureAwait(false);
+		await Task.WhenAll
+		(
+			customMenuWatchTask,
+			deviceWatchTask,
+			monitorDeviceWatchTask,
+			monitorSettingWatchTask,
+			sensorDeviceWatchTask,
+			sensorWatchTask,
+			sensorConfigurationWatchTask,
+			sensorFavoritingTask
+		).ConfigureAwait(false);
 	}
 
 	private async Task WatchMetadataChangesAsync(CancellationToken cancellationToken)
@@ -248,6 +286,104 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		}
 	}
 
+	private async Task WatchMonitorDevicesAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var info in _monitorService.WatchMonitorsAsync(cancellationToken).ConfigureAwait(false))
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					int length = WriteUpdate(buffer.Span, info);
+					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+
+		static int WriteUpdate(Span<byte> buffer, in MonitorInformation monitor)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.MonitorDevice);
+			writer.Write(monitor.DeviceId);
+			WriteSettings(ref writer, monitor.SupportedSettings);
+			WriteValueDescriptions(ref writer, monitor.InputSelectSources);
+			WriteValueDescriptions(ref writer, monitor.InputLagLevels);
+			WriteValueDescriptions(ref writer, monitor.ResponseTimeLevels);
+			WriteValueDescriptions(ref writer, monitor.OsdLanguages);
+			return (int)writer.Length;
+		}
+
+		static void WriteSettings(ref BufferWriter writer, ImmutableArray<MonitorSetting> settings)
+		{
+			if (settings.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+				return;
+			}
+			writer.WriteVariable((uint)settings.Length);
+			foreach (var setting in settings)
+			{
+				writer.WriteVariable((uint)setting);
+			}
+		}
+
+		static void WriteValueDescriptions(ref BufferWriter writer, ImmutableArray<NonContinuousValueDescription> descriptions)
+		{
+			if (descriptions.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+				return;
+			}
+			writer.WriteVariable((uint)descriptions.Length);
+			foreach (var description in descriptions)
+			{
+				WriteValueDescription(ref writer, description);
+			}
+		}
+
+		static void WriteValueDescription(ref BufferWriter writer, NonContinuousValueDescription description)
+		{
+			writer.Write(description.Value);
+			writer.Write(description.NameStringId);
+			writer.WriteVariableString(description.CustomName);
+		}
+	}
+
+	private async Task WatchMonitorSettingsAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			await foreach (var setting in _monitorService.WatchSettingsAsync(cancellationToken).ConfigureAwait(false))
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					int length = Write(buffer.Span, setting);
+					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				}
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+		}
+
+		static int Write(Span<byte> buffer, in MonitorSettingValue notification)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.MonitorSetting);
+			writer.Write(notification.DeviceId);
+			writer.WriteVariable((uint)notification.Setting);
+			writer.Write(notification.CurrentValue);
+			writer.Write(notification.MinimumValue);
+			writer.Write(notification.MaximumValue);
+			return (int)writer.Length;
+		}
+	}
+
 	private async Task WatchSensorDevicesAsync(CancellationToken cancellationToken)
 	{
 		try
@@ -271,15 +407,22 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolServerMessage.SensorDevice);
 			writer.Write(device.DeviceId);
-			writer.WriteVariable(device.Sensors.IsDefault ? 0 : (uint)device.Sensors.Length);
-			foreach (var sensor in device.Sensors)
+			if (device.Sensors.IsDefaultOrEmpty)
 			{
-				writer.Write(sensor.SensorId);
-				writer.Write((byte)sensor.DataType);
-				writer.Write((byte)sensor.Capabilities);
-				writer.WriteVariableString(sensor.Unit);
-				if ((sensor.Capabilities & SensorCapabilities.HasMinimumValue) != 0) Write(ref writer, sensor.DataType, sensor.ScaleMinimumValue);
-				if ((sensor.Capabilities & SensorCapabilities.HasMaximumValue) != 0) Write(ref writer, sensor.DataType, sensor.ScaleMaximumValue);
+				writer.Write((byte)0);
+			}
+			else
+			{
+				writer.WriteVariable((uint)device.Sensors.Length);
+				foreach (var sensor in device.Sensors)
+				{
+					writer.Write(sensor.SensorId);
+					writer.Write((byte)sensor.DataType);
+					writer.Write((byte)sensor.Capabilities);
+					writer.WriteVariableString(sensor.Unit);
+					if ((sensor.Capabilities & SensorCapabilities.HasMinimumValue) != 0) Write(ref writer, sensor.DataType, sensor.ScaleMinimumValue);
+					if ((sensor.Capabilities & SensorCapabilities.HasMaximumValue) != 0) Write(ref writer, sensor.DataType, sensor.ScaleMaximumValue);
+				}
 			}
 			return (int)writer.Length;
 		}
@@ -499,6 +642,12 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			goto Success;
 		case ExoUiProtocolClientMessage.UpdateSettings:
 			goto Success;
+		case ExoUiProtocolClientMessage.MonitorSettingSet:
+			ProcessMonitorSettingSet(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.MonitorSettingRefresh:
+			ProcessMonitorSettingRefresh(data, cancellationToken);
+			goto Success;
 		case ExoUiProtocolClientMessage.SensorStart:
 			return ProcessSensorRequestAsync(data, cancellationToken);
 		case ExoUiProtocolClientMessage.SensorFavorite:
@@ -513,6 +662,108 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private void ProcessMenuItemInvocation(Guid commandId)
 	{
+	}
+
+	private void ProcessMonitorSettingSet(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
+	{
+		var reader = new BufferReader(data);
+		uint requestId = reader.ReadVariableUInt32();
+		var deviceId = reader.ReadGuid();
+		var setting = (MonitorSetting)reader.ReadVariableUInt32();
+		var value = reader.Read<ushort>();
+		ProcessMonitorSettingSet(requestId, deviceId, setting, value, cancellationToken);
+	}
+
+	private async void ProcessMonitorSettingSet(uint requestId, Guid deviceId, MonitorSetting setting, ushort value, CancellationToken cancellationToken)
+	{
+		var status = MonitorOperationStatus.Success;
+		try
+		{
+			await _monitorService.SetSettingValueAsync(deviceId, setting, value, cancellationToken).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (DeviceNotFoundException)
+		{
+			status = MonitorOperationStatus.DeviceNotFound;
+		}
+		catch (SettingNotFoundException)
+		{
+			status = MonitorOperationStatus.SettingNotFound;
+		}
+		catch (Exception)
+		{
+			status = MonitorOperationStatus.Error;
+		}
+		try
+		{
+			await WriteMonitorOperationStatusAsync(ExoUiProtocolServerMessage.MonitorSettingSetStatus, requestId, status, cancellationToken).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException)
+		{
+		}
+		catch (Exception)
+		{
+			// This should never happen under normal conditions, but we don't want to crash.
+		}
+	}
+
+	private void ProcessMonitorSettingRefresh(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
+	{
+		var reader = new BufferReader(data);
+		uint requestId = reader.ReadVariableUInt32();
+		var deviceId = reader.ReadGuid();
+		ProcessMonitorSettingRefresh(requestId, deviceId, cancellationToken);
+	}
+
+	private async void ProcessMonitorSettingRefresh(uint requestId, Guid deviceId, CancellationToken cancellationToken)
+	{
+		var status = MonitorOperationStatus.Success;
+		try
+		{
+			await _monitorService.RefreshValuesAsync(deviceId, cancellationToken).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException)
+		{
+			return;
+		}
+		catch (DeviceNotFoundException)
+		{
+			status = MonitorOperationStatus.DeviceNotFound;
+		}
+		catch (Exception)
+		{
+			status = MonitorOperationStatus.Error;
+		}
+		try
+		{
+			await WriteMonitorOperationStatusAsync(ExoUiProtocolServerMessage.MonitorSettingSetStatus, requestId, status, cancellationToken).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException)
+		{
+		}
+		catch (Exception)
+		{
+			// This should never happen under normal conditions, but we don't want to crash.
+		}
+	}
+
+	private async ValueTask WriteMonitorOperationStatusAsync(ExoUiProtocolServerMessage message, uint requestId, MonitorOperationStatus status, CancellationToken cancellationToken)
+	{
+		var buffer = WriteBuffer;
+		nuint length = Write(buffer.Span, message, requestId, status);
+		await WriteAsync(buffer[..(int)length], cancellationToken);
+
+		static nuint Write(Span<byte> buffer, ExoUiProtocolServerMessage message, uint requestId, MonitorOperationStatus status)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)message);
+			writer.WriteVariable(requestId);
+			writer.Write((byte)status);
+			return writer.Length;
+		}
 	}
 
 	private ValueTask<bool> ProcessSensorRequestAsync(ReadOnlySpan<byte> data, CancellationToken cancellationToken)

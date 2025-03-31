@@ -10,6 +10,8 @@ internal interface IServiceClient
 	void OnMetadataSourceNotification(MetadataSourceChangeNotification notification);
 	void OnMenuUpdate(MenuChangeNotification notification);
 	void OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation);
+	void OnMonitorDeviceUpdate(MonitorInformation monitorDevice);
+	void OnMonitorSettingUpdate(MonitorSettingValue setting);
 	void OnSensorDeviceUpdate(SensorDeviceInformation sensorDevice);
 	void OnSensorDeviceConfigurationUpdate(SensorConfigurationUpdate sensorConfiguration);
 }

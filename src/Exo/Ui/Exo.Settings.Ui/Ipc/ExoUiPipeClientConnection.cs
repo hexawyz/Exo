@@ -11,6 +11,7 @@ using Exo.Settings.Ui.Services;
 using Exo.Utils;
 using Microsoft.UI.Dispatching;
 using DeviceTools;
+using Exo.Monitors;
 
 namespace Exo.Settings.Ui.Ipc;
 
@@ -27,6 +28,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private readonly DispatcherQueue _dispatcherQueue;
 	private readonly IServiceClient _serviceClient;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
+	private TaskCompletionSource<MonitorOperationStatus>?[]? _monitorOperations;
 	private bool _isConnected;
 
 	private ExoUiPipeClientConnection
@@ -69,6 +71,10 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			for (int i = 0; i < sensorWatchOperations.Length; i++)
 				if (Interlocked.Exchange(ref sensorWatchOperations[i], null) is { } sensorWatchOperation)
 					sensorWatchOperation.OnConnectionClosed();
+		if (Interlocked.Exchange(ref _monitorOperations, null) is { } monitorOperations)
+			for (int i = 0; i < monitorOperations.Length; i++)
+				if (Interlocked.Exchange(ref monitorOperations[i], null) is { } monitorOperation)
+					monitorOperation.TrySetCanceled();
 		return ValueTask.CompletedTask;
 	}
 
@@ -123,6 +129,16 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceUpdate:
 			ProcessDevice(Service.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MonitorDevice:
+			ProcessMonitorDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MonitorSetting:
+			ProcessMonitorSetting(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MonitorSettingSetStatus:
+		case ExoUiProtocolServerMessage.MonitorSettingRefreshStatus:
+			ProcessMonitorOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.SensorDevice:
 			ProcessSensorDevice(data);
@@ -226,6 +242,76 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		string? serialNumber = reader.ReadVariableString();
 		var information = new DeviceStateInformation(deviceId, friendlyName, userFriendlyName, category, featureIds, ImmutableCollectionsMarshal.AsImmutableArray(deviceIds), mainDeviceIdIndex, serialNumber, (flags & 0x1) != 0);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnDeviceNotification(kind, information));
+	}
+
+	private void ProcessMonitorDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var information = new MonitorInformation()
+		{
+			DeviceId = reader.ReadGuid(),
+			SupportedSettings = ReadSupportedSettings(ref reader),
+			InputSelectSources = ReadValueDescriptions(ref reader),
+			InputLagLevels = ReadValueDescriptions(ref reader),
+			ResponseTimeLevels = ReadValueDescriptions(ref reader),
+			OsdLanguages = ReadValueDescriptions(ref reader),
+		};
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMonitorDeviceUpdate(information));
+
+		static ImmutableArray<MonitorSetting> ReadSupportedSettings(ref BufferReader reader)
+		{
+			var count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var settings = new MonitorSetting[count];
+			for (int i = 0; i < settings.Length; i++)
+			{
+				settings[i] = (MonitorSetting)reader.ReadVariableUInt32();
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(settings);
+		}
+
+		static ImmutableArray<NonContinuousValueDescription> ReadValueDescriptions(ref BufferReader reader)
+		{
+			var count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var descriptions = new NonContinuousValueDescription[count];
+			for (int i = 0; i < descriptions.Length; i++)
+			{
+				descriptions[i] = ReadValueDescription(ref reader);
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(descriptions);
+		}
+
+		static NonContinuousValueDescription ReadValueDescription(ref BufferReader reader)
+			=> new(reader.Read<ushort>(), reader.ReadGuid(), reader.ReadVariableString());
+	}
+
+	private void ProcessMonitorSetting(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var notification = new MonitorSettingValue
+		(
+			reader.ReadGuid(),
+			(MonitorSetting)reader.ReadVariableUInt32(),
+			reader.Read<ushort>(),
+			reader.Read<ushort>(),
+			reader.Read<ushort>()
+		);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMonitorSettingUpdate(notification));
+	}
+
+	private void ProcessMonitorOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (MonitorOperationStatus)reader.ReadByte();
+
+		if (_monitorOperations is { } monitorOperations && requestId < (uint)monitorOperations.Length && Volatile.Read(ref monitorOperations[requestId]) is { } operation)
+			operation.TrySetResult(status);
 	}
 
 	private void ProcessSensorDevice(ReadOnlySpan<byte> data)
@@ -335,6 +421,103 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		{
 			buffer[0] = (byte)ExoUiProtocolClientMessage.InvokeMenuCommand;
 			Unsafe.WriteUnaligned(ref buffer[1], menuItemId);
+		}
+	}
+
+	async ValueTask IMonitorService.SetSettingValueAsync(Guid deviceId, MonitorSetting setting, ushort value, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<MonitorOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			// Logic is mostly similar to what is done for sensors, but less complex.
+			uint requestId = 0;
+			var monitorOperations = _monitorOperations;
+			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
+			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
+			if (monitorOperations is null) Volatile.Write(ref _monitorOperations, monitorOperations = new TaskCompletionSource<MonitorOperationStatus>[2]);
+			for (; requestId < monitorOperations.Length; requestId++)
+				if (monitorOperations[requestId] is null) break;
+			if (requestId >= monitorOperations.Length)
+			{
+				Array.Resize(ref monitorOperations, (int)(2 * (uint)monitorOperations.Length));
+				Volatile.Write(ref _monitorOperations, monitorOperations);
+			}
+			operation = new();
+			monitorOperations[requestId] = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, setting, value);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var status = await operation.Task.ConfigureAwait(false);
+		switch (status)
+		{
+		case MonitorOperationStatus.Success: return;
+		case MonitorOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		case MonitorOperationStatus.SettingNotFound: throw new SettingNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, MonitorSetting setting, ushort value)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.MonitorSettingSet);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.WriteVariable((uint)setting);
+			writer.Write(value);
+		}
+	}
+
+	async ValueTask IMonitorService.RefreshMonitorSettingsAsync(Guid deviceId, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<MonitorOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			// Logic is mostly similar to what is done for sensors, but less complex.
+			uint requestId = 0;
+			var monitorOperations = _monitorOperations;
+			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
+			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
+			if (monitorOperations is null) Volatile.Write(ref _monitorOperations, monitorOperations = new TaskCompletionSource<MonitorOperationStatus>[2]);
+			for (; requestId < monitorOperations.Length; requestId++)
+				if (monitorOperations[requestId] is null) break;
+			if (requestId >= monitorOperations.Length)
+			{
+				Array.Resize(ref monitorOperations, (int)(2 * (uint)monitorOperations.Length));
+				Volatile.Write(ref _monitorOperations, monitorOperations);
+			}
+			operation = new();
+			monitorOperations[requestId] = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var status = await operation.Task.ConfigureAwait(false);
+		switch (status)
+		{
+		case MonitorOperationStatus.Success: return;
+		case MonitorOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.MonitorSettingRefresh);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
 		}
 	}
 

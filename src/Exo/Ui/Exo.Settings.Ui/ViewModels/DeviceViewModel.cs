@@ -16,6 +16,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		INotificationSystem notificationSystem,
+		IMonitorService monitorService,
 		IPowerService powerService,
 		IMouseService mouseService,
 		IEmbeddedMonitorService embeddedMonitorService,
@@ -47,7 +48,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 				}
 				else if (featureId == WellKnownGuids.MonitorDeviceFeature)
 				{
-					MonitorFeatures ??= new(this, metadataService, connectionManager);
+					MonitorFeatures ??= new(this, metadataService, monitorService);
 				}
 				else if (featureId == WellKnownGuids.LightDeviceFeature)
 				{

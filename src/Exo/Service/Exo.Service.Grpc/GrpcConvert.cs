@@ -3,7 +3,6 @@ using System.Numerics;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.Features.EmbeddedMonitors;
-using Exo.Features.Monitors;
 using Exo.Images;
 using Exo.Lighting;
 using Exo.Monitors;
@@ -29,13 +28,10 @@ using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformat
 using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
 using GrpcLightingPersistenceMode = Exo.Contracts.Ui.Settings.LightingPersistenceMode;
 using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
-using GrpcMonitorInformation = Exo.Contracts.Ui.Settings.MonitorInformation;
-using GrpcMonitorSetting = Exo.Contracts.Ui.Settings.MonitorSetting;
 using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
 using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
-using GrpcNonContinuousValue = Exo.Contracts.Ui.Settings.NonContinuousValue;
 using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
 using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
 using GrpcSize = Exo.Contracts.Ui.Settings.Size;
@@ -305,95 +301,6 @@ internal static class GrpcConvert
 			WatchNotificationKind.Addition => GrpcWatchNotificationKind.Addition,
 			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
 			WatchNotificationKind.Update => GrpcWatchNotificationKind.Update,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcMonitorInformation ToGrpc(this MonitorInformation information)
-		=> new()
-		{
-			DeviceId = information.DeviceId,
-			SupportedSettings = ImmutableArray.CreateRange(information.SupportedSettings, ToGrpc),
-			InputSelectSources = information.InputSelectSources.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.InputSelectSources, ToGrpc),
-			InputLagLevels = information.InputLagLevels.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.InputLagLevels, ToGrpc),
-			ResponseTimeLevels = information.ResponseTimeLevels.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.ResponseTimeLevels, ToGrpc),
-			OsdLanguages = information.OsdLanguages.IsDefaultOrEmpty ? [] : ImmutableArray.CreateRange(information.OsdLanguages, ToGrpc),
-		};
-
-	public static GrpcMonitorSetting ToGrpc(this MonitorSetting setting)
-		=> setting switch
-		{
-			MonitorSetting.Unknown => GrpcMonitorSetting.Unknown,
-			MonitorSetting.Brightness => GrpcMonitorSetting.Brightness,
-			MonitorSetting.Contrast => GrpcMonitorSetting.Contrast,
-			MonitorSetting.Sharpness => GrpcMonitorSetting.Sharpness,
-			MonitorSetting.AudioVolume => GrpcMonitorSetting.AudioVolume,
-			MonitorSetting.InputSelect => GrpcMonitorSetting.InputSelect,
-			MonitorSetting.VideoGainRed => GrpcMonitorSetting.VideoGainRed,
-			MonitorSetting.VideoGainGreen => GrpcMonitorSetting.VideoGainGreen,
-			MonitorSetting.VideoGainBlue => GrpcMonitorSetting.VideoGainBlue,
-			MonitorSetting.VideoBlackLevelRed => GrpcMonitorSetting.VideoBlackLevelRed,
-			MonitorSetting.VideoBlackLevelGreen => GrpcMonitorSetting.VideoBlackLevelGreen,
-			MonitorSetting.VideoBlackLevelBlue => GrpcMonitorSetting.VideoBlackLevelBlue,
-			MonitorSetting.SixAxisSaturationControlRed => GrpcMonitorSetting.SixAxisSaturationControlRed,
-			MonitorSetting.SixAxisSaturationControlYellow => GrpcMonitorSetting.SixAxisSaturationControlYellow,
-			MonitorSetting.SixAxisSaturationControlGreen => GrpcMonitorSetting.SixAxisSaturationControlGreen,
-			MonitorSetting.SixAxisSaturationControlCyan => GrpcMonitorSetting.SixAxisSaturationControlCyan,
-			MonitorSetting.SixAxisSaturationControlBlue => GrpcMonitorSetting.SixAxisSaturationControlBlue,
-			MonitorSetting.SixAxisSaturationControlMagenta => GrpcMonitorSetting.SixAxisSaturationControlMagenta,
-			MonitorSetting.SixAxisHueControlRed => GrpcMonitorSetting.SixAxisHueControlRed,
-			MonitorSetting.SixAxisHueControlYellow => GrpcMonitorSetting.SixAxisHueControlYellow,
-			MonitorSetting.SixAxisHueControlGreen => GrpcMonitorSetting.SixAxisHueControlGreen,
-			MonitorSetting.SixAxisHueControlCyan => GrpcMonitorSetting.SixAxisHueControlCyan,
-			MonitorSetting.SixAxisHueControlBlue => GrpcMonitorSetting.SixAxisHueControlBlue,
-			MonitorSetting.SixAxisHueControlMagenta => GrpcMonitorSetting.SixAxisHueControlMagenta,
-			MonitorSetting.InputLag => GrpcMonitorSetting.InputLag,
-			MonitorSetting.ResponseTime => GrpcMonitorSetting.ResponseTime,
-			MonitorSetting.BlueLightFilterLevel => GrpcMonitorSetting.BlueLightFilterLevel,
-			MonitorSetting.OsdLanguage => GrpcMonitorSetting.OsdLanguage,
-			MonitorSetting.PowerIndicator => GrpcMonitorSetting.PowerIndicator,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcNonContinuousValue ToGrpc(this NonContinuousValueDescription value)
-		=> new()
-		{
-			Value = value.Value,
-			NameStringId = value.NameStringId != default ? value.NameStringId : null,
-			CustomName = value.CustomName,
-		};
-
-	public static MonitorSetting FromGrpc(this GrpcMonitorSetting setting)
-		=> setting switch
-		{
-			GrpcMonitorSetting.Unknown => MonitorSetting.Unknown,
-			GrpcMonitorSetting.Brightness => MonitorSetting.Brightness,
-			GrpcMonitorSetting.Contrast => MonitorSetting.Contrast,
-			GrpcMonitorSetting.Sharpness => MonitorSetting.Sharpness,
-			GrpcMonitorSetting.AudioVolume => MonitorSetting.AudioVolume,
-			GrpcMonitorSetting.InputSelect => MonitorSetting.InputSelect,
-			GrpcMonitorSetting.VideoGainRed => MonitorSetting.VideoGainRed,
-			GrpcMonitorSetting.VideoGainGreen => MonitorSetting.VideoGainGreen,
-			GrpcMonitorSetting.VideoGainBlue => MonitorSetting.VideoGainBlue,
-			GrpcMonitorSetting.VideoBlackLevelRed => MonitorSetting.VideoBlackLevelRed,
-			GrpcMonitorSetting.VideoBlackLevelGreen => MonitorSetting.VideoBlackLevelGreen,
-			GrpcMonitorSetting.VideoBlackLevelBlue => MonitorSetting.VideoBlackLevelBlue,
-			GrpcMonitorSetting.SixAxisSaturationControlRed => MonitorSetting.SixAxisSaturationControlRed,
-			GrpcMonitorSetting.SixAxisSaturationControlYellow => MonitorSetting.SixAxisSaturationControlYellow,
-			GrpcMonitorSetting.SixAxisSaturationControlGreen => MonitorSetting.SixAxisSaturationControlGreen,
-			GrpcMonitorSetting.SixAxisSaturationControlCyan => MonitorSetting.SixAxisSaturationControlCyan,
-			GrpcMonitorSetting.SixAxisSaturationControlBlue => MonitorSetting.SixAxisSaturationControlBlue,
-			GrpcMonitorSetting.SixAxisSaturationControlMagenta => MonitorSetting.SixAxisSaturationControlMagenta,
-			GrpcMonitorSetting.SixAxisHueControlRed => MonitorSetting.SixAxisHueControlRed,
-			GrpcMonitorSetting.SixAxisHueControlYellow => MonitorSetting.SixAxisHueControlYellow,
-			GrpcMonitorSetting.SixAxisHueControlGreen => MonitorSetting.SixAxisHueControlGreen,
-			GrpcMonitorSetting.SixAxisHueControlCyan => MonitorSetting.SixAxisHueControlCyan,
-			GrpcMonitorSetting.SixAxisHueControlBlue => MonitorSetting.SixAxisHueControlBlue,
-			GrpcMonitorSetting.SixAxisHueControlMagenta => MonitorSetting.SixAxisHueControlMagenta,
-			GrpcMonitorSetting.InputLag => MonitorSetting.InputLag,
-			GrpcMonitorSetting.ResponseTime => MonitorSetting.ResponseTime,
-			GrpcMonitorSetting.BlueLightFilterLevel => MonitorSetting.BlueLightFilterLevel,
-			GrpcMonitorSetting.OsdLanguage => MonitorSetting.OsdLanguage,
-			GrpcMonitorSetting.PowerIndicator => MonitorSetting.PowerIndicator,
 			_ => throw new NotImplementedException()
 		};
 

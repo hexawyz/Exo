@@ -279,7 +279,7 @@ public class Startup
 		services.AddHostedService(sp => sp.GetRequiredService<DiscoveryOrchestrator>());
 		services.AddHostedService<CoreServices>();
 		services.AddHostedService<HelperRpcService>();
-		services.AddHostedService<UiRpcService>();
+		services.AddHostedService<UiIpcService>();
 		services.AddSingleton<MonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
@@ -290,7 +290,6 @@ public class Startup
 		services.AddSingleton<GrpcImageService>();
 		services.AddSingleton<GrpcCoolingService>();
 		services.AddSingleton<GrpcMouseService>();
-		services.AddSingleton<GrpcMonitorService>();
 		services.AddSingleton<GrpcProgrammingService>();
 		services.AddSingleton<GrpcCustomMenuService>();
 		services.AddSingleton<GrpcServiceLifetimeService>();
@@ -331,7 +330,6 @@ public class Startup
 			endpoints.MapGrpcService<GrpcImageService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcCoolingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
-			endpoints.MapGrpcService<GrpcMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<MonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);

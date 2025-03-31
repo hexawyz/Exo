@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Exo.Features;
 using Exo.Features.Monitors;
+using Exo.Monitors;
 
 namespace Exo.Devices.Monitors;
 

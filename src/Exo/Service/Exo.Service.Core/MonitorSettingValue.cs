@@ -1,8 +1,8 @@
 namespace Exo.Service;
 
-public readonly record struct MonitorSettingWatchNotification
+public readonly record struct MonitorSettingValue
 {
-	public MonitorSettingWatchNotification(Guid deviceId, MonitorSetting setting, ushort currentValue, ushort minimumValue, ushort maximumValue)
+	public MonitorSettingValue(Guid deviceId, MonitorSetting setting, ushort currentValue, ushort minimumValue, ushort maximumValue)
 	{
 		DeviceId = deviceId;
 		Setting = setting;

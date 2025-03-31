@@ -4,7 +4,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Input;
-using Exo.Contracts.Ui.Settings;
+using Exo.Monitors;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 
@@ -14,7 +15,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 {
 	private readonly DeviceViewModel _device;
 	private readonly ISettingsMetadataService _metadataService;
-	private readonly SettingsServiceConnectionManager _connectionManager;
+	private readonly IMonitorService _monitorService;
 	private ContinuousMonitorDeviceSettingViewModel? _brightnessSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _contrastSetting;
 	private ContinuousMonitorDeviceSettingViewModel? _sharpnessSetting;
@@ -157,11 +158,11 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	public ICommand RefreshCommand => IRefreshable.SharedRefreshCommand;
 
-	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, SettingsServiceConnectionManager connectionManager)
+	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, IMonitorService monitorService)
 	{
 		_device = device;
 		_metadataService = metadataService;
-		_connectionManager = connectionManager;
+		_monitorService = monitorService;
 		_isReady = true;
 		_onSettingPropertyChanged = new(OnSettingPropertyChanged);
 		_lastRefreshTimestamp = Stopwatch.GetTimestamp();
@@ -541,8 +542,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	private async ValueTask ApplyChangeAsync(MonitorDeviceSettingViewModel setting, CancellationToken cancellationToken)
 	{
-		var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
-		await setting.ApplyChangeAsync(monitorService, _device.Id, cancellationToken);
+		await setting.ApplyChangeAsync(_monitorService, _device.Id, cancellationToken);
 	}
 
 	public override bool IsChanged => _changedSettingCount != 0;
@@ -588,8 +588,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 		IsReady = false;
 		try
 		{
-			var monitorService = await _connectionManager.GetMonitorServiceAsync(cancellationToken);
-			await monitorService.RefreshMonitorSettingsAsync(new() { Id = _device.Id }, cancellationToken);
+			await _monitorService.RefreshMonitorSettingsAsync(_device.Id, cancellationToken);
 			_lastRefreshTimestamp = Stopwatch.GetTimestamp();
 		}
 		finally
@@ -715,7 +714,7 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 	}
 
 	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
-		=> monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value }, cancellationToken);
+		=> monitorService.SetSettingValueAsync(deviceId, Setting, Value , cancellationToken);
 
 	protected override void Reset() => Value = InitialValue;
 }
@@ -798,7 +797,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 		_value = _initialValue = currentValue;
 	}
 
-	internal void UpdateNonContinuousValues(ISettingsMetadataService metadataService, ImmutableArray<NonContinuousValue> values)
+	internal void UpdateNonContinuousValues(ISettingsMetadataService metadataService, ImmutableArray<NonContinuousValueDescription> values)
 	{
 		if (values.IsDefaultOrEmpty) SupportedValues = ReadOnlyCollection<NonContinuousValueViewModel>.Empty;
 
@@ -861,7 +860,7 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 
 	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
 		=> Value is { } value ?
-			monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value.Value }, cancellationToken) :
+			monitorService.SetSettingValueAsync(deviceId, Setting, Value.Value, cancellationToken) :
 			ValueTask.CompletedTask;
 
 	protected override void Reset()
@@ -955,7 +954,7 @@ internal sealed class BooleanMonitorDeviceSettingViewModel : MonitorDeviceSettin
 		=> InitialValue = currentValue != 0;
 
 	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
-		=> monitorService.SetSettingValueAsync(new MonitorSettingUpdate { DeviceId = deviceId, Setting = Setting, Value = Value ? (ushort)1 : (ushort)0 }, cancellationToken);
+		=> monitorService.SetSettingValueAsync(deviceId, Setting, Value ? (ushort)1 : (ushort)0, cancellationToken);
 
 	protected override void Reset() => Value = InitialValue;
 }

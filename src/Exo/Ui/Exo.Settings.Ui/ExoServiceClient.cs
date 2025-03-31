@@ -25,6 +25,7 @@ internal class ExoServiceClient : IServiceClient
 	{
 		if (control is not null)
 		{
+			_settingsViewModel.Devices.OnConnected(control);
 			_settingsViewModel.Sensors.OnConnected(control);
 		}
 	}
@@ -32,6 +33,7 @@ internal class ExoServiceClient : IServiceClient
 	void IServiceClient.OnDisconnected()
 	{
 		_metadataService.Reset();
+		_settingsViewModel.Devices.Reset();
 		_settingsViewModel.Sensors.Reset();
 	}
 
@@ -49,6 +51,16 @@ internal class ExoServiceClient : IServiceClient
 	{
 		// TODO
 		// We actually receive the notifications but the other side of the protocol still needs to be implemented.
+	}
+
+	void IServiceClient.OnMonitorDeviceUpdate(MonitorInformation monitorDevice)
+	{
+		_settingsViewModel.Devices.HandleMonitorDeviceUpdate(monitorDevice);
+	}
+
+	void IServiceClient.OnMonitorSettingUpdate(MonitorSettingValue setting)
+	{
+		_settingsViewModel.Devices.HandleMonitorSettingUpdate(setting);
 	}
 
 	void IServiceClient.OnSensorDeviceUpdate(SensorDeviceInformation sensorDevice)

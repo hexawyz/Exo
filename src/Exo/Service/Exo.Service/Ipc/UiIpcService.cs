@@ -5,20 +5,22 @@ using System.Security.Principal;
 
 namespace Exo.Service.Ipc;
 
-internal sealed class UiRpcService : IHostedService
+internal sealed class UiIpcService : IHostedService
 {
 	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
 	private readonly IMetadataSourceProvider _metadataSourceProvider;
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
+	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 
-	public UiRpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, SensorService sensorService)
+	public UiIpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, MonitorService monitorService, SensorService sensorService)
 	{
 		_connectionLogger = connectionLogger;
 		_metadataSourceProvider = metadataSourceProvider;
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
+		_monitorService = monitorService;
 		_sensorService = sensorService;
 	}
 
@@ -48,7 +50,7 @@ internal sealed class UiRpcService : IHostedService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _deviceRegistry, _sensorService);
+		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _deviceRegistry, _monitorService, _sensorService);
 		_server.Start();
 		return Task.CompletedTask;
 	}

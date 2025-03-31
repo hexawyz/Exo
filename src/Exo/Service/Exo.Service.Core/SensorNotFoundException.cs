@@ -1,4 +1,4 @@
-﻿namespace Exo.Service;
+namespace Exo.Service;
 
 public class SensorNotFoundException : Exception
 {
@@ -10,4 +10,3 @@ public class SensorNotFoundException : Exception
 	{
 	}
 }
-

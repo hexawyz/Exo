@@ -23,6 +23,12 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// <remarks>Contents: 16 bytes (GUID)</remarks>
 	InvokeMenuCommand,
 	UpdateCustomMenu,
+	/// <summary>Requests the update of a monitor setting.</summary>
+	/// <remarks>Contents: Arbitrary request Id (varint32) + request.</remarks>
+	MonitorSettingSet,
+	/// <summary>Requests the refresh of all settings of a given monitor.</summary>
+	/// <remarks>Contents: Arbitrary request Id (varint32) + request.</remarks>
+	MonitorSettingRefresh,
 	/// <summary>Requests value updates for the specified sensor.</summary>
 	/// <remarks>
 	/// <para>
@@ -92,6 +98,14 @@ internal enum ExoUiProtocolServerMessage : byte
 	DeviceAdd,
 	DeviceRemove,
 	DeviceUpdate,
+	/// <summary>Provides information about a monitor device.</summary>
+	MonitorDevice,
+	/// <summary>Provides updates on a monitor setting.</summary>
+	MonitorSetting,
+	/// <summary>Acknowledges a monitor setting update.</summary>
+	MonitorSettingSetStatus,
+	/// <summary>Acknowledges a monitor setting refresh.</summary>
+	MonitorSettingRefreshStatus,
 	/// <summary>Provides information about a sensor device.</summary>
 	SensorDevice,
 	/// <summary>Acknowledges a sensor request.</summary>
@@ -127,4 +141,12 @@ internal enum SensorStartStatus : byte
 	DeviceNotFound,
 	SensorNotFound,
 	StreamIdAlreadyInUse,
+}
+
+internal enum MonitorOperationStatus : byte
+{
+	Success,
+	Error,
+	DeviceNotFound,
+	SettingNotFound,
 }

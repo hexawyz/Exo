@@ -4,6 +4,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Exo.Features;
 using Exo.Features.Monitors;
+using Exo.Monitors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -49,7 +50,7 @@ internal class MonitorService : IAsyncDisposable
 
 	private readonly Dictionary<Guid, MonitorDeviceDetails> _deviceDetails = new();
 	private ChannelWriter<MonitorInformation>[]? _monitorListeners = [];
-	private ChannelWriter<MonitorSettingWatchNotification>[]? _changeListeners = [];
+	private ChannelWriter<MonitorSettingValue>[]? _changeListeners = [];
 	private readonly Lock _lock = new();
 	private CancellationTokenSource? _cancellationTokenSource = new();
 	private readonly IDeviceWatcher _deviceWatcher;
@@ -263,7 +264,7 @@ internal class MonitorService : IAsyncDisposable
 	{
 		using (deviceLock)
 		{
-			var changes = new List<MonitorSettingWatchNotification>();
+			var changes = new List<MonitorSettingValue>();
 			var monitorFeatures = details.Driver!.GetFeatureSet<IMonitorDeviceFeature>();
 
 			// Compute all the changes after the details have been published. (Which means new watchers might have both captured the details and registered for update notifications)
@@ -394,14 +395,14 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	public async IAsyncEnumerable<MonitorSettingWatchNotification> WatchSettingsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<MonitorSettingValue> WatchSettingsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<MonitorSettingWatchNotification>();
+		var channel = Watcher.CreateSingleWriterChannel<MonitorSettingValue>();
 
 		// Cache all the initial notifications and register the channel for notifications.
 		// Registering a listener here could inflict a little perf hit on the MonitorService if there are lots of monitors and settings, but this intended for use by the settings UI only.
 		// As such, it should never really be a bottleneck.
-		var initialNotifications = new List<MonitorSettingWatchNotification>();
+		var initialNotifications = new List<MonitorSettingValue>();
 		lock (_lock)
 		{
 			foreach (var kvp1 in _deviceDetails)
@@ -513,7 +514,7 @@ internal class MonitorService : IAsyncDisposable
 			MonitorSetting.BlueLightFilterLevel => SetBlueLightFilterLevelAsync(deviceId, value, cancellationToken),
 			MonitorSetting.OsdLanguage => SetOsdLanguageAsync(deviceId, value, cancellationToken),
 			MonitorSetting.PowerIndicator => SetPowerIndicatorAsync(deviceId, value != 0, cancellationToken),
-			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException($"Unsupported setting: {setting}.")))
+			_ => ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new UnsupportedSettingException(setting)))
 		};
 
 
@@ -529,7 +530,7 @@ internal class MonitorService : IAsyncDisposable
 		await RefreshSettingsAsync(details, deviceLock, cancellationToken).ConfigureAwait(false);
 		return;
 	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
+		throw new DeviceNotFoundException();
 	}
 
 	private void UpdateCachedSetting(Dictionary<MonitorSetting, ContinuousValue> knownValues, Guid deviceId, MonitorSetting setting, ushort value)
@@ -556,7 +557,7 @@ internal class MonitorService : IAsyncDisposable
 
 			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<TMonitorFeature>() is not { } feature)
 			{
-				throw new InvalidOperationException("The requested feature is not supported.");
+				throw new SettingNotFoundException();
 			}
 
 			await feature.SetValueAsync(value, cancellationToken).ConfigureAwait(false);
@@ -564,7 +565,7 @@ internal class MonitorService : IAsyncDisposable
 		}
 		return;
 	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
+		throw new DeviceNotFoundException();
 	}
 
 	public async ValueTask SetNonContinuousValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Guid deviceId, ushort value, CancellationToken cancellationToken)
@@ -581,7 +582,7 @@ internal class MonitorService : IAsyncDisposable
 
 			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<TMonitorFeature>() is not { } feature)
 			{
-				throw new InvalidOperationException("The requested feature is not supported.");
+				throw new SettingNotFoundException();
 			}
 
 			await feature.SetValueAsync(value, cancellationToken).ConfigureAwait(false);
@@ -589,7 +590,7 @@ internal class MonitorService : IAsyncDisposable
 		}
 		return;
 	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
+		throw new DeviceNotFoundException();
 	}
 
 	public async ValueTask SetValueAsync<TMonitorFeature>(MonitorSetting monitorSetting, Guid deviceId, bool value, CancellationToken cancellationToken)
@@ -606,7 +607,7 @@ internal class MonitorService : IAsyncDisposable
 
 			if (details.Driver.GetFeatureSet<IMonitorDeviceFeature>().GetFeature<TMonitorFeature>() is not { } feature)
 			{
-				throw new InvalidOperationException("The requested feature is not supported.");
+				throw new SettingNotFoundException();
 			}
 
 			await feature.SetValueAsync(value, cancellationToken).ConfigureAwait(false);
@@ -614,7 +615,7 @@ internal class MonitorService : IAsyncDisposable
 		}
 		return;
 	DeviceNotFound:;
-		throw new InvalidOperationException("Device was not found.");
+		throw new DeviceNotFoundException();
 	}
 
 	public ValueTask SetBrightnessAsync(Guid deviceId, ushort value, CancellationToken cancellationToken)
@@ -700,14 +701,4 @@ internal class MonitorService : IAsyncDisposable
 
 	public ValueTask SetPowerIndicatorAsync(Guid deviceId, bool value, CancellationToken cancellationToken)
 		=> SetValueAsync<IMonitorPowerIndicatorToggleFeature>(MonitorSetting.PowerIndicator, deviceId, value, cancellationToken);
-}
-
-public readonly struct MonitorInformation
-{
-	public required Guid DeviceId { get; init; }
-	public required ImmutableArray<MonitorSetting> SupportedSettings { get; init; }
-	public required ImmutableArray<NonContinuousValueDescription> InputSelectSources { get; init; }
-	public required ImmutableArray<NonContinuousValueDescription> InputLagLevels { get; init; }
-	public required ImmutableArray<NonContinuousValueDescription> ResponseTimeLevels { get; init; }
-	public required ImmutableArray<NonContinuousValueDescription> OsdLanguages { get; init; }
 }
