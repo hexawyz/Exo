@@ -975,14 +975,14 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	// There are two entry points for SetEffect.
 	// This one will set the effect based on a strongly typed value.
 	public void SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect)
-		where TEffect : struct, ILightingEffect
+		where TEffect : struct, ILightingEffect, ISerializer<TEffect>
 		=> SetEffectInternal(deviceId, zoneId, effect, EffectSerializer.Serialize(effect), false);
 
 	void ILightingServiceInternal.SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
 		=> SetEffectInternal(deviceId, zoneId, effect, serializedEffect, isRestore);
 
 	private void SetEffectInternal<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
-		where TEffect : struct, ILightingEffect
+		where TEffect : struct, ILightingEffect, ISerializer<TEffect>
 	{
 		var cancellationToken = GetCancellationToken();
 
@@ -1055,7 +1055,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 	}
 
 	private void SetEffect<TEffect>(ILightingZone lightingZone, in TEffect effect)
-		where TEffect : struct, ILightingEffect
+		where TEffect : struct, ILightingEffect, ISerializer<TEffect>
 	{
 		if (lightingZone is not ILightingZoneEffect<TEffect> zone)
 		{

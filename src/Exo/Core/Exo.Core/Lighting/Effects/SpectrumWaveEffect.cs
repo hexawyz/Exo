@@ -14,7 +14,7 @@ namespace Exo.Lighting.Effects;
 /// </remarks>
 [DataContract]
 [TypeId(0xB93254E0, 0xD39C, 0x40DF, 0xBF, 0x1F, 0x89, 0xD6, 0xCE, 0xB6, 0x16, 0x15)]
-public readonly struct SpectrumWaveEffect : ISingletonLightingEffect
+public readonly partial struct SpectrumWaveEffect : ISingletonLightingEffect
 {
 	/// <summary>Gets a boxed instance of the effect.</summary>
 	public static ISingletonLightingEffect SharedInstance { get; } = new SpectrumWaveEffect();

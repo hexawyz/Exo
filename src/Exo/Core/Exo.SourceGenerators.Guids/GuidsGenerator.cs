@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace DeviceTools.Core.SourceGenerators;
+namespace Exo.Core.SourceGenerators;
 
 [Generator]
 public class GuidsGenerator : IIncrementalGenerator

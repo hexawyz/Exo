@@ -63,13 +63,14 @@
     <Project Path="src/Exo/Core/Exo.Contracts/Exo.Contracts.csproj" />
     <Project Path="src/Exo/Core/Exo.Core.Tests/Exo.Core.Tests.csproj" />
     <Project Path="src/Exo/Core/Exo.Core/Exo.Core.csproj" />
+    <Project Path="src/Exo/Core/Exo.Ipc/Exo.Ipc.csproj" Id="00a69efd-98b1-4e08-b440-c07f09137a66" />
     <Project Path="src/Exo/Core/Exo.Memory/Exo.Memory.csproj" />
     <Project Path="src/Exo/Core/Exo.Metadata/Exo.Metadata.csproj" />
     <Project Path="src/Exo/Core/Exo.MetadataCompiler/Exo.MetadataCompiler.csproj" />
     <Project Path="src/Exo/Core/Exo.Primitives/Exo.Primitives.csproj" Id="438a7904-7c80-4055-9277-9ef4baa99ec0" />
     <Project Path="src/Exo/Core/Exo.Programming.Contracts/Exo.Programming.Contracts.csproj" />
-    <Project Path="src/Exo/Core/Exo.Ipc/Exo.Ipc.csproj" Id="00a69efd-98b1-4e08-b440-c07f09137a66" />
     <Project Path="src/Exo/Core/Exo.SourceGenerators.Guids/Exo.SourceGenerators.Guids.csproj" Id="4d40b98c-894d-4400-8f24-c8be1bfd1068" />
+    <Project Path="src/Exo/Core/Exo.SourceGenerators.LightingEffectSerializer/Exo.SourceGenerators.LightingEffectSerializer.csproj" Id="7da94579-ac0e-4904-9a3c-32ebcaa7f596" />
     <Project Path="src/Exo/Core/Exo.Utils/Exo.Utils.csproj" />
   </Folder>
   <Folder Name="/Exo/Devices/" Id="fe0abb33-2571-cddd-7ef1-a13b8dd6465e">

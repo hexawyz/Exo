@@ -7,7 +7,7 @@ namespace Exo.Devices.Asus.Aura.Effects;
 
 [DataContract]
 [TypeId(0xF6A8C369, 0xD230, 0x4E63, 0xB6, 0x00, 0xA4, 0x4F, 0x1B, 0x3B, 0xBE, 0xCA)]
-public readonly struct SpectrumWaveEffect : ILightingEffect
+public readonly partial struct SpectrumWaveEffect : ILightingEffect
 {
 	[DataMember(Order = 1)]
 	[Display(Name = "Speed")]

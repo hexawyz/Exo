@@ -15,7 +15,7 @@ namespace Exo.Lighting;
 /// </remarks>
 /// <typeparam name="TEffect"></typeparam>
 public interface ILightingZoneEffect<TEffect>
-	where TEffect : struct, ILightingEffect
+	where TEffect : struct, ILightingEffect, ISerializer<TEffect>
 {
 	/// <summary>Applies the effect to the lighting zone with the specified parameters.</summary>
 	/// <param name="effect">The effect parameters to apply.</param>

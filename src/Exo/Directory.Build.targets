@@ -2,8 +2,9 @@
 	<PropertyGroup Condition="'$(IsExoPluginAssembly)' == 'true'">
 		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
 		<EnableExoGuidGeneration Condition="'$(EnableExoGuidGeneration)' == ''">true</EnableExoGuidGeneration>
+		<EnableExoSerializerGeneration Condition="'$(EnableExoSerializerGeneration)' == ''">true</EnableExoSerializerGeneration>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(EnableExoGuidGeneration)' == 'true'">
+	<PropertyGroup Condition="'$(EnableExoGuidGeneration)' == 'true' Or '$(EnableExoSerializerGeneration)' == 'true'">
 		<EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
 	</PropertyGroup>
 	<ItemGroup Condition="'$(EnableExoGuidGeneration)' == 'true' And Exists('Guids.json')">
@@ -39,6 +40,9 @@
 	</ItemGroup>
 	<ItemGroup Condition="'$(EnableExoGuidGeneration)' == 'true'">
 		<ProjectReference Include="..\..\Core\Exo.SourceGenerators.Guids\Exo.SourceGenerators.Guids.csproj" Private="false" ExcludeAssets="runtime" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(EnableExoSerializerGeneration)' == 'true'">
+		<ProjectReference Include="..\..\Core\Exo.SourceGenerators.LightingEffectSerializer\Exo.SourceGenerators.LightingEffectSerializer.csproj" Private="false" ExcludeAssets="runtime" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<Target Name="_MakeTransitiveProjectRefsNonPrivate" AfterTargets="IncludeTransitiveProjectReferences" Condition="'$(IsExoPluginAssembly)' == 'true'">
 		<ItemGroup>

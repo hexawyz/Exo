@@ -8,7 +8,7 @@ namespace Exo.Devices.Gigabyte.LightingEffects;
 
 /// <summary>Represents a light with a double-flashing color effect.</summary>
 [TypeId(0x08B2116E, 0xCD5C, 0x4990, 0xA8, 0x73, 0x09, 0x14, 0xD6, 0x39, 0x17, 0x37)]
-public readonly struct VariableColorDoubleFlashEffect : ISingleColorLightEffect
+public readonly partial struct VariableColorDoubleFlashEffect : ISingleColorLightEffect
 {
 	[DataMember(Order = 1)]
 	[Display(Name = "Color")]
