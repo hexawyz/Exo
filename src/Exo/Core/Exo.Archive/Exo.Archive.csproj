@@ -12,8 +12,4 @@
 		<PackageReference Include="System.IO.Hashing" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\Exo.Contracts\Exo.Contracts.csproj" />
-	</ItemGroup>
-
 </Project>
