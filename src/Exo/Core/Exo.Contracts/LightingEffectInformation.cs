@@ -14,10 +14,6 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	[DataMember(Order = 1)]
 	public required Guid EffectId { get; init; }
 
-	/// <summary>Name of the effect type.</summary>
-	[DataMember(Order = 2)]
-	public required string EffectTypeName { get; init; }
-
 	private readonly ImmutableArray<ConfigurablePropertyInformation> _properties = [];
 
 	/// <summary>Gets the properties of the lighting effect.</summary>
@@ -31,7 +27,7 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	/// Matching of properties that are exposed as an intrinsic is done based on name and type.
 	/// </para>
 	/// </remarks>
-	[DataMember(Order = 3)]
+	[DataMember(Order = 2)]
 	public required ImmutableArray<ConfigurablePropertyInformation> Properties
 	{
 		get => _properties;
@@ -43,10 +39,9 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	public bool Equals(LightingEffectInformation? other)
 		=> other is not null &&
 			EffectId == other.EffectId &&
-			EffectTypeName == other.EffectTypeName &&
 			Properties.SequenceEqual(other.Properties);
 
-	public override int GetHashCode() => HashCode.Combine(EffectId, EffectTypeName, Properties.Length);
+	public override int GetHashCode() => HashCode.Combine(EffectId, Properties.Length);
 
 	public static bool operator ==(LightingEffectInformation? left, LightingEffectInformation? right) => EqualityComparer<LightingEffectInformation>.Default.Equals(left, right);
 	public static bool operator !=(LightingEffectInformation? left, LightingEffectInformation? right) => !(left == right);

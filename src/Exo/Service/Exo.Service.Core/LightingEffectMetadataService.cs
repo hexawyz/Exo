@@ -11,7 +11,6 @@ internal sealed class LightingEffectMetadataService : IDisposable
 	[TypeId(0x3B7410BA, 0xF28E, 0x498E, 0xB7, 0x23, 0x4A, 0xE9, 0x09, 0xDF, 0xBA, 0xFC)]
 	public readonly struct PersistedLightingEffectInformation
 	{
-		public required string TypeName { get; init; }
 		public required ImmutableArray<ConfigurablePropertyInformation> Properties { get; init; }
 	}
 
@@ -35,7 +34,7 @@ internal sealed class LightingEffectMetadataService : IDisposable
 				continue;
 			}
 			var effectInformation = result.Value;
-			effectMetadataCache.TryAdd(effectId, new() { EffectId = effectId, EffectTypeName = effectInformation.TypeName, Properties = effectInformation.Properties });
+			effectMetadataCache.TryAdd(effectId, new() { EffectId = effectId, Properties = effectInformation.Properties });
 		}
 
 		return new(logger, lightingEffectConfigurationContainer, effectMetadataCache);
@@ -130,7 +129,7 @@ internal sealed class LightingEffectMetadataService : IDisposable
 		=> _lightingEffectConfigurationContainer.WriteValueAsync
 		(
 			info.EffectId,
-			new PersistedLightingEffectInformation() { TypeName = info.EffectTypeName, Properties = info.Properties },
+			new PersistedLightingEffectInformation() { Properties = info.Properties },
 			cancellationToken
 		);
 }

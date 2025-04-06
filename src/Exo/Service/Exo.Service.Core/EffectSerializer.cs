@@ -898,7 +898,6 @@ internal static class EffectSerializer
 			new()
 			{
 				EffectId = typeId,
-				EffectTypeName = effectTypeName,
 				Properties = ImmutableCollectionsMarshal.AsImmutableArray(serializableProperties)
 			},
 			serializeMethod,
