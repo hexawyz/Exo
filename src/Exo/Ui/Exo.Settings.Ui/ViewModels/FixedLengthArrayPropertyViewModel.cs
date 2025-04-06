@@ -13,8 +13,8 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 
 	public override bool IsChanged => _changedValueCount != 0;
 
-	public FixedLengthArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, object? defaultItemValue)
-		: base(propertyInformation)
+	public FixedLengthArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength, object? defaultItemValue)
+		: base(propertyInformation, paddingLength)
 	{
 		if (propertyInformation.ArrayLength is not int length) throw new InvalidOperationException("");
 		_values = new object?[length];
@@ -43,20 +43,20 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 		OnChangeStateChange(wasChanged);
 	}
 
-	public override void SetInitialValue(DataValue value)
+	public override int ReadInitialValue(ReadOnlySpan<byte> data)
 	{
 		int itemSize = ItemSize;
 
-		if (value.IsDefault || value.BytesValue is not { } bytes || bytes.Length != PropertyInformation.ArrayLength.GetValueOrDefault() * ItemSize)
+		if (data.Length < PropertyInformation.ArrayLength.GetValueOrDefault() * ItemSize)
 		{
-			throw new InvalidOperationException("Invalid array length.");
+			throw new EndOfStreamException("Not enough data.");
 		}
 
 		bool wasChanged = IsChanged;
-		for (int i = 0; i < _initialValues.Length; i++)
+		int offset = 0;
+		for (int i = 0; i < _initialValues.Length; i++, offset += itemSize)
 		{
-			int offset = i * itemSize;
-			var newInitialValue = ReadValue(bytes.AsSpan(offset, itemSize));
+			var newInitialValue = ReadValue(data.Slice(offset, itemSize));
 			var oldInitialValue = _initialValues[i];
 			if (!AreValuesEqual(oldInitialValue, newInitialValue))
 			{
@@ -84,20 +84,19 @@ internal abstract class FixedLengthArrayPropertyViewModel : PropertyViewModel
 			}
 		}
 		OnChangeStateChange(wasChanged);
+		return offset;
 	}
 
-	public override DataValue GetDataValue()
+	public override void WriteValue(BinaryWriter writer)
 	{
 		int itemSize = ItemSize;
-		var bytes = new byte[PropertyInformation.ArrayLength.GetValueOrDefault() * ItemSize];
+		Span<byte> buffer = stackalloc byte[ItemSize];
 
 		for (int i = 0; i < _values.Length; i++)
 		{
-			int offset = i * itemSize;
-			WriteValue(bytes.AsSpan(offset, itemSize), _values[i]);
+			WriteValue(buffer, _values[i]);
+			writer.Write(buffer);
 		}
-
-		return new() { BytesValue = bytes };
 	}
 
 	protected abstract int ItemSize { get; }

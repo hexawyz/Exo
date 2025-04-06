@@ -8,7 +8,6 @@ using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.Lighting;
 using Exo.Lighting;
-using Exo.Lighting.Effects;
 using Exo.PowerManagement;
 using Exo.Programming.Annotations;
 using Exo.Services;
@@ -18,7 +17,7 @@ namespace Exo.Service;
 
 [Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
-internal sealed partial class LightingService : IAsyncDisposable, ILightingServiceInternal, IPowerNotificationSink
+internal sealed partial class LightingService : IAsyncDisposable, IPowerNotificationSink
 {
 	private sealed class DeviceState
 	{
@@ -135,10 +134,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		CancellationToken cancellationToken
 	)
 	{
-		// Make sure that the "not available" effect is in fact always available 😅
-		// I probably want to get rid of this, as I think it would be better to just return and store null instead, but for now, this will do the trick.
-		_ = EffectSerializer.GetEffectInformation(typeof(NotApplicableEffect));
-
 		var deviceIds = await devicesConfigurationContainer.GetKeysAsync(cancellationToken).ConfigureAwait(false);
 
 		var deviceStates = new ConcurrentDictionary<Guid, DeviceState>();
@@ -360,14 +355,14 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 						{
 							var zoneState = deviceState.LightingZones[deviceState.UnifiedLightingZoneId];
 							if (zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
-							EffectSerializer.DeserializeAndRestore(this, deviceId, deviceState.UnifiedLightingZoneId, zoneState.SerializedCurrentEffect);
+							EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
 						}
 						else
 						{
 							foreach (var (zoneId, zoneState) in deviceState.LightingZones)
 							{
 								if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
-								EffectSerializer.DeserializeAndRestore(this, deviceId, zoneId, zoneState.SerializedCurrentEffect);
+								EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
 							}
 						}
 
@@ -485,7 +480,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		}
 
 		var changedLightingZones = new HashSet<Guid>();
-		var effectLoader = new LightingEffectLoader(_lightingEffectMetadataService);
 
 		// If the arrived device is a new device, we can create a new state from scratch and retrieve the current configuration from the driver.
 		// NB: Some drivers may hardcode the initial configuration if the device lacks the capability to read current settings.
@@ -502,7 +496,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			{
 				changedLightingZones.Add(unifiedLightingZoneId);
 				supportedEffectsAndIds = GetSupportedEffects(unifiedLightingFeature.GetType());
-				effectLoader.RegisterEffects(supportedEffectsAndIds.Item1);
 				lightingZoneStates.Add
 				(
 					unifiedLightingZoneId,
@@ -510,7 +503,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					{
 						SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2),
 						LightingZone = unifiedLightingFeature,
-						SerializedCurrentEffect = isUnifiedLightingEnabled ? EffectSerializer.Serialize(unifiedLightingFeature.GetCurrentEffect()) : null
+						SerializedCurrentEffect = isUnifiedLightingEnabled ? EffectSerializer.GetEffect(unifiedLightingFeature) : null,
 					}
 				);
 			}
@@ -523,7 +516,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					throw new InvalidOperationException($"Duplicate lighting zone ID: {lightingZoneId}.");
 				}
 				supportedEffectsAndIds = GetSupportedEffects(lightingZone.GetType());
-				effectLoader.RegisterEffects(supportedEffectsAndIds.Item1);
 				lightingZoneStates.Add
 				(
 					lightingZoneId,
@@ -531,7 +523,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 					{
 						SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2),
 						LightingZone = lightingZone,
-						SerializedCurrentEffect = isUnifiedLightingEnabled ? null : EffectSerializer.Serialize(lightingZone.GetCurrentEffect())
+						SerializedCurrentEffect = isUnifiedLightingEnabled ? null : EffectSerializer.GetEffect(lightingZone),
 					}
 				);
 			}
@@ -608,8 +600,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 			{
 				oldLightingZones.Remove(unifiedLightingZoneId);
 				changedLightingZones.Add(unifiedLightingZoneId);
-				// Make sure that the serialization for all effects is properly setup.
-				effectLoader.RegisterEffects(GetSupportedEffects(unifiedLightingFeature.GetType()).Item1);
 			}
 
 			// Take into account the other lighting zones.
@@ -621,8 +611,6 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 				{
 					throw new InvalidOperationException($"Duplicate lighting zone ID: {lightingZoneId}.");
 				}
-				// Make sure that the serialization for all effects is properly setup.
-				effectLoader.RegisterEffects(GetSupportedEffects(lightingZone.GetType()).Item1);
 			}
 
 			// After the previous steps, reste the HashSet and start listing the changed lighting zones instead.
@@ -655,15 +643,15 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 							lightingZoneState.LightingZone = unifiedLightingFeature;
 							UpdateSupportedEffects(unifiedLightingZoneId, lightingZoneState, unifiedLightingFeature.GetType(), changedLightingZones);
-							var currentEffect = EffectSerializer.Serialize(unifiedLightingFeature.GetCurrentEffect());
+							var currentEffect = EffectSerializer.GetEffect(unifiedLightingFeature);
 							// We restore the effect from the saved state if available.
 							if (lightingZoneState.SerializedCurrentEffect is { } effect)
 							{
 								if (isUnifiedLightingEnabled)
 								{
-									if (lightingZoneState.SerializedCurrentEffect != currentEffect)
+									if (effect != currentEffect)
 									{
-										EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, unifiedLightingZoneId, effect);
+										EffectSerializer.TrySetEffect(unifiedLightingFeature, effect);
 										shouldApplyChanges = true;
 									}
 								}
@@ -683,7 +671,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 								{
 									SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(GetSupportedEffects(unifiedLightingFeature.GetType()).Item2),
 									LightingZone = unifiedLightingFeature,
-									SerializedCurrentEffect = EffectSerializer.Serialize(unifiedLightingFeature.GetCurrentEffect())
+									SerializedCurrentEffect = EffectSerializer.GetEffect(unifiedLightingFeature)
 								}
 							);
 							changedLightingZones.Add(unifiedLightingZoneId);
@@ -698,22 +686,22 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 						{
 							lightingZoneState.LightingZone = lightingZone;
 							UpdateSupportedEffects(lightingZone.ZoneId, lightingZoneState, lightingZone.GetType(), changedLightingZones);
-							var currentEffect = EffectSerializer.Serialize(lightingZone.GetCurrentEffect());
+							var currentEffect = EffectSerializer.GetEffect(lightingZone);
 							// We restore the effect from the saved state if available.
 							if (lightingZoneState.SerializedCurrentEffect is { } effect)
 							{
 								if (!isUnifiedLightingEnabled)
 								{
-									if (lightingZoneState.SerializedCurrentEffect != currentEffect)
+									if (effect != currentEffect)
 									{
-										EffectSerializer.DeserializeAndRestore(this, notification.DeviceInformation.Id, lightingZoneId, effect);
+										EffectSerializer.TrySetEffect(lightingZone, effect);
 										shouldApplyChanges = true;
 									}
 								}
 							}
 							else
 							{
-								lightingZoneState.SerializedCurrentEffect = EffectSerializer.Serialize(lightingZone.GetCurrentEffect());
+								lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone);
 								changedLightingZones.Add(lightingZoneId);
 							}
 						}
@@ -726,7 +714,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 								{
 									SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(GetSupportedEffects(lightingZone.GetType()).Item2),
 									LightingZone = lightingZone,
-									SerializedCurrentEffect = EffectSerializer.Serialize(lightingZone.GetCurrentEffect())
+									SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone)
 								}
 							);
 							changedLightingZones.Add(lightingZoneId);
@@ -967,22 +955,7 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 		}
 	}
 
-	// There are two entry points for SetEffect.
-	// This one will set the effect based on a serialized version of it.
 	public void SetEffect(Guid deviceId, Guid zoneId, LightingEffect effect)
-		=> EffectSerializer.DeserializeAndSet(this, deviceId, zoneId, effect);
-
-	// There are two entry points for SetEffect.
-	// This one will set the effect based on a strongly typed value.
-	public void SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect)
-		where TEffect : struct, ILightingEffect, ISerializer<TEffect>
-		=> SetEffectInternal(deviceId, zoneId, effect, EffectSerializer.Serialize(effect), false);
-
-	void ILightingServiceInternal.SetEffect<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
-		=> SetEffectInternal(deviceId, zoneId, effect, serializedEffect, isRestore);
-
-	private void SetEffectInternal<TEffect>(Guid deviceId, Guid zoneId, in TEffect effect, LightingEffect serializedEffect, bool isRestore)
-		where TEffect : struct, ILightingEffect, ISerializer<TEffect>
 	{
 		var cancellationToken = GetCancellationToken();
 
@@ -1003,66 +976,51 @@ internal sealed partial class LightingService : IAsyncDisposable, ILightingServi
 
 			if (zoneState.LightingZone is { } zone)
 			{
-				SetEffect(zone, effect);
+				EffectSerializer.TrySetEffect(zone, effect);
 			}
 
-			// NB: When this is a restore, we actually expect SerializedCurrentEffect to already be up-to-date, but it is just easier to always overwrite it here.
-			zoneState.SerializedCurrentEffect = serializedEffect;
+			zoneState.SerializedCurrentEffect = effect;
 
-			if (!isRestore)
+			if (isUnifiedLightingUpdated)
 			{
-				if (isUnifiedLightingUpdated)
-				{
-					deviceState.IsUnifiedLightingEnabled = isUnifiedLightingZone;
+				deviceState.IsUnifiedLightingEnabled = isUnifiedLightingZone;
 
-					// When switching from unified lighting to non-unified lighting, all the other lighting zones need to be restored.
-					// This will cause the lock to be re-entered, which is not something I personally like, but since we restored the unified lighting state above
-					// and ensured that the operations are restore operations, there should not be more than one level of recursion here.
-					if (!isUnifiedLightingZone)
+				// When switching from unified lighting to non-unified lighting, all the other lighting zones need to be restored.
+				// This will cause the lock to be re-entered, which is not something I personally like, but since we restored the unified lighting state above
+				// and ensured that the operations are restore operations, there should not be more than one level of recursion here.
+				if (!isUnifiedLightingZone)
+				{
+					foreach (var kvp in deviceState.LightingZones)
 					{
-						foreach (var kvp in deviceState.LightingZones)
-						{
-							if (kvp.Key == deviceState.UnifiedLightingZoneId || kvp.Key == zoneId || kvp.Value.LightingZone is null || kvp.Value.SerializedCurrentEffect is null) continue;
-							EffectSerializer.DeserializeAndRestore(this, deviceId, kvp.Key, kvp.Value.SerializedCurrentEffect);
-						}
+						if (kvp.Key == deviceState.UnifiedLightingZoneId || kvp.Key == zoneId || kvp.Value.LightingZone is null || kvp.Value.SerializedCurrentEffect is null) continue;
+						EffectSerializer.TrySetEffect(kvp.Value.LightingZone, kvp.Value.SerializedCurrentEffect);
 					}
-				}
-
-				// We are really careful about the value of the delegate here, as sending a notification implies boxing.
-				// As such, it is best if we can avoid it.
-				// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
-				if (Volatile.Read(ref _effectChangeListeners) is not null)
-				{
-					// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
-					lock (_changeLock)
-					{
-						_effectChangeListeners.TryWrite(new(deviceId, zoneId, serializedEffect));
-					}
-				}
-
-				if (Volatile.Read(ref _configurationChangeListeners) is not null)
-				{
-					_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
-				}
-
-				PersistActiveEffect(deviceState.LightingZonesConfigurationContainer, zoneId, serializedEffect, cancellationToken);
-				if (isUnifiedLightingUpdated)
-				{
-					PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 				}
 			}
-		}
-	}
 
-	private void SetEffect<TEffect>(ILightingZone lightingZone, in TEffect effect)
-		where TEffect : struct, ILightingEffect, ISerializer<TEffect>
-	{
-		if (lightingZone is not ILightingZoneEffect<TEffect> zone)
-		{
-			throw new InvalidOperationException($"The specified zone does not support effects of type {effect.GetType()}.");
-		}
+			// We are really careful about the value of the delegate here, as sending a notification implies boxing.
+			// As such, it is best if we can avoid it.
+			// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
+			if (Volatile.Read(ref _effectChangeListeners) is not null)
+			{
+				// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
+				lock (_changeLock)
+				{
+					_effectChangeListeners.TryWrite(new(deviceId, zoneId, effect));
+				}
+			}
 
-		zone.ApplyEffect(effect);
+			if (Volatile.Read(ref _configurationChangeListeners) is not null)
+			{
+				_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
+			}
+
+			PersistActiveEffect(deviceState.LightingZonesConfigurationContainer, zoneId, effect, cancellationToken);
+			if (isUnifiedLightingUpdated)
+			{
+				PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
+			}
+		}
 	}
 
 	public void SetBrightness(Guid deviceId, byte brightness) => SetBrightness(deviceId, brightness, false);

@@ -61,7 +61,7 @@ internal sealed class GrpcLightingService : ILightingService
 		{
 			try
 			{
-				EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+				_lightingService.SetEffect(update.DeviceId, ze.ZoneId, ze.Effect!);
 			}
 			catch (Exception ex)
 			{
@@ -85,7 +85,7 @@ internal sealed class GrpcLightingService : ILightingService
 			{
 				try
 				{
-					EffectSerializer.DeserializeAndSet(_lightingService, update.DeviceId, ze.ZoneId, ze.Effect!);
+					_lightingService.SetEffect(update.DeviceId, ze.ZoneId, ze.Effect!);
 				}
 				catch (Exception ex)
 				{

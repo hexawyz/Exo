@@ -28,7 +28,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 	private PropertyViewModel? _colorProperty;
 	private PropertyViewModel? _speedProperty;
-	private readonly Dictionary<uint, PropertyViewModel> _propertiesByIndex;
 
 	public Color? Color => (_colorProperty as ScalarPropertyViewModel)?.Value as Color?;
 
@@ -58,7 +57,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	{
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
-		_propertiesByIndex = new();
 		_resetCommand = new(this);
 		Id = lightingZoneInformation.ZoneId;
 		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>
@@ -96,30 +94,22 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 					property.PropertyChanged -= OnPropertyChanged;
 				}
 
-				_propertiesByIndex.Clear();
-
 				_colorProperty = null;
 				_speedProperty = null;
 
-				foreach (var property in newProperties)
+				for (int index = 0; index < newProperties.Count; index++)
 				{
+					var property = newProperties[index];
 					property.PropertyChanged += OnPropertyChanged;
 
-					if (property.Index is not null)
+					if (property.Name == "Color" && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
 					{
-						_propertiesByIndex[property.Index.GetValueOrDefault()] = property;
+						_colorProperty = property;
+						colorChanged = true;
 					}
-					else
+					else if (property.Name == "Speed" && property.DataType is DataType.Int32)
 					{
-						if (property.Name == nameof(LightingEffect.Color) && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
-						{
-							_colorProperty = property;
-							colorChanged = true;
-						}
-						else if (property.Name == nameof(LightingEffect.Speed) && property.DataType is DataType.Int32)
-						{
-							_speedProperty = property;
-						}
+						_speedProperty = property;
 					}
 				}
 
@@ -175,48 +165,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	{
 		if (_currentEffect is null) return null;
 
-		var properties = _properties;
-		uint? color = null;
-		uint? speed = null;
-		var propertyValues = ImmutableArray.CreateBuilder<PropertyValue>(properties.Count);
-
-		foreach (var property in properties)
-		{
-			if (property is ScalarPropertyViewModel scalarProperty && scalarProperty.Value is { } value && scalarProperty.Index is null)
-			{
-				if (scalarProperty.Name == "Color")
-				{
-					if (scalarProperty.DataType == DataType.ColorRgb24)
-					{
-						if (value is Color c)
-						{
-							color = (uint)c.ToInt() & 0xFFFFFFU;
-						}
-					}
-					else if (scalarProperty.DataType == DataType.ColorArgb32)
-					{
-						if (value is Color c)
-						{
-							color = (uint)c.ToInt();
-						}
-					}
-				}
-				else if (property.Name == "Speed" && IsUInt32Compatible(property.DataType))
-				{
-					speed = Convert.ToUInt32(scalarProperty.Value);
-				}
-			}
-			else
-			{
-				DataValue dataValue = property.GetDataValue();
-
-				if (!dataValue.IsDefault)
-				{
-					propertyValues.Add(new() { Index = property.Index.GetValueOrDefault(), Value = dataValue });
-				}
-			}
-		}
-
 		// Quick hack to force an effect update in case the effect is "Not Applicable" (which would initially be the case for either the unified lighting zone or the other ones)
 		// This can be made better, but by doing this, it should ensure that toggling from unified to non-unified lighting actually does something.
 		var effectId = _currentEffect.EffectId;
@@ -225,13 +173,47 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			effectId = DisabledEffectId;
 		}
 
-		return new()
+		var properties = _properties;
+		if (properties.Count == 0)
 		{
-			EffectId = effectId,
-			Color = color.GetValueOrDefault(),
-			Speed = speed.GetValueOrDefault(),
-			ExtendedPropertyValues = propertyValues.DrainToImmutable()
-		};
+			return new()
+			{
+				EffectId = effectId,
+				EffectData = [],
+			};
+		}
+		else
+		{
+			using (var stream = new MemoryStream())
+			{
+				using (var writer = new BinaryWriter(stream))
+				{
+					foreach (var property in properties)
+					{
+						property.WriteValue(writer);
+						switch (property.PaddingLength)
+						{
+						case 0: break;
+						case 1: writer.Write((byte)0); break;
+						case 2: writer.Write((ushort)0); break;
+						case 3: writer.Write((byte)0); writer.Write((ushort)0); break;
+						case 4: writer.Write((uint)0); break;
+						case 5: writer.Write((byte)0); writer.Write((uint)0); break;
+						case 6: writer.Write((ushort)0); writer.Write((uint)0); break;
+						case 7: writer.Write((byte)0); writer.Write((ushort)0); writer.Write((uint)0); break;
+						case 8: writer.Write((ulong)0); break;
+						default: throw new InvalidOperationException("Invalid padding.");
+						}
+					}
+				}
+
+				return new()
+				{
+					EffectId = effectId,
+					EffectData = ImmutableCollectionsMarshal.AsImmutableArray(stream.ToArray()),
+				};
+			}
+		}
 	}
 
 	private static bool IsUInt32Compatible(DataType dataType)
@@ -282,19 +264,14 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		var effect = _initialEffect;
 		if (effect is not null)
 		{
-			_colorProperty?.SetInitialValue(new() { UnsignedValue = effect.Color });
-			_speedProperty?.SetInitialValue(new() { UnsignedValue = effect.Speed });
+			var data = ImmutableCollectionsMarshal.AsArray(effect.EffectData).AsSpan();
 
-			if (!effect.ExtendedPropertyValues.IsDefaultOrEmpty)
+			foreach (var property in Properties)
 			{
-				foreach (var p in effect.ExtendedPropertyValues)
-				{
-					// TODO: Might be good to take note of the unaffected properties and reset them too.
-					if (_propertiesByIndex.TryGetValue(p.Index, out var property))
-					{
-						property.SetInitialValue(p.Value);
-					}
-				}
+				int count = property.ReadInitialValue(data);
+				if (count <= 0) throw new InvalidOperationException("Properties must write at least one byte.");
+				count += property.PaddingLength;
+				data = data[count..];
 			}
 		}
 	}

@@ -190,4 +190,22 @@ public readonly struct DataValue : IEquatable<DataValue>
 
 	public static bool operator ==(DataValue left, DataValue right) => left.Equals(right);
 	public static bool operator !=(DataValue left, DataValue right) => !(left == right);
+
+	public static implicit operator DataValue(sbyte value) => new() { SignedValue = value };
+	public static implicit operator DataValue(byte value) => new() { UnsignedValue = value };
+
+	public static implicit operator DataValue(short value) => new() { SignedValue = value };
+	public static implicit operator DataValue(ushort value) => new() { UnsignedValue = value };
+
+	public static implicit operator DataValue(int value) => new() { SignedValue = value };
+	public static implicit operator DataValue(uint value) => new() { UnsignedValue = value };
+
+	public static implicit operator DataValue(long value) => new() { SignedValue = value };
+	public static implicit operator DataValue(ulong value) => new() { UnsignedValue = value };
+
+	public static implicit operator DataValue(Half value) => new() { SingleValue = (float)value };
+	public static implicit operator DataValue(float value) => new() { SingleValue = value };
+	public static implicit operator DataValue(double value) => new() { DoubleValue = value };
+
+	public static implicit operator DataValue(Guid value) => new() { GuidValue = value };
 }

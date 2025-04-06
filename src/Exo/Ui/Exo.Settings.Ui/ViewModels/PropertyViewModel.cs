@@ -1,5 +1,5 @@
+using System.Runtime.InteropServices;
 using System.Windows.Input;
-using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
 using Windows.UI;
 
@@ -34,6 +34,60 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 				_ => throw new NotSupportedException()
 			} :
 			null;
+
+	protected static (object?, int) ReadValue(DataType type, ReadOnlySpan<byte> data)
+		=> type switch
+		{
+			DataType.UInt8 => (data[0], 1),
+			DataType.Int8 => ((sbyte)data[0], 1),
+			DataType.UInt16 => (MemoryMarshal.Read<ushort>(data), 2),
+			DataType.Int16 => (MemoryMarshal.Read<short>(data), 2),
+			DataType.UInt32 => (MemoryMarshal.Read<uint>(data), 4),
+			DataType.Int32 => (MemoryMarshal.Read<int>(data), 4),
+			DataType.UInt64 => (MemoryMarshal.Read<ulong>(data), 8),
+			DataType.Int64 => (MemoryMarshal.Read<long>(data), 8),
+			DataType.Float16 => (MemoryMarshal.Read<Half>(data), 2),
+			DataType.Float32 => (MemoryMarshal.Read<float>(data), 4),
+			DataType.Float64 => (MemoryMarshal.Read<double>(data), 4),
+			DataType.Boolean => (data[0] != 0, 1),
+			DataType.ColorGrayscale8 => (data[0], 1),
+			DataType.ColorGrayscale16 => (MemoryMarshal.Read<ushort>(data), 2),
+			DataType.ColorRgb24 => (Color.FromArgb(255, data[0], data[1], data[2]), 3),
+			DataType.ColorArgb32 => (Color.FromArgb(data[0], data[1], data[2], data[3]), 4),
+			DataType.Guid => (new Guid(data[..16]), 16),
+			DataType.String => throw new NotImplementedException("TODO"),
+			DataType.TimeSpan => throw new NotImplementedException("TODO"),
+			DataType.DateTime => throw new NotImplementedException("TODO"),
+			_ => throw new NotSupportedException()
+		};
+
+	protected static void WriteValue(DataType type, object value, BinaryWriter writer)
+	{
+		switch (type)
+		{
+		case DataType.UInt8: writer.Write(Convert.ToByte(value)); break;
+		case DataType.Int8: writer.Write(Convert.ToSByte(value)); break;
+		case DataType.UInt16: writer.Write(Convert.ToUInt16(value)); break;
+		case DataType.Int16: writer.Write(Convert.ToInt16(value)); break;
+		case DataType.UInt32: writer.Write(Convert.ToUInt32(value)); break;
+		case DataType.Int32: writer.Write(Convert.ToInt32(value)); break;
+		case DataType.UInt64: writer.Write(Convert.ToUInt64(value)); break;
+		case DataType.Int64: writer.Write(Convert.ToInt64(value)); break;
+		case DataType.Float16: writer.Write(value is Half h ? h : (Half)Convert.ToSingle(value)); break;
+		case DataType.Float32: writer.Write(Convert.ToSingle(value)); break;
+		case DataType.Float64: writer.Write(Convert.ToDouble(value)); break;
+		case DataType.Boolean: writer.Write(Convert.ToBoolean(value) ? (byte)1 : (byte)0); break;
+		case DataType.ColorGrayscale8: writer.Write(Convert.ToByte(value)); break;
+		case DataType.ColorGrayscale16: writer.Write(Convert.ToUInt16(value)); break;
+		case DataType.ColorRgb24: var rgbColor = (Color)value; writer.Write(rgbColor.R); writer.Write(rgbColor.G); writer.Write(rgbColor.B); break;
+		case DataType.ColorArgb32: var argbColor = (Color)value; writer.Write(argbColor.A); writer.Write(argbColor.R); writer.Write(argbColor.G); writer.Write(argbColor.B); break;
+		case DataType.Guid: writer.Write(((Guid)value).ToByteArray()); break;
+		case DataType.String: writer.Write((string)value); break;
+		case DataType.TimeSpan: throw new NotImplementedException("TODO"); break;
+		case DataType.DateTime:
+			throw new NotImplementedException("TODO");
+		}
+	}
 
 	private static object? GetValue(DataType type, DataValue value, int index)
 		=> !value.IsDefault ?
@@ -70,48 +124,9 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 			_ => throw new NotSupportedException()
 		};
 
-	protected static DataValue GetDataValue(DataType dataType, object? value)
-	{
-		if (value is null) return default;
-
-		switch (dataType)
-		{
-		case DataType.UInt8:
-		case DataType.UInt16:
-		case DataType.UInt32:
-		case DataType.UInt64:
-			return new() { UnsignedValue = Convert.ToUInt64(value) };
-		case DataType.Int8:
-		case DataType.Int16:
-		case DataType.Int32:
-		case DataType.Int64:
-			return new() { SignedValue = Convert.ToInt64(value) };
-		case DataType.Float16:
-		case DataType.Float32:
-			return new() { SingleValue = Convert.ToSingle(value) };
-		case DataType.Float64:
-			return new() { DoubleValue = Convert.ToDouble(value) };
-		case DataType.Boolean:
-			return new() { UnsignedValue = (bool)value ? 1U : 0U };
-		case DataType.ColorRgb24:
-			return new() { UnsignedValue = (uint)((Color)value).ToInt() & 0xFFFFFFU };
-		case DataType.ColorArgb32:
-			return new() { UnsignedValue = (uint)((Color)value).ToInt() };
-		case DataType.String:
-			return new() { StringValue = (string)value };
-		case DataType.Guid:
-			return new() { GuidValue = (Guid)value };
-		case DataType.TimeSpan:
-		case DataType.DateTime:
-		default:
-			throw new NotImplementedException();
-		}
-	}
-
 	protected readonly ConfigurablePropertyInformation PropertyInformation;
 	private readonly Commands.ResetCommand _resetCommand;
-
-	public uint? Index => PropertyInformation.Index;
+	private readonly int _paddingLength;
 
 	public DataType DataType => PropertyInformation.DataType;
 
@@ -121,15 +136,20 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 
 	public ICommand ResetCommand => _resetCommand;
 
-	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation)
+	// Represents the amount of padding between this property and the following one.
+	// This is used for reading and writing the raw data.
+	public int PaddingLength => _paddingLength;
+
+	public PropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength)
 	{
 		PropertyInformation = propertyInformation;
 		_resetCommand = new(this);
+		_paddingLength = paddingLength;
 	}
 
 	protected abstract void Reset();
-	public abstract void SetInitialValue(DataValue value);
-	public abstract DataValue GetDataValue();
+	public abstract int ReadInitialValue(ReadOnlySpan<byte> data);
+	public abstract void WriteValue(BinaryWriter writer);
 
 	protected sealed override void OnChanged(bool isChanged)
 	{

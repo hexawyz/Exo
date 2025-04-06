@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace Exo.Core.SourceGenerators;
 
 [Generator]
-public class SerializationGenerator : IIncrementalGenerator
+public class EffectSerializationGenerator : IIncrementalGenerator
 {
 	private static readonly DiagnosticDescriptor[] Diagnostics =
 	[
@@ -98,7 +98,7 @@ public class SerializationGenerator : IIncrementalGenerator
 		foreach (var effect in effects)
 		{
 			sb.Append("\t\t")
-				.Append("FutureEffectSerializer.RegisterEffect<")
+				.Append("EffectSerializer.RegisterEffect<")
 				.Append(effect.FullName)
 				.AppendLine(">();");
 		}
@@ -130,7 +130,9 @@ public class SerializationGenerator : IIncrementalGenerator
 			.AppendLine("\t{")
 			.Append("\t\tstatic ReadOnlySpan<byte> TypeIdGuidBytes => [").Append(string.Join(", ", Array.ConvertAll(effect.TypeId.ToByteArray(), b => "0x" + b.ToString("X2")))).AppendLine("];")
 			.AppendLine()
-			.Append("\t\tstatic LightingEffectInformation ILightingEffect<").Append(effect.TypeName).AppendLine(">.GetEffectMetadata()")
+			.AppendLine("\t\tstatic Guid ILightingEffect.EffectId => new Guid(TypeIdGuidBytes);")
+			.AppendLine()
+			.AppendLine("\t\tstatic LightingEffectInformation ILightingEffect.GetEffectMetadata()")
 			.AppendLine("\t\t{");
 
 		sb.AppendLine("\t\t\treturn new()")
@@ -142,12 +144,33 @@ public class SerializationGenerator : IIncrementalGenerator
 		{
 			sb.AppendLine("\t\t\t\t\tnew()")
 				.AppendLine("\t\t\t\t\t{")
-				.AppendLine("\t\t\t\t\t\tIndex = null,")
 				.Append("\t\t\t\t\t\tName = ").Append(ToStringLiteral(member.Name)).AppendLine(",")
 				.Append("\t\t\t\t\t\tDisplayName = ").Append(ToStringLiteral(member.DisplayName)).AppendLine(",")
 				.Append("\t\t\t\t\t\tDataType = DataType.").Append(member.DataTypeName).AppendLine(",")
-				.AppendLine("\t\t\t\t\t\tDescription = null,")
-				.AppendLine("\t\t\t\t\t\tEnumerationValues =")
+				.AppendLine("\t\t\t\t\t\tDescription = null,");
+
+			if (member.DefaultValue is not null)
+			{
+				sb.Append("\t\t\t\t\t\tDefaultValue = ");
+				AppendValue(sb, member.DataTypeName, member.DefaultValue);
+				sb.AppendLine(",");
+			}
+
+			if (member.MinimumValue is not null)
+			{
+				sb.Append("\t\t\t\t\t\tMinimumValue = ");
+				AppendValue(sb, member.DataTypeName, member.MinimumValue);
+				sb.AppendLine(",");
+			}
+
+			if (member.MaximumValue is not null)
+			{
+				sb.Append("\t\t\t\t\t\tMaximumValue = ");
+				AppendValue(sb, member.DataTypeName, member.MaximumValue);
+				sb.AppendLine(",");
+			}
+
+			sb.AppendLine("\t\t\t\t\t\tEnumerationValues =")
 				.AppendLine("\t\t\t\t\t\t[");
 			foreach (var enumValue in member.EnumValues)
 			{
@@ -161,16 +184,59 @@ public class SerializationGenerator : IIncrementalGenerator
 			sb.AppendLine("\t\t\t\t\t},");
 		}
 		sb.AppendLine("\t\t\t\t],")
-			.AppendLine("\t\t\t};");
+			.AppendLine("\t\t\t};")
+			.AppendLine("\t\t}");
 
-		sb.AppendLine("\t\t}")
-			.AppendLine("\t}")
+		if (effect.Members.Count == 0)
+		{
+			sb.AppendLine()
+				.Append("\t\tstatic bool ISerializer<").Append(effect.TypeName).Append(">.TryGetSize(in ").Append(effect.TypeName).AppendLine(" value, out uint size)")
+				.AppendLine("\t\t{")
+				.AppendLine("\t\t\tsize = 0;")
+				.AppendLine("\t\t\treturn true;")
+				.AppendLine("\t\t}")
+				.AppendLine()
+				.Append("\t\tstatic void ISerializer<").Append(effect.TypeName).Append(">.Serialize(ref BufferWriter writer, in ").Append(effect.TypeName).AppendLine(" value)")
+				.AppendLine("\t\t{")
+				.AppendLine("\t\t}")
+				.AppendLine()
+				.Append("\t\tstatic void ISerializer<").Append(effect.TypeName).Append(">.Deserialize(ref BufferReader reader, out ").Append(effect.TypeName).AppendLine(" value)")
+				.AppendLine("\t\t{")
+				.Append("\t\t\tvalue = new();")
+				.AppendLine("\t\t}");
+		}
+
+		sb.AppendLine("\t}")
 			.AppendLine("}").AppendLine();
 
 		context.AddSource(effect.FullName + ".Serializer.Generated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
 	}
 
-	private string ToStringLiteral(string? text)
+	private static void AppendValue(StringBuilder sb, string dataTypeName, object defaultValue)
+	{
+		switch (dataTypeName)
+		{
+		case "UInt8": sb.Append("(byte)").Append(Convert.ToByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "Int8": sb.Append("(sbyte)").Append(Convert.ToSByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "UInt16": sb.Append("(ushort)").Append(Convert.ToUInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "Int16": sb.Append("(short)").Append(Convert.ToInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "UInt32": sb.Append(Convert.ToUInt32(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
+		case "Int32": sb.Append(Convert.ToInt32(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "UInt64": sb.Append(Convert.ToUInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("ul"); break;
+		case "Int64": sb.Append(Convert.ToInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
+		case "Float16": sb.Append("(Half)").Append(Convert.ToSingle(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
+		case "Float32": sb.Append(Convert.ToSingle(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
+		case "Float64": sb.Append(Convert.ToDouble(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("d"); break;
+		case "Guid": throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
+		case "TimeSpan": throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
+		case "DateTime": throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
+		case "Boolean": sb.Append(Convert.ToBoolean(defaultValue) ? "true" : "false"); break;
+		case "String": sb.Append(ToStringLiteral(Convert.ToString(defaultValue, CultureInfo.InvariantCulture))); break;
+		default: throw new NotImplementedException($"TODO: Serialization of default/min/max values of type {dataTypeName}.");
+		}
+	}
+
+	private static string ToStringLiteral(string? text)
 	{
 		if (text is null) return "null";
 
@@ -456,8 +522,8 @@ public class SerializationGenerator : IIncrementalGenerator
 		{
 			return memberType.MetadataName switch
 			{
-				"Byte" => "Int8",
-				"SByte" => "UInt8",
+				"SByte" => "Int8",
+				"Byte" => "UInt8",
 				"Int16" => "Int16",
 				"UInt16" => "UInt16",
 				"Int32" => "Int32",

@@ -1,12 +1,16 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Contracts;
+using Exo.Lighting;
+using Exo.Primitives;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-internal sealed class LightingEffectMetadataService : IDisposable
+internal sealed class LightingEffectMetadataService : IAsyncDisposable
 {
 	[TypeId(0x3B7410BA, 0xF28E, 0x498E, 0xB7, 0x23, 0x4A, 0xE9, 0x09, 0xDF, 0xBA, 0xFC)]
 	public readonly struct PersistedLightingEffectInformation
@@ -21,7 +25,7 @@ internal sealed class LightingEffectMetadataService : IDisposable
 		CancellationToken cancellationToken
 	)
 	{
-		var effectMetadataCache = new ConcurrentDictionary<Guid, LightingEffectInformation>();
+		var effectMetadataCache = new Dictionary<Guid, LightingEffectInformation>();
 
 		var effectIds = await lightingEffectConfigurationContainer.GetKeysAsync(cancellationToken).ConfigureAwait(false);
 
@@ -40,88 +44,102 @@ internal sealed class LightingEffectMetadataService : IDisposable
 		return new(logger, lightingEffectConfigurationContainer, effectMetadataCache);
 	}
 
-	private readonly ConcurrentDictionary<Guid, LightingEffectInformation> _effectMetadataCache;
+	private readonly Dictionary<Guid, LightingEffectInformation> _effectMetadataCache;
+	private readonly Lock _effectUpdateLock;
+	private ChangeBroadcaster<LightingEffectInformation> _effectChangeBroadcaster;
 	private readonly IConfigurationContainer<Guid> _lightingEffectConfigurationContainer;
 	private readonly ILogger<LightingEffectMetadataService> _logger;
 	private CancellationTokenSource? _cancellationTokenSource;
+	private readonly Task _runTask;
 
 	public LightingEffectMetadataService
 	(
 		ILogger<LightingEffectMetadataService> logger,
 		IConfigurationContainer<Guid> lightingEffectConfigurationContainer,
-		ConcurrentDictionary<Guid, LightingEffectInformation> effectMetadataCache
+		Dictionary<Guid, LightingEffectInformation> effectMetadataCache
 	)
 	{
+		_effectMetadataCache = effectMetadataCache;
+		_effectUpdateLock = new();
 		_logger = logger;
 		_lightingEffectConfigurationContainer = lightingEffectConfigurationContainer;
-		_effectMetadataCache = effectMetadataCache;
 		_cancellationTokenSource = new();
+		_runTask = RunAsync(_cancellationTokenSource.Token);
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{
 			cts.Cancel();
+			await _runTask;
 			cts.Dispose();
 		}
 	}
 
-	// Retrieves the global cancellation token while checking that the instance is not disposed.
-	// We use this cancellation token to cancel pending write operations.
-	private CancellationToken GetCancellationToken()
+	private async Task RunAsync(CancellationToken cancellationToken)
 	{
-		var cts = Volatile.Read(ref _cancellationTokenSource);
-		ObjectDisposedException.ThrowIf(cts is null, typeof(LightingEffectMetadataService));
-		return cts.Token;
-	}
-
-	public void RegisterEffect(Type effectType)
-	{
-		var cancellationToken = GetCancellationToken();
-		var info = EffectSerializer.GetEffectInformation(effectType);
-		// NB: This is not the most efficient thing in the world, as we will always overwrite the current value, whether it has actually changed or not.
-		// However, it might still be relatively negligible overall (considering how often this would actually be called) and we want to keep only one true reference.
-		if (_effectMetadataCache.TryGetValue(info.EffectId, out var oldInfo))
+		try
 		{
-			if (ReferenceEquals(oldInfo, info)) return;
-			_effectMetadataCache[info.EffectId] = info;
-			// Do a full deep comparison of the objects to determine if we should update the persisted information. (We really want to minimize disk writes)
-			if (info != oldInfo)
+			await foreach (var metadata in EffectSerializer.WatchEffectsAsync(cancellationToken))
 			{
-				PersistEffectInformation(info, cancellationToken);
+				try
+				{
+					await PersistEffectInformationAsync(metadata, cancellationToken).ConfigureAwait(false);
+				}
+				catch (Exception ex)
+				{
+					// TODO: Log
+				}
+				lock (_effectUpdateLock)
+				{
+					_effectMetadataCache.Add(metadata.EffectId, metadata);
+					_effectChangeBroadcaster.Push(metadata);
+				}
 			}
 		}
-		else
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
-			_effectMetadataCache[info.EffectId] = info;
-			PersistEffectInformation(info, cancellationToken);
 		}
 	}
 
 	public LightingEffectInformation GetEffectInformation(Guid effectId)
 	{
-		var cancellationToken = GetCancellationToken();
-		if (!_effectMetadataCache.TryGetValue(effectId, out var info))
-		{
-			info = EffectSerializer.GetEffectInformation(effectId);
-			if (_effectMetadataCache.TryAdd(effectId, info))
-			{
-				PersistEffectInformation(info, cancellationToken);
-			}
-		}
-		return info;
+		if (!EffectSerializer.TryGetEffectMetadata(effectId, out var metadata)) throw new Exception();
+		return metadata;
 	}
 
-	private async void PersistEffectInformation(LightingEffectInformation info, CancellationToken cancellationToken)
+	public async IAsyncEnumerable<LightingEffectInformation> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
+		var channel = Channel.CreateUnbounded<LightingEffectInformation>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = true });
+
+		LightingEffectInformation[]? initialEffects;
+		lock (_effectUpdateLock)
+		{
+			initialEffects = [.. _effectMetadataCache.Values];
+			_effectChangeBroadcaster.Register(channel);
+		}
+
 		try
 		{
-			await PersistEffectInformationAsync(info, cancellationToken).ConfigureAwait(false);
+			foreach (var effect in initialEffects)
+			{
+				yield return effect;
+			}
+			initialEffects = null;
+
+			while (true)
+			{
+				await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				while (channel.Reader.TryPeek(out var effect))
+				{
+				yield return effect;
+				}
+			}
 		}
-		catch (Exception ex)
+		finally
 		{
-			// TODO: Log
+			_effectChangeBroadcaster.Unregister(channel);
 		}
 	}
 

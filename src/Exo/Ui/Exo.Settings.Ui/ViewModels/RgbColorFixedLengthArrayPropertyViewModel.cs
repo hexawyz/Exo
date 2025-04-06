@@ -5,8 +5,8 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class RgbColorFixedLengthArrayPropertyViewModel : FixedLengthArrayPropertyViewModel
 {
-	public RgbColorFixedLengthArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation)
-		: base(propertyInformation, Color.FromArgb(255, 0, 0, 0))
+	public RgbColorFixedLengthArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength)
+		: base(propertyInformation, paddingLength, Color.FromArgb(255, 0, 0, 0))
 	{
 	}
 

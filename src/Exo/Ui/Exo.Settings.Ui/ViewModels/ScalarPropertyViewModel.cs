@@ -50,15 +50,20 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 
 	protected override void Reset() => Value = InitialValue;
 
-	public override void SetInitialValue(DataValue value)
+	public override int ReadInitialValue(ReadOnlySpan<byte> data)
 	{
-		InitialValue = GetValue(DataType, value);
+		var (value, length) = ReadValue(DataType, data);
+		InitialValue = value;
+		return length;
 	}
 
-	public override DataValue GetDataValue() => GetDataValue(DataType, Value);
+	public override void WriteValue(BinaryWriter writer)
+	{
+		WriteValue(DataType, _value!, writer);
+	}
 
-	public ScalarPropertyViewModel(ConfigurablePropertyInformation propertyInformation, LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
-		: base(propertyInformation)
+	public ScalarPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength, LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
+		: base(propertyInformation, paddingLength)
 	{
 		var dataType = PropertyInformation.DataType;
 		if (dataType == DataType.UInt8 && propertyInformation.Name == "BrightnessLevel")
