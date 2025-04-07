@@ -108,7 +108,16 @@ internal sealed class LightingEffectMetadataService : IAsyncDisposable
 
 	public LightingEffectInformation GetEffectInformation(Guid effectId)
 	{
-		if (!EffectSerializer.TryGetEffectMetadata(effectId, out var metadata)) throw new Exception();
+		if (!EffectSerializer.TryGetEffectMetadata(effectId, out var metadata))
+		{
+			lock (_effectUpdateLock)
+			{
+				if (!_effectMetadataCache.TryGetValue(effectId, out metadata))
+				{
+					throw new InvalidOperationException("Effect metadata not found.");
+				}
+			}
+		}
 		return metadata;
 	}
 

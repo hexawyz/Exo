@@ -453,7 +453,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		var lightingFeatures = (IDeviceFeatureSet<ILightingDeviceFeature>)notification.FeatureSet!;
 
 		var lightingControllerFeature = lightingFeatures.GetFeature<ILightingControllerFeature>();
-		var lightingZones = lightingControllerFeature?.LightingZones ?? Array.Empty<ILightingZone>();
+		var lightingZones = lightingControllerFeature?.LightingZones ?? [];
 
 		var unifiedLightingFeature = lightingFeatures.GetFeature<IUnifiedLightingFeature>();
 		if (unifiedLightingFeature is not null)
