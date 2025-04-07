@@ -104,12 +104,15 @@ public class LgMonitorDriver :
 				new("LGMonitor", topLevelDeviceName, $"LG_Monitor_{info.ModelName}", edid.SerialNumber)
 			);
 
-			driver.CompositeI2cBus.AddBus(i2cBus);
-		}
-		else
+			if (!DriversBySerialNumber.TryAdd(edid.SerialNumber, driver))
 		{
-			driver.CompositeI2cBus.AddBus(i2cBus);
+				await driver.DisposeAsync().ConfigureAwait(false);
+				await i2cBus.DisposeAsync().ConfigureAwait(false);
+
+				throw new InvalidOperationException($"""A driver with the serial number "{edid.SerialNumber}" was already registered.""");
 		}
+		}
+		driver.CompositeI2cBus.AddBus(i2cBus);
 
 		return new(keys, driver, new ConnectedMonitorFacet(driver, i2cBus));
 	}
