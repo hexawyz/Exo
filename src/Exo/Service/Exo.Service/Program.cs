@@ -21,16 +21,18 @@ public static class Program
 		// To be revisited later when the deployed file structure is better defined.
 		Environment.SetEnvironmentVariable("LOGDIR", Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "logs")));
 
+		var runtimeTypeModel = RuntimeTypeModel.Default;
+
+		runtimeTypeModel.Add<UInt128>(false).SerializerType = typeof(UInt128Serializer);
+
 		foreach (var type in typeof(NamedElement).Assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(NamedElement))))
 		{
-			var metaType = RuntimeTypeModel.Default[type];
+			var metaType = runtimeTypeModel[type];
 
 			metaType.Add(1, nameof(NamedElement.Id));
 			metaType.Add(2, nameof(NamedElement.Name));
 			metaType.Add(3, nameof(NamedElement.Comment));
 		}
-
-		RuntimeTypeModel.Default.Add<UInt128>(false).SerializerType = typeof(UInt128Serializer);
 
 		SixLabors.ImageSharp.Configuration.Default.MemoryAllocator = new ImageSharpNativeMemoryAllocator();
 

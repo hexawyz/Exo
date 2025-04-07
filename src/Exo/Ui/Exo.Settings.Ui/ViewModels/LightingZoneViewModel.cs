@@ -176,11 +176,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		var properties = _properties;
 		if (properties.Count == 0)
 		{
-			return new()
-			{
-				EffectId = effectId,
-				EffectData = [],
-			};
+			return new(effectId, []);
 		}
 		else
 		{
@@ -207,11 +203,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 					}
 				}
 
-				return new()
-				{
-					EffectId = effectId,
-					EffectData = ImmutableCollectionsMarshal.AsImmutableArray(stream.ToArray()),
-				};
+				return new(effectId, stream.ToArray());
 			}
 		}
 	}
@@ -264,7 +256,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		var effect = _initialEffect;
 		if (effect is not null)
 		{
-			var data = ImmutableCollectionsMarshal.AsArray(effect.EffectData).AsSpan();
+			var data = effect.EffectData.AsSpan();
 
 			foreach (var property in Properties)
 			{

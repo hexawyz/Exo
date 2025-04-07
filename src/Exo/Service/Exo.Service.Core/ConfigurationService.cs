@@ -1,5 +1,9 @@
+using System.Buffers;
 using System.Collections.Immutable;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -7,8 +11,11 @@ using Exo.Configuration;
 
 namespace Exo.Service;
 
-public class ConfigurationService : IConfigurationNode
+public sealed class ConfigurationService : IConfigurationNode
 {
+	private static bool ShouldSerializeImmutableArray<T>(object ignore, object parent, object? value)
+		=> value is not null && !Unsafe.Unbox<ImmutableArray<T>>(value).IsDefaultOrEmpty;
+
 	// Options will become read-only after first use, so we can just share it as is, trusting that no other piece of code will try to change this.
 	internal static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
 	{
@@ -29,12 +36,18 @@ public class ConfigurationService : IConfigurationNode
 					{
 						if (typeof(System.Collections.ICollection).IsAssignableFrom(property.PropertyType))
 						{
-							property.ShouldSerialize = (_, obj) => obj is not null && ((System.Collections.ICollection)obj).Count != 0;
 							if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(ImmutableArray<>))
 							{
+								property.ShouldSerialize = typeof(ConfigurationService)
+									.GetMethod(nameof(ShouldSerializeImmutableArray), BindingFlags.Static | BindingFlags.NonPublic)!
+									.MakeGenericMethod(property.PropertyType.GetGenericArguments()).CreateDelegate<Func<object, object?, bool>>(null);
 								property.ObjectCreationHandling = JsonObjectCreationHandling.Replace;
 								property.IsRequired = false;
 								continue;
+							}
+							else
+							{
+								property.ShouldSerialize = (_, obj) => obj is not null && ((System.Collections.ICollection)obj).Count != 0;
 							}
 						}
 						if (property.IsRequired)

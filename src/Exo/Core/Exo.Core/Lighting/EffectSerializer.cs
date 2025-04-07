@@ -61,7 +61,7 @@ public static class EffectSerializer
 	{
 		if (EffectStates.TryGetValue(effect.EffectId, out var state))
 		{
-			return state.SetEffect(lightingZone, ImmutableCollectionsMarshal.AsArray(effect.EffectData) ?? []);
+			return state.SetEffect(lightingZone, effect.EffectData ?? []);
 		}
 		return false;
 	}
@@ -98,7 +98,7 @@ public static class EffectSerializer
 				var finalSize = buffer.Length;
 				if (finalSize != size) buffer = finalSize > 0 ? buffer[..(int)(uint)finalSize] : [];
 			}
-			return new LightingEffect() { EffectId = effectId, EffectData = ImmutableCollectionsMarshal.AsImmutableArray(buffer) };
+			return new LightingEffect(effectId, buffer);
 		}
 		else
 		{
@@ -115,7 +115,7 @@ public static class EffectSerializer
 			var writer = new BufferWriter(buffer);
 			effect.Serialize(ref writer);
 			var finalSize = buffer.Length;
-			return new LightingEffect() { EffectId = effectId, EffectData = finalSize > 0 ? ImmutableCollectionsMarshal.AsImmutableArray(buffer[..(int)(uint)finalSize]) : [] };
+			return new LightingEffect(effectId, finalSize > 0 ? buffer[..(int)(uint)finalSize] : []);
 		}
 		finally
 		{

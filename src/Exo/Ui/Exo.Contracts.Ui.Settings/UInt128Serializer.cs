@@ -6,7 +6,7 @@ using ProtoBuf.Serializers;
 
 namespace Exo.Contracts.Ui;
 
-internal class UInt128Serializer : ISerializer<UInt128>
+internal class UInt128Serializer : ProtoBuf.Serializers.ISerializer<UInt128>
 {
 	public SerializerFeatures Features => SerializerFeatures.CategoryRepeated | SerializerFeatures.CategoryScalar | SerializerFeatures.WireTypeString;
 

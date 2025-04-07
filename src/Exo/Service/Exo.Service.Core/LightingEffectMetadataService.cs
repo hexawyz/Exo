@@ -93,8 +93,11 @@ internal sealed class LightingEffectMetadataService : IAsyncDisposable
 				}
 				lock (_effectUpdateLock)
 				{
-					_effectMetadataCache.Add(metadata.EffectId, metadata);
-					_effectChangeBroadcaster.Push(metadata);
+					if (!_effectMetadataCache.TryGetValue(metadata.EffectId, out var oldMetadata) || metadata != oldMetadata)
+					{
+						_effectMetadataCache[metadata.EffectId] = metadata;
+						_effectChangeBroadcaster.Push(metadata);
+					}
 				}
 			}
 		}
@@ -133,7 +136,7 @@ internal sealed class LightingEffectMetadataService : IAsyncDisposable
 				await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				while (channel.Reader.TryPeek(out var effect))
 				{
-				yield return effect;
+					yield return effect;
 				}
 			}
 		}
