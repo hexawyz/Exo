@@ -23,15 +23,15 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 
 	/// <summary>The default value of the property, if any.</summary>
 	[DataMember(Order = 4)]
-	public DataValue DefaultValue { get; init; }
+	public object? DefaultValue { get; init; }
 
 	/// <summary>The minimum value of the property, if applicable.</summary>
 	[DataMember(Order = 5)]
-	public DataValue MinimumValue { get; init; }
+	public object? MinimumValue { get; init; }
 
 	/// <summary>The maximum value of the property, if applicable.</summary>
 	[DataMember(Order = 6)]
-	public DataValue MaximumValue { get; init; }
+	public object? MaximumValue { get; init; }
 
 	/// <summary>The unit in which numeric values are expressed, if applicable.</summary>
 	[DataMember(Order = 7)]

@@ -4,6 +4,7 @@ using Exo.Contracts;
 
 namespace Exo.Settings.Ui.ViewModels;
 
+// TODO: Strongly type the values
 internal sealed class ScalarPropertyViewModel : PropertyViewModel
 {
 	private object? _value;
@@ -77,9 +78,9 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 		}
 		else
 		{
-			MinimumValue = GetValue(dataType, PropertyInformation.MinimumValue);
-			MaximumValue = GetValue(dataType, PropertyInformation.MaximumValue);
-			DefaultValue = GetValue(dataType, PropertyInformation.DefaultValue) ?? GetDefaultValueForType(dataType);
+			MinimumValue = PropertyInformation.MinimumValue;
+			MaximumValue = PropertyInformation.MaximumValue;
+			DefaultValue = PropertyInformation.DefaultValue ?? GetDefaultValueForType(dataType);
 		}
 		EnumerationValues = PropertyInformation.EnumerationValues.IsDefaultOrEmpty ?
 			ReadOnlyCollection<EnumerationValueViewModel>.Empty :

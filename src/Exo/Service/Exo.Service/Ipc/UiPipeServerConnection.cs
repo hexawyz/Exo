@@ -338,15 +338,15 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			writer.WriteVariableString(property.DisplayName);
 			writer.Write((byte)property.DataType);
 			var flags = LightingEffectFlags.None;
-			if (!property.DefaultValue.IsDefault) flags |= LightingEffectFlags.DefaultValue;
-			if (!property.MinimumValue.IsDefault) flags |= LightingEffectFlags.MinimumValue;
-			if (!property.MaximumValue.IsDefault) flags |= LightingEffectFlags.MaximumValue;
+			if (property.DefaultValue is not null) flags |= LightingEffectFlags.DefaultValue;
+			if (property.MinimumValue is not null) flags |= LightingEffectFlags.MinimumValue;
+			if (property.MaximumValue is not null) flags |= LightingEffectFlags.MaximumValue;
 			if (!property.EnumerationValues.IsDefaultOrEmpty) flags |= LightingEffectFlags.Enum;
 			if (property.ArrayLength is not null) flags |= LightingEffectFlags.Array;
 			writer.Write((byte)flags);
-			if (!property.DefaultValue.IsDefault) WriteValue(ref writer, property.DataType, property.DefaultValue);
-			if (!property.MinimumValue.IsDefault) WriteValue(ref writer, property.DataType, property.MinimumValue);
-			if (!property.MaximumValue.IsDefault) WriteValue(ref writer, property.DataType, property.MaximumValue);
+			if (property.DefaultValue is not null) WriteValue(ref writer, property.DataType, property.DefaultValue);
+			if (property.MinimumValue is not null) WriteValue(ref writer, property.DataType, property.MinimumValue);
+			if (property.MaximumValue is not null) WriteValue(ref writer, property.DataType, property.MaximumValue);
 			if (!property.EnumerationValues.IsDefaultOrEmpty)
 			{
 				writer.WriteVariable((uint)property.EnumerationValues.Length);
@@ -360,51 +360,51 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			if (property.ArrayLength is not null) writer.WriteVariable((uint)property.ArrayLength.GetValueOrDefault());
 		}
 
-		static void WriteValue(ref BufferWriter writer, DataType dataType, in DataValue value)
+		static void WriteValue(ref BufferWriter writer, DataType dataType, object value)
 		{
 			switch (dataType)
 			{
 			case DataType.UInt8:
 			case DataType.ColorGrayscale8:
-				writer.Write((byte)value.UnsignedValue);
+				writer.Write((byte)value);
 				break;
 			case DataType.Int8:
-				writer.Write((byte)value.SignedValue);
+				writer.Write((byte)value);
 				break;
 			case DataType.UInt16:
-				writer.Write((ushort)value.UnsignedValue);
+				writer.Write((ushort)value);
 				break;
 			case DataType.Int16:
-				writer.Write((short)value.SignedValue);
+				writer.Write((short)value);
 				break;
 			case DataType.UInt32:
 			case DataType.ColorRgbw32:
 			case DataType.ColorArgb32:
-				writer.Write((uint)value.UnsignedValue);
+				writer.Write((uint)value);
 				break;
 			case DataType.Int32:
-				writer.Write((int)value.SignedValue);
+				writer.Write((int)value);
 				break;
 			case DataType.UInt64:
-				writer.Write(value.UnsignedValue);
+				writer.Write((ulong)value);
 				break;
 			case DataType.Int64:
-				writer.Write(value.SignedValue);
+				writer.Write((long)value);
 				break;
 			case DataType.Float16:
-				writer.Write((Half)value.SingleValue);
+				writer.Write((Half)value);
 				break;
 			case DataType.Float32:
-				writer.Write(value.SingleValue);
+				writer.Write((float)value);
 				break;
 			case DataType.Float64:
-				writer.Write(value.DoubleValue);
+				writer.Write((double)value);
 				break;
 			case DataType.Boolean:
-				writer.Write(value.UnsignedValue != 0 ? 1 : 0);
+				writer.Write((bool)value);
 				break;
 			case DataType.Guid:
-				writer.Write(value.GuidValue);
+				writer.Write((Guid)value);
 				break;
 			default:
 				throw new InvalidOperationException($"Type not supported: {dataType}.");

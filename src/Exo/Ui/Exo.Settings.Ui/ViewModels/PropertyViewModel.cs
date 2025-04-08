@@ -7,34 +7,6 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal abstract class PropertyViewModel : ChangeableBindableObject
 {
-	protected static object? GetValue(DataType type, DataValue value)
-		=> !value.IsDefault ?
-			type switch
-			{
-				DataType.UInt8 => (byte?)value.UnsignedValue,
-				DataType.Int8 => (sbyte?)value.SignedValue,
-				DataType.UInt16 => (ushort?)value.UnsignedValue,
-				DataType.Int16 => (short?)value.SignedValue,
-				DataType.UInt32 => (uint?)value.UnsignedValue,
-				DataType.Int32 => (int?)value.SignedValue,
-				DataType.UInt64 => value.UnsignedValue,
-				DataType.Int64 => value.SignedValue,
-				DataType.Float16 => value.SingleValue,
-				DataType.Float32 => value.SingleValue,
-				DataType.Float64 => value.DoubleValue,
-				DataType.Boolean => value.UnsignedValue is ulong uv ? (byte)uv != 0 : null,
-				DataType.ColorGrayscale8 => (byte?)value.UnsignedValue,
-				DataType.ColorGrayscale16 => (ushort?)value.UnsignedValue,
-				DataType.ColorRgb24 => value.UnsignedValue is ulong uv ? Color.FromArgb(255, (byte)(uv >> 16), (byte)(uv >> 8), (byte)uv) : null,
-				DataType.ColorArgb32 => value.UnsignedValue is ulong uv ? Color.FromArgb((byte)(uv >> 24), (byte)(uv >> 16), (byte)(uv >> 8), (byte)uv) : null,
-				DataType.Guid => value.GuidValue,
-				DataType.String => value.StringValue,
-				DataType.TimeSpan => throw new NotImplementedException(),
-				DataType.DateTime => throw new NotImplementedException(),
-				_ => throw new NotSupportedException()
-			} :
-			null;
-
 	protected static (object?, int) ReadValue(DataType type, ReadOnlySpan<byte> data)
 		=> type switch
 		{
@@ -83,21 +55,11 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 		case DataType.ColorArgb32: var argbColor = (Color)value; writer.Write(argbColor.A); writer.Write(argbColor.R); writer.Write(argbColor.G); writer.Write(argbColor.B); break;
 		case DataType.Guid: writer.Write(((Guid)value).ToByteArray()); break;
 		case DataType.String: writer.Write((string)value); break;
-		case DataType.TimeSpan: throw new NotImplementedException("TODO"); break;
+		case DataType.TimeSpan: throw new NotImplementedException("TODO");
 		case DataType.DateTime:
 			throw new NotImplementedException("TODO");
 		}
 	}
-
-	private static object? GetValue(DataType type, DataValue value, int index)
-		=> !value.IsDefault ?
-			type switch
-			{
-				DataType.ArrayOfColorRgb24 => value.BytesValue is { } bytes && 3 * index is int offset ? Color.FromArgb(255, bytes[offset], bytes[offset + 2], bytes[offset + 2]) : null,
-				DataType.ArrayOfColorArgb32 => value.BytesValue is { } bytes && 4 * index is int offset ? Color.FromArgb(bytes[offset], bytes[offset + 2], bytes[offset + 2], bytes[offset + 3]) : null,
-				_ => throw new NotSupportedException()
-			} :
-			null;
 
 	protected static object? GetDefaultValueForType(DataType type)
 		=> type switch

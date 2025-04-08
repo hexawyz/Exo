@@ -243,9 +243,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				string displayName = reader.ReadVariableString() ?? "";
 				var dataType = (DataType)reader.ReadByte();
 				var flags = (LightingEffectFlags)reader.ReadByte();
-				DataValue defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ? ReadValue(ref reader, dataType) : default;
-				DataValue minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ? ReadValue(ref reader, dataType) : default;
-				DataValue maximumValue = (flags & LightingEffectFlags.MaximumValue) != 0 ? ReadValue(ref reader, dataType) : default;
+				object? defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ? ReadValue(ref reader, dataType) : null;
+				object? minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ? ReadValue(ref reader, dataType) : null;
+				object? maximumValue = (flags & LightingEffectFlags.MaximumValue) != 0 ? ReadValue(ref reader, dataType) : null;
 				EnumerationValue[] enumerationValues;
 				if ((flags & LightingEffectFlags.Enum) == 0)
 				{
@@ -284,22 +284,22 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingEffectUpdate(effect));
 
-		static DataValue ReadValue(ref BufferReader reader, DataType dataType)
+		static object ReadValue(ref BufferReader reader, DataType dataType)
 			=> dataType switch
 			{
-				DataType.UInt8 or DataType.ColorGrayscale8 => new() { UnsignedValue = reader.ReadByte() },
-				DataType.Int8 => new() { SignedValue = (sbyte)reader.ReadByte() },
-				DataType.UInt16 => new() { UnsignedValue = reader.Read<ushort>() },
-				DataType.Int16 => new() { SignedValue = reader.Read<short>() },
-				DataType.UInt32 or DataType.ColorRgbw32 or DataType.ColorArgb32 => new() { UnsignedValue = reader.Read<uint>() },
-				DataType.Int32 => new() { SignedValue = reader.Read<int>() },
-				DataType.UInt64 => new() { UnsignedValue = reader.Read<ulong>() },
-				DataType.Int64 => new() { SignedValue = reader.Read<long>() },
-				DataType.Float16 => new() { SingleValue = (float)reader.Read<Half>() },
-				DataType.Float32 => new() { SingleValue = reader.Read<float>() },
-				DataType.Float64 => new() { DoubleValue = reader.Read<double>() },
-				DataType.Boolean => new() { UnsignedValue = reader.ReadByte() },
-				DataType.Guid => new() { GuidValue = reader.ReadGuid() },
+				DataType.UInt8 or DataType.ColorGrayscale8 => reader.ReadByte(),
+				DataType.Int8 => (sbyte)reader.ReadByte(),
+				DataType.UInt16 => reader.Read<ushort>(),
+				DataType.Int16 => reader.Read<short>(),
+				DataType.UInt32 or DataType.ColorRgbw32 or DataType.ColorArgb32 => reader.Read<uint>(),
+				DataType.Int32 => reader.Read<int>(),
+				DataType.UInt64 => reader.Read<ulong>(),
+				DataType.Int64 => reader.Read<long>(),
+				DataType.Float16 => reader.Read<Half>(),
+				DataType.Float32 => reader.Read<float>(),
+				DataType.Float64 => reader.Read<double>(),
+				DataType.Boolean => reader.ReadByte(),
+				DataType.Guid => reader.ReadGuid(),
 				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
 			};
 
