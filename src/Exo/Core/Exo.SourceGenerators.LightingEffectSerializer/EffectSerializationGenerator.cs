@@ -146,8 +146,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				.AppendLine("\t\t\t\t\t{")
 				.Append("\t\t\t\t\t\tName = ").Append(ToStringLiteral(member.Name)).AppendLine(",")
 				.Append("\t\t\t\t\t\tDisplayName = ").Append(ToStringLiteral(member.DisplayName)).AppendLine(",")
-				.Append("\t\t\t\t\t\tDataType = DataType.").Append(member.DataTypeName).AppendLine(",")
-				.AppendLine("\t\t\t\t\t\tDescription = null,");
+				.Append("\t\t\t\t\t\tDataType = DataType.").Append(member.DataTypeName).AppendLine(",");
 
 			if (member.DefaultValue is not null)
 			{
@@ -202,7 +201,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				.AppendLine()
 				.Append("\t\tstatic void ISerializer<").Append(effect.TypeName).Append(">.Deserialize(ref BufferReader reader, out ").Append(effect.TypeName).AppendLine(" value)")
 				.AppendLine("\t\t{")
-				.Append("\t\t\tvalue = new();")
+				.AppendLine("\t\t\tvalue = new();")
 				.AppendLine("\t\t}");
 		}
 

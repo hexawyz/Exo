@@ -100,9 +100,6 @@ internal sealed class GrpcLightingService : ILightingService
 		}
 	}
 
-	public ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken)
-		=> new(_lightingEffectMetadataService.GetEffectInformation(typeReference.TypeId));
-
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		_logger.GrpcLightingServiceEffectWatchStart();

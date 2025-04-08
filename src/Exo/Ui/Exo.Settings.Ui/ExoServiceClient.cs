@@ -1,3 +1,4 @@
+using Exo.Contracts;
 using Exo.Contracts.Ui;
 using Exo.Service;
 using Exo.Settings.Ui.Ipc;
@@ -71,5 +72,10 @@ internal class ExoServiceClient : IServiceClient
 	void IServiceClient.OnSensorDeviceConfigurationUpdate(SensorConfigurationUpdate sensorConfiguration)
 	{
 		_settingsViewModel.Sensors.HandleSensorConfigurationUpdate(sensorConfiguration);
+	}
+
+	void IServiceClient.OnLightingEffectUpdate(LightingEffectInformation effect)
+	{
+		_settingsViewModel.Lighting.CacheEffectInformation(effect);
 	}
 }

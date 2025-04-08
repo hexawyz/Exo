@@ -1,3 +1,4 @@
+using Exo.Contracts;
 using Exo.Contracts.Ui;
 using Exo.Service;
 
@@ -9,6 +10,7 @@ internal interface IServiceClient
 	void OnDisconnected();
 	void OnMetadataSourceNotification(MetadataSourceChangeNotification notification);
 	void OnMenuUpdate(MenuChangeNotification notification);
+	void OnLightingEffectUpdate(LightingEffectInformation effect);
 	void OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation);
 	void OnMonitorDeviceUpdate(MonitorInformation monitorDevice);
 	void OnMonitorSettingUpdate(MonitorSettingValue setting);

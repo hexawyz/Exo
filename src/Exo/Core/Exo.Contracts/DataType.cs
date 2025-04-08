@@ -4,7 +4,7 @@ namespace Exo.Contracts;
 
 /// <summary>Data types used and supported in the service and UI.</summary>
 [DataContract]
-public enum DataType
+public enum DataType : byte
 {
 	/// <summary>Indicates an unsupported data type.</summary>
 	[EnumMember]

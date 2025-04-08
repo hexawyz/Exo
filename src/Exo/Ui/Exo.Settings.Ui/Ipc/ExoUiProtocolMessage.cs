@@ -94,6 +94,8 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Update of a custom menu item.</summary>
 	/// <remarks></remarks>
 	CustomMenuItemUpdate,
+	/// <summary>Provides information about a lighting effect.</summary>
+	LightingEffect,
 	DeviceEnumeration,
 	DeviceAdd,
 	DeviceRemove,
@@ -149,4 +151,15 @@ internal enum MonitorOperationStatus : byte
 	Error,
 	DeviceNotFound,
 	SettingNotFound,
+}
+
+[Flags]
+internal enum LightingEffectFlags : byte
+{
+	None = 0b00000000,
+	DefaultValue = 0b00000001,
+	MinimumValue = 0b00000010,
+	MaximumValue = 0b00000100,
+	Enum = 0b00001000,
+	Array = 0b00010000,
 }

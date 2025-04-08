@@ -106,21 +106,6 @@ internal sealed class LightingEffectMetadataService : IAsyncDisposable
 		}
 	}
 
-	public LightingEffectInformation GetEffectInformation(Guid effectId)
-	{
-		if (!EffectSerializer.TryGetEffectMetadata(effectId, out var metadata))
-		{
-			lock (_effectUpdateLock)
-			{
-				if (!_effectMetadataCache.TryGetValue(effectId, out metadata))
-				{
-					throw new InvalidOperationException("Effect metadata not found.");
-				}
-			}
-		}
-		return metadata;
-	}
-
 	public async IAsyncEnumerable<LightingEffectInformation> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		var channel = Channel.CreateUnbounded<LightingEffectInformation>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = true });

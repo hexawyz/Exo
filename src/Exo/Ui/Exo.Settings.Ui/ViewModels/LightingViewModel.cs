@@ -158,14 +158,6 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 				}
 				else
 				{
-					try
-					{
-						await CacheEffectInformationAsync(info, cancellationToken);
-					}
-					catch
-					{
-					}
-
 					if (_devicesViewModel.TryGetDevice(info.DeviceId, out var device))
 					{
 						OnDeviceAdded(device, info);
@@ -198,8 +190,6 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 				{
 					_activeLightingEffects.Remove((notification.DeviceId, notification.ZoneId));
 				}
-				// We need the effect to be cached before any view model accesses it.
-				if (notification.Effect is not null) await CacheEffectInformationAsync(notification.Effect.EffectId, cancellationToken);
 				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
 				{
 					vm.GetLightingZone(notification.ZoneId).OnEffectUpdated();
@@ -234,26 +224,9 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		}
 	}
 
-	private async Task CacheEffectInformationAsync(LightingDeviceInformation information, CancellationToken cancellationToken)
+	internal void CacheEffectInformation(LightingEffectInformation effectInformation)
 	{
-		if (information.UnifiedLightingZone is { } unifiedZone) await CacheEffectInformationAsync(unifiedZone.SupportedEffectIds, cancellationToken);
-		if (!information.LightingZones.IsDefaultOrEmpty)
-		{
-			foreach (var zone in information.LightingZones)
-			{
-				await CacheEffectInformationAsync(zone.SupportedEffectIds, cancellationToken);
-			}
-		}
-	}
-
-	private async ValueTask CacheEffectInformationAsync(ImmutableArray<Guid> effectIds, CancellationToken cancellationToken)
-		=> await Parallel.ForEachAsync(ImmutableCollectionsMarshal.AsArray(effectIds)!, cancellationToken, CacheEffectInformationAsync);
-
-	private async ValueTask CacheEffectInformationAsync(Guid effectId, CancellationToken cancellationToken)
-	{
-		var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
-		if (!_effectViewModelById.ContainsKey(effectId) &&
-			await lightingService.GetEffectInformationAsync(new EffectTypeReference { TypeId = effectId }, cancellationToken) is { } effectInformation)
+		if (!_effectViewModelById.ContainsKey(effectInformation.EffectId))
 		{
 			string? displayName = null;
 			if (_metadataService.TryGetLightingEffectMetadata("", "", effectInformation.EffectId, out var metadata))
@@ -262,7 +235,11 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 			}
 			displayName ??= string.Create(CultureInfo.InvariantCulture, $"Effect {effectInformation.EffectId:B}.");
 
-			_effectViewModelById.TryAdd(effectId, new(effectInformation, displayName));
+			_effectViewModelById.TryAdd(effectInformation.EffectId, new(effectInformation, displayName));
+		}
+		else
+		{
+			// TODO: Update effect information.
 		}
 	}
 

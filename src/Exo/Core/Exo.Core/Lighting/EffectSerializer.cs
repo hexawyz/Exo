@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Contracts;
 using Exo.Lighting.Effects;
@@ -12,7 +11,6 @@ using Exo.Primitives;
 
 namespace Exo.Lighting;
 
-// To replace the current implementation
 public static class EffectSerializer
 {
 	private delegate void SetEffectDelegate(ILightingZone lightingZone, ReadOnlySpan<byte> data);
@@ -210,7 +208,15 @@ public static class EffectSerializer
 			Metadata = information;
 		}
 
-		public void Dispose() => _dependentHandle.Dispose();
+		~RegisteredEffectState() => Dispose(false);
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void Dispose(bool disposing) => _dependentHandle.Dispose();
 
 		public void RegisterDeserializer<TEffect>()
 			where TEffect : struct, ILightingEffect<TEffect>

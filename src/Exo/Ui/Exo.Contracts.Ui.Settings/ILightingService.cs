@@ -33,14 +33,6 @@ public interface ILightingService
 	[OperationContract]
 	ValueTask ApplyMultiDeviceLightingChangesAsync(MultiDeviceLightingUpdates effects, CancellationToken cancellationToken);
 
-	/// <summary>Gets informations about a specific effect.</summary>
-	/// <remarks>Effect information could be returned from <see cref="WatchLightingDevicesAsync"/> for convenience, but effect types are likely to be reused many times.</remarks>
-	/// <param name="typeReference"></param>
-	/// <param name="cancellationToken"></param>
-	/// <returns></returns>
-	[OperationContract]
-	ValueTask<LightingEffectInformation> GetEffectInformationAsync(EffectTypeReference typeReference, CancellationToken cancellationToken);
-
 	/// <summary>Watches for effect values and changes.</summary>
 	/// <remarks>
 	/// This will reflect changes done using <see cref="ApplyDeviceLightingChangesAsync(DeviceLightingUpdate, CancellationToken)"/>

@@ -12,6 +12,7 @@ using Exo.Utils;
 using Microsoft.UI.Dispatching;
 using DeviceTools;
 using Exo.Monitors;
+using Exo.Contracts;
 
 namespace Exo.Settings.Ui.Ipc;
 
@@ -118,6 +119,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
 			goto Success;
+		case ExoUiProtocolServerMessage.LightingEffect:
+			ProcessLightingEffect(data);
+			goto Success;
 		case ExoUiProtocolServerMessage.DeviceEnumeration:
 			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
 			goto Success;
@@ -217,6 +221,100 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMenuUpdate(notification));
+	}
+
+	private void ProcessLightingEffect(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var effectId = reader.ReadGuid();
+		uint propertyCount = reader.ReadVariableUInt32();
+		ConfigurablePropertyInformation[] properties;
+		if (propertyCount == 0)
+		{
+			properties = [];
+		}
+		else
+		{
+			properties = new ConfigurablePropertyInformation[propertyCount];
+
+			for (int i = 0; i < propertyCount; i++)
+			{
+				string name = reader.ReadVariableString() ?? "";
+				string displayName = reader.ReadVariableString() ?? "";
+				var dataType = (DataType)reader.ReadByte();
+				var flags = (LightingEffectFlags)reader.ReadByte();
+				DataValue defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ? ReadValue(ref reader, dataType) : default;
+				DataValue minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ? ReadValue(ref reader, dataType) : default;
+				DataValue maximumValue = (flags & LightingEffectFlags.MaximumValue) != 0 ? ReadValue(ref reader, dataType) : default;
+				EnumerationValue[] enumerationValues;
+				if ((flags & LightingEffectFlags.Enum) == 0)
+				{
+					enumerationValues = [];
+				}
+				else
+				{
+					enumerationValues = new EnumerationValue[reader.ReadVariableUInt32()];
+					for (int j = 0; j < enumerationValues.Length; j++)
+					{
+						enumerationValues[j] = new()
+						{
+							Value = ReadConstantValue(ref reader, dataType),
+							DisplayName = reader.ReadVariableString() ?? "",
+							Description = reader.ReadVariableString() ?? "",
+						};
+					}
+				}
+				properties[i] = new()
+				{
+					Name = name,
+					DisplayName = displayName,
+					DataType = dataType,
+					DefaultValue = defaultValue,
+					MinimumValue = minimumValue,
+					MaximumValue = maximumValue,
+					EnumerationValues = ImmutableCollectionsMarshal.AsImmutableArray(enumerationValues),
+					ArrayLength = (flags & LightingEffectFlags.Array) != 0 ? (int)reader.ReadVariableUInt32() : null,
+				};
+			}
+		}
+		var effect = new LightingEffectInformation()
+		{
+			EffectId = effectId,
+			Properties = ImmutableCollectionsMarshal.AsImmutableArray(properties),
+		};
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingEffectUpdate(effect));
+
+		static DataValue ReadValue(ref BufferReader reader, DataType dataType)
+			=> dataType switch
+			{
+				DataType.UInt8 or DataType.ColorGrayscale8 => new() { UnsignedValue = reader.ReadByte() },
+				DataType.Int8 => new() { SignedValue = (sbyte)reader.ReadByte() },
+				DataType.UInt16 => new() { UnsignedValue = reader.Read<ushort>() },
+				DataType.Int16 => new() { SignedValue = reader.Read<short>() },
+				DataType.UInt32 or DataType.ColorRgbw32 or DataType.ColorArgb32 => new() { UnsignedValue = reader.Read<uint>() },
+				DataType.Int32 => new() { SignedValue = reader.Read<int>() },
+				DataType.UInt64 => new() { UnsignedValue = reader.Read<ulong>() },
+				DataType.Int64 => new() { SignedValue = reader.Read<long>() },
+				DataType.Float16 => new() { SingleValue = (float)reader.Read<Half>() },
+				DataType.Float32 => new() { SingleValue = reader.Read<float>() },
+				DataType.Float64 => new() { DoubleValue = reader.Read<double>() },
+				DataType.Boolean => new() { UnsignedValue = reader.ReadByte() },
+				DataType.Guid => new() { GuidValue = reader.ReadGuid() },
+				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
+			};
+
+		static ulong ReadConstantValue(ref BufferReader reader, DataType dataType)
+			=> dataType switch
+			{
+				DataType.UInt8 => reader.ReadByte(),
+				DataType.Int8 => (ulong)(long)(sbyte)reader.ReadByte(),
+				DataType.UInt16 => reader.Read<ushort>(),
+				DataType.Int16 => (ulong)(long)reader.Read<short>(),
+				DataType.UInt32 => reader.Read<uint>(),
+				DataType.Int32 => (ulong)(long)reader.Read<int>(),
+				DataType.UInt64 or DataType.Int64 => reader.Read<ulong>(),
+				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
+			};
 	}
 
 	private void ProcessDevice(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)

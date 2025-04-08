@@ -13,8 +13,9 @@ internal sealed class UiIpcService : IHostedService
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
+	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 
-	public UiIpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, MonitorService monitorService, SensorService sensorService)
+	public UiIpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, MonitorService monitorService, SensorService sensorService, LightingEffectMetadataService lightingEffectMetadataService)
 	{
 		_connectionLogger = connectionLogger;
 		_metadataSourceProvider = metadataSourceProvider;
@@ -22,6 +23,7 @@ internal sealed class UiIpcService : IHostedService
 		_deviceRegistry = deviceRegistry;
 		_monitorService = monitorService;
 		_sensorService = sensorService;
+		_lightingEffectMetadataService = lightingEffectMetadataService;
 	}
 
 	private UiPipeServer? _server;
@@ -50,7 +52,7 @@ internal sealed class UiIpcService : IHostedService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _deviceRegistry, _monitorService, _sensorService);
+		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _deviceRegistry, _monitorService, _sensorService, _lightingEffectMetadataService);
 		_server.Start();
 		return Task.CompletedTask;
 	}
