@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
@@ -10,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-internal sealed class LightingEffectMetadataService : IAsyncDisposable
+internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffectInformation>, IAsyncDisposable
 {
 	[TypeId(0x3B7410BA, 0xF28E, 0x498E, 0xB7, 0x23, 0x4A, 0xE9, 0x09, 0xDF, 0xBA, 0xFC)]
 	public readonly struct PersistedLightingEffectInformation
@@ -106,38 +105,19 @@ internal sealed class LightingEffectMetadataService : IAsyncDisposable
 		}
 	}
 
-	public async IAsyncEnumerable<LightingEffectInformation> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	LightingEffectInformation[]? IChangeSource<LightingEffectInformation>.GetInitialChangesAndRegisterWatcher(ChannelWriter<LightingEffectInformation> writer)
 	{
-		var channel = Channel.CreateUnbounded<LightingEffectInformation>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = true });
-
-		LightingEffectInformation[]? initialEffects;
 		lock (_effectUpdateLock)
 		{
-			initialEffects = [.. _effectMetadataCache.Values];
-			_effectChangeBroadcaster.Register(channel);
+			LightingEffectInformation[] initialEffects = [.. _effectMetadataCache.Values];
+			_effectChangeBroadcaster.Register(writer);
+			return initialEffects;
 		}
+	}
 
-		try
-		{
-			foreach (var effect in initialEffects)
-			{
-				yield return effect;
-			}
-			initialEffects = null;
-
-			while (true)
-			{
-				await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
-				while (channel.Reader.TryPeek(out var effect))
-				{
-					yield return effect;
-				}
-			}
-		}
-		finally
-		{
-			_effectChangeBroadcaster.Unregister(channel);
-		}
+	void IChangeSource<LightingEffectInformation>.UnregisterWatcher(ChannelWriter<LightingEffectInformation> writer)
+	{
+		_effectChangeBroadcaster.Unregister(writer);
 	}
 
 	private ValueTask PersistEffectInformationAsync(LightingEffectInformation info, CancellationToken cancellationToken)

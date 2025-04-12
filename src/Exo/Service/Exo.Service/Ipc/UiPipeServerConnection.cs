@@ -296,20 +296,51 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private async Task WatchLightingEffectsAsync(CancellationToken cancellationToken)
 	{
-		try
+		// We use this change watcher abstraction so that we can guarantee that all effect metadata will always be pushed before metadata is referenced.
+		using (var watcher = new BroadcastedChangeWatcher<LightingEffectInformation>(_lightingEffectMetadataService))
 		{
-			await foreach (var effectInformation in _lightingEffectMetadataService.WatchEffectsAsync(cancellationToken).ConfigureAwait(false))
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<LightingEffectInformation> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					int length = Write(buffer.Span, effectInformation);
-					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					foreach (var effectInformation in initialData)
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
 				}
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingEffectInformation> watcher, CancellationToken cancellationToken)
 		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var effectInformation))
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
 		}
 
 		static int Write(Span<byte> buffer, in LightingEffectInformation effect)
@@ -455,7 +486,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				{
 					var buffer = WriteBuffer;
 					int length = WriteUpdate(buffer.Span, info);
-					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 				}
 			}
 		}
@@ -522,7 +553,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				{
 					var buffer = WriteBuffer;
 					int length = Write(buffer.Span, setting);
-					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 				}
 			}
 		}
@@ -553,7 +584,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				{
 					var buffer = WriteBuffer;
 					int length = WriteUpdate(buffer.Span, info);
-					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 				}
 			}
 		}
@@ -618,7 +649,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 				{
 					var buffer = WriteBuffer;
 					int length = WriteUpdate(buffer.Span, info);
-					await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 				}
 			}
 		}

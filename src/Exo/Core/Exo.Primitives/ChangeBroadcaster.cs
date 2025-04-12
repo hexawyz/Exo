@@ -89,3 +89,29 @@ public struct ChangeBroadcaster<T>
 		}
 	}
 }
+
+public interface IChangeSource<T>
+{
+	public T[]? GetInitialChangesAndRegisterWatcher(ChannelWriter<T> writer);
+	public void UnregisterWatcher(ChannelWriter<T> writer);
+}
+
+// A light abstraction for watching values. Exposing the channel reader allows smoother 
+public struct BroadcastedChangeWatcher<T> : IDisposable
+{
+	private readonly IChangeSource<T> _source;
+	private T[]? _initialData;
+	private readonly Channel<T> _channel;
+
+	public BroadcastedChangeWatcher(IChangeSource<T> source)
+	{
+		_source = source;
+		_channel = Channel.CreateUnbounded<T>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
+		_initialData = source.GetInitialChangesAndRegisterWatcher(_channel.Writer);
+	}
+
+	public void Dispose() => _source.UnregisterWatcher(_channel.Writer);
+
+	public T[]? ConsumeInitialData() => Interlocked.Exchange(ref _initialData, null);
+	public ChannelReader<T> Reader => _channel.Reader;
+}
