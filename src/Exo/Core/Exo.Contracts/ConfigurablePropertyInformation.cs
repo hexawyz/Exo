@@ -1,12 +1,165 @@
 using System.Collections.Immutable;
 using System.Runtime.Serialization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Exo.Contracts;
 
 /// <summary>Information on a property that can be configured through the UI.</summary>
 [DataContract]
+[JsonConverter(typeof(JsonConverter))]
 public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePropertyInformation?>
 {
+	private sealed class JsonConverter : JsonConverter<ConfigurablePropertyInformation>
+	{
+		public override ConfigurablePropertyInformation? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+		{
+			if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
+
+			reader.Read();
+
+			if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
+
+			string? name = null;
+			string? displayName = null;
+			DataType dataType = DataType.Other;
+			object? defaultValue = null;
+			object? minimumValue = null;
+			object? maximumValue = null;
+			ImmutableArray<EnumerationValue> enumerationValues = default;
+			int? arrayLength = null;
+			while (true)
+			{
+				string? propertyName = reader.GetString();
+				reader.Read();
+				switch (propertyName)
+				{
+				case nameof(name):
+					name = reader.GetString();
+					break;
+				case nameof(displayName):
+					displayName = reader.GetString() ?? throw new JsonException();
+					break;
+				case nameof(dataType):
+					dataType = JsonSerializer.Deserialize<DataType>(ref reader, options);
+					break;
+				case nameof(defaultValue):
+					defaultValue = ReadValue(ref reader, dataType);
+					break;
+				case nameof(minimumValue):
+					minimumValue = ReadValue(ref reader, dataType);
+					break;
+				case nameof(maximumValue):
+					maximumValue = ReadValue(ref reader, dataType);
+					break;
+				case nameof(enumerationValues):
+					enumerationValues = JsonSerializer.Deserialize<ImmutableArray<EnumerationValue>>(ref reader, options);
+					break;
+				case nameof(arrayLength):
+					arrayLength = reader.GetInt32();
+					break;
+				default:
+					JsonSerializer.Deserialize<object?>(ref reader, options);
+					break;
+				}
+				reader.Read();
+				if (reader.TokenType == JsonTokenType.EndObject) break;
+				else if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
+			}
+
+			return new()
+			{
+				Name = name ?? throw new JsonException("Missing required Name property."),
+				DisplayName = displayName ?? throw new JsonException("Missing required DisplayName property."),
+				DataType = dataType != DataType.Other ? dataType : throw new JsonException("Missing required DisplayName property"),
+				DefaultValue = defaultValue,
+				MinimumValue = minimumValue,
+				MaximumValue = maximumValue,
+				EnumerationValues = enumerationValues,
+				ArrayLength = arrayLength,
+			};
+		}
+
+		private static object? ReadValue(ref Utf8JsonReader reader, DataType dataType)
+			=> dataType switch
+			{
+				DataType.Other => throw new Exception("DataType has not been defined."),
+				DataType.UInt8 => reader.GetByte(),
+				DataType.Int8 => reader.GetSByte(),
+				DataType.UInt16 => reader.GetUInt16(),
+				DataType.Int16 => reader.GetInt16(),
+				DataType.UInt32 => reader.GetUInt32(),
+				DataType.Int32 => reader.GetInt32(),
+				DataType.UInt64 => reader.GetUInt64(),
+				DataType.Int64 => reader.GetInt64(),
+				DataType.Float16 => (Half)reader.GetSingle(),
+				DataType.Float32 => reader.GetSingle(),
+				DataType.Float64 => reader.GetDouble(),
+				DataType.Boolean => reader.GetBoolean(),
+				DataType.Guid => reader.GetGuid(),
+				DataType.TimeSpan => throw new NotImplementedException("TODO"),
+				DataType.DateTime => reader.GetDateTime(),
+				DataType.String => reader.GetString(),
+				_ => throw new NotImplementedException(),
+			};
+
+		public override void Write(Utf8JsonWriter writer, ConfigurablePropertyInformation value, JsonSerializerOptions options)
+		{
+			writer.WriteStartObject();
+			writer.WriteString("name", value.Name);
+			writer.WriteString("displayName", value.DisplayName);
+			writer.WritePropertyName("dataType");
+			JsonSerializer.Serialize(writer, value.DataType, options);
+			if (value.DefaultValue is not null)
+			{
+				writer.WritePropertyName("defaultValue");
+				WriteValue(writer, value.DataType, value.DefaultValue);
+			}
+			if (value.MinimumValue is not null)
+			{
+				writer.WritePropertyName("minimumValue");
+				WriteValue(writer, value.DataType, value.MinimumValue);
+			}
+			if (value.MaximumValue is not null)
+			{
+				writer.WritePropertyName("maximumValue");
+				WriteValue(writer, value.DataType, value.MaximumValue);
+			}
+			if (!value.EnumerationValues.IsDefaultOrEmpty)
+			{
+				writer.WritePropertyName("enumerationValues");
+				JsonSerializer.Serialize(writer, value.EnumerationValues, options);
+			}
+			if (value.ArrayLength is not null) writer.WriteNumber("arrayLength", value.ArrayLength.GetValueOrDefault());
+			writer.WriteEndObject();
+		}
+
+		private static void WriteValue(Utf8JsonWriter writer, DataType dataType, object value)
+		{
+			switch (dataType)
+			{
+			case DataType.Other: throw new Exception("DataType has not been defined.");
+			case DataType.UInt8: writer.WriteNumberValue((byte)value); break;
+			case DataType.Int8: writer.WriteNumberValue((sbyte)value); break;
+			case DataType.UInt16: writer.WriteNumberValue((ushort)value); break;
+			case DataType.Int16: writer.WriteNumberValue((short)value); break;
+			case DataType.UInt32: writer.WriteNumberValue((uint)value); break;
+			case DataType.Int32: writer.WriteNumberValue((int)value); break;
+			case DataType.UInt64: writer.WriteNumberValue((ulong)value); break;
+			case DataType.Int64: writer.WriteNumberValue((long)value); break;
+			case DataType.Float16: writer.WriteNumberValue((float)(Half)value); break;
+			case DataType.Float32: writer.WriteNumberValue((float)value); break;
+			case DataType.Float64: writer.WriteNumberValue((double)value); break;
+			case DataType.Boolean: writer.WriteBooleanValue((bool)value); break;
+			case DataType.Guid: writer.WriteStringValue((Guid)value); break;
+			case DataType.TimeSpan: throw new NotImplementedException("TODO");
+			case DataType.DateTime: writer.WriteStringValue((DateTime)value); break;
+			case DataType.String: writer.WriteStringValue((string)value); break;
+			default: throw new InvalidOperationException("Unsupported DataType.");
+			}
+		}
+	}
+
 	/// <summary>The name of the property.</summary>
 	[DataMember(Order = 1)]
 	public required string Name { get; init; }
