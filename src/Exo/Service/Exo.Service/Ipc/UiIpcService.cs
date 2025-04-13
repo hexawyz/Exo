@@ -8,17 +8,17 @@ namespace Exo.Service.Ipc;
 internal sealed class UiIpcService : IHostedService
 {
 	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
-	private readonly IMetadataSourceProvider _metadataSourceProvider;
+	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 
-	public UiIpcService(ILogger<UiPipeServerConnection> connectionLogger, IMetadataSourceProvider metadataSourceProvider, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, MonitorService monitorService, SensorService sensorService, LightingEffectMetadataService lightingEffectMetadataService)
+	public UiIpcService(ILogger<UiPipeServerConnection> connectionLogger, IAssemblyLoader assemblyLoader, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, MonitorService monitorService, SensorService sensorService, LightingEffectMetadataService lightingEffectMetadataService)
 	{
 		_connectionLogger = connectionLogger;
-		_metadataSourceProvider = metadataSourceProvider;
+		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
 		_monitorService = monitorService;
@@ -52,7 +52,7 @@ internal sealed class UiIpcService : IHostedService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _metadataSourceProvider, _customMenuService, _deviceRegistry, _monitorService, _sensorService, _lightingEffectMetadataService);
+		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _assemblyLoader, _customMenuService, _deviceRegistry, _monitorService, _sensorService, _lightingEffectMetadataService);
 		_server.Start();
 		return Task.CompletedTask;
 	}

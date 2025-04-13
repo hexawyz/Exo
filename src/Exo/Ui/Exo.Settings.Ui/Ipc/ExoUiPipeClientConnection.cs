@@ -202,7 +202,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var reader = new BufferReader(data);
 		var sources = new MetadataSourceInformation[reader.ReadVariableUInt32()];
 		for (int i = 0; i < sources.Length; i++)
-			sources[i] = new() { Category = (MetadataArchiveCategory)reader.ReadByte(), ArchivePath = reader.ReadVariableString() ?? "" };
+			sources[i] = new((MetadataArchiveCategory)reader.ReadByte(), reader.ReadVariableString() ?? "");
 		notification = new MetadataSourceChangeNotification(kind, ImmutableCollectionsMarshal.AsImmutableArray(sources));
 	PropagateNotification:;
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMetadataSourceNotification(notification));

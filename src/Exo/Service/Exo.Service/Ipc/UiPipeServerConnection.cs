@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Net.Quic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -26,7 +27,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			server,
 			stream,
 			uiPipeServer.ConnectionLogger,
-			uiPipeServer.MetadataSourceProvider,
+			uiPipeServer.AssemblyLoader,
 			uiPipeServer.CustomMenuService,
 			uiPipeServer.DeviceRegistry,
 			uiPipeServer.MonitorService,
@@ -35,7 +36,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		);
 	}
 
-	private readonly IMetadataSourceProvider _metadataSourceProvider;
+	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly MonitorService _monitorService;
@@ -52,7 +53,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		PipeServer server,
 		NamedPipeServerStream stream,
 		ILogger<UiPipeServerConnection> logger,
-		IMetadataSourceProvider metadataSourceProvider,
+		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
 		MonitorService monitorService,
@@ -61,7 +62,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	) : base(server, stream)
 	{
 		_logger = logger;
-		_metadataSourceProvider = metadataSourceProvider;
+		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
 		_monitorService = monitorService;
@@ -123,59 +124,103 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private async Task WatchMetadataChangesAsync(CancellationToken cancellationToken)
 	{
-		try
+		using (var watcher = new BroadcastedChangeWatcher<AssemblyChangeNotification>(_assemblyLoader))
 		{
-			await foreach (var notification in _metadataSourceProvider.WatchMetadataSourceChangesAsync(cancellationToken))
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<AssemblyChangeNotification> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					int count = WriteNotification(buffer.Span, notification);
+					int count;
+					foreach (var notification in initialData)
+					{
+						count = WriteNotification(buffer.Span, notification);
+						await WriteAsync(buffer[..count], cancellationToken).ConfigureAwait(false);
+					}
+					// Signal the end of initial enumeration.
+					count = WriteNotification(buffer.Span, new(WatchNotificationKind.Update, "", MetadataArchiveCategories.None));
 					await WriteAsync(buffer[..count], cancellationToken).ConfigureAwait(false);
 				}
 			}
+		}
 
-			static int WriteNotification(Span<byte> buffer, MetadataSourceChangeNotification notification)
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<AssemblyChangeNotification> watcher, CancellationToken cancellationToken)
+		{
+			while (true)
 			{
-				var writer = new BufferWriter(buffer);
-				switch (notification.NotificationKind)
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
-				case WatchNotificationKind.Enumeration:
-					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
-					break;
-				case WatchNotificationKind.Addition:
-					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesAdd);
-					break;
-				case WatchNotificationKind.Removal:
-					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesRemove);
-					break;
-				case WatchNotificationKind.Update:
-					writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesUpdate);
-					goto Completed;
-				default: throw new UnreachableException();
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var notification))
+					{
+						int count = WriteNotification(buffer.Span, notification);
+						await WriteAsync(buffer[..count], cancellationToken).ConfigureAwait(false);
+					}
 				}
-				WriteSources(ref writer, notification.Sources);
-			Completed:;
-				return (int)writer.Length;
-			}
-
-			static void WriteSources(ref BufferWriter writer, ImmutableArray<MetadataSourceInformation> sources)
-			{
-				writer.WriteVariable((uint)sources.Length);
-				for (int i = 0; i < sources.Length; i++)
-				{
-					WriteSource(ref writer, sources[i]);
-				}
-			}
-
-			static void WriteSource(ref BufferWriter writer, MetadataSourceInformation source)
-			{
-				writer.Write((byte)source.Category);
-				writer.WriteVariableString(source.ArchivePath);
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+		static int WriteNotification(Span<byte> buffer, AssemblyChangeNotification notification)
 		{
+			var writer = new BufferWriter(buffer);
+			switch (notification.NotificationKind)
+			{
+			case WatchNotificationKind.Enumeration:
+				writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesEnumeration);
+				break;
+			case WatchNotificationKind.Addition:
+				writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesAdd);
+				break;
+			case WatchNotificationKind.Removal:
+				writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesRemove);
+				break;
+			case WatchNotificationKind.Update:
+				writer.Write((byte)ExoUiProtocolServerMessage.MetadataSourcesUpdate);
+				goto Completed;
+			default: throw new UnreachableException();
+			}
+			const MetadataArchiveCategories AllCategories =
+				MetadataArchiveCategories.Strings |
+				MetadataArchiveCategories.LightingEffects |
+				MetadataArchiveCategories.LightingZones |
+				MetadataArchiveCategories.Sensors |
+				MetadataArchiveCategories.Coolers;
+			writer.WriteVariable((uint)BitOperations.PopCount((nuint)notification.AvailableMetadataArchives & (nuint)AllCategories));
+			WriteSourceIfPresent(ref writer, notification, MetadataArchiveCategory.Strings);
+			WriteSourceIfPresent(ref writer, notification, MetadataArchiveCategory.LightingEffects);
+			WriteSourceIfPresent(ref writer, notification, MetadataArchiveCategory.LightingZones);
+			WriteSourceIfPresent(ref writer, notification, MetadataArchiveCategory.Sensors);
+			WriteSourceIfPresent(ref writer, notification, MetadataArchiveCategory.Coolers);
+		Completed:;
+			return (int)writer.Length;
+		}
+
+		static void WriteSourceIfPresent(ref BufferWriter writer, AssemblyChangeNotification notification, MetadataArchiveCategory category)
+		{
+			if ((notification.AvailableMetadataArchives & (MetadataArchiveCategories)(1 << (int)category)) != 0)
+			{
+				WriteSource(ref writer, category, notification.GetArchivePath(category));
+			}
+		}
+
+		static void WriteSource(ref BufferWriter writer, MetadataArchiveCategory category, string archivePath)
+		{
+			writer.Write((byte)category);
+			writer.WriteVariableString(archivePath);
 		}
 	}
 
@@ -296,7 +341,6 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private async Task WatchLightingEffectsAsync(CancellationToken cancellationToken)
 	{
-		// We use this change watcher abstraction so that we can guarantee that all effect metadata will always be pushed before metadata is referenced.
 		using (var watcher = new BroadcastedChangeWatcher<LightingEffectInformation>(_lightingEffectMetadataService))
 		{
 			try

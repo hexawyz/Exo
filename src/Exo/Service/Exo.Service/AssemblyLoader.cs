@@ -7,10 +7,11 @@ using System.Runtime.Loader;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Contracts;
+using Exo.Primitives;
 
 namespace Exo.Service;
 
-internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider, IDisposable
+internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 {
 	// Used to persist the name of assemblies that were loaded at least once.
 	// Normally, the component discovery and loading system should strictly avoid unnecessarily loading assemblies,
@@ -20,17 +21,6 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	private readonly struct UsedAssemblyDetails
 	{
 		public readonly ImmutableArray<string> UsedAssemblyNames { get; init; }
-	}
-
-	[Flags]
-	private enum MetadataArchiveCategories
-	{
-		None = 0,
-		Strings = 1,
-		LightingEffects = 2,
-		LightingZones = 4,
-		Sensors = 8,
-		Coolers = 16,
 	}
 
 	private sealed class AssemblyCacheEntry
@@ -109,7 +99,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 	private AssemblyName[] _availableAssemblies = [];
 	private readonly object _updateLock = new();
 	private readonly HashSet<AssemblyCacheEntry> _loadedAssemblies = new();
-	private ChannelWriter<(WatchNotificationKind Kind, string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives)>[]? _metadataChangeListeners;
+	private ChangeBroadcaster<AssemblyChangeNotification> _assemblyChangeBroadcaster;
 	private readonly HashSet<string> _assembliesUsedAtLeastOnce;
 	private readonly IConfigurationContainer _configurationContainer;
 	private readonly Timer _configurationUpdateTimer;
@@ -201,7 +191,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 						if (_loadedAssemblies.Remove(entry))
 						{
 							if (_assembliesUsedAtLeastOnce.Remove(entry.AssemblyName.FullName)) UnsafeScheduleConfigurationUpdate();
-							_metadataChangeListeners.TryWrite((WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
+							_assemblyChangeBroadcaster.Push(new(WatchNotificationKind.Removal, entry.Path, entry.AvailableMetadataArchives));
 						}
 					}
 				}
@@ -259,7 +249,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 			if (_assembliesUsedAtLeastOnce.Add(entry.AssemblyName.FullName))
 			{
 				UnsafeScheduleConfigurationUpdate();
-				_metadataChangeListeners.TryWrite((WatchNotificationKind.Addition, entry.Path, entry.AvailableMetadataArchives));
+				_assemblyChangeBroadcaster.Push(new(WatchNotificationKind.Addition, entry.Path, entry.AvailableMetadataArchives));
 			}
 		}
 
@@ -309,113 +299,30 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IMetadataSourceProvider,
 		return entry;
 	}
 
-	private static string GetCategorySuffix(MetadataArchiveCategory category)
-		=> category switch
-		{
-			MetadataArchiveCategory.Strings => ".Strings.xoa",
-			MetadataArchiveCategory.LightingEffects => ".LightingEffects.xoa",
-			MetadataArchiveCategory.LightingZones => ".LightingZones.xoa",
-			MetadataArchiveCategory.Sensors => ".Sensors.xoa",
-			MetadataArchiveCategory.Coolers => ".Coolers.xoa",
-			_ => throw new InvalidOperationException(),
-		};
 
-	private static MetadataSourceInformation CreateSourceInformation(string assemblyPath, MetadataArchiveCategory category, int extensionLength)
-		=> new()
-		{
-			Category = category,
-			ArchivePath = $"{assemblyPath.AsSpan(0, assemblyPath.Length - extensionLength)}{GetCategorySuffix(category)}"
-		};
-
-	public async IAsyncEnumerable<MetadataSourceChangeNotification> WatchMetadataSourceChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	AssemblyChangeNotification[]? IChangeSource<AssemblyChangeNotification>.GetInitialChangesAndRegisterWatcher(ChannelWriter<AssemblyChangeNotification> writer)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<(WatchNotificationKind Kind, string AssemblyPath, MetadataArchiveCategories AvailableMetadataArchives)>();
-
-		AssemblyCacheEntry[]? loadedAssemblies;
+		AssemblyChangeNotification[] loadedAssemblies;
 		lock (_updateLock)
 		{
-			loadedAssemblies = new AssemblyCacheEntry[_assembliesUsedAtLeastOnce.Count + 1];
+			loadedAssemblies = new AssemblyChangeNotification[_assembliesUsedAtLeastOnce.Count + 1];
 			int i = 0;
+			loadedAssemblies[i++] = new(WatchNotificationKind.Enumeration, _mainAssemblyPath, MetadataArchiveCategories.Strings | MetadataArchiveCategories.LightingEffects);
 			foreach (var assemblyName in _assembliesUsedAtLeastOnce)
 			{
 				if (_availableAssemblyDetails.TryGetValue(assemblyName, out var details))
 				{
-					loadedAssemblies[i++] = details;
+					loadedAssemblies[i++] = new(WatchNotificationKind.Enumeration, details.Path, details.AvailableMetadataArchives);
 				}
 			}
 			if (i < loadedAssemblies.Length) Array.Resize(ref loadedAssemblies, i);
-			ArrayExtensions.InterlockedAdd(ref _metadataChangeListeners, channel);
+			_assemblyChangeBroadcaster.Register(writer);
 		}
+		return loadedAssemblies;
+	}
 
-		try
-		{
-			const int MaximumSourceCount = 5;
-
-			var sources = new MetadataSourceInformation[2];
-			sources[0] = new() { Category = MetadataArchiveCategory.Strings, ArchivePath = $"{_mainAssemblyPath.AsSpan(0, _mainAssemblyPath.Length - Path.GetExtension(_mainAssemblyPath.AsSpan()).Length)}.Strings.xoa" };
-			sources[1] = new() { Category = MetadataArchiveCategory.LightingEffects, ArchivePath = $"{_mainAssemblyPath.AsSpan(0, _mainAssemblyPath.Length - Path.GetExtension(_mainAssemblyPath.AsSpan()).Length)}.LightingEffects.xoa" };
-			yield return new(WatchNotificationKind.Enumeration, ImmutableCollectionsMarshal.AsImmutableArray(sources));
-			sources = null;
-
-			foreach (var entry in loadedAssemblies)
-			{
-				if (entry.AvailableMetadataArchives == 0) continue;
-
-				int extensionLength = Path.GetExtension(entry.Path.AsSpan()).Length;
-				int count = 0;
-
-				sources ??= new MetadataSourceInformation[MaximumSourceCount];
-
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Strings) != 0) sources[count++] = CreateSourceInformation(entry.Path, MetadataArchiveCategory.Strings, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) sources[count++] = CreateSourceInformation(entry.Path, MetadataArchiveCategory.LightingEffects, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) sources[count++] = CreateSourceInformation(entry.Path, MetadataArchiveCategory.LightingZones, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) sources[count++] = CreateSourceInformation(entry.Path, MetadataArchiveCategory.Sensors, extensionLength);
-				if ((entry.AvailableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) sources[count++] = CreateSourceInformation(entry.Path, MetadataArchiveCategory.Coolers, extensionLength);
-
-				if (count == sources.Length)
-				{
-					yield return new(WatchNotificationKind.Enumeration, ImmutableCollectionsMarshal.AsImmutableArray(sources));
-					sources = null;
-				}
-				else
-				{
-					yield return new(WatchNotificationKind.Enumeration, ImmutableCollectionsMarshal.AsImmutableArray(sources[..count]));
-				}
-			}
-			loadedAssemblies = null;
-
-			// Signals that the enumeration stage is complete.
-			yield return new(WatchNotificationKind.Update, []);
-
-			await foreach (var (kind, assemblyPath, availableMetadataArchives) in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				if (availableMetadataArchives == 0) continue;
-
-				int extensionLength = Path.GetExtension(assemblyPath.AsSpan()).Length;
-				int count = 0;
-
-				sources ??= new MetadataSourceInformation[MaximumSourceCount];
-
-				if ((availableMetadataArchives & MetadataArchiveCategories.Strings) != 0) sources[count++] = CreateSourceInformation(assemblyPath, MetadataArchiveCategory.Strings, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.LightingEffects) != 0) sources[count++] = CreateSourceInformation(assemblyPath, MetadataArchiveCategory.LightingEffects, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.LightingZones) != 0) sources[count++] = CreateSourceInformation(assemblyPath, MetadataArchiveCategory.LightingZones, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.Sensors) != 0) sources[count++] = CreateSourceInformation(assemblyPath, MetadataArchiveCategory.Sensors, extensionLength);
-				if ((availableMetadataArchives & MetadataArchiveCategories.Coolers) != 0) sources[count++] = CreateSourceInformation(assemblyPath, MetadataArchiveCategory.Coolers, extensionLength);
-
-				if (count == sources.Length)
-				{
-					yield return new(WatchNotificationKind.Enumeration, ImmutableCollectionsMarshal.AsImmutableArray(sources));
-					sources = null;
-				}
-				else
-				{
-					yield return new(WatchNotificationKind.Enumeration, ImmutableCollectionsMarshal.AsImmutableArray(sources[..count]));
-				}
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _metadataChangeListeners, channel);
-		}
+	void IChangeSource<AssemblyChangeNotification>.UnregisterWatcher(ChannelWriter<AssemblyChangeNotification> writer)
+	{
+		_assemblyChangeBroadcaster.Unregister(writer);
 	}
 }

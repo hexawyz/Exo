@@ -85,7 +85,6 @@ public class Startup
 			).GetAwaiter().GetResult()
 		);
 		services.AddSingleton<IAssemblyLoader>(sp => sp.GetRequiredService<AssemblyLoader>());
-		services.AddSingleton<IMetadataSourceProvider>(sp => sp.GetRequiredService<AssemblyLoader>());
 		services.AddSingleton
 		(
 			sp => DeviceRegistry.CreateAsync

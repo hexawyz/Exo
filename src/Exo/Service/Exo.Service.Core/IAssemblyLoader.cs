@@ -1,10 +1,11 @@
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
+using Exo.Primitives;
 
 namespace Exo.Service;
 
-public interface IAssemblyLoader
+public interface IAssemblyLoader : IChangeSource<AssemblyChangeNotification>
 {
 	/// <summary>Triggered after an assembly has been loaded into its own context.</summary>
 	/// <remarks>If necessary, services can perform their own initialization task regarding the loaded assembly.</remarks>

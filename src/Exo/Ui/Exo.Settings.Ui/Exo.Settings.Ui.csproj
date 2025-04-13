@@ -65,8 +65,6 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceNotFoundException.cs" Link="Definitions\DeviceNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceStateInformation.cs" Link="Definitions\DeviceStateInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
-	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataSourceChangeNotification.cs" Link="Definitions\MetadataSourceChangeNotification.cs" />
-	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataSourceInformation.cs" Link="Definitions\MetadataSourceInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSetting.cs" Link="Definitions\MonitorSetting.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSettingValue.cs" Link="Definitions\MonitorSettingValue.cs" />

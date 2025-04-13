@@ -11,14 +11,14 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 	internal MonitorService MonitorService { get; }
 	internal SensorService SensorService { get; }
 	internal LightingEffectMetadataService LightingEffectMetadataService { get; }
-	internal IMetadataSourceProvider MetadataSourceProvider { get; }
+	internal IAssemblyLoader AssemblyLoader { get; }
 
 	public UiPipeServer
 	(
 		string pipeName,
 		PipeSecurity? pipeSecurity,
 		ILogger<UiPipeServerConnection> connectionLogger,
-		IMetadataSourceProvider metadataSourceProvider,
+		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
 		MonitorService monitorService,
@@ -27,7 +27,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 	) : base(pipeName, 2, PipeTransmissionMode.Message, pipeSecurity)
 	{
 		ConnectionLogger = connectionLogger;
-		MetadataSourceProvider = metadataSourceProvider;
+		AssemblyLoader = assemblyLoader;
 		CustomMenuService = customMenuService;
 		DeviceRegistry = deviceRegistry;
 		MonitorService = monitorService;
