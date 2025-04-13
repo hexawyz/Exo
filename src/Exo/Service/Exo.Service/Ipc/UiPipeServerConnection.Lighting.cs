@@ -1,0 +1,315 @@
+using Exo.Contracts;
+using Exo.Primitives;
+using Exo.Settings.Ui.Ipc;
+
+namespace Exo.Service.Ipc;
+
+partial class UiPipeServerConnection
+{
+	private async Task WatchLightingEffectsAsync(CancellationToken cancellationToken)
+	{
+		using (var watcher = new BroadcastedChangeWatcher<LightingEffectInformation>(_lightingEffectMetadataService))
+		{
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<LightingEffectInformation> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					foreach (var effectInformation in initialData)
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingEffectInformation> watcher, CancellationToken cancellationToken)
+		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var effectInformation))
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		static int Write(Span<byte> buffer, in LightingEffectInformation effect)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingEffect);
+			writer.Write(effect.EffectId);
+			if (effect.Properties.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+			}
+			else
+			{
+				writer.WriteVariable((uint)effect.Properties.Length);
+				foreach (var property in effect.Properties)
+				{
+					WriteProperty(ref writer, property);
+				}
+			}
+			return (int)writer.Length;
+		}
+
+		static void WriteProperty(ref BufferWriter writer, in ConfigurablePropertyInformation property)
+		{
+			writer.WriteVariableString(property.Name);
+			writer.WriteVariableString(property.DisplayName);
+			writer.Write((byte)property.DataType);
+			var flags = LightingEffectFlags.None;
+			if (property.DefaultValue is not null) flags |= LightingEffectFlags.DefaultValue;
+			if (property.MinimumValue is not null) flags |= LightingEffectFlags.MinimumValue;
+			if (property.MaximumValue is not null) flags |= LightingEffectFlags.MaximumValue;
+			if (!property.EnumerationValues.IsDefaultOrEmpty) flags |= LightingEffectFlags.Enum;
+			if (property.ArrayLength is not null) flags |= LightingEffectFlags.Array;
+			writer.Write((byte)flags);
+			if (property.DefaultValue is not null) WriteValue(ref writer, property.DataType, property.DefaultValue);
+			if (property.MinimumValue is not null) WriteValue(ref writer, property.DataType, property.MinimumValue);
+			if (property.MaximumValue is not null) WriteValue(ref writer, property.DataType, property.MaximumValue);
+			if (!property.EnumerationValues.IsDefaultOrEmpty)
+			{
+				writer.WriteVariable((uint)property.EnumerationValues.Length);
+				foreach (var enumerationValue in property.EnumerationValues)
+				{
+					WriteConstantValue(ref writer, property.DataType, enumerationValue.Value);
+					writer.WriteVariableString(enumerationValue.DisplayName);
+					writer.WriteVariableString(enumerationValue.Description);
+				}
+			}
+			if (property.ArrayLength is not null) writer.WriteVariable((uint)property.ArrayLength.GetValueOrDefault());
+		}
+
+		static void WriteValue(ref BufferWriter writer, DataType dataType, object value)
+		{
+			switch (dataType)
+			{
+			case DataType.UInt8:
+			case DataType.ColorGrayscale8:
+				writer.Write((byte)value);
+				break;
+			case DataType.Int8:
+				writer.Write((byte)value);
+				break;
+			case DataType.UInt16:
+				writer.Write((ushort)value);
+				break;
+			case DataType.Int16:
+				writer.Write((short)value);
+				break;
+			case DataType.UInt32:
+			case DataType.ColorRgbw32:
+			case DataType.ColorArgb32:
+				writer.Write((uint)value);
+				break;
+			case DataType.Int32:
+				writer.Write((int)value);
+				break;
+			case DataType.UInt64:
+				writer.Write((ulong)value);
+				break;
+			case DataType.Int64:
+				writer.Write((long)value);
+				break;
+			case DataType.Float16:
+				writer.Write((Half)value);
+				break;
+			case DataType.Float32:
+				writer.Write((float)value);
+				break;
+			case DataType.Float64:
+				writer.Write((double)value);
+				break;
+			case DataType.Boolean:
+				writer.Write((bool)value);
+				break;
+			case DataType.Guid:
+				writer.Write((Guid)value);
+				break;
+			default:
+				throw new InvalidOperationException($"Type not supported: {dataType}.");
+			}
+		}
+
+		static void WriteConstantValue(ref BufferWriter writer, DataType dataType, ulong value)
+		{
+			switch (dataType)
+			{
+			case DataType.UInt8:
+				writer.Write((byte)value);
+				break;
+			case DataType.Int8:
+				writer.Write((byte)value);
+				break;
+			case DataType.UInt16:
+				writer.Write((ushort)value);
+				break;
+			case DataType.Int16:
+				writer.Write((short)value);
+				break;
+			case DataType.UInt32:
+				writer.Write((uint)value);
+				break;
+			case DataType.Int32:
+				writer.Write((int)value);
+				break;
+			case DataType.UInt64:
+				writer.Write(value);
+				break;
+			case DataType.Int64:
+				writer.Write(value);
+				break;
+			default:
+				throw new InvalidOperationException($"Type not supported: {dataType}.");
+			}
+		}
+	}
+
+	private void ProcessLightingDeviceConfiguration(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
+	{
+		var reader = new BufferReader(data);
+		uint requestId = reader.ReadVariableUInt32();
+		var deviceId = reader.ReadGuid();
+		var flags = (DeviceLightingConfigurationFlags)reader.ReadByte();
+		byte brightness = 0;
+		if ((flags & DeviceLightingConfigurationFlags.HasBrightness) != 0)
+		{
+			brightness = reader.ReadByte();
+			try
+			{
+				_lightingService.SetBrightness(deviceId, brightness);
+			}
+			catch (DeviceNotFoundException)
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				return;
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+			catch
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+				return;
+			}
+		}
+		uint zoneCount = reader.ReadVariableUInt32();
+		for (uint i = 0; i < zoneCount; i++)
+		{
+			var zoneId = reader.ReadGuid();
+			var effectId = reader.ReadGuid();
+			uint dataLength = reader.ReadVariableUInt32();
+			try
+			{
+				_lightingService.SetEffect(deviceId, zoneId, effectId, reader.UnsafeReadSpan(dataLength));
+			}
+			catch (DeviceNotFoundException)
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				return;
+			}
+			catch (LightingZoneNotFoundException)
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.ZoneNotFound, cancellationToken);
+				return;
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+			catch
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+				return;
+			}
+		}
+		ApplyLightingChanges(requestId, deviceId, (flags & DeviceLightingConfigurationFlags.Persist) != 0, cancellationToken);
+	}
+
+	private async void ApplyLightingChanges(uint requestId, Guid deviceId, bool shouldPersist, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await ApplyLightingChangesAsync(requestId, deviceId, shouldPersist, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+		}
+	}
+
+	private async ValueTask ApplyLightingChangesAsync(uint requestId, Guid deviceId, bool shouldPersist, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await _lightingService.ApplyChangesAsync(deviceId, shouldPersist).ConfigureAwait(false);
+		}
+		catch (DeviceNotFoundException)
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+			return;
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			return;
+		}
+		catch
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+			return;
+		}
+		WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Success, cancellationToken);
+	}
+
+	private async void WriteLightingDeviceDeviceConfigurationStatus(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await WriteLightingDeviceDeviceConfigurationStatusAsync(requestId, status, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+		}
+	}
+
+	private async ValueTask WriteLightingDeviceDeviceConfigurationStatusAsync(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
+	{
+		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = WriteBuffer;
+			nuint length = Write(buffer.Span, requestId, status);
+			await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
+		}
+
+		static nuint Write(Span<byte> buffer, uint requestId, LightingDeviceOperationStatus status)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingDeviceConfigurationStatus);
+			writer.WriteVariable(requestId);
+			writer.Write((byte)status);
+			return writer.Length;
+		}
+	}
+}
