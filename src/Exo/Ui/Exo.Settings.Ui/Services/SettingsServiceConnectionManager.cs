@@ -4,6 +4,7 @@ using Exo.Contracts.Ui.Settings;
 using Exo.Ui;
 using Grpc.Net.Client;
 using ProtoBuf.Grpc.Client;
+using IGrpcLightingService = Exo.Contracts.Ui.Settings.ILightingService;
 
 namespace Exo.Settings.Ui.Services;
 
@@ -150,7 +151,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
 	private TaskCompletionSource<IPowerService> _powerServiceTaskCompletionSource;
 	private TaskCompletionSource<IMouseService> _mouseServiceTaskCompletionSource;
-	private TaskCompletionSource<ILightingService> _lightingServiceTaskCompletionSource;
+	private TaskCompletionSource<IGrpcLightingService> _lightingServiceTaskCompletionSource;
 	private TaskCompletionSource<ILightService> _lightServiceTaskCompletionSource;
 	private TaskCompletionSource<IEmbeddedMonitorService> _embeddedMonitorServiceTaskCompletionSource;
 	private TaskCompletionSource<IImageService> _imageServiceTaskCompletionSource;
@@ -188,7 +189,7 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	public Task<IMouseService> GetMouseServiceAsync(CancellationToken cancellationToken)
 		=> _mouseServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
-	public Task<ILightingService> GetLightingServiceAsync(CancellationToken cancellationToken)
+	public Task<IGrpcLightingService> GetLightingServiceAsync(CancellationToken cancellationToken)
 		=> _lightingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ILightService> GetLightServiceAsync(CancellationToken cancellationToken)

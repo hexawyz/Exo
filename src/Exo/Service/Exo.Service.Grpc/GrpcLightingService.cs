@@ -50,56 +50,6 @@ internal sealed class GrpcLightingService : ILightingService
 		}
 	}
 
-	public async ValueTask ApplyDeviceLightingChangesAsync(DeviceLightingUpdate update, CancellationToken cancellationToken)
-	{
-		if (update.BrightnessLevel != 0)
-		{
-			_lightingService.SetBrightness(update.DeviceId, update.BrightnessLevel);
-		}
-
-		foreach (var ze in update.ZoneEffects)
-		{
-			try
-			{
-				_lightingService.SetEffect(update.DeviceId, ze.ZoneId, ze.Effect!);
-			}
-			catch (Exception ex)
-			{
-				_logger.GrpcLightingServiceEffectApplicationError(update.DeviceId, ze.Effect?.EffectId ?? default, ze.ZoneId, ex);
-			}
-		}
-
-		await _lightingService.ApplyChangesAsync(update.DeviceId, update.ShouldPersist).ConfigureAwait(false);
-	}
-
-	public async ValueTask ApplyMultiDeviceLightingChangesAsync(MultiDeviceLightingUpdates updates, CancellationToken cancellationToken)
-	{
-		foreach (var update in updates.DeviceUpdates)
-		{
-			if (update.BrightnessLevel != 0)
-			{
-				_lightingService.SetBrightness(update.DeviceId, update.BrightnessLevel);
-			}
-
-			foreach (var ze in update.ZoneEffects)
-			{
-				try
-				{
-					_lightingService.SetEffect(update.DeviceId, ze.ZoneId, ze.Effect!);
-				}
-				catch (Exception ex)
-				{
-					_logger.GrpcLightingServiceEffectApplicationError(update.DeviceId, ze.Effect?.EffectId ?? default, ze.ZoneId, ex);
-				}
-			}
-		}
-
-		foreach (var update in updates.DeviceUpdates)
-		{
-			await _lightingService.ApplyChangesAsync(update.DeviceId, update.ShouldPersist).ConfigureAwait(false);
-		}
-	}
-
 	public async IAsyncEnumerable<DeviceZoneLightingEffect> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		_logger.GrpcLightingServiceEffectWatchStart();

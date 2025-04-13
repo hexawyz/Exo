@@ -64,6 +64,7 @@
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\NonContinuousValueDescription.cs" Link="Definitions\NonContinuousValueDescription.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceNotFoundException.cs" Link="Definitions\DeviceNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceStateInformation.cs" Link="Definitions\DeviceStateInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSetting.cs" Link="Definitions\MonitorSetting.cs" />

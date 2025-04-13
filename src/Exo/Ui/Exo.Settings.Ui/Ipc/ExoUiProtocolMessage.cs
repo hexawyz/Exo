@@ -23,6 +23,8 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// <remarks>Contents: 16 bytes (GUID)</remarks>
 	InvokeMenuCommand,
 	UpdateCustomMenu,
+	/// <summary>Requests the update of lighting configuration for a device.</summary>
+	LightingDeviceConfiguration,
 	/// <summary>Requests the update of a monitor setting.</summary>
 	/// <remarks>Contents: Arbitrary request Id (varint32) + request.</remarks>
 	MonitorSettingSet,
@@ -96,6 +98,8 @@ internal enum ExoUiProtocolServerMessage : byte
 	CustomMenuItemUpdate,
 	/// <summary>Provides information about a lighting effect.</summary>
 	LightingEffect,
+	/// <summary>Acknowledges a lighting update.</summary>
+	LightingDeviceConfigurationStatus,
 	DeviceEnumeration,
 	DeviceAdd,
 	DeviceRemove,
@@ -153,6 +157,14 @@ internal enum MonitorOperationStatus : byte
 	SettingNotFound,
 }
 
+internal enum LightingDeviceOperationStatus : byte
+{
+	Success,
+	Error,
+	DeviceNotFound,
+	ZoneNotFound,
+}
+
 [Flags]
 internal enum LightingEffectFlags : byte
 {
@@ -162,4 +174,12 @@ internal enum LightingEffectFlags : byte
 	MaximumValue = 0b00000100,
 	Enum = 0b00001000,
 	Array = 0b00010000,
+}
+
+[Flags]
+internal enum DeviceLightingConfigurationFlags : byte
+{
+	None = 0b00000000,
+	Persist = 0b00000001,
+	HasBrightness = 0b00000010,
 }

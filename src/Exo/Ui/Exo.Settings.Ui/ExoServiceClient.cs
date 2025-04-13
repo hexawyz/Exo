@@ -1,5 +1,6 @@
 using Exo.Contracts;
 using Exo.Contracts.Ui;
+using Exo.Contracts.Ui.Settings;
 using Exo.Service;
 using Exo.Settings.Ui.Ipc;
 using Exo.Settings.Ui.Services;
@@ -28,6 +29,7 @@ internal class ExoServiceClient : IServiceClient
 		{
 			_settingsViewModel.Devices.OnConnected(control);
 			_settingsViewModel.Sensors.OnConnected(control);
+			_settingsViewModel.Lighting.OnConnected(control);
 		}
 	}
 
@@ -36,6 +38,7 @@ internal class ExoServiceClient : IServiceClient
 		_metadataService.Reset();
 		_settingsViewModel.Devices.Reset();
 		_settingsViewModel.Sensors.Reset();
+		_settingsViewModel.Lighting.Reset();
 	}
 
 	void IServiceClient.OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation)
@@ -77,5 +80,9 @@ internal class ExoServiceClient : IServiceClient
 	void IServiceClient.OnLightingEffectUpdate(LightingEffectInformation effect)
 	{
 		_settingsViewModel.Lighting.CacheEffectInformation(effect);
+	}
+
+	void IServiceClient.OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice)
+	{
 	}
 }

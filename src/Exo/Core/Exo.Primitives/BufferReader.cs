@@ -157,4 +157,12 @@ public ref struct BufferReader
 		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), 16);
 		return value;
 	}
+
+	public ReadOnlySpan<byte> UnsafeReadSpan(uint count)
+	{
+		if (RemainingLength < count) throw new EndOfStreamException();
+		ref readonly byte start = ref _current;
+		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), count);
+		return MemoryMarshal.CreateReadOnlySpan(in start, (int)count);
+	}
 }

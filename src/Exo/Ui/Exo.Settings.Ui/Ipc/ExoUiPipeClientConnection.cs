@@ -13,6 +13,7 @@ using Microsoft.UI.Dispatching;
 using DeviceTools;
 using Exo.Monitors;
 using Exo.Contracts;
+using Exo.Contracts.Ui.Settings;
 
 namespace Exo.Settings.Ui.Ipc;
 
@@ -30,6 +31,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private readonly IServiceClient _serviceClient;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
 	private TaskCompletionSource<MonitorOperationStatus>?[]? _monitorOperations;
+	private TaskCompletionSource<LightingDeviceOperationStatus>?[]? _lightingDeviceOperations;
 	private bool _isConnected;
 
 	private ExoUiPipeClientConnection
@@ -133,6 +135,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceUpdate:
 			ProcessDevice(Service.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingDeviceConfigurationStatus:
+			ProcessLightingDeviceOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MonitorDevice:
 			ProcessMonitorDevice(data);
@@ -386,6 +391,17 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			=> new(reader.Read<ushort>(), reader.ReadGuid(), reader.ReadVariableString());
 	}
 
+	private void ProcessLightingDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (LightingDeviceOperationStatus)reader.ReadByte();
+
+		if (_lightingDeviceOperations is { } lightingDeviceOperations && requestId < (uint)lightingDeviceOperations.Length && Volatile.Read(ref lightingDeviceOperations[requestId]) is { } operation)
+			operation.TrySetResult(status);
+	}
+
 	private void ProcessMonitorSetting(ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
@@ -519,6 +535,75 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		{
 			buffer[0] = (byte)ExoUiProtocolClientMessage.InvokeMenuCommand;
 			Unsafe.WriteUnaligned(ref buffer[1], menuItemId);
+		}
+	}
+
+	async ValueTask Services.ILightingService.SetLightingAsync(DeviceLightingUpdate update, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<LightingDeviceOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			// Logic is mostly similar to what is done for sensors, but less complex.
+			uint requestId = 0;
+			var monitorOperations = _lightingDeviceOperations;
+			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
+			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
+			if (monitorOperations is null) Volatile.Write(ref _lightingDeviceOperations, monitorOperations = new TaskCompletionSource<LightingDeviceOperationStatus>[2]);
+			for (; requestId < monitorOperations.Length; requestId++)
+				if (monitorOperations[requestId] is null) break;
+			if (requestId >= monitorOperations.Length)
+			{
+				Array.Resize(ref monitorOperations, (int)(2 * (uint)monitorOperations.Length));
+				Volatile.Write(ref _lightingDeviceOperations, monitorOperations);
+			}
+			operation = new();
+			monitorOperations[requestId] = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, update);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var status = await operation.Task.ConfigureAwait(false);
+		switch (status)
+		{
+		case LightingDeviceOperationStatus.Success: return;
+		case LightingDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		case LightingDeviceOperationStatus.ZoneNotFound: throw new LightingZoneNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+
+		static void Write(Span<byte> buffer, uint requestId, DeviceLightingUpdate update)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.LightingDeviceConfiguration);
+			writer.WriteVariable(requestId);
+			writer.Write(update.DeviceId);
+			var flags = DeviceLightingConfigurationFlags.None;
+			if (update.ShouldPersist) flags |= DeviceLightingConfigurationFlags.Persist;
+			if (update.BrightnessLevel is not null) flags |= DeviceLightingConfigurationFlags.HasBrightness;
+			writer.Write((byte)flags);
+			if (update.BrightnessLevel is not null) writer.Write(update.BrightnessLevel.GetValueOrDefault());
+			if (update.ZoneEffects.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+			}
+			else
+			{
+				writer.WriteVariable((uint)update.ZoneEffects.Length);
+				foreach (var zoneEffect in update.ZoneEffects)
+				{
+					if (zoneEffect.Effect is null) continue;
+					writer.Write(zoneEffect.ZoneId);
+					writer.Write(zoneEffect.Effect.EffectId);
+					writer.WriteVariable((uint)zoneEffect.Effect.EffectData.Length);
+					writer.Write(zoneEffect.Effect.EffectData);
+				}
+			}
 		}
 	}
 

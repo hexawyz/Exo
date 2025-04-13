@@ -56,10 +56,13 @@ public static class EffectSerializer
 	}
 
 	public static bool TrySetEffect(ILightingZone lightingZone, LightingEffect effect)
+		=> TrySetEffect(lightingZone, effect.EffectId, effect.EffectData ?? []);
+
+	public static bool TrySetEffect(ILightingZone lightingZone, Guid effectId, ReadOnlySpan<byte> data)
 	{
-		if (EffectStates.TryGetValue(effect.EffectId, out var state))
+		if (EffectStates.TryGetValue(effectId, out var state))
 		{
-			return state.SetEffect(lightingZone, effect.EffectData ?? []);
+			return state.SetEffect(lightingZone, data);
 		}
 		return false;
 	}

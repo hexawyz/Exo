@@ -32,7 +32,8 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			uiPipeServer.DeviceRegistry,
 			uiPipeServer.MonitorService,
 			uiPipeServer.SensorService,
-			uiPipeServer.LightingEffectMetadataService
+			uiPipeServer.LightingEffectMetadataService,
+			uiPipeServer.LightingService
 		);
 	}
 
@@ -42,6 +43,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
+	private readonly LightingService _lightingService;
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
@@ -58,7 +60,8 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		DeviceRegistry deviceRegistry,
 		MonitorService monitorService,
 		SensorService sensorService,
-		LightingEffectMetadataService lightingEffectMetadataService
+		LightingEffectMetadataService lightingEffectMetadataService,
+		LightingService lightingService
 	) : base(server, stream)
 	{
 		_logger = logger;
@@ -68,6 +71,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 		_monitorService = monitorService;
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
+		_lightingService = lightingService;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
 			if (callingProcess.ProcessName != "Exo.Settings.Ui")
@@ -876,6 +880,9 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 			goto Success;
 		case ExoUiProtocolClientMessage.UpdateSettings:
 			goto Success;
+		case ExoUiProtocolClientMessage.LightingDeviceConfiguration:
+			ProcessLightingDeviceConfiguration(data, cancellationToken);
+			goto Success;
 		case ExoUiProtocolClientMessage.MonitorSettingSet:
 			ProcessMonitorSettingSet(data, cancellationToken);
 			goto Success;
@@ -896,6 +903,132 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private void ProcessMenuItemInvocation(Guid commandId)
 	{
+	}
+
+	private void ProcessLightingDeviceConfiguration(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
+	{
+		var reader = new BufferReader(data);
+		uint requestId = reader.ReadVariableUInt32();
+		var deviceId = reader.ReadGuid();
+		var flags = (DeviceLightingConfigurationFlags)reader.ReadByte();
+		byte brightness = 0;
+		if ((flags & DeviceLightingConfigurationFlags.HasBrightness) != 0)
+		{
+			brightness = reader.ReadByte();
+			try
+			{
+				_lightingService.SetBrightness(deviceId, brightness);
+			}
+			catch (DeviceNotFoundException)
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				return;
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+			catch
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+				return;
+			}
+		}
+		uint zoneCount = reader.ReadVariableUInt32();
+		for (uint i = 0; i < zoneCount; i++)
+		{
+			var zoneId = reader.ReadGuid();
+			var effectId = reader.ReadGuid();
+			uint dataLength = reader.ReadVariableUInt32();
+			try
+			{
+				_lightingService.SetEffect(deviceId, zoneId, effectId, reader.UnsafeReadSpan(dataLength));
+			}
+			catch (DeviceNotFoundException)
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				return;
+			}
+			catch (LightingZoneNotFoundException)
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.ZoneNotFound, cancellationToken);
+				return;
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+			catch
+			{
+				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+				return;
+			}
+		}
+		ApplyLightingChanges(requestId, deviceId, (flags & DeviceLightingConfigurationFlags.Persist) != 0, cancellationToken);
+	}
+
+	private async void ApplyLightingChanges(uint requestId, Guid deviceId, bool shouldPersist, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await ApplyLightingChangesAsync(requestId, deviceId, shouldPersist, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+		}
+	}
+
+	private async ValueTask ApplyLightingChangesAsync(uint requestId, Guid deviceId, bool shouldPersist, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await _lightingService.ApplyChangesAsync(deviceId, shouldPersist).ConfigureAwait(false);
+		}
+		catch (DeviceNotFoundException)
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+			return;
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			return;
+		}
+		catch
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+			return;
+		}
+		WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Success, cancellationToken);
+	}
+
+	private async void WriteLightingDeviceDeviceConfigurationStatus(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await WriteLightingDeviceDeviceConfigurationStatusAsync(requestId, status, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+		}
+	}
+
+	private async ValueTask WriteLightingDeviceDeviceConfigurationStatusAsync(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
+	{
+		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = WriteBuffer;
+			nuint length = Write(buffer.Span, requestId, status);
+			await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
+		}
+
+		static nuint Write(Span<byte> buffer, uint requestId, LightingDeviceOperationStatus status)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingDeviceConfigurationStatus);
+			writer.WriteVariable(requestId);
+			writer.Write((byte)status);
+			return writer.Length;
+		}
 	}
 
 	private void ProcessMonitorSettingSet(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
@@ -986,10 +1119,12 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 
 	private async ValueTask WriteMonitorOperationStatusAsync(ExoUiProtocolServerMessage message, uint requestId, MonitorOperationStatus status, CancellationToken cancellationToken)
 	{
-		var buffer = WriteBuffer;
-		nuint length = Write(buffer.Span, message, requestId, status);
-		await WriteAsync(buffer[..(int)length], cancellationToken);
-
+		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = WriteBuffer;
+			nuint length = Write(buffer.Span, message, requestId, status);
+			await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
+		}
 		static nuint Write(Span<byte> buffer, ExoUiProtocolServerMessage message, uint requestId, MonitorOperationStatus status)
 		{
 			var writer = new BufferWriter(buffer);
@@ -1013,7 +1148,7 @@ internal sealed class UiPipeServerConnection : PipeServerConnection, IPipeServer
 	{
 		var buffer = WriteBuffer;
 		nuint length = Write(buffer.Span, streamId, status);
-		await WriteAsync(buffer[..(int)length], cancellationToken);
+		await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
 
 		static nuint Write(Span<byte> buffer, uint streamId, SensorStartStatus status)
 		{

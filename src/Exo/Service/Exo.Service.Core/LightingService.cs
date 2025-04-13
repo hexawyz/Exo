@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Configuration;
@@ -955,30 +956,37 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		}
 	}
 
-	public void SetEffect(Guid deviceId, Guid zoneId, LightingEffect effect)
+	public void SetEffect(Guid deviceId, Guid zoneId, Guid effectId, ReadOnlySpan<byte> data)
 	{
 		var cancellationToken = GetCancellationToken();
 
 		if (!_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
 		{
-			throw new InvalidOperationException($"Could not find the specified device.");
+			throw new DeviceNotFoundException();
 		}
 
 		lock (deviceState.Lock)
 		{
 			if (!deviceState.LightingZones.TryGetValue(zoneId, out var zoneState))
 			{
-				throw new InvalidOperationException($"Could not find the zone with ID {zoneId:B} on the specified device.");
+				throw new LightingZoneNotFoundException(zoneId);
 			}
 
 			bool isUnifiedLightingZone = zoneId == deviceState.UnifiedLightingZoneId;
 			bool isUnifiedLightingUpdated = deviceState.IsUnifiedLightingEnabled != isUnifiedLightingZone;
+			bool hasEffectChanged = zoneState.SerializedCurrentEffect is null ||
+				zoneState.SerializedCurrentEffect.EffectId != effectId ||
+				!data.SequenceEqual(zoneState.SerializedCurrentEffect.EffectData);
+
+			// Skip the actual update if the serialized data is already up-to-date.
+			if (!hasEffectChanged && !isUnifiedLightingUpdated) return;
 
 			if (zoneState.LightingZone is { } zone)
 			{
-				EffectSerializer.TrySetEffect(zone, effect);
+				EffectSerializer.TrySetEffect(zone, effectId, data);
 			}
 
+			var effect = new LightingEffect(effectId, data.ToArray());
 			zoneState.SerializedCurrentEffect = effect;
 
 			if (isUnifiedLightingUpdated)
@@ -1029,39 +1037,41 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	{
 		var cancellationToken = GetCancellationToken();
 
-		if (_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
 		{
-			lock (deviceState.Lock)
-			{
-				if (deviceState.BrightnessCapabilities is null || brightness == deviceState.Brightness) return;
+			throw new DeviceNotFoundException();
+		}
 
-				if (deviceState.Driver is null) return;
+		lock (deviceState.Lock)
+		{
+			if (deviceState.BrightnessCapabilities is null || brightness == deviceState.Brightness) return;
 
-				if (!isRestore)
-				{
-					deviceState.Brightness = brightness;
-				}
-
-				var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
-
-				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } bf)
-				{
-					bf.CurrentBrightness = brightness;
-				}
-			}
+			if (deviceState.Driver is null) return;
 
 			if (!isRestore)
 			{
-				if (Volatile.Read(ref _configurationChangeListeners) is not null)
+				deviceState.Brightness = brightness;
+			}
+
+			var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
+
+			if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } bf)
+			{
+				bf.CurrentBrightness = brightness;
+			}
+		}
+
+		if (!isRestore)
+		{
+			if (Volatile.Read(ref _configurationChangeListeners) is not null)
+			{
+				// We probably strictly need this lock for consistency with the WatchBrightnessAsync setup.
+				lock (_changeLock)
 				{
-					// We probably strictly need this lock for consistency with the WatchBrightnessAsync setup.
-					lock (_changeLock)
-					{
-						_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
-					}
-					PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
+					_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
 				}
 			}
+			PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 		}
 	}
 
@@ -1069,14 +1079,16 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	{
 		ValueTask applyChangesTask = ValueTask.CompletedTask;
 
-		if (_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
 		{
-			lock (deviceState.Lock)
-			{
-				if (deviceState.Driver is null) goto Completed;
+			return ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new DeviceNotFoundException()));
+		}
 
-				applyChangesTask = ApplyChangesAsync(deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>(), shouldPersist);
-			}
+		lock (deviceState.Lock)
+		{
+			if (deviceState.Driver is null) goto Completed;
+
+			applyChangesTask = ApplyChangesAsync(deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>(), shouldPersist);
 		}
 
 	Completed:;

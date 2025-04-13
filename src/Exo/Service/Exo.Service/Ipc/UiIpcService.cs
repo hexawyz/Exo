@@ -14,8 +14,19 @@ internal sealed class UiIpcService : IHostedService
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
+	private readonly LightingService _lightingService;
 
-	public UiIpcService(ILogger<UiPipeServerConnection> connectionLogger, IAssemblyLoader assemblyLoader, CustomMenuService customMenuService, DeviceRegistry deviceRegistry, MonitorService monitorService, SensorService sensorService, LightingEffectMetadataService lightingEffectMetadataService)
+	public UiIpcService
+	(
+		ILogger<UiPipeServerConnection> connectionLogger,
+		IAssemblyLoader assemblyLoader,
+		CustomMenuService customMenuService,
+		DeviceRegistry deviceRegistry,
+		MonitorService monitorService,
+		SensorService sensorService,
+		LightingEffectMetadataService lightingEffectMetadataService,
+		LightingService lightingService
+	)
 	{
 		_connectionLogger = connectionLogger;
 		_assemblyLoader = assemblyLoader;
@@ -24,6 +35,7 @@ internal sealed class UiIpcService : IHostedService
 		_monitorService = monitorService;
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
+		_lightingService = lightingService;
 	}
 
 	private UiPipeServer? _server;
@@ -52,7 +64,19 @@ internal sealed class UiIpcService : IHostedService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Ui", pipeSecurity, _connectionLogger, _assemblyLoader, _customMenuService, _deviceRegistry, _monitorService, _sensorService, _lightingEffectMetadataService);
+		_server = new
+		(
+			"Local\\Exo.Service.Ui",
+			pipeSecurity,
+			_connectionLogger,
+			_assemblyLoader,
+			_customMenuService,
+			_deviceRegistry,
+			_monitorService,
+			_sensorService,
+			_lightingEffectMetadataService,
+			_lightingService
+		);
 		_server.Start();
 		return Task.CompletedTask;
 	}

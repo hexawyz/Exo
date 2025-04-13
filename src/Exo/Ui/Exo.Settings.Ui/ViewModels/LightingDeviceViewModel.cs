@@ -252,19 +252,21 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			}
 			if (zoneEffects.Count > 0 || ShouldPersistChanges)
 			{
-				var lightingService = await LightingViewModel.ConnectionManager.GetLightingServiceAsync(cancellationToken);
-				await lightingService.ApplyDeviceLightingChangesAsync
-				(
-					new()
-					{
-						DeviceId = _deviceViewModel.Id,
-						ShouldPersist = ShouldPersistChanges,
-						BrightnessLevel = Brightness?.Level ?? 0,
-						ZoneEffects = zoneEffects.DrainToImmutable()
-					},
-					cancellationToken
-				);
-				ShouldPersistChanges = false;
+				if (LightingViewModel.LightingService is { } lightingService)
+				{
+					await lightingService.SetLightingAsync
+					(
+						new DeviceLightingUpdate()
+						{
+							DeviceId = _deviceViewModel.Id,
+							ShouldPersist = ShouldPersistChanges,
+							BrightnessLevel = Brightness?.Level ?? 0,
+							ZoneEffects = zoneEffects.DrainToImmutable()
+						},
+						cancellationToken
+					);
+					ShouldPersistChanges = false;
+				}
 			}
 		}
 		catch

@@ -1,13 +1,12 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using ILightingService = Exo.Settings.Ui.Services.ILightingService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -16,6 +15,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	internal SettingsServiceConnectionManager ConnectionManager { get; }
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ISettingsMetadataService _metadataService;
+	private ILightingService? _lightingService;
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
@@ -27,6 +27,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 	private readonly IDisposable _stateRegistration;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
+	public ILightingService? LightingService => _lightingService;
 
 	public LightingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
 	{
@@ -42,6 +43,16 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		_cancellationTokenSource = new CancellationTokenSource();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
 		_stateRegistration = ConnectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
+	}
+
+	internal void OnConnected(ILightingService lightingService)
+	{
+		_lightingService = lightingService;
+	}
+
+	internal void Reset()
+	{
+		_lightingService = null;
 	}
 
 	public ValueTask DisposeAsync()

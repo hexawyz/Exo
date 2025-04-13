@@ -13,7 +13,7 @@ public sealed class DeviceLightingUpdate
 	public required bool ShouldPersist { get; init; }
 
 	[DataMember(Order = 3)]
-	public byte BrightnessLevel { get; init; }
+	public byte? BrightnessLevel { get; init; }
 
 	private readonly ImmutableArray<ZoneLightEffect> _zoneEffects;
 	[DataMember(Order = 4)]
