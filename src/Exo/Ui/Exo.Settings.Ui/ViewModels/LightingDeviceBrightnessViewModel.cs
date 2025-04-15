@@ -1,19 +1,19 @@
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObject
 {
-	private readonly LightingBrightnessCapabilities _capabilities;
+	private readonly BrightnessCapabilities _capabilities;
 	private byte _initialBrightness;
 	private byte _currentBrightness;
 
-	public LightingDeviceBrightnessViewModel(LightingBrightnessCapabilities capabilities) => _capabilities = capabilities;
+	public LightingDeviceBrightnessViewModel(BrightnessCapabilities capabilities) => _capabilities = capabilities;
 
-	public double MinimumLevelPercent => _capabilities.MinimumBrightness / (double)_capabilities.MaximumBrightness;
+	public double MinimumLevelPercent => _capabilities.MinimumValue / (double)_capabilities.MaximumValue;
 
-	public byte MinimumLevel => _capabilities.MinimumBrightness;
-	public byte MaximumLevel => _capabilities.MaximumBrightness;
+	public byte MinimumLevel => _capabilities.MinimumValue;
+	public byte MaximumLevel => _capabilities.MaximumValue;
 
 	public override bool IsChanged => _currentBrightness != _initialBrightness;
 

@@ -96,6 +96,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var lightingEffectsWatchTask = WatchLightingEffectsAsync(cancellationToken);
 
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
+		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
+		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 
@@ -111,6 +113,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			customMenuWatchTask,
 			lightingEffectsWatchTask,
 			deviceWatchTask,
+			lightingDeviceWatchTask,
+			lightingDeviceConfigurationWatchTask,
 			monitorDeviceWatchTask,
 			monitorSettingWatchTask,
 			sensorDeviceWatchTask,

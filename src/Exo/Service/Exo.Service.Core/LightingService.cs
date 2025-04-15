@@ -10,6 +10,7 @@ using Exo.Features;
 using Exo.Features.Lighting;
 using Exo.Lighting;
 using Exo.PowerManagement;
+using Exo.Primitives;
 using Exo.Programming.Annotations;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ namespace Exo.Service;
 
 [Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
-internal sealed partial class LightingService : IAsyncDisposable, IPowerNotificationSink
+internal sealed partial class LightingService : IAsyncDisposable, IPowerNotificationSink, IChangeSource<LightingDeviceInformation>, IChangeSource<LightingDeviceConfiguration>
 {
 	private sealed class DeviceState
 	{
@@ -60,8 +61,23 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		public PersistedLightingDeviceConfiguration CreatePersistedConfiguration()
 			=> new() { IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, Brightness = Brightness };
 
-		public LightingDeviceConfigurationWatchNotification CreateConfigurationWatchNotification(Guid deviceId)
-			=> new() { DeviceId = deviceId, IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, BrightnessLevel = Brightness };
+		public LightingDeviceConfiguration CreateConfiguration(Guid deviceId)
+			=> new(deviceId, IsUnifiedLightingEnabled, Brightness, [], CreateEffectConfiguration());
+
+		private ImmutableArray<LightingZoneEffect> CreateEffectConfiguration()
+		{
+			var lightingZones = new LightingZoneEffect[LightingZones.Count];
+			int i = 0;
+			foreach (var kvp in LightingZones)
+			{
+				if (kvp.Value.SerializedCurrentEffect is not null)
+				{
+					lightingZones[i++] = new(kvp.Key, kvp.Value.SerializedCurrentEffect);
+				}
+			}
+			if (i != lightingZones.Length) lightingZones = lightingZones[..i];
+			return ImmutableCollectionsMarshal.AsImmutableArray(lightingZones);
+		}
 	}
 
 	private sealed class LightingZoneState
@@ -239,9 +255,8 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private readonly object _changeLock;
 	private readonly AsyncLock _restoreLock;
 	private TaskCompletionSource _restoreTaskCompletionSource;
-	private ChannelWriter<LightingDeviceInformation>[]? _deviceListeners;
-	private ChannelWriter<LightingEffectWatchNotification>[]? _effectChangeListeners;
-	private ChannelWriter<LightingDeviceConfigurationWatchNotification>[]? _configurationChangeListeners;
+	private ChangeBroadcaster<LightingDeviceInformation> _deviceInformationBroadcaster;
+	private ChangeBroadcaster<LightingDeviceConfiguration> _deviceConfigurationBroadcaster;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly ILogger<LightingService> _logger;
 
@@ -430,6 +445,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			deviceId,
 			deviceState.PersistenceMode,
 			deviceState.BrightnessCapabilities,
+			null,
 			unifiedLightingZoneInfo,
 			ImmutableCollectionsMarshal.AsImmutableArray(lightingZoneInfos)
 		);
@@ -476,7 +492,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		var brightnessFeature = lightingFeatures.GetFeature<ILightingBrightnessFeature>();
 		if (brightnessFeature is not null)
 		{
-			brightnessCapabilities = new() { MinimumValue = brightnessFeature.MinimumBrightness, MaximumValue = brightnessFeature.MaximumBrightness };
+			brightnessCapabilities = new(brightnessFeature.MinimumBrightness, brightnessFeature.MaximumBrightness);
 			brightness = brightnessFeature.CurrentBrightness;
 		}
 
@@ -744,23 +760,12 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 							applyChangesTask = ApplyRestoredChangesAsync(dcf, notification.DeviceInformation.Id);
 						}
 					}
-				}
 
-				// Handlers can only be added from within the lock, so we can conditionally emit the new notifications based on the needs. (Handlers can be removed at anytime)
-				if (Volatile.Read(ref _deviceListeners) is { } deviceListeners)
-				{
-					deviceListeners.TryWrite(CreateDeviceInformation(notification.DeviceInformation.Id, deviceState));
-				}
-				if (Volatile.Read(ref _configurationChangeListeners) is { } configurationChangeListeners)
-				{
-					configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(notification.DeviceInformation.Id));
-				}
-				if (Volatile.Read(ref _effectChangeListeners) is { } effectChangeListeners)
-				{
-					foreach (var kvp in deviceState.LightingZones)
-					{
-						effectChangeListeners.TryWrite(new(notification.DeviceInformation.Id, kvp.Key, kvp.Value.SerializedCurrentEffect));
-					}
+					// Handlers can only be added from within the lock, so we can conditionally emit the new notifications based on the needs. (Handlers can be removed at anytime)
+					var deviceInformationBroadcaster = _deviceInformationBroadcaster.GetSnapshot();
+					if (!deviceInformationBroadcaster.IsEmpty) deviceInformationBroadcaster.Push(CreateDeviceInformation(notification.DeviceInformation.Id, deviceState));
+					var deviceConfigurationBroadcaster = _deviceConfigurationBroadcaster.GetSnapshot();
+					if (!deviceConfigurationBroadcaster.IsEmpty) deviceConfigurationBroadcaster.Push(deviceState.CreateConfiguration(notification.DeviceInformation.Id));
 				}
 			}
 
@@ -846,115 +851,42 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		}
 	}
 
-	public async IAsyncEnumerable<LightingDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	LightingDeviceInformation[]? IChangeSource<LightingDeviceInformation>.GetInitialChangesAndRegisterWatcher(ChannelWriter<LightingDeviceInformation> writer)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<LightingDeviceInformation>();
-
 		var initialNotifications = new List<LightingDeviceInformation>();
-
 		lock (_changeLock)
 		{
 			foreach (var kvp in _lightingDeviceStates)
 			{
 				initialNotifications.Add(CreateDeviceInformation(kvp.Key, kvp.Value));
 			}
-
-			ArrayExtensions.InterlockedAdd(ref _deviceListeners, channel);
+			_deviceInformationBroadcaster.Register(writer);
 		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _deviceListeners, channel);
-		}
+		return initialNotifications.ToArray();
 	}
 
-	public async IAsyncEnumerable<LightingEffectWatchNotification> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<LightingDeviceInformation>.UnregisterWatcher(ChannelWriter<LightingDeviceInformation> writer)
+		=> _deviceInformationBroadcaster.Unregister(writer);
+
+	LightingDeviceConfiguration[]? IChangeSource<LightingDeviceConfiguration>.GetInitialChangesAndRegisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)
 	{
-		var channel = Watcher.CreateChannel<LightingEffectWatchNotification>();
-
-		var initialNotifications = new List<LightingEffectWatchNotification>();
-
+		var initialNotifications = new List<LightingDeviceConfiguration>();
 		lock (_changeLock)
 		{
 			foreach (var kvp in _lightingDeviceStates)
 			{
-				foreach (var kvp2 in kvp.Value.LightingZones)
+				lock (kvp.Value.Lock)
 				{
-					initialNotifications.Add(new(kvp.Key, kvp2.Key, kvp2.Value.SerializedCurrentEffect));
+					initialNotifications.Add(kvp.Value.CreateConfiguration(kvp.Key));
 				}
 			}
-
-			ArrayExtensions.InterlockedAdd(ref _effectChangeListeners, channel);
+			_deviceConfigurationBroadcaster.Register(writer);
 		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _effectChangeListeners, channel);
-		}
+		return initialNotifications.ToArray();
 	}
 
-	public async IAsyncEnumerable<LightingDeviceConfigurationWatchNotification> WatchBrightnessAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		var channel = Watcher.CreateChannel<LightingDeviceConfigurationWatchNotification>();
-		var reader = channel.Reader;
-		var writer = channel.Writer;
-
-		var initialNotifications = new List<LightingDeviceConfigurationWatchNotification>();
-
-		lock (_changeLock)
-		{
-			foreach (var kvp in _lightingDeviceStates)
-			{
-				initialNotifications.Add(new() { DeviceId = kvp.Key, IsUnifiedLightingEnabled = kvp.Value.IsUnifiedLightingEnabled, BrightnessLevel = kvp.Value.Brightness });
-			}
-
-			ArrayExtensions.InterlockedAdd(ref _configurationChangeListeners, writer);
-		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _configurationChangeListeners, writer);
-		}
-	}
+	void IChangeSource<LightingDeviceConfiguration>.UnregisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)
+		=> _deviceConfigurationBroadcaster.Unregister(writer);
 
 	public void SetEffect(Guid deviceId, Guid zoneId, Guid effectId, ReadOnlySpan<byte> data)
 	{
@@ -1006,28 +938,28 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				}
 			}
 
-			// We are really careful about the value of the delegate here, as sending a notification implies boxing.
-			// As such, it is best if we can avoid it.
-			// While we can't avoid an overhead when the settings UI is running, this shouldn't be too much of a hassle, as the Garbage Collector will still kick in pretty fast.
-			if (Volatile.Read(ref _effectChangeListeners) is not null)
-			{
-				// We probably strictly need this lock for consistency with the WatchEffectsAsync setup.
-				lock (_changeLock)
-				{
-					_effectChangeListeners.TryWrite(new(deviceId, zoneId, effect));
-				}
-			}
-
-			if (Volatile.Read(ref _configurationChangeListeners) is not null)
-			{
-				_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
-			}
-
 			PersistActiveEffect(deviceState.LightingZonesConfigurationContainer, zoneId, effect, cancellationToken);
 			if (isUnifiedLightingUpdated)
 			{
 				PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 			}
+		}
+	}
+
+	// TODO: Find a way to merge this with the update logic, as it exists only because of that.
+	// Probably just inline the whole protocol logic in this class although it would be a bit dirty. (It would nevertheless be more efficient, and the protocol is actually the only client as of now)
+	public void NotifyDeviceConfiguration(Guid deviceId)
+	{
+		if (!_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			throw new DeviceNotFoundException();
+		}
+
+		lock (deviceState.Lock)
+		{
+			var configurationBroadcaster = _deviceConfigurationBroadcaster.GetSnapshot();
+			if (configurationBroadcaster.IsEmpty) return;
+			configurationBroadcaster.Push(deviceState.CreateConfiguration(deviceId));
 		}
 	}
 
@@ -1063,14 +995,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 		if (!isRestore)
 		{
-			if (Volatile.Read(ref _configurationChangeListeners) is not null)
-			{
-				// We probably strictly need this lock for consistency with the WatchBrightnessAsync setup.
-				lock (_changeLock)
-				{
-					_configurationChangeListeners.TryWrite(deviceState.CreateConfigurationWatchNotification(deviceId));
-				}
-			}
 			PersistDeviceConfiguration(deviceState.DeviceConfigurationContainer, deviceState.CreatePersistedConfiguration(), cancellationToken);
 		}
 	}

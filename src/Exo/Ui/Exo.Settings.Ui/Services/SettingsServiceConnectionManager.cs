@@ -4,7 +4,6 @@ using Exo.Contracts.Ui.Settings;
 using Exo.Ui;
 using Grpc.Net.Client;
 using ProtoBuf.Grpc.Client;
-using IGrpcLightingService = Exo.Contracts.Ui.Settings.ILightingService;
 
 namespace Exo.Settings.Ui.Services;
 
@@ -151,7 +150,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
 	private TaskCompletionSource<IPowerService> _powerServiceTaskCompletionSource;
 	private TaskCompletionSource<IMouseService> _mouseServiceTaskCompletionSource;
-	private TaskCompletionSource<IGrpcLightingService> _lightingServiceTaskCompletionSource;
 	private TaskCompletionSource<ILightService> _lightServiceTaskCompletionSource;
 	private TaskCompletionSource<IEmbeddedMonitorService> _embeddedMonitorServiceTaskCompletionSource;
 	private TaskCompletionSource<IImageService> _imageServiceTaskCompletionSource;
@@ -172,7 +170,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_connectedStates = new();
 		_powerServiceTaskCompletionSource = new();
 		_mouseServiceTaskCompletionSource = new();
-		_lightingServiceTaskCompletionSource = new();
 		_lightServiceTaskCompletionSource = new();
 		_embeddedMonitorServiceTaskCompletionSource = new();
 		_imageServiceTaskCompletionSource = new();
@@ -188,9 +185,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public Task<IMouseService> GetMouseServiceAsync(CancellationToken cancellationToken)
 		=> _mouseServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
-
-	public Task<IGrpcLightingService> GetLightingServiceAsync(CancellationToken cancellationToken)
-		=> _lightingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ILightService> GetLightServiceAsync(CancellationToken cancellationToken)
 		=> _lightServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -239,7 +233,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	{
 		Connect(channel, _powerServiceTaskCompletionSource);
 		Connect(channel, _mouseServiceTaskCompletionSource);
-		Connect(channel, _lightingServiceTaskCompletionSource);
 		Connect(channel, _lightServiceTaskCompletionSource);
 		Connect(channel, _embeddedMonitorServiceTaskCompletionSource);
 		Connect(channel, _imageServiceTaskCompletionSource);
@@ -262,7 +255,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	{
 		Reset(ref _powerServiceTaskCompletionSource);
 		Reset(ref _mouseServiceTaskCompletionSource);
-		Reset(ref _lightingServiceTaskCompletionSource);
 		Reset(ref _lightServiceTaskCompletionSource);
 		Reset(ref _embeddedMonitorServiceTaskCompletionSource);
 		Reset(ref _imageServiceTaskCompletionSource);

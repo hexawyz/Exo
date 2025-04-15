@@ -14,6 +14,8 @@ using DeviceTools;
 using Exo.Monitors;
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
+using Exo.Lighting;
+using Exo.ColorFormats;
 
 namespace Exo.Settings.Ui.Ipc;
 
@@ -123,6 +125,12 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.LightingEffect:
 			ProcessLightingEffect(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingDevice:
+			ProcessLightingDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingDeviceConfiguration:
+			ProcessLightingDeviceConfiguration(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceEnumeration:
 			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
@@ -347,6 +355,133 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnDeviceNotification(kind, information));
 	}
 
+	private void ProcessLightingDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var deviceId = reader.ReadGuid();
+		var flags = (LightingDeviceFlags)reader.ReadByte();
+		var persistenceMode = LightingPersistenceMode.NeverPersisted;
+		if ((flags & LightingDeviceFlags.CanPersist) != 0)
+		{
+			persistenceMode = (flags & LightingDeviceFlags.AlwaysPersisted) != 0 ? LightingPersistenceMode.AlwaysPersisted : LightingPersistenceMode.CanPersist;
+		}
+		BrightnessCapabilities? brightnessCapabilities = null;
+		PaletteCapabilities? paletteCapabilities = null;
+		LightingZoneInformation? unifiedLightingZone = null;
+		if ((flags & LightingDeviceFlags.HasBrightness) != 0) brightnessCapabilities = new(reader.ReadByte(), reader.ReadByte());
+		if ((flags & LightingDeviceFlags.HasPalette) != 0) paletteCapabilities = new(reader.Read<ushort>());
+		if ((flags & LightingDeviceFlags.HasUnifiedLighting) != 0) unifiedLightingZone = ReadLightingZone(ref reader);
+		uint count = reader.ReadVariableUInt32();
+		LightingZoneInformation[] lightingZones;
+		if (count == 0)
+		{
+			lightingZones = [];
+		}
+		else
+		{
+			lightingZones = new LightingZoneInformation[count];
+			for (int i = 0; i < lightingZones.Length; i++)
+			{
+				lightingZones[i] = ReadLightingZone(ref reader);
+			}
+		}
+
+		var information = new LightingDeviceInformation
+		(
+			deviceId,
+			persistenceMode,
+			brightnessCapabilities,
+			paletteCapabilities,
+			unifiedLightingZone,
+			ImmutableCollectionsMarshal.AsImmutableArray(lightingZones)
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingDeviceUpdate(information));
+
+		static LightingZoneInformation ReadLightingZone(ref BufferReader reader)
+		{
+			var zoneId = reader.ReadGuid();
+			var count = reader.ReadVariableUInt32();
+			Guid[] effectIds;
+			if (count == 0)
+			{
+				effectIds = [];
+			}
+			else
+			{
+				effectIds = new Guid[count];
+				for (int i = 0; i < effectIds.Length; i++)
+				{
+					effectIds[i] = reader.ReadGuid();
+				}
+			}
+			return new LightingZoneInformation(zoneId, ImmutableCollectionsMarshal.AsImmutableArray(effectIds));
+		}
+	}
+
+	private void ProcessLightingDeviceConfiguration(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var deviceId = reader.ReadGuid();
+		var flags = (LightingDeviceConfigurationFlags)reader.ReadByte();
+		byte? brightness = null;
+		RgbColor[] palette;
+		if ((flags & LightingDeviceConfigurationFlags.HasBrightness) != 0) brightness = reader.ReadByte();
+		if ((flags & LightingDeviceConfigurationFlags.HasPalette) == 0)
+		{
+			palette = [];
+		}
+		else
+		{
+			palette = new RgbColor[reader.ReadVariableUInt32()];
+			for (int i = 0; i < palette.Length; i++)
+			{
+				palette[i] = new(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+			}
+		}
+		uint count = reader.ReadVariableUInt32();
+		LightingZoneEffect[] lightingZoneEffects;
+		if (count == 0)
+		{
+			lightingZoneEffects = [];
+		}
+		else
+		{
+			lightingZoneEffects = new LightingZoneEffect[count];
+			for (int i = 0; i < lightingZoneEffects.Length; i++)
+			{
+				lightingZoneEffects[i] = ReadLightingZoneEffect(ref reader);
+			}
+		}
+
+		var configuration = new LightingDeviceConfiguration
+		(
+			deviceId,
+			(flags & LightingDeviceConfigurationFlags.IsUnified) != 0,
+			brightness,
+			ImmutableCollectionsMarshal.AsImmutableArray(palette),
+			ImmutableCollectionsMarshal.AsImmutableArray(lightingZoneEffects)
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingDeviceConfigurationUpdate(configuration));
+
+		static LightingZoneEffect ReadLightingZoneEffect(ref BufferReader reader)
+		{
+			var zoneId = reader.ReadGuid();
+			var effectId = reader.ReadGuid();
+			if (effectId == default)
+			{
+				return new(zoneId, null);
+			}
+			else
+			{
+				return new(zoneId, new(effectId, reader.ReadBytes(reader.ReadVariableUInt32())));
+			}
+		}
+	}
+
 	private void ProcessMonitorDevice(ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
@@ -538,7 +673,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
-	async ValueTask Services.ILightingService.SetLightingAsync(DeviceLightingUpdate update, CancellationToken cancellationToken)
+	async ValueTask ILightingService.SetLightingAsync(LightingDeviceConfigurationUpdate update, CancellationToken cancellationToken)
 	{
 		TaskCompletionSource<LightingDeviceOperationStatus> operation;
 		cancellationToken.ThrowIfCancellationRequested();
@@ -577,15 +712,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		default: throw new InvalidOperationException();
 		}
 
-		static void Write(Span<byte> buffer, uint requestId, DeviceLightingUpdate update)
+		static void Write(Span<byte> buffer, uint requestId, LightingDeviceConfigurationUpdate update)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.LightingDeviceConfiguration);
 			writer.WriteVariable(requestId);
 			writer.Write(update.DeviceId);
-			var flags = DeviceLightingConfigurationFlags.None;
-			if (update.ShouldPersist) flags |= DeviceLightingConfigurationFlags.Persist;
-			if (update.BrightnessLevel is not null) flags |= DeviceLightingConfigurationFlags.HasBrightness;
+			var flags = LightingDeviceConfigurationFlags.None;
+			if (update.ShouldPersist) flags |= LightingDeviceConfigurationFlags.Persist;
+			if (update.BrightnessLevel is not null) flags |= LightingDeviceConfigurationFlags.HasBrightness;
 			writer.Write((byte)flags);
 			if (update.BrightnessLevel is not null) writer.Write(update.BrightnessLevel.GetValueOrDefault());
 			if (update.ZoneEffects.IsDefaultOrEmpty)

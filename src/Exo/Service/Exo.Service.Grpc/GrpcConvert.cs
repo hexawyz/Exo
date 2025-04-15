@@ -4,7 +4,6 @@ using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.Features.EmbeddedMonitors;
 using Exo.Images;
-using Exo.Lighting;
 using Exo.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
 using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
@@ -26,8 +25,6 @@ using GrpcLightChangeNotification = Exo.Contracts.Ui.Settings.LightChangeNotific
 using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
 using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
 using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
-using GrpcLightingPersistenceMode = Exo.Contracts.Ui.Settings.LightingPersistenceMode;
-using GrpcLightingZoneInformation = Exo.Contracts.Ui.Settings.LightingZoneInformation;
 using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
@@ -88,22 +85,6 @@ internal static class GrpcConvert
 
 	public static DotsPerInch FromGrpc(this GrpcDotsPerInch dpi)
 		=> new(dpi.Horizontal, dpi.Vertical);
-
-	public static GrpcLightingPersistenceMode ToGrpc(this LightingPersistenceMode persistenceMode)
-		=> persistenceMode switch
-		{
-			LightingPersistenceMode.NeverPersisted => GrpcLightingPersistenceMode.NeverPersisted,
-			LightingPersistenceMode.CanPersist => GrpcLightingPersistenceMode.CanPersist,
-			LightingPersistenceMode.AlwaysPersisted => GrpcLightingPersistenceMode.AlwaysPersisted,
-			_ => throw new NotImplementedException(),
-		};
-
-	public static GrpcLightingZoneInformation ToGrpc(this LightingZoneInformation zoneInformation)
-		=> new()
-		{
-			ZoneId = zoneInformation.ZoneId,
-			SupportedEffectIds = zoneInformation.SupportedEffectTypeIds,
-		};
 
 	public static GrpcEmbeddedMonitorDeviceInformation ToGrpc(this EmbeddedMonitorDeviceInformation embeddedMonitorDeviceInformation)
 		=> new()

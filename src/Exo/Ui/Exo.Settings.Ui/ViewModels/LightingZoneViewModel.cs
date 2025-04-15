@@ -1,11 +1,9 @@
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
-using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts;
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -63,13 +61,12 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		(
 			Array.ConvertAll
 			(
-				ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectIds)!,
+				ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectTypeIds)!,
 				_device.LightingViewModel.GetEffect
 			)
 		);
 		Name = displayName;
 		DisplayOrder = displayOrder;
-		OnEffectUpdated();
 	}
 
 	public LightingEffectViewModel? CurrentEffect
@@ -224,9 +221,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 	}
 
-	internal void OnEffectUpdated() => OnEffectUpdated(_device.GetActiveLightingEffect(Id));
-
-	private void OnEffectUpdated(LightingEffect? effect)
+	internal void OnEffectUpdated(LightingEffect? effect)
 	{
 		bool wasChanged = IsChanged;
 

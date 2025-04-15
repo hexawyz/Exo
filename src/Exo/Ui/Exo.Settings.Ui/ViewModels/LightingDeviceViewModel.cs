@@ -4,8 +4,8 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Contracts;
-using Exo.Contracts.Ui.Settings;
-using Exo.Ui;
+using Exo.Lighting;
+using Exo.Service;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -137,7 +137,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			return viewModels;
 		}
 		_persistenceMode = lightingDeviceInformation.PersistenceMode;
-		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? CreateZoneViewModel(lightingDeviceInformation.UnifiedLightingZone) : null;
+		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? CreateZoneViewModel(lightingDeviceInformation.UnifiedLightingZone.GetValueOrDefault()) : null;
 		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
 			ReadOnlyCollection<LightingZoneViewModel>.Empty :
 			Array.AsReadOnly(CreateZoneViewModels(lightingDeviceInformation.LightingZones));
@@ -223,7 +223,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	{
 		if (!IsNotBusy) throw new InvalidOperationException("The device is already busy applying changes.");
 
-		var zoneEffects = ImmutableArray.CreateBuilder<ZoneLightEffect>();
+		var zoneEffects = ImmutableArray.CreateBuilder<LightingZoneEffect>();
 		try
 		{
 			if (UseUnifiedLighting && UnifiedLightingZone is not null)
@@ -231,7 +231,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 				if (UnifiedLightingZone.BuildEffect() is { } effect)
 				{
 					UnifiedLightingZone.OnBeforeApplyingChanges();
-					zoneEffects.Add(new() { ZoneId = UnifiedLightingZone.Id, Effect = effect });
+					zoneEffects.Add(new(UnifiedLightingZone.Id, effect));
 				}
 			}
 			else
@@ -245,7 +245,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 						if (zone.BuildEffect() is { } effect)
 						{
 							zone.OnBeforeApplyingChanges();
-							zoneEffects.Add(new() { ZoneId = zone.Id, Effect = effect });
+							zoneEffects.Add(new(zone.Id, effect));
 						}
 					}
 				}
@@ -256,13 +256,14 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 				{
 					await lightingService.SetLightingAsync
 					(
-						new DeviceLightingUpdate()
-						{
-							DeviceId = _deviceViewModel.Id,
-							ShouldPersist = ShouldPersistChanges,
-							BrightnessLevel = Brightness?.Level ?? 0,
-							ZoneEffects = zoneEffects.DrainToImmutable()
-						},
+						new LightingDeviceConfigurationUpdate
+						(
+							_deviceViewModel.Id,
+							ShouldPersistChanges,
+							Brightness?.Level,
+							[],
+							zoneEffects.DrainToImmutable()
+						),
 						cancellationToken
 					);
 					ShouldPersistChanges = false;
@@ -307,14 +308,19 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 
 	public LightingZoneViewModel GetLightingZone(Guid zoneId) => _lightingZoneById[zoneId];
 
-	public LightingEffect? GetActiveLightingEffect(Guid zoneId) => LightingViewModel.GetActiveLightingEffect(_deviceViewModel.Id, zoneId);
-
-	public void OnDeviceConfigurationUpdated(bool isUnifiedLightingEnabled, byte? brightnessLevel)
+	public void OnDeviceConfigurationUpdated(in LightingDeviceConfiguration configuration)
 	{
-		IsUnifiedLightingInitiallyEnabled = isUnifiedLightingEnabled;
-		if (Brightness is { } vm && brightnessLevel is not null)
+		IsUnifiedLightingInitiallyEnabled = configuration.IsUnifiedLightingEnabled;
+		if (Brightness is { } vm && configuration.BrightnessLevel is not null)
 		{
-			vm.SetInitialBrightness(brightnessLevel.GetValueOrDefault());
+			vm.SetInitialBrightness(configuration.BrightnessLevel.GetValueOrDefault());
+		}
+		foreach (var lightingZoneEffect in configuration.ZoneEffects)
+		{
+			if (_lightingZoneById.TryGetValue(lightingZoneEffect.ZoneId, out var evm))
+			{
+				evm.OnEffectUpdated(lightingZoneEffect.Effect);
+			}
 		}
 	}
 

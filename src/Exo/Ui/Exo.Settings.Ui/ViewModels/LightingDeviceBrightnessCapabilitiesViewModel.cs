@@ -1,13 +1,13 @@
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class LightingDeviceBrightnessCapabilitiesViewModel
 {
-	private readonly LightingBrightnessCapabilities _capabilities;
+	private readonly BrightnessCapabilities _capabilities;
 
-	public LightingDeviceBrightnessCapabilitiesViewModel(LightingBrightnessCapabilities capabilities) => _capabilities = capabilities;
+	public LightingDeviceBrightnessCapabilitiesViewModel(BrightnessCapabilities capabilities) => _capabilities = capabilities;
 
-	public byte MinimumLevel => _capabilities.MinimumBrightness;
-	public byte MaximumLevel => _capabilities.MaximumBrightness;
+	public byte MinimumLevel => _capabilities.MinimumValue;
+	public byte MaximumLevel => _capabilities.MaximumValue;
 }

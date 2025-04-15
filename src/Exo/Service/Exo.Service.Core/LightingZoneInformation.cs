@@ -20,7 +20,7 @@ public readonly struct LightingZoneInformation : IEquatable<LightingZoneInformat
 		=> ZoneId.Equals(other.ZoneId) &&
 			SupportedEffectTypeIds.SequenceEqual(other.SupportedEffectTypeIds);
 
-	public override int GetHashCode() => HashCode.Combine(ZoneId, SupportedEffectTypeIds.Length());
+	public override int GetHashCode() => HashCode.Combine(ZoneId, SupportedEffectTypeIds.IsDefaultOrEmpty ? 0 : SupportedEffectTypeIds.Length);
 
 	public static bool operator ==(LightingZoneInformation left, LightingZoneInformation right) => EqualityComparer<LightingZoneInformation>.Default.Equals(left, right);
 	public static bool operator !=(LightingZoneInformation left, LightingZoneInformation right) => !(left == right);

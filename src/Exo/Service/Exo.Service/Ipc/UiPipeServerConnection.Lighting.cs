@@ -6,6 +6,218 @@ namespace Exo.Service.Ipc;
 
 partial class UiPipeServerConnection
 {
+	private async Task WatchLightingDevicesAsync(CancellationToken cancellationToken)
+	{
+		using (var watcher = new BroadcastedChangeWatcher<LightingDeviceInformation>(_lightingService))
+		{
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<LightingDeviceInformation> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					foreach (var effectInformation in initialData)
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingDeviceInformation> watcher, CancellationToken cancellationToken)
+		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var effectInformation))
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		static int Write(Span<byte> buffer, in LightingDeviceInformation device)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingDevice);
+			writer.Write(device.DeviceId);
+			LightingDeviceFlags flags = LightingDeviceFlags.None;
+			if (device.PersistenceMode != Lighting.LightingPersistenceMode.NeverPersisted)
+			{
+				flags |= LightingDeviceFlags.CanPersist;
+				if (device.PersistenceMode == Lighting.LightingPersistenceMode.AlwaysPersisted) flags |= LightingDeviceFlags.AlwaysPersisted;
+			}
+			if (device.BrightnessCapabilities is not null) flags |= LightingDeviceFlags.HasBrightness;
+			if (device.PaletteCapabilities is not null) flags |= LightingDeviceFlags.HasPalette;
+			if (device.UnifiedLightingZone is not null) flags |= LightingDeviceFlags.HasUnifiedLighting;
+			writer.Write((byte)flags);
+			if (device.BrightnessCapabilities is not null)
+			{
+				writer.Write(device.BrightnessCapabilities.GetValueOrDefault().MinimumValue);
+				writer.Write(device.BrightnessCapabilities.GetValueOrDefault().MaximumValue);
+			}
+			if (device.PaletteCapabilities is not null)
+			{
+				writer.Write(device.PaletteCapabilities.GetValueOrDefault().ColorCount);
+			}
+			if (device.UnifiedLightingZone is not null)
+			{
+				WriteLightingZone(ref writer, device.UnifiedLightingZone.GetValueOrDefault());
+			}
+			if (device.LightingZones.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+			}
+			else
+			{
+				writer.WriteVariable((uint)device.LightingZones.Length);
+				foreach (var lightingZone in device.LightingZones)
+				{
+					WriteLightingZone(ref writer, lightingZone);
+				}
+			}
+
+			return (int)writer.Length;
+		}
+
+		static void WriteLightingZone(ref BufferWriter writer, LightingZoneInformation lightingZone)
+		{
+			writer.Write(lightingZone.ZoneId);
+			if (lightingZone.SupportedEffectTypeIds.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+			}
+			else
+			{
+				writer.WriteVariable((uint)lightingZone.SupportedEffectTypeIds.Length);
+				foreach (var effectId in lightingZone.SupportedEffectTypeIds)
+				{
+					writer.Write(effectId);
+				}
+			}
+		}
+	}
+
+	private async Task WatchLightingDeviceConfigurationAsync(CancellationToken cancellationToken)
+	{
+		using (var watcher = new BroadcastedChangeWatcher<LightingDeviceConfiguration>(_lightingService))
+		{
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<LightingDeviceConfiguration> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					foreach (var effectInformation in initialData)
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingDeviceConfiguration> watcher, CancellationToken cancellationToken)
+		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var effectInformation))
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		static int Write(Span<byte> buffer, in LightingDeviceConfiguration device)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingDeviceConfiguration);
+			writer.Write(device.DeviceId);
+			LightingDeviceConfigurationFlags flags = LightingDeviceConfigurationFlags.None;
+			if (device.IsUnifiedLightingEnabled) flags |= LightingDeviceConfigurationFlags.IsUnified;
+			if (device.BrightnessLevel is not null) flags |= LightingDeviceConfigurationFlags.HasBrightness;
+			if (!device.PaletteColors.IsDefaultOrEmpty) flags |= LightingDeviceConfigurationFlags.HasPalette;
+			writer.Write((byte)flags);
+			if (device.BrightnessLevel is not null) writer.Write(device.BrightnessLevel.GetValueOrDefault());
+			if (!device.PaletteColors.IsDefaultOrEmpty)
+			{
+				writer.WriteVariable((uint)device.PaletteColors.Length);
+				foreach (var color in device.PaletteColors)
+				{
+					writer.Write(color.R);
+					writer.Write(color.G);
+					writer.Write(color.B);
+				}
+			}
+			if (device.ZoneEffects.IsDefaultOrEmpty)
+			{
+				writer.Write((byte)0);
+			}
+			else
+			{
+				writer.WriteVariable((uint)device.ZoneEffects.Length);
+				foreach (var lightingZoneEffect in device.ZoneEffects)
+				{
+					WriteLightingZoneEffect(ref writer, in lightingZoneEffect);
+				}
+			}
+
+			return (int)writer.Length;
+		}
+
+		static void WriteLightingZoneEffect(ref BufferWriter writer, in LightingZoneEffect lightingZoneEffect)
+		{
+			writer.Write(lightingZoneEffect.ZoneId);
+			if (lightingZoneEffect.Effect is { } effect)
+			{
+				writer.Write(effect.EffectId);
+				writer.WriteVariable((uint)effect.EffectData.Length);
+				writer.Write(effect.EffectData);
+			}
+			else
+			{
+				writer.Write(Guid.Empty);
+				writer.Write((byte)0);
+			}
+		}
+	}
+
 	private async Task WatchLightingEffectsAsync(CancellationToken cancellationToken)
 	{
 		using (var watcher = new BroadcastedChangeWatcher<LightingEffectInformation>(_lightingEffectMetadataService))
@@ -192,61 +404,74 @@ partial class UiPipeServerConnection
 		var reader = new BufferReader(data);
 		uint requestId = reader.ReadVariableUInt32();
 		var deviceId = reader.ReadGuid();
-		var flags = (DeviceLightingConfigurationFlags)reader.ReadByte();
+		var flags = (LightingDeviceConfigurationFlags)reader.ReadByte();
 		byte brightness = 0;
-		if ((flags & DeviceLightingConfigurationFlags.HasBrightness) != 0)
+		bool hasChanged = false;
+		try
 		{
-			brightness = reader.ReadByte();
-			try
+			if ((flags & LightingDeviceConfigurationFlags.HasBrightness) != 0)
 			{
-				_lightingService.SetBrightness(deviceId, brightness);
+				brightness = reader.ReadByte();
+				try
+				{
+					_lightingService.SetBrightness(deviceId, brightness);
+					hasChanged = true;
+				}
+				catch (DeviceNotFoundException)
+				{
+					WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+					return;
+				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+				{
+					return;
+				}
+				catch
+				{
+					WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+					return;
+				}
 			}
-			catch (DeviceNotFoundException)
+			uint zoneCount = reader.ReadVariableUInt32();
+			for (uint i = 0; i < zoneCount; i++)
 			{
-				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
-				return;
-			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-			{
-				return;
-			}
-			catch
-			{
-				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
-				return;
+				var zoneId = reader.ReadGuid();
+				var effectId = reader.ReadGuid();
+				uint dataLength = reader.ReadVariableUInt32();
+				try
+				{
+					_lightingService.SetEffect(deviceId, zoneId, effectId, reader.UnsafeReadSpan(dataLength));
+					hasChanged = true;
+				}
+				catch (DeviceNotFoundException)
+				{
+					WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
+					return;
+				}
+				catch (LightingZoneNotFoundException)
+				{
+					WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.ZoneNotFound, cancellationToken);
+					return;
+				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+				{
+					return;
+				}
+				catch
+				{
+					WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+					return;
+				}
 			}
 		}
-		uint zoneCount = reader.ReadVariableUInt32();
-		for (uint i = 0; i < zoneCount; i++)
+		finally
 		{
-			var zoneId = reader.ReadGuid();
-			var effectId = reader.ReadGuid();
-			uint dataLength = reader.ReadVariableUInt32();
-			try
-			{
-				_lightingService.SetEffect(deviceId, zoneId, effectId, reader.UnsafeReadSpan(dataLength));
-			}
-			catch (DeviceNotFoundException)
-			{
-				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.DeviceNotFound, cancellationToken);
-				return;
-			}
-			catch (LightingZoneNotFoundException)
-			{
-				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.ZoneNotFound, cancellationToken);
-				return;
-			}
-			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-			{
-				return;
-			}
-			catch
-			{
-				WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
-				return;
-			}
+			// NB: Maybe not the best place to put this, but at least the easiest.
+			// This will allow configuration updates to be pushed before the changes are applied onto the device, however it might be acceptable still.
+			// TODO: Refactor this by merging this whole method within the lighting service ?
+			if (hasChanged) _lightingService.NotifyDeviceConfiguration(deviceId);
 		}
-		ApplyLightingChanges(requestId, deviceId, (flags & DeviceLightingConfigurationFlags.Persist) != 0, cancellationToken);
+		ApplyLightingChanges(requestId, deviceId, (flags & LightingDeviceConfigurationFlags.Persist) != 0, cancellationToken);
 	}
 
 	private async void ApplyLightingChanges(uint requestId, Guid deviceId, bool shouldPersist, CancellationToken cancellationToken)

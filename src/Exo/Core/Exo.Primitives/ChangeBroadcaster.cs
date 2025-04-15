@@ -31,6 +31,10 @@ public struct ChangeBroadcaster<T>
 		}
 	}
 
+	/// <summary>Captures a snapshot of the change broadcaster so that events can be pushed conditionally.</summary>
+	/// <returns>A read-only snapshot functionally equivalent to this instance for pushing values.</returns>
+	public ChangeBroadcasterSnapshot<T> GetSnapshot() => new(Volatile.Read(ref _listeners));
+
 	public void Register(ChannelWriter<T> writer)
 	{
 		object? listeners = Interlocked.CompareExchange(ref _listeners, writer, null);
@@ -85,6 +89,32 @@ public struct ChangeBroadcaster<T>
 				if (ReferenceEquals(listeners, listeners = Interlocked.CompareExchange(ref _listeners, newListeners, listeners)) || listeners is null) return;
 				if (ReferenceEquals(listeners, writer)) break;
 				if (listeners is ChannelWriter<T>) return;
+			}
+		}
+	}
+}
+
+public readonly struct ChangeBroadcasterSnapshot<T>
+{
+	private readonly object? _listeners;
+
+	internal ChangeBroadcasterSnapshot(object? listeners) => _listeners = listeners;
+
+	public bool IsEmpty => _listeners is null;
+
+	public void Push(T value)
+	{
+		var listeners = _listeners;
+		if (listeners is null) return;
+		if (listeners is ChannelWriter<T> writer)
+		{
+			writer.TryWrite(value);
+		}
+		else
+		{
+			foreach (var writer2 in Unsafe.As<ChannelWriter<T>[]>(listeners))
+			{
+				writer2.TryWrite(value);
 			}
 		}
 	}

@@ -59,16 +59,24 @@
 	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\PnpVendorId.cs" Link="Definitions\PnpVendorId.cs" />
 	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSource.cs" Link="Definitions\VendorIdSource.cs" />
 	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSourceExtensions.cs" Link="Definitions\VendorIdSourceExtensions.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbColor.cs" Link="Definitions\RgbColor.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\DeviceCategory.cs" Link="Definitions\DeviceCategory.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Lighting\LightingPersistenceMode.cs" Link="Definitions\LightingPersistenceMode.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\MonitorFeature.cs" Link="Definitions\MonitorFeature.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\NonContinuousValueDescription.cs" Link="Definitions\NonContinuousValueDescription.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\BrightnessCapabilities.cs" Link="Definitions\BrightnessCapabilities.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceNotFoundException.cs" Link="Definitions\DeviceNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceStateInformation.cs" Link="Definitions\DeviceStateInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceConfiguration.cs" Link="Definitions\LightingDeviceConfiguration.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceInformation.cs" Link="Definitions\LightingDeviceInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneEffect.cs" Link="Definitions\LightingZoneEffect.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneInformation.cs" Link="Definitions\LightingZoneInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSetting.cs" Link="Definitions\MonitorSetting.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSettingValue.cs" Link="Definitions\MonitorSettingValue.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\PaletteCapabilities.cs" Link="Definitions\PaletteCapabilities.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorCapabilities.cs" Link="Definitions\SensorCapabilities.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorConfigurationUpdate.cs" Link="Definitions\SensorConfigurationUpdate.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorDataType.cs" Link="Definitions\SensorDataType.cs" />

@@ -14,6 +14,7 @@ internal interface IServiceClient
 	void OnLightingEffectUpdate(LightingEffectInformation effect);
 	void OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation);
 	void OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice);
+	void OnLightingDeviceConfigurationUpdate(LightingDeviceConfiguration configuration);
 	void OnMonitorDeviceUpdate(MonitorInformation monitorDevice);
 	void OnMonitorSettingUpdate(MonitorSettingValue setting);
 	void OnSensorDeviceUpdate(SensorDeviceInformation sensorDevice);

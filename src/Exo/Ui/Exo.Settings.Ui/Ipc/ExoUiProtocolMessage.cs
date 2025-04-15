@@ -104,6 +104,8 @@ internal enum ExoUiProtocolServerMessage : byte
 	DeviceAdd,
 	DeviceRemove,
 	DeviceUpdate,
+	LightingDevice,
+	LightingDeviceConfiguration,
 	/// <summary>Provides information about a monitor device.</summary>
 	MonitorDevice,
 	/// <summary>Provides updates on a monitor setting.</summary>
@@ -177,9 +179,22 @@ internal enum LightingEffectFlags : byte
 }
 
 [Flags]
-internal enum DeviceLightingConfigurationFlags : byte
+internal enum LightingDeviceConfigurationFlags : byte
 {
 	None = 0b00000000,
-	Persist = 0b00000001,
+	IsUnified = 0b00000001,
 	HasBrightness = 0b00000010,
+	HasPalette = 0b00000100,
+	Persist = 0b10000000,
+}
+
+[Flags]
+internal enum LightingDeviceFlags : byte
+{
+	None = 0b00000000,
+	HasUnifiedLighting = 0b00000001,
+	HasBrightness = 0b00000010,
+	HasPalette = 0b00000100,
+	AlwaysPersisted = 0b01000000,
+	CanPersist = 0b10000000,
 }

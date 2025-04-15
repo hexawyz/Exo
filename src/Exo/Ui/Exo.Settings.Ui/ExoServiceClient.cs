@@ -84,5 +84,11 @@ internal class ExoServiceClient : IServiceClient
 
 	void IServiceClient.OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice)
 	{
+		_settingsViewModel.Lighting.OnLightingDevice(lightingDevice);
+	}
+
+	void IServiceClient.OnLightingDeviceConfigurationUpdate(LightingDeviceConfiguration configuration)
+	{
+		_settingsViewModel.Lighting.OnLightingConfigurationUpdate(configuration);
 	}
 }

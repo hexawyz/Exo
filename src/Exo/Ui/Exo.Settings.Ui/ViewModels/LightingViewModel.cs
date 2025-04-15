@@ -3,46 +3,40 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
 using Exo.Contracts;
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using ILightingService = Exo.Settings.Ui.Services.ILightingService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyncDisposable
+internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 {
-	internal SettingsServiceConnectionManager ConnectionManager { get; }
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ISettingsMetadataService _metadataService;
 	private ILightingService? _lightingService;
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
-	private readonly Dictionary<(Guid, Guid), LightingEffect> _activeLightingEffects;
-	private readonly Dictionary<Guid, LightingDeviceConfigurationUpdate> _pendingConfigurationUpdates;
+	private readonly Dictionary<Guid, LightingDeviceConfiguration> _pendingConfigurationUpdates;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly IDisposable _stateRegistration;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 	public ILightingService? LightingService => _lightingService;
 
-	public LightingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
+	public LightingViewModel(DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
 	{
 		_devicesViewModel = devicesViewModel;
 		_metadataService = metadataService;
-		ConnectionManager = connectionManager;
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
-		_activeLightingEffects = new();
 		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
 		_cancellationTokenSource = new CancellationTokenSource();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
-		_stateRegistration = ConnectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
 	internal void OnConnected(ILightingService lightingService)
@@ -52,42 +46,8 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 
 	internal void Reset()
 	{
-		_lightingService = null;
-	}
-
-	public ValueTask DisposeAsync()
-	{
-		_cancellationTokenSource.Cancel();
-		_stateRegistration.Dispose();
-		return ValueTask.CompletedTask;
-	}
-
-	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
-	{
-		if (_cancellationTokenSource.IsCancellationRequested) return;
-		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
-		{
-			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
-
-			var watchDevicesTask = WatchDevicesAsync(cts.Token);
-			var watchEffectsTask = WatchEffectsAsync(cts.Token);
-			var watchBrightnessTask = WatchConfigurationChangesAsync(cts.Token);
-
-			try
-			{
-				await Task.WhenAll(watchDevicesTask, watchEffectsTask, watchBrightnessTask);
-			}
-			catch
-			{
-			}
-		}
-	}
-
-	void IConnectedState.Reset()
-	{
 		_lightingDeviceById.Clear();
 		_effectViewModelById.Clear();
-		_activeLightingEffects.Clear();
 		_pendingConfigurationUpdates.Clear();
 		_pendingDeviceInformations.Clear();
 
@@ -97,6 +57,14 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		}
 
 		_lightingDevices.Clear();
+
+		_lightingService = null;
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		_cancellationTokenSource.Cancel();
+		return ValueTask.CompletedTask;
 	}
 
 	private void OnDevicesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -135,7 +103,7 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		_lightingDeviceById[vm.Id] = vm;
 		if (_pendingConfigurationUpdates.Remove(lightingDeviceInformation.DeviceId, out var configuration))
 		{
-			vm.OnDeviceConfigurationUpdated(configuration.IsUnifiedLightingEnabled, configuration.BrightnessLevel);
+			vm.OnDeviceConfigurationUpdated(in configuration);
 		}
 	}
 
@@ -153,85 +121,34 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		}
 	}
 
-	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
-	private async Task WatchDevicesAsync(CancellationToken cancellationToken)
+	internal void OnLightingDevice(LightingDeviceInformation info)
 	{
-		try
+		if (_lightingDeviceById.TryGetValue(info.DeviceId, out var vm))
 		{
-			// Wait for metadata to be available, as we will need the metadata to properly display a device.
-			await _metadataService.WaitForAvailabilityAsync(cancellationToken);
-			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
-			await foreach (var info in lightingService.WatchLightingDevicesAsync(cancellationToken))
-			{
-				if (_lightingDeviceById.TryGetValue(info.DeviceId, out var vm))
-				{
-					// TODO: Update lighting zones ?
-				}
-				else
-				{
-					if (_devicesViewModel.TryGetDevice(info.DeviceId, out var device))
-					{
-						OnDeviceAdded(device, info);
-					}
-					else if (!_devicesViewModel.IsRemovedId(info.DeviceId))
-					{
-						_pendingDeviceInformations[info.DeviceId] = info;
-					}
-				}
-			}
+			// TODO: Update lighting zones ?
 		}
-		catch (OperationCanceledException)
+		else
 		{
+			if (_devicesViewModel.TryGetDevice(info.DeviceId, out var device))
+			{
+				OnDeviceAdded(device, info);
+			}
+			else if (!_devicesViewModel.IsRemovedId(info.DeviceId))
+			{
+				_pendingDeviceInformations[info.DeviceId] = info;
+			}
 		}
 	}
 
-	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
-	private async Task WatchEffectsAsync(CancellationToken cancellationToken)
+	internal void OnLightingConfigurationUpdate(in LightingDeviceConfiguration configuration)
 	{
-		try
+		if (_lightingDeviceById.TryGetValue(configuration.DeviceId, out var vm))
 		{
-			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
-			await foreach (var notification in lightingService.WatchEffectsAsync(cancellationToken))
-			{
-				if (notification.Effect is not null)
-				{
-					_activeLightingEffects[(notification.DeviceId, notification.ZoneId)] = notification.Effect;
-				}
-				else
-				{
-					_activeLightingEffects.Remove((notification.DeviceId, notification.ZoneId));
-				}
-				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
-				{
-					vm.GetLightingZone(notification.ZoneId).OnEffectUpdated();
-				}
-			}
+			vm.OnDeviceConfigurationUpdated(in configuration);
 		}
-		catch (OperationCanceledException)
+		else
 		{
-		}
-	}
-
-	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
-	private async Task WatchConfigurationChangesAsync(CancellationToken cancellationToken)
-	{
-		try
-		{
-			var lightingService = await ConnectionManager.GetLightingServiceAsync(cancellationToken);
-			await foreach (var notification in lightingService.WatchConfigurationUpdatesAsync(cancellationToken))
-			{
-				if (_lightingDeviceById.TryGetValue(notification.DeviceId, out var vm))
-				{
-					vm.OnDeviceConfigurationUpdated(notification.IsUnifiedLightingEnabled, notification.BrightnessLevel);
-				}
-				else if (notification.BrightnessLevel is not null)
-				{
-					_pendingConfigurationUpdates[notification.DeviceId] = notification;
-				}
-			}
-		}
-		catch (OperationCanceledException)
-		{
+			_pendingConfigurationUpdates[configuration.DeviceId] = configuration;
 		}
 	}
 
@@ -268,7 +185,4 @@ internal sealed class LightingViewModel : BindableObject, IConnectedState, IAsyn
 		}
 		return (displayName ?? $"Unknown {zoneId:B}", displayOrder);
 	}
-
-	public LightingEffect? GetActiveLightingEffect(Guid deviceId, Guid zoneId)
-		=> _activeLightingEffects.TryGetValue((deviceId, zoneId), out var effect) ? effect : null;
 }
