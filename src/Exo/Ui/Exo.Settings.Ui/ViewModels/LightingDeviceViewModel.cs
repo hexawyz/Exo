@@ -192,27 +192,34 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 
 	private void OnBrightnessPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(LightingZoneViewModel.IsChanged))
+		if (Equals(e, ChangedProperty.IsChanged))
 		{
-			if (!AreZonesChanged)
+			bool isChanged = ((LightingDeviceBrightnessViewModel)sender!).IsChanged;
+
+			if (isChanged != (AreZonesChanged || !IsUseUnifiedLightingChanged || !_shouldPersistChanges))
 			{
-				OnChanged(true);
+				OnChanged(isChanged);
 			}
 		}
 	}
 
 	private void OnLightingZonePropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(LightingZoneViewModel.IsChanged))
+		if (Equals(e, ChangedProperty.IsChanged))
 		{
-			if ((((LightingZoneViewModel)sender!).IsChanged ? _changedZoneCount++ : --_changedZoneCount) == 0 && !IsBrightnessChanged)
+			bool isChanged = ((LightingZoneViewModel)sender!).IsChanged;
+			if ((isChanged ? _changedZoneCount++ : --_changedZoneCount) == 0)
 			{
-				OnChanged(true);
+				if (isChanged != (IsBrightnessChanged || IsUseUnifiedLightingChanged || _shouldPersistChanges))
+				{
+					OnChanged(isChanged);
+				}
 			}
 		}
-		else if (e.PropertyName == nameof(LightingZoneViewModel.IsNotBusy))
+		else if (Equals(e, ChangedProperty.IsNotBusy))
 		{
-			if ((((LightingZoneViewModel)sender!).IsNotBusy ? --_busyZoneCount : _busyZoneCount++) == 0 && !IsBrightnessChanged)
+			bool isNotBusy = ((LightingZoneViewModel)sender!).IsNotBusy;
+			if ((isNotBusy ? --_busyZoneCount : _busyZoneCount++) == 0)
 			{
 				NotifyPropertyChanged(ChangedProperty.IsNotBusy);
 			}
@@ -282,7 +289,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	private void Reset()
 	{
 		UseUnifiedLighting = IsUnifiedLightingInitiallyEnabled;
-		if (Brightness is { } brightness) brightness.Reset();
+		if (Brightness is { } brightness) brightness.Reset();
 		if (UnifiedLightingZone is not null)
 		{
 			if (UnifiedLightingZone.IsChanged)

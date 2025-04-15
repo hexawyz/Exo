@@ -72,12 +72,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	public LightingEffectViewModel? CurrentEffect
 	{
 		get => _currentEffect;
-		private set => SetCurrentEffect(value, false);
+		private set => SetCurrentEffect(value, false, IsChanged);
 	}
 
-	private void SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate)
+	private void SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate, bool wasChanged)
 	{
-		bool wasChanged = IsChanged;
 		if (SetValue(ref _currentEffect, value, ChangedProperty.CurrentEffect))
 		{
 			var oldProperties = Properties;
@@ -229,9 +228,9 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 		if (!wasChanged)
 		{
-			SetCurrentEffect(effect is null ? null : _device.LightingViewModel.GetEffect(effect.EffectId), true);
+			SetCurrentEffect(effect is null ? null : _device.LightingViewModel.GetEffect(effect.EffectId), true, wasChanged);
 		}
-		else if (_initialEffect?.EffectId == CurrentEffect?.EffectId)
+		else if (effect?.EffectId == CurrentEffect?.EffectId)
 		{
 			if (Properties.Count > 0)
 			{
@@ -271,7 +270,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 		else if (_initialEffect?.EffectId != CurrentEffect?.EffectId)
 		{
-			SetCurrentEffect(_initialEffect is null ? null : _device.LightingViewModel.GetEffect(_initialEffect.EffectId), true);
+			SetCurrentEffect(_initialEffect is null ? null : _device.LightingViewModel.GetEffect(_initialEffect.EffectId), true, true);
 		}
 		else
 		{
