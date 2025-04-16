@@ -188,7 +188,7 @@ public static class EffectSerializer
 
 			while (true)
 			{
-				await channel.Reader.WaitToReadAsync().ConfigureAwait(false);
+				await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				while (channel.Reader.TryRead(out var effect))
 				{
 					yield return effect;
