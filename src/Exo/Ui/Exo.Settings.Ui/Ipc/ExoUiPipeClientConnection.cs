@@ -3,19 +3,19 @@ using System.IO.Pipes;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DeviceTools;
+using Exo.ColorFormats;
+using Exo.Contracts;
 using Exo.Contracts.Ui;
-using Exo.Primitives;
+using Exo.Features;
 using Exo.Ipc;
+using Exo.Lighting;
+using Exo.Monitors;
+using Exo.Primitives;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 using Microsoft.UI.Dispatching;
-using DeviceTools;
-using Exo.Monitors;
-using Exo.Contracts;
-using Exo.Contracts.Ui.Settings;
-using Exo.Lighting;
-using Exo.ColorFormats;
 
 namespace Exo.Settings.Ui.Ipc;
 
@@ -32,6 +32,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private readonly DispatcherQueue _dispatcherQueue;
 	private readonly IServiceClient _serviceClient;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
+	private TaskCompletionSource<PowerDeviceOperationStatus>?[]? _powerDeviceOperations;
 	private TaskCompletionSource<MonitorOperationStatus>?[]? _monitorOperations;
 	private TaskCompletionSource<LightingDeviceOperationStatus>?[]? _lightingDeviceOperations;
 	private bool _isConnected;
@@ -141,13 +142,28 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.PowerDevice:
 			ProcessPowerDevice(data);
 			goto Success;
+		case ExoUiProtocolServerMessage.BatteryState:
+			ProcessBatteryState(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LowPowerBatteryThreshold:
+			ProcessLowPowerBatteryThreshold(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.IdleSleepTimer:
+			ProcessIdleSleepTimer(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.WirelessBrightness:
+			ProcessWirelessBrightness(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.PowerDeviceOperationStatus:
+			ProcessPowerDeviceOperationStatus(data);
+			goto Success;
 		case ExoUiProtocolServerMessage.LightingDevice:
 			ProcessLightingDevice(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.LightingDeviceConfiguration:
 			ProcessLightingDeviceConfiguration(data);
 			goto Success;
-		case ExoUiProtocolServerMessage.LightingDeviceConfigurationStatus:
+		case ExoUiProtocolServerMessage.LightingDeviceOperationStatus:
 			ProcessLightingDeviceOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MonitorDevice:
@@ -389,6 +405,54 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 		var information = new PowerDeviceInformation(deviceId, flags, minimumIdleTime, maximumIdleTime, minimumBrightness, maximumBrightness);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnPowerDeviceUpdate(information));
+	}
+
+	private void ProcessBatteryState(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var notification = new BatteryChangeNotification
+		(
+			reader.ReadGuid(),
+			reader.ReadByte() != 0 ? reader.Read<float>() : null,
+			(BatteryStatus)reader.ReadByte(),
+			(ExternalPowerStatus)reader.ReadByte()
+		);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnBatteryUpdate(notification));
+	}
+
+	private void ProcessLowPowerBatteryThreshold(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		var threshold = reader.Read<Half>();
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLowPowerBatteryThresholdUpdate(deviceId, threshold));
+	}
+
+	private void ProcessIdleSleepTimer(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		var idleTimer = TimeSpan.FromTicks((long)reader.Read<ulong>());
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnIdleSleepTimerUpdate(deviceId, idleTimer));
+	}
+
+	private void ProcessWirelessBrightness(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		var brightness = reader.ReadByte();
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnWirelessBrightnessUpdate(deviceId, brightness));
+	}
+
+	private void ProcessPowerDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (PowerDeviceOperationStatus)reader.ReadByte();
+
+		if (_powerDeviceOperations is { } powerDeviceOperations && requestId < (uint)powerDeviceOperations.Length && Volatile.Read(ref powerDeviceOperations[requestId]) is { } operation)
+			operation.TrySetResult(status);
 	}
 
 	private void ProcessLightingDevice(ReadOnlySpan<byte> data)
@@ -709,6 +773,64 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
+	Task IPowerService.SetLowPowerModeBatteryThresholdAsync(Guid deviceId, Half batteryThreshold, CancellationToken cancellationToken)
+		=> SetPowerSetting(ExoUiProtocolClientMessage.LowPowerBatteryThreshold, deviceId, batteryThreshold, cancellationToken);
+
+	Task IPowerService.SetIdleSleepTimerAsync(Guid deviceId, TimeSpan idleTimer, CancellationToken cancellationToken)
+		=> SetPowerSetting(ExoUiProtocolClientMessage.IdleSleepTimer, deviceId, idleTimer.Ticks, cancellationToken);
+
+	Task IPowerService.SetWirelessBrightnessAsync(Guid deviceId, byte brightness, CancellationToken cancellationToken)
+		=> SetPowerSetting(ExoUiProtocolClientMessage.WirelessBrightness, deviceId, brightness, cancellationToken);
+
+	private async Task SetPowerSetting<T>(ExoUiProtocolClientMessage message, Guid deviceId, T value, CancellationToken cancellationToken)
+		where T : unmanaged
+	{
+		TaskCompletionSource<PowerDeviceOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			// Logic is mostly similar to what is done for sensors, but less complex.
+			uint requestId = 0;
+			var powerDeviceOperations = _powerDeviceOperations;
+			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
+			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
+			if (powerDeviceOperations is null) Volatile.Write(ref _powerDeviceOperations, powerDeviceOperations = new TaskCompletionSource<PowerDeviceOperationStatus>[2]);
+			for (; requestId < powerDeviceOperations.Length; requestId++)
+				if (powerDeviceOperations[requestId] is null) break;
+			if (requestId >= powerDeviceOperations.Length)
+			{
+				Array.Resize(ref powerDeviceOperations, (int)(2 * (uint)powerDeviceOperations.Length));
+				Volatile.Write(ref _powerDeviceOperations, powerDeviceOperations);
+			}
+			operation = new();
+			powerDeviceOperations[requestId] = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, message, requestId, deviceId, value);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var status = await operation.Task.ConfigureAwait(false);
+		switch (status)
+		{
+		case PowerDeviceOperationStatus.Success: return;
+		case PowerDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+
+		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)message);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(value);
+		}
+	}
+
 	async ValueTask ILightingService.SetLightingAsync(LightingDeviceConfigurationUpdate update, CancellationToken cancellationToken)
 	{
 		TaskCompletionSource<LightingDeviceOperationStatus> operation;
@@ -721,19 +843,19 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		{
 			// Logic is mostly similar to what is done for sensors, but less complex.
 			uint requestId = 0;
-			var monitorOperations = _lightingDeviceOperations;
+			var lightingDeviceOperations = _lightingDeviceOperations;
 			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
 			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (monitorOperations is null) Volatile.Write(ref _lightingDeviceOperations, monitorOperations = new TaskCompletionSource<LightingDeviceOperationStatus>[2]);
-			for (; requestId < monitorOperations.Length; requestId++)
-				if (monitorOperations[requestId] is null) break;
-			if (requestId >= monitorOperations.Length)
+			if (lightingDeviceOperations is null) Volatile.Write(ref _lightingDeviceOperations, lightingDeviceOperations = new TaskCompletionSource<LightingDeviceOperationStatus>[2]);
+			for (; requestId < lightingDeviceOperations.Length; requestId++)
+				if (lightingDeviceOperations[requestId] is null) break;
+			if (requestId >= lightingDeviceOperations.Length)
 			{
-				Array.Resize(ref monitorOperations, (int)(2 * (uint)monitorOperations.Length));
-				Volatile.Write(ref _lightingDeviceOperations, monitorOperations);
+				Array.Resize(ref lightingDeviceOperations, (int)(2 * (uint)lightingDeviceOperations.Length));
+				Volatile.Write(ref _lightingDeviceOperations, lightingDeviceOperations);
 			}
 			operation = new();
-			monitorOperations[requestId] = operation;
+			lightingDeviceOperations[requestId] = operation;
 			var buffer = WriteBuffer;
 			Write(buffer.Span, requestId, update);
 			// TODO: Find out if cancellation implies that bytes are not written.

@@ -78,6 +78,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private DeviceViewModel? _selectedDevice;
 
 	private readonly ISettingsMetadataService _metadataService;
+	private IPowerService? _powerService;
 	private IMonitorService? _monitorService;
 	private readonly IRasterizationScaleProvider _rasterizationScaleProvider;
 	private readonly INotificationSystem _notificationSystem;
@@ -140,17 +141,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		if (_cancellationTokenSource.IsCancellationRequested) return;
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
-			var powerService = await _connectionManager.GetPowerServiceAsync(cancellationToken);
 			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
 			var embeddedMonitorService = await _connectionManager.GetEmbeddedMonitorServiceAsync(cancellationToken);
 			var lightService = await _connectionManager.GetLightServiceAsync(cancellationToken);
 
-			var deviceWatchTask = WatchDevicesAsync(_deviceArrivalChannel.Reader, powerService, mouseService, embeddedMonitorService, lightService, cts.Token);
-
-			var batteryWatchTask = WatchBatteryChangesAsync(powerService, cts.Token);
-			var lowPowerModeBatteryThresholdWatchTask = WatchLowPowerModeBatteryThresholdChangesAsync(powerService, cts.Token);
-			var idleSleepTimerWatchTask = WatchIdleSleepTimerChangesAsync(powerService, cts.Token);
-			var wirelessBrightnessWatchTask = WatchWirelessBrightnessChangesAsync(powerService, cts.Token);
+			var deviceWatchTask = WatchDevicesAsync(_deviceArrivalChannel.Reader, mouseService, embeddedMonitorService, lightService, cts.Token);
 
 			var mouseWatchTask = WatchMouseDevicesAsync(mouseService, cts.Token);
 			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(mouseService, cts.Token);
@@ -169,10 +164,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				(
 					[
 						deviceWatchTask,
-						batteryWatchTask,
-						lowPowerModeBatteryThresholdWatchTask,
-						idleSleepTimerWatchTask,
-						wirelessBrightnessWatchTask,
 						mouseWatchTask,
 						mouseDpiWatchTask,
 						mouseDpiPresetWatchTask,
@@ -194,12 +185,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	{
 		_removedDeviceIds.Clear();
 		_devicesById.Clear();
-
-		_pendingPowerDeviceInformations.Clear();
-		_pendingBatteryChanges.Clear();
-		_pendingIdleSleepTimerChanges.Clear();
-		_pendingWirelessBrightnessChanges.Clear();
-		_pendingLowPowerModeBatteryThresholdChanges.Clear();
 
 		_pendingMouseInformations.Clear();
 		_pendingMouseDpiChanges.Clear();
@@ -228,8 +213,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_deviceArrivalChannel.Writer.TryWrite((kind, information));
 	}
 
-	internal void OnConnected(IMonitorService monitorService)
+	internal void OnConnected(IPowerService powerService, IMonitorService monitorService)
 	{
+		_powerService = powerService;
 		_monitorService = monitorService;
 	}
 
@@ -238,16 +224,22 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_deviceArrivalChannel.Writer.TryComplete();
 		_deviceArrivalChannel = Channel.CreateUnbounded<(WatchNotificationKind, DeviceStateInformation)>(DeviceChannelOptions);
 
+		_pendingPowerDeviceInformations.Clear();
+		_pendingBatteryChanges.Clear();
+		_pendingIdleSleepTimerChanges.Clear();
+		_pendingWirelessBrightnessChanges.Clear();
+		_pendingLowPowerModeBatteryThresholdChanges.Clear();
+
 		_pendingMonitorInformations.Clear();
 		_pendingMonitorSettingChanges.Clear();
 
+		_powerService = null;
 		_monitorService = null;
 	}
 
 	private async Task WatchDevicesAsync
 	(
 		ChannelReader<(WatchNotificationKind, DeviceStateInformation)> reader,
-		IPowerService powerService,
 		IMouseService mouseService,
 		IEmbeddedMonitorService embeddedMonitorService,
 		ILightService lightService,
@@ -269,8 +261,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 							_availableImages,
 							_metadataService,
 							_notificationSystem,
+							_powerService!,
 							_monitorService!,
-							powerService,
 							mouseService,
 							embeddedMonitorService,
 							lightService,
@@ -450,7 +442,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingLightChanges.Remove(device.Id, out _);
 	}
 
-
 	internal void HandlePowerDeviceUpdate(PowerDeviceInformation powerDevice)
 	{
 		if (_devicesById.TryGetValue(powerDevice.DeviceId, out var device))
@@ -466,116 +457,64 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchBatteryChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	internal void HandleBatteryUpdate(BatteryChangeNotification notification)
 	{
-		try
+		var status = new BatteryStateViewModel(notification);
+		if (_devicesById.TryGetValue(notification.DeviceId, out var device))
 		{
-			await foreach (var notification in powerService.WatchBatteryChangesAsync(cancellationToken))
+			if (device.PowerFeatures is { } powerFeatures)
 			{
-				var status = new BatteryStateViewModel(notification);
-				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
-				{
-					if (device.PowerFeatures is { } powerFeatures)
-					{
-						powerFeatures.BatteryState = status;
-					}
-				}
-				else
-				{
-					_pendingBatteryChanges[notification.DeviceId] = status;
-				}
+				powerFeatures.BatteryState = status;
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
-			return;
-		}
-		catch (Exception)
-		{
+			_pendingBatteryChanges[notification.DeviceId] = status;
 		}
 	}
 
-	private async Task WatchLowPowerModeBatteryThresholdChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	internal void HandleLowPowerModeBatteryThresholdUpdate(Guid deviceId, Half batteryThreshold)
 	{
-		try
+		if (_devicesById.TryGetValue(deviceId, out var device))
 		{
-			await foreach (var update in powerService.WatchLowPowerModeBatteryThresholdChangesAsync(cancellationToken))
+			if (device.PowerFeatures is { } powerFeatures)
 			{
-				if (_devicesById.TryGetValue(update.DeviceId, out var device))
-				{
-					if (device.PowerFeatures is { } powerFeatures)
-					{
-						powerFeatures.UpdateLowPowerModeBatteryThreshold(update.BatteryThreshold);
-					}
-				}
-				else
-				{
-					_pendingLowPowerModeBatteryThresholdChanges[update.DeviceId] = update.BatteryThreshold;
-				}
+				powerFeatures.UpdateLowPowerModeBatteryThreshold(batteryThreshold);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
-			return;
-		}
-		catch (Exception)
-		{
+			_pendingLowPowerModeBatteryThresholdChanges[deviceId] = batteryThreshold;
 		}
 	}
 
-	private async Task WatchIdleSleepTimerChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	internal void HandleIdleSleepTimerUpdate(Guid deviceId, TimeSpan idleTime)
 	{
-		try
+		if (_devicesById.TryGetValue(deviceId, out var device))
 		{
-			await foreach (var update in powerService.WatchIdleSleepTimerChangesAsync(cancellationToken))
+			if (device.PowerFeatures is { } powerFeatures)
 			{
-				if (_devicesById.TryGetValue(update.DeviceId, out var device))
-				{
-					if (device.PowerFeatures is { } powerFeatures)
-					{
-						powerFeatures.UpdateIdleSleepTimer(update.IdleTime);
-					}
-				}
-				else
-				{
-					_pendingIdleSleepTimerChanges[update.DeviceId] = update.IdleTime;
-				}
+				powerFeatures.UpdateIdleSleepTimer(idleTime);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
-			return;
-		}
-		catch (Exception)
-		{
+			_pendingIdleSleepTimerChanges[deviceId] = idleTime;
 		}
 	}
 
-	private async Task WatchWirelessBrightnessChangesAsync(IPowerService powerService, CancellationToken cancellationToken)
+	internal void HandleWirelessBrightnessUpdate(Guid deviceId, byte brightness)
 	{
-		try
+		if (_devicesById.TryGetValue(deviceId, out var device))
 		{
-			await foreach (var update in powerService.WatchWirelessBrightnessChangesAsync(cancellationToken))
+			if (device.PowerFeatures is { } powerFeatures)
 			{
-				if (_devicesById.TryGetValue(update.DeviceId, out var device))
-				{
-					if (device.PowerFeatures is { } powerFeatures)
-					{
-						powerFeatures.UpdateWirelessBrightness(update.Brightness);
-					}
-				}
-				else
-				{
-					_pendingWirelessBrightnessChanges[update.DeviceId] = update.Brightness;
-				}
+				powerFeatures.UpdateWirelessBrightness(brightness);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
-			return;
-		}
-		catch (Exception)
-		{
+			_pendingWirelessBrightnessChanges[deviceId] = brightness;
 		}
 	}
 

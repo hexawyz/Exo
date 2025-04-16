@@ -1,6 +1,6 @@
-using Microsoft.UI.Xaml.Data;
-using Exo.Contracts.Ui.Settings;
+using Exo.Features;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 

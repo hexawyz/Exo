@@ -186,21 +186,8 @@ partial class UiPipeServerConnection
 		return ProcessSensorRequestAsync(streamId, deviceId, sensorId, cancellationToken);
 	}
 
-	private async ValueTask WriteSensorStartStatusAsync(uint streamId, SensorStartStatus status, CancellationToken cancellationToken)
-	{
-		var buffer = WriteBuffer;
-		nuint length = Write(buffer.Span, streamId, status);
-		await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
-
-		static nuint Write(Span<byte> buffer, uint streamId, SensorStartStatus status)
-		{
-			var writer = new BufferWriter(buffer);
-			writer.Write((byte)ExoUiProtocolServerMessage.SensorStart);
-			writer.WriteVariable(streamId);
-			writer.Write((byte)status);
-			return writer.Length;
-		}
-	}
+	private ValueTask WriteSensorStartStatusAsync(uint streamId, SensorStartStatus status, CancellationToken cancellationToken)
+		=> UnsafeWriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.SensorStart, streamId, (byte)status, cancellationToken);
 
 	private void ProcessSensorFavoriteRequest(ReadOnlySpan<byte> data)
 	{

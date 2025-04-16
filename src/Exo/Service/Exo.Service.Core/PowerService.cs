@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
@@ -21,7 +20,13 @@ namespace Exo.Service;
 [Event<BatteryEventParameters>("Error", 0x1D4EE59D, 0x3FE0, 0x45BC, 0x8F, 0xEB, 0x82, 0xE2, 0x45, 0x89, 0x32, 0x1B)]
 [Event<BatteryEventParameters>("Discharging", 0x889E49AD, 0x2D35, 0x4D8A, 0xBE, 0x0E, 0xAD, 0x2A, 0x21, 0xB7, 0xF1, 0xB8)]
 [Event<BatteryEventParameters>("Charging", 0x19687F99, 0x6A9B, 0x41FA, 0xAC, 0x91, 0xDF, 0xDA, 0x0A, 0xD7, 0xF7, 0xD3)]
-internal sealed class PowerService : IChangeSource<PowerDeviceInformation>, IAsyncDisposable
+internal sealed class PowerService :
+	IChangeSource<PowerDeviceInformation>,
+	IChangeSource<ChangeWatchNotification<Guid, BatteryState>>,
+	IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>,
+	IChangeSource<PowerDeviceIdleSleepTimerNotification>,
+	IChangeSource<PowerDeviceWirelessBrightnessNotification>,
+	IAsyncDisposable
 {
 	[TypeId(0xF118B54F, 0xDA42, 0x4768, 0x98, 0x50, 0x80, 0x7C, 0xB7, 0x71, 0x36, 0x24)]
 	private readonly struct PersistedPowerDeviceInformation
@@ -337,10 +342,10 @@ internal sealed class PowerService : IChangeSource<PowerDeviceInformation>, IAsy
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
 	private ChangeBroadcaster<PowerDeviceInformation> _deviceChangeBroadcaster;
-	private ChannelWriter<ChangeWatchNotification<Guid, BatteryState>>[]? _batteryChangeListeners;
-	private ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification>[]? _lowPowerBatteryThresholdListeners;
-	private ChannelWriter<PowerDeviceIdleSleepTimerNotification>[]? _idleTimerListeners;
-	private ChannelWriter<PowerDeviceWirelessBrightnessNotification>[]? _wirelessBrightnessListeners;
+	private ChangeBroadcaster<ChangeWatchNotification<Guid, BatteryState>> _batteryChangeBroadcaster;
+	private ChangeBroadcaster<PowerDeviceLowPowerBatteryThresholdNotification> _lowPowerBatteryThresholdBroadcaster;
+	private ChangeBroadcaster<PowerDeviceIdleSleepTimerNotification> _idleTimerBroadcaster;
+	private ChangeBroadcaster<PowerDeviceWirelessBrightnessNotification> _wirelessBrightnessBroadcaster;
 	private readonly ChannelWriter<Event> _eventWriter;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 
@@ -453,18 +458,18 @@ internal sealed class PowerService : IChangeSource<PowerDeviceInformation>, IAsy
 
 	private void NotifyBatteryStateChange(ChangeWatchNotification<Guid, BatteryState> notification)
 	{
-		_batteryChangeListeners.TryWrite(notification);
+		_batteryChangeBroadcaster.Push(notification);
 		ProcessBatteryChangeNotification(notification);
 	}
 
 	private void NotifyLowPowerBatteryThreshold(PowerDeviceLowPowerBatteryThresholdNotification notification)
-		=> _lowPowerBatteryThresholdListeners.TryWrite(notification);
+		=> _lowPowerBatteryThresholdBroadcaster.Push(notification);
 
 	private void NotifyIdleSleepTimer(PowerDeviceIdleSleepTimerNotification notification)
-		=> _idleTimerListeners.TryWrite(notification);
+		=> _idleTimerBroadcaster.Push(notification);
 
 	private void NotifyWirelessBrightness(PowerDeviceWirelessBrightnessNotification notification)
-		=> _wirelessBrightnessListeners.TryWrite(notification);
+		=> _wirelessBrightnessBroadcaster.Push(notification);
 
 	// In this part of the code, we map device arrivals and status updates to sensible events in a way that hopefully leaves enough information for the handlers to make useful decisions.
 	// This means that some of the filtering logic on what to display has to be done on the event handler side.
@@ -600,18 +605,18 @@ internal sealed class PowerService : IChangeSource<PowerDeviceInformation>, IAsy
 
 	async ValueTask<PowerDeviceInformation[]?> IChangeSource<PowerDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		List<PowerDeviceInformation> initialNotifications;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			if (!_deviceStates.IsEmpty)
 			{
-				initialNotifications = [];
+				var initialNotifications = new List<PowerDeviceInformation>();
 				foreach (var kvp in _deviceStates)
 				{
 					initialNotifications.Add(kvp.Value.CreatePowerDeviceInformation());
 				}
 
 				_deviceChangeBroadcaster.Register(writer);
+				return [.. initialNotifications];
 			}
 			else
 			{
@@ -619,247 +624,155 @@ internal sealed class PowerService : IChangeSource<PowerDeviceInformation>, IAsy
 				return null;
 			}
 		}
-		return [.. initialNotifications];
 	}
 
 	void IChangeSource<PowerDeviceInformation>.UnregisterWatcher(ChannelWriter<PowerDeviceInformation> writer)
 		=> _deviceChangeBroadcaster.Unregister(writer);
 
-	public async IAsyncEnumerable<ChangeWatchNotification<Guid, BatteryState>> WatchBatteryChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<ChangeWatchNotification<Guid, BatteryState>[]?> IChangeSource<ChangeWatchNotification<Guid, BatteryState>>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<ChangeWatchNotification<Guid, BatteryState>> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<ChangeWatchNotification<Guid, BatteryState>>();
-
-		List<ChangeWatchNotification<Guid, BatteryState>>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _batteryChangeListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<ChangeWatchNotification<Guid, BatteryState>>();
+				foreach (var deviceState in _deviceStates.Values)
 				{
-					yield return initialNotifications[i];
-				}
-				initialNotifications = null;
-			}
+					if (!deviceState.TryGetBatteryState(out var batteryState)) continue;
 
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _batteryChangeListeners, channel);
-		}
-
-		List<ChangeWatchNotification<Guid, BatteryState>>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<ChangeWatchNotification<Guid, BatteryState>>();
-			foreach (var deviceState in _deviceStates.Values)
-			{
-				if (!deviceState.TryGetBatteryState(out var batteryState)) continue;
-
-				initialNotifications.Add
-				(
-					new
+					initialNotifications.Add
 					(
-						WatchNotificationKind.Enumeration,
-						deviceState.DeviceId,
-						batteryState,
-						default
-					)
-				);
+						new
+						(
+							WatchNotificationKind.Enumeration,
+							deviceState.DeviceId,
+							batteryState,
+							default
+						)
+					);
+				}
+				_batteryChangeBroadcaster.Register(writer);
+				return [.. initialNotifications];
 			}
-
-			return initialNotifications;
+			else
+			{
+				_batteryChangeBroadcaster.Register(writer);
+				return null;
+			}
 		}
 	}
 
-	public async IAsyncEnumerable<PowerDeviceLowPowerBatteryThresholdNotification> WatchLowPowerBatteryThresholdChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<ChangeWatchNotification<Guid, BatteryState>>.UnregisterWatcher(ChannelWriter<ChangeWatchNotification<Guid, BatteryState>> writer)
+		=> _batteryChangeBroadcaster.Unregister(writer);
+
+	async ValueTask<PowerDeviceLowPowerBatteryThresholdNotification[]?> IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<PowerDeviceLowPowerBatteryThresholdNotification>();
-
-		List<PowerDeviceLowPowerBatteryThresholdNotification>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _lowPowerBatteryThresholdListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<PowerDeviceLowPowerBatteryThresholdNotification>();
+				foreach (var deviceState in _deviceStates.Values)
 				{
-					yield return initialNotifications[i];
+					if (!deviceState.TryGetLowPowerBatteryThreshold(out var batteryThreshold)) continue;
+
+					initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, BatteryThreshold = batteryThreshold });
 				}
-				initialNotifications = null;
+				_lowPowerBatteryThresholdBroadcaster.Register(writer);
+				return [.. initialNotifications];
 			}
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+			else
 			{
-				yield return notification;
+				_lowPowerBatteryThresholdBroadcaster.Register(writer);
+				return null;
 			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _lowPowerBatteryThresholdListeners, channel);
-		}
-
-		List<PowerDeviceLowPowerBatteryThresholdNotification>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<PowerDeviceLowPowerBatteryThresholdNotification>();
-			foreach (var deviceState in _deviceStates.Values)
-			{
-				if (!deviceState.TryGetLowPowerBatteryThreshold(out var batteryThreshold)) continue;
-
-				initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, BatteryThreshold = batteryThreshold });
-			}
-
-			return initialNotifications;
 		}
 	}
 
-	public async IAsyncEnumerable<PowerDeviceIdleSleepTimerNotification> WatchIdleSleepTimerChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>.UnregisterWatcher(ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification> writer)
+		=> _lowPowerBatteryThresholdBroadcaster.Unregister(writer);
+
+	async ValueTask<PowerDeviceIdleSleepTimerNotification[]?> IChangeSource<PowerDeviceIdleSleepTimerNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceIdleSleepTimerNotification> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<PowerDeviceIdleSleepTimerNotification>();
-
-		List<PowerDeviceIdleSleepTimerNotification>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _idleTimerListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<PowerDeviceIdleSleepTimerNotification>();
+				foreach (var deviceState in _deviceStates.Values)
 				{
-					yield return initialNotifications[i];
+					if (!deviceState.TryGetIdleTime(out var idleTime)) continue;
+
+					initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, IdleTime = idleTime });
 				}
-				initialNotifications = null;
+				_idleTimerBroadcaster.Register(writer);
+				return [.. initialNotifications];
 			}
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+			else
 			{
-				yield return notification;
+				_idleTimerBroadcaster.Register(writer);
+				return null;
 			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _idleTimerListeners, channel);
-		}
-
-		List<PowerDeviceIdleSleepTimerNotification>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<PowerDeviceIdleSleepTimerNotification>();
-			foreach (var deviceState in _deviceStates.Values)
-			{
-				if (!deviceState.TryGetIdleTime(out var idleTime)) continue;
-
-				initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, IdleTime = idleTime });
-			}
-
-			return initialNotifications;
 		}
 	}
 
-	public async IAsyncEnumerable<PowerDeviceWirelessBrightnessNotification> WatchWirelessBrightnessChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<PowerDeviceIdleSleepTimerNotification>.UnregisterWatcher(ChannelWriter<PowerDeviceIdleSleepTimerNotification> writer)
+		=> _idleTimerBroadcaster.Unregister(writer);
+
+	async ValueTask<PowerDeviceWirelessBrightnessNotification[]?> IChangeSource<PowerDeviceWirelessBrightnessNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceWirelessBrightnessNotification> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<PowerDeviceWirelessBrightnessNotification>();
-
-		List<PowerDeviceWirelessBrightnessNotification>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _wirelessBrightnessListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<PowerDeviceWirelessBrightnessNotification>();
+				foreach (var deviceState in _deviceStates.Values)
 				{
-					yield return initialNotifications[i];
+					if (!deviceState.TryGetWirelessBrightness(out var brightness)) continue;
+
+					initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, Brightness = brightness });
 				}
-				initialNotifications = null;
+				_wirelessBrightnessBroadcaster.Register(writer);
+				return [.. initialNotifications];
 			}
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+			else
 			{
-				yield return notification;
+				_wirelessBrightnessBroadcaster.Register(writer);
+				return null;
 			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _wirelessBrightnessListeners, channel);
-		}
-
-		List<PowerDeviceWirelessBrightnessNotification>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<PowerDeviceWirelessBrightnessNotification>();
-			foreach (var deviceState in _deviceStates.Values)
-			{
-				if (!deviceState.TryGetWirelessBrightness(out var brightness)) continue;
-
-				initialNotifications.Add(new() { DeviceId = deviceState.DeviceId, Brightness = brightness });
-			}
-
-			return initialNotifications;
 		}
 	}
+
+	void IChangeSource<PowerDeviceWirelessBrightnessNotification>.UnregisterWatcher(ChannelWriter<PowerDeviceWirelessBrightnessNotification> writer)
+		=> _wirelessBrightnessBroadcaster.Unregister(writer);
 
 	public async Task SetLowPowerModeBatteryThresholdAsync(Guid deviceId, Half threshold, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-			{
-				await deviceState.SetLowPowerModeBatteryThresholdAsync(threshold, cancellationToken).ConfigureAwait(false);
-			}
+			await deviceState.SetLowPowerModeBatteryThresholdAsync(threshold, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
 	public async Task SetIdleSleepTimerAsync(Guid deviceId, TimeSpan idleTimer, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-			{
-				await deviceState.SetIdleSleepTimerAsync(idleTimer, cancellationToken).ConfigureAwait(false);
-			}
+			await deviceState.SetIdleSleepTimerAsync(idleTimer, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
 	public async Task SetWirelessBrightnessAsync(Guid deviceId, byte brightness, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-			{
-				await deviceState.SetWirelessBrightnessAsync(brightness, cancellationToken).ConfigureAwait(false);
-			}
+			await deviceState.SetWirelessBrightnessAsync(brightness, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }

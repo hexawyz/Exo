@@ -26,7 +26,7 @@ internal class ExoServiceClient : IServiceClient
 	{
 		if (control is not null)
 		{
-			_settingsViewModel.Devices.OnConnected(control);
+			_settingsViewModel.Devices.OnConnected(control, control);
 			_settingsViewModel.Sensors.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
 		}
@@ -54,6 +54,18 @@ internal class ExoServiceClient : IServiceClient
 
 	void IServiceClient.OnPowerDeviceUpdate(PowerDeviceInformation powerDevice)
 		=> _settingsViewModel.Devices.HandlePowerDeviceUpdate(powerDevice);
+
+	void IServiceClient.OnBatteryUpdate(BatteryChangeNotification batteryNotification)
+		=> _settingsViewModel.Devices.HandleBatteryUpdate(batteryNotification);
+
+	void IServiceClient.OnLowPowerBatteryThresholdUpdate(Guid deviceId, Half threshold)
+		=> _settingsViewModel.Devices.HandleLowPowerModeBatteryThresholdUpdate(deviceId, threshold);
+
+	void IServiceClient.OnIdleSleepTimerUpdate(Guid deviceId, TimeSpan idleTimer)
+		=> _settingsViewModel.Devices.HandleIdleSleepTimerUpdate(deviceId, idleTimer);
+
+	void IServiceClient.OnWirelessBrightnessUpdate(Guid deviceId, byte brightness)
+		=> _settingsViewModel.Devices.HandleWirelessBrightnessUpdate(deviceId, brightness);
 
 	void IServiceClient.OnMonitorDeviceUpdate(MonitorInformation monitorDevice)
 		=> _settingsViewModel.Devices.HandleMonitorDeviceUpdate(monitorDevice);

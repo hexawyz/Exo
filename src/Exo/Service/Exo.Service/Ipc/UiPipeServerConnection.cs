@@ -102,10 +102,14 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
 		var powerDeviceWatchTask = WatchPowerDevicesAsync(cancellationToken);
 		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
-		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 
+		var batteryStateWatchTask = WatchBatteryStateChangesAsync(cancellationToken);
+		var lowPowerBatteryThresholdWatchTask = WatchLowPowerBatteryThresholdUpdatesAsync(cancellationToken);
+		var idleSleepTimerWatchTask = WatchIdleSleepTimerUpdatesAsync(cancellationToken);
+		var wirelessBrightnessWatchTask = WatchWirelessBrightnessUpdatesAsync(cancellationToken);
+		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
 		var monitorSettingWatchTask = WatchMonitorSettingsAsync(cancellationToken);
 
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
@@ -119,6 +123,10 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			lightingEffectsWatchTask,
 			deviceWatchTask,
 			powerDeviceWatchTask,
+			batteryStateWatchTask,
+			lowPowerBatteryThresholdWatchTask,
+			idleSleepTimerWatchTask,
+			wirelessBrightnessWatchTask,
 			lightingDeviceWatchTask,
 			lightingDeviceConfigurationWatchTask,
 			monitorDeviceWatchTask,
@@ -221,6 +229,15 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			goto Success;
 		case ExoUiProtocolClientMessage.UpdateSettings:
 			goto Success;
+		case ExoUiProtocolClientMessage.LowPowerBatteryThreshold:
+			ProcessLowPowerBatteryThreshold(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.IdleSleepTimer:
+			ProcessIdleSleepTimer(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.WirelessBrightness:
+			ProcessWirelessBrightness(data, cancellationToken);
+			goto Success;
 		case ExoUiProtocolClientMessage.LightingDeviceConfiguration:
 			ProcessLightingDeviceConfiguration(data, cancellationToken);
 			goto Success;
@@ -240,5 +257,40 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		return new(false);
 	Success:;
 		return new(true);
+	}
+
+	private async void WriteSimpleOperationStatus(ExoUiProtocolServerMessage message, uint requestId, byte status, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await WriteSimpleOperationStatusAsync(message, requestId, status, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+		}
+	}
+
+	private async ValueTask WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage message, uint requestId, byte status, CancellationToken cancellationToken)
+	{
+		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			await UnsafeWriteSimpleOperationStatusAsync(message, requestId, status, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async ValueTask UnsafeWriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage message, uint requestId, byte status, CancellationToken cancellationToken)
+	{
+		var buffer = WriteBuffer;
+		nuint length = Write(buffer.Span, message, requestId, status);
+		await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
+
+		static nuint Write(Span<byte> buffer, ExoUiProtocolServerMessage message, uint requestId, byte status)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)message);
+			writer.WriteVariable(requestId);
+			writer.Write(status);
+			return writer.Length;
+		}
 	}
 }

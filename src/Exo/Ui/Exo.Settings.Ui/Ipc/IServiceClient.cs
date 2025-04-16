@@ -13,6 +13,10 @@ internal interface IServiceClient
 	void OnLightingEffectUpdate(LightingEffectInformation effect);
 	void OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation);
 	void OnPowerDeviceUpdate(PowerDeviceInformation powerDevice);
+	void OnBatteryUpdate(BatteryChangeNotification batteryNotification);
+	void OnLowPowerBatteryThresholdUpdate(Guid deviceId, Half threshold);
+	void OnIdleSleepTimerUpdate(Guid deviceId, TimeSpan idleTimer);
+	void OnWirelessBrightnessUpdate(Guid deviceId, byte brightness);
 	void OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice);
 	void OnLightingDeviceConfigurationUpdate(LightingDeviceConfiguration configuration);
 	void OnMonitorDeviceUpdate(MonitorInformation monitorDevice);

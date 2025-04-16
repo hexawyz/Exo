@@ -1,4 +1,5 @@
-using Exo.Contracts.Ui.Settings;
+using Exo.Features;
+using Exo.Service;
 
 namespace Exo.Settings.Ui.ViewModels;
 

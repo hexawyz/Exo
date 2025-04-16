@@ -282,7 +282,6 @@ public class Startup
 		services.AddSingleton<MonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
-		services.AddSingleton<GrpcPowerService>();
 		services.AddSingleton<GrpcLightService>();
 		services.AddSingleton<GrpcEmbeddedMonitorService>();
 		services.AddSingleton<GrpcImageService>();
@@ -321,7 +320,6 @@ public class Startup
 
 		app.UseEndpoints(endpoints =>
 		{
-			endpoints.MapGrpcService<GrpcPowerService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcLightService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcEmbeddedMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcImageService>().AddEndpointFilter(settingsEndpointFilter);

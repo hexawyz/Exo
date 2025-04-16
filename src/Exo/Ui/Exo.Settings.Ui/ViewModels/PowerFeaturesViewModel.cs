@@ -1,6 +1,5 @@
-using Exo.Contracts;
-using Exo.Contracts.Ui.Settings;
 using Exo.Service;
+using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -173,15 +172,15 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 	{
 		if (HasLowPowerBatteryThreshold && _currentLowPowerModeBatteryThreshold != _initialLowPowerModeBatteryThreshold)
 		{
-			await _powerService.SetLowPowerModeBatteryThresholdAsync(new() { DeviceId = _device.Id, BatteryThreshold = _currentLowPowerModeBatteryThreshold }, cancellationToken);
+			await _powerService.SetLowPowerModeBatteryThresholdAsync(_device.Id, _currentLowPowerModeBatteryThreshold, cancellationToken);
 		}
 		if (HasIdleTimer && _currentIdleSleepDelay != _initialIdleSleepDelay)
 		{
-			await _powerService.SetIdleSleepTimerAsync(new() { DeviceId = _device.Id, IdleTime = _currentIdleSleepDelay }, cancellationToken);
+			await _powerService.SetIdleSleepTimerAsync(_device.Id, _currentIdleSleepDelay, cancellationToken);
 		}
 		if (HasWirelessBrightness && _currentWirelessBrightness != _initialWirelessBrightness)
 		{
-			await _powerService.SetWirelessBrightnessAsync(new() { DeviceId = _device.Id, Brightness = _currentWirelessBrightness }, cancellationToken);
+			await _powerService.SetWirelessBrightnessAsync(_device.Id, _currentWirelessBrightness, cancellationToken);
 		}
 	}
 }

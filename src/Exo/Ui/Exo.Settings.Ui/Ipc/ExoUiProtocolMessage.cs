@@ -23,6 +23,9 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// <remarks>Contents: 16 bytes (GUID)</remarks>
 	InvokeMenuCommand,
 	UpdateCustomMenu,
+	LowPowerBatteryThreshold,
+	IdleSleepTimer,
+	WirelessBrightness,
 	/// <summary>Requests the update of lighting configuration for a device.</summary>
 	LightingDeviceConfiguration,
 	/// <summary>Requests the update of a monitor setting.</summary>
@@ -103,10 +106,15 @@ internal enum ExoUiProtocolServerMessage : byte
 	DeviceRemove,
 	DeviceUpdate,
 	PowerDevice,
+	BatteryState,
+	LowPowerBatteryThreshold,
+	IdleSleepTimer,
+	WirelessBrightness,
+	PowerDeviceOperationStatus,
 	LightingDevice,
 	LightingDeviceConfiguration,
 	/// <summary>Acknowledges a lighting update.</summary>
-	LightingDeviceConfigurationStatus,
+	LightingDeviceOperationStatus,
 	/// <summary>Provides information about a monitor device.</summary>
 	MonitorDevice,
 	/// <summary>Provides updates on a monitor setting.</summary>
@@ -166,6 +174,13 @@ internal enum LightingDeviceOperationStatus : byte
 	Error,
 	DeviceNotFound,
 	ZoneNotFound,
+}
+
+internal enum PowerDeviceOperationStatus : byte
+{
+	Success,
+	Error,
+	DeviceNotFound,
 }
 
 [Flags]

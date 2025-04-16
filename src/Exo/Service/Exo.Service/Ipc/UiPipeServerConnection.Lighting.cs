@@ -508,33 +508,6 @@ partial class UiPipeServerConnection
 		WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Success, cancellationToken);
 	}
 
-	private async void WriteLightingDeviceDeviceConfigurationStatus(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
-	{
-		try
-		{
-			await WriteLightingDeviceDeviceConfigurationStatusAsync(requestId, status, cancellationToken).ConfigureAwait(false);
-		}
-		catch
-		{
-		}
-	}
-
-	private async ValueTask WriteLightingDeviceDeviceConfigurationStatusAsync(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
-	{
-		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			var buffer = WriteBuffer;
-			nuint length = Write(buffer.Span, requestId, status);
-			await WriteAsync(buffer[..(int)length], cancellationToken).ConfigureAwait(false);
-		}
-
-		static nuint Write(Span<byte> buffer, uint requestId, LightingDeviceOperationStatus status)
-		{
-			var writer = new BufferWriter(buffer);
-			writer.Write((byte)ExoUiProtocolServerMessage.LightingDeviceConfigurationStatus);
-			writer.WriteVariable(requestId);
-			writer.Write((byte)status);
-			return writer.Length;
-		}
-	}
+	private void WriteLightingDeviceDeviceConfigurationStatus(uint requestId, LightingDeviceOperationStatus status, CancellationToken cancellationToken)
+		=> WriteSimpleOperationStatus(ExoUiProtocolServerMessage.LightingDeviceOperationStatus, requestId, (byte)status, cancellationToken);
 }
