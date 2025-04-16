@@ -8,7 +8,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchLightingDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = new BroadcastedChangeWatcher<LightingDeviceInformation>(_lightingService))
+		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceInformation>.CreateAsync(_lightingService, cancellationToken))
 		{
 			try
 			{
@@ -118,7 +118,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLightingDeviceConfigurationAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = new BroadcastedChangeWatcher<LightingDeviceConfiguration>(_lightingService))
+		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceConfiguration>.CreateAsync(_lightingService, cancellationToken).ConfigureAwait(false))
 		{
 			try
 			{
@@ -220,7 +220,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLightingEffectsAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = new BroadcastedChangeWatcher<LightingEffectInformation>(_lightingEffectMetadataService))
+		using (var watcher = await BroadcastedChangeWatcher<LightingEffectInformation>.CreateAsync(_lightingEffectMetadataService, cancellationToken).ConfigureAwait(false))
 		{
 			try
 			{

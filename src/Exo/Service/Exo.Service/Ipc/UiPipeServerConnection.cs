@@ -24,6 +24,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.AssemblyLoader,
 			uiPipeServer.CustomMenuService,
 			uiPipeServer.DeviceRegistry,
+			uiPipeServer.PowerService,
 			uiPipeServer.MonitorService,
 			uiPipeServer.SensorService,
 			uiPipeServer.LightingEffectMetadataService,
@@ -34,6 +35,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
+	private readonly PowerService _powerService;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
@@ -52,6 +54,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
+		PowerService powerService,
 		MonitorService monitorService,
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
@@ -62,6 +65,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
+		_powerService = powerService;
 		_monitorService = monitorService;
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
@@ -96,6 +100,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var lightingEffectsWatchTask = WatchLightingEffectsAsync(cancellationToken);
 
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
+		var powerDeviceWatchTask = WatchPowerDevicesAsync(cancellationToken);
 		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
 		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
@@ -113,6 +118,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			customMenuWatchTask,
 			lightingEffectsWatchTask,
 			deviceWatchTask,
+			powerDeviceWatchTask,
 			lightingDeviceWatchTask,
 			lightingDeviceConfigurationWatchTask,
 			monitorDeviceWatchTask,

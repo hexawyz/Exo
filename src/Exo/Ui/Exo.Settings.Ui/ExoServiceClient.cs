@@ -1,6 +1,5 @@
 using Exo.Contracts;
 using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Settings;
 using Exo.Service;
 using Exo.Settings.Ui.Ipc;
 using Exo.Settings.Ui.Services;
@@ -42,14 +41,10 @@ internal class ExoServiceClient : IServiceClient
 	}
 
 	void IServiceClient.OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation)
-	{
-		_settingsViewModel.Devices.HandleDeviceNotification(kind, deviceInformation);
-	}
+		=> _settingsViewModel.Devices.HandleDeviceNotification(kind, deviceInformation);
 
 	void IServiceClient.OnMetadataSourceNotification(MetadataSourceChangeNotification notification)
-	{
-		_metadataService.HandleMetadataSourceNotification(notification);
-	}
+		=> _metadataService.HandleMetadataSourceNotification(notification);
 
 	void IServiceClient.OnMenuUpdate(MenuChangeNotification notification)
 	{
@@ -57,38 +52,27 @@ internal class ExoServiceClient : IServiceClient
 		// We actually receive the notifications but the other side of the protocol still needs to be implemented.
 	}
 
+	void IServiceClient.OnPowerDeviceUpdate(PowerDeviceInformation powerDevice)
+		=> _settingsViewModel.Devices.HandlePowerDeviceUpdate(powerDevice);
+
 	void IServiceClient.OnMonitorDeviceUpdate(MonitorInformation monitorDevice)
-	{
-		_settingsViewModel.Devices.HandleMonitorDeviceUpdate(monitorDevice);
-	}
+		=> _settingsViewModel.Devices.HandleMonitorDeviceUpdate(monitorDevice);
 
 	void IServiceClient.OnMonitorSettingUpdate(MonitorSettingValue setting)
-	{
-		_settingsViewModel.Devices.HandleMonitorSettingUpdate(setting);
-	}
+		=> _settingsViewModel.Devices.HandleMonitorSettingUpdate(setting);
 
 	void IServiceClient.OnSensorDeviceUpdate(SensorDeviceInformation sensorDevice)
-	{
-		_settingsViewModel.Sensors.HandleSensorDeviceUpdate(sensorDevice);
-	}
+		=> _settingsViewModel.Sensors.HandleSensorDeviceUpdate(sensorDevice);
 
 	void IServiceClient.OnSensorDeviceConfigurationUpdate(SensorConfigurationUpdate sensorConfiguration)
-	{
-		_settingsViewModel.Sensors.HandleSensorConfigurationUpdate(sensorConfiguration);
-	}
+		=> _settingsViewModel.Sensors.HandleSensorConfigurationUpdate(sensorConfiguration);
 
 	void IServiceClient.OnLightingEffectUpdate(LightingEffectInformation effect)
-	{
-		_settingsViewModel.Lighting.CacheEffectInformation(effect);
-	}
+		=> _settingsViewModel.Lighting.CacheEffectInformation(effect);
 
 	void IServiceClient.OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice)
-	{
-		_settingsViewModel.Lighting.OnLightingDevice(lightingDevice);
-	}
+		=> _settingsViewModel.Lighting.OnLightingDevice(lightingDevice);
 
 	void IServiceClient.OnLightingDeviceConfigurationUpdate(LightingDeviceConfiguration configuration)
-	{
-		_settingsViewModel.Lighting.OnLightingConfigurationUpdate(configuration);
-	}
+		=> _settingsViewModel.Lighting.OnLightingConfigurationUpdate(configuration);
 }

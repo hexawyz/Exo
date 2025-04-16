@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Exo.Contracts.Ui.Settings;
 using Microsoft.Extensions.Logging;
-using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
 
 namespace Exo.Service.Grpc;
 
@@ -14,14 +13,6 @@ internal sealed class GrpcPowerService : IPowerService
 	{
 		_powerService = powerService;
 		_logger = logger;
-	}
-
-	public async IAsyncEnumerable<GrpcPowerDeviceInformation> WatchPowerDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		await foreach (var device in _powerService.WatchPowerDevicesAsync(cancellationToken).ConfigureAwait(false))
-		{
-			yield return device.ToGrpc();
-		}
 	}
 
 	public async IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)

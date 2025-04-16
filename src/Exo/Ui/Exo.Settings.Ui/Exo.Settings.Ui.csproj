@@ -77,6 +77,8 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSetting.cs" Link="Definitions\MonitorSetting.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSettingValue.cs" Link="Definitions\MonitorSettingValue.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\PaletteCapabilities.cs" Link="Definitions\PaletteCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\PowerDeviceFlags.cs" Link="Definitions\PowerDeviceFlags.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\PowerDeviceInformation.cs" Link="Definitions\PowerDeviceInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorCapabilities.cs" Link="Definitions\SensorCapabilities.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorConfigurationUpdate.cs" Link="Definitions\SensorConfigurationUpdate.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorDataType.cs" Link="Definitions\SensorDataType.cs" />

@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Exo.Configuration;
-using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.PowerManagement;
+using Exo.Primitives;
 using Exo.Programming;
 using Exo.Programming.Annotations;
 using Exo.Service.Events;
@@ -21,12 +21,12 @@ namespace Exo.Service;
 [Event<BatteryEventParameters>("Error", 0x1D4EE59D, 0x3FE0, 0x45BC, 0x8F, 0xEB, 0x82, 0xE2, 0x45, 0x89, 0x32, 0x1B)]
 [Event<BatteryEventParameters>("Discharging", 0x889E49AD, 0x2D35, 0x4D8A, 0xBE, 0x0E, 0xAD, 0x2A, 0x21, 0xB7, 0xF1, 0xB8)]
 [Event<BatteryEventParameters>("Charging", 0x19687F99, 0x6A9B, 0x41FA, 0xAC, 0x91, 0xDF, 0xDA, 0x0A, 0xD7, 0xF7, 0xD3)]
-internal sealed class PowerService : IAsyncDisposable
+internal sealed class PowerService : IChangeSource<PowerDeviceInformation>, IAsyncDisposable
 {
 	[TypeId(0xF118B54F, 0xDA42, 0x4768, 0x98, 0x50, 0x80, 0x7C, 0xB7, 0x71, 0x36, 0x24)]
 	private readonly struct PersistedPowerDeviceInformation
 	{
-		public PowerDeviceCapabilities Capabilities { get; init; }
+		public PowerDeviceFlags Capabilities { get; init; }
 		public TimeSpan MinimumIdleTime { get; init; }
 		public TimeSpan MaximumIdleTime { get; init; }
 		public byte MinimumBrightness { get; init; }
@@ -43,8 +43,7 @@ internal sealed class PowerService : IAsyncDisposable
 		private IIdleSleepTimerFeature? _idleSleepTimerFeature;
 		private IWirelessBrightnessFeature? _wirelessBrightnessFeature;
 		private readonly Guid _deviceId;
-		private bool _isConnected;
-		private PowerDeviceCapabilities _capabilities;
+		private PowerDeviceFlags _flags;
 		private TimeSpan _minimumIdleTime;
 		private TimeSpan _maximumIdleTime;
 		private BatteryState _batteryState;
@@ -60,17 +59,17 @@ internal sealed class PowerService : IAsyncDisposable
 			_powerService = powerService;
 			_configurationContainer = configurationContainer;
 			_deviceId = deviceId;
-			_capabilities = information.Capabilities;
+			_flags = information.Capabilities;
 			_minimumIdleTime = information.MinimumIdleTime;
 			_maximumIdleTime = information.MaximumIdleTime;
 		}
 
 		public Guid DeviceId => _deviceId;
-		public bool IsConnected => _isConnected;
-		public bool HasBattery => (_capabilities & PowerDeviceCapabilities.HasBattery) != 0;
-		public bool HasLowPowerBatteryThreshold => (_capabilities & PowerDeviceCapabilities.HasLowPowerBatteryThreshold) != 0;
-		public bool HasIdleTimer => (_capabilities & PowerDeviceCapabilities.HasIdleTimer) != 0;
-		public bool HasWirelessBrightness => (_capabilities & PowerDeviceCapabilities.HasWirelessBrightness) != 0;
+		public bool IsConnected => (_flags & PowerDeviceFlags.IsConnected) != 0;
+		public bool HasBattery => (_flags & PowerDeviceFlags.HasBattery) != 0;
+		public bool HasLowPowerBatteryThreshold => (_flags & PowerDeviceFlags.HasLowPowerBatteryThreshold) != 0;
+		public bool HasIdleTimer => (_flags & PowerDeviceFlags.HasIdleTimer) != 0;
+		public bool HasWirelessBrightness => (_flags & PowerDeviceFlags.HasWirelessBrightness) != 0;
 
 		public bool OnConnected
 		(
@@ -83,18 +82,16 @@ internal sealed class PowerService : IAsyncDisposable
 			bool hasChanged = false;
 			lock (_lock)
 			{
-				if (_isConnected) throw new InvalidOperationException();
+				if (IsConnected) throw new InvalidOperationException();
 
-				_isConnected = true;
+				PowerDeviceFlags capabilities = PowerDeviceFlags.IsConnected;
 
-				PowerDeviceCapabilities capabilities = 0;
-
-				if (batteryFeatures is not null) capabilities |= PowerDeviceCapabilities.HasBattery;
-				if (lowPowerModeBatteryThresholdFeature is not null) capabilities |= PowerDeviceCapabilities.HasLowPowerBatteryThreshold;
+				if (batteryFeatures is not null) capabilities |= PowerDeviceFlags.HasBattery;
+				if (lowPowerModeBatteryThresholdFeature is not null) capabilities |= PowerDeviceFlags.HasLowPowerBatteryThreshold;
 
 				if (idleSleepTimerFeature is not null)
 				{
-					capabilities |= PowerDeviceCapabilities.HasIdleTimer;
+					capabilities |= PowerDeviceFlags.HasIdleTimer;
 					hasChanged |= _minimumIdleTime != idleSleepTimerFeature.MinimumIdleTime;
 					_minimumIdleTime = idleSleepTimerFeature.MinimumIdleTime;
 					hasChanged |= _maximumIdleTime != idleSleepTimerFeature.MaximumIdleTime;
@@ -103,16 +100,16 @@ internal sealed class PowerService : IAsyncDisposable
 
 				if (wirelessBrightnessFeature is not null)
 				{
-					capabilities |= PowerDeviceCapabilities.HasWirelessBrightness;
+					capabilities |= PowerDeviceFlags.HasWirelessBrightness;
 					hasChanged |= _minimumBrightness != wirelessBrightnessFeature.MinimumValue;
 					_minimumBrightness = wirelessBrightnessFeature.MinimumValue;
 					hasChanged |= _maximumBrightness != wirelessBrightnessFeature.MaximumValue;
 					_maximumBrightness = wirelessBrightnessFeature.MaximumValue;
 				}
 
-				hasChanged |= capabilities != _capabilities;
+				hasChanged |= (capabilities & ~PowerDeviceFlags.IsConnected) != (_flags & ~PowerDeviceFlags.IsConnected);
 
-				_capabilities = capabilities;
+				_flags = capabilities;
 
 				_batteryFeatures = batteryFeatures;
 				_lowPowerModeBatteryThresholdFeature = lowPowerModeBatteryThresholdFeature;
@@ -153,11 +150,11 @@ internal sealed class PowerService : IAsyncDisposable
 		{
 			lock (_lock)
 			{
-				if (!_isConnected) throw new InvalidOperationException();
+				if (!IsConnected) throw new InvalidOperationException();
 
 				if (_batteryFeatures is not null) _batteryFeatures.BatteryStateChanged -= OnBatteryStateChanged;
 
-				_isConnected = false;
+				_flags &= ~PowerDeviceFlags.IsConnected;
 
 				_batteryFeatures = null;
 				_lowPowerModeBatteryThresholdFeature = null;
@@ -173,7 +170,7 @@ internal sealed class PowerService : IAsyncDisposable
 			(
 				new PersistedPowerDeviceInformation()
 				{
-					Capabilities = _capabilities,
+					Capabilities = _flags & ~PowerDeviceFlags.IsConnected,
 					MinimumIdleTime = _minimumIdleTime,
 					MaximumIdleTime = _maximumIdleTime
 				},
@@ -181,16 +178,15 @@ internal sealed class PowerService : IAsyncDisposable
 			).ConfigureAwait(false);
 
 		public PowerDeviceInformation CreatePowerDeviceInformation()
-			=> new()
-			{
-				DeviceId = _deviceId,
-				IsConnected = _isConnected,
-				Capabilities = _capabilities,
-				MinimumIdleTime = _minimumIdleTime,
-				MaximumIdleTime = _maximumIdleTime,
-				MinimumBrightness = _minimumBrightness,
-				MaximumBrightness = _maximumBrightness,
-			};
+			=> new
+			(
+				_deviceId,
+				_flags,
+				_minimumIdleTime,
+				_maximumIdleTime,
+				_minimumBrightness,
+				_maximumBrightness
+			);
 
 		private void OnBatteryStateChanged(Driver driver, BatteryState state)
 		{
@@ -340,7 +336,7 @@ internal sealed class PowerService : IAsyncDisposable
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
-	private ChannelWriter<PowerDeviceInformation>[]? _deviceChangeListeners;
+	private ChangeBroadcaster<PowerDeviceInformation> _deviceChangeBroadcaster;
 	private ChannelWriter<ChangeWatchNotification<Guid, BatteryState>>[]? _batteryChangeListeners;
 	private ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification>[]? _lowPowerBatteryThresholdListeners;
 	private ChannelWriter<PowerDeviceIdleSleepTimerNotification>[]? _idleTimerListeners;
@@ -453,7 +449,7 @@ internal sealed class PowerService : IAsyncDisposable
 		deviceState.OnDisconnected();
 	}
 
-	private void NotifyDeviceConnection(PowerDeviceInformation information) => _deviceChangeListeners.TryWrite(information);
+	private void NotifyDeviceConnection(PowerDeviceInformation information) => _deviceChangeBroadcaster.Push(information);
 
 	private void NotifyBatteryStateChange(ChangeWatchNotification<Guid, BatteryState> notification)
 	{
@@ -602,52 +598,32 @@ internal sealed class PowerService : IAsyncDisposable
 		}
 	}
 
-	public async IAsyncEnumerable<PowerDeviceInformation> WatchPowerDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<PowerDeviceInformation[]?> IChangeSource<PowerDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<PowerDeviceInformation>();
-
-		List<PowerDeviceInformation>? initialNotifications;
-
+		List<PowerDeviceInformation> initialNotifications;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _deviceChangeListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				initialNotifications = [];
+				foreach (var kvp in _deviceStates)
 				{
-					yield return initialNotifications[i];
+					initialNotifications.Add(kvp.Value.CreatePowerDeviceInformation());
 				}
-				initialNotifications = null;
-			}
 
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+				_deviceChangeBroadcaster.Register(writer);
+			}
+			else
 			{
-				yield return notification;
+				_deviceChangeBroadcaster.Register(writer);
+				return null;
 			}
 		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _deviceChangeListeners, channel);
-		}
-
-		List<PowerDeviceInformation>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<PowerDeviceInformation>();
-			foreach (var kvp in _deviceStates)
-			{
-				initialNotifications.Add(kvp.Value.CreatePowerDeviceInformation());
-			}
-
-			return initialNotifications;
-		}
+		return [.. initialNotifications];
 	}
+
+	void IChangeSource<PowerDeviceInformation>.UnregisterWatcher(ChannelWriter<PowerDeviceInformation> writer)
+		=> _deviceChangeBroadcaster.Unregister(writer);
 
 	public async IAsyncEnumerable<ChangeWatchNotification<Guid, BatteryState>> WatchBatteryChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{

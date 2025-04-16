@@ -29,7 +29,6 @@ using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
 using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
 using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
 using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
-using GrpcPowerDeviceInformation = Exo.Contracts.Ui.Settings.PowerDeviceInformation;
 using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
 using GrpcSize = Exo.Contracts.Ui.Settings.Size;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
@@ -38,18 +37,6 @@ namespace Exo.Service.Grpc;
 
 internal static class GrpcConvert
 {
-	public static GrpcPowerDeviceInformation ToGrpc(this PowerDeviceInformation powerDeviceInformation)
-		=> new()
-		{
-			DeviceId = powerDeviceInformation.DeviceId,
-			IsConnected = powerDeviceInformation.IsConnected,
-			Capabilities = powerDeviceInformation.Capabilities,
-			MinimumIdleTime = powerDeviceInformation.MinimumIdleTime,
-			MaximumIdleTime = powerDeviceInformation.MaximumIdleTime,
-			MinimumBrightness = powerDeviceInformation.MinimumBrightness,
-			MaximumBrightness = powerDeviceInformation.MaximumBrightness,
-		};
-
 	public static GrpcMouseDeviceInformation ToGrpc(this MouseDeviceInformation mouseDeviceInformation)
 		=> new()
 		{

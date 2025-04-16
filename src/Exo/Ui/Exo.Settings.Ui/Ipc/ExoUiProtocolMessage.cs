@@ -98,14 +98,15 @@ internal enum ExoUiProtocolServerMessage : byte
 	CustomMenuItemUpdate,
 	/// <summary>Provides information about a lighting effect.</summary>
 	LightingEffect,
-	/// <summary>Acknowledges a lighting update.</summary>
-	LightingDeviceConfigurationStatus,
 	DeviceEnumeration,
 	DeviceAdd,
 	DeviceRemove,
 	DeviceUpdate,
+	PowerDevice,
 	LightingDevice,
 	LightingDeviceConfiguration,
+	/// <summary>Acknowledges a lighting update.</summary>
+	LightingDeviceConfigurationStatus,
 	/// <summary>Provides information about a monitor device.</summary>
 	MonitorDevice,
 	/// <summary>Provides updates on a monitor setting.</summary>

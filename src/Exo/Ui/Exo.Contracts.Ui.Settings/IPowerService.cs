@@ -6,9 +6,6 @@ namespace Exo.Contracts.Ui.Settings;
 [ServiceContract(Name = "Power")]
 public interface IPowerService
 {
-	[OperationContract(Name = "WatchPowerDevices")]
-	IAsyncEnumerable<PowerDeviceInformation> WatchPowerDevicesAsync(CancellationToken cancellationToken);
-
 	[OperationContract(Name = "WatchBatteryChanges")]
 	IAsyncEnumerable<BatteryChangeNotification> WatchBatteryChangesAsync(CancellationToken cancellationToken);
 

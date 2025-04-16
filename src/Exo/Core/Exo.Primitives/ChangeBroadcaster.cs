@@ -122,22 +122,29 @@ public readonly struct ChangeBroadcasterSnapshot<T>
 
 public interface IChangeSource<T>
 {
-	public T[]? GetInitialChangesAndRegisterWatcher(ChannelWriter<T> writer);
+	public ValueTask<T[]?> GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<T> writer, CancellationToken cancellationToken);
 	public void UnregisterWatcher(ChannelWriter<T> writer);
 }
 
 // A light abstraction for watching values. Exposing the channel reader allows smoother 
 public struct BroadcastedChangeWatcher<T> : IDisposable
 {
+	public static async ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, CancellationToken cancellationToken)
+	{
+		var channel = Channel.CreateUnbounded<T>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
+		var initialData = await source.GetInitialChangesAndRegisterWatcherAsync(channel, cancellationToken).ConfigureAwait(false);
+		return new(source, initialData, channel);
+	}
+
 	private readonly IChangeSource<T> _source;
 	private T[]? _initialData;
 	private readonly Channel<T> _channel;
 
-	public BroadcastedChangeWatcher(IChangeSource<T> source)
+	private BroadcastedChangeWatcher(IChangeSource<T> source, T[]? initialData, Channel<T> channel)
 	{
 		_source = source;
-		_channel = Channel.CreateUnbounded<T>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
-		_initialData = source.GetInitialChangesAndRegisterWatcher(_channel.Writer);
+		_channel = channel;
+		_initialData = initialData;
 	}
 
 	public void Dispose() => _source.UnregisterWatcher(_channel.Writer);

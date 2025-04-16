@@ -1,14 +1,11 @@
-using Exo.Contracts;
-
 namespace Exo.Service;
 
-internal readonly struct PowerDeviceInformation
+internal readonly struct PowerDeviceInformation(Guid deviceId, PowerDeviceFlags flags, TimeSpan minimumIdleTime, TimeSpan maximumIdleTime, byte minimumBrightness, byte maximumBrightness)
 {
-	public required Guid DeviceId { get; init; }
-	public required bool IsConnected { get; init; }
-	public required PowerDeviceCapabilities Capabilities { get; init; }
-	public required TimeSpan MinimumIdleTime { get; init; }
-	public required TimeSpan MaximumIdleTime { get; init; }
-	public byte MinimumBrightness { get; init; }
-	public byte MaximumBrightness { get; init; }
+	public Guid DeviceId { get; } = deviceId;
+	public PowerDeviceFlags Flags { get; } = flags;
+	public TimeSpan MinimumIdleTime { get; } = minimumIdleTime;
+	public TimeSpan MaximumIdleTime { get; } = maximumIdleTime;
+	public byte MinimumBrightness { get; } = minimumBrightness;
+	public byte MaximumBrightness { get; } = maximumBrightness;
 }

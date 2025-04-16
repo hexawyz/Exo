@@ -126,12 +126,6 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.LightingEffect:
 			ProcessLightingEffect(data);
 			goto Success;
-		case ExoUiProtocolServerMessage.LightingDevice:
-			ProcessLightingDevice(data);
-			goto Success;
-		case ExoUiProtocolServerMessage.LightingDeviceConfiguration:
-			ProcessLightingDeviceConfiguration(data);
-			goto Success;
 		case ExoUiProtocolServerMessage.DeviceEnumeration:
 			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
 			goto Success;
@@ -143,6 +137,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceUpdate:
 			ProcessDevice(Service.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.PowerDevice:
+			ProcessPowerDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingDevice:
+			ProcessLightingDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingDeviceConfiguration:
+			ProcessLightingDeviceConfiguration(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.LightingDeviceConfigurationStatus:
 			ProcessLightingDeviceOperationStatus(data);
@@ -353,6 +356,39 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		string? serialNumber = reader.ReadVariableString();
 		var information = new DeviceStateInformation(deviceId, friendlyName, userFriendlyName, category, featureIds, ImmutableCollectionsMarshal.AsImmutableArray(deviceIds), mainDeviceIdIndex, serialNumber, (flags & 0x1) != 0);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnDeviceNotification(kind, information));
+	}
+
+	private void ProcessPowerDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		var flags = (PowerDeviceFlags)reader.ReadByte();
+		TimeSpan minimumIdleTime;
+		TimeSpan maximumIdleTime;
+		if ((flags & PowerDeviceFlags.HasIdleTimer) != 0)
+		{
+			minimumIdleTime = TimeSpan.FromTicks((long)reader.Read<ulong>());
+			maximumIdleTime = TimeSpan.FromTicks((long)reader.Read<ulong>());
+		}
+		else
+		{
+			minimumIdleTime = default;
+			maximumIdleTime = default;
+		}
+		byte minimumBrightness;
+		byte maximumBrightness;
+		if ((flags & PowerDeviceFlags.HasWirelessBrightness) != 0)
+		{
+			minimumBrightness = reader.ReadByte();
+			maximumBrightness = reader.ReadByte();
+		}
+		else
+		{
+			minimumBrightness = 0;
+			maximumBrightness = 0;
+		}
+		var information = new PowerDeviceInformation(deviceId, flags, minimumIdleTime, maximumIdleTime, minimumBrightness, maximumBrightness);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnPowerDeviceUpdate(information));
 	}
 
 	private void ProcessLightingDevice(ReadOnlySpan<byte> data)

@@ -105,13 +105,13 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 		}
 	}
 
-	LightingEffectInformation[]? IChangeSource<LightingEffectInformation>.GetInitialChangesAndRegisterWatcher(ChannelWriter<LightingEffectInformation> writer)
+	ValueTask<LightingEffectInformation[]?> IChangeSource<LightingEffectInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightingEffectInformation> writer, CancellationToken cancellationToken)
 	{
 		lock (_effectUpdateLock)
 		{
 			LightingEffectInformation[] initialEffects = [.. _effectMetadataCache.Values];
 			_effectChangeBroadcaster.Register(writer);
-			return initialEffects;
+			return new(initialEffects);
 		}
 	}
 

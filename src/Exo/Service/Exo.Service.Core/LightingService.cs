@@ -851,7 +851,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		}
 	}
 
-	LightingDeviceInformation[]? IChangeSource<LightingDeviceInformation>.GetInitialChangesAndRegisterWatcher(ChannelWriter<LightingDeviceInformation> writer)
+	ValueTask<LightingDeviceInformation[]?> IChangeSource<LightingDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightingDeviceInformation> writer, CancellationToken cancellationToken)
 	{
 		var initialNotifications = new List<LightingDeviceInformation>();
 		lock (_changeLock)
@@ -862,13 +862,13 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			}
 			_deviceInformationBroadcaster.Register(writer);
 		}
-		return initialNotifications.ToArray();
+		return new([.. initialNotifications]);
 	}
 
 	void IChangeSource<LightingDeviceInformation>.UnregisterWatcher(ChannelWriter<LightingDeviceInformation> writer)
 		=> _deviceInformationBroadcaster.Unregister(writer);
 
-	LightingDeviceConfiguration[]? IChangeSource<LightingDeviceConfiguration>.GetInitialChangesAndRegisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)
+	ValueTask<LightingDeviceConfiguration[]?> IChangeSource<LightingDeviceConfiguration>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightingDeviceConfiguration> writer, CancellationToken cancellationToken)
 	{
 		var initialNotifications = new List<LightingDeviceConfiguration>();
 		lock (_changeLock)
@@ -882,7 +882,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			}
 			_deviceConfigurationBroadcaster.Register(writer);
 		}
-		return initialNotifications.ToArray();
+		return new([.. initialNotifications]);
 	}
 
 	void IChangeSource<LightingDeviceConfiguration>.UnregisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)

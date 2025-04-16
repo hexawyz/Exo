@@ -147,7 +147,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 			var deviceWatchTask = WatchDevicesAsync(_deviceArrivalChannel.Reader, powerService, mouseService, embeddedMonitorService, lightService, cts.Token);
 
-			var powerWatchTask = WatchPowerDevicesAsync(powerService, cts.Token);
 			var batteryWatchTask = WatchBatteryChangesAsync(powerService, cts.Token);
 			var lowPowerModeBatteryThresholdWatchTask = WatchLowPowerModeBatteryThresholdChangesAsync(powerService, cts.Token);
 			var idleSleepTimerWatchTask = WatchIdleSleepTimerChangesAsync(powerService, cts.Token);
@@ -170,7 +169,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				(
 					[
 						deviceWatchTask,
-						powerWatchTask,
 						batteryWatchTask,
 						lowPowerModeBatteryThresholdWatchTask,
 						idleSleepTimerWatchTask,
@@ -452,31 +450,19 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingLightChanges.Remove(device.Id, out _);
 	}
 
-	private async Task WatchPowerDevicesAsync(IPowerService powerService, CancellationToken cancellationToken)
+
+	internal void HandlePowerDeviceUpdate(PowerDeviceInformation powerDevice)
 	{
-		try
+		if (_devicesById.TryGetValue(powerDevice.DeviceId, out var device))
 		{
-			await foreach (var information in powerService.WatchPowerDevicesAsync(cancellationToken))
+			if (device.PowerFeatures is { } powerFeatures)
 			{
-				if (_devicesById.TryGetValue(information.DeviceId, out var device))
-				{
-					if (device.PowerFeatures is { } powerFeatures)
-					{
-						powerFeatures.UpdateInformation(information);
-					}
-				}
-				else
-				{
-					_pendingPowerDeviceInformations[information.DeviceId] = information;
-				}
+				powerFeatures.UpdateInformation(powerDevice);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
-			return;
-		}
-		catch (Exception)
-		{
+			_pendingPowerDeviceInformations[powerDevice.DeviceId] = powerDevice;
 		}
 	}
 

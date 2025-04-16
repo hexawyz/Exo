@@ -1,5 +1,6 @@
 using Exo.Contracts;
 using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -12,7 +13,7 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 	private TimeSpan _maximumIdleSleepDelay;
 	private TimeSpan _initialIdleSleepDelay;
 	private TimeSpan _currentIdleSleepDelay;
-	private PowerDeviceCapabilities _capabilities;
+	private PowerDeviceFlags _capabilities;
 	private Half _initialLowPowerModeBatteryThreshold;
 	private Half _currentLowPowerModeBatteryThreshold;
 	private byte _minimumBrightness;
@@ -38,9 +39,9 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 			_initialLowPowerModeBatteryThreshold != _currentLowPowerModeBatteryThreshold ||
 			_initialWirelessBrightness != _currentWirelessBrightness;
 
-	public bool HasLowPowerBatteryThreshold => (_capabilities & PowerDeviceCapabilities.HasLowPowerBatteryThreshold) != 0;
-	public bool HasIdleTimer => (_capabilities & PowerDeviceCapabilities.HasIdleTimer) != 0;
-	public bool HasWirelessBrightness => (_capabilities & PowerDeviceCapabilities.HasWirelessBrightness) != 0;
+	public bool HasLowPowerBatteryThreshold => (_capabilities & PowerDeviceFlags.HasLowPowerBatteryThreshold) != 0;
+	public bool HasIdleTimer => (_capabilities & PowerDeviceFlags.HasIdleTimer) != 0;
+	public bool HasWirelessBrightness => (_capabilities & PowerDeviceFlags.HasWirelessBrightness) != 0;
 
 	public DeviceViewModel Device => _device;
 
@@ -82,12 +83,12 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 		bool hadIdleTimer = HasIdleTimer;
 		bool hadWirelessBrightness = HasWirelessBrightness;
 		bool wasChanged = IsChanged;
-		_capabilities = information.Capabilities;
-		if ((_capabilities & PowerDeviceCapabilities.HasBattery) == 0)
+		_capabilities = information.Flags;
+		if ((_capabilities & PowerDeviceFlags.HasBattery) == 0)
 		{
 			_batteryState = null;
 		}
-		if ((_capabilities & PowerDeviceCapabilities.HasIdleTimer) != 0)
+		if ((_capabilities & PowerDeviceFlags.HasIdleTimer) != 0)
 		{
 			_minimumIdleSleepDelay = information.MinimumIdleTime;
 			_maximumIdleSleepDelay = information.MaximumIdleTime;
@@ -97,11 +98,11 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 			_maximumIdleSleepDelay = _minimumIdleSleepDelay = default;
 			IdleSleepDelay = _initialIdleSleepDelay;
 		}
-		if ((_capabilities & PowerDeviceCapabilities.HasLowPowerBatteryThreshold) == 0)
+		if ((_capabilities & PowerDeviceFlags.HasLowPowerBatteryThreshold) == 0)
 		{
 			LowPowerModeBatteryThreshold = _initialLowPowerModeBatteryThreshold;
 		}
-		if ((_capabilities & PowerDeviceCapabilities.HasWirelessBrightness) != 0)
+		if ((_capabilities & PowerDeviceFlags.HasWirelessBrightness) != 0)
 		{
 			_minimumBrightness = information.MinimumBrightness;
 			_maximumBrightness = information.MaximumBrightness;

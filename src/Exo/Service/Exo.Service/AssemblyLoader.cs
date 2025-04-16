@@ -300,7 +300,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 	}
 
 
-	AssemblyChangeNotification[]? IChangeSource<AssemblyChangeNotification>.GetInitialChangesAndRegisterWatcher(ChannelWriter<AssemblyChangeNotification> writer)
+	ValueTask<AssemblyChangeNotification[]?> IChangeSource<AssemblyChangeNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<AssemblyChangeNotification> writer, CancellationToken cancellationToken)
 	{
 		AssemblyChangeNotification[] loadedAssemblies;
 		lock (_updateLock)
@@ -318,7 +318,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 			if (i < loadedAssemblies.Length) Array.Resize(ref loadedAssemblies, i);
 			_assemblyChangeBroadcaster.Register(writer);
 		}
-		return loadedAssemblies;
+		return new(loadedAssemblies);
 	}
 
 	void IChangeSource<AssemblyChangeNotification>.UnregisterWatcher(ChannelWriter<AssemblyChangeNotification> writer)
