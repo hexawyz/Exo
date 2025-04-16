@@ -87,7 +87,7 @@ public sealed class PciDiscoverySubsystem :
 		return ValueTask.CompletedTask;
 	}
 
-	protected override ValueTask StartAsync(IDiscoverySink<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<SystemDevicePath, PciDiscoveryContext, PciDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -120,9 +120,9 @@ public sealed class PciDiscoverySubsystem :
 		}
 		catch (Exception ex)
 		{
-			return ValueTask.FromException(ex);
+			return Task.FromException(ex);
 		}
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out PciFactoryDetails parsedFactoryDetails)

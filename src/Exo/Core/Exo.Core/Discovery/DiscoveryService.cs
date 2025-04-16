@@ -187,10 +187,14 @@ public abstract class DiscoveryService<TSelf, TFactory, TKey, TParsedFactoryDeta
 		return null;
 	}
 
-	async ValueTask IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>.StartAsync(CancellationToken cancellationToken)
+	async Task IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>.StartAsync(CancellationToken cancellationToken)
 		=> await StartAsync(await WaitForSinkAsync().ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
-	protected abstract ValueTask StartAsync(IDiscoverySink<TKey, TDiscoveryContext, TCreationContext> sink, CancellationToken cancellationToken);
+	Task IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>.StopAsync(CancellationToken cancellationToken)
+		=> StopAsync(cancellationToken);
+
+	protected abstract Task StartAsync(IDiscoverySink<TKey, TDiscoveryContext, TCreationContext> sink, CancellationToken cancellationToken);
+	protected virtual async Task StopAsync(CancellationToken cancellationToken) => await DisposeAsync().ConfigureAwait(false);
 
 	public abstract bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out TParsedFactoryDetails? parsedFactoryDetails);
 	public abstract bool TryRegisterFactory(Guid factoryId, TParsedFactoryDetails parsedFactoryDetails);

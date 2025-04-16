@@ -87,14 +87,14 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 
 	public override string FriendlyName => "SMBIOS RAM Discovery";
 
-	protected override ValueTask StartAsync(IDiscoverySink<SystemMemoryDeviceKey, RamModuleDiscoveryContext, RamModuleDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<SystemMemoryDeviceKey, RamModuleDiscoveryContext, RamModuleDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		// NB: Most installations would have a single type or module or two that are all tied to the same factory.
 		// We could optimize for that case here, but the overhead of the dictionary is probably not significant enough.
 		var modulesByFactories = new Dictionary<Guid, ImmutableArray<MemoryModuleInformation>.Builder>();
 		lock (_lock)
 		{
-			if (_ramModuleFactories.Count == 0) return ValueTask.CompletedTask;
+			if (_ramModuleFactories.Count == 0) return Task.CompletedTask;
 
 			foreach (var module in InstalledModules)
 			{
@@ -115,7 +115,7 @@ public sealed class SystemManagementBiosRamDiscoverySubsystem :
 			sink.HandleArrival(new(this, modules, kvp.Key));
 		}
 
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out RamModuleDriverFactoryDetails parsedFactoryDetails)

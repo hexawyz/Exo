@@ -142,7 +142,7 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 		return default;
 	}
 
-	protected override ValueTask StartAsync(IDiscoverySink<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<RootComponentKey, RootComponentDiscoveryContext, RootComponentCreationContext> sink, CancellationToken cancellationToken)
 	{
 		if (Volatile.Read(ref _pendingArrivals) is not { } pendingArrival) goto Failed;
 
@@ -156,8 +156,8 @@ public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, R
 			sink.HandleArrival(new(this, key, typeId));
 		}
 
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	Failed:;
-		return ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("The service has already been initialized.")));
+		return Task.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("The service has already been initialized.")));
 	}
 }

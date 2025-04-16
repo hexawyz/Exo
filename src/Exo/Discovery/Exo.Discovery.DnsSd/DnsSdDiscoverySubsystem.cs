@@ -73,6 +73,7 @@ public sealed class DnsSdDiscoverySubsystem :
 		{
 			if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 			{
+				cts.Cancel();
 				DisposeSink();
 				watchers = _serviceTypeWatchers;
 				Volatile.Write(ref _serviceTypeWatchers, null);
@@ -87,7 +88,7 @@ public sealed class DnsSdDiscoverySubsystem :
 		}
 	}
 
-	protected override ValueTask StartAsync(IDiscoverySink<DnsSdInstanceId, DnsSdDiscoveryContext, DnsSdDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<DnsSdInstanceId, DnsSdDiscoveryContext, DnsSdDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -114,9 +115,9 @@ public sealed class DnsSdDiscoverySubsystem :
 		}
 		catch (Exception ex)
 		{
-			return ValueTask.FromException(ex);
+			return Task.FromException(ex);
 		}
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	// We cannot browse available services on the network using DNS-SD through DevQuery. (see https://github.com/stammen/dnssd-uwp/issues/8)

@@ -498,13 +498,13 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	{
 		foreach (var monitoringThread in _monitoringThreads)
 		{
-			// As soon as we reach a structure is not initialized, it means that all threads have been handled.
+			// As soon as we reach a structure that is not initialized, it means that all threads have been handled.
 			if (monitoringThread.Event is null) break;
 			monitoringThread.Event.Set();
 		}
 		foreach (var monitoringThread in _monitoringThreads)
 		{
-			// As soon as we reach a structure is not initialized, it means that all threads have been handled.
+			// As soon as we reach a structure that is not initialized, it means that all threads have been handled.
 			if (monitoringThread.Event is null) break;
 			monitoringThread.Thread.Join();
 		}

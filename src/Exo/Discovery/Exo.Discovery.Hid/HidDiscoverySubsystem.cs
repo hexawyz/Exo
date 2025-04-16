@@ -81,7 +81,7 @@ public sealed class HidDiscoverySubsystem :
 		return ValueTask.CompletedTask;
 	}
 
-	protected override ValueTask StartAsync(IDiscoverySink<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<SystemDevicePath, HidDiscoveryContext, HidDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -104,9 +104,9 @@ public sealed class HidDiscoverySubsystem :
 		}
 		catch (Exception ex)
 		{
-			return ValueTask.FromException(ex);
+			return Task.FromException(ex);
 		}
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, out HidFactoryDetails details)

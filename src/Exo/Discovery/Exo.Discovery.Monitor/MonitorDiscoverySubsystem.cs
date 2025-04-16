@@ -84,7 +84,7 @@ public sealed class MonitorDiscoverySubsystem :
 		return ValueTask.CompletedTask;
 	}
 
-	protected override ValueTask StartAsync(IDiscoverySink<SystemDevicePath, MonitorDiscoveryContext, MonitorDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<SystemDevicePath, MonitorDiscoveryContext, MonitorDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -110,9 +110,9 @@ public sealed class MonitorDiscoverySubsystem :
 		}
 		catch (Exception ex)
 		{
-			return ValueTask.FromException(ex);
+			return Task.FromException(ex);
 		}
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out MonitorFactoryDetails parsedFactoryDetails)

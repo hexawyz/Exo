@@ -71,7 +71,7 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{
 			cts.Cancel();
-			await _runTask;
+			await _runTask.ConfigureAwait(false);
 			cts.Dispose();
 		}
 	}
@@ -80,7 +80,7 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 	{
 		try
 		{
-			await foreach (var metadata in EffectSerializer.WatchEffectsAsync(cancellationToken))
+			await foreach (var metadata in EffectSerializer.WatchEffectsAsync(cancellationToken).ConfigureAwait(false))
 			{
 				try
 				{

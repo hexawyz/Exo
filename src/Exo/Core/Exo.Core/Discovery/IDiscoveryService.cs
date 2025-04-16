@@ -48,7 +48,13 @@ public interface IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDisco
 	/// <returns></returns>
 	bool TryRegisterFactory(Guid factoryId, TParsedFactoryDetails parsedFactoryDetails);
 
-	ValueTask StartAsync(CancellationToken cancellationToken);
+	Task StartAsync(CancellationToken cancellationToken);
+
+	/// <summary>Indicates that the source must be stopped.</summary>
+	/// <remarks>When called, this methods signals that the source must be shut down, generally because of the process being shutdown.</remarks>
+	/// <param name="cancellationToken"></param>
+	/// <returns></returns>
+	Task StopAsync(CancellationToken cancellationToken);
 
 	ValueTask<TResult?> InvokeFactoryAsync
 	(

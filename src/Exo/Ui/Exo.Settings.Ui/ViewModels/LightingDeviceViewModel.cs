@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
-using Exo.Contracts;
 using Exo.Lighting;
 using Exo.Service;
 

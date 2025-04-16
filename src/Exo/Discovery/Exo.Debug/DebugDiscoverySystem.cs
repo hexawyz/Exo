@@ -51,9 +51,9 @@ public class DebugDiscoverySystem : DiscoveryService<DebugDiscoverySystem, Debug
 		_lock = new();
 	}
 
-	protected override ValueTask StartAsync(IDiscoverySink<DebugDeviceKey, DebugDiscoveryContext, DebugDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<DebugDeviceKey, DebugDiscoveryContext, DebugDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out DebugFactoryDetails? parsedFactoryDetails)

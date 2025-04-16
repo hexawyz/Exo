@@ -72,13 +72,13 @@ public sealed class CpuDiscoverySubsystem :
 
 	internal ImmutableArray<ProcessorPackageInformation> ProcessorPackages => _processorPackages;
 
-	protected override ValueTask StartAsync(IDiscoverySink<SystemCpuDeviceKey, CpuDiscoveryContext, CpuDriverCreationContext> sink, CancellationToken cancellationToken)
+	protected override Task StartAsync(IDiscoverySink<SystemCpuDeviceKey, CpuDiscoveryContext, CpuDriverCreationContext> sink, CancellationToken cancellationToken)
 	{
 		Guid factoryId;
 
 		lock (_lock)
 		{
-			if (_cpuFactories.Count == 0 || !_cpuFactories.TryGetValue(_vendorId, out factoryId)) return ValueTask.CompletedTask;
+			if (_cpuFactories.Count == 0 || !_cpuFactories.TryGetValue(_vendorId, out factoryId)) return Task.CompletedTask;
 		}
 
 		for (int i = 0; i < _processorPackages.Length; i++)
@@ -86,7 +86,7 @@ public sealed class CpuDiscoverySubsystem :
 			sink.HandleArrival(new(this, _vendorId, i, factoryId));
 		}
 
-		return ValueTask.CompletedTask;
+		return Task.CompletedTask;
 	}
 
 	public override bool TryParseFactory(ImmutableArray<CustomAttributeData> attributes, [NotNullWhen(true)] out CpuDriverFactoryDetails parsedFactoryDetails)

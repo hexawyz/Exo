@@ -26,7 +26,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 
 		public abstract ValueTask<bool> TryReadAndRegisterFactoryAsync(Guid factoryId, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken);
 		public abstract ValueTask<bool> TryParseAndRegisterFactoryAsync(Guid factoryId, ImmutableArray<CustomAttributeData> attributes, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken);
-		public abstract ValueTask StartAsync(CancellationToken cancellationToken);
+		public abstract Task StartAsync(CancellationToken cancellationToken);
+		public abstract Task StopAsync(CancellationToken cancellationToken);
 	}
 
 	private sealed class DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult> : DiscoverySource, IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>
@@ -58,7 +59,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 			// TODO
 		}
 
-		public override ValueTask StartAsync(CancellationToken cancellationToken) => Service.StartAsync(cancellationToken);
+		public override Task StartAsync(CancellationToken cancellationToken) => Service.StartAsync(cancellationToken);
+		public override Task StopAsync(CancellationToken cancellationToken) => Service.StopAsync(cancellationToken);
 
 		public override async ValueTask<bool> TryReadAndRegisterFactoryAsync(Guid factoryId, MethodReference methodReference, AssemblyName assemblyName, CancellationToken cancellationToken)
 		{
@@ -785,7 +787,7 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 	{
 		if (Interlocked.Exchange(ref _pendingInitializations, null) is not { } pendingInitializations)
 		{
-			throw new InvalidOperationException("The service was already served.");
+			throw new InvalidOperationException("The service was already started.");
 		}
 		// First refresh the assemblies, ensuring everything is up to date
 		await RefreshAssemblyCacheAsync().ConfigureAwait(false);
@@ -807,6 +809,8 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		where TComponent : class, IAsyncDisposable
 		where TResult : ComponentCreationResult<TKey, TComponent>
 	{
+		ObjectDisposedException.ThrowIf(_cancellationTokenSource.IsCancellationRequested, this);
+
 		// Validate that the parsed factory details have a GUID applied that will allow them to be serialized.
 		// It is better to validate this upfront, as it is easy to do and will avoid starting too much stuff.
 		_ = TypeId.Get<TParsedFactoryDetails>();
@@ -1065,8 +1069,17 @@ internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
 		return new(factoryMethods.DrainToImmutable());
 	}
 
-	public Task StopAsync(CancellationToken cancellationToken)
+	public async Task StopAsync(CancellationToken cancellationToken)
 	{
-		return Task.CompletedTask;
+		_cancellationTokenSource.Cancel();
+		var tasks = new List<Task>();
+		foreach (var state in _states.Values)
+		{
+			if (state.Source is { } source)
+			{
+				tasks.Add(source.StopAsync(cancellationToken));
+			}
+		}
+		await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
 	}
 }
