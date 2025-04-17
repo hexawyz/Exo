@@ -25,6 +25,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.CustomMenuService,
 			uiPipeServer.DeviceRegistry,
 			uiPipeServer.PowerService,
+			uiPipeServer.MouseService,
 			uiPipeServer.MonitorService,
 			uiPipeServer.SensorService,
 			uiPipeServer.LightingEffectMetadataService,
@@ -36,6 +37,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly PowerService _powerService;
+	private readonly MouseService _mouseService;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
@@ -55,6 +57,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
+		MouseService mouseService,
 		MonitorService monitorService,
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
@@ -66,6 +69,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
 		_powerService = powerService;
+		_mouseService = mouseService;
 		_monitorService = monitorService;
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
@@ -101,6 +105,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
 		var powerDeviceWatchTask = WatchPowerDevicesAsync(cancellationToken);
+		var mouseDeviceWatchTask = WatchMouseDevicesAsync(cancellationToken);
 		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
@@ -109,6 +114,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var lowPowerBatteryThresholdWatchTask = WatchLowPowerBatteryThresholdUpdatesAsync(cancellationToken);
 		var idleSleepTimerWatchTask = WatchIdleSleepTimerUpdatesAsync(cancellationToken);
 		var wirelessBrightnessWatchTask = WatchWirelessBrightnessUpdatesAsync(cancellationToken);
+		var mouseDpiWatchTask = WatchMouseDpiAsync(cancellationToken);
+		var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(cancellationToken);
+		var mousePollingFrequencyWatchTask = WatchMousePollingFrequencyAsync(cancellationToken);
 		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
 		var monitorSettingWatchTask = WatchMonitorSettingsAsync(cancellationToken);
 
@@ -123,10 +131,14 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			lightingEffectsWatchTask,
 			deviceWatchTask,
 			powerDeviceWatchTask,
+			mouseDeviceWatchTask,
 			batteryStateWatchTask,
 			lowPowerBatteryThresholdWatchTask,
 			idleSleepTimerWatchTask,
 			wirelessBrightnessWatchTask,
+			mouseDpiWatchTask,
+			mouseDpiPresetWatchTask,
+			mousePollingFrequencyWatchTask,
 			lightingDeviceWatchTask,
 			lightingDeviceConfigurationWatchTask,
 			monitorDeviceWatchTask,
@@ -237,6 +249,15 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			goto Success;
 		case ExoUiProtocolClientMessage.WirelessBrightness:
 			ProcessWirelessBrightness(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.MouseActiveDpiPreset:
+			ProcessMouseActiveDpiPreset(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.MouseDpiPresets:
+			ProcessMouseDpiPresets(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.MousePollingFrequency:
+			ProcessMousePollingFrequency(data, cancellationToken);
 			goto Success;
 		case ExoUiProtocolClientMessage.LightingDeviceConfiguration:
 			ProcessLightingDeviceConfiguration(data, cancellationToken);

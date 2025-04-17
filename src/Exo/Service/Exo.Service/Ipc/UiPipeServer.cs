@@ -9,6 +9,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 	internal CustomMenuService CustomMenuService { get; }
 	internal DeviceRegistry DeviceRegistry { get; }
 	internal PowerService PowerService { get; }
+	internal MouseService MouseService { get; }
 	internal MonitorService MonitorService { get; }
 	internal SensorService SensorService { get; }
 	internal LightingEffectMetadataService LightingEffectMetadataService { get; }
@@ -24,6 +25,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
+		MouseService mouseService,
 		MonitorService monitorService,
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
@@ -35,6 +37,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		CustomMenuService = customMenuService;
 		DeviceRegistry = deviceRegistry;
 		PowerService = powerService;
+		MouseService = mouseService;
 		MonitorService = monitorService;
 		SensorService = sensorService;
 		LightingEffectMetadataService = lightingEffectMetadataService;

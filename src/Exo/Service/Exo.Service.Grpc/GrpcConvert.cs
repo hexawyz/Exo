@@ -13,7 +13,6 @@ using GrpcCoolingControlCurve = Exo.Contracts.Ui.Settings.Cooling.CoolingControl
 using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
 using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcCoolingParameters = Exo.Contracts.Ui.Settings.Cooling.CoolingParameters;
-using GrpcDotsPerInch = Exo.Contracts.Ui.Settings.DotsPerInch;
 using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.EmbeddedMonitorConfigurationUpdate;
 using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
 using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
@@ -26,9 +25,6 @@ using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabil
 using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
 using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
 using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
-using GrpcMouseDeviceInformation = Exo.Contracts.Ui.Settings.MouseDeviceInformation;
-using GrpcMouseDpiPresets = Exo.Contracts.Ui.Settings.MouseDpiPresets;
-using GrpcMousePollingFrequencyUpdate = Exo.Contracts.Ui.Settings.MousePollingFrequencyUpdate;
 using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
 using GrpcSize = Exo.Contracts.Ui.Settings.Size;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
@@ -37,42 +33,6 @@ namespace Exo.Service.Grpc;
 
 internal static class GrpcConvert
 {
-	public static GrpcMouseDeviceInformation ToGrpc(this MouseDeviceInformation mouseDeviceInformation)
-		=> new()
-		{
-			DeviceId = mouseDeviceInformation.DeviceId,
-			IsConnected = mouseDeviceInformation.IsConnected,
-			Capabilities = mouseDeviceInformation.Capabilities,
-			MaximumDpi = mouseDeviceInformation.MaximumDpi.ToGrpc(),
-			MinimumDpiPresetCount = mouseDeviceInformation.MinimumDpiPresetCount,
-			MaximumDpiPresetCount = mouseDeviceInformation.MaximumDpiPresetCount,
-			SupportedPollingFrequencies = mouseDeviceInformation.SupportedPollingFrequencies,
-		};
-
-	public static GrpcMouseDpiPresets ToGrpc(this MouseDpiPresetsInformation mouseDpiPresets)
-		=> new()
-		{
-			DeviceId = mouseDpiPresets.DeviceId,
-			DpiPresets = ImmutableArray.CreateRange(mouseDpiPresets.DpiPresets, ToGrpc),
-		};
-
-	public static GrpcMousePollingFrequencyUpdate ToGrpc(this MousePollingFrequencyNotification mousePollingFrequencyNotification)
-		=> new()
-		{
-			DeviceId = mousePollingFrequencyNotification.DeviceId,
-			PollingFrequency = mousePollingFrequencyNotification.PollingFrequency,
-		};
-
-	public static GrpcDotsPerInch ToGrpc(this DotsPerInch dpi)
-		=> new()
-		{
-			Horizontal = dpi.Horizontal,
-			Vertical = dpi.Vertical,
-		};
-
-	public static DotsPerInch FromGrpc(this GrpcDotsPerInch dpi)
-		=> new(dpi.Horizontal, dpi.Vertical);
-
 	public static GrpcEmbeddedMonitorDeviceInformation ToGrpc(this EmbeddedMonitorDeviceInformation embeddedMonitorDeviceInformation)
 		=> new()
 		{

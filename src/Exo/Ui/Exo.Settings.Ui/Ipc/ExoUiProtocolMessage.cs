@@ -26,6 +26,9 @@ internal enum ExoUiProtocolClientMessage : byte
 	LowPowerBatteryThreshold,
 	IdleSleepTimer,
 	WirelessBrightness,
+	MouseActiveDpiPreset,
+	MouseDpiPresets,
+	MousePollingFrequency,
 	/// <summary>Requests the update of lighting configuration for a device.</summary>
 	LightingDeviceConfiguration,
 	/// <summary>Requests the update of a monitor setting.</summary>
@@ -111,6 +114,11 @@ internal enum ExoUiProtocolServerMessage : byte
 	IdleSleepTimer,
 	WirelessBrightness,
 	PowerDeviceOperationStatus,
+	MouseDevice,
+	MouseDpi,
+	MouseDpiPresets,
+	MousePollingFrequency,
+	MouseDeviceOperationStatus,
 	LightingDevice,
 	LightingDeviceConfiguration,
 	/// <summary>Acknowledges a lighting update.</summary>
@@ -177,6 +185,13 @@ internal enum LightingDeviceOperationStatus : byte
 }
 
 internal enum PowerDeviceOperationStatus : byte
+{
+	Success,
+	Error,
+	DeviceNotFound,
+}
+
+internal enum MouseDeviceOperationStatus : byte
 {
 	Success,
 	Error,

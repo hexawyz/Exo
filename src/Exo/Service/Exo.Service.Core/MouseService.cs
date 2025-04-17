@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Contracts;
 using Exo.Features;
 using Exo.Features.Mouses;
+using Exo.Primitives;
 using Exo.Programming;
 using Exo.Programming.Annotations;
 using Exo.Service.Events;
@@ -18,7 +18,11 @@ namespace Exo.Service;
 [TypeId(0x397BD522, 0x0E19, 0x4932, 0xBE, 0x80, 0x06, 0xB7, 0x8E, 0x17, 0x2A, 0x64)]
 [Event<DeviceEventParameters>("DpiDown", 0xCCCCDEE1, 0x5E77, 0x4DB9, 0x8E, 0x10, 0x3A, 0x82, 0x89, 0x9A, 0xE8, 0x66)]
 [Event<DeviceEventParameters>("DpiUp", 0xD40A9183, 0xA9BB, 0x4EDF, 0x93, 0x78, 0x66, 0x90, 0xF2, 0x28, 0x11, 0x9B)]
-internal sealed class MouseService
+internal sealed class MouseService :
+	IChangeSource<MouseDeviceInformation>,
+	IChangeSource<MouseDpiNotification>,
+	IChangeSource<MouseDpiPresetsInformation>,
+	IChangeSource<MousePollingFrequencyNotification>
 {
 	[TypeId(0xBB4A71CB, 0x2894, 0x4388, 0xAE, 0x06, 0x40, 0x06, 0x03, 0x0F, 0x23, 0xBF)]
 	private readonly struct PersistedMouseInformation
@@ -172,7 +176,7 @@ internal sealed class MouseService
 				}
 				if ((_capabilities & MouseCapabilities.DpiPresets) != 0)
 				{
-					_mouseService.NotifyDpiPresets(new() { DeviceId = DeviceId, ActivePresetIndex = currentDpi.PresetIndex, DpiPresets = dpiPresets });
+					_mouseService.NotifyDpiPresets(new(DeviceId, currentDpi.PresetIndex, dpiPresets));
 				}
 				if ((_capabilities & MouseCapabilities.ConfigurablePollingFrequency) != 0)
 				{
@@ -238,16 +242,16 @@ internal sealed class MouseService
 		}
 
 		public MouseDeviceInformation CreateMouseInformation()
-			=> new()
-			{
-				DeviceId = DeviceId,
-				IsConnected = IsConnected,
-				MaximumDpi = MaximumDpi,
-				Capabilities = Capabilities,
-				MinimumDpiPresetCount = MinimumDpiPresetCount,
-				MaximumDpiPresetCount = MaximumDpiPresetCount,
-				SupportedPollingFrequencies = SupportedPollingFrequencies,
-			};
+			=> new
+			(
+				DeviceId,
+				IsConnected,
+				Capabilities,
+				MaximumDpi,
+				MinimumDpiPresetCount,
+				MaximumDpiPresetCount,
+				SupportedPollingFrequencies
+			);
 
 		private void OnProfileChanged(Driver driver, MouseProfileStatus profile)
 		{
@@ -353,10 +357,10 @@ internal sealed class MouseService
 	private readonly ChannelWriter<Event> _eventWriter;
 	private readonly AsyncLock _lock;
 	private readonly object _dpiChangeLock;
-	private ChannelWriter<MouseDeviceInformation>[]? _deviceChangeListeners;
-	private ChannelWriter<MouseDpiNotification>[]? _dpiChangeListeners;
-	private ChannelWriter<MouseDpiPresetsInformation>[]? _dpiPresetChangeListeners;
-	private ChannelWriter<MousePollingFrequencyNotification>[]? _pollingFrequencyChangeListeners;
+	private ChangeBroadcaster<MouseDeviceInformation> _deviceChangeBroadcaster;
+	private ChangeBroadcaster<MouseDpiNotification> _dpiChangeBroadcaster;
+	private ChangeBroadcaster<MouseDpiPresetsInformation> _dpiPresetChangeBroadcaster;
+	private ChangeBroadcaster<MousePollingFrequencyNotification> _pollingFrequencyChangeBroadcaster;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 
 	private CancellationTokenSource? _cancellationTokenSource;
@@ -575,18 +579,18 @@ internal sealed class MouseService
 
 		deviceState.OnDisconnected();
 
-		_deviceChangeListeners.TryWrite(deviceState.CreateMouseInformation());
+		_deviceChangeBroadcaster.Push(deviceState.CreateMouseInformation());
 	}
 
-	private void NotifyDeviceConnection(MouseDeviceInformation information) => _deviceChangeListeners.TryWrite(information);
-	private void NotifyDpiPresets(MouseDpiPresetsInformation information) => _dpiPresetChangeListeners.TryWrite(information);
-	private void NotifyPollingFrequency(MousePollingFrequencyNotification notification) => _pollingFrequencyChangeListeners.TryWrite(notification);
+	private void NotifyDeviceConnection(MouseDeviceInformation information) => _deviceChangeBroadcaster.Push(information);
+	private void NotifyDpiPresets(MouseDpiPresetsInformation information) => _dpiPresetChangeBroadcaster.Push(information);
+	private void NotifyPollingFrequency(MousePollingFrequencyNotification notification) => _pollingFrequencyChangeBroadcaster.Push(notification);
 
 	private void OnProfileChanged(DeviceState state)
 	{
 		lock (_dpiChangeLock)
 		{
-			NotifyDpiPresets(new() { DeviceId = state.DeviceId, ActivePresetIndex = state.CurrentDpi.PresetIndex, DpiPresets = state.DpiPresets });
+			NotifyDpiPresets(new(state.DeviceId, state.CurrentDpi.PresetIndex, state.DpiPresets));
 		}
 	}
 
@@ -594,7 +598,7 @@ internal sealed class MouseService
 	{
 		lock (_dpiChangeLock)
 		{
-			_dpiChangeListeners.TryWrite(notification);
+			_dpiChangeBroadcaster.Push(notification);
 			if (notification.NotificationKind == WatchNotificationKind.Update)
 			{
 				int? status = null;
@@ -636,263 +640,173 @@ internal sealed class MouseService
 		}
 	}
 
-	public async IAsyncEnumerable<MouseDeviceInformation> WatchMouseDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<MouseDeviceInformation[]?> IChangeSource<MouseDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MouseDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<MouseDeviceInformation>();
-
-		List<MouseDeviceInformation>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _deviceChangeListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<MouseDeviceInformation>();
+				foreach (var kvp in _deviceStates)
 				{
-					yield return initialNotifications[i];
+					initialNotifications.Add(kvp.Value.CreateMouseInformation());
 				}
-				initialNotifications = null;
-			}
 
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
+				_deviceChangeBroadcaster.Register(writer);
+				return [.. initialNotifications];
+			}
+			else
 			{
-				yield return notification;
+				_deviceChangeBroadcaster.Register(writer);
+				return null;
 			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _deviceChangeListeners, channel);
-		}
-
-		List<MouseDeviceInformation>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<MouseDeviceInformation>();
-			foreach (var kvp in _deviceStates)
-			{
-				initialNotifications.Add(kvp.Value.CreateMouseInformation());
-			}
-
-			return initialNotifications;
 		}
 	}
 
-	public async IAsyncEnumerable<MouseDpiNotification> WatchDpiAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<MouseDeviceInformation>.UnregisterWatcher(ChannelWriter<MouseDeviceInformation> writer)
+		=> _deviceChangeBroadcaster.Unregister(writer);
+
+	async ValueTask<MouseDpiNotification[]?> IChangeSource<MouseDpiNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MouseDpiNotification> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<MouseDpiNotification>();
-
-		List<MouseDpiNotification>? initialNotifications;
-
-		lock (_dpiChangeLock)
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _dpiChangeListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<MouseDpiNotification>();
+				foreach (var deviceState in _deviceStates.Values)
 				{
-					yield return initialNotifications[i];
-				}
-				initialNotifications = null;
-			}
+					MouseDpiStatus currentDpi;
+					lock (deviceState.Lock)
+					{
+						if (!deviceState.IsConnected || !deviceState.HasDpi) continue;
 
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _dpiChangeListeners, channel);
-		}
-
-		List<MouseDpiNotification>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<MouseDpiNotification>();
-			foreach (var deviceState in _deviceStates.Values)
-			{
-				MouseDpiStatus currentDpi;
-				lock (deviceState.Lock)
-				{
-					if (!deviceState.IsConnected || !deviceState.HasDpi) continue;
-
-					currentDpi = deviceState.CurrentDpi;
-				}
-				initialNotifications.Add
-				(
-					new MouseDpiNotification
+						currentDpi = deviceState.CurrentDpi;
+					}
+					initialNotifications.Add
 					(
-						WatchNotificationKind.Enumeration,
-						deviceState.DeviceId,
-						currentDpi,
-						currentDpi,
-						deviceState.DpiPresets
-					)
-				);
-			}
+						new MouseDpiNotification
+						(
+							WatchNotificationKind.Enumeration,
+							deviceState.DeviceId,
+							currentDpi,
+							currentDpi,
+							deviceState.DpiPresets
+						)
+					);
+				}
 
-			return initialNotifications;
+				_dpiChangeBroadcaster.Register(writer);
+				return [.. initialNotifications];
+			}
+			else
+			{
+				_dpiChangeBroadcaster.Register(writer);
+				return null;
+			}
 		}
 	}
 
-	public async IAsyncEnumerable<MouseDpiPresetsInformation> WatchDpiPresetsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<MouseDpiNotification>.UnregisterWatcher(ChannelWriter<MouseDpiNotification> writer)
+		=> _dpiChangeBroadcaster.Unregister(writer);
+
+	async ValueTask<MouseDpiPresetsInformation[]?> IChangeSource<MouseDpiPresetsInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MouseDpiPresetsInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<MouseDpiPresetsInformation>();
-
-		List<MouseDpiPresetsInformation>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _dpiPresetChangeListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<MouseDpiPresetsInformation>();
+				foreach (var kvp in _deviceStates)
 				{
-					yield return initialNotifications[i];
-				}
-				initialNotifications = null;
-			}
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _dpiPresetChangeListeners, channel);
-		}
-
-		List<MouseDpiPresetsInformation>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<MouseDpiPresetsInformation>();
-			foreach (var kvp in _deviceStates)
-			{
-				lock (kvp.Value.Lock)
-				{
-					if (kvp.Value.IsConnected && kvp.Value.HasDpiPresets)
+					lock (kvp.Value.Lock)
 					{
-						initialNotifications.Add(new() { DeviceId = kvp.Key, ActivePresetIndex = kvp.Value.CurrentDpi.PresetIndex, DpiPresets = kvp.Value.DpiPresets });
+						if (kvp.Value.IsConnected && kvp.Value.HasDpiPresets)
+						{
+							initialNotifications.Add(new(kvp.Key, kvp.Value.CurrentDpi.PresetIndex, kvp.Value.DpiPresets));
+						}
 					}
 				}
-			}
 
-			return initialNotifications;
+				_dpiPresetChangeBroadcaster.Register(writer);
+				return [.. initialNotifications];
+			}
+			else
+			{
+				_dpiPresetChangeBroadcaster.Register(writer);
+				return null;
+			}
 		}
 	}
 
-	public async IAsyncEnumerable<MousePollingFrequencyNotification> WatchPollingFrequenciesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<MouseDpiPresetsInformation>.UnregisterWatcher(ChannelWriter<MouseDpiPresetsInformation> writer)
+		=> _dpiPresetChangeBroadcaster.Unregister(writer);
+
+	async ValueTask<MousePollingFrequencyNotification[]?> IChangeSource<MousePollingFrequencyNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MousePollingFrequencyNotification> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateChannel<MousePollingFrequencyNotification>();
-
-		List<MousePollingFrequencyNotification>? initialNotifications;
-
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialNotifications = GetInitialNotifications();
-			ArrayExtensions.InterlockedAdd(ref _pollingFrequencyChangeListeners, channel);
-		}
-
-		try
-		{
-			if (initialNotifications is not null)
+			if (!_deviceStates.IsEmpty)
 			{
-				for (int i = 0; i < initialNotifications.Count; i++)
+				var initialNotifications = new List<MousePollingFrequencyNotification>();
+				foreach (var kvp in _deviceStates)
 				{
-					yield return initialNotifications[i];
-				}
-				initialNotifications = null;
-			}
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _pollingFrequencyChangeListeners, channel);
-		}
-
-		List<MousePollingFrequencyNotification>? GetInitialNotifications()
-		{
-			if (_deviceStates.IsEmpty) return null;
-
-			var initialNotifications = new List<MousePollingFrequencyNotification>();
-			foreach (var kvp in _deviceStates)
-			{
-				lock (kvp.Value.Lock)
-				{
-					if (kvp.Value.IsConnected || kvp.Value.HasPollingFrequency)
+					lock (kvp.Value.Lock)
 					{
-						initialNotifications.Add(new() { DeviceId = kvp.Key, PollingFrequency = kvp.Value.CurrentPollingFrequency });
+						if (kvp.Value.IsConnected || kvp.Value.HasPollingFrequency)
+						{
+							initialNotifications.Add(new() { DeviceId = kvp.Key, PollingFrequency = kvp.Value.CurrentPollingFrequency });
+						}
 					}
 				}
-			}
 
-			return initialNotifications;
+				_pollingFrequencyChangeBroadcaster.Register(writer);
+				return [.. initialNotifications];
+			}
+			else
+			{
+				_pollingFrequencyChangeBroadcaster.Register(writer);
+				return null;
+			}
 		}
 	}
+
+	void IChangeSource<MousePollingFrequencyNotification>.UnregisterWatcher(ChannelWriter<MousePollingFrequencyNotification> writer)
+		=> _pollingFrequencyChangeBroadcaster.Unregister(writer);
 
 	public async Task SetActiveDpiPresetAsync(Guid deviceId, byte activePresetIndex, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+		if (deviceState.GetDpiPresetsFeature() is { } dpiPresetsFeature)
 		{
-			if (deviceState.GetDpiPresetsFeature() is { } dpiPresetsFeature)
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-				{
-					await dpiPresetsFeature.ChangeCurrentPresetAsync(activePresetIndex, cancellationToken).ConfigureAwait(false);
-				}
+				await dpiPresetsFeature.ChangeCurrentPresetAsync(activePresetIndex, cancellationToken).ConfigureAwait(false);
 			}
 		}
 	}
 
 	public async Task SetDpiPresetsAsync(Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+		if (deviceState.GetConfigurableDpiPresetsFeature() is { } configurableDpiPresetsFeature)
 		{
-			if (deviceState.GetConfigurableDpiPresetsFeature() is { } configurableDpiPresetsFeature)
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-				{
-					await configurableDpiPresetsFeature.SetDpiPresetsAsync(activePresetIndex, presets, cancellationToken).ConfigureAwait(false);
-					NotifyDpiPresets(new() { DeviceId = deviceId, ActivePresetIndex = activePresetIndex, DpiPresets = presets });
-				}
+				await configurableDpiPresetsFeature.SetDpiPresetsAsync(activePresetIndex, presets, cancellationToken).ConfigureAwait(false);
+				NotifyDpiPresets(new(deviceId, activePresetIndex, presets));
 			}
 		}
 	}
 
 	public async Task SetPollingFrequencyAsync(Guid deviceId, ushort pollingFrequency, CancellationToken cancellationToken)
 	{
-		if (_deviceStates.TryGetValue(deviceId, out var deviceState))
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
+		if (deviceState.GetConfigurablePollingFrequencyFeature() is { } configurablePollingFrequencyFeature)
 		{
-			if (deviceState.GetConfigurablePollingFrequencyFeature() is { } configurablePollingFrequencyFeature)
+			using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-				{
-					await configurablePollingFrequencyFeature.SetPollingFrequencyAsync(pollingFrequency, cancellationToken).ConfigureAwait(false);
-					NotifyPollingFrequency(new() { DeviceId = deviceId, PollingFrequency = pollingFrequency });
-				}
+				await configurablePollingFrequencyFeature.SetPollingFrequencyAsync(pollingFrequency, cancellationToken).ConfigureAwait(false);
+				NotifyPollingFrequency(new() { DeviceId = deviceId, PollingFrequency = pollingFrequency });
 			}
 		}
 	}

@@ -3,13 +3,13 @@ using Exo.Contracts;
 
 namespace Exo.Service;
 
-internal readonly struct MouseDeviceInformation
+internal readonly struct MouseDeviceInformation(Guid deviceId, bool isConnected, MouseCapabilities capabilities, DotsPerInch maximumDpi, byte minimumDpiPresetCount, byte maximumDpiPresetCount, ImmutableArray<ushort> supportedPollingFrequencies)
 {
-	public required Guid DeviceId { get; init; }
-	public required bool IsConnected { get; init; }
-	public required DotsPerInch MaximumDpi { get; init; }
-	public required MouseCapabilities Capabilities { get; init; }
-	public required byte MinimumDpiPresetCount { get; init; }
-	public required byte MaximumDpiPresetCount { get; init; }
-	public required ImmutableArray<ushort> SupportedPollingFrequencies { get; init; }
+	public Guid DeviceId { get; } = deviceId;
+	public bool IsConnected { get; } = isConnected;
+	public MouseCapabilities Capabilities { get; } = capabilities;
+	public DotsPerInch MaximumDpi { get; } = maximumDpi;
+	public byte MinimumDpiPresetCount { get; } = minimumDpiPresetCount;
+	public byte MaximumDpiPresetCount { get; } = maximumDpiPresetCount;
+	public ImmutableArray<ushort> SupportedPollingFrequencies { get; } = supportedPollingFrequencies;
 }

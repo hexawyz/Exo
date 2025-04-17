@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
 using Exo.Service;
@@ -26,7 +27,7 @@ internal class ExoServiceClient : IServiceClient
 	{
 		if (control is not null)
 		{
-			_settingsViewModel.Devices.OnConnected(control, control);
+			_settingsViewModel.Devices.OnConnected(control, control, control);
 			_settingsViewModel.Sensors.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
 		}
@@ -66,6 +67,18 @@ internal class ExoServiceClient : IServiceClient
 
 	void IServiceClient.OnWirelessBrightnessUpdate(Guid deviceId, byte brightness)
 		=> _settingsViewModel.Devices.HandleWirelessBrightnessUpdate(deviceId, brightness);
+
+	void IServiceClient.OnMouseDeviceUpdate(MouseDeviceInformation mouseDevice)
+		=> _settingsViewModel.Devices.HandleMouseDeviceUpdate(mouseDevice);
+
+	void IServiceClient.OnMouseDpiUpdate(Guid deviceId, byte? activeDpiPresetIndex, DotsPerInch dpi)
+		=> _settingsViewModel.Devices.HandleMouseDpiUpdate(deviceId, activeDpiPresetIndex, dpi);
+
+	void IServiceClient.OnMouseDpiPresetsUpdate(Guid deviceId, byte? activeDpiPresetIndex, ImmutableArray<DotsPerInch> dpiPresets)
+		=> _settingsViewModel.Devices.HandleMouseDpiPresetsUpdate(deviceId, activeDpiPresetIndex, dpiPresets);
+
+	void IServiceClient.OnMousePollingFrequencyUpdate(Guid deviceId, ushort pollingFrequency)
+		=> _settingsViewModel.Devices.HandleMousePollingFrequencyUpdate(deviceId, pollingFrequency);
 
 	void IServiceClient.OnMonitorDeviceUpdate(MonitorInformation monitorDevice)
 		=> _settingsViewModel.Devices.HandleMonitorDeviceUpdate(monitorDevice);

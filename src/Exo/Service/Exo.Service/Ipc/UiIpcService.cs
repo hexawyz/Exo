@@ -12,6 +12,7 @@ internal sealed class UiIpcService : IHostedService
 	private readonly CustomMenuService _customMenuService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly PowerService _powerService;
+	private readonly MouseService _mouseService;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
@@ -24,6 +25,7 @@ internal sealed class UiIpcService : IHostedService
 		CustomMenuService customMenuService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
+		MouseService mouseService,
 		MonitorService monitorService,
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
@@ -35,6 +37,7 @@ internal sealed class UiIpcService : IHostedService
 		_customMenuService = customMenuService;
 		_deviceRegistry = deviceRegistry;
 		_powerService = powerService;
+		_mouseService = mouseService;
 		_monitorService = monitorService;
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
@@ -76,6 +79,7 @@ internal sealed class UiIpcService : IHostedService
 			_customMenuService,
 			_deviceRegistry,
 			_powerService,
+			_mouseService,
 			_monitorService,
 			_sensorService,
 			_lightingEffectMetadataService,

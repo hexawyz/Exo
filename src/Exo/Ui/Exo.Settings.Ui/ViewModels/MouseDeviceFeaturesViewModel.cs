@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
-using Exo.Contracts;
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
+using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -286,27 +286,24 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 			for (int i = 0; i < _dpiPresets.Count; i++)
 			{
 				var src = _dpiPresets[i];
-				presets[i] = new() { Horizontal = src.Horizontal, Vertical = src.Vertical };
+				presets[i] = new(src.Horizontal, src.Vertical);
 			}
 			await _mouseService.SetDpiPresetsAsync
 			(
-				new()
-				{
-					DeviceId = _device.Id,
-					ActivePresetIndex = (byte)_selectedDpiPresetIndex,
-					DpiPresets = ImmutableCollectionsMarshal.AsImmutableArray(presets)
-				},
+				_device.Id,
+				(byte)_selectedDpiPresetIndex,
+				ImmutableCollectionsMarshal.AsImmutableArray(presets),
 				cancellationToken
 			);
 		}
 		else if (_changedPresetCount == 0 && _selectedDpiPresetIndex != (_activeDpiPresetIndex is not null ? _activeDpiPresetIndex.GetValueOrDefault() : -1))
 		{
-			await _mouseService.SetActiveDpiPresetAsync(new() { DeviceId = _device.Id, ActivePresetIndex = (byte)_selectedDpiPresetIndex }, cancellationToken);
+			await _mouseService.SetActiveDpiPresetAsync(_device.Id, (byte)_selectedDpiPresetIndex, cancellationToken);
 		}
 
 		if (_selectedPollingFrequency is not null && _selectedPollingFrequency != _initialPollingFrequency)
 		{
-			await _mouseService.SetPollingFrequencyAsync(new() { DeviceId = _device.Id, PollingFrequency = _selectedPollingFrequency.Frequency }, cancellationToken);
+			await _mouseService.SetPollingFrequencyAsync(_device.Id, _selectedPollingFrequency.Frequency, cancellationToken);
 		}
 	}
 

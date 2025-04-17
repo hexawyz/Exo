@@ -286,7 +286,6 @@ public class Startup
 		services.AddSingleton<GrpcEmbeddedMonitorService>();
 		services.AddSingleton<GrpcImageService>();
 		services.AddSingleton<GrpcCoolingService>();
-		services.AddSingleton<GrpcMouseService>();
 		services.AddSingleton<GrpcProgrammingService>();
 		services.AddSingleton<GrpcCustomMenuService>();
 		services.AddSingleton<GrpcServiceLifetimeService>();
@@ -324,7 +323,6 @@ public class Startup
 			endpoints.MapGrpcService<GrpcEmbeddedMonitorService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcImageService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcCoolingService>().AddEndpointFilter(settingsEndpointFilter);
-			endpoints.MapGrpcService<GrpcMouseService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<MonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);

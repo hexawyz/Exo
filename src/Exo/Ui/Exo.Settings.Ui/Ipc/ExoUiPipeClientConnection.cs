@@ -33,6 +33,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private readonly IServiceClient _serviceClient;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
 	private TaskCompletionSource<PowerDeviceOperationStatus>?[]? _powerDeviceOperations;
+	private TaskCompletionSource<MouseDeviceOperationStatus>?[]? _mouseDeviceOperations;
 	private TaskCompletionSource<MonitorOperationStatus>?[]? _monitorOperations;
 	private TaskCompletionSource<LightingDeviceOperationStatus>?[]? _lightingDeviceOperations;
 	private bool _isConnected;
@@ -156,6 +157,21 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.PowerDeviceOperationStatus:
 			ProcessPowerDeviceOperationStatus(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MouseDevice:
+			ProcessMouseDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MouseDpi:
+			ProcessMouseDpi(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MouseDpiPresets:
+			ProcessMouseDpiPresets(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MousePollingFrequency:
+			ProcessMousePollingFrequency(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.MouseDeviceOperationStatus:
+			ProcessMouseDeviceOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.LightingDevice:
 			ProcessLightingDevice(data);
@@ -452,6 +468,71 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var status = (PowerDeviceOperationStatus)reader.ReadByte();
 
 		if (_powerDeviceOperations is { } powerDeviceOperations && requestId < (uint)powerDeviceOperations.Length && Volatile.Read(ref powerDeviceOperations[requestId]) is { } operation)
+			operation.TrySetResult(status);
+	}
+
+	private void ProcessMouseDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		bool isConnected = reader.ReadByte() != 0;
+		var capabilities = (MouseCapabilities)reader.ReadByte();
+		var maximumDpi = ReadDotsPerInch(ref reader);
+		byte minimumDpiPresetCount = 0;
+		byte maximumDpiPresetCount = 0;
+		if ((capabilities & (MouseCapabilities.DpiPresets | MouseCapabilities.ConfigurableDpiPresets)) != 0)
+		{
+			minimumDpiPresetCount = reader.ReadByte();
+			maximumDpiPresetCount = reader.ReadByte();
+		}
+		ushort[] supportedPollingFrequencies = [];
+		uint count = reader.ReadVariableUInt32();
+		if (count != 0)
+		{
+			supportedPollingFrequencies = new ushort[count];
+			for (int i = 0; i < supportedPollingFrequencies.Length; i++)
+			{
+				supportedPollingFrequencies[i] = reader.Read<ushort>();
+			}
+		}
+		var information = new MouseDeviceInformation(deviceId, isConnected, capabilities, maximumDpi, minimumDpiPresetCount, maximumDpiPresetCount, ImmutableCollectionsMarshal.AsImmutableArray(supportedPollingFrequencies));
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDeviceUpdate(information));
+	}
+
+	private void ProcessMouseDpi(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		byte? activeDpiPresetIndex = reader.ReadByte() != 0 ? reader.ReadByte() : null;
+		var dpi = ReadDotsPerInch(ref reader);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDpiUpdate(deviceId, activeDpiPresetIndex, dpi));
+	}
+
+	private void ProcessMouseDpiPresets(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		byte? activeDpiPresetIndex = reader.ReadByte() != 0 ? reader.ReadByte() : null;
+		var presets = ReadDotsPerInches(ref reader);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDpiPresetsUpdate(deviceId, activeDpiPresetIndex, presets));
+	}
+
+	private void ProcessMousePollingFrequency(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var deviceId = reader.ReadGuid();
+		ushort pollingFrequency = reader.Read<ushort>();
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMousePollingFrequencyUpdate(deviceId, pollingFrequency));
+	}
+
+	private void ProcessMouseDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (MouseDeviceOperationStatus)reader.ReadByte();
+
+		if (_mouseDeviceOperations is { } mouseDeviceOperations && requestId < (uint)mouseDeviceOperations.Length && Volatile.Read(ref mouseDeviceOperations[requestId]) is { } operation)
 			operation.TrySetResult(status);
 	}
 
@@ -831,6 +912,110 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
+	Task IMouseService.SetActiveDpiPresetAsync(Guid deviceId, byte presetIndex, CancellationToken cancellationToken)
+		=> SetMouseSetting(ExoUiProtocolClientMessage.MouseActiveDpiPreset, deviceId, presetIndex, cancellationToken);
+
+	async Task IMouseService.SetDpiPresetsAsync(Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<MouseDeviceOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			// Logic is mostly similar to what is done for sensors, but less complex.
+			uint requestId = 0;
+			var mouseDeviceOperations = _mouseDeviceOperations;
+			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
+			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
+			if (mouseDeviceOperations is null) Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations = new TaskCompletionSource<MouseDeviceOperationStatus>[2]);
+			for (; requestId < mouseDeviceOperations.Length; requestId++)
+				if (mouseDeviceOperations[requestId] is null) break;
+			if (requestId >= mouseDeviceOperations.Length)
+			{
+				Array.Resize(ref mouseDeviceOperations, (int)(2 * (uint)mouseDeviceOperations.Length));
+				Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations);
+			}
+			operation = new();
+			mouseDeviceOperations[requestId] = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, activePresetIndex, presets);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var status = await operation.Task.ConfigureAwait(false);
+		switch (status)
+		{
+		case MouseDeviceOperationStatus.Success: return;
+		case MouseDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.MouseDpiPresets);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(activePresetIndex);
+			ExoUiPipeClientConnection.Write(ref writer, presets);
+		}
+	}
+
+	Task IMouseService.SetPollingFrequencyAsync(Guid deviceId, ushort frequency, CancellationToken cancellationToken)
+		=> SetMouseSetting(ExoUiProtocolClientMessage.MousePollingFrequency, deviceId, frequency, cancellationToken);
+
+	private async Task SetMouseSetting<T>(ExoUiProtocolClientMessage message, Guid deviceId, T value, CancellationToken cancellationToken)
+		where T : unmanaged
+	{
+		TaskCompletionSource<MouseDeviceOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			// Logic is mostly similar to what is done for sensors, but less complex.
+			uint requestId = 0;
+			var mouseDeviceOperations = _mouseDeviceOperations;
+			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
+			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
+			if (mouseDeviceOperations is null) Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations = new TaskCompletionSource<MouseDeviceOperationStatus>[2]);
+			for (; requestId < mouseDeviceOperations.Length; requestId++)
+				if (mouseDeviceOperations[requestId] is null) break;
+			if (requestId >= mouseDeviceOperations.Length)
+			{
+				Array.Resize(ref mouseDeviceOperations, (int)(2 * (uint)mouseDeviceOperations.Length));
+				Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations);
+			}
+			operation = new();
+			mouseDeviceOperations[requestId] = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, message, requestId, deviceId, value);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var status = await operation.Task.ConfigureAwait(false);
+		switch (status)
+		{
+		case MouseDeviceOperationStatus.Success: return;
+		case MouseDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+
+		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)message);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(value);
+		}
+	}
+
 	async ValueTask ILightingService.SetLightingAsync(LightingDeviceConfigurationUpdate update, CancellationToken cancellationToken)
 	{
 		TaskCompletionSource<LightingDeviceOperationStatus> operation;
@@ -1117,4 +1302,41 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				yield return value;
 		}
 	}
+
+	private static void Write(ref BufferWriter writer, ImmutableArray<DotsPerInch> dpiArray)
+	{
+		if (dpiArray.IsDefaultOrEmpty)
+		{
+			writer.Write((byte)0);
+		}
+		else
+		{
+			writer.WriteVariable((uint)dpiArray.Length);
+			foreach (var dpi in dpiArray)
+			{
+				Write(ref writer, in dpi);
+			}
+		}
+	}
+
+	private static void Write(ref BufferWriter writer, in DotsPerInch dpi)
+	{
+		writer.Write(dpi.Horizontal);
+		writer.Write(dpi.Vertical);
+	}
+
+	private static ImmutableArray<DotsPerInch> ReadDotsPerInches(ref BufferReader reader)
+	{
+		uint count = reader.ReadVariableUInt32();
+		if (count == 0) return [];
+		var dpiArray = new DotsPerInch[count];
+		for (int i = 0; i < dpiArray.Length; i++)
+		{
+			dpiArray[i] = ReadDotsPerInch(ref reader);
+		}
+		return ImmutableCollectionsMarshal.AsImmutableArray(dpiArray);
+	}
+
+	private static DotsPerInch ReadDotsPerInch(ref BufferReader reader)
+		=> new(reader.Read<ushort>(), reader.Read<ushort>());
 }

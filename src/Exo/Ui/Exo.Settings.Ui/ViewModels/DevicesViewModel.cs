@@ -79,6 +79,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	private readonly ISettingsMetadataService _metadataService;
 	private IPowerService? _powerService;
+	private IMouseService? _mouseService;
 	private IMonitorService? _monitorService;
 	private readonly IRasterizationScaleProvider _rasterizationScaleProvider;
 	private readonly INotificationSystem _notificationSystem;
@@ -141,16 +142,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		if (_cancellationTokenSource.IsCancellationRequested) return;
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
 		{
-			var mouseService = await _connectionManager.GetMouseServiceAsync(cancellationToken);
 			var embeddedMonitorService = await _connectionManager.GetEmbeddedMonitorServiceAsync(cancellationToken);
 			var lightService = await _connectionManager.GetLightServiceAsync(cancellationToken);
 
-			var deviceWatchTask = WatchDevicesAsync(_deviceArrivalChannel.Reader, mouseService, embeddedMonitorService, lightService, cts.Token);
-
-			var mouseWatchTask = WatchMouseDevicesAsync(mouseService, cts.Token);
-			var mouseDpiWatchTask = WatchMouseDpiChangesAsync(mouseService, cts.Token);
-			var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(mouseService, cts.Token);
-			var mouseDpiPollingFrequencyWatchTask = WatchMousePollingFrequencyChangesAsync(mouseService, cts.Token);
+			var deviceWatchTask = WatchDevicesAsync(_deviceArrivalChannel.Reader, embeddedMonitorService, lightService, cts.Token);
 
 			var embeddedMonitorDeviceWatchTask = WatchEmbeddedMonitorDevicesAsync(embeddedMonitorService, cts.Token);
 			var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(embeddedMonitorService, cts.Token);
@@ -164,10 +159,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 				(
 					[
 						deviceWatchTask,
-						mouseWatchTask,
-						mouseDpiWatchTask,
-						mouseDpiPresetWatchTask,
-						mouseDpiPollingFrequencyWatchTask,
 						embeddedMonitorDeviceWatchTask,
 						embeddedMonitorConfigurationWatchTask,
 						lightDeviceWatchTask,
@@ -185,11 +176,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	{
 		_removedDeviceIds.Clear();
 		_devicesById.Clear();
-
-		_pendingMouseInformations.Clear();
-		_pendingMouseDpiChanges.Clear();
-		_pendingDpiPresetChanges.Clear();
-		_pendingPollingFrequencyChanges.Clear();
 
 		_pendingEmbeddedMonitorDeviceInformations.Clear();
 		_pendingEmbeddedMonitorConfigurationChanges.Clear();
@@ -213,9 +199,10 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_deviceArrivalChannel.Writer.TryWrite((kind, information));
 	}
 
-	internal void OnConnected(IPowerService powerService, IMonitorService monitorService)
+	internal void OnConnected(IPowerService powerService, IMouseService mouseService, IMonitorService monitorService)
 	{
 		_powerService = powerService;
+		_mouseService = mouseService;
 		_monitorService = monitorService;
 	}
 
@@ -230,6 +217,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_pendingWirelessBrightnessChanges.Clear();
 		_pendingLowPowerModeBatteryThresholdChanges.Clear();
 
+		_pendingMouseInformations.Clear();
+		_pendingMouseDpiChanges.Clear();
+		_pendingDpiPresetChanges.Clear();
+		_pendingPollingFrequencyChanges.Clear();
+
 		_pendingMonitorInformations.Clear();
 		_pendingMonitorSettingChanges.Clear();
 
@@ -240,7 +232,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private async Task WatchDevicesAsync
 	(
 		ChannelReader<(WatchNotificationKind, DeviceStateInformation)> reader,
-		IMouseService mouseService,
 		IEmbeddedMonitorService embeddedMonitorService,
 		ILightService lightService,
 		CancellationToken cancellationToken
@@ -262,8 +253,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 							_metadataService,
 							_notificationSystem,
 							_powerService!,
+							_mouseService!,
 							_monitorService!,
-							mouseService,
 							embeddedMonitorService,
 							lightService,
 							_rasterizationScaleProvider,
@@ -518,99 +509,63 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		}
 	}
 
-	private async Task WatchMouseDevicesAsync(IMouseService mouseService, CancellationToken cancellationToken)
+	internal void HandleMouseDeviceUpdate(MouseDeviceInformation mouseDevice)
 	{
-		try
+		if (_devicesById.TryGetValue(mouseDevice.DeviceId, out var device))
 		{
-			await foreach (var mouseDevice in mouseService.WatchMouseDevicesAsync(cancellationToken))
+			if (device.MouseFeatures is { } mouseFeatures)
 			{
-				if (_devicesById.TryGetValue(mouseDevice.DeviceId, out var device))
-				{
-					if (device.MouseFeatures is { } mouseFeatures)
-					{
-						mouseFeatures.UpdateInformation(mouseDevice);
-					}
-				}
-				else
-				{
-					_pendingMouseInformations[mouseDevice.DeviceId] = mouseDevice;
-				}
+				mouseFeatures.UpdateInformation(mouseDevice);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
+			_pendingMouseInformations[mouseDevice.DeviceId] = mouseDevice;
 		}
 	}
 
-	private async Task WatchMouseDpiPresetsAsync(IMouseService mouseService, CancellationToken cancellationToken)
+	internal void HandleMouseDpiUpdate(Guid deviceId, byte? activeDpiPresetIndex, DotsPerInch dpi)
 	{
-		try
+		if (_devicesById.TryGetValue(deviceId, out var device))
 		{
-			await foreach (var dpiPresets in mouseService.WatchDpiPresetsAsync(cancellationToken))
+			if (device.MouseFeatures is { } mouseFeatures)
 			{
-				if (_devicesById.TryGetValue(dpiPresets.DeviceId, out var device))
-				{
-					if (device.MouseFeatures is { } mouseFeatures)
-					{
-						mouseFeatures.UpdatePresets(dpiPresets.DpiPresets);
-					}
-				}
-				else
-				{
-					_pendingDpiPresetChanges[dpiPresets.DeviceId] = dpiPresets.DpiPresets;
-				}
+				mouseFeatures.UpdateCurrentDpi(activeDpiPresetIndex, dpi);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
+			_pendingMouseDpiChanges[deviceId] = (activeDpiPresetIndex, dpi);
 		}
 	}
 
-	private async Task WatchMouseDpiChangesAsync(IMouseService mouseService, CancellationToken cancellationToken)
+	internal void HandleMouseDpiPresetsUpdate(Guid deviceId, byte? activeDpiPresetIndex, ImmutableArray<DotsPerInch> dpiPresets)
 	{
-		try
+		if (_devicesById.TryGetValue(deviceId, out var device))
 		{
-			await foreach (var notification in mouseService.WatchDpiChangesAsync(cancellationToken))
+			if (device.MouseFeatures is { } mouseFeatures)
 			{
-				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
-				{
-					if (device.MouseFeatures is { } mouseFeatures)
-					{
-						mouseFeatures.UpdateCurrentDpi(notification.PresetIndex, notification.Dpi);
-					}
-				}
-				else
-				{
-					_pendingMouseDpiChanges[notification.DeviceId] = (notification.PresetIndex, notification.Dpi);
-				}
+				mouseFeatures.UpdatePresets(dpiPresets);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
+			_pendingDpiPresetChanges[deviceId] = dpiPresets;
 		}
 	}
 
-	private async Task WatchMousePollingFrequencyChangesAsync(IMouseService mouseService, CancellationToken cancellationToken)
+	internal void HandleMousePollingFrequencyUpdate(Guid deviceId, ushort pollingFrequency)
 	{
-		try
+		if (_devicesById.TryGetValue(deviceId, out var device))
 		{
-			await foreach (var notification in mouseService.WatchPollingFrequenciesAsync(cancellationToken))
+			if (device.MouseFeatures is { } mouseFeatures)
 			{
-				if (_devicesById.TryGetValue(notification.DeviceId, out var device))
-				{
-					if (device.MouseFeatures is { } mouseFeatures)
-					{
-						mouseFeatures.UpdateCurrentPollingFrequency(notification.PollingFrequency);
-					}
-				}
-				else
-				{
-					_pendingPollingFrequencyChanges[notification.DeviceId] = notification.PollingFrequency;
-				}
+				mouseFeatures.UpdateCurrentPollingFrequency(pollingFrequency);
 			}
 		}
-		catch (OperationCanceledException)
+		else
 		{
+			_pendingPollingFrequencyChanges[deviceId] = pollingFrequency;
 		}
 	}
 
