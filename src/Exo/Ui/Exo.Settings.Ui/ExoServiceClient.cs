@@ -27,6 +27,7 @@ internal class ExoServiceClient : IServiceClient
 	{
 		if (control is not null)
 		{
+			_settingsViewModel.Images.OnConnected(control);
 			_settingsViewModel.Devices.OnConnected(control, control, control);
 			_settingsViewModel.Sensors.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
@@ -52,6 +53,9 @@ internal class ExoServiceClient : IServiceClient
 		// TODO
 		// We actually receive the notifications but the other side of the protocol still needs to be implemented.
 	}
+
+	void IServiceClient.OnImageUpdate(Service.WatchNotificationKind kind, ImageInformation information)
+		=> _settingsViewModel.Images.OnImageUpdate(kind, information);
 
 	void IServiceClient.OnPowerDeviceUpdate(PowerDeviceInformation powerDevice)
 		=> _settingsViewModel.Devices.HandlePowerDeviceUpdate(powerDevice);

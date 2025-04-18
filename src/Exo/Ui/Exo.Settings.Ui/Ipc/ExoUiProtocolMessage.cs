@@ -23,6 +23,10 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// <remarks>Contents: 16 bytes (GUID)</remarks>
 	InvokeMenuCommand,
 	UpdateCustomMenu,
+	ImageAddBegin,
+	ImageAddCancel,
+	ImageAddEnd,
+	ImageRemove,
 	LowPowerBatteryThreshold,
 	IdleSleepTimer,
 	WirelessBrightness,
@@ -102,6 +106,12 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Update of a custom menu item.</summary>
 	/// <remarks></remarks>
 	CustomMenuItemUpdate,
+	ImageEnumeration,
+	ImageAdd,
+	ImageRemove,
+	ImageUpdate,
+	ImageAddOperationStatus,
+	ImageRemoveOperationStatus,
 	/// <summary>Provides information about a lighting effect.</summary>
 	LightingEffect,
 	DeviceEnumeration,
@@ -157,6 +167,16 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Provides information about user-configuration of a sensor.</summary>
 	/// <remarks>User configuration is purely cosmetic, only non-default configurations will be propagated.</remarks>
 	SensorConfiguration,
+}
+
+internal enum ImageStorageOperationStatus : byte
+{
+	Success,
+	Error,
+	InvalidArgument,
+	ImageNotFound,
+	NameAlreadyInUse,
+	ConcurrentOperation,
 }
 
 internal enum SensorStartStatus : byte

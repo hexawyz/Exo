@@ -319,7 +319,7 @@ internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPip
 			writer.Write(response.RequestId);
 			writer.Write(response.CurrentValue);
 			writer.Write(response.MaximumValue);
-			writer.Write(response.IsMomentary ? (byte)1 : (byte)0);
+			writer.Write(response.IsMomentary);
 			return (int)writer.Length;
 		}
 

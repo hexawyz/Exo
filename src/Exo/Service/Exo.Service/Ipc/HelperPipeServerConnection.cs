@@ -382,7 +382,7 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 	{
 		var reader = new BufferReader(data);
 
-		TryWriteMonitorControlProxyResponse(new MonitorVcpGetResponse(reader.Read<uint>(), reader.Read<ushort>(), reader.Read<ushort>(), reader.ReadByte() != 0));
+		TryWriteMonitorControlProxyResponse(new MonitorVcpGetResponse(reader.Read<uint>(), reader.Read<ushort>(), reader.Read<ushort>(), reader.ReadBoolean()));
 	}
 
 	private void ProcessMonitorVcpSetResponse(ReadOnlySpan<byte> data)

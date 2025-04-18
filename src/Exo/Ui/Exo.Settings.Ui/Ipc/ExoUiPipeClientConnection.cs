@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Pipes;
 using System.Numerics;
@@ -8,6 +9,7 @@ using Exo.ColorFormats;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
 using Exo.Features;
+using Exo.Images;
 using Exo.Ipc;
 using Exo.Lighting;
 using Exo.Monitors;
@@ -36,6 +38,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private TaskCompletionSource<MouseDeviceOperationStatus>?[]? _mouseDeviceOperations;
 	private TaskCompletionSource<MonitorOperationStatus>?[]? _monitorOperations;
 	private TaskCompletionSource<LightingDeviceOperationStatus>?[]? _lightingDeviceOperations;
+	private TaskCompletionSource<(ImageStorageOperationStatus Status, string Name)>? _imageAddTaskCompletionSource;
+	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
 
 	private ExoUiPipeClientConnection
@@ -125,8 +129,23 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
 			goto Success;
-		case ExoUiProtocolServerMessage.LightingEffect:
-			ProcessLightingEffect(data);
+		case ExoUiProtocolServerMessage.ImageEnumeration:
+			ProcessImage(Service.WatchNotificationKind.Enumeration, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.ImageAdd:
+			ProcessImage(Service.WatchNotificationKind.Addition, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.ImageRemove:
+			ProcessImage(Service.WatchNotificationKind.Removal, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.ImageUpdate:
+			ProcessImage(Service.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.ImageAddOperationStatus:
+			ProcessImageAddOperationStatus(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.ImageRemoveOperationStatus:
+			ProcessImageRemoveOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceEnumeration:
 			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
@@ -139,6 +158,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceUpdate:
 			ProcessDevice(Service.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingEffect:
+			ProcessLightingEffect(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.PowerDevice:
 			ProcessPowerDevice(data);
@@ -269,6 +291,46 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMenuUpdate(notification));
+	}
+
+	private void ProcessImage(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var information = new ImageInformation
+		(
+			reader.Read<UInt128>(),
+			reader.ReadVariableString() ?? "",
+			reader.ReadVariableString() ?? "",
+			reader.Read<ushort>(),
+			reader.Read<ushort>(),
+			(ImageFormat)reader.Read<byte>(),
+			reader.ReadBoolean()
+		);
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnImageUpdate(kind, information));
+	}
+
+	private void ProcessImageAddOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var status = (ImageStorageOperationStatus)reader.ReadByte();
+		var sharedMemoryName = reader.ReadVariableString();
+
+		if (sharedMemoryName is null) throw new InvalidDataException();
+		if (_imageAddTaskCompletionSource is null) throw new InvalidOperationException();
+
+		_imageAddTaskCompletionSource.TrySetResult((status, sharedMemoryName));
+	}
+
+	private void ProcessImageRemoveOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var status = (ImageStorageOperationStatus)reader.ReadByte();
+		var imageId = reader.Read<UInt128>();
+
+		if (_imageOperations is { } imageOperations && imageOperations.TryRemove(imageId, out var operation))
+			operation.TrySetResult(status);
 	}
 
 	private void ProcessLightingEffect(ReadOnlySpan<byte> data)
@@ -429,7 +491,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var notification = new BatteryChangeNotification
 		(
 			reader.ReadGuid(),
-			reader.ReadByte() != 0 ? reader.Read<float>() : null,
+			reader.ReadBoolean() ? reader.Read<float>() : null,
 			(BatteryStatus)reader.ReadByte(),
 			(ExternalPowerStatus)reader.ReadByte()
 		);
@@ -475,7 +537,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	{
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
-		bool isConnected = reader.ReadByte() != 0;
+		bool isConnected = reader.ReadBoolean();
 		var capabilities = (MouseCapabilities)reader.ReadByte();
 		var maximumDpi = ReadDotsPerInch(ref reader);
 		byte minimumDpiPresetCount = 0;
@@ -503,7 +565,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	{
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
-		byte? activeDpiPresetIndex = reader.ReadByte() != 0 ? reader.ReadByte() : null;
+		byte? activeDpiPresetIndex = reader.ReadBoolean() ? reader.ReadByte() : null;
 		var dpi = ReadDotsPerInch(ref reader);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDpiUpdate(deviceId, activeDpiPresetIndex, dpi));
 	}
@@ -512,7 +574,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	{
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
-		byte? activeDpiPresetIndex = reader.ReadByte() != 0 ? reader.ReadByte() : null;
+		byte? activeDpiPresetIndex = reader.ReadBoolean() ? reader.ReadByte() : null;
 		var presets = ReadDotsPerInches(ref reader);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDpiPresetsUpdate(deviceId, activeDpiPresetIndex, presets));
 	}
@@ -810,7 +872,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var deviceId = reader.ReadGuid();
 		var sensorId = reader.ReadGuid();
 		string? friendlyName = reader.ReadVariableString();
-		bool isFavorite = reader.ReadByte() != 0;
+		bool isFavorite = reader.ReadBoolean();
 		var sensorConfiguration = new SensorConfigurationUpdate() { DeviceId = deviceId, SensorId = sensorId, FriendlyName = friendlyName, IsFavorite = isFavorite };
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnSensorDeviceConfigurationUpdate(sensorConfiguration));
 	}
@@ -851,6 +913,122 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		{
 			buffer[0] = (byte)ExoUiProtocolClientMessage.InvokeMenuCommand;
 			Unsafe.WriteUnaligned(ref buffer[1], menuItemId);
+		}
+	}
+
+	// The process for Image Begin/Cancel/End is that Begin will leave the TaskCompletionSource hanging out in _imageAddTaskCompletionSource,
+	// and the Cancel or End will clear that out after running. So we know if an Add operation is started by looking at _imageAddTaskCompletionSource.
+	async Task<string> IImageService.BeginAddImageAsync(string imageName, uint length, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<(ImageStorageOperationStatus, string)> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			if (_imageAddTaskCompletionSource is not null) throw new InvalidOperationException("An add operation is already pending.");
+			operation = new();
+			_imageAddTaskCompletionSource = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, imageName, length);
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var (status, sharedMemoryName) = await operation.Task.ConfigureAwait(false);
+		if (status is not ImageStorageOperationStatus.Success) _imageAddTaskCompletionSource = null;
+		HandleStatus(status);
+		return sharedMemoryName ?? throw new InvalidOperationException();
+
+		static void Write(Span<byte> buffer, string imageName, uint length)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.ImageAddBegin);
+			writer.WriteVariableString(imageName);
+			writer.Write(length);
+		}
+	}
+
+	Task IImageService.CancelAddImageAsync(string sharedMemoryName, CancellationToken cancellationToken)
+		=> EndOrCancelAddImage(ExoUiProtocolClientMessage.ImageAddCancel, sharedMemoryName, cancellationToken);
+
+	Task IImageService.EndAddImageAsync(string sharedMemoryName, CancellationToken cancellationToken)
+		=> EndOrCancelAddImage(ExoUiProtocolClientMessage.ImageAddEnd, sharedMemoryName, cancellationToken);
+
+	private async Task EndOrCancelAddImage(ExoUiProtocolClientMessage message, string sharedMemoryName, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<(ImageStorageOperationStatus, string)> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			if (_imageAddTaskCompletionSource is null) throw new InvalidOperationException("An add operation is not running.");
+			if (!_imageAddTaskCompletionSource.Task.IsCompletedSuccessfully || _imageAddTaskCompletionSource.Task.Result.Status != ImageStorageOperationStatus.Success)
+			{
+				throw new InvalidOperationException("The internal state is not valid for this operation.");
+			}
+			operation = new();
+			_imageAddTaskCompletionSource = operation;
+			var buffer = WriteBuffer;
+			Write(buffer.Span, message, sharedMemoryName);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		var (status, sharedMemoryName2) = await operation.Task.ConfigureAwait(false);
+		if (!ReferenceEquals(operation, Interlocked.CompareExchange(ref _imageAddTaskCompletionSource, null, operation))) throw new InvalidOperationException("The internal state is not valid.");
+		if (sharedMemoryName2 != sharedMemoryName) throw new InvalidOperationException("The returned name does not match.");
+		HandleStatus(status);
+
+		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, string sharedMemoryName)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)message);
+			writer.WriteVariableString(sharedMemoryName);
+		}
+	}
+
+	async Task IImageService.RemoveImageAsync(UInt128 imageId, CancellationToken cancellationToken)
+	{
+		TaskCompletionSource<ImageStorageOperationStatus> operation;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			var imageOperations = _imageOperations;
+			if (imageOperations is null) Volatile.Write(ref _imageOperations, imageOperations = new());
+			operation = new();
+			if (imageOperations.TryAdd(imageId, operation)) throw new InvalidOperationException("An operation is already pending for this image.");
+			var buffer = WriteBuffer;
+			Write(buffer.Span, imageId);
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await operation.Task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, UInt128 imageId)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.ImageRemove);
+			writer.Write(imageId);
+		}
+	}
+
+	private static void HandleStatus(ImageStorageOperationStatus status)
+	{
+		switch (status)
+		{
+		case ImageStorageOperationStatus.Success: return;
+		case ImageStorageOperationStatus.Error: throw new Exception();
+		case ImageStorageOperationStatus.InvalidArgument: throw new ArgumentException();
+		case ImageStorageOperationStatus.ImageNotFound: throw new DeviceNotFoundException();
+		case ImageStorageOperationStatus.NameAlreadyInUse: throw new InvalidOperationException("Name already in use.");
+		case ImageStorageOperationStatus.ConcurrentOperation: throw new InvalidOperationException();
+		default: throw new InvalidOperationException();
 		}
 	}
 
@@ -945,13 +1123,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await operation.Task.ConfigureAwait(false);
-		switch (status)
-		{
-		case MouseDeviceOperationStatus.Success: return;
-		case MouseDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
-		default: throw new InvalidOperationException();
-		}
+		HandleStatus(await operation.Task.ConfigureAwait(false));
 
 		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets)
 		{
@@ -998,13 +1170,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await operation.Task.ConfigureAwait(false);
-		switch (status)
-		{
-		case MouseDeviceOperationStatus.Success: return;
-		case MouseDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
-		default: throw new InvalidOperationException();
-		}
+		HandleStatus(await operation.Task.ConfigureAwait(false));
 
 		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
 		{
@@ -1013,6 +1179,17 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.WriteVariable(requestId);
 			writer.Write(deviceId);
 			writer.Write(value);
+		}
+	}
+
+	private static void HandleStatus(MouseDeviceOperationStatus status)
+	{
+		switch (status)
+		{
+		case MouseDeviceOperationStatus.Success: return;
+		case MouseDeviceOperationStatus.Error: throw new InvalidOperationException();
+		case MouseDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		default: throw new InvalidOperationException();
 		}
 	}
 
@@ -1279,7 +1456,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write((byte)ExoUiProtocolClientMessage.SensorFavorite);
 			writer.Write(deviceId);
 			writer.Write(sensorId);
-			writer.Write(isFavorite ? (byte)1 : (byte)0);
+			writer.Write(isFavorite);
 		}
 	}
 

@@ -13,6 +13,7 @@ using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Images;
 using Exo.Memory;
+using Exo.Primitives;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32.SafeHandles;
 using SixLabors.ImageSharp.Advanced;
@@ -21,7 +22,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Exo.Service;
 
-internal sealed class ImageStorageService : IAsyncDisposable
+internal sealed class ImageStorageService : IChangeSource<ImageChangeNotification>, IAsyncDisposable
 {
 	[TypeId(0x1D185C1A, 0x4903, 0x4D4A, 0x91, 0x20, 0x69, 0x4A, 0xE5, 0x2C, 0x07, 0x7A)]
 	[method: JsonConstructor]
@@ -34,10 +35,10 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		public bool IsAnimated { get; } = isAnimated;
 	}
 
-	private sealed class LiveImageMetadata(UInt128 id, string? imageName, ushort width, ushort height, ImageFormat format, bool isAnimated)
+	private sealed class LiveImageMetadata(UInt128 id, string imageName, ushort width, ushort height, ImageFormat format, bool isAnimated)
 	{
 		public UInt128 Id { get; } = id;
-		public string? ImageName { get; } = imageName;
+		public string ImageName { get; } = imageName;
 		public ushort Width { get; } = width;
 		public ushort Height { get; } = height;
 		public ImageFormat Format { get; } = format;
@@ -300,7 +301,7 @@ internal sealed class ImageStorageService : IAsyncDisposable
 	private readonly IConfigurationContainer<string> _imagesConfigurationContainer;
 	private readonly string _imageCacheDirectory;
 	private readonly ChannelWriter<KeyValuePair<UInt128, ImageMetadata>> _logicalImageMetadataPersistenceWriter;
-	private ChannelWriter<ImageChangeNotification>[]? _changeListeners;
+	private ChangeBroadcaster<ImageChangeNotification> _changeBroadcaster;
 	private readonly AsyncLock _lock;
 	private readonly ILogger<ImageStorageService> _logger;
 	private CancellationTokenSource? _cancellationTokenSource;
@@ -370,40 +371,24 @@ internal sealed class ImageStorageService : IAsyncDisposable
 		}
 	}
 
-	public async IAsyncEnumerable<ImageChangeNotification> WatchChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<ImageChangeNotification[]?> IChangeSource<ImageChangeNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<ImageChangeNotification> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<ImageChangeNotification>();
-
-		ImageInformation[]? images;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			images = new ImageInformation[_imageCollection.Count];
+			var images = new ImageChangeNotification[_imageCollection.Count];
 			int i = 0;
 			foreach (var (name, metadata) in _imageCollection)
 			{
-				images[i++] = new(metadata.Id, name, GetFileName(_imageCacheDirectory, metadata.Id), metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated);
+				images[i++] = new(WatchNotificationKind.Enumeration, new(metadata.Id, name, GetFileName(_imageCacheDirectory, metadata.Id), metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated));
 			}
-			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
+			_changeBroadcaster.Register(writer);
+			return images;
 		}
 
-		try
-		{
-			foreach (var image in images)
-			{
-				yield return new(WatchNotificationKind.Enumeration, image);
-			}
-			images = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
-		}
 	}
+
+	void IChangeSource<ImageChangeNotification>.UnregisterWatcher(ChannelWriter<ImageChangeNotification> writer)
+		=> _changeBroadcaster.Unregister(writer);
 
 	public ImageFile GetImageFile(UInt128 imageId)
 	{
@@ -880,32 +865,32 @@ internal sealed class ImageStorageService : IAsyncDisposable
 			_imageCollection.Add(imageName, metadata);
 			if (!_imageCollectionById.TryAdd(metadata.Id, metadata)) throw new UnreachableException();
 
-			if (Volatile.Read(ref _changeListeners) is { } changeListeners)
+			var changeBroadcaster = _changeBroadcaster.GetSnapshot();
+			if (!changeBroadcaster.IsEmpty)
 			{
-				changeListeners.TryWrite(new(WatchNotificationKind.Addition, new(metadata.Id, imageName, fileName, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated)));
+				changeBroadcaster.Push(new(WatchNotificationKind.Addition, new(metadata.Id, imageName, fileName, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated)));
 			}
 		}
 	}
 
-	public async ValueTask RemoveImageAsync(string imageName, CancellationToken cancellationToken)
+	public async ValueTask RemoveImageAsync(UInt128 imageId, CancellationToken cancellationToken)
 	{
-		if (!ImageNameSerializer.IsNameValid(imageName)) throw new ArgumentException("Invalid name.");
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (_imageCollection.TryGetValue(imageName, out var metadata))
-			{
-				// TODO: There should be a check to ensure that images are not in use.
-				// Ideally, by calling all dependent services to do an exhaustive verification. (As removing images is an exceptional event)
-				// Problem: How to do this without introducing a deadlock.
-				string fileName = GetFileName(_imageCacheDirectory, metadata.Id);
-				File.Delete(fileName);
-				_imageCollection.Remove(imageName);
-				_imageCollectionById.TryRemove(metadata.Id, out _);
+			if (!_imageCollectionById.TryGetValue(imageId, out var metadata)) throw new ImageNotFoundException();
 
-				if (Volatile.Read(ref _changeListeners) is { } changeListeners)
-				{
-					changeListeners.TryWrite(new(WatchNotificationKind.Removal, new(metadata.Id, imageName, fileName, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated)));
-				}
+			// TODO: There should be a check to ensure that images are not in use.
+			// Ideally, by calling all dependent services to do an exhaustive verification. (As removing images is an exceptional event)
+			// Problem: How to do this without introducing a deadlock.
+			string fileName = GetFileName(_imageCacheDirectory, metadata.Id);
+			File.Delete(fileName);
+			_imageCollection.Remove(metadata.ImageName);
+			_imageCollectionById.TryRemove(metadata.Id, out _);
+
+			var changeBroadcaster = _changeBroadcaster.GetSnapshot();
+			if (!changeBroadcaster.IsEmpty)
+			{
+				changeBroadcaster.Push(new(WatchNotificationKind.Removal, new(metadata.Id, metadata.ImageName, fileName, metadata.Width, metadata.Height, metadata.Format, metadata.IsAnimated)));
 			}
 		}
 	}

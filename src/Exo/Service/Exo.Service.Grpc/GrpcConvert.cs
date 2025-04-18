@@ -17,8 +17,6 @@ using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.Embedde
 using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
 using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
 using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
-using GrpcImageFormat = Exo.Contracts.Ui.Settings.ImageFormat;
-using GrpcImageInformation = Exo.Contracts.Ui.Settings.ImageInformation;
 using GrpcLightCapabilities = Exo.Contracts.Ui.Settings.LightCapabilities;
 using GrpcLightChangeNotification = Exo.Contracts.Ui.Settings.LightChangeNotification;
 using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
@@ -81,18 +79,6 @@ internal static class GrpcConvert
 	public static GrpcSize ToGrpc(this Size size) => new() { Width = size.Width, Height = size.Height };
 	public static GrpcRectangle ToGrpc(this Rectangle rectangle) => new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height };
 	public static Rectangle FromGrpc(this GrpcRectangle rectangle) => new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height };
-
-	public static GrpcImageInformation ToGrpc(this ImageInformation imageInformation)
-		=> new()
-		{
-			ImageId = imageInformation.ImageId,
-			ImageName = imageInformation.ImageName,
-			FileName = imageInformation.FileName,
-			Width = imageInformation.Width,
-			Height = imageInformation.Height,
-			Format = imageInformation.Format.ToGrpc(),
-			IsAnimated = imageInformation.IsAnimated,
-		};
 
 	public static GrpcCoolingDeviceInformation ToGrpc(this CoolingDeviceInformation coolingDeviceInformation)
 		=> new()
@@ -230,19 +216,6 @@ internal static class GrpcConvert
 			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
 			WatchNotificationKind.Update => GrpcWatchNotificationKind.Update,
 			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcImageFormat ToGrpc(this ImageFormat imageFormat)
-		=> imageFormat switch
-		{
-			ImageFormat.Raw => GrpcImageFormat.Raw,
-			ImageFormat.Bitmap => GrpcImageFormat.Bitmap,
-			ImageFormat.Gif => GrpcImageFormat.Gif,
-			ImageFormat.Jpeg => GrpcImageFormat.Jpeg,
-			ImageFormat.Png => GrpcImageFormat.Png,
-			ImageFormat.WebPLossy => GrpcImageFormat.WebPLossy,
-			ImageFormat.WebPLossless => GrpcImageFormat.WebPLossless,
-			_ => throw new NotImplementedException(),
 		};
 
 	public static GrpcLightDeviceInformation ToGrpc(this LightDeviceInformation information)

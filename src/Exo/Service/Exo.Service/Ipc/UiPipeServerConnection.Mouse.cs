@@ -346,7 +346,7 @@ partial class UiPipeServerConnection
 	private static void Write(ref BufferWriter writer, in MouseDeviceInformation device)
 	{
 		writer.Write(device.DeviceId);
-		writer.Write(device.IsConnected ? (byte)1 : (byte)0);
+		writer.Write(device.IsConnected);
 		writer.Write((byte)device.Capabilities);
 		Write(ref writer, device.MaximumDpi);
 		if ((device.Capabilities & (MouseCapabilities.DpiPresets | MouseCapabilities.ConfigurableDpiPresets)) != 0)

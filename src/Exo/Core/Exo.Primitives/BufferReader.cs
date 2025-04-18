@@ -22,6 +22,8 @@ public ref struct BufferReader
 
 	public readonly nuint RemainingLength => (nuint)Unsafe.ByteOffset(in _current, in _end);
 
+	public bool ReadBoolean() => ReadByte() != 0;
+
 	public byte ReadByte()
 	{
 		if (!Unsafe.IsAddressLessThan(in _current, in _end)) throw new EndOfStreamException();

@@ -1,5 +1,7 @@
 using System.Runtime.Serialization;
 
+// TODO: REMOVE FILE
+
 namespace Exo.Contracts.Ui.Settings;
 
 [DataContract]

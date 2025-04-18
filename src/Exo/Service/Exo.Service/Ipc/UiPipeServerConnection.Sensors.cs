@@ -100,7 +100,7 @@ partial class UiPipeServerConnection
 			writer.Write(update.DeviceId);
 			writer.Write(update.SensorId);
 			writer.WriteVariableString(update.FriendlyName);
-			writer.Write(update.IsFavorite ? (byte)1 : (byte)0);
+			writer.Write(update.IsFavorite);
 			return (int)writer.Length;
 		}
 	}
@@ -194,7 +194,7 @@ partial class UiPipeServerConnection
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
 		var sensorId = reader.ReadGuid();
-		bool isFavorite = reader.ReadByte() != 0;
+		bool isFavorite = reader.ReadBoolean();
 
 		_sensorFavoritingChannel.Writer.TryWrite(new() { DeviceId = deviceId, SensorId = sensorId, IsFavorite = isFavorite });
 	}

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Ipc;
+using Exo.Memory;
 using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
@@ -23,6 +24,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.ConnectionLogger,
 			uiPipeServer.AssemblyLoader,
 			uiPipeServer.CustomMenuService,
+			uiPipeServer.ImageStorageService,
 			uiPipeServer.DeviceRegistry,
 			uiPipeServer.PowerService,
 			uiPipeServer.MouseService,
@@ -35,6 +37,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly CustomMenuService _customMenuService;
+	private readonly ImageStorageService _imageStorageService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly PowerService _powerService;
 	private readonly MouseService _mouseService;
@@ -47,6 +50,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
 	private readonly Channel<SensorFavoritingRequest> _sensorFavoritingChannel;
 	private readonly ILogger<UiPipeServerConnection> _logger;
+	private string? _imageUploadImageName;
+	private SharedMemory? _imageUploadSharedMemory;
 
 	private UiPipeServerConnection
 	(
@@ -55,6 +60,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		ILogger<UiPipeServerConnection> logger,
 		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
+		ImageStorageService imageStorageService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
 		MouseService mouseService,
@@ -67,6 +73,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_logger = logger;
 		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
+		_imageStorageService = imageStorageService;
 		_deviceRegistry = deviceRegistry;
 		_powerService = powerService;
 		_mouseService = mouseService;
@@ -86,7 +93,14 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_sensorFavoritingChannel = Channel.CreateUnbounded<SensorFavoritingRequest>(SensorChannelOptions);
 	}
 
-	protected override ValueTask OnDisposedAsync() => ValueTask.CompletedTask;
+	protected override ValueTask OnDisposedAsync()
+	{
+		if (Interlocked.Exchange(ref _imageUploadSharedMemory, null) is { } imageUploadSharedMemory)
+		{
+			imageUploadSharedMemory.Dispose();
+		}
+		return ValueTask.CompletedTask;
+	}
 
 	private async Task WatchEventsAsync(CancellationToken cancellationToken)
 	{
@@ -101,6 +115,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 		var metadataWatchTask = WatchMetadataChangesAsync(cancellationToken);
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
+		var imageWatchTask = WatchImagesAsync(cancellationToken);
 		var lightingEffectsWatchTask = WatchLightingEffectsAsync(cancellationToken);
 
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
@@ -128,6 +143,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		(
 			metadataWatchTask,
 			customMenuWatchTask,
+			imageWatchTask,
 			lightingEffectsWatchTask,
 			deviceWatchTask,
 			powerDeviceWatchTask,
@@ -239,6 +255,14 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			if (data.Length != 16) goto Failure;
 			ProcessMenuItemInvocation(Unsafe.ReadUnaligned<Guid>(in data[0]));
 			goto Success;
+		case ExoUiProtocolClientMessage.ImageAddBegin:
+			return ProcessImageAddBeginAsync(data, cancellationToken);
+		case ExoUiProtocolClientMessage.ImageAddCancel:
+			return ProcessImageAddCancelAsync(data, cancellationToken);
+		case ExoUiProtocolClientMessage.ImageAddEnd:
+			return ProcessImageAddEndAsync(data, cancellationToken);
+		case ExoUiProtocolClientMessage.ImageRemove:
+			return ProcessImageRemoveAsync(data, cancellationToken);
 		case ExoUiProtocolClientMessage.UpdateSettings:
 			goto Success;
 		case ExoUiProtocolClientMessage.LowPowerBatteryThreshold:

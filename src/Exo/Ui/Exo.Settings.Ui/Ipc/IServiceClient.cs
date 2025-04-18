@@ -14,6 +14,8 @@ internal interface IServiceClient
 
 	void OnMenuUpdate(MenuChangeNotification notification);
 
+	void OnImageUpdate(Service.WatchNotificationKind kind, ImageInformation information);
+
 	void OnLightingEffectUpdate(LightingEffectInformation effect);
 
 	void OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation);

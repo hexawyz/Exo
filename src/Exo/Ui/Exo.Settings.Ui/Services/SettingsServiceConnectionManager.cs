@@ -150,7 +150,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
 	private TaskCompletionSource<ILightService> _lightServiceTaskCompletionSource;
 	private TaskCompletionSource<IEmbeddedMonitorService> _embeddedMonitorServiceTaskCompletionSource;
-	private TaskCompletionSource<IImageService> _imageServiceTaskCompletionSource;
 	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
 	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
@@ -168,7 +167,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		_connectedStates = new();
 		_lightServiceTaskCompletionSource = new();
 		_embeddedMonitorServiceTaskCompletionSource = new();
-		_imageServiceTaskCompletionSource = new();
 		_coolingServiceTaskCompletionSource = new();
 		_customMenuServiceTaskCompletionSource = new();
 		_programmingServiceTaskCompletionSource = new();
@@ -181,9 +179,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public Task<IEmbeddedMonitorService> GetEmbeddedMonitorServiceAsync(CancellationToken cancellationToken)
 		=> _embeddedMonitorServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
-
-	public Task<IImageService> GetImageServiceAsync(CancellationToken cancellationToken)
-		=> _imageServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ICoolingService> GetCoolingServiceAsync(CancellationToken cancellationToken)
 		=> _coolingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -223,7 +218,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	{
 		Connect(channel, _lightServiceTaskCompletionSource);
 		Connect(channel, _embeddedMonitorServiceTaskCompletionSource);
-		Connect(channel, _imageServiceTaskCompletionSource);
 		Connect(channel, _coolingServiceTaskCompletionSource);
 		Connect(channel, _customMenuServiceTaskCompletionSource);
 		Connect(channel, _programmingServiceTaskCompletionSource);
@@ -243,7 +237,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	{
 		Reset(ref _lightServiceTaskCompletionSource);
 		Reset(ref _embeddedMonitorServiceTaskCompletionSource);
-		Reset(ref _imageServiceTaskCompletionSource);
 		Reset(ref _coolingServiceTaskCompletionSource);
 		Reset(ref _customMenuServiceTaskCompletionSource);
 		Reset(ref _programmingServiceTaskCompletionSource);

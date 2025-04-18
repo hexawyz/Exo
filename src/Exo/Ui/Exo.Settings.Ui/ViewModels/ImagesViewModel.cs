@@ -3,15 +3,14 @@ using System.Collections.ObjectModel;
 using System.IO.MemoryMappedFiles;
 using System.Security.Cryptography;
 using System.Windows.Input;
-using Exo.Contracts.Ui.Settings;
 using Exo.Memory;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Grpc.Core;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDisposable
+internal sealed class ImagesViewModel : BindableObject, IDisposable
 {
 	private static class Commands
 	{
@@ -29,7 +28,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			{
 				try
 				{
-					await _viewModel.OpenImageAsync(default);
+					await _viewModel.OpenImageAsync(_viewModel.CancellationToken);
 				}
 				catch
 				{
@@ -53,7 +52,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			{
 				try
 				{
-					await _viewModel.AddImageAsync(default);
+					await _viewModel.AddImageAsync(_viewModel.CancellationToken);
 				}
 				catch
 				{
@@ -77,7 +76,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 			{
 				try
 				{
-					await _viewModel.RemoveImageAsync(default);
+					await _viewModel.RemoveImageAsync(_viewModel.CancellationToken);
 				}
 				catch
 				{
@@ -130,32 +129,26 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	private string? _loadedImageName;
 	private byte[]? _loadedImageData;
 
-	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly IFileOpenDialog _fileOpenDialog;
 	private readonly INotificationSystem _notificationSystem;
 	private IImageService? _imageService;
 	private CancellationTokenSource? _cancellationTokenSource;
-	private readonly IDisposable _stateRegistration;
 
-	public ImagesViewModel(SettingsServiceConnectionManager connectionManager, IFileOpenDialog fileOpenDialog, INotificationSystem notificationSystem)
+	public ImagesViewModel(IFileOpenDialog fileOpenDialog, INotificationSystem notificationSystem)
 	{
 		_images = new();
 		_readOnlyImages = new(_images);
-		_connectionManager = connectionManager;
 		_fileOpenDialog = fileOpenDialog;
 		_notificationSystem = notificationSystem;
 		_openImageCommand = new(this);
 		_addImageCommand = new(this);
 		_removeImageCommand = new(this);
 		_cancellationTokenSource = new();
-		_stateRegistration = connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
 	public void Dispose()
 	{
-		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
-		cts.Cancel();
-		_stateRegistration.Dispose();
+		Reset();
 	}
 
 	public ReadOnlyObservableCollection<ImageViewModel> Images => _readOnlyImages;
@@ -179,49 +172,46 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 	public ICommand AddImageCommand => _addImageCommand;
 	public ICommand RemoveImageCommand => _removeImageCommand;
 
-	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	public CancellationToken CancellationToken => _cancellationTokenSource?.Token ?? throw new InvalidOperationException("Not initialized.");
+
+	internal void OnConnected(IImageService imageService)
 	{
-		if (_cancellationTokenSource is not { } cts || cts.IsCancellationRequested) return;
-		using (var cts2 = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
-		{
-			var imageService = await _connectionManager.GetImageServiceAsync(cts2.Token);
-			_imageService = imageService;
-			IsNotBusy = true;
-			await WatchImagesAsync(imageService, cts2.Token);
-		}
+		_imageService = imageService;
+		IsNotBusy = true;
 	}
 
-	void IConnectedState.Reset()
+	internal void Reset()
 	{
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
+		{
+			cts.Cancel();
+		}
+
 		IsNotBusy = false;
 		ClearImage();
 		_imageService = null;
 		_images.Clear();
 	}
 
-	// ⚠️ We want the code of this async method to always be synchronized to the UI thread. No ConfigureAwait here.
-	private async Task WatchImagesAsync(IImageService imageService, CancellationToken cancellationToken)
+	internal void OnImageUpdate(WatchNotificationKind kind, ImageInformation information)
 	{
-		await foreach (var notification in imageService.WatchImagesAsync(cancellationToken))
+		switch (kind)
 		{
-			switch (notification.NotificationKind)
+		case WatchNotificationKind.Enumeration:
+		case WatchNotificationKind.Addition:
+			_images.Add(new ImageViewModel(information));
+			break;
+		case WatchNotificationKind.Removal:
+			int i;
+			for (i = 0; i < _images.Count; i++)
 			{
-			case Contracts.Ui.WatchNotificationKind.Enumeration:
-			case Contracts.Ui.WatchNotificationKind.Addition:
-				_images.Add(new ImageViewModel(notification.Details));
-				break;
-			case Contracts.Ui.WatchNotificationKind.Removal:
-				int i;
-				for (i = 0; i < _images.Count; i++)
+				if (string.Equals(information.ImageName, _images[i].Name, StringComparison.OrdinalIgnoreCase))
 				{
-					if (string.Equals(notification.Details.ImageName, _images[i].Name, StringComparison.OrdinalIgnoreCase))
-					{
-						_images.RemoveAt(i);
-						break;
-					}
+					_images.RemoveAt(i);
+					break;
 				}
-				break;
 			}
+			break;
 		}
 	}
 
@@ -328,18 +318,21 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		IsNotBusy = false;
 		try
 		{
-			bool isDone = false;
-			await foreach (var response in _imageService.BeginAddImageAsync(new() { ImageName = _loadedImageName, Length = (uint)_loadedImageData.Length }, cancellationToken))
+			string sharedMemoryName = await _imageService.BeginAddImageAsync(_loadedImageName, (uint)_loadedImageData.Length, cancellationToken);
+			try
 			{
-				if (isDone) throw new InvalidOperationException();
-				using (var sharedMemory = SharedMemory.Open(response.SharedMemoryName, (uint)_loadedImageData.Length, MemoryMappedFileAccess.Write))
+				using (var sharedMemory = SharedMemory.Open(sharedMemoryName, (uint)_loadedImageData.Length, MemoryMappedFileAccess.Write))
 				using (var memoryManager = sharedMemory.CreateMemoryManager(MemoryMappedFileAccess.Write))
 				{
 					_loadedImageData.AsSpan().CopyTo(memoryManager.GetSpan());
 				}
-				await _imageService.EndAddImageAsync(new() { RequestId = response.RequestId }, cancellationToken);
-				isDone = true;
 			}
+			catch
+			{
+				await _imageService.CancelAddImageAsync(sharedMemoryName, cancellationToken);
+				throw;
+			}
+			await _imageService.EndAddImageAsync(sharedMemoryName, cancellationToken);
 			_loadedImageName = null;
 			_loadedImageData = null;
 			NotifyPropertyChanged(ChangedProperty.LoadedImageName);
@@ -362,7 +355,7 @@ internal sealed class ImagesViewModel : BindableObject, IConnectedState, IDispos
 		IsNotBusy = false;
 		try
 		{
-			await _imageService.RemoveImageAsync(new ImageReference { ImageName = _selectedImage.Name }, cancellationToken);
+			await _imageService.RemoveImageAsync(_selectedImage.Id, cancellationToken);
 		}
 		finally
 		{
@@ -378,7 +371,7 @@ internal sealed partial class ImageViewModel : ApplicableResettableBindableObjec
 	private readonly string _fileName;
 	private readonly ushort _width;
 	private readonly ushort _height;
-	private readonly ImageFormat _format;
+	private readonly Exo.Images.ImageFormat _format;
 	private readonly bool _isAnimated;
 
 	public override bool IsChanged => false;
@@ -405,7 +398,7 @@ internal sealed partial class ImageViewModel : ApplicableResettableBindableObjec
 	public string FileName => _fileName;
 	public ushort Width => _width;
 	public ushort Height => _height;
-	public ImageFormat Format => _format;
+	public Exo.Images.ImageFormat Format => _format;
 	public bool IsAnimated => _isAnimated;
 
 	protected override Task ApplyChangesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
