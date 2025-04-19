@@ -4,10 +4,10 @@ using Exo.Cooling;
 
 namespace Exo.Service;
 
-internal readonly struct CoolerInformation(Guid coolerId, Guid? coolerSensorId, CoolerType type, CoolingModes supportedCoolingModes, CoolerPowerLimits? powerLimits, ImmutableArray<Guid> hardwareCurveInputSensorIds) : IEquatable<CoolerInformation>
+internal readonly struct CoolerInformation(Guid coolerId, Guid? speedSensorId, CoolerType type, CoolingModes supportedCoolingModes, CoolerPowerLimits? powerLimits, ImmutableArray<Guid> hardwareCurveInputSensorIds) : IEquatable<CoolerInformation>
 {
 	public Guid CoolerId { get; } = coolerId;
-	public Guid? SpeedSensorId { get; } = coolerSensorId;
+	public Guid? SpeedSensorId { get; } = speedSensorId;
 	public CoolerType Type { get; } = type;
 	public CoolingModes SupportedCoolingModes { get; } = supportedCoolingModes;
 	public CoolerPowerLimits? PowerLimits { get; } = powerLimits;
@@ -16,11 +16,11 @@ internal readonly struct CoolerInformation(Guid coolerId, Guid? coolerSensorId, 
 	public override bool Equals(object? obj) => obj is CoolerInformation information && Equals(information);
 
 	public bool Equals(CoolerInformation other)
-		=> CoolerId.Equals(other.CoolerId) &&
-		EqualityComparer<Guid?>.Default.Equals(SpeedSensorId, other.SpeedSensorId) &&
+		=> CoolerId == other.CoolerId &&
+		SpeedSensorId == other.SpeedSensorId &&
 		Type == other.Type &&
 		SupportedCoolingModes == other.SupportedCoolingModes &&
-		EqualityComparer<CoolerPowerLimits?>.Default.Equals(PowerLimits, other.PowerLimits) &&
+		PowerLimits == other.PowerLimits &&
 		(HardwareCurveInputSensorIds.IsDefaultOrEmpty ? other.HardwareCurveInputSensorIds.IsDefaultOrEmpty : !other.HardwareCurveInputSensorIds.IsDefaultOrEmpty && HardwareCurveInputSensorIds.SequenceEqual(other.HardwareCurveInputSensorIds));
 
 	public override int GetHashCode()
