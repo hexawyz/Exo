@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Cooling;
@@ -25,6 +26,16 @@ internal partial class CoolingService
 			SupportedCoolingModes = info.SupportedCoolingModes;
 			PowerLimits = info.PowerLimits;
 			HardwareCurveInputSensorIds = info.HardwareCurveInputSensorIds;
+		}
+
+		[JsonConstructor]
+		public PersistedCoolerInformation(Guid? sensorId, CoolerType type, CoolingModes supportedCoolingModes, CoolerPowerLimits? powerLimits, ImmutableArray<Guid> hardwareCurveInputSensorIds)
+		{
+			SensorId = sensorId;
+			Type = type;
+			SupportedCoolingModes = supportedCoolingModes;
+			PowerLimits = powerLimits;
+			HardwareCurveInputSensorIds = hardwareCurveInputSensorIds;
 		}
 
 		public Guid? SensorId { get; }

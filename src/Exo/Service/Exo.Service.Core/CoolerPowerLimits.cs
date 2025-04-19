@@ -1,6 +1,9 @@
 
+using System.Text.Json.Serialization;
+
 namespace Exo.Service;
 
+[method: JsonConstructor]
 public readonly struct CoolerPowerLimits(byte minimumPower, bool canSwitchOff) : IEquatable<CoolerPowerLimits>
 {
 	public byte MinimumPower { get; } = minimumPower;
