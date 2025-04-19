@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -22,7 +21,7 @@ namespace Exo.Service;
 // Of course, this implied that starting or stopping to watch sensors requires a specific setup, but the watch operations should be efficient once running.
 // Also of importance, it is built in a way so that slower or buggy drivers will not negatively impact the readings of other drivers.
 // NB: To reduce clutter, most subtypes are located in other SensorService.*.cs files.
-internal sealed partial class SensorService
+internal sealed partial class SensorService : IChangeSource<SensorDeviceInformation>, IChangeSource<SensorConfigurationUpdate>
 {
 	// Defaults to polling sensors once every second at most, as this seem to be a relatively standard way of doing.
 	public const int PollingIntervalInMilliseconds = 1_000;
@@ -320,8 +319,8 @@ internal sealed partial class SensorService
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
 	private readonly PollingScheduler _pollingScheduler;
-	private ChannelWriter<SensorDeviceInformation>[]? _changeListeners;
-	private ChannelWriter<SensorConfigurationUpdate>[]? _configurationChangeListeners;
+	private ChangeBroadcaster<SensorDeviceInformation> _sensorDeviceBroadcaster;
+	private ChangeBroadcaster<SensorConfigurationUpdate> _configurationChangeBroadcaster;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly ILogger<SensorService> _logger;
 	private readonly ILogger<SensorState> _sensorStateLogger;
@@ -511,7 +510,7 @@ internal sealed partial class SensorService
 						).ConfigureAwait(false);
 					}
 				}
-				_changeListeners.TryWrite(state.Information);
+				_sensorDeviceBroadcaster.Push(state.Information);
 				// NB: THere is no need to transmit any sensor change information, as all new sensors start with an empty configuration.
 			}
 		}
@@ -622,42 +621,25 @@ internal sealed partial class SensorService
 		}
 	}
 
-	public async IAsyncEnumerable<SensorDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<SensorDeviceInformation[]?> IChangeSource<SensorDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<SensorDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<SensorDeviceInformation>();
-
-		SensorDeviceInformation[]? initialDeviceInfos = null;
+		List<SensorDeviceInformation>? initialDeviceInfos = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialDeviceInfos = [.. _deviceStates.Values.Select(state => state.Information)];
-			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
-		}
-		try
-		{
-			if (initialDeviceInfos is not null)
+			foreach (var deviceState in _deviceStates.Values)
 			{
-				foreach (var info in initialDeviceInfos)
-				{
-					yield return info;
-				}
+				(initialDeviceInfos ??= []).Add(deviceState.Information);
 			}
-			initialDeviceInfos = null;
-
-			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return info;
-			}
+			_sensorDeviceBroadcaster.Register(writer);
 		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
-		}
+		return initialDeviceInfos?.ToArray();
 	}
 
-	public async IAsyncEnumerable<SensorConfigurationUpdate> WatchSensorConfigurationChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		var channel = Watcher.CreateSingleWriterChannel<SensorConfigurationUpdate>();
+	void IChangeSource<SensorDeviceInformation>.UnregisterWatcher(ChannelWriter<SensorDeviceInformation> writer)
+		=> _sensorDeviceBroadcaster.Unregister(writer);
 
+	async ValueTask<SensorConfigurationUpdate[]?> IChangeSource<SensorConfigurationUpdate>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<SensorConfigurationUpdate> writer, CancellationToken cancellationToken)
+	{
 		List<SensorConfigurationUpdate>? initialUpdates = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
@@ -679,29 +661,13 @@ internal sealed partial class SensorService
 					);
 				}
 			}
-			ArrayExtensions.InterlockedAdd(ref _configurationChangeListeners, channel);
+			_configurationChangeBroadcaster.Register(writer);
 		}
-		try
-		{
-			if (initialUpdates is not null)
-			{
-				foreach (var update in initialUpdates)
-				{
-					yield return update;
-				}
-				initialUpdates = null;
-			}
-
-			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return info;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _configurationChangeListeners, channel);
-		}
+		return initialUpdates?.ToArray();
 	}
+
+	void IChangeSource<SensorConfigurationUpdate>.UnregisterWatcher(ChannelWriter<SensorConfigurationUpdate> writer)
+		=> _configurationChangeBroadcaster.Unregister(writer);
 
 	public async ValueTask<IAsyncEnumerable<SensorDataPoint<TValue>>> GetValueWatcherAsync<TValue>(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
 		where TValue : struct, INumber<TValue>
@@ -781,9 +747,9 @@ internal sealed partial class SensorService
 				{
 					sensorConfiguration.IsFavorite = isFavorite;
 
-					if (_configurationChangeListeners is { } changeListeners)
+					if (_configurationChangeBroadcaster is { } changeListeners)
 					{
-						changeListeners.TryWrite(new() { DeviceId = deviceId, SensorId = sensorId, FriendlyName = sensorConfiguration.FriendlyName, IsFavorite = sensorConfiguration.IsFavorite });
+						changeListeners.Push(new() { DeviceId = deviceId, SensorId = sensorId, FriendlyName = sensorConfiguration.FriendlyName, IsFavorite = sensorConfiguration.IsFavorite });
 					}
 
 					await deviceState.SensorsConfigurationContainer.WriteValueAsync(sensorId, sensorConfiguration.CreatePersistedSensorConfiguration(), cancellationToken).ConfigureAwait(false);

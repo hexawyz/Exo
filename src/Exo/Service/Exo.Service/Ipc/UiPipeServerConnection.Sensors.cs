@@ -12,23 +12,53 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchSensorDevicesAsync(CancellationToken cancellationToken)
 	{
-		try
+		using (var watcher = await BroadcastedChangeWatcher<SensorDeviceInformation>.CreateAsync(_sensorService, cancellationToken))
 		{
-			await foreach (var info in _sensorService.WatchDevicesAsync(cancellationToken).ConfigureAwait(false))
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<SensorDeviceInformation> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					int length = WriteUpdate(buffer.Span, info);
-					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					foreach (var deviceInformation in initialData)
+					{
+						int length = WriteNotification(buffer.Span, deviceInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
 				}
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<SensorDeviceInformation> watcher, CancellationToken cancellationToken)
 		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var deviceInformation))
+					{
+						int length = WriteNotification(buffer.Span, deviceInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
 		}
 
-		static int WriteUpdate(Span<byte> buffer, in SensorDeviceInformation device)
+		static int WriteNotification(Span<byte> buffer, in SensorDeviceInformation device)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolServerMessage.SensorDevice);
@@ -77,20 +107,50 @@ partial class UiPipeServerConnection
 
 	private async Task WatchSensorConfigurationUpdatesAsync(CancellationToken cancellationToken)
 	{
-		try
+		using (var watcher = await BroadcastedChangeWatcher<SensorConfigurationUpdate>.CreateAsync(_sensorService, cancellationToken))
 		{
-			await foreach (var info in _sensorService.WatchSensorConfigurationChangesAsync(cancellationToken).ConfigureAwait(false))
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<SensorConfigurationUpdate> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					int length = WriteUpdate(buffer.Span, info);
-					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					foreach (var deviceInformation in initialData)
+					{
+						int length = WriteUpdate(buffer.Span, deviceInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
 				}
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<SensorConfigurationUpdate> watcher, CancellationToken cancellationToken)
 		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var deviceInformation))
+					{
+						int length = WriteUpdate(buffer.Span, deviceInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
 		}
 
 		static int WriteUpdate(Span<byte> buffer, in SensorConfigurationUpdate update)
