@@ -32,7 +32,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.SensorService,
 			uiPipeServer.LightingEffectMetadataService,
 			uiPipeServer.LightingService,
-			uiPipeServer.EmbeddedMonitorService
+			uiPipeServer.EmbeddedMonitorService,
+			uiPipeServer.LightService
 		);
 	}
 
@@ -47,6 +48,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly LightingService _lightingService;
 	private readonly EmbeddedMonitorService _embeddedMonitorService;
+	private readonly LightService _lightService;
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
@@ -70,7 +72,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
 		LightingService lightingService,
-		EmbeddedMonitorService embeddedMonitorService
+		EmbeddedMonitorService embeddedMonitorService,
+		LightService lightService
 	) : base(server, stream)
 	{
 		_logger = logger;
@@ -85,6 +88,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingService = lightingService;
 		_embeddedMonitorService = embeddedMonitorService;
+		_lightService = lightService;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
 			if (callingProcess.ProcessName != "Exo.Settings.Ui")
@@ -127,8 +131,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var mouseDeviceWatchTask = WatchMouseDevicesAsync(cancellationToken);
 		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
 		var embeddedMonitorDeviceWatchTask = WatchEmbeddedMonitorDevicesAsync(cancellationToken);
-		var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
+		var lightDeviceWatchTask = WatchLightDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 
 		var batteryStateWatchTask = WatchBatteryStateChangesAsync(cancellationToken);
@@ -139,7 +143,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(cancellationToken);
 		var mousePollingFrequencyWatchTask = WatchMousePollingFrequencyAsync(cancellationToken);
 		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
+		var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(cancellationToken);
 		var monitorSettingWatchTask = WatchMonitorSettingsAsync(cancellationToken);
+		var lightConfigurationWatchTask = WatchLightConfigurationChangesAsync(cancellationToken);
 
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 		var sensorConfigurationWatchTask = WatchSensorConfigurationUpdatesAsync(cancellationToken);
@@ -170,7 +176,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			sensorDeviceWatchTask,
 			sensorWatchTask,
 			sensorConfigurationWatchTask,
-			sensorFavoritingTask
+			sensorFavoritingTask,
+			lightDeviceWatchTask,
+			lightConfigurationWatchTask
 		).ConfigureAwait(false);
 	}
 
@@ -299,6 +307,15 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			goto Success;
 		case ExoUiProtocolClientMessage.EmbeddedMonitorImage:
 			ProcessEmbeddedMonitorImage(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.LightSwitch:
+			ProcessLightSwitch(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.LightBrightness:
+			ProcessLightBrightness(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.LightTemperature:
+			ProcessLightTemperature(data, cancellationToken);
 			goto Success;
 		case ExoUiProtocolClientMessage.MonitorSettingSet:
 			ProcessMonitorSettingSet(data, cancellationToken);

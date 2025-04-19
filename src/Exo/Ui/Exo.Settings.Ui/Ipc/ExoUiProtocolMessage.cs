@@ -37,6 +37,9 @@ internal enum ExoUiProtocolClientMessage : byte
 	LightingDeviceConfiguration,
 	EmbeddedMonitorBuiltInGraphics,
 	EmbeddedMonitorImage,
+	LightSwitch,
+	LightBrightness,
+	LightTemperature,
 	/// <summary>Requests the update of a monitor setting.</summary>
 	/// <remarks>Contents: Arbitrary request Id (varint32) + request.</remarks>
 	MonitorSettingSet,
@@ -136,8 +139,11 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Acknowledges a lighting update.</summary>
 	LightingDeviceOperationStatus,
 	EmbeddedMonitorDevice,
-	EmbeddedMonitorDeviceConfiguration,
+	EmbeddedMonitorConfiguration,
 	EmbeddedMonitorDeviceOperationStatus,
+	LightDevice,
+	LightConfiguration,
+	LightDeviceOperationStatus,
 	/// <summary>Provides information about a monitor device.</summary>
 	MonitorDevice,
 	/// <summary>Provides updates on a monitor setting.</summary>
@@ -230,6 +236,15 @@ internal enum MouseDeviceOperationStatus : byte
 	Success,
 	Error,
 	DeviceNotFound,
+}
+
+internal enum LightOperationStatus : byte
+{
+	Success,
+	Error,
+	InvalidArgument,
+	DeviceNotFound,
+	LightNotFound,
 }
 
 [Flags]

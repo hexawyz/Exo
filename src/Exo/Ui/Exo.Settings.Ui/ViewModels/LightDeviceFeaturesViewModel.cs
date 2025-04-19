@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 
@@ -336,7 +336,7 @@ internal sealed class LightViewModel : BindableObject
 	// TODO: Probably need to have some kind of queue for updates
 	private async Task SwitchAsync(bool isOn, CancellationToken cancellationToken)
 	{
-		await _owner.LightService.SwitchLightAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, IsOn = isOn }, cancellationToken);
+		await _owner.LightService.SwitchLightAsync(_owner.DeviceId, _lightId, isOn, cancellationToken);
 	}
 
 	private async void SetBrightness(byte brightness)
@@ -352,7 +352,7 @@ internal sealed class LightViewModel : BindableObject
 
 	private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
 	{
-		await _owner.LightService.SetBrightnessAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, Brightness = brightness }, cancellationToken);
+		await _owner.LightService.SetBrightnessAsync(_owner.DeviceId, _lightId, brightness, cancellationToken);
 	}
 
 	private async void SetTemperature(uint temperature)
@@ -368,6 +368,6 @@ internal sealed class LightViewModel : BindableObject
 
 	private async Task SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
 	{
-		await _owner.LightService.SetTemperatureAsync(new() { DeviceId = _owner.DeviceId, LightId = _lightId, Temperature = temperature }, cancellationToken);
+		await _owner.LightService.SetTemperatureAsync(_owner.DeviceId, _lightId, temperature, cancellationToken);
 	}
 }

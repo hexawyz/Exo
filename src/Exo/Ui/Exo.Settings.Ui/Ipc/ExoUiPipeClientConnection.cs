@@ -95,6 +95,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private PendingOperations<MonitorOperationStatus> _monitorOperations;
 	private PendingOperations<LightingDeviceOperationStatus> _lightingDeviceOperations;
 	private PendingOperations<EmbeddedMonitorOperationStatus> _embeddedMonitorOperations;
+	private PendingOperations<LightOperationStatus> _lightOperations;
 	private TaskCompletionSource<(ImageStorageOperationStatus Status, string Name)>? _imageAddTaskCompletionSource;
 	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
@@ -276,11 +277,20 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.EmbeddedMonitorDevice:
 			ProcessEmbeddedMonitorDevice(data);
 			goto Success;
-		case ExoUiProtocolServerMessage.EmbeddedMonitorDeviceConfiguration:
+		case ExoUiProtocolServerMessage.EmbeddedMonitorConfiguration:
 			ProcessEmbeddedMonitorDeviceConfiguration(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.EmbeddedMonitorDeviceOperationStatus:
 			ProcessEmbeddedMonitorDeviceOperationStatus(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightDevice:
+			ProcessLightDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightConfiguration:
+			ProcessLightConfiguration(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightDeviceOperationStatus:
+			ProcessLightDeviceOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MonitorDevice:
 			ProcessMonitorDevice(data);
@@ -879,6 +889,69 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		_embeddedMonitorOperations.TryNotifyCompletion(requestId, status);
 	}
 
+	private void ProcessLightDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var configuration = new LightDeviceInformation
+		(
+			reader.ReadGuid(),
+			(LightDeviceCapabilities)reader.ReadByte(),
+			ReadLightInformations(ref reader)
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightDeviceUpdate(configuration));
+
+		static ImmutableArray<LightInformation> ReadLightInformations(ref BufferReader reader)
+		{
+			uint count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var lights = new LightInformation[count];
+			for (int i = 0; i < lights.Length; i++)
+			{
+				lights[i] = ReadLightInformation(ref reader);
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(lights);
+		}
+
+		static LightInformation ReadLightInformation(ref BufferReader reader)
+			=> new
+			(
+				reader.ReadGuid(),
+				(LightCapabilities)reader.ReadByte(),
+				reader.ReadByte(),
+				reader.ReadByte(),
+				reader.Read<uint>(),
+				reader.Read<uint>()
+			);
+	}
+
+	private void ProcessLightConfiguration(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var notification = new LightChangeNotification
+		(
+			reader.ReadGuid(),
+			reader.ReadGuid(),
+			reader.ReadBoolean(),
+			reader.ReadByte(),
+			reader.Read<uint>()
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightConfigurationUpdate(notification));
+	}
+
+	private void ProcessLightDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (LightOperationStatus)reader.ReadByte();
+
+		_lightOperations.TryNotifyCompletion(requestId, status);
+	}
+
 	private void ProcessMonitorDevice(ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
@@ -1427,6 +1500,102 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case EmbeddedMonitorOperationStatus.InvalidArgument: throw new ArgumentException();
 		case EmbeddedMonitorOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
 		case EmbeddedMonitorOperationStatus.MonitorNotFound: throw new MonitorNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+	}
+
+	async Task ILightService.SwitchLightAsync(Guid deviceId, Guid lightId, bool isOn, CancellationToken cancellationToken)
+	{
+		Task<LightOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _lightOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, lightId, isOn);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, bool isOn)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.LightSwitch);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(lightId);
+			writer.Write(isOn);
+		}
+	}
+
+	async Task ILightService.SetBrightnessAsync(Guid deviceId, Guid lightId, byte brightness, CancellationToken cancellationToken)
+	{
+		Task<LightOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _lightOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, lightId, brightness);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, byte brightness)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.LightBrightness);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(lightId);
+			writer.Write(brightness);
+		}
+	}
+
+	async Task ILightService.SetTemperatureAsync(Guid deviceId, Guid lightId, uint temperature, CancellationToken cancellationToken)
+	{
+		Task<LightOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _lightOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, lightId, temperature);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, uint temperature)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.LightTemperature);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(lightId);
+			writer.Write(temperature);
+		}
+	}
+
+	private static void HandleStatus(LightOperationStatus status)
+	{
+		switch (status)
+		{
+		case LightOperationStatus.Success: return;
+		case LightOperationStatus.InvalidArgument: throw new ArgumentException();
+		case LightOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		case LightOperationStatus.LightNotFound: throw new LightNotFoundException();
 		default: throw new InvalidOperationException();
 		}
 	}

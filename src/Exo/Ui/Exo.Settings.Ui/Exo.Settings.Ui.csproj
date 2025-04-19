@@ -88,11 +88,17 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorInformation.cs" Link="Definitions\EmbeddedMonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\ImageChangeNotification.cs" Link="Definitions\ImageChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\ImageInformation.cs" Link="Definitions\ImageInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightCapabilities.cs" Link="Definitions\LightCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightChangeNotification.cs" Link="Definitions\LightChangeNotification.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightDeviceCapabilities.cs" Link="Definitions\LightDeviceCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightDeviceInformation.cs" Link="Definitions\LightDeviceInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightInformation.cs" Link="Definitions\LightInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceConfiguration.cs" Link="Definitions\LightingDeviceConfiguration.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceInformation.cs" Link="Definitions\LightingDeviceInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneEffect.cs" Link="Definitions\LightingZoneEffect.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneInformation.cs" Link="Definitions\LightingZoneInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\LightNotFoundException.cs" Link="Definitions\LightNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorNotFoundException.cs" Link="Definitions\MonitorNotFoundException.cs" />

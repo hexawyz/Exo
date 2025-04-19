@@ -116,7 +116,7 @@ partial class UiPipeServerConnection
 		static int WriteNotification(Span<byte> buffer, in EmbeddedMonitorConfiguration notification)
 		{
 			var writer = new BufferWriter(buffer);
-			writer.Write((byte)ExoUiProtocolServerMessage.EmbeddedMonitorDeviceConfiguration);
+			writer.Write((byte)ExoUiProtocolServerMessage.EmbeddedMonitorConfiguration);
 			Write(ref writer, notification);
 			return (int)writer.Length;
 		}

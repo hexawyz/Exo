@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,6 +6,7 @@ using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
 using Exo.Features.Lights;
+using Exo.Primitives;
 using Exo.Programming.Annotations;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +14,7 @@ namespace Exo.Service;
 
 [Module("Light")]
 [TypeId(0x91C9424D, 0xB8F0, 0x4318, 0xA5, 0x2C, 0x0F, 0xEC, 0xEA, 0x7D, 0xC4, 0xDE)]
-internal sealed partial class LightService : IAsyncDisposable
+internal sealed partial class LightService : IChangeSource<LightDeviceInformation>, IChangeSource<LightChangeNotification>, IAsyncDisposable
 {
 	private sealed class DeviceState
 	{
@@ -34,33 +34,33 @@ internal sealed partial class LightService : IAsyncDisposable
 		(
 			LightService? service,
 			Guid id,
-            LightDeviceCapabilities capabilities,
+			LightDeviceCapabilities capabilities,
 			IConfigurationContainer deviceConfigurationContainer,
 			IConfigurationContainer<Guid> lampsConfigurationContainer,
-            Dictionary<Guid, LightState> lights
+			Dictionary<Guid, LightState> lights
 		)
 		{
 			_service = service;
 			_id = id;
-            _capabilities = capabilities;
+			_capabilities = capabilities;
 			DeviceConfigurationContainer = deviceConfigurationContainer;
 			LampsConfigurationContainer = lampsConfigurationContainer;
 			Lights = lights;
 			_lock = new();
 		}
 
-        public bool IsPolled => (_capabilities & LightDeviceCapabilities.Polled) != 0;
+		public bool IsPolled => (_capabilities & LightDeviceCapabilities.Polled) != 0;
 
 		public bool SetOnline(Driver driver, LightDeviceCapabilities capabilities)
 		{
 			_driver = driver;
-            bool isChanged = false;
-            if (capabilities != _capabilities)
-            {
-                _capabilities = capabilities;
-                isChanged = true;
-            }
-            return isChanged;
+			bool isChanged = false;
+			if (capabilities != _capabilities)
+			{
+				_capabilities = capabilities;
+				isChanged = true;
+			}
+			return isChanged;
 		}
 
 		public void SetOffline()
@@ -68,13 +68,13 @@ internal sealed partial class LightService : IAsyncDisposable
 			Volatile.Write(ref _driver, null);
 		}
 
-        public async Task RequestRefreshAsync(CancellationToken cancellationToken)
-        {
-            if (_driver?.GetFeatureSet<ILightDeviceFeature>()?.GetFeature<IPolledLightControllerFeature>() is { } polledLightControllerFeature)
-            {
-                await polledLightControllerFeature.RequestRefreshAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
+		public async Task RequestRefreshAsync(CancellationToken cancellationToken)
+		{
+			if (_driver?.GetFeatureSet<ILightDeviceFeature>()?.GetFeature<IPolledLightControllerFeature>() is { } polledLightControllerFeature)
+			{
+				await polledLightControllerFeature.RequestRefreshAsync(cancellationToken).ConfigureAwait(false);
+			}
+		}
 
 		// Not ideal but the current code can't have a reference to the service at creation time…
 		[MemberNotNull(nameof(_service))]
@@ -88,14 +88,19 @@ internal sealed partial class LightService : IAsyncDisposable
 			{
 				lights[i++] = light.CreateInformation();
 			}
-			return new LightDeviceInformation() { DeviceId = _id, Capabilities = _capabilities, Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights) };
+			return new LightDeviceInformation(_id, _capabilities, ImmutableCollectionsMarshal.AsImmutableArray(lights));
 		}
 
-        public PersistedLightDeviceInformation CreatePersistedInformation()
-            => new() { Capabilities = _capabilities };
+		public PersistedLightDeviceInformation CreatePersistedInformation()
+			=> new() { Capabilities = _capabilities };
 
-        public void OnLightChanged(LightChangeNotification notification)
-            => _service?._lightChangeListeners.TryWrite(notification);
+		public void OnLightChanged(LightChangeNotification notification)
+		{
+			if (_service is { } service)
+			{
+				service._lightChangeBroadcaster.Push(notification);
+			}
+		}
 	}
 
 	private sealed class LightState
@@ -192,7 +197,7 @@ internal sealed partial class LightService : IAsyncDisposable
 				throw new InvalidOperationException("This light type is unsupported at the moment.");
 			}
 
-            _light = light;
+			_light = light;
 
 			if (isChanged)
 			{
@@ -266,15 +271,15 @@ internal sealed partial class LightService : IAsyncDisposable
 			};
 
 		public LightInformation CreateInformation()
-			=> new()
-			{
-				LightId = _id,
-				Capabilities = _capabilities,
-				MinimumBrightness = _minimumBrightness,
-				MaximumBrightness = _maximumBrightness,
-				MinimumTemperature = _minimumTemperature,
-				MaximumTemperature = _maximumTemperature,
-			};
+			=> new
+			(
+				_id,
+				_capabilities,
+				_minimumBrightness,
+				_maximumBrightness,
+				_minimumTemperature,
+				_maximumTemperature
+			);
 
 		public bool TryCreateChangeNotification(out LightChangeNotification notification)
 		{
@@ -305,49 +310,53 @@ internal sealed partial class LightService : IAsyncDisposable
 		}
 
 		private LightChangeNotification CreateNotification(Features.Lights.LightState state)
-			=> new()
-			{
-				DeviceId = _device.Id,
-				LightId = _id,
-				IsOn = state.IsOn,
-			};
+			=> new
+			(
+				_device.Id,
+				_id,
+				state.IsOn,
+				0,
+				0
+			);
 
 		private LightChangeNotification CreateNotification(DimmableLightState state)
-			=> new()
-			{
-				DeviceId = _device.Id,
-				LightId = _id,
-				IsOn = state.IsOn,
-				Brightness = state.Brightness,
-			};
+			=> new
+			(
+				_device.Id,
+				_id,
+				state.IsOn,
+				state.Brightness,
+				0
+			);
 
 		private LightChangeNotification CreateNotification(TemperatureAdjustableLightState state)
-			=> new()
-			{
-				DeviceId = _device.Id,
-				LightId = _id,
-				IsOn = state.IsOn,
-				Temperature = state.Temperature,
-			};
+			=> new
+			(
+				_device.Id,
+				_id,
+				state.IsOn,
+				0,
+				state.Temperature
+			);
 
 		private LightChangeNotification CreateNotification(TemperatureAdjustableDimmableLightState state)
-			=> new()
-			{
-				DeviceId = _device.Id,
-				LightId = _id,
-				IsOn = state.IsOn,
-				Brightness = state.Brightness,
-				Temperature = state.Temperature,
-			};
-    }
+			=> new
+			(
+				_device.Id,
+				_id,
+				state.IsOn,
+				state.Brightness,
+				state.Temperature
+			);
+	}
 
-    [TypeId(0xFA1692D2, 0x3E25, 0x4DEC, 0x95, 0x36, 0x56, 0xA6, 0x37, 0xCA, 0x45, 0x76)]
-    private readonly struct PersistedLightDeviceInformation
-    {
-        public required LightDeviceCapabilities Capabilities { get; init; }
-    }
+	[TypeId(0xFA1692D2, 0x3E25, 0x4DEC, 0x95, 0x36, 0x56, 0xA6, 0x37, 0xCA, 0x45, 0x76)]
+	private readonly struct PersistedLightDeviceInformation
+	{
+		public required LightDeviceCapabilities Capabilities { get; init; }
+	}
 
-    [TypeId(0x1DA2BCD6, 0xE0F8, 0x49D8, 0xA1, 0x3D, 0xB4, 0x66, 0x81, 0x80, 0x72, 0x19)]
+	[TypeId(0x1DA2BCD6, 0xE0F8, 0x49D8, 0xA1, 0x3D, 0xB4, 0x66, 0x81, 0x80, 0x72, 0x19)]
 	private readonly struct PersistedLightInformation
 	{
 		public required LightCapabilities Capabilities { get; init; }
@@ -380,14 +389,14 @@ internal sealed partial class LightService : IAsyncDisposable
 				continue;
 			}
 
-            LightDeviceCapabilities capabilities = LightDeviceCapabilities.None;
-            {
-                var result = await deviceConfigurationContainer.ReadValueAsync<PersistedLightDeviceInformation>(cancellationToken).ConfigureAwait(false);
-                if (result.Found)
-                {
-                    capabilities = result.Value.Capabilities;
-                }
-            }
+			LightDeviceCapabilities capabilities = LightDeviceCapabilities.None;
+			{
+				var result = await deviceConfigurationContainer.ReadValueAsync<PersistedLightDeviceInformation>(cancellationToken).ConfigureAwait(false);
+				if (result.Found)
+				{
+					capabilities = result.Value.Capabilities;
+				}
+			}
 
 			var lightIds = await lightConfigurationContainer.GetKeysAsync(cancellationToken);
 
@@ -399,11 +408,11 @@ internal sealed partial class LightService : IAsyncDisposable
 			// Because we want light states to reference the device, we create the device state and mutate the dictionary afterwards.
 			// Not ideal, but it will work.
 			var lights = new Dictionary<Guid, LightState>();
-            var deviceState = new DeviceState
-            (
-                null,
-                deviceId,
-                capabilities,
+			var deviceState = new DeviceState
+			(
+				null,
+				deviceId,
+				capabilities,
 				deviceConfigurationContainer,
 				lightConfigurationContainer,
 				lights
@@ -446,11 +455,11 @@ internal sealed partial class LightService : IAsyncDisposable
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
-	private ChannelWriter<LightDeviceInformation>[]? _deviceListeners;
-	private ChannelWriter<LightChangeNotification>[]? _lightChangeListeners;
-    private readonly Timer _pollingTimer;
-    private int _polledDeviceCount;
-    private readonly int _pollingInterval;
+	private ChangeBroadcaster<LightDeviceInformation> _deviceChangeBroadcaster;
+	private ChangeBroadcaster<LightChangeNotification> _lightChangeBroadcaster;
+	private readonly Timer _pollingTimer;
+	private int _polledDeviceCount;
+	private readonly int _pollingInterval;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly ILogger<LightService> _logger;
 
@@ -474,8 +483,8 @@ internal sealed partial class LightService : IAsyncDisposable
 		{
 			state.SetService(this);
 		}
-        _pollingTimer = new(PollDevices, null, Timeout.Infinite, Timeout.Infinite);
-        _pollingInterval = 10_000;
+		_pollingTimer = new(PollDevices, null, Timeout.Infinite, Timeout.Infinite);
+		_pollingInterval = 10_000;
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 	}
@@ -486,7 +495,7 @@ internal sealed partial class LightService : IAsyncDisposable
 		{
 			cts.Cancel();
 			await _watchTask.ConfigureAwait(false);
-            await _pollingTimer.DisposeAsync().ConfigureAwait(false);
+			await _pollingTimer.DisposeAsync().ConfigureAwait(false);
 			cts.Dispose();
 		}
 	}
@@ -540,12 +549,12 @@ internal sealed partial class LightService : IAsyncDisposable
 
 		var lightControllerFeature = lightFeatures.GetFeature<ILightControllerFeature>();
 		var lights = lightControllerFeature?.Lights ?? [];
-        var capabilities = LightDeviceCapabilities.None;
+		var capabilities = LightDeviceCapabilities.None;
 
 		var polledLightControllerFeature = lightFeatures.GetFeature<IPolledLightControllerFeature>();
 		if (polledLightControllerFeature is not null)
 		{
-            capabilities |= LightDeviceCapabilities.Polled;
+			capabilities |= LightDeviceCapabilities.Polled;
 		}
 
 		// The light controller feature is required
@@ -565,8 +574,8 @@ internal sealed partial class LightService : IAsyncDisposable
 			(
 				this,
 				notification.DeviceInformation.Id,
-                capabilities,
-                deviceConfigurationContainer,
+				capabilities,
+				deviceConfigurationContainer,
 				deviceConfigurationContainer.GetContainer(LampsConfigurationContainerName, GuidNameSerializer.Instance),
 				new()
 			);
@@ -604,24 +613,24 @@ internal sealed partial class LightService : IAsyncDisposable
 				}
 			}
 
-            if (deviceState.SetOnline(notification.Driver!, capabilities) || isNew)
-            {
-                try
-                {
-                    await _devicesConfigurationContainer.WriteValueAsync(notification.DeviceInformation.Id, deviceState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // TODO: Log
-                }
-            }
+			if (deviceState.SetOnline(notification.Driver!, capabilities) || isNew)
+			{
+				try
+				{
+					await _devicesConfigurationContainer.WriteValueAsync(notification.DeviceInformation.Id, deviceState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
+				}
+				catch
+				{
+					// TODO: Log
+				}
+			}
 
-            if (deviceState.IsPolled && Interlocked.Increment(ref _polledDeviceCount) == 1)
-            {
-                _pollingTimer.Change(_pollingInterval, Timeout.Infinite);
-            }
+			if (deviceState.IsPolled && Interlocked.Increment(ref _polledDeviceCount) == 1)
+			{
+				_pollingTimer.Change(_pollingInterval, Timeout.Infinite);
+			}
 
-            if (isNew)
+			if (isNew)
 			{
 				_deviceStates.TryAdd(deviceState.Id, deviceState);
 			}
@@ -634,18 +643,20 @@ internal sealed partial class LightService : IAsyncDisposable
 				}
 			}
 
-			if (_deviceListeners is { } deviceListeners)
+			var deviceChangeBroadcaster = _deviceChangeBroadcaster.GetSnapshot();
+			if (!deviceChangeBroadcaster.IsEmpty)
 			{
-				deviceListeners.TryWrite(deviceState.CreateInformation());
+				deviceChangeBroadcaster.Push(deviceState.CreateInformation());
 			}
 
-			if (_lightChangeListeners is { } changeListeners)
+			var lightChangeBroadcaster = _lightChangeBroadcaster.GetSnapshot();
+			if (!lightChangeBroadcaster.IsEmpty)
 			{
 				foreach (var light in deviceState.Lights.Values)
 				{
 					if (light.TryCreateChangeNotification(out var changeNotification))
 					{
-						changeListeners.TryWrite(changeNotification);
+						lightChangeBroadcaster.Push(changeNotification);
 					}
 				}
 			}
@@ -658,70 +669,70 @@ internal sealed partial class LightService : IAsyncDisposable
 		{
 			using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-                if (deviceState.IsPolled && Interlocked.Decrement(ref _polledDeviceCount) == 0)
-                {
-                    _pollingTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                }
+				if (deviceState.IsPolled && Interlocked.Decrement(ref _polledDeviceCount) == 0)
+				{
+					_pollingTimer.Change(Timeout.Infinite, Timeout.Infinite);
+				}
 				deviceState.SetOffline();
 			}
 		}
-    }
+	}
 
-    private async void PollDevices(object? state)
-    {
-        if (Volatile.Read(ref _polledDeviceCount) == 0 || Volatile.Read(ref _cancellationTokenSource) is not { } cts) return;
-
-        CancellationToken cancellationToken;
-        try
-        {
-            cancellationToken = cts.Token;
-        }
-        catch (ObjectDisposedException)
-        {
-            return;
-        }
-
-        try
-        {
-            List<Task>? tasks = null;
-            foreach (var deviceState in _deviceStates.Values)
-            {
-                using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    if (deviceState.IsPolled)
-                    {
-                        (tasks ??= new()).Add(deviceState.RequestRefreshAsync(cancellationToken));
-                    }
-                }
-            }
-            if (tasks is not null)
-            {
-                try
-                {
-                    await Task.WhenAll(tasks);
-                }
-                catch (Exception ex)
-                {
-                    // TODO: Log
-                }
-            }
-        }
-        finally
-        {
-            if (Volatile.Read(ref _polledDeviceCount) != 0 && Volatile.Read(ref _cancellationTokenSource) is not null)
-            {
-                _pollingTimer.Change(_pollingInterval, Timeout.Infinite);
-            }
-        }
-    }
-
-    public async ValueTask SwitchLightAsync(Guid deviceId, Guid lightId, bool isOn, CancellationToken cancellationToken)
+	private async void PollDevices(object? state)
 	{
-		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+		if (Volatile.Read(ref _polledDeviceCount) == 0 || Volatile.Read(ref _cancellationTokenSource) is not { } cts) return;
+
+		CancellationToken cancellationToken;
+		try
+		{
+			cancellationToken = cts.Token;
+		}
+		catch (ObjectDisposedException)
+		{
+			return;
+		}
+
+		try
+		{
+			List<Task>? tasks = null;
+			foreach (var deviceState in _deviceStates.Values)
+			{
+				using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					if (deviceState.IsPolled)
+					{
+						(tasks ??= new()).Add(deviceState.RequestRefreshAsync(cancellationToken));
+					}
+				}
+			}
+			if (tasks is not null)
+			{
+				try
+				{
+					await Task.WhenAll(tasks);
+				}
+				catch (Exception ex)
+				{
+					// TODO: Log
+				}
+			}
+		}
+		finally
+		{
+			if (Volatile.Read(ref _polledDeviceCount) != 0 && Volatile.Read(ref _cancellationTokenSource) is not null)
+			{
+				_pollingTimer.Change(_pollingInterval, Timeout.Infinite);
+			}
+		}
+	}
+
+	public async ValueTask SwitchLightAsync(Guid deviceId, Guid lightId, bool isOn, CancellationToken cancellationToken)
+	{
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new InvalidOperationException("Light not found.");
+			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new LightNotFoundException();
 
 			await lightState.SwitchAsync(isOn, cancellationToken).ConfigureAwait(false);
 		}
@@ -729,11 +740,11 @@ internal sealed partial class LightService : IAsyncDisposable
 
 	public async ValueTask SetBrightnessAsync(Guid deviceId, Guid lightId, byte brightness, CancellationToken cancellationToken)
 	{
-		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new InvalidOperationException("Light not found.");
+			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new LightNotFoundException();
 
 			await lightState.SetBrightnessAsync(brightness, cancellationToken).ConfigureAwait(false);
 		}
@@ -741,20 +752,18 @@ internal sealed partial class LightService : IAsyncDisposable
 
 	public async ValueTask SetTemperatureAsync(Guid deviceId, Guid lightId, uint temperature, CancellationToken cancellationToken)
 	{
-		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+		if (!_deviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new InvalidOperationException("Light not found.");
+			if (!deviceState.Lights.TryGetValue(lightId, out var lightState)) throw new LightNotFoundException();
 
 			await lightState.SetTemperatureAsync(temperature, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
-	public async IAsyncEnumerable<LightDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<LightDeviceInformation[]?> IChangeSource<LightDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<LightDeviceInformation>();
-
 		var initialNotifications = new List<LightDeviceInformation>();
 		using (await _lock.WaitAsync(cancellationToken))
 		{
@@ -763,32 +772,15 @@ internal sealed partial class LightService : IAsyncDisposable
 				initialNotifications.Add(state.CreateInformation());
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _deviceListeners, channel);
+			_deviceChangeBroadcaster.Register(writer);
 		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _deviceListeners, channel);
-		}
+		return [.. initialNotifications];
 	}
 
-	public async IAsyncEnumerable<LightChangeNotification> WatchLightChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		var channel = Watcher.CreateSingleWriterChannel<LightChangeNotification>();
+	void IChangeSource<LightDeviceInformation>.UnregisterWatcher(ChannelWriter<LightDeviceInformation> writer) => throw new NotImplementedException();
 
+	async ValueTask<LightChangeNotification[]?> IChangeSource<LightChangeNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightChangeNotification> writer, CancellationToken cancellationToken)
+	{
 		var initialNotifications = new List<LightChangeNotification>();
 		using (await _lock.WaitAsync(cancellationToken))
 		{
@@ -806,51 +798,11 @@ internal sealed partial class LightService : IAsyncDisposable
 				}
 			}
 
-			ArrayExtensions.InterlockedAdd(ref _lightChangeListeners, channel);
+			_lightChangeBroadcaster.Register(writer);
 		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _lightChangeListeners, channel);
-		}
+		return [.. initialNotifications];
 	}
-}
 
-public readonly struct LightDeviceInformation
-{
-	public required Guid DeviceId { get; init; }
-	public required LightDeviceCapabilities Capabilities { get; init; }
-	public required ImmutableArray<LightInformation> Lights { get; init; }
-}
-
-public readonly struct LightInformation
-{
-	public required Guid LightId { get; init; }
-	public required LightCapabilities Capabilities { get; init; }
-	public required byte MinimumBrightness { get; init; }
-	public required byte MaximumBrightness { get; init; }
-	public required uint MinimumTemperature { get; init; }
-	public required uint MaximumTemperature { get; init; }
-}
-
-public readonly struct LightChangeNotification
-{
-	public required Guid DeviceId { get; init; }
-	public required Guid LightId { get; init; }
-	public bool IsOn { get; init; }
-	public byte Brightness { get; init; }
-	public uint Temperature { get; init; }
+	void IChangeSource<LightChangeNotification>.UnregisterWatcher(ChannelWriter<LightChangeNotification> writer)
+		=> _lightChangeBroadcaster.Unregister(writer);
 }

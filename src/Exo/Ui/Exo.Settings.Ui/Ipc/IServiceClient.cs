@@ -37,6 +37,9 @@ internal interface IServiceClient
 	void OnEmbeddedMonitorDeviceUpdate(EmbeddedMonitorDeviceInformation embeddedMonitorDevice);
 	void OnEmbeddedMonitorConfigurationUpdate(EmbeddedMonitorConfiguration configuration);
 
+	void OnLightDeviceUpdate(LightDeviceInformation lightDevice);
+	void OnLightConfigurationUpdate(LightChangeNotification configuration);
+
 	void OnMonitorDeviceUpdate(MonitorInformation monitorDevice);
 	void OnMonitorSettingUpdate(MonitorSettingValue setting);
 

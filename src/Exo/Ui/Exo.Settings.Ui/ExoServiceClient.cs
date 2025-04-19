@@ -28,7 +28,7 @@ internal class ExoServiceClient : IServiceClient
 		if (control is not null)
 		{
 			_settingsViewModel.Images.OnConnected(control);
-			_settingsViewModel.Devices.OnConnected(control, control, control, control);
+			_settingsViewModel.Devices.OnConnected(control, control, control, control, control);
 			_settingsViewModel.Sensors.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
 		}
@@ -110,4 +110,10 @@ internal class ExoServiceClient : IServiceClient
 
 	void IServiceClient.OnEmbeddedMonitorConfigurationUpdate(EmbeddedMonitorConfiguration configuration)
 		=> _settingsViewModel.Devices.HandleEmbeddedMonitorConfigurationUpdate(configuration);
+
+	void IServiceClient.OnLightDeviceUpdate(LightDeviceInformation lightDevice)
+		=> _settingsViewModel.Devices.HandleLightDeviceUpdate(lightDevice);
+
+	void IServiceClient.OnLightConfigurationUpdate(LightChangeNotification notification)
+		=> _settingsViewModel.Devices.HandleLightConfigurationUpdate(notification);
 }

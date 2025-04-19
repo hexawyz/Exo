@@ -10,11 +10,6 @@ using GrpcCoolingControlCurve = Exo.Contracts.Ui.Settings.Cooling.CoolingControl
 using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
 using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcCoolingParameters = Exo.Contracts.Ui.Settings.Cooling.CoolingParameters;
-using GrpcLightCapabilities = Exo.Contracts.Ui.Settings.LightCapabilities;
-using GrpcLightChangeNotification = Exo.Contracts.Ui.Settings.LightChangeNotification;
-using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
-using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
-using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 
 namespace Exo.Service.Grpc;
@@ -157,34 +152,5 @@ internal static class GrpcConvert
 			WatchNotificationKind.Removal => GrpcWatchNotificationKind.Removal,
 			WatchNotificationKind.Update => GrpcWatchNotificationKind.Update,
 			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcLightDeviceInformation ToGrpc(this LightDeviceInformation information)
-		=> new()
-		{
-			DeviceId = information.DeviceId,
-			Capabilities = (GrpcLightDeviceCapabilities)information.Capabilities,
-			Lights = ImmutableArray.CreateRange(information.Lights, ToGrpc),
-		};
-
-	public static GrpcLightInformation ToGrpc(this LightInformation information)
-		=> new()
-		{
-			LightId = information.LightId,
-			Capabilities = (GrpcLightCapabilities)information.Capabilities,
-			MinimumBrightness = information.MinimumBrightness,
-			MaximumBrightness = information.MaximumBrightness,
-			MinimumTemperature = information.MinimumTemperature,
-			MaximumTemperature = information.MaximumTemperature,
-		};
-
-	public static GrpcLightChangeNotification ToGrpc(this LightChangeNotification notification)
-		=> new()
-		{
-			DeviceId = notification.DeviceId,
-			LightId = notification.LightId,
-			IsOn = notification.IsOn,
-			Brightness = notification.Brightness,
-			Temperature = notification.Temperature,
 		};
 }
