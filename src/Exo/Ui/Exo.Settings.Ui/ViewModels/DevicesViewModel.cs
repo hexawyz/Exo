@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 using System.Windows.Input;
-using Exo.Contracts.Ui.Settings;
 using Exo.Service;
 using Exo.Settings.Ui.Converters;
 using Exo.Settings.Ui.Services;
@@ -11,7 +10,7 @@ using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConnectedState
+internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 {
 	private static readonly UnboundedChannelOptions DeviceChannelOptions = new() { SingleWriter = true, SingleReader = true, AllowSynchronousContinuations = true };
 
@@ -71,9 +70,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 	private readonly Dictionary<Guid, LightDeviceInformation> _pendingLightDeviceInformations;
 	private readonly Dictionary<Guid, List<LightChangeNotification>> _pendingLightChanges;
 
-	// Temporary channel that is necessary until dependent services are moved to the new protocol.
-	private Channel<(WatchNotificationKind, DeviceStateInformation)> _deviceArrivalChannel;
-
 	// The selected device is the device currently being observed.
 	private DeviceViewModel? _selectedDevice;
 
@@ -88,8 +84,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	private readonly Commands.NavigateToDeviceCommand _navigateToDeviceCommand;
 
-	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly IDisposable _stateRegistration;
+	private readonly AsyncLock _deviceArrivalLock;
+	private CancellationTokenSource? _cancellationTokenSource;
 
 	public DevicesViewModel
 	(
@@ -105,7 +101,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_removedDeviceIds = new();
 		_connectionManager = connectionManager;
 		_availableImages = availableImages;
-		_deviceArrivalChannel = Channel.CreateUnbounded<(WatchNotificationKind, DeviceStateInformation)>(DeviceChannelOptions);
 		_devicesById = new();
 		_pendingPowerDeviceInformations = new();
 		_pendingBatteryChanges = new();
@@ -126,67 +121,102 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_rasterizationScaleProvider = rasterizationScaleProvider;
 		_notificationSystem = notificationSystem;
 		_navigateToDeviceCommand = new(navigateCommand);
-		_cancellationTokenSource = new CancellationTokenSource();
-		_stateRegistration = _connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
+		_deviceArrivalLock = new();
 	}
 
 	public ValueTask DisposeAsync()
 	{
-		_stateRegistration.Dispose();
-		_cancellationTokenSource.Cancel();
+		Reset();
 		return ValueTask.CompletedTask;
 	}
 
 	public ICommand NavigateToDeviceCommand => _navigateToDeviceCommand;
 
-	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	internal async Task HandleDeviceNotification(WatchNotificationKind kind, DeviceStateInformation information)
 	{
-		if (_cancellationTokenSource.IsCancellationRequested) return;
-		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
+		try
 		{
-			var deviceWatchTask = WatchDevicesAsync(_deviceArrivalChannel.Reader, cts.Token);
-
-			try
-			{
-				await Task.WhenAll
-				(
-					[
-						deviceWatchTask,
-					]
-				);
-			}
-			catch (Exception)
-			{
-			}
+			await HandleDeviceNotificationAsync(kind, information, _cancellationTokenSource!.Token);
+		}
+		catch
+		{
 		}
 	}
 
-	void IConnectedState.Reset()
+	internal async Task HandleDeviceNotificationAsync(WatchNotificationKind kind, DeviceStateInformation information, CancellationToken cancellationToken)
 	{
-		_removedDeviceIds.Clear();
-		_devicesById.Clear();
-
-		_pendingLightDeviceInformations.Clear();
-		_pendingLightChanges.Clear();
-
-		SelectedDevice = null;
-
-		foreach (var device in _devices)
+		using (await _deviceArrivalLock.WaitAsync(cancellationToken))
 		{
-			device.IsAvailable = false;
+			switch (kind)
+			{
+			case WatchNotificationKind.Enumeration:
+			case WatchNotificationKind.Addition:
+				{
+					var device = new DeviceViewModel
+					(
+						_connectionManager,
+						_availableImages,
+						_metadataService,
+						_notificationSystem,
+						_powerService!,
+						_mouseService!,
+						_monitorService!,
+						_embeddedMonitorService!,
+						_lightService!,
+						_rasterizationScaleProvider,
+						information
+					);
+					await HandleDeviceArrivalAsync(device, cancellationToken);
+					_devicesById.Add(information.Id, device);
+					_devices.Add(device);
+				}
+				break;
+			case WatchNotificationKind.Removal:
+				_removedDeviceIds.Add(information.Id);
+				for (int i = 0; i < _devices.Count; i++)
+				{
+					var device = _devices[i];
+					if (device.Id == information.Id)
+					{
+						_devices.RemoveAt(i);
+						_devicesById.Remove(information.Id);
+						HandleDeviceRemoval(device);
+						break;
+					}
+				}
+				break;
+			case WatchNotificationKind.Update:
+				for (int i = 0; i < _devices.Count; i++)
+				{
+					var device = _devices[i];
+					if (device.Id == information.Id)
+					{
+						device.FriendlyName = information.FriendlyName;
+						device.Category = information.Category;
+						if (information.IsAvailable != device.IsAvailable)
+						{
+							if (device.IsAvailable = information.IsAvailable)
+							{
+								await HandleDeviceArrivalAsync(device, cancellationToken);
+							}
+							else
+							{
+								HandleDeviceRemoval(device);
+							}
+						}
+						device.UpdateDeviceIds(information.DeviceIds, information.MainDeviceIdIndex);
+						device.SerialNumber = information.SerialNumber;
+						break;
+					}
+				}
+				break;
+			}
 		}
-
-		_devices.Clear();
-	}
-
-	internal void HandleDeviceNotification(WatchNotificationKind kind, DeviceStateInformation information)
-	{
-		// TODO: Once the dependent services are migrated, move the code from WatchDevicesAsync in there.
-		_deviceArrivalChannel.Writer.TryWrite((kind, information));
 	}
 
 	internal void OnConnected(IPowerService powerService, IMouseService mouseService, IMonitorService monitorService, IEmbeddedMonitorService embeddedMonitorService, ILightService lightService)
 	{
+		_cancellationTokenSource = new();
 		_powerService = powerService;
 		_mouseService = mouseService;
 		_monitorService = monitorService;
@@ -196,8 +226,21 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 
 	internal void Reset()
 	{
-		_deviceArrivalChannel.Writer.TryComplete();
-		_deviceArrivalChannel = Channel.CreateUnbounded<(WatchNotificationKind, DeviceStateInformation)>(DeviceChannelOptions);
+		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
+		{
+			cts.Cancel();
+		}
+
+		_removedDeviceIds.Clear();
+		_devicesById.Clear();
+
+		SelectedDevice = null;
+
+		foreach (var device in _devices)
+		{
+			device.IsAvailable = false;
+			device.Dispose();
+		}
 
 		_pendingPowerDeviceInformations.Clear();
 		_pendingBatteryChanges.Clear();
@@ -220,91 +263,11 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		_mouseService = null;
 		_monitorService = null;
 		_embeddedMonitorService = null;
-	}
 
-	private async Task WatchDevicesAsync
-	(
-		ChannelReader<(WatchNotificationKind, DeviceStateInformation)> reader,
-		CancellationToken cancellationToken
-	)
-	{
-		try
-		{
-			await foreach (var (kind, information) in reader.ReadAllAsync(cancellationToken))
-			{
-				switch (kind)
-				{
-				case WatchNotificationKind.Enumeration:
-				case WatchNotificationKind.Addition:
-					{
-						var device = new DeviceViewModel
-						(
-							_connectionManager,
-							_availableImages,
-							_metadataService,
-							_notificationSystem,
-							_powerService!,
-							_mouseService!,
-							_monitorService!,
-							_embeddedMonitorService!,
-							_lightService!,
-							_rasterizationScaleProvider,
-							information
-						);
-						await HandleDeviceArrivalAsync(device, cancellationToken);
-						_devicesById.Add(information.Id, device);
-						_devices.Add(device);
-					}
-					break;
-				case WatchNotificationKind.Removal:
-					_removedDeviceIds.Add(information.Id);
-					for (int i = 0; i < _devices.Count; i++)
-					{
-						var device = _devices[i];
-						if (device.Id == information.Id)
-						{
-							_devices.RemoveAt(i);
-							_devicesById.Remove(information.Id);
-							HandleDeviceRemoval(device);
-							break;
-						}
-					}
-					break;
-				case WatchNotificationKind.Update:
-					for (int i = 0; i < _devices.Count; i++)
-					{
-						var device = _devices[i];
-						if (device.Id == information.Id)
-						{
-							device.FriendlyName = information.FriendlyName;
-							device.Category = information.Category;
-							if (information.IsAvailable != device.IsAvailable)
-							{
-								if (device.IsAvailable = information.IsAvailable)
-								{
-									await HandleDeviceArrivalAsync(device, cancellationToken);
-								}
-								else
-								{
-									HandleDeviceRemoval(device);
-								}
-							}
-							device.UpdateDeviceIds(information.DeviceIds, information.MainDeviceIdIndex);
-							device.SerialNumber = information.SerialNumber;
-							break;
-						}
-					}
-					break;
-				}
-			}
-		}
-		catch (OperationCanceledException)
-		{
-			return;
-		}
-		catch
-		{
-		}
+		_pendingLightDeviceInformations.Clear();
+		_pendingLightChanges.Clear();
+
+		_devices.Clear();
 	}
 
 	private async Task HandleDeviceArrivalAsync(DeviceViewModel device, CancellationToken cancellationToken)
@@ -566,7 +529,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable, IConn
 		{
 			if (device.MonitorFeatures is { } monitorFeatures)
 			{
-				await monitorFeatures.UpdateInformationAsync(monitorDevice, _cancellationTokenSource.Token);
+				await monitorFeatures.UpdateInformationAsync(monitorDevice, _cancellationTokenSource!.Token);
 			}
 		}
 		else
