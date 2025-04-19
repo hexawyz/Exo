@@ -213,9 +213,9 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			Name == other.Name &&
 			DisplayName == other.DisplayName &&
 			DataType == other.DataType &&
-			DefaultValue == other.DefaultValue &&
-			MinimumValue == other.MinimumValue &&
-			MaximumValue == other.MaximumValue &&
+			Equals(DefaultValue, other.DefaultValue) &&
+			Equals(MinimumValue, other.MinimumValue) &&
+			Equals(MaximumValue, other.MaximumValue) &&
 			Unit == other.Unit &&
 			EnumerationValues.SequenceEqual(other.EnumerationValues) &&
 			ArrayLength == other.ArrayLength;

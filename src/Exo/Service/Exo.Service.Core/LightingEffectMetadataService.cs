@@ -82,20 +82,25 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 		{
 			await foreach (var metadata in EffectSerializer.WatchEffectsAsync(cancellationToken).ConfigureAwait(false))
 			{
-				try
-				{
-					await PersistEffectInformationAsync(metadata, cancellationToken).ConfigureAwait(false);
-				}
-				catch (Exception ex)
-				{
-					// TODO: Log
-				}
+				bool isNewOrChanged;
 				lock (_effectUpdateLock)
 				{
-					if (!_effectMetadataCache.TryGetValue(metadata.EffectId, out var oldMetadata) || metadata != oldMetadata)
+					isNewOrChanged = !_effectMetadataCache.TryGetValue(metadata.EffectId, out var oldMetadata) || metadata != oldMetadata;
+					if (isNewOrChanged)
 					{
 						_effectMetadataCache[metadata.EffectId] = metadata;
 						_effectChangeBroadcaster.Push(metadata);
+					}
+				}
+				if (isNewOrChanged)
+				{
+					try
+					{
+						await PersistEffectInformationAsync(metadata, cancellationToken).ConfigureAwait(false);
+					}
+					catch (Exception ex)
+					{
+						// TODO: Log
 					}
 				}
 			}
