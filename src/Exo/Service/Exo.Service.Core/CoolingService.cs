@@ -330,7 +330,7 @@ internal partial class CoolingService
 							// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
 							if (info != coolerState.Information)
 							{
-								await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken).ConfigureAwait(false);
+							 	await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken).ConfigureAwait(false);
 							}
 						}
 						else

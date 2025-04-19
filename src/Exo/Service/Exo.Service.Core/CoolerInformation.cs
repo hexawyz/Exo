@@ -1,24 +1,31 @@
 using System.Collections.Immutable;
+using System.Linq;
 using Exo.Cooling;
 
 namespace Exo.Service;
 
-internal record struct CoolerInformation
+internal readonly struct CoolerInformation(Guid coolerId, Guid? coolerSensorId, CoolerType type, CoolingModes supportedCoolingModes, CoolerPowerLimits? powerLimits, ImmutableArray<Guid> hardwareCurveInputSensorIds) : IEquatable<CoolerInformation>
 {
-	public CoolerInformation(Guid coolerId, Guid? coolerSensorId, CoolerType type, CoolingModes supportedCoolingModes, CoolerPowerLimits? powerLimits, ImmutableArray<Guid> hardwareCurveInputSensorIds)
-	{
-		CoolerId = coolerId;
-		SpeedSensorId = coolerSensorId;
-		Type = type;
-		SupportedCoolingModes = supportedCoolingModes;
-		PowerLimits = powerLimits;
-		HardwareCurveInputSensorIds = hardwareCurveInputSensorIds;
-	}
+	public Guid CoolerId { get; } = coolerId;
+	public Guid? SpeedSensorId { get; } = coolerSensorId;
+	public CoolerType Type { get; } = type;
+	public CoolingModes SupportedCoolingModes { get; } = supportedCoolingModes;
+	public CoolerPowerLimits? PowerLimits { get; } = powerLimits;
+	public ImmutableArray<Guid> HardwareCurveInputSensorIds { get; } = hardwareCurveInputSensorIds;
 
-	public Guid CoolerId { get; }
-	public Guid? SpeedSensorId { get; }
-	public CoolerType Type { get; }
-	public CoolingModes SupportedCoolingModes { get; }
-	public CoolerPowerLimits? PowerLimits { get; }
-	public ImmutableArray<Guid> HardwareCurveInputSensorIds { get; }
+	public override bool Equals(object? obj) => obj is CoolerInformation information && Equals(information);
+
+	public bool Equals(CoolerInformation other)
+		=> CoolerId.Equals(other.CoolerId) &&
+		EqualityComparer<Guid?>.Default.Equals(SpeedSensorId, other.SpeedSensorId) &&
+		Type == other.Type &&
+		SupportedCoolingModes == other.SupportedCoolingModes &&
+		EqualityComparer<CoolerPowerLimits?>.Default.Equals(PowerLimits, other.PowerLimits) &&
+		(HardwareCurveInputSensorIds.IsDefaultOrEmpty ? other.HardwareCurveInputSensorIds.IsDefaultOrEmpty : !other.HardwareCurveInputSensorIds.IsDefaultOrEmpty && HardwareCurveInputSensorIds.SequenceEqual(other.HardwareCurveInputSensorIds));
+
+	public override int GetHashCode()
+		=> HashCode.Combine(CoolerId, SpeedSensorId, Type, SupportedCoolingModes, PowerLimits, HardwareCurveInputSensorIds.Length);
+
+	public static bool operator ==(CoolerInformation left, CoolerInformation right) => left.Equals(right);
+	public static bool operator !=(CoolerInformation left, CoolerInformation right) => !(left == right);
 }
