@@ -193,11 +193,17 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 	private readonly ObservableCollection<SensorViewModel> _sensors;
 	private readonly Dictionary<Guid, SensorViewModel> _sensorsById;
 	private bool _isExpanded;
+	private bool _isAvailable;
 
 	public Guid Id => _sensorDeviceInformation.DeviceId;
 	public DeviceCategory Category => _deviceViewModel.Category;
 	public string FriendlyName => _deviceViewModel.FriendlyName;
-	public bool IsAvailable => _deviceViewModel.IsAvailable;
+
+	public bool IsAvailable
+	{
+		get => _isAvailable;
+		set => SetValue(ref _isAvailable, value, ChangedProperty.IsAvailable);
+	}
 
 	public bool IsExpanded
 	{
@@ -234,19 +240,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 
 	private void OnDeviceViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (Equals(e, ChangedProperty.IsAvailable))
-		{
-			// Device going online is already handled by UpdateDeviceInformation, but we need to handle the device going offline too.
-			if (((DeviceViewModel)sender!).IsAvailable)
-			{
-				OnDeviceOnline();
-			}
-			else
-			{
-				OnDeviceOffline();
-			}
-		}
-		else if (!(Equals(e, ChangedProperty.Category) || Equals(e, ChangedProperty.FriendlyName)))
+		if (!(Equals(e, ChangedProperty.Category) || Equals(e, ChangedProperty.FriendlyName)))
 		{
 			return;
 		}
@@ -285,7 +279,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 
 		// Add or update the sensors.
 		// TODO: Manage the sensor order somehow? (Should be doable by adding the index in the viewmodel and inserting at the proper place)
-		bool isOnline = _deviceViewModel.IsAvailable;
+		bool isOnline = information.IsConnected;
 		foreach (var sensorInfo in information.Sensors)
 		{
 			if (!_sensorsById.TryGetValue(sensorInfo.SensorId, out var vm))
@@ -314,14 +308,7 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 				}
 			}
 		}
-	}
-
-	private void OnDeviceOnline()
-	{
-		foreach (var sensor in _sensors)
-		{
-			sensor.SetOnline();
-		}
+		IsAvailable = isOnline;
 	}
 
 	private void OnDeviceOffline()

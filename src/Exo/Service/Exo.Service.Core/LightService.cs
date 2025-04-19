@@ -777,7 +777,8 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 		return [.. initialNotifications];
 	}
 
-	void IChangeSource<LightDeviceInformation>.UnregisterWatcher(ChannelWriter<LightDeviceInformation> writer) => throw new NotImplementedException();
+	void IChangeSource<LightDeviceInformation>.UnregisterWatcher(ChannelWriter<LightDeviceInformation> writer)
+		=> _deviceChangeBroadcaster.Unregister(writer);
 
 	async ValueTask<LightChangeNotification[]?> IChangeSource<LightChangeNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightChangeNotification> writer, CancellationToken cancellationToken)
 	{

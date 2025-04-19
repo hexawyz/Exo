@@ -63,6 +63,7 @@ partial class UiPipeServerConnection
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolServerMessage.SensorDevice);
 			writer.Write(device.DeviceId);
+			writer.Write(device.IsConnected);
 			if (device.Sensors.IsDefaultOrEmpty)
 			{
 				writer.Write((byte)0);

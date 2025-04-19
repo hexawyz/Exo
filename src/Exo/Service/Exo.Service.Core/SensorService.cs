@@ -304,7 +304,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 						deviceConfigurationContainer,
 						sensorsConfigurationConfigurationContainer,
 						false,
-						new(deviceId, sensorInformations.DrainToImmutable()),
+						sensorInformations.DrainToImmutable(),
 						null,
 						null,
 						sensorConfigurations
@@ -461,7 +461,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 						deviceContainer,
 						sensorsContainer,
 						notification.DeviceInformation.IsAvailable,
-						new(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
+						ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos),
 						groupedQueryState,
 						sensorStates,
 						sensorConfigurations
@@ -476,7 +476,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 						sensorsContainer = state.SensorsConfigurationContainer;
 						var sensorConfigurations = state.SensorConfigurations;
 
-						foreach (var previousInfo in state.Information.Sensors)
+						foreach (var previousInfo in state.Sensors)
 						{
 							// Remove all pre-existing sensor info from the dictionary that was build earlier so that only new entries remain in the end.
 							// Appropriate updates for previous sensors will be done depending on the result of that removal.
@@ -503,15 +503,17 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 						await state.OnDeviceArrivalAsync
 						(
 							notification.DeviceInformation.IsAvailable,
-							new SensorDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos)),
+							ImmutableCollectionsMarshal.AsImmutableArray(sensorInfos),
 							groupedQueryState,
 							sensorStates,
 							cancellationToken
 						).ConfigureAwait(false);
 					}
 				}
-				_sensorDeviceBroadcaster.Push(state.Information);
-				// NB: THere is no need to transmit any sensor change information, as all new sensors start with an empty configuration.
+				// NB: There is no need to transmit any sensor change information, as all new sensors start with an empty configuration.
+				// We do however need to transmit sensor information every time so that the connected status is known.
+				var sensorDeviceBroadcaster = _sensorDeviceBroadcaster.GetSnapshot();
+				if (!sensorDeviceBroadcaster.IsEmpty) sensorDeviceBroadcaster.Push(state.CreateInformation(notification.DeviceInformation.Id));
 			}
 		}
 		catch (Exception)
@@ -598,26 +600,18 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 		if (!_deviceStates.TryGetValue(notification.DeviceInformation.Id, out var state)) return;
 
 		await DetachDeviceStateAsync(state).ConfigureAwait(false);
+
+		// NB: The "static" information is only updated within the main lock, so we don't need to do this in the state lock.
+		// (This is done similarly during arrival)
+		var sensorDeviceBroadcaster = _sensorDeviceBroadcaster.GetSnapshot();
+		if (!sensorDeviceBroadcaster.IsEmpty) sensorDeviceBroadcaster.Push(state.CreateInformation(notification.DeviceInformation.Id));
 	}
 
 	private async ValueTask DetachDeviceStateAsync(DeviceState state)
 	{
 		using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
 		{
-			state.IsConnected = false;
-			if (state.GroupedQueryState is { } groupedQueryState)
-			{
-				await groupedQueryState.DisposeAsync().ConfigureAwait(false);
-			}
-			state.GroupedQueryState = null;
-			if (state.SensorStates is { } sensorStates)
-			{
-				foreach (var sensorState in sensorStates.Values)
-				{
-					await sensorState.DisposeAsync().ConfigureAwait(false);
-				}
-			}
-			state.SensorStates = null;
+			await state.OnDeviceRemovalAsync().ConfigureAwait(false);
 		}
 	}
 
@@ -626,9 +620,9 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 		List<SensorDeviceInformation>? initialDeviceInfos = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			foreach (var deviceState in _deviceStates.Values)
+			foreach (var (deviceId, deviceState) in _deviceStates)
 			{
-				(initialDeviceInfos ??= []).Add(deviceState.Information);
+				(initialDeviceInfos ??= []).Add(deviceState.CreateInformation(deviceId));
 			}
 			_sensorDeviceBroadcaster.Register(writer);
 		}
@@ -698,7 +692,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 	{
 		if (_deviceStates.TryGetValue(deviceId, out var state))
 		{
-			foreach (var sensor in state.Information.Sensors)
+			foreach (var sensor in state.Sensors)
 			{
 				if (sensor.SensorId == sensorId)
 				{
@@ -726,7 +720,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			foreach (var sensor in deviceState.Information.Sensors)
+			foreach (var sensor in deviceState.Sensors)
 			{
 				if (sensor.SensorId == sensorId) return sensor;
 			}

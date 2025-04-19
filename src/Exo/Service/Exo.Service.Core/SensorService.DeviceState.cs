@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using Exo.Configuration;
@@ -11,8 +12,8 @@ internal sealed partial class SensorService
 		public AsyncLock Lock { get; }
 		public IConfigurationContainer DeviceConfigurationContainer { get; }
 		public IConfigurationContainer<Guid> SensorsConfigurationContainer { get; }
-		public bool IsConnected { get; set; }
-		public SensorDeviceInformation Information { get; set; }
+		public bool IsConnected { get; private set; }
+		public ImmutableArray<SensorInformation> Sensors { get; private set; }
 		public GroupedQueryState? GroupedQueryState { get; set; }
 		public Dictionary<Guid, SensorState>? SensorStates { get; set; }
 		public Dictionary<Guid, SensorConfiguration> SensorConfigurations { get; set; }
@@ -25,7 +26,7 @@ internal sealed partial class SensorService
 			IConfigurationContainer deviceConfigurationContainer,
 			IConfigurationContainer<Guid> sensorsConfigurationContainer,
 			bool isConnected,
-			SensorDeviceInformation information,
+			ImmutableArray<SensorInformation> sensors,
 			GroupedQueryState? groupedQueryState,
 			Dictionary<Guid, SensorState>? sensorStates,
 			Dictionary<Guid, SensorConfiguration> sensorConfigurations
@@ -35,18 +36,16 @@ internal sealed partial class SensorService
 			DeviceConfigurationContainer = deviceConfigurationContainer;
 			SensorsConfigurationContainer = sensorsConfigurationContainer;
 			IsConnected = isConnected;
-			Information = information;
+			Sensors = sensors;
 			GroupedQueryState = groupedQueryState;
 			SensorStates = sensorStates;
 			SensorConfigurations = sensorConfigurations;
 		}
 
-		public async ValueTask OnDeviceArrivalAsync(bool isConnected, SensorDeviceInformation information, GroupedQueryState? groupedQueryState, Dictionary<Guid, SensorState> sensorStates, CancellationToken cancellationToken)
+		public async Task OnDeviceArrivalAsync(bool isConnected, ImmutableArray<SensorInformation> sensors, GroupedQueryState? groupedQueryState, Dictionary<Guid, SensorState> sensorStates, CancellationToken cancellationToken)
 		{
-			//using (await Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-			//{
 			IsConnected = isConnected;
-			Information = information;
+			Sensors = sensors;
 			GroupedQueryState = groupedQueryState;
 			SensorStates = sensorStates;
 
@@ -62,7 +61,24 @@ internal sealed partial class SensorService
 					HandleArrival(Unsafe.As<TaskCompletionSource>(signals), sensorStates);
 				}
 			}
-			//}
+		}
+
+		public async Task OnDeviceRemovalAsync()
+		{
+			IsConnected = false;
+			if (GroupedQueryState is { } groupedQueryState)
+			{
+				await groupedQueryState.DisposeAsync().ConfigureAwait(false);
+			}
+			GroupedQueryState = null;
+			if (SensorStates is { } sensorStates)
+			{
+				foreach (var sensorState in sensorStates.Values)
+				{
+					await sensorState.DisposeAsync().ConfigureAwait(false);
+				}
+			}
+			SensorStates = null;
 		}
 
 		private static void HandleArrival(SensorArrivalTaskCompletionSource taskCompletionSource, Dictionary<Guid, SensorState> sensorStates)
@@ -142,6 +158,9 @@ internal sealed partial class SensorService
 				signals is TaskCompletionSource[] array ?
 					array.Add(signal) :
 					[Unsafe.As<TaskCompletionSource>(signals), signal];
+
+		public SensorDeviceInformation CreateInformation(Guid deviceId)
+			=> new(deviceId, IsConnected, Sensors);
 	}
 
 	// A task completion source that holds context in the form of a Sensor ID.

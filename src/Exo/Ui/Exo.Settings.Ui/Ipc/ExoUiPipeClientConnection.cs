@@ -1036,20 +1036,29 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var reader = new BufferReader(data);
 
 		var deviceId = reader.ReadGuid();
-		var sensors = new SensorInformation[reader.ReadVariableUInt32()];
-
-		for (int i = 0; i < sensors.Length; i++)
+		bool isConnected = reader.ReadBoolean();
+		uint count = reader.ReadVariableUInt32();
+		SensorInformation[] sensors;
+		if (count == 0)
 		{
-			var sensorId = reader.ReadGuid();
-			var dataType = (SensorDataType)reader.ReadByte();
-			var capabilities = (SensorCapabilities)reader.ReadByte();
-			string unit = reader.ReadVariableString() ?? "";
-			var minimumValue = (capabilities & SensorCapabilities.HasMinimumValue) != 0 ? Read(ref reader, dataType) : default;
-			var maximumValue = (capabilities & SensorCapabilities.HasMaximumValue) != 0 ? Read(ref reader, dataType) : default;
-			sensors[i] = new(sensorId, dataType, capabilities, unit, minimumValue, maximumValue);
+			sensors = [];
+		}
+		else
+		{
+			sensors = new SensorInformation[count];
+			for (int i = 0; i < sensors.Length; i++)
+			{
+				var sensorId = reader.ReadGuid();
+				var dataType = (SensorDataType)reader.ReadByte();
+				var capabilities = (SensorCapabilities)reader.ReadByte();
+				string unit = reader.ReadVariableString() ?? "";
+				var minimumValue = (capabilities & SensorCapabilities.HasMinimumValue) != 0 ? Read(ref reader, dataType) : default;
+				var maximumValue = (capabilities & SensorCapabilities.HasMaximumValue) != 0 ? Read(ref reader, dataType) : default;
+				sensors[i] = new(sensorId, dataType, capabilities, unit, minimumValue, maximumValue);
+			}
 		}
 
-		var info = new SensorDeviceInformation(deviceId, ImmutableCollectionsMarshal.AsImmutableArray(sensors));
+		var info = new SensorDeviceInformation(deviceId, isConnected, ImmutableCollectionsMarshal.AsImmutableArray(sensors));
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnSensorDeviceUpdate(info));
 
 		static VariantNumber Read(ref BufferReader reader, SensorDataType dataType)
@@ -1122,7 +1131,6 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 		return true;
 	}
-
 
 	async ValueTask IMenuItemInvoker.InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
 	{

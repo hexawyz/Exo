@@ -9,7 +9,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
-using CommunityToolkit.WinUI.Helpers;
 using Exo.Contracts.Ui;
 using Exo.Contracts.Ui.Settings;
 using Exo.Contracts.Ui.Settings.Cooling;

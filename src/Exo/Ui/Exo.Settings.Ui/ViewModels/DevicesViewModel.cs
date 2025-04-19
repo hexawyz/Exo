@@ -12,8 +12,6 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 {
-	private static readonly UnboundedChannelOptions DeviceChannelOptions = new() { SingleWriter = true, SingleReader = true, AllowSynchronousContinuations = true };
-
 	private static class Commands
 	{
 		public class NavigateToDeviceCommand : ICommand
@@ -132,7 +130,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	public ICommand NavigateToDeviceCommand => _navigateToDeviceCommand;
 
-	internal async Task HandleDeviceNotification(WatchNotificationKind kind, DeviceStateInformation information)
+	internal async void HandleDeviceNotification(WatchNotificationKind kind, DeviceStateInformation information)
 	{
 		try
 		{
