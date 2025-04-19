@@ -35,6 +35,8 @@ internal enum ExoUiProtocolClientMessage : byte
 	MousePollingFrequency,
 	/// <summary>Requests the update of lighting configuration for a device.</summary>
 	LightingDeviceConfiguration,
+	EmbeddedMonitorBuiltInGraphics,
+	EmbeddedMonitorImage,
 	/// <summary>Requests the update of a monitor setting.</summary>
 	/// <remarks>Contents: Arbitrary request Id (varint32) + request.</remarks>
 	MonitorSettingSet,
@@ -133,6 +135,9 @@ internal enum ExoUiProtocolServerMessage : byte
 	LightingDeviceConfiguration,
 	/// <summary>Acknowledges a lighting update.</summary>
 	LightingDeviceOperationStatus,
+	EmbeddedMonitorDevice,
+	EmbeddedMonitorDeviceConfiguration,
+	EmbeddedMonitorDeviceOperationStatus,
 	/// <summary>Provides information about a monitor device.</summary>
 	MonitorDevice,
 	/// <summary>Provides updates on a monitor setting.</summary>
@@ -202,6 +207,15 @@ internal enum LightingDeviceOperationStatus : byte
 	Error,
 	DeviceNotFound,
 	ZoneNotFound,
+}
+
+internal enum EmbeddedMonitorOperationStatus : byte
+{
+	Success,
+	Error,
+	InvalidArgument,
+	DeviceNotFound,
+	MonitorNotFound,
 }
 
 internal enum PowerDeviceOperationStatus : byte

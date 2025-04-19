@@ -3,11 +3,13 @@ using System.Collections.Immutable;
 using System.IO.Pipes;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using Exo.ColorFormats;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
+using Exo.EmbeddedMonitors;
 using Exo.Features;
 using Exo.Images;
 using Exo.Ipc;
@@ -23,6 +25,60 @@ namespace Exo.Settings.Ui.Ipc;
 
 internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeClientConnection<ExoUiPipeClientConnection>, IServiceControl
 {
+	// Logic used to track multiple concurrent operations of a given kind.
+	// The idea of this is to reuse low numeric IDs and avoid allocating a lot of storage for operations that should most of the time never happen or no more than a few at a time.
+	// In principle, the UI would almost never emit more than one operation at a time, though parallel operations are possible across multiple devices an/or features.
+	// For example, it is legitimate that two monitor setting refresh operations could run at the same time, as they can be quite slow to process.
+	// The Allocate operation should always be called from the lock, but the TryNotifyCompletion can be called without restriction.
+	private struct PendingOperations<T> : IDisposable
+	{
+		TaskCompletionSource<T>?[]? _operations;
+
+		public void Dispose()
+		{
+			ObjectDisposedException? exception = null;
+			if (Interlocked.Exchange(ref _operations, null) is { } operations)
+			{
+				for (int i = 0; i < operations.Length; i++)
+				{
+					if (Interlocked.Exchange(ref operations[i], null) is { } monitorOperation)
+					{
+						monitorOperation.TrySetException(exception ??= (ObjectDisposedException)ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(typeof(ExoUiPipeClientConnection).FullName)));
+					}
+				}
+			}
+		}
+
+		public (uint Id, Task<T> Task) Allocate()
+		{
+			uint id = 0;
+			var operations = _operations;
+			if (operations is null) Volatile.Write(ref _operations, operations = new TaskCompletionSource<T>[2]);
+			for (; id < operations.Length; id++)
+				if (operations[id] is null) break;
+			if (id >= operations.Length)
+			{
+				Array.Resize(ref operations, (int)(2 * (uint)operations.Length));
+				Volatile.Write(ref _operations, operations);
+			}
+			var operation = new TaskCompletionSource<T>();
+			operations[id] = operation;
+
+			return (id, operation.Task);
+		}
+
+		public bool TryNotifyCompletion(uint id, T result)
+		{
+			if (_operations is { } operations && id < (uint)operations.Length && Volatile.Read(ref operations[id]) is { } operation)
+			{
+				operation.TrySetResult(result);
+				Volatile.Write(ref operations[id], null);
+				return true;
+			}
+			return false;
+		}
+	}
+
 	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoUiPipeClientConnection).Assembly);
 
 	public static ExoUiPipeClientConnection Create(PipeClient<ExoUiPipeClientConnection> client, NamedPipeClientStream stream)
@@ -34,10 +90,11 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private readonly DispatcherQueue _dispatcherQueue;
 	private readonly IServiceClient _serviceClient;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
-	private TaskCompletionSource<PowerDeviceOperationStatus>?[]? _powerDeviceOperations;
-	private TaskCompletionSource<MouseDeviceOperationStatus>?[]? _mouseDeviceOperations;
-	private TaskCompletionSource<MonitorOperationStatus>?[]? _monitorOperations;
-	private TaskCompletionSource<LightingDeviceOperationStatus>?[]? _lightingDeviceOperations;
+	private PendingOperations<PowerDeviceOperationStatus> _powerDeviceOperations;
+	private PendingOperations<MouseDeviceOperationStatus> _mouseDeviceOperations;
+	private PendingOperations<MonitorOperationStatus> _monitorOperations;
+	private PendingOperations<LightingDeviceOperationStatus> _lightingDeviceOperations;
+	private PendingOperations<EmbeddedMonitorOperationStatus> _embeddedMonitorOperations;
 	private TaskCompletionSource<(ImageStorageOperationStatus Status, string Name)>? _imageAddTaskCompletionSource;
 	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
@@ -82,10 +139,22 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			for (int i = 0; i < sensorWatchOperations.Length; i++)
 				if (Interlocked.Exchange(ref sensorWatchOperations[i], null) is { } sensorWatchOperation)
 					sensorWatchOperation.OnConnectionClosed();
-		if (Interlocked.Exchange(ref _monitorOperations, null) is { } monitorOperations)
-			for (int i = 0; i < monitorOperations.Length; i++)
-				if (Interlocked.Exchange(ref monitorOperations[i], null) is { } monitorOperation)
-					monitorOperation.TrySetCanceled();
+		_powerDeviceOperations.Dispose();
+		_mouseDeviceOperations.Dispose();
+		_monitorOperations.Dispose();
+		_lightingDeviceOperations.Dispose();
+		_embeddedMonitorOperations.Dispose();
+		if (Interlocked.Exchange(ref _imageAddTaskCompletionSource, null) is { } tcs)
+		{
+			tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(GetType().FullName)));
+		}
+		if (Interlocked.Exchange(ref _imageOperations, null) is { } imageOperations)
+		{
+			foreach (var kvp in imageOperations)
+			{
+				kvp.Value.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new ObjectDisposedException(GetType().FullName)));
+			}
+		}
 		return ValueTask.CompletedTask;
 	}
 
@@ -147,6 +216,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.ImageRemoveOperationStatus:
 			ProcessImageRemoveOperationStatus(data);
 			goto Success;
+		case ExoUiProtocolServerMessage.LightingEffect:
+			ProcessLightingEffect(data);
+			goto Success;
 		case ExoUiProtocolServerMessage.DeviceEnumeration:
 			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
 			goto Success;
@@ -158,9 +230,6 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceUpdate:
 			ProcessDevice(Service.WatchNotificationKind.Update, data);
-			goto Success;
-		case ExoUiProtocolServerMessage.LightingEffect:
-			ProcessLightingEffect(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.PowerDevice:
 			ProcessPowerDevice(data);
@@ -203,6 +272,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.LightingDeviceOperationStatus:
 			ProcessLightingDeviceOperationStatus(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.EmbeddedMonitorDevice:
+			ProcessEmbeddedMonitorDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.EmbeddedMonitorDeviceConfiguration:
+			ProcessEmbeddedMonitorDeviceConfiguration(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.EmbeddedMonitorDeviceOperationStatus:
+			ProcessEmbeddedMonitorDeviceOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MonitorDevice:
 			ProcessMonitorDevice(data);
@@ -529,8 +607,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		uint requestId = reader.ReadVariableUInt32();
 		var status = (PowerDeviceOperationStatus)reader.ReadByte();
 
-		if (_powerDeviceOperations is { } powerDeviceOperations && requestId < (uint)powerDeviceOperations.Length && Volatile.Read(ref powerDeviceOperations[requestId]) is { } operation)
-			operation.TrySetResult(status);
+		_powerDeviceOperations.TryNotifyCompletion(requestId, status);
 	}
 
 	private void ProcessMouseDevice(ReadOnlySpan<byte> data)
@@ -594,8 +671,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		uint requestId = reader.ReadVariableUInt32();
 		var status = (MouseDeviceOperationStatus)reader.ReadByte();
 
-		if (_mouseDeviceOperations is { } mouseDeviceOperations && requestId < (uint)mouseDeviceOperations.Length && Volatile.Read(ref mouseDeviceOperations[requestId]) is { } operation)
-			operation.TrySetResult(status);
+		_mouseDeviceOperations.TryNotifyCompletion(requestId, status);
 	}
 
 	private void ProcessLightingDevice(ReadOnlySpan<byte> data)
@@ -725,6 +801,84 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
+	private void ProcessEmbeddedMonitorDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var deviceId = reader.ReadGuid();
+
+		var information = new EmbeddedMonitorDeviceInformation(deviceId, ReadEmbeddedMonitorInformations(ref reader));
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnEmbeddedMonitorDeviceUpdate(information));
+
+		static ImmutableArray<EmbeddedMonitorInformation> ReadEmbeddedMonitorInformations(ref BufferReader reader)
+		{
+			uint count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var informations = new EmbeddedMonitorInformation[count];
+			for (int i = 0; i < informations.Length; i++)
+			{
+				informations[i] = ReadEmbeddedMonitorInformation(ref reader);
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(informations);
+		}
+
+		static EmbeddedMonitorInformation ReadEmbeddedMonitorInformation(ref BufferReader reader)
+			=> new
+			(
+				reader.ReadGuid(),
+				(MonitorShape)reader.ReadByte(),
+				(ImageRotation)reader.ReadByte(),
+				ReadSize(ref reader),
+				reader.Read<PixelFormat>(),
+				(ImageFormats)reader.Read<uint>(),
+				(EmbeddedMonitorCapabilities)reader.ReadByte(),
+				ReadGraphicsDescriptions(ref reader)
+			);
+
+		static ImmutableArray<EmbeddedMonitorGraphicsDescription> ReadGraphicsDescriptions(ref BufferReader reader)
+		{
+			uint count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var descriptions = new EmbeddedMonitorGraphicsDescription[count];
+			for (int i = 0; i < descriptions.Length; i++)
+			{
+				descriptions[i] = ReadGraphicsDescription(ref reader);
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(descriptions);
+		}
+
+		static EmbeddedMonitorGraphicsDescription ReadGraphicsDescription(ref BufferReader reader)
+			=> new(reader.ReadGuid(), reader.ReadGuid());
+	}
+
+	private void ProcessEmbeddedMonitorDeviceConfiguration(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		// TODO: Avoid transmitting/reading the image and rectangle if not necessary
+		var configuration = new EmbeddedMonitorConfiguration
+		(
+			reader.ReadGuid(),
+			reader.ReadGuid(),
+			reader.ReadGuid(),
+			reader.Read<UInt128>(),
+			ReadRectangle(ref reader)
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnEmbeddedMonitorConfigurationUpdate(configuration));
+	}
+
+	private void ProcessEmbeddedMonitorDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (EmbeddedMonitorOperationStatus)reader.ReadByte();
+
+		_embeddedMonitorOperations.TryNotifyCompletion(requestId, status);
+	}
+
 	private void ProcessMonitorDevice(ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
@@ -776,8 +930,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		uint requestId = reader.ReadVariableUInt32();
 		var status = (LightingDeviceOperationStatus)reader.ReadByte();
 
-		if (_lightingDeviceOperations is { } lightingDeviceOperations && requestId < (uint)lightingDeviceOperations.Length && Volatile.Read(ref lightingDeviceOperations[requestId]) is { } operation)
-			operation.TrySetResult(status);
+		_lightingDeviceOperations.TryNotifyCompletion(requestId, status);
 	}
 
 	private void ProcessMonitorSetting(ReadOnlySpan<byte> data)
@@ -802,8 +955,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		uint requestId = reader.ReadVariableUInt32();
 		var status = (MonitorOperationStatus)reader.ReadByte();
 
-		if (_monitorOperations is { } monitorOperations && requestId < (uint)monitorOperations.Length && Volatile.Read(ref monitorOperations[requestId]) is { } operation)
-			operation.TrySetResult(status);
+		_monitorOperations.TryNotifyCompletion(requestId, status);
 	}
 
 	private void ProcessSensorDevice(ReadOnlySpan<byte> data)
@@ -1044,7 +1196,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private async Task SetPowerSetting<T>(ExoUiProtocolClientMessage message, Guid deviceId, T value, CancellationToken cancellationToken)
 		where T : unmanaged
 	{
-		TaskCompletionSource<PowerDeviceOperationStatus> operation;
+		Task<PowerDeviceOperationStatus> task;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1052,27 +1204,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
-			// Logic is mostly similar to what is done for sensors, but less complex.
-			uint requestId = 0;
-			var powerDeviceOperations = _powerDeviceOperations;
-			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
-			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (powerDeviceOperations is null) Volatile.Write(ref _powerDeviceOperations, powerDeviceOperations = new TaskCompletionSource<PowerDeviceOperationStatus>[2]);
-			for (; requestId < powerDeviceOperations.Length; requestId++)
-				if (powerDeviceOperations[requestId] is null) break;
-			if (requestId >= powerDeviceOperations.Length)
-			{
-				Array.Resize(ref powerDeviceOperations, (int)(2 * (uint)powerDeviceOperations.Length));
-				Volatile.Write(ref _powerDeviceOperations, powerDeviceOperations);
-			}
-			operation = new();
-			powerDeviceOperations[requestId] = operation;
+			uint requestId;
+			(requestId, task) = _powerDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
 			Write(buffer.Span, message, requestId, deviceId, value);
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await operation.Task.ConfigureAwait(false);
+		var status = await task.ConfigureAwait(false);
 		switch (status)
 		{
 		case PowerDeviceOperationStatus.Success: return;
@@ -1095,7 +1234,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	async Task IMouseService.SetDpiPresetsAsync(Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<MouseDeviceOperationStatus> operation;
+		Task<MouseDeviceOperationStatus> task;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1103,27 +1242,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
-			// Logic is mostly similar to what is done for sensors, but less complex.
-			uint requestId = 0;
-			var mouseDeviceOperations = _mouseDeviceOperations;
-			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
-			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (mouseDeviceOperations is null) Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations = new TaskCompletionSource<MouseDeviceOperationStatus>[2]);
-			for (; requestId < mouseDeviceOperations.Length; requestId++)
-				if (mouseDeviceOperations[requestId] is null) break;
-			if (requestId >= mouseDeviceOperations.Length)
-			{
-				Array.Resize(ref mouseDeviceOperations, (int)(2 * (uint)mouseDeviceOperations.Length));
-				Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations);
-			}
-			operation = new();
-			mouseDeviceOperations[requestId] = operation;
+			uint requestId;
+			(requestId, task) = _mouseDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
 			Write(buffer.Span, requestId, deviceId, activePresetIndex, presets);
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		HandleStatus(await operation.Task.ConfigureAwait(false));
+		HandleStatus(await task.ConfigureAwait(false));
 
 		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets)
 		{
@@ -1142,7 +1268,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private async Task SetMouseSetting<T>(ExoUiProtocolClientMessage message, Guid deviceId, T value, CancellationToken cancellationToken)
 		where T : unmanaged
 	{
-		TaskCompletionSource<MouseDeviceOperationStatus> operation;
+		Task<MouseDeviceOperationStatus> task;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1150,27 +1276,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
-			// Logic is mostly similar to what is done for sensors, but less complex.
-			uint requestId = 0;
-			var mouseDeviceOperations = _mouseDeviceOperations;
-			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
-			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (mouseDeviceOperations is null) Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations = new TaskCompletionSource<MouseDeviceOperationStatus>[2]);
-			for (; requestId < mouseDeviceOperations.Length; requestId++)
-				if (mouseDeviceOperations[requestId] is null) break;
-			if (requestId >= mouseDeviceOperations.Length)
-			{
-				Array.Resize(ref mouseDeviceOperations, (int)(2 * (uint)mouseDeviceOperations.Length));
-				Volatile.Write(ref _mouseDeviceOperations, mouseDeviceOperations);
-			}
-			operation = new();
-			mouseDeviceOperations[requestId] = operation;
+			uint requestId;
+			(requestId, task) = _mouseDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
 			Write(buffer.Span, message, requestId, deviceId, value);
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		HandleStatus(await operation.Task.ConfigureAwait(false));
+		HandleStatus(await task.ConfigureAwait(false));
 
 		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
 		{
@@ -1195,7 +1308,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	async ValueTask ILightingService.SetLightingAsync(LightingDeviceConfigurationUpdate update, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<LightingDeviceOperationStatus> operation;
+		Task<LightingDeviceOperationStatus> task;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1203,27 +1316,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
-			// Logic is mostly similar to what is done for sensors, but less complex.
-			uint requestId = 0;
-			var lightingDeviceOperations = _lightingDeviceOperations;
-			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
-			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (lightingDeviceOperations is null) Volatile.Write(ref _lightingDeviceOperations, lightingDeviceOperations = new TaskCompletionSource<LightingDeviceOperationStatus>[2]);
-			for (; requestId < lightingDeviceOperations.Length; requestId++)
-				if (lightingDeviceOperations[requestId] is null) break;
-			if (requestId >= lightingDeviceOperations.Length)
-			{
-				Array.Resize(ref lightingDeviceOperations, (int)(2 * (uint)lightingDeviceOperations.Length));
-				Volatile.Write(ref _lightingDeviceOperations, lightingDeviceOperations);
-			}
-			operation = new();
-			lightingDeviceOperations[requestId] = operation;
+			uint requestId;
+			(requestId, task) = _lightingDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
 			Write(buffer.Span, requestId, update);
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await operation.Task.ConfigureAwait(false);
+		var status = await task.ConfigureAwait(false);
 		switch (status)
 		{
 		case LightingDeviceOperationStatus.Success: return;
@@ -1262,9 +1362,78 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
+	async ValueTask IEmbeddedMonitorService.SetBuiltInGraphicsAsync(Guid deviceId, Guid monitorId, Guid graphicsId, CancellationToken cancellationToken)
+	{
+		Task<EmbeddedMonitorOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _embeddedMonitorOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, monitorId, graphicsId);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid monitorId, Guid graphicsId)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.EmbeddedMonitorBuiltInGraphics);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(monitorId);
+			writer.Write(graphicsId);
+		}
+	}
+
+	async ValueTask IEmbeddedMonitorService.SetImageAsync(Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle cropRegion, CancellationToken cancellationToken)
+	{
+		Task<EmbeddedMonitorOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _embeddedMonitorOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, monitorId, imageId, cropRegion);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle cropRegion)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.EmbeddedMonitorImage);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(monitorId);
+			writer.Write(imageId);
+			ExoUiPipeClientConnection.Write(ref writer, cropRegion);
+		}
+	}
+
+	private static void HandleStatus(EmbeddedMonitorOperationStatus status)
+	{
+		switch (status)
+		{
+		case EmbeddedMonitorOperationStatus.Success: return;
+		case EmbeddedMonitorOperationStatus.InvalidArgument: throw new ArgumentException();
+		case EmbeddedMonitorOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		case EmbeddedMonitorOperationStatus.MonitorNotFound: throw new MonitorNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+	}
+
 	async ValueTask IMonitorService.SetSettingValueAsync(Guid deviceId, MonitorSetting setting, ushort value, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<MonitorOperationStatus> operation;
+		Task<MonitorOperationStatus> task;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1272,27 +1441,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
-			// Logic is mostly similar to what is done for sensors, but less complex.
-			uint requestId = 0;
-			var monitorOperations = _monitorOperations;
-			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
-			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (monitorOperations is null) Volatile.Write(ref _monitorOperations, monitorOperations = new TaskCompletionSource<MonitorOperationStatus>[2]);
-			for (; requestId < monitorOperations.Length; requestId++)
-				if (monitorOperations[requestId] is null) break;
-			if (requestId >= monitorOperations.Length)
-			{
-				Array.Resize(ref monitorOperations, (int)(2 * (uint)monitorOperations.Length));
-				Volatile.Write(ref _monitorOperations, monitorOperations);
-			}
-			operation = new();
-			monitorOperations[requestId] = operation;
+			uint requestId;
+			(requestId, task) = _monitorOperations.Allocate();
 			var buffer = WriteBuffer;
 			Write(buffer.Span, requestId, deviceId, setting, value);
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await operation.Task.ConfigureAwait(false);
+		var status = await task.ConfigureAwait(false);
 		switch (status)
 		{
 		case MonitorOperationStatus.Success: return;
@@ -1314,7 +1470,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	async ValueTask IMonitorService.RefreshMonitorSettingsAsync(Guid deviceId, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<MonitorOperationStatus> operation;
+		Task<MonitorOperationStatus> task;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1322,27 +1478,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 		{
-			// Logic is mostly similar to what is done for sensors, but less complex.
-			uint requestId = 0;
-			var monitorOperations = _monitorOperations;
-			// NB: It is very unlikely that we would ever have more than two monitor operation running at a time.
-			// More than one operation is also unlikely, but it can easily be triggered by switching from the view for one monitor to the view for another monitor, as refreshes are slow.
-			if (monitorOperations is null) Volatile.Write(ref _monitorOperations, monitorOperations = new TaskCompletionSource<MonitorOperationStatus>[2]);
-			for (; requestId < monitorOperations.Length; requestId++)
-				if (monitorOperations[requestId] is null) break;
-			if (requestId >= monitorOperations.Length)
-			{
-				Array.Resize(ref monitorOperations, (int)(2 * (uint)monitorOperations.Length));
-				Volatile.Write(ref _monitorOperations, monitorOperations);
-			}
-			operation = new();
-			monitorOperations[requestId] = operation;
+			uint requestId;
+			(requestId, task) = _monitorOperations.Allocate();
 			var buffer = WriteBuffer;
 			Write(buffer.Span, requestId, deviceId);
 			// TODO: Find out if cancellation implies that bytes are not written.
 			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await operation.Task.ConfigureAwait(false);
+		var status = await task.ConfigureAwait(false);
 		switch (status)
 		{
 		case MonitorOperationStatus.Success: return;
@@ -1516,4 +1659,18 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	private static DotsPerInch ReadDotsPerInch(ref BufferReader reader)
 		=> new(reader.Read<ushort>(), reader.Read<ushort>());
+
+	private static void Write(ref BufferWriter writer, in Rectangle rectangle)
+	{
+		writer.Write(rectangle.Left);
+		writer.Write(rectangle.Top);
+		writer.Write(rectangle.Width);
+		writer.Write(rectangle.Height);
+	}
+
+	private static Rectangle ReadRectangle(ref BufferReader reader)
+		=> new(reader.Read<int>(), reader.Read<int>(), reader.Read<int>(), reader.Read<int>());
+
+	private static Size ReadSize(ref BufferReader reader)
+		=> new(reader.Read<int>(), reader.Read<int>());
 }

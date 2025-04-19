@@ -1,5 +1,5 @@
 using CommunityToolkit.WinUI.Controls;
-using Exo.Contracts.Ui.Settings;
+using Exo.Monitors;
 using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;

@@ -1,7 +1,7 @@
 namespace Exo.Service;
 
 [Flags]
-public enum EmbeddedMonitorCapabilities : uint
+public enum EmbeddedMonitorCapabilities : byte
 {
 	None = 0b00000000,
 	StaticImages = 0b00000001,

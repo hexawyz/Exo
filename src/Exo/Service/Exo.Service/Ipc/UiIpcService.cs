@@ -18,6 +18,7 @@ internal sealed class UiIpcService : IHostedService
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly LightingService _lightingService;
+	private readonly EmbeddedMonitorService _embeddedMonitorService;
 
 	public UiIpcService
 	(
@@ -31,7 +32,8 @@ internal sealed class UiIpcService : IHostedService
 		MonitorService monitorService,
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
-		LightingService lightingService
+		LightingService lightingService,
+		EmbeddedMonitorService embeddedMonitorService
 	)
 	{
 		_connectionLogger = connectionLogger;
@@ -45,6 +47,7 @@ internal sealed class UiIpcService : IHostedService
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingService = lightingService;
+		_embeddedMonitorService = embeddedMonitorService;
 	}
 
 	private UiPipeServer? _server;
@@ -87,7 +90,8 @@ internal sealed class UiIpcService : IHostedService
 			_monitorService,
 			_sensorService,
 			_lightingEffectMetadataService,
-			_lightingService
+			_lightingService,
+			_embeddedMonitorService
 		);
 		_server.Start();
 		return Task.CompletedTask;

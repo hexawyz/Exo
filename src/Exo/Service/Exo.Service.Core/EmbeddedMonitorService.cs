@@ -1,13 +1,14 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Configuration;
+using Exo.EmbeddedMonitors;
 using Exo.Features;
 using Exo.Features.EmbeddedMonitors;
 using Exo.Images;
 using Exo.Monitors;
+using Exo.Primitives;
 using Exo.Programming.Annotations;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ namespace Exo.Service;
 
 [Module("EmbeddedMonitor")]
 [TypeId(0x94206A36, 0x5C50, 0x4F65, 0xBA, 0x94, 0xE8, 0x01, 0xC5, 0x0E, 0x45, 0xA9)]
-internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
+internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMonitorDeviceInformation>, IChangeSource<EmbeddedMonitorConfiguration>, IAsyncDisposable
 {
 	private sealed class DeviceState
 	{
@@ -54,11 +55,6 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			Volatile.Write(ref _driver, null);
 		}
 
-		//public PersistedEmbeddedMonitorDeviceInformation CreatePersistedConfiguration() => new();
-
-		//public LightingDeviceConfigurationWatchNotification CreateConfigurationWatchNotification(Guid deviceId) 
-		//	=> new() { DeviceId = deviceId, IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, BrightnessLevel = Brightness };
-
 		public EmbeddedMonitorDeviceInformation CreateInformation()
 		{
 			var monitors = EmbeddedMonitors.Count > 0 ? new EmbeddedMonitorInformation[EmbeddedMonitors.Count] : [];
@@ -67,7 +63,7 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			{
 				monitors[i++] = monitor.CreateInformation();
 			}
-			return new EmbeddedMonitorDeviceInformation() { DeviceId = _id, EmbeddedMonitors = ImmutableCollectionsMarshal.AsImmutableArray(monitors) };
+			return new EmbeddedMonitorDeviceInformation(_id, ImmutableCollectionsMarshal.AsImmutableArray(monitors));
 		}
 	}
 
@@ -348,35 +344,35 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			};
 
 		public EmbeddedMonitorInformation CreateInformation()
-			=> new()
-			{
-				MonitorId = _id,
-				Shape = _shape,
-				DefaultRotation = _defaultRotation,
-				ImageSize = new(_width, _height),
-				PixelFormat = _pixelFormat,
-				SupportedImageFormats = _imageFormats,
-				Capabilities = _capabilities,
-				SupportedGraphics = _supportedGraphics,
-			};
+			=> new
+			(
+				_id,
+				_shape,
+				_defaultRotation,
+				new(_width, _height),
+				_pixelFormat,
+				_imageFormats,
+				_capabilities,
+				_supportedGraphics
+			);
 
 		public PersistedMonitorConfiguration CreatePersistedConfiguration()
 			=> new()
 			{
 				GraphicsId = _currentGraphics,
 				ImageId = _currentImageId,
-				ImageRegion = new(_currentRegionLeft, _currentRegionTop, _currentRegionWidth, _currentRegionHeight)
+				ImageRegion = new(_currentRegionLeft, _currentRegionTop, _currentRegionWidth, _currentRegionHeight),
 			};
 
-		public EmbeddedMonitorConfigurationWatchNotification CreateConfigurationNotification(Guid deviceId)
-			=> new()
-			{
-				DeviceId = deviceId,
-				MonitorId = _id,
-				GraphicsId = _currentGraphics,
-				ImageId = _currentImageId,
-				ImageRegion = new(_currentRegionLeft, _currentRegionTop, _currentRegionWidth, _currentRegionHeight)
-			};
+		public EmbeddedMonitorConfiguration CreateConfigurationNotification(Guid deviceId)
+			=> new
+			(
+				deviceId,
+				_id,
+				_currentGraphics,
+				_currentImageId,
+				new(_currentRegionLeft, _currentRegionTop, _currentRegionWidth, _currentRegionHeight)
+			);
 	}
 
 	//[TypeId(0xC49F1625, 0xA7D0, 0x4FC8, 0x8B, 0x43, 0x2F, 0xCF, 0x0B, 0x76, 0xF7, 0xD5)]
@@ -491,8 +487,8 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 	private readonly ConcurrentDictionary<Guid, DeviceState> _embeddedMonitorDeviceStates;
 	private readonly ImageStorageService _imageStorageService;
 	private readonly AsyncLock _lock;
-	private ChannelWriter<EmbeddedMonitorDeviceInformation>[]? _deviceListeners;
-	private ChannelWriter<EmbeddedMonitorConfigurationWatchNotification>[]? _configurationChangeListeners;
+	private ChangeBroadcaster<EmbeddedMonitorDeviceInformation> _deviceChangeBroadcaster;
+	private ChangeBroadcaster<EmbeddedMonitorConfiguration> _configurationChangeBroadcaster;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly ILogger<EmbeddedMonitorService> _logger;
 
@@ -662,9 +658,10 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 				}
 			}
 
-			if (_deviceListeners is { } deviceListeners)
+			var deviceBroadcaster = _deviceChangeBroadcaster.GetSnapshot();
+			if (!deviceBroadcaster.IsEmpty)
 			{
-				deviceListeners.TryWrite(deviceState.CreateInformation());
+				deviceBroadcaster.Push(deviceState.CreateInformation());
 			}
 		}
 	}
@@ -684,40 +681,33 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 	{
 		ArgumentOutOfRangeException.ThrowIfEqual(graphicsId, default);
 
-		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
 
 		PersistedMonitorConfiguration configuration;
-		ChannelWriter<EmbeddedMonitorConfigurationWatchNotification>[]? configurationChangeListeners;
+		ChangeBroadcasterSnapshot<EmbeddedMonitorConfiguration> configurationChangeBroadcaster;
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new InvalidOperationException("Embedded monitor not found.");
+			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new MonitorNotFoundException();
 
 			if (!await monitorState.SetBuiltInGraphicsAsync(graphicsId, cancellationToken).ConfigureAwait(false)) return;
 
 			configuration = monitorState.CreatePersistedConfiguration();
 
-			configurationChangeListeners = Volatile.Read(ref _configurationChangeListeners);
+			configurationChangeBroadcaster = _configurationChangeBroadcaster.GetSnapshot();
 		}
 
 		await PersistConfigurationAsync(deviceState.EmbeddedMonitorConfigurationContainer, monitorId, configuration, cancellationToken).ConfigureAwait(false);
 
-		configurationChangeListeners?.TryWrite
-		(
-			new EmbeddedMonitorConfigurationWatchNotification
-			{
-				DeviceId = deviceId,
-				MonitorId = monitorId,
-				GraphicsId = configuration.GraphicsId,
-				ImageId = configuration.ImageId,
-				ImageRegion = configuration.ImageRegion,
-			}
-		);
+		if (!configurationChangeBroadcaster.IsEmpty)
+		{
+			configurationChangeBroadcaster.Push(new(deviceId, monitorId, configuration.GraphicsId, configuration.ImageId, configuration.ImageRegion));
+		}
 	}
 
 	public async ValueTask SetImageAsync(Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle imageRegion, CancellationToken cancellationToken)
 	{
-		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new InvalidOperationException("Device not found.");
+		if (!_embeddedMonitorDeviceStates.TryGetValue(deviceId, out var deviceState)) throw new DeviceNotFoundException();
 
 		if ((uint)imageRegion.Left > ushort.MaxValue ||
 			(uint)imageRegion.Top > ushort.MaxValue ||
@@ -728,38 +718,29 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		}
 
 		PersistedMonitorConfiguration configuration;
-		ChannelWriter<EmbeddedMonitorConfigurationWatchNotification>[]? configurationChangeListeners;
+		ChangeBroadcasterSnapshot<EmbeddedMonitorConfiguration> configurationChangeBroadcaster;
 
 		using (await deviceState.Lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new InvalidOperationException("Embedded monitor not found.");
+			if (!deviceState.EmbeddedMonitors.TryGetValue(monitorId, out var monitorState)) throw new MonitorNotFoundException();
 
 			if (!await monitorState.SetImageAsync(_imageStorageService, imageId, imageRegion, cancellationToken).ConfigureAwait(false)) return;
 
 			configuration = monitorState.CreatePersistedConfiguration();
 
-			configurationChangeListeners = Volatile.Read(ref _configurationChangeListeners);
+			configurationChangeBroadcaster = _configurationChangeBroadcaster.GetSnapshot();
 		}
 
 		await PersistConfigurationAsync(deviceState.EmbeddedMonitorConfigurationContainer, monitorId, configuration, cancellationToken).ConfigureAwait(false);
 
-		configurationChangeListeners?.TryWrite
-		(
-			new EmbeddedMonitorConfigurationWatchNotification
-			{
-				DeviceId = deviceId,
-				MonitorId = monitorId,
-				GraphicsId = configuration.GraphicsId,
-				ImageId = configuration.ImageId,
-				ImageRegion = configuration.ImageRegion,
-			}
-		);
+		if (!configurationChangeBroadcaster.IsEmpty)
+		{
+			configurationChangeBroadcaster.Push(new(deviceId, monitorId, configuration.GraphicsId, configuration.ImageId, configuration.ImageRegion));
+		}
 	}
 
-	public async IAsyncEnumerable<EmbeddedMonitorDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<EmbeddedMonitorDeviceInformation[]?> IChangeSource<EmbeddedMonitorDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<EmbeddedMonitorDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<EmbeddedMonitorDeviceInformation>();
-
 		var initialNotifications = new List<EmbeddedMonitorDeviceInformation>();
 		using (await _lock.WaitAsync(cancellationToken))
 		{
@@ -767,34 +748,19 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 			{
 				initialNotifications.Add(state.CreateInformation());
 			}
-
-			ArrayExtensions.InterlockedAdd(ref _deviceListeners, channel);
+			_deviceChangeBroadcaster.Register(writer);
 		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _deviceListeners, channel);
-		}
+		return [.. initialNotifications];
 	}
 
-	public async IAsyncEnumerable<EmbeddedMonitorConfigurationWatchNotification> WatchConfigurationChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	void IChangeSource<EmbeddedMonitorDeviceInformation>.UnregisterWatcher(ChannelWriter<EmbeddedMonitorDeviceInformation> writer)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<EmbeddedMonitorConfigurationWatchNotification>();
+		_deviceChangeBroadcaster.Unregister(writer);
+	}
 
-		var initialNotifications = new List<EmbeddedMonitorConfigurationWatchNotification>();
+	async ValueTask<EmbeddedMonitorConfiguration[]?> IChangeSource<EmbeddedMonitorConfiguration>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<EmbeddedMonitorConfiguration> writer, CancellationToken cancellationToken)
+	{
+		var initialNotifications = new List<EmbeddedMonitorConfiguration>();
 		using (await _lock.WaitAsync(cancellationToken))
 		{
 			foreach (var device in _embeddedMonitorDeviceStates.Values)
@@ -807,27 +773,14 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 					}
 				}
 			}
-
-			ArrayExtensions.InterlockedAdd(ref _configurationChangeListeners, channel);
+			_configurationChangeBroadcaster.Register(writer);
 		}
+		return [.. initialNotifications];
+	}
 
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _configurationChangeListeners, channel);
-		}
+	void IChangeSource<EmbeddedMonitorConfiguration>.UnregisterWatcher(ChannelWriter<EmbeddedMonitorConfiguration> writer)
+	{
+		_configurationChangeBroadcaster.Unregister(writer);
 	}
 
 	private ValueTask PersistConfigurationAsync
@@ -838,31 +791,4 @@ internal sealed partial class EmbeddedMonitorService : IAsyncDisposable
 		CancellationToken cancellationToken
 	)
 		=> embeddedMonitorConfigurationContainer.WriteValueAsync(embeddedMonitorId, configuration, cancellationToken);
-}
-
-public readonly struct EmbeddedMonitorDeviceInformation
-{
-	public required Guid DeviceId { get; init; }
-	public required ImmutableArray<EmbeddedMonitorInformation> EmbeddedMonitors { get; init; }
-}
-
-public readonly struct EmbeddedMonitorInformation
-{
-	public required Guid MonitorId { get; init; }
-	public required MonitorShape Shape { get; init; }
-	public required ImageRotation DefaultRotation { get; init; }
-	public required Size ImageSize { get; init; }
-	public required PixelFormat PixelFormat { get; init; }
-	public required ImageFormats SupportedImageFormats { get; init; }
-	public required EmbeddedMonitorCapabilities Capabilities { get; init; }
-	public required ImmutableArray<EmbeddedMonitorGraphicsDescription> SupportedGraphics { get; init; }
-}
-
-public readonly struct EmbeddedMonitorConfigurationWatchNotification
-{
-	public required Guid DeviceId { get; init; }
-	public required Guid MonitorId { get; init; }
-	public required Guid GraphicsId { get; init; }
-	public UInt128 ImageId { get; init; }
-	public Rectangle ImageRegion { get; init; }
 }

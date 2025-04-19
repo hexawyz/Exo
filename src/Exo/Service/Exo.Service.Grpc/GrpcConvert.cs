@@ -2,9 +2,6 @@ using System.Collections.Immutable;
 using System.Numerics;
 using Exo.Contracts.Ui.Settings.Cooling;
 using Exo.Cooling.Configuration;
-using Exo.Features.EmbeddedMonitors;
-using Exo.Images;
-using Exo.Monitors;
 using CoolerType = Exo.Cooling.CoolerType;
 using GrpcCoolerInformation = Exo.Contracts.Ui.Settings.CoolerInformation;
 using GrpcCoolerPowerLimits = Exo.Contracts.Ui.Settings.CoolerPowerLimits;
@@ -13,73 +10,17 @@ using GrpcCoolingControlCurve = Exo.Contracts.Ui.Settings.Cooling.CoolingControl
 using GrpcCoolingDeviceInformation = Exo.Contracts.Ui.Settings.CoolingDeviceInformation;
 using GrpcCoolingModes = Exo.Contracts.Ui.Settings.CoolingModes;
 using GrpcCoolingParameters = Exo.Contracts.Ui.Settings.Cooling.CoolingParameters;
-using GrpcEmbeddedMonitorConfigurationUpdate = Exo.Contracts.Ui.Settings.EmbeddedMonitorConfigurationUpdate;
-using GrpcEmbeddedMonitorDeviceInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorDeviceInformation;
-using GrpcEmbeddedMonitorGraphicsDescription = Exo.Contracts.Ui.Settings.EmbeddedMonitorGraphicsDescription;
-using GrpcEmbeddedMonitorInformation = Exo.Contracts.Ui.Settings.EmbeddedMonitorInformation;
 using GrpcLightCapabilities = Exo.Contracts.Ui.Settings.LightCapabilities;
 using GrpcLightChangeNotification = Exo.Contracts.Ui.Settings.LightChangeNotification;
 using GrpcLightDeviceCapabilities = Exo.Contracts.Ui.Settings.LightDeviceCapabilities;
 using GrpcLightDeviceInformation = Exo.Contracts.Ui.Settings.LightDeviceInformation;
 using GrpcLightInformation = Exo.Contracts.Ui.Settings.LightInformation;
-using GrpcMonitorShape = Exo.Contracts.Ui.Settings.MonitorShape;
-using GrpcRectangle = Exo.Contracts.Ui.Settings.Rectangle;
-using GrpcSize = Exo.Contracts.Ui.Settings.Size;
 using GrpcWatchNotificationKind = Exo.Contracts.Ui.WatchNotificationKind;
 
 namespace Exo.Service.Grpc;
 
 internal static class GrpcConvert
 {
-	public static GrpcEmbeddedMonitorDeviceInformation ToGrpc(this EmbeddedMonitorDeviceInformation embeddedMonitorDeviceInformation)
-		=> new()
-		{
-			DeviceId = embeddedMonitorDeviceInformation.DeviceId,
-			EmbeddedMonitors = ImmutableArray.CreateRange(embeddedMonitorDeviceInformation.EmbeddedMonitors, ToGrpc),
-		};
-
-	public static GrpcEmbeddedMonitorInformation ToGrpc(this EmbeddedMonitorInformation embeddedMonitorInformation)
-		=> new()
-		{
-			MonitorId = embeddedMonitorInformation.MonitorId,
-			Shape = embeddedMonitorInformation.Shape.ToGrpc(),
-			ImageSize = embeddedMonitorInformation.ImageSize.ToGrpc(),
-			Capabilities = (Contracts.Ui.Settings.EmbeddedMonitorCapabilities)embeddedMonitorInformation.Capabilities,
-			SupportedImageFormats = (Contracts.Ui.Settings.ImageFormats)embeddedMonitorInformation.SupportedImageFormats,
-			SupportedGraphics = ImmutableArray.CreateRange(embeddedMonitorInformation.SupportedGraphics, ToGrpc),
-		};
-
-	public static GrpcEmbeddedMonitorConfigurationUpdate ToGrpc(this EmbeddedMonitorConfigurationWatchNotification configurationUpdate)
-		=> new()
-		{
-			DeviceId = configurationUpdate.DeviceId,
-			MonitorId = configurationUpdate.MonitorId,
-			GraphicsId = configurationUpdate.GraphicsId,
-			ImageConfiguration = configurationUpdate.GraphicsId == default ?
-				new() { ImageId = configurationUpdate.ImageId, ImageRegion = configurationUpdate.ImageRegion.ToGrpc() } :
-				null,
-		};
-
-	public static GrpcEmbeddedMonitorGraphicsDescription ToGrpc(this EmbeddedMonitorGraphicsDescription description)
-		=> new()
-		{
-			GraphicsId = description.GraphicsId,
-			NameStringId = description.NameStringId,
-		};
-
-	public static GrpcMonitorShape ToGrpc(this MonitorShape shape)
-		=> shape switch
-		{
-			MonitorShape.Rectangle => GrpcMonitorShape.Rectangle,
-			MonitorShape.Square => GrpcMonitorShape.Square,
-			MonitorShape.Circle => GrpcMonitorShape.Circle,
-			_ => throw new NotImplementedException()
-		};
-
-	public static GrpcSize ToGrpc(this Size size) => new() { Width = size.Width, Height = size.Height };
-	public static GrpcRectangle ToGrpc(this Rectangle rectangle) => new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height };
-	public static Rectangle FromGrpc(this GrpcRectangle rectangle) => new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height };
-
 	public static GrpcCoolingDeviceInformation ToGrpc(this CoolingDeviceInformation coolingDeviceInformation)
 		=> new()
 		{

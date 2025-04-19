@@ -1,73 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
-    x:Class="Exo.Settings.Ui.EmbeddedMonitorDeviceSettingsControl"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
-    xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:EmbeddedMonitorFeaturesViewModel, IsDesignTimeCreatable=False}">
-    <ContentControl Content="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-        <ContentControl.ContentTemplateSelector>
-            <lts:EmbeddedMonitorSettingTemplateSelector>
-                <lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
-                    <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
-                        <local:EmbeddedMonitorSettingControl DataContext="{x:Bind EmbeddedMonitors[0]}" Monitor="{Binding}" IsEnabled="{Binding IsNotBusy}" />
-                    </DataTemplate>
-                </lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
-                <lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
-                    <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
-                        <StackPanel Orientation="Vertical">
-                            <ScrollViewer VerticalScrollMode="Disabled" HorizontalScrollMode="Auto" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
-                                <ListView
-                                    HorizontalAlignment="Center"
-                                    HorizontalContentAlignment="Center"
-                                    SelectedItem="{x:Bind SelectedMonitor, Mode=TwoWay}"
-                                    ItemsSource="{x:Bind EmbeddedMonitors, Mode=OneTime}">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:EmbeddedMonitorViewModel">
-                                            <Grid Width="{x:Bind DisplayWidth, Mode=OneWay}" Height="{x:Bind DisplayHeight, Mode=OneWay}" Background="Black" Margin="3">
-                                                <Image Source="{Binding CurrentGraphics.Image.FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneWay}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                    <ListView.ItemContainerStyle>
-                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
-                                            <Setter Property="Padding" Value="0" />
-                                            <Setter Property="Margin" Value="0" />
-                                            <Setter Property="HorizontalAlignment" Value="Center" />
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </ListView.ItemContainerStyle>
-                                    <ListView.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <controls:UniformGrid
-                                                HorizontalAlignment="Center"
-                                                FlowDirection="LeftToRight"
-                                                Orientation="Horizontal"
-                                                Columns="8"
-                                                Rows="4"
-                                                ColumnSpacing="2"
-                                                RowSpacing="2" />
-                                        </ItemsPanelTemplate>
-                                    </ListView.ItemsPanel>
-                                </ListView>
-                            </ScrollViewer>
-                            <local:EmbeddedMonitorSettingControl Monitor="{x:Bind SelectedMonitor, Mode=OneWay}" IsEnabled="{x:Bind SelectedMonitor.IsNotBusy}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
-                <lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
-                    <DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
-                        <Grid></Grid>
-                    </DataTemplate>
-                </lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
-            </lts:EmbeddedMonitorSettingTemplateSelector>
-        </ContentControl.ContentTemplateSelector>
-    </ContentControl>
+		x:Class="Exo.Settings.Ui.EmbeddedMonitorDeviceSettingsControl"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:local="using:Exo.Settings.Ui"
+		xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+		xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
+		xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+		xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d"
+		d:DataContext="{d:DesignInstance vm:EmbeddedMonitorFeaturesViewModel, IsDesignTimeCreatable=False}">
+	<ContentControl Content="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+		<ContentControl.ContentTemplateSelector>
+			<lts:EmbeddedMonitorSettingTemplateSelector>
+				<lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
+					<DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
+						<local:EmbeddedMonitorSettingControl Monitor="{x:Bind EmbeddedMonitors[0]}" IsEnabled="{x:Bind EmbeddedMonitors[0].IsNotBusy}" />
+					</DataTemplate>
+				</lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
+				<lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
+					<DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
+						<StackPanel Orientation="Vertical">
+							<ScrollViewer VerticalScrollMode="Disabled" HorizontalScrollMode="Auto" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+								<ListView
+									HorizontalAlignment="Center"
+									HorizontalContentAlignment="Center"
+									SelectedItem="{x:Bind SelectedMonitor, Mode=TwoWay}"
+									ItemsSource="{x:Bind EmbeddedMonitors, Mode=OneTime}">
+									<ListView.ItemTemplate>
+										<DataTemplate x:DataType="vm:EmbeddedMonitorViewModel">
+											<Grid Width="{x:Bind DisplayWidth, Mode=OneWay}" Height="{x:Bind DisplayHeight, Mode=OneWay}" Background="Black" Margin="3">
+												<Image Source="{Binding CurrentGraphics.Image.FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneWay}" />
+											</Grid>
+										</DataTemplate>
+									</ListView.ItemTemplate>
+									<ListView.ItemContainerStyle>
+										<Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
+											<Setter Property="Padding" Value="0" />
+											<Setter Property="Margin" Value="0" />
+											<Setter Property="HorizontalAlignment" Value="Center" />
+											<Setter Property="HorizontalContentAlignment" Value="Center" />
+										</Style>
+									</ListView.ItemContainerStyle>
+									<ListView.ItemsPanel>
+										<ItemsPanelTemplate>
+											<controls:UniformGrid
+												HorizontalAlignment="Center"
+												FlowDirection="LeftToRight"
+												Orientation="Horizontal"
+												Columns="8"
+												Rows="4"
+												ColumnSpacing="2"
+												RowSpacing="2" />
+										</ItemsPanelTemplate>
+									</ListView.ItemsPanel>
+								</ListView>
+							</ScrollViewer>
+							<local:EmbeddedMonitorSettingControl Monitor="{x:Bind SelectedMonitor, Mode=OneWay}" IsEnabled="{x:Bind SelectedMonitor.IsNotBusy}" />
+						</StackPanel>
+					</DataTemplate>
+				</lts:EmbeddedMonitorSettingTemplateSelector.MonitorMatrixTemplate>
+				<lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
+					<DataTemplate x:DataType="vm:EmbeddedMonitorFeaturesViewModel">
+						<Grid></Grid>
+					</DataTemplate>
+				</lts:EmbeddedMonitorSettingTemplateSelector.MultiMonitorTemplate>
+			</lts:EmbeddedMonitorSettingTemplateSelector>
+		</ContentControl.ContentTemplateSelector>
+	</ContentControl>
 </UserControl>

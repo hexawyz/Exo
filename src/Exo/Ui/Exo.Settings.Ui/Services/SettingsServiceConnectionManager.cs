@@ -149,7 +149,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	// If we end up needing to dynamically register components at some point, the implementation should be upgraded.
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
 	private TaskCompletionSource<ILightService> _lightServiceTaskCompletionSource;
-	private TaskCompletionSource<IEmbeddedMonitorService> _embeddedMonitorServiceTaskCompletionSource;
 	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
 	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
@@ -166,7 +165,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	{
 		_connectedStates = new();
 		_lightServiceTaskCompletionSource = new();
-		_embeddedMonitorServiceTaskCompletionSource = new();
 		_coolingServiceTaskCompletionSource = new();
 		_customMenuServiceTaskCompletionSource = new();
 		_programmingServiceTaskCompletionSource = new();
@@ -176,9 +174,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	public Task<ILightService> GetLightServiceAsync(CancellationToken cancellationToken)
 		=> _lightServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
-
-	public Task<IEmbeddedMonitorService> GetEmbeddedMonitorServiceAsync(CancellationToken cancellationToken)
-		=> _embeddedMonitorServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ICoolingService> GetCoolingServiceAsync(CancellationToken cancellationToken)
 		=> _coolingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -217,7 +212,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	protected override async Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken)
 	{
 		Connect(channel, _lightServiceTaskCompletionSource);
-		Connect(channel, _embeddedMonitorServiceTaskCompletionSource);
 		Connect(channel, _coolingServiceTaskCompletionSource);
 		Connect(channel, _customMenuServiceTaskCompletionSource);
 		Connect(channel, _programmingServiceTaskCompletionSource);
@@ -236,7 +230,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	protected override async Task OnDisconnectedAsync()
 	{
 		Reset(ref _lightServiceTaskCompletionSource);
-		Reset(ref _embeddedMonitorServiceTaskCompletionSource);
 		Reset(ref _coolingServiceTaskCompletionSource);
 		Reset(ref _customMenuServiceTaskCompletionSource);
 		Reset(ref _programmingServiceTaskCompletionSource);

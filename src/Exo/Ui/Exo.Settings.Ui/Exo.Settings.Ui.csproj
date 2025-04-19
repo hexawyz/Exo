@@ -62,20 +62,30 @@
 	  <Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbColor.cs" Link="Definitions\RgbColor.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\DeviceCategory.cs" Link="Definitions\DeviceCategory.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\DotsPerInch.cs" Link="Definitions\DotsPerInch.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\EmbeddedMonitors\EmbeddedMonitorGraphicsDescription.cs" Link="Definitions\EmbeddedMonitorGraphicsDescription.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Features\BatteryStatus.cs" Link="Definitions\BatteryStatus.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Features\ExternalPowerStatus.cs" Link="Definitions\ExternalPowerStatus.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Images\ColorFormat.cs" Link="Ipc\ColorFormat.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Images\ImageFormat.cs" Link="Ipc\ImageFormat.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Images\ImageFormats.cs" Link="Ipc\ImageFormats.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Images\ImageRotation.cs" Link="Definitions\ImageRotation.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Images\PixelComponentFormat.cs" Link="Definitions\PixelComponentFormat.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Images\PixelFormat.cs" Link="Ipc\PixelFormat.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Images\Point.cs" Link="Definitions\Point.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Images\Rectangle.cs" Link="Definitions\Rectangle.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Images\Size.cs" Link="Definitions\Size.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Lighting\LightingPersistenceMode.cs" Link="Definitions\LightingPersistenceMode.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\MonitorFeature.cs" Link="Definitions\MonitorFeature.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Monitors\MonitorShape.cs" Link="Definitions\MonitorShape.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\NonContinuousValueDescription.cs" Link="Definitions\NonContinuousValueDescription.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\BatteryChangeNotification.cs" Link="Definitions\BatteryChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\BrightnessCapabilities.cs" Link="Definitions\BrightnessCapabilities.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceNotFoundException.cs" Link="Definitions\DeviceNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceStateInformation.cs" Link="Definitions\DeviceStateInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorCapabilities.cs" Link="Definitions\EmbeddedMonitorCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorConfiguration.cs" Link="Definitions\EmbeddedMonitorConfiguration.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorDeviceInformation.cs" Link="Definitions\EmbeddedMonitorDeviceInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorInformation.cs" Link="Definitions\EmbeddedMonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\ImageChangeNotification.cs" Link="Definitions\ImageChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\ImageInformation.cs" Link="Definitions\ImageInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceConfiguration.cs" Link="Definitions\LightingDeviceConfiguration.cs" />
@@ -85,6 +95,7 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorNotFoundException.cs" Link="Definitions\MonitorNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSetting.cs" Link="Definitions\MonitorSetting.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorSettingValue.cs" Link="Definitions\MonitorSettingValue.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MouseCapabilities.cs" Link="Definitions\MouseCapabilities.cs" />

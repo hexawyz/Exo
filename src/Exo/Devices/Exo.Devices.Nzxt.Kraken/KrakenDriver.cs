@@ -7,6 +7,7 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.Cooling;
 using Exo.Discovery;
+using Exo.EmbeddedMonitors;
 using Exo.Features;
 using Exo.Features.Cooling;
 using Exo.Features.EmbeddedMonitors;

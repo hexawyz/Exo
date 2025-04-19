@@ -31,7 +31,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.MonitorService,
 			uiPipeServer.SensorService,
 			uiPipeServer.LightingEffectMetadataService,
-			uiPipeServer.LightingService
+			uiPipeServer.LightingService,
+			uiPipeServer.EmbeddedMonitorService
 		);
 	}
 
@@ -45,6 +46,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly SensorService _sensorService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly LightingService _lightingService;
+	private readonly EmbeddedMonitorService _embeddedMonitorService;
 	private int _state;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
@@ -67,7 +69,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		MonitorService monitorService,
 		SensorService sensorService,
 		LightingEffectMetadataService lightingEffectMetadataService,
-		LightingService lightingService
+		LightingService lightingService,
+		EmbeddedMonitorService embeddedMonitorService
 	) : base(server, stream)
 	{
 		_logger = logger;
@@ -81,6 +84,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_sensorService = sensorService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingService = lightingService;
+		_embeddedMonitorService = embeddedMonitorService;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
 			if (callingProcess.ProcessName != "Exo.Settings.Ui")
@@ -122,6 +126,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var powerDeviceWatchTask = WatchPowerDevicesAsync(cancellationToken);
 		var mouseDeviceWatchTask = WatchMouseDevicesAsync(cancellationToken);
 		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
+		var embeddedMonitorDeviceWatchTask = WatchEmbeddedMonitorDevicesAsync(cancellationToken);
+		var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
 
@@ -157,6 +163,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			mousePollingFrequencyWatchTask,
 			lightingDeviceWatchTask,
 			lightingDeviceConfigurationWatchTask,
+			embeddedMonitorDeviceWatchTask,
+			embeddedMonitorConfigurationWatchTask,
 			monitorDeviceWatchTask,
 			monitorSettingWatchTask,
 			sensorDeviceWatchTask,
@@ -285,6 +293,12 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			goto Success;
 		case ExoUiProtocolClientMessage.LightingDeviceConfiguration:
 			ProcessLightingDeviceConfiguration(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.EmbeddedMonitorBuiltInGraphics:
+			ProcessEmbeddedMonitorBuiltInGraphics(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.EmbeddedMonitorImage:
+			ProcessEmbeddedMonitorImage(data, cancellationToken);
 			goto Success;
 		case ExoUiProtocolClientMessage.MonitorSettingSet:
 			ProcessMonitorSettingSet(data, cancellationToken);

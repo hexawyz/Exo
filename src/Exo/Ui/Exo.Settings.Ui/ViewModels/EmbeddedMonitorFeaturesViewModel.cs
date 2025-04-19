@@ -3,10 +3,12 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Input;
 using Exo.Contracts.Ui.Settings;
+using Exo.EmbeddedMonitors;
+using Exo.Images;
+using Exo.Monitors;
+using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Grpc.Core;
-using Microsoft.UI.Xaml.Documents;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -20,7 +22,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	private readonly ObservableCollection<EmbeddedMonitorViewModel> _embeddedMonitors;
 	private readonly ReadOnlyObservableCollection<EmbeddedMonitorViewModel> _readOnlyEmbeddedMonitors;
 	private readonly Dictionary<Guid, EmbeddedMonitorViewModel> _embeddedMonitorById;
-	private readonly Dictionary<Guid, EmbeddedMonitorConfigurationUpdate> _pendingConfigurationUpdates;
+	private readonly Dictionary<Guid, EmbeddedMonitorConfiguration> _pendingConfigurationUpdates;
 	private bool _isExpanded;
 	private readonly PropertyChangedEventHandler _onRasterizationScaleProviderPropertyChanged;
 	private EmbeddedMonitorViewModel? _selectedMonitor;
@@ -123,7 +125,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 		}
 	}
 
-	internal void UpdateConfiguration(EmbeddedMonitorConfigurationUpdate configuration)
+	internal void UpdateConfiguration(EmbeddedMonitorConfiguration configuration)
 	{
 		if (_embeddedMonitorById.TryGetValue(configuration.MonitorId, out var monitor))
 		{
@@ -319,7 +321,7 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 		(_currentGraphics as IResettable)?.Reset();
 	}
 
-	internal void UpdateConfiguration(EmbeddedMonitorConfigurationUpdate configuration)
+	internal void UpdateConfiguration(EmbeddedMonitorConfiguration configuration)
 	{
 		bool wasChanged = IsChanged;
 
@@ -341,9 +343,9 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 		}
 
 		// Just as a small optimization, we update the contents of the graphics first, so that in the event where it is not the one displayed, we will avoid unnecessary UI updates.
-		if (newGraphics is not null && configuration.GraphicsId == default && configuration.ImageConfiguration is { } imageConfiguration)
+		if (newGraphics is not null && configuration.GraphicsId == default)
 		{
-			((EmbeddedMonitorImageGraphicsViewModel)newGraphics).UpdateConfiguration(imageConfiguration);
+			((EmbeddedMonitorImageGraphicsViewModel)newGraphics).UpdateConfiguration(configuration.ImageId, configuration.ImageRegion);
 		}
 
 		if (_initialCurrentGraphicsId != configuration.GraphicsId)
@@ -415,12 +417,9 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 		{
 			await Monitor.Owner.EmbeddedMonitorService.SetBuiltInGraphicsAsync
 			(
-				new()
-				{
-					DeviceId = Monitor.Owner.DeviceId,
-					MonitorId = Monitor.MonitorId,
-					GraphicsId = Id
-				},
+				Monitor.Owner.DeviceId,
+				Monitor.MonitorId,
+				Id,
 				cancellationToken
 			);
 		}
@@ -596,13 +595,10 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		{
 			await Monitor.Owner.EmbeddedMonitorService.SetImageAsync
 			(
-				new()
-				{
-					DeviceId = Monitor.Owner.DeviceId,
-					MonitorId = Monitor.MonitorId,
-					ImageId = image.Id,
-					CropRegion = new() { Left = rectangle.Left, Top = rectangle.Top, Width = rectangle.Width, Height = rectangle.Height },
-				},
+				Monitor.Owner.DeviceId,
+				Monitor.MonitorId,
+				image.Id,
+				new(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height),
 				cancellationToken
 			);
 		}
@@ -612,18 +608,18 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		}
 	}
 
-	internal void UpdateConfiguration(EmbeddedMonitorImageConfiguration configuration)
+	internal void UpdateConfiguration(UInt128 imageId, Rectangle cropRegion)
 	{
 		bool wasChanged = IsChanged;
 		bool imageChanged = false;
 		bool cropRectangleChanged = false;
-		if (_initialImageId != configuration.ImageId)
+		if (_initialImageId != imageId)
 		{
 			if (_image is null || _image.Id == _initialImageId)
 			{
 				foreach (var image in AvailableImages)
 				{
-					if (image.Id == configuration.ImageId)
+					if (image.Id == imageId)
 					{
 						_image = image;
 						imageChanged = true;
@@ -631,16 +627,16 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 					}
 				}
 			}
-			_initialImageId = configuration.ImageId;
+			_initialImageId = imageId;
 		}
-		if (_initialCropRectangle != configuration.ImageRegion)
+		if (_initialCropRectangle != cropRegion)
 		{
 			if (_cropRectangle == _initialCropRectangle)
 			{
-				_cropRectangle = configuration.ImageRegion;
+				_cropRectangle = cropRegion;
 				cropRectangleChanged = true;
 			}
-			_initialCropRectangle = configuration.ImageRegion;
+			_initialCropRectangle = cropRegion;
 		}
 		if (imageChanged) NotifyPropertyChanged(ChangedProperty.Image);
 		if (cropRectangleChanged) NotifyPropertyChanged(ChangedProperty.CropRectangle);

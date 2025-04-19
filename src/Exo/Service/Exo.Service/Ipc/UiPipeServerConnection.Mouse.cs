@@ -251,7 +251,7 @@ partial class UiPipeServerConnection
 			}
 			catch (DeviceNotFoundException)
 			{
-				await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.DeviceNotFound, cancellationToken);
 				return;
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -260,10 +260,10 @@ partial class UiPipeServerConnection
 			}
 			catch
 			{
-				await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Error, cancellationToken);
+				await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Error, cancellationToken);
 				return;
 			}
-			await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Success, cancellationToken);
+			await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Success, cancellationToken);
 		}
 		catch
 		{
@@ -286,7 +286,7 @@ partial class UiPipeServerConnection
 			}
 			catch (DeviceNotFoundException)
 			{
-				await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.DeviceNotFound, cancellationToken);
 				return;
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -295,10 +295,10 @@ partial class UiPipeServerConnection
 			}
 			catch
 			{
-				await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Error, cancellationToken);
+				await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Error, cancellationToken);
 				return;
 			}
-			await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Success, cancellationToken);
+			await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Success, cancellationToken);
 		}
 		catch
 		{
@@ -321,7 +321,7 @@ partial class UiPipeServerConnection
 			}
 			catch (DeviceNotFoundException)
 			{
-				await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.DeviceNotFound, cancellationToken);
+				await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.DeviceNotFound, cancellationToken);
 				return;
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -330,17 +330,17 @@ partial class UiPipeServerConnection
 			}
 			catch
 			{
-				await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Error, cancellationToken);
+				await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Error, cancellationToken);
 				return;
 			}
-			await WriteMouseDeviceDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Success, cancellationToken);
+			await WriteMouseDeviceConfigurationStatusAsync(requestId, MouseDeviceOperationStatus.Success, cancellationToken);
 		}
 		catch
 		{
 		}
 	}
 
-	private ValueTask WriteMouseDeviceDeviceConfigurationStatusAsync(uint requestId, MouseDeviceOperationStatus status, CancellationToken cancellationToken)
+	private ValueTask WriteMouseDeviceConfigurationStatusAsync(uint requestId, MouseDeviceOperationStatus status, CancellationToken cancellationToken)
 		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.PowerDeviceOperationStatus, requestId, (byte)status, cancellationToken);
 
 	private static void Write(ref BufferWriter writer, in MouseDeviceInformation device)
