@@ -1,6 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Exo.EmbeddedMonitors;
 
-public readonly struct EmbeddedMonitorGraphicsDescription
+public readonly struct EmbeddedMonitorGraphicsDescription : IEquatable<EmbeddedMonitorGraphicsDescription>
 {
 	/// <summary>Gets a default definition of the custom graphics.</summary>
 	/// <remarks>
@@ -30,13 +32,21 @@ public readonly struct EmbeddedMonitorGraphicsDescription
 	/// From a logic POV it does not change much, but it is more convenient for implementation to just require a single GUID.
 	/// Of course, the constructor allowing for the use of two different GUIDs is still available for implementation that want more complex binding.
 	/// </remarks>
-	/// <param name="modeAndNameStringId">The unique ID that will be used to reference both the graphics and the name.</param>
-	public EmbeddedMonitorGraphicsDescription(Guid modeAndNameStringId)
-		: this(modeAndNameStringId, modeAndNameStringId) { }
+	/// <param name="graphicsAndNameStringId">The unique ID that will be used to reference both the graphics and the name.</param>
+	public EmbeddedMonitorGraphicsDescription(Guid graphicsAndNameStringId)
+		: this(graphicsAndNameStringId, graphicsAndNameStringId) { }
 
-	public EmbeddedMonitorGraphicsDescription(Guid modeId, Guid nameStringId)
+	[JsonConstructor]
+	public EmbeddedMonitorGraphicsDescription(Guid graphicsId, Guid nameStringId)
 	{
-		GraphicsId = modeId;
+		GraphicsId = graphicsId;
 		NameStringId = nameStringId;
 	}
+
+	public override bool Equals(object? obj) => obj is EmbeddedMonitorGraphicsDescription description && Equals(description);
+	public bool Equals(EmbeddedMonitorGraphicsDescription other) => GraphicsId == other.GraphicsId && NameStringId == other.NameStringId;
+	public override int GetHashCode() => HashCode.Combine(GraphicsId, NameStringId);
+
+	public static bool operator ==(EmbeddedMonitorGraphicsDescription left, EmbeddedMonitorGraphicsDescription right) => left.Equals(right);
+	public static bool operator !=(EmbeddedMonitorGraphicsDescription left, EmbeddedMonitorGraphicsDescription right) => !(left == right);
 }
