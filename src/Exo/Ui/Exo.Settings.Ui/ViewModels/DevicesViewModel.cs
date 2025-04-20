@@ -45,7 +45,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	// If the same device is reconnected later, it will be considered a new device and get a new and device ID.
 	private readonly HashSet<Guid> _removedDeviceIds;
 
-	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _availableImages;
 
 	// Processing asynchronous status updates requires accessing the view model from the device ID.
@@ -87,7 +86,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	public DevicesViewModel
 	(
-		SettingsServiceConnectionManager connectionManager,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		IRasterizationScaleProvider rasterizationScaleProvider,
@@ -97,7 +95,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 	{
 		_devices = new();
 		_removedDeviceIds = new();
-		_connectionManager = connectionManager;
 		_availableImages = availableImages;
 		_devicesById = new();
 		_pendingPowerDeviceInformations = new();
@@ -152,7 +149,6 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				{
 					var device = new DeviceViewModel
 					(
-						_connectionManager,
 						_availableImages,
 						_metadataService,
 						_notificationSystem,

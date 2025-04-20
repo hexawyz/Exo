@@ -34,6 +34,11 @@ internal class ExoServiceClient : IServiceClient
 			_settingsViewModel.Cooling.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
 			_settingsViewModel.CustomMenu.OnConnected(control);
+			_settingsViewModel.OnConnected(true);
+		}
+		else
+		{
+			_settingsViewModel.OnConnected(false);
 		}
 	}
 

@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using DeviceTools;
-using Exo.Contracts.Ui.Settings;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
@@ -12,7 +11,6 @@ internal class DeviceViewModel : BindableObject, IDisposable
 {
 	public DeviceViewModel
 	(
-		SettingsServiceConnectionManager connectionManager,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		INotificationSystem notificationSystem,

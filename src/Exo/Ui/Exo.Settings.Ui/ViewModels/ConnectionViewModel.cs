@@ -1,4 +1,4 @@
-﻿using Exo.Settings.Ui.Services;
+using Exo.Settings.Ui.Services;
 using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -9,7 +9,7 @@ internal sealed class ConnectionViewModel : BindableObject
 
 	public ConnectionStatus ConnectionStatus => _connectionStatus;
 
-	internal void OnConnectionStatusChanged(SettingsServiceConnectionManager connectionManager, ConnectionStatus connectionStatus)
+	internal void OnConnectionStatusChanged(ConnectionStatus connectionStatus)
 	{
 		_connectionStatus = connectionStatus;
 		NotifyPropertyChanged(ChangedProperty.ConnectionStatus);

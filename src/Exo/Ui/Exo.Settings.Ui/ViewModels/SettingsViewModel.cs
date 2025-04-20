@@ -69,7 +69,6 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		}
 	}
 
-	public SettingsServiceConnectionManager ConnectionManager { get; }
 	private readonly ConnectionViewModel _connectionViewModel;
 	private readonly IEditionService _editionService;
 	private readonly ISettingsMetadataService _metadataService;
@@ -123,7 +122,6 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 
 	public SettingsViewModel
 	(
-		SettingsServiceConnectionManager connectionManager,
 		ConnectionViewModel connectionViewModel,
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		IEditionService editionService,
@@ -131,7 +129,6 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		ISettingsMetadataService metadataService
 	)
 	{
-		ConnectionManager = connectionManager;
 		_connectionViewModel = connectionViewModel;
 		_editionService = editionService;
 		_metadataService = metadataService;
@@ -139,15 +136,15 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_goForwardCommand = new(this);
 		_navigateCommand = new(this);
 		_imagesViewModel = new(fileOpenDialog, this);
-		_devicesViewModel = new(ConnectionManager, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
+		_devicesViewModel = new(_imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightsViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(_devicesViewModel, _metadataService);
 		_sensorsViewModel = new(_devicesViewModel, _metadataService);
 		_favoriteSensorsViewModel = new(_sensorsViewModel);
-		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
+		_coolingViewModel = new(_devicesViewModel, _sensorsViewModel, _metadataService);
 		_programmingViewModel = new();
-		_customMenuViewModel = new(ConnectionManager);
+		_customMenuViewModel = new();
 		_navigationStack = new();
 		_notifications = new();
 		_readOnlyNotifications = new(_notifications);
@@ -165,6 +162,12 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 
 		connectionViewModel.PropertyChanged += OnConnectionViewModelPropertyChanged;
 	}
+
+	internal void OnConnected(bool isGoodVersion)
+		=> _connectionViewModel.OnConnectionStatusChanged(isGoodVersion ? ConnectionStatus.Connected : ConnectionStatus.VersionMismatch);
+
+	internal void OnConnectionReset()
+		=> _connectionViewModel.OnConnectionStatusChanged(ConnectionStatus.Disconnected);
 
 	private void OnConnectionViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{

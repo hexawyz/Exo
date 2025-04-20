@@ -18,7 +18,6 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class CoolingViewModel : IAsyncDisposable
 {
-	private readonly SettingsServiceConnectionManager _connectionManager;
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
 	private readonly ISettingsMetadataService _metadataService;
@@ -33,9 +32,8 @@ internal sealed class CoolingViewModel : IAsyncDisposable
 
 	public ObservableCollection<CoolingDeviceViewModel> Devices => _coolingDevices;
 
-	public CoolingViewModel(SettingsServiceConnectionManager connectionManager, DevicesViewModel devicesViewModel, SensorsViewModel sensorsViewModel, ISettingsMetadataService metadataService)
+	public CoolingViewModel(DevicesViewModel devicesViewModel, SensorsViewModel sensorsViewModel, ISettingsMetadataService metadataService)
 	{
-		_connectionManager = connectionManager;
 		_devicesViewModel = devicesViewModel;
 		_sensorsViewModel = sensorsViewModel;
 		_metadataService = metadataService;

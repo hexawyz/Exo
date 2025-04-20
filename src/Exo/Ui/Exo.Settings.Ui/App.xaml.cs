@@ -14,8 +14,6 @@ using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using ProtoBuf.Grpc.Client;
-using ProtoBuf.Meta;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
@@ -40,20 +38,6 @@ public partial class App : Application
 	/// </summary>
 	public App()
 	{
-		// Adjust protobuf serialization for types that require it.
-		foreach (var type in typeof(NamedElement).Assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(NamedElement))))
-		{
-			var metaType = RuntimeTypeModel.Default[type];
-
-			metaType.Add(1, nameof(NamedElement.Id));
-			metaType.Add(2, nameof(NamedElement.Name));
-			metaType.Add(3, nameof(NamedElement.Comment));
-		}
-
-		RuntimeTypeModel.Default.Add<UInt128>(false).SerializerType = typeof(UInt128Serializer);
-
-		GrpcClientFactory.AllowUnencryptedHttp2 = true;
-
 		_rasterizationScaleController = new();
 
 		_cancellationTokenSource = new();
@@ -158,21 +142,6 @@ public partial class App : Application
 		services.AddSingleton<ISettingsMetadataService>(sp => sp.GetRequiredService<MetadataService>());
 
 		services.AddSingleton<IFileOpenDialog, FileOpenDialog>();
-
-		services.AddSingleton
-		(
-			sp => new SettingsServiceConnectionManager
-			(
-				"Local\\Exo.Service.Configuration",
-				100,
-#if DEBUG
-				null,
-#else
-				Exo.Utils.GitCommitHelper.GetCommitIdString(typeof(SettingsViewModel).Assembly),
-#endif
-				sp.GetRequiredService<ConnectionViewModel>().OnConnectionStatusChanged
-			)
-		);
 
 		services.AddSingleton(_ => new ResettableChannel<MetadataSourceChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));

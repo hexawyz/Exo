@@ -16,11 +16,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="protobuf-net" />
-		<PackageReference Include="protobuf-net.Grpc" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Primitives\Exo.Primitives.csproj" />
 		<ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />

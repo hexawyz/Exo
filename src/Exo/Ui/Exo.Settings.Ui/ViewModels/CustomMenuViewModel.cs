@@ -22,7 +22,6 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 	private readonly ReadOnlyObservableCollection<SubMenuMenuItemViewModel> _readOnlyEditedMenuHierarchy;
 	private readonly Dictionary<Guid, MenuItemViewModel> _originalRegisteredGuids;
 	private readonly Dictionary<Guid, MenuItemViewModel> _liveRegisteredGuids;
-	private readonly SettingsServiceConnectionManager _connectionManager;
 	private ICustomMenuService? _customMenuService;
 
 	private readonly Commands.AddTextItemCommand _addTextItemCommand;
@@ -35,7 +34,7 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 
 	private event EventHandler? _canDeleteItemChanged;
 
-	public CustomMenuViewModel(SettingsServiceConnectionManager connectionManager)
+	public CustomMenuViewModel()
 	{
 		_addTextItemCommand = new(this);
 		_addSeparatorItemCommand = new(this);
@@ -55,7 +54,6 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 		_editedMenuHierarchy = [_rootMenu];
 		_readOnlyEditedMenuHierarchy = new(_editedMenuHierarchy);
 
-		_connectionManager = connectionManager;
 		_cancellationTokenSource = new();
 	}
 

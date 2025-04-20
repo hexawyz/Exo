@@ -1,15 +1,12 @@
 using System.Reflection;
 using System.Threading.Channels;
 using Exo.Configuration;
-using Exo.Contracts.Ui.Settings;
 using Exo.Discovery;
 using Exo.I2C;
-using Exo.Service.Grpc;
 using Exo.Service.Ipc;
 using Exo.Services;
 using Exo.SystemManagementBus;
 using Microsoft.Extensions.Hosting.WindowsServices;
-using ProtoBuf.Grpc.Server;
 using Serilog;
 
 namespace Exo.Service;
@@ -282,8 +279,6 @@ public class Startup
 		services.AddSingleton<MonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
-		services.AddSingleton<GrpcServiceLifetimeService>();
-		services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = 512 * 1024);
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -306,13 +301,8 @@ public class Startup
 
 		app.UseAuthorization();
 
-		var settingsEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Configuration");
-		var overlayEndpointFilter = new SettingsPipeFilter(@"Local\Exo.Service.Overlay");
-		var pipeEndpointFilter = new SettingsPipeFilter();
-
 		app.UseEndpoints(endpoints =>
 		{
-			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);
 			endpoints.MapRazorPages();
 		});
 	}
