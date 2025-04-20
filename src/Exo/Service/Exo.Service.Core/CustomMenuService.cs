@@ -165,7 +165,7 @@ internal sealed class CustomMenuService
 						{
 							Kind = currentMenuItemsById.ContainsKey(newItem.ItemId) ? WatchNotificationKind.Addition : WatchNotificationKind.Update,
 							ParentItemId = parentItemId,
-							Position = runningIndex,
+							Position = updatedItemPosition,
 							MenuItem = newItem,
 						}
 					);
