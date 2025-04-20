@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
+using Exo.Programming;
 using Exo.Service;
 using Exo.Service.Ipc;
 using Exo.Settings.Ui.Services;
@@ -30,6 +31,7 @@ internal class ExoServiceClient : IServiceClient
 			_settingsViewModel.Images.OnConnected(control);
 			_settingsViewModel.Devices.OnConnected(control, control, control, control, control);
 			_settingsViewModel.Sensors.OnConnected(control);
+			_settingsViewModel.Cooling.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
 		}
 	}
@@ -53,6 +55,9 @@ internal class ExoServiceClient : IServiceClient
 		// TODO
 		// We actually receive the notifications but the other side of the protocol still needs to be implemented.
 	}
+
+	void IServiceClient.OnProgrammingMetadata(ImmutableArray<ModuleDefinition> modules)
+		=> _settingsViewModel.Programming.HandleMetadata(modules);
 
 	void IServiceClient.OnImageUpdate(Service.WatchNotificationKind kind, ImageInformation information)
 		=> _settingsViewModel.Images.OnImageUpdate(kind, information);

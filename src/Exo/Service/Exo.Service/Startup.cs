@@ -282,7 +282,6 @@ public class Startup
 		services.AddSingleton<MonitorControlProxyService>();
 		services.AddSingleton(sp => new ReconnectingMonitorControlService(sp.GetRequiredService<MonitorControlProxyService>()));
 		services.AddSingleton(sp => new ProxiedI2cBusProvider(sp.GetRequiredService<ReconnectingMonitorControlService>()));
-		services.AddSingleton<GrpcProgrammingService>();
 		services.AddSingleton<GrpcCustomMenuService>();
 		services.AddSingleton<GrpcServiceLifetimeService>();
 		services.AddSingleton<ISettingsCustomMenuService>(sp => sp.GetRequiredService<GrpcCustomMenuService>());
@@ -315,9 +314,7 @@ public class Startup
 
 		app.UseEndpoints(endpoints =>
 		{
-			endpoints.MapGrpcService<GrpcProgrammingService>().AddEndpointFilter(settingsEndpointFilter);
 			endpoints.MapGrpcService<ISettingsCustomMenuService>().AddEndpointFilter(settingsEndpointFilter);
-			endpoints.MapGrpcService<MonitorControlProxyService>().AddEndpointFilter(overlayEndpointFilter);
 			endpoints.MapGrpcService<GrpcServiceLifetimeService>().AddEndpointFilter(pipeEndpointFilter);
 			endpoints.MapRazorPages();
 		});

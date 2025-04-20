@@ -115,6 +115,7 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Update of a custom menu item.</summary>
 	/// <remarks></remarks>
 	CustomMenuItemUpdate,
+	ProgrammingMetadata,
 	ImageEnumeration,
 	ImageAdd,
 	ImageRemove,

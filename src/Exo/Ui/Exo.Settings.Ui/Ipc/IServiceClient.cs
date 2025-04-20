@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
-using Exo.Cooling.Configuration;
+using Exo.Programming;
 
 namespace Exo.Service.Ipc;
 
@@ -13,6 +13,8 @@ internal interface IServiceClient
 	void OnMetadataSourceNotification(MetadataSourceChangeNotification notification);
 
 	void OnMenuUpdate(MenuChangeNotification notification);
+
+	void OnProgrammingMetadata(ImmutableArray<ModuleDefinition> modules);
 
 	void OnImageUpdate(WatchNotificationKind kind, ImageInformation information);
 

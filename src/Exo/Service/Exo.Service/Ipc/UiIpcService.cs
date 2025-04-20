@@ -10,6 +10,7 @@ internal sealed class UiIpcService : IHostedService
 	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
 	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly CustomMenuService _customMenuService;
+	private readonly ProgrammingService _programmingService;
 	private readonly ImageStorageService _imageStorageService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly PowerService _powerService;
@@ -27,6 +28,7 @@ internal sealed class UiIpcService : IHostedService
 		ILogger<UiPipeServerConnection> connectionLogger,
 		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
+		ProgrammingService programmingService,
 		ImageStorageService imageStorageService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
@@ -43,6 +45,7 @@ internal sealed class UiIpcService : IHostedService
 		_connectionLogger = connectionLogger;
 		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
+		_programmingService = programmingService;
 		_imageStorageService = imageStorageService;
 		_deviceRegistry = deviceRegistry;
 		_powerService = powerService;
@@ -89,6 +92,7 @@ internal sealed class UiIpcService : IHostedService
 			_connectionLogger,
 			_assemblyLoader,
 			_customMenuService,
+			_programmingService,
 			_imageStorageService,
 			_deviceRegistry,
 			_powerService,

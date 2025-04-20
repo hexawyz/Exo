@@ -146,7 +146,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_sensorsViewModel = new(_devicesViewModel, _metadataService);
 		_favoriteSensorsViewModel = new(_sensorsViewModel);
 		_coolingViewModel = new(ConnectionManager, _devicesViewModel, _sensorsViewModel, _metadataService);
-		_programmingViewModel = new(ConnectionManager);
+		_programmingViewModel = new();
 		_customMenuViewModel = new(ConnectionManager);
 		_navigationStack = new();
 		_notifications = new();

@@ -18,6 +18,7 @@ using Exo.Ipc;
 using Exo.Lighting;
 using Exo.Monitors;
 using Exo.Primitives;
+using Exo.Programming;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 using Microsoft.UI.Dispatching;
@@ -200,6 +201,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.ProgrammingMetadata:
+			ProcessProgrammingMetadata(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ImageEnumeration:
 			ProcessImage(WatchNotificationKind.Enumeration, data);
@@ -390,6 +394,29 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMenuUpdate(notification));
+	}
+
+	private void ProcessProgrammingMetadata(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+		var modules = ReadModules(ref reader);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnProgrammingMetadata(modules));
+
+		static ImmutableArray<ModuleDefinition> ReadModules(ref BufferReader reader)
+		{
+			uint count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var modules = new ModuleDefinition[count];
+			for (int i = 0; i < modules.Length; i++)
+			{
+				modules[i] = ReadModule(ref reader);
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(modules);
+		}
+
+		static ModuleDefinition ReadModule(ref BufferReader reader)
+			=> new() { Id = reader.ReadGuid(), Name = reader.ReadVariableString() ?? "", Comment = reader.ReadVariableString() };
 	}
 
 	private void ProcessImage(WatchNotificationKind kind, ReadOnlySpan<byte> data)

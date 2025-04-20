@@ -23,6 +23,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.ConnectionLogger,
 			uiPipeServer.AssemblyLoader,
 			uiPipeServer.CustomMenuService,
+			uiPipeServer.ProgrammingService,
 			uiPipeServer.ImageStorageService,
 			uiPipeServer.DeviceRegistry,
 			uiPipeServer.PowerService,
@@ -39,6 +40,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly CustomMenuService _customMenuService;
+	private readonly ProgrammingService _programmingService;
 	private readonly ImageStorageService _imageStorageService;
 	private readonly DeviceRegistry _deviceRegistry;
 	private readonly PowerService _powerService;
@@ -65,6 +67,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		ILogger<UiPipeServerConnection> logger,
 		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
+		ProgrammingService programmingService,
 		ImageStorageService imageStorageService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
@@ -81,6 +84,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_logger = logger;
 		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
+		_programmingService = programmingService;
 		_imageStorageService = imageStorageService;
 		_deviceRegistry = deviceRegistry;
 		_powerService = powerService;
@@ -126,6 +130,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 		var metadataWatchTask = WatchMetadataChangesAsync(cancellationToken);
 		var customMenuWatchTask = WatchCustomMenuChangesAsync(cancellationToken);
+		var programmingMetadataInitializationTask = InitializeProgrammingMetadataAsync(cancellationToken);
 		var imageWatchTask = WatchImagesAsync(cancellationToken);
 		var lightingEffectsWatchTask = WatchLightingEffectsAsync(cancellationToken);
 
@@ -166,6 +171,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		(
 			metadataWatchTask,
 			customMenuWatchTask,
+			programmingMetadataInitializationTask,
 			imageWatchTask,
 			lightingEffectsWatchTask,
 			deviceWatchTask,

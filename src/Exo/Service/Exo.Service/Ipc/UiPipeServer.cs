@@ -7,6 +7,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 {
 	internal ILogger<UiPipeServerConnection> ConnectionLogger { get; }
 	internal CustomMenuService CustomMenuService { get; }
+	internal ProgrammingService ProgrammingService { get; }
 	internal ImageStorageService ImageStorageService { get; }
 	internal DeviceRegistry DeviceRegistry { get; }
 	internal PowerService PowerService { get; }
@@ -27,6 +28,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		ILogger<UiPipeServerConnection> connectionLogger,
 		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
+		ProgrammingService programmingService,
 		ImageStorageService imageStorageService,
 		DeviceRegistry deviceRegistry,
 		PowerService powerService,
@@ -43,6 +45,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		ConnectionLogger = connectionLogger;
 		AssemblyLoader = assemblyLoader;
 		CustomMenuService = customMenuService;
+		ProgrammingService = programmingService;
 		ImageStorageService = imageStorageService;
 		DeviceRegistry = deviceRegistry;
 		PowerService = powerService;
