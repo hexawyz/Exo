@@ -148,7 +148,7 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 
 	public void Dispose()
 	{
-		Reset();
+		OnConnectionReset();
 	}
 
 	public ReadOnlyObservableCollection<ImageViewModel> Images => _readOnlyImages;
@@ -180,7 +180,7 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 		IsNotBusy = true;
 	}
 
-	internal void Reset()
+	internal void OnConnectionReset()
 	{
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{

@@ -1,12 +1,11 @@
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Settings;
+using Exo.Service;
+using Exo.Service.Ipc;
 using Exo.Settings.Ui.Services;
-using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -15,7 +14,7 @@ namespace Exo.Settings.Ui.ViewModels;
 // However, while maintaining two trees would be relatively easy, it would make computing changes somewhat expensive.
 // So instead of two distinct tree, each sub-menu will have a list of original items and current items.
 // As item identity is based on item ID, comparisons should be relatively, and IDs only need to be removed once an item is not referenced from anywhere.
-internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnectedState, IDisposable
+internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDisposable
 {
 	private readonly SubMenuMenuItemViewModel _rootMenu;
 	private MenuItemViewModel? _selectedMenuItem;
@@ -24,7 +23,7 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 	private readonly Dictionary<Guid, MenuItemViewModel> _originalRegisteredGuids;
 	private readonly Dictionary<Guid, MenuItemViewModel> _liveRegisteredGuids;
 	private readonly SettingsServiceConnectionManager _connectionManager;
-	private ISettingsCustomMenuService? _customMenuService;
+	private ICustomMenuService? _customMenuService;
 
 	private readonly Commands.AddTextItemCommand _addTextItemCommand;
 	private readonly Commands.AddSeparatorItemCommand _addSeparatorItemCommand;
@@ -33,7 +32,6 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 	private readonly Commands.NavigateToSubMenuCommand _navigateToSubMenuCommand;
 
 	private CancellationTokenSource? _cancellationTokenSource;
-	private readonly IDisposable _stateRegistration;
 
 	private event EventHandler? _canDeleteItemChanged;
 
@@ -59,14 +57,12 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 
 		_connectionManager = connectionManager;
 		_cancellationTokenSource = new();
-		_stateRegistration = connectionManager.RegisterStateAsync(this).GetAwaiter().GetResult();
 	}
 
 	public void Dispose()
 	{
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is not { } cts) return;
 		cts.Cancel();
-		_stateRegistration.Dispose();
 	}
 
 	public override bool IsChanged => true;
@@ -116,18 +112,12 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 		}
 	}
 
-	async Task IConnectedState.RunAsync(CancellationToken cancellationToken)
+	internal void OnConnected(ICustomMenuService customMenuService)
 	{
-		if (_cancellationTokenSource is not { } cts || cts.IsCancellationRequested) return;
-		using (var cts2 = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken))
-		{
-			var customMenuService = await _connectionManager.GetCustomMenuServiceAsync(cts2.Token);
-			_customMenuService = customMenuService;
-			await WatchMenuChangesAsync(customMenuService, cts2.Token);
-		}
+		_customMenuService = customMenuService;
 	}
 
-	void IConnectedState.Reset()
+	internal void OnConnectionReset()
 	{
 		_rootMenu.OriginalMenuItems.Clear();
 		_rootMenu.MenuItems.Clear();
@@ -141,105 +131,96 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 		}
 	}
 
-	private async Task WatchMenuChangesAsync(ISettingsCustomMenuService customMenuService, CancellationToken cancellationToken)
+	internal void HandleMenuUpdate(MenuChangeNotification notification)
 	{
-		try
-		{
-			await foreach (var notification in customMenuService.WatchMenuChangesAsync(cancellationToken))
-			{
-				SubMenuMenuItemViewModel parentMenu;
-				bool isRoot = notification.ParentItemId == Constants.RootMenuItem;
+		SubMenuMenuItemViewModel parentMenu;
+		bool isRoot = notification.ParentItemId == Constants.RootMenuItem;
 
-				if (isRoot)
+		if (isRoot)
+		{
+			parentMenu = _rootMenu;
+		}
+		else
+		{
+			parentMenu = (SubMenuMenuItemViewModel)_originalRegisteredGuids[notification.ParentItemId];
+		}
+
+		_originalRegisteredGuids.TryGetValue(notification.ItemId, out var existingItem);
+
+		int menuItemPosition = (int)notification.Position;
+
+		switch (notification.Kind)
+		{
+		case Contracts.Ui.WatchNotificationKind.Enumeration:
+			if (notification.Position != parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Initial enumeration: Menu item position out of range.");
+			goto case Contracts.Ui.WatchNotificationKind.Addition;
+		case Contracts.Ui.WatchNotificationKind.Addition:
+			{
+				if (notification.Position > parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Addition: Menu item position out of range.");
+				if (existingItem is not null) throw new InvalidOperationException("Addition: Duplicate item ID.");
+				MenuItemViewModel? menuItem;
+				if (_liveRegisteredGuids.TryGetValue(notification.ItemId, out menuItem))
 				{
-					parentMenu = _rootMenu;
+					if (!parentMenu.MenuItems.Contains(menuItem)) throw new InvalidOperationException("Addition: A live item with the same ID is already attached somewhere else.");
 				}
 				else
 				{
-					parentMenu = (SubMenuMenuItemViewModel)_originalRegisteredGuids[notification.ParentItemId];
+					menuItem = notification.ItemType switch
+					{
+						MenuItemType.Default => new TextMenuMenuItemViewModel(notification.ItemId, notification.Text ?? string.Empty, notification.Text ?? string.Empty),
+						MenuItemType.SubMenu => new SubMenuMenuItemViewModel(notification.ItemId, notification.Text ?? string.Empty, notification.Text ?? string.Empty, _navigateToSubMenuCommand),
+						MenuItemType.Separator => new SeparatorMenuItemViewModel(notification.ItemId),
+						_ => throw new InvalidOperationException("Unsupported item type."),
+					};
 				}
-
-				_originalRegisteredGuids.TryGetValue(notification.ItemId, out var existingItem);
-
-				int menuItemPosition = (int)notification.Position;
-
-				switch (notification.Kind)
+				parentMenu.OriginalMenuItems.Insert(menuItemPosition, menuItem);
+				_originalRegisteredGuids.Add(menuItem.ItemId, menuItem);
+				if (!_liveRegisteredGuids.ContainsKey(menuItem.ItemId) && parentMenu.MenuItems.Contains(menuItem))
 				{
-				case WatchNotificationKind.Enumeration:
-					if (notification.Position != parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Initial enumeration: Menu item position out of range.");
-					goto case WatchNotificationKind.Addition;
-				case WatchNotificationKind.Addition:
-					{
-						if (notification.Position > parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Addition: Menu item position out of range.");
-						if (existingItem is not null) throw new InvalidOperationException("Addition: Duplicate item ID.");
-						MenuItemViewModel? menuItem;
-						if (_liveRegisteredGuids.TryGetValue(notification.ItemId, out menuItem))
-						{
-							if (!parentMenu.MenuItems.Contains(menuItem)) throw new InvalidOperationException("Addition: A live item with the same ID is already attached somewhere else.");
-						}
-						else
-						{
-							menuItem = notification.ItemType switch
-							{
-								MenuItemType.Default => new TextMenuMenuItemViewModel(notification.ItemId, notification.Text ?? string.Empty, notification.Text ?? string.Empty),
-								MenuItemType.SubMenu => new SubMenuMenuItemViewModel(notification.ItemId, notification.Text ?? string.Empty, notification.Text ?? string.Empty, _navigateToSubMenuCommand),
-								MenuItemType.Separator => new SeparatorMenuItemViewModel(notification.ItemId),
-								_ => throw new InvalidOperationException("Unsupported item type."),
-							};
-						}
-						parentMenu.OriginalMenuItems.Insert(menuItemPosition, menuItem);
-						_originalRegisteredGuids.Add(menuItem.ItemId, menuItem);
-						if (!_liveRegisteredGuids.ContainsKey(menuItem.ItemId) && parentMenu.MenuItems.Contains(menuItem))
-						{
-							_liveRegisteredGuids.Add(menuItem.ItemId, menuItem);
-						}
-					}
-					break;
-				case WatchNotificationKind.Removal:
-					{
-						if (notification.Position >= parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Removal: Menu item position out of range.");
-						if (existingItem is null) throw new InvalidOperationException("Removal: Menu item not found.");
-						if (!ReferenceEquals(parentMenu.OriginalMenuItems[menuItemPosition], existingItem)) throw new InvalidOperationException("Removal: Item mismatch.");
-						if (existingItem.ItemType == MenuItemType.SubMenu && _editedMenuHierarchy.IndexOf((SubMenuMenuItemViewModel)existingItem) is int hierarchyItemIndex and >= 0)
-						{
-							int lastIndex = _editedMenuHierarchy.Count - 1;
-							do
-							{
-								_editedMenuHierarchy.RemoveAt(lastIndex);
-							}
-							while (hierarchyItemIndex >= --lastIndex);
-							NavigateToSubMenu(_editedMenuHierarchy[lastIndex]);
-						}
-						else if (ReferenceEquals(SelectedMenuItem, existingItem))
-						{
-							SelectedMenuItem = null;
-						}
-						parentMenu.OriginalMenuItems.RemoveAt(menuItemPosition);
-						if (!parentMenu.MenuItems.Contains(existingItem))
-						{
-							_liveRegisteredGuids.Remove(existingItem.ItemId);
-						}
-						break;
-					}
-				case WatchNotificationKind.Update:
-					{
-						if (notification.Position >= parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Update: Menu item position out of range.");
-						if (existingItem is null) throw new InvalidOperationException("Update: Menu item not found.");
-						if (!ReferenceEquals(parentMenu.OriginalMenuItems[menuItemPosition], existingItem))
-						{
-							parentMenu.OriginalMenuItems.Move(parentMenu.OriginalMenuItems.IndexOf(existingItem), (int)notification.Position);
-						}
-						if (notification.Text is not null && existingItem is TextMenuMenuItemViewModel tmi)
-						{
-							tmi.OriginalText = notification.Text;
-						}
-					}
-					break;
+					_liveRegisteredGuids.Add(menuItem.ItemId, menuItem);
 				}
 			}
-		}
-		catch (Exception) when (cancellationToken.IsCancellationRequested)
-		{
+			break;
+		case Contracts.Ui.WatchNotificationKind.Removal:
+			{
+				if (notification.Position >= parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Removal: Menu item position out of range.");
+				if (existingItem is null) throw new InvalidOperationException("Removal: Menu item not found.");
+				if (!ReferenceEquals(parentMenu.OriginalMenuItems[menuItemPosition], existingItem)) throw new InvalidOperationException("Removal: Item mismatch.");
+				if (existingItem.ItemType == MenuItemType.SubMenu && _editedMenuHierarchy.IndexOf((SubMenuMenuItemViewModel)existingItem) is int hierarchyItemIndex and >= 0)
+				{
+					int lastIndex = _editedMenuHierarchy.Count - 1;
+					do
+					{
+						_editedMenuHierarchy.RemoveAt(lastIndex);
+					}
+					while (hierarchyItemIndex >= --lastIndex);
+					NavigateToSubMenu(_editedMenuHierarchy[lastIndex]);
+				}
+				else if (ReferenceEquals(SelectedMenuItem, existingItem))
+				{
+					SelectedMenuItem = null;
+				}
+				parentMenu.OriginalMenuItems.RemoveAt(menuItemPosition);
+				if (!parentMenu.MenuItems.Contains(existingItem))
+				{
+					_liveRegisteredGuids.Remove(existingItem.ItemId);
+				}
+				break;
+			}
+		case Contracts.Ui.WatchNotificationKind.Update:
+			{
+				if (notification.Position >= parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Update: Menu item position out of range.");
+				if (existingItem is null) throw new InvalidOperationException("Update: Menu item not found.");
+				if (!ReferenceEquals(parentMenu.OriginalMenuItems[menuItemPosition], existingItem))
+				{
+					parentMenu.OriginalMenuItems.Move(parentMenu.OriginalMenuItems.IndexOf(existingItem), (int)notification.Position);
+				}
+				if (notification.Text is not null && existingItem is TextMenuMenuItemViewModel tmi)
+				{
+					tmi.OriginalText = notification.Text;
+				}
+			}
+			break;
 		}
 	}
 
@@ -391,15 +372,15 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 
 	protected override async Task ApplyChangesAsync(CancellationToken cancellationToken)
 	{
-		static MenuItemDefinition[] CreateArray(int count)
-			=> count > 0 ? new MenuItemDefinition[count] : [];
+		static MenuItem[] CreateArray(int count)
+			=> count > 0 ? new MenuItem[count] : [];
 
 		if (_customMenuService is null) return;
 
-		var stack = new Stack<(SubMenuMenuItemViewModel SubMenu, int Index, MenuItemDefinition[] Definitions)> { };
+		var stack = new Stack<(SubMenuMenuItemViewModel SubMenu, int Index, MenuItem[] Items)> { };
 		var currentMenu = _rootMenu;
 		int index = 0;
-		var definitions = CreateArray(currentMenu.MenuItems.Count);
+		var items = CreateArray(currentMenu.MenuItems.Count);
 		while (true)
 		{
 			if (index < currentMenu.MenuItems.Count)
@@ -408,16 +389,16 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 				switch (menuItem.ItemType)
 				{
 				case MenuItemType.Default:
-					definitions[index++] = new() { ItemId = menuItem.ItemId, Type = MenuItemType.Default, Text = ((TextMenuMenuItemViewModel)menuItem).Text };
+					items[index++] = new TextMenuItem(menuItem.ItemId, ((TextMenuMenuItemViewModel)menuItem).Text);
 					break;
 				case MenuItemType.SubMenu:
-					stack.Push((currentMenu, index, definitions));
+					stack.Push((currentMenu, index, items));
 					currentMenu = (SubMenuMenuItemViewModel)menuItem;
 					index = 0;
-					definitions = CreateArray(currentMenu.MenuItems.Count);
+					items = CreateArray(currentMenu.MenuItems.Count);
 					break;
 				case MenuItemType.Separator:
-					definitions[index++] = new() { ItemId = menuItem.ItemId, Type = MenuItemType.Separator };
+					items[index++] = new SeparatorMenuItem(menuItem.ItemId);
 					break;
 				default:
 					throw new InvalidOperationException();
@@ -429,21 +410,20 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IConnec
 			}
 			else
 			{
-				var definition = new MenuItemDefinition()
-				{
-					ItemId = currentMenu.ItemId,
-					Type = MenuItemType.SubMenu,
-					Text = currentMenu.Text,
-					MenuItems = ImmutableCollectionsMarshal.AsImmutableArray(definitions)
-				};
+				var definition = new SubMenuMenuItem
+				(
+					currentMenu.ItemId,
+					currentMenu.Text,
+					ImmutableCollectionsMarshal.AsImmutableArray(items)
+				);
 
-				(currentMenu, index, definitions) = stack.Pop();
+				(currentMenu, index, items) = stack.Pop();
 
-				definitions[index++] = definition;
+				items[index++] = definition;
 			}
 		}
 
-		await _customMenuService.UpdateMenuAsync(new MenuDefinition() { MenuItems = ImmutableCollectionsMarshal.AsImmutableArray(definitions) }, cancellationToken);
+		await _customMenuService.UpdateMenuAsync(ImmutableCollectionsMarshal.AsImmutableArray(items), cancellationToken);
 	}
 
 	protected override void Reset() => throw new NotImplementedException();

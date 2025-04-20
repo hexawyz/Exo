@@ -59,7 +59,7 @@ internal sealed class CoolingViewModel : IAsyncDisposable
 		_coolingService = coolingService;
 	}
 
-	internal void Reset()
+	internal void OnConnectionReset()
 	{
 		_coolingDevicesById.Clear();
 		_pendingDeviceInformations.Clear();

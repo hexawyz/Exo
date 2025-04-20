@@ -22,7 +22,7 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// <summary>Invokes a menu command.</summary>
 	/// <remarks>Contents: 16 bytes (GUID)</remarks>
 	InvokeMenuCommand,
-	UpdateCustomMenu,
+	CustomMenuUpdate,
 	ImageAddBegin,
 	ImageAddCancel,
 	ImageAddEnd,
@@ -115,6 +115,7 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Update of a custom menu item.</summary>
 	/// <remarks></remarks>
 	CustomMenuItemUpdate,
+	CustomMenuOperationStatus,
 	ProgrammingMetadata,
 	ImageEnumeration,
 	ImageAdd,
@@ -186,6 +187,14 @@ internal enum ExoUiProtocolServerMessage : byte
 	CoolingDevice,
 	CoolerConfiguration,
 	CoolingDeviceOperationStatus,
+}
+
+internal enum CustomMenuOperationStatus : byte
+{
+	Success,
+	Error,
+	InvalidArgument,
+	MaximumDepthExceeded,
 }
 
 internal enum ImageStorageOperationStatus : byte

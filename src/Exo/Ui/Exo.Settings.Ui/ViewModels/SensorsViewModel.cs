@@ -89,7 +89,7 @@ internal sealed class SensorsViewModel
 		}
 	}
 
-	internal void Reset()
+	internal void OnConnectionReset()
 	{
 		_sensorDevicesById.Clear();
 		_pendingDeviceInformations.Clear();

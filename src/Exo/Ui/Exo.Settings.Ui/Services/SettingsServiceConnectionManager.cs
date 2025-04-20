@@ -148,7 +148,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	// NB: The proper implementation should be the usage of weak references and ConditionalWeakTable here.
 	// If we end up needing to dynamically register components at some point, the implementation should be upgraded.
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
-	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
 	private CancellationToken _disconnectionToken;
 	private ConnectionStatus _connectionStatus;
 
@@ -161,14 +160,9 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		: base(pipeName, reconnectDelay, version)
 	{
 		_connectedStates = new();
-		_customMenuServiceTaskCompletionSource = new();
 		_synchronizationContext = SynchronizationContext.Current;
 		_connectionStatusChangeHandler = connectionStatusChangeHandler;
 	}
-
-	public Task<ISettingsCustomMenuService> GetCustomMenuServiceAsync(CancellationToken cancellationToken)
-		=> _customMenuServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
-
 
 	private void NotifyConnectionStatusChanged(ConnectionStatus connectionStatus)
 	{
@@ -197,8 +191,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	protected override async Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken)
 	{
-		Connect(channel, _customMenuServiceTaskCompletionSource);
-
 		Task startStatesTask;
 		lock (_connectedStates)
 		{
@@ -212,8 +204,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	protected override async Task OnDisconnectedAsync()
 	{
-		Reset(ref _customMenuServiceTaskCompletionSource);
-
 		Task waitStatesTask;
 		lock (_connectedStates)
 		{

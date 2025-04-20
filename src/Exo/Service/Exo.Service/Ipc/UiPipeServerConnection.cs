@@ -290,6 +290,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			if (data.Length != 16) goto Failure;
 			ProcessMenuItemInvocation(Unsafe.ReadUnaligned<Guid>(in data[0]));
 			goto Success;
+		case ExoUiProtocolClientMessage.CustomMenuUpdate:
+			ProcessCustomMenuUpdate(data, cancellationToken);
+			goto Success;
 		case ExoUiProtocolClientMessage.ImageAddBegin:
 			return ProcessImageAddBeginAsync(data, cancellationToken);
 		case ExoUiProtocolClientMessage.ImageAddCancel:

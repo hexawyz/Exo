@@ -89,7 +89,7 @@ internal sealed class MetadataService : ISettingsMetadataService
 		}
 	}
 
-	internal void Reset()
+	internal void OnConnectionReset()
 	{
 		if (_availabilitySignal is TaskCompletionSource tcs)
 		{

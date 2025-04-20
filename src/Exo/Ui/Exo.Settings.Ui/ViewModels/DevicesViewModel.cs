@@ -124,7 +124,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	public ValueTask DisposeAsync()
 	{
-		Reset();
+		OnConnectionReset();
 		return ValueTask.CompletedTask;
 	}
 
@@ -222,7 +222,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		_lightService = lightService;
 	}
 
-	internal void Reset()
+	internal void OnConnectionReset()
 	{
 		if (Interlocked.Exchange(ref _cancellationTokenSource, null) is { } cts)
 		{

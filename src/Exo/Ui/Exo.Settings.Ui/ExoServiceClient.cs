@@ -33,15 +33,19 @@ internal class ExoServiceClient : IServiceClient
 			_settingsViewModel.Sensors.OnConnected(control);
 			_settingsViewModel.Cooling.OnConnected(control);
 			_settingsViewModel.Lighting.OnConnected(control);
+			_settingsViewModel.CustomMenu.OnConnected(control);
 		}
 	}
 
 	void IServiceClient.OnDisconnected()
 	{
-		_metadataService.Reset();
-		_settingsViewModel.Devices.Reset();
-		_settingsViewModel.Sensors.Reset();
-		_settingsViewModel.Lighting.Reset();
+		_metadataService.OnConnectionReset();
+		_settingsViewModel.Images.OnConnectionReset();
+		_settingsViewModel.Devices.OnConnectionReset();
+		_settingsViewModel.Sensors.OnConnectionReset();
+		_settingsViewModel.Cooling.OnConnectionReset();
+		_settingsViewModel.Lighting.OnConnectionReset();
+		_settingsViewModel.CustomMenu.OnConnectionReset();
 	}
 
 	void IServiceClient.OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation)
@@ -51,10 +55,7 @@ internal class ExoServiceClient : IServiceClient
 		=> _metadataService.HandleMetadataSourceNotification(notification);
 
 	void IServiceClient.OnMenuUpdate(MenuChangeNotification notification)
-	{
-		// TODO
-		// We actually receive the notifications but the other side of the protocol still needs to be implemented.
-	}
+		=> _settingsViewModel.CustomMenu.HandleMenuUpdate(notification);
 
 	void IServiceClient.OnProgrammingMetadata(ImmutableArray<ModuleDefinition> modules)
 		=> _settingsViewModel.Programming.HandleMetadata(modules);

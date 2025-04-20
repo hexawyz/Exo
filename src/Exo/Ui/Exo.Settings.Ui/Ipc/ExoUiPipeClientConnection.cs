@@ -99,6 +99,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private PendingOperations<EmbeddedMonitorOperationStatus> _embeddedMonitorOperations;
 	private PendingOperations<LightOperationStatus> _lightOperations;
 	private PendingOperations<CoolingOperationStatus> _coolingOperations;
+	private PendingOperations<CustomMenuOperationStatus> _customMenuOperations;
 	private TaskCompletionSource<(ImageStorageOperationStatus Status, string Name)>? _imageAddTaskCompletionSource;
 	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
@@ -201,6 +202,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
+			goto Success;
+		case ExoUiProtocolServerMessage.CustomMenuOperationStatus:
+			ProcessCustomMenuOperationStatus(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ProgrammingMetadata:
 			ProcessProgrammingMetadata(data);
@@ -394,6 +398,16 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			Text = reader.RemainingLength > 0 ? reader.ReadVariableString() ?? "" : null
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMenuUpdate(notification));
+	}
+
+	private void ProcessPowerDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (CustomMenuOperationStatus)reader.ReadByte();
+
+		_customMenuOperations.TryNotifyCompletion(requestId, status);
 	}
 
 	private void ProcessProgrammingMetadata(ReadOnlySpan<byte> data)
@@ -648,7 +662,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnWirelessBrightnessUpdate(deviceId, brightness));
 	}
 
-	private void ProcessPowerDeviceOperationStatus(ReadOnlySpan<byte> data)
+	private void ProcessCustomMenuOperationStatus(ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
 
@@ -1263,7 +1277,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		_coolingOperations.TryNotifyCompletion(requestId, status);
 	}
 
-	async ValueTask IMenuItemInvoker.InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
+	async Task ICustomMenuService.InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
 	{
 		using var cts = CreateWriteCancellationTokenSource(cancellationToken);
 		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
@@ -1277,6 +1291,46 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		{
 			buffer[0] = (byte)ExoUiProtocolClientMessage.InvokeMenuCommand;
 			Unsafe.WriteUnaligned(ref buffer[1], menuItemId);
+		}
+	}
+
+	async Task ICustomMenuService.UpdateMenuAsync(ImmutableArray<MenuItem> menuItems, CancellationToken cancellationToken)
+	{
+		Task<CustomMenuOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _customMenuOperations.Allocate();
+			var buffer = WriteBuffer;
+			WriteUpdate(buffer.Span, requestId, menuItems);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void WriteUpdate(Span<byte> buffer, uint requestId, ImmutableArray<MenuItem> menuItems)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.CustomMenuUpdate);
+			writer.WriteVariable(requestId);
+			Write(ref writer, menuItems);
+		}
+	}
+
+	private static void HandleStatus(CustomMenuOperationStatus status)
+	{
+		switch (status)
+		{
+		case CustomMenuOperationStatus.Success: return;
+		case CustomMenuOperationStatus.Error: throw new Exception();
+		case CustomMenuOperationStatus.InvalidArgument: throw new ArgumentException();
+		case CustomMenuOperationStatus.MaximumDepthExceeded: throw new InvalidOperationException();
+		default: throw new InvalidOperationException();
 		}
 	}
 
@@ -2056,6 +2110,61 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case CoolingOperationStatus.CoolerNotFound: throw new CoolerNotFoundException();
 		default: throw new InvalidOperationException();
 		}
+	}
+
+	private static void Write(ref BufferWriter writer, ImmutableArray<MenuItem> menuItems)
+	{
+		if (menuItems.Length == 0)
+		{
+			writer.Write((byte)0);
+		}
+		else
+		{
+			writer.WriteVariable((uint)menuItems.Length);
+			foreach (var menuItem in menuItems)
+			{
+				Write(ref writer, menuItem);
+			}
+		}
+	}
+
+	private static void Write(ref BufferWriter writer, MenuItem menuItem)
+	{
+		switch (menuItem.Type)
+		{
+		case MenuItemType.Default:
+			Write(ref writer, (TextMenuItem)menuItem);
+			break;
+		case MenuItemType.SubMenu:
+			Write(ref writer, (SubMenuMenuItem)menuItem);
+			break;
+		case MenuItemType.Separator:
+			Write(ref writer, (SeparatorMenuItem)menuItem);
+			break;
+		default:
+			throw new NotImplementedException();
+		}
+	}
+
+	private static void Write(ref BufferWriter writer, TextMenuItem menuItem)
+	{
+		writer.Write((byte)MenuItemType.Default);
+		writer.Write(menuItem.ItemId);
+		writer.WriteVariableString(menuItem.Text);
+	}
+
+	private static void Write(ref BufferWriter writer, SubMenuMenuItem menuItem)
+	{
+		writer.Write((byte)MenuItemType.SubMenu);
+		writer.Write(menuItem.ItemId);
+		writer.WriteVariableString(menuItem.Text);
+		Write(ref writer, menuItem.MenuItems);
+	}
+
+	private static void Write(ref BufferWriter writer, SeparatorMenuItem menuItem)
+	{
+		writer.Write((byte)MenuItemType.Separator);
+		writer.Write(menuItem.ItemId);
 	}
 
 	private static void Write(ref BufferWriter writer, ImmutableArray<DotsPerInch> dpiArray)

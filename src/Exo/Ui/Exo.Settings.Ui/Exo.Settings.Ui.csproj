@@ -110,6 +110,7 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneInformation.cs" Link="Definitions\LightingZoneInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightNotFoundException.cs" Link="Definitions\LightNotFoundException.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\MenuItem.cs" Link="Definitions\MenuItem.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorNotFoundException.cs" Link="Definitions\MonitorNotFoundException.cs" />

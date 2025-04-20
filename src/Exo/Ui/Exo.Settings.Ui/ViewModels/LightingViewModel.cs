@@ -44,7 +44,7 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		_lightingService = lightingService;
 	}
 
-	internal void Reset()
+	internal void OnConnectionReset()
 	{
 		_lightingDeviceById.Clear();
 		_effectViewModelById.Clear();
