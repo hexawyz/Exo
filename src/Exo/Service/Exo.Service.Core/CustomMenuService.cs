@@ -148,6 +148,10 @@ internal sealed class CustomMenuService
 				foreach (var addedItemPosition in currentMenuItemsById.Values)
 				{
 					updatedItemPositions.Add(addedItemPosition);
+					// If we added a new submenu, we need to push the added menu items too.
+					// There are other ways (more optimal) to do this, but this will do the job.
+					var newItem = newItems[addedItemPosition];
+					if (newItem.Type == MenuItemType.SubMenu) pendingMenuComparisons.Enqueue((newItem.ItemId, [], GetSubMenuItems(newItem)));
 				}
 
 				// Sort the updates by position:
