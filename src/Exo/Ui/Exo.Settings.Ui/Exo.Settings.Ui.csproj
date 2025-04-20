@@ -60,6 +60,11 @@
 	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSource.cs" Link="Definitions\VendorIdSource.cs" />
 	  <Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSourceExtensions.cs" Link="Definitions\VendorIdSourceExtensions.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbColor.cs" Link="Definitions\RgbColor.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolerConfiguration.cs" Link="Definitions\CoolerConfiguration.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolingControlCurveConfiguration.cs" Link="Definitions\CoolingControlCurveConfiguration.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolingModeConfiguration.cs" Link="Definitions\CoolingModeConfiguration.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Cooling\CoolerType.cs" Link="Definitions\CoolerType.cs" />
+	  <Compile Include="..\..\Core\Exo.Core\Cooling\DataPoint.cs" Link="Definitions\DataPoint.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\DeviceCategory.cs" Link="Definitions\DeviceCategory.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\DotsPerInch.cs" Link="Definitions\DotsPerInch.cs" />
 	  <Compile Include="..\..\Core\Exo.Core\EmbeddedMonitors\EmbeddedMonitorGraphicsDescription.cs" Link="Definitions\EmbeddedMonitorGraphicsDescription.cs" />
@@ -80,6 +85,12 @@
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\NonContinuousValueDescription.cs" Link="Definitions\NonContinuousValueDescription.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\BatteryChangeNotification.cs" Link="Definitions\BatteryChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\BrightnessCapabilities.cs" Link="Definitions\BrightnessCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\CoolerInformation.cs" Link="Definitions\CoolerInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\CoolerNotFoundException.cs" Link="Definitions\CoolerNotFoundException.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\CoolerPowerLimits.cs" Link="Definitions\CoolerPowerLimits.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\CoolingDeviceInformation.cs" Link="Definitions\CoolingDeviceInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\CoolingModes.cs" Link="Definitions\CoolingModes.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\CoolingUpdate.cs" Link="Definitions\CoolingUpdate.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceNotFoundException.cs" Link="Definitions\DeviceNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\DeviceStateInformation.cs" Link="Definitions\DeviceStateInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorCapabilities.cs" Link="Definitions\EmbeddedMonitorCapabilities.cs" />
@@ -118,6 +129,7 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\SensorInformation.cs" Link="Definitions\SensorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\SettingNotFoundException.cs" Link="Definitions\SettingNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\WatchNotificationKind.cs" Link="Definitions\WatchNotificationKind.cs" />
+	  <Compile Include="..\..\Service\Exo.Service\Ipc\Serializer.Shared.cs" Link="Ipc\Serializer.Shared.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

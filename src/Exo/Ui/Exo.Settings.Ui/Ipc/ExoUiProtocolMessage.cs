@@ -1,4 +1,4 @@
-namespace Exo.Settings.Ui.Ipc;
+namespace Exo.Service.Ipc;
 
 // Defines messages sent by the client to the server.
 // ⚠️ Except for the NoOp and GitVersion commands, these messages are subject to changing at every release.
@@ -64,6 +64,10 @@ internal enum ExoUiProtocolClientMessage : byte
 	/// <summary>Sets a sensor as favorite.</summary>
 	/// <remarks>This allows the service to remember the change.</remarks>
 	SensorFavorite,
+	CoolerSetAutomatic,
+	CoolerSetFixed,
+	CoolerSetSoftwareCurve,
+	CoolerSetHardwareCurve,
 }
 
 // Defines messages sent by the server to the client.
@@ -178,6 +182,9 @@ internal enum ExoUiProtocolServerMessage : byte
 	/// <summary>Provides information about user-configuration of a sensor.</summary>
 	/// <remarks>User configuration is purely cosmetic, only non-default configurations will be propagated.</remarks>
 	SensorConfiguration,
+	CoolingDevice,
+	CoolerConfiguration,
+	CoolingDeviceOperationStatus,
 }
 
 internal enum ImageStorageOperationStatus : byte
@@ -247,6 +254,15 @@ internal enum LightOperationStatus : byte
 	LightNotFound,
 }
 
+internal enum CoolingOperationStatus : byte
+{
+	Success,
+	Error,
+	InvalidArgument,
+	DeviceNotFound,
+	CoolerNotFound,
+}
+
 [Flags]
 internal enum LightingEffectFlags : byte
 {
@@ -277,4 +293,12 @@ internal enum LightingDeviceFlags : byte
 	HasPalette = 0b00000100,
 	AlwaysPersisted = 0b01000000,
 	CanPersist = 0b10000000,
+}
+
+internal enum ConfiguredCoolingMode : byte
+{
+	Automatic = 0,
+	Fixed = 1,
+	SoftwareCurve = 2,
+	HardwareCurve = 3,
 }

@@ -1,10 +1,10 @@
 namespace Exo.Service;
 
 [Flags]
-internal enum CoolingModes
+internal enum CoolingModes : byte
 {
-	None = 0x00,
-	Automatic = 0x01,
-	Manual = 0x02,
-	HardwareControlCurve = 0x04,
+	None = 0b00000000,
+	Automatic = 0b00000001,
+	Manual = 0b00000010,
+	HardwareControlCurve = 0b00000100,
 }

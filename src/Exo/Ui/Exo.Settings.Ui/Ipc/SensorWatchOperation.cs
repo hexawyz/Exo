@@ -4,7 +4,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Exo.Ipc;
 
-namespace Exo.Settings.Ui.Ipc;
+namespace Exo.Service.Ipc;
 
 internal abstract class SensorWatchOperation : IAsyncDisposable
 {

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 

@@ -2,7 +2,7 @@ using System.IO.Pipes;
 using Exo.Ipc;
 using Microsoft.UI.Dispatching;
 
-namespace Exo.Settings.Ui.Ipc;
+namespace Exo.Service.Ipc;
 
 internal sealed class ExoUiPipeClient : PipeClient<ExoUiPipeClientConnection>
 {

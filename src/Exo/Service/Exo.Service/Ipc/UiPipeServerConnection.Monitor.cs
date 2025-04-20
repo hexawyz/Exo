@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Exo.Monitors;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 

@@ -148,7 +148,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 	// NB: The proper implementation should be the usage of weak references and ConditionalWeakTable here.
 	// If we end up needing to dynamically register components at some point, the implementation should be upgraded.
 	private readonly Dictionary<IConnectedState, ConnectedState> _connectedStates;
-	private TaskCompletionSource<ICoolingService> _coolingServiceTaskCompletionSource;
 	private TaskCompletionSource<IProgrammingService> _programmingServiceTaskCompletionSource;
 	private TaskCompletionSource<ISettingsCustomMenuService> _customMenuServiceTaskCompletionSource;
 	private CancellationToken _disconnectionToken;
@@ -163,15 +162,11 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 		: base(pipeName, reconnectDelay, version)
 	{
 		_connectedStates = new();
-		_coolingServiceTaskCompletionSource = new();
 		_customMenuServiceTaskCompletionSource = new();
 		_programmingServiceTaskCompletionSource = new();
 		_synchronizationContext = SynchronizationContext.Current;
 		_connectionStatusChangeHandler = connectionStatusChangeHandler;
 	}
-
-	public Task<ICoolingService> GetCoolingServiceAsync(CancellationToken cancellationToken)
-		=> _coolingServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
 
 	public Task<ISettingsCustomMenuService> GetCustomMenuServiceAsync(CancellationToken cancellationToken)
 		=> _customMenuServiceTaskCompletionSource.Task.WaitAsync(cancellationToken);
@@ -206,7 +201,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	protected override async Task OnConnectedAsync(GrpcChannel channel, CancellationToken disconnectionToken)
 	{
-		Connect(channel, _coolingServiceTaskCompletionSource);
 		Connect(channel, _customMenuServiceTaskCompletionSource);
 		Connect(channel, _programmingServiceTaskCompletionSource);
 
@@ -223,7 +217,6 @@ internal sealed class SettingsServiceConnectionManager : ServiceConnectionManage
 
 	protected override async Task OnDisconnectedAsync()
 	{
-		Reset(ref _coolingServiceTaskCompletionSource);
 		Reset(ref _customMenuServiceTaskCompletionSource);
 		Reset(ref _programmingServiceTaskCompletionSource);
 

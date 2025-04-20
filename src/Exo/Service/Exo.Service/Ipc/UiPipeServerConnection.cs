@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Ipc;
 using Exo.Memory;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 
@@ -30,6 +29,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			uiPipeServer.MouseService,
 			uiPipeServer.MonitorService,
 			uiPipeServer.SensorService,
+			uiPipeServer.CoolingService,
 			uiPipeServer.LightingEffectMetadataService,
 			uiPipeServer.LightingService,
 			uiPipeServer.EmbeddedMonitorService,
@@ -45,6 +45,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly MouseService _mouseService;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
+	private readonly CoolingService _coolingService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly LightingService _lightingService;
 	private readonly EmbeddedMonitorService _embeddedMonitorService;
@@ -70,6 +71,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		MouseService mouseService,
 		MonitorService monitorService,
 		SensorService sensorService,
+		CoolingService coolingService,
 		LightingEffectMetadataService lightingEffectMetadataService,
 		LightingService lightingService,
 		EmbeddedMonitorService embeddedMonitorService,
@@ -85,6 +87,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		_mouseService = mouseService;
 		_monitorService = monitorService;
 		_sensorService = sensorService;
+		_coolingService = coolingService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingService = lightingService;
 		_embeddedMonitorService = embeddedMonitorService;
@@ -134,22 +137,30 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
 		var lightDeviceWatchTask = WatchLightDevicesAsync(cancellationToken);
 		var sensorDeviceWatchTask = WatchSensorDevicesAsync(cancellationToken);
+		var coolingDeviceWatchTask = WatchCoolingDevicesAsync(cancellationToken);
 
 		var batteryStateWatchTask = WatchBatteryStateChangesAsync(cancellationToken);
 		var lowPowerBatteryThresholdWatchTask = WatchLowPowerBatteryThresholdUpdatesAsync(cancellationToken);
 		var idleSleepTimerWatchTask = WatchIdleSleepTimerUpdatesAsync(cancellationToken);
 		var wirelessBrightnessWatchTask = WatchWirelessBrightnessUpdatesAsync(cancellationToken);
+
 		var mouseDpiWatchTask = WatchMouseDpiAsync(cancellationToken);
 		var mouseDpiPresetWatchTask = WatchMouseDpiPresetsAsync(cancellationToken);
 		var mousePollingFrequencyWatchTask = WatchMousePollingFrequencyAsync(cancellationToken);
+
 		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
+
 		var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(cancellationToken);
+
 		var monitorSettingWatchTask = WatchMonitorSettingsAsync(cancellationToken);
+
 		var lightConfigurationWatchTask = WatchLightConfigurationChangesAsync(cancellationToken);
 
 		var sensorWatchTask = WatchSensorUpdates(_sensorUpdateChannel.Reader, cancellationToken);
 		var sensorConfigurationWatchTask = WatchSensorConfigurationUpdatesAsync(cancellationToken);
 		var sensorFavoritingTask = ProcessSensorFavoritingAsync(_sensorFavoritingChannel.Reader, cancellationToken);
+
+		var coolingConfigurationWatchTask = WatchCoolingConfigurationChangesAsync(cancellationToken);
 
 		await Task.WhenAll
 		(
@@ -178,7 +189,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			sensorConfigurationWatchTask,
 			sensorFavoritingTask,
 			lightDeviceWatchTask,
-			lightConfigurationWatchTask
+			lightConfigurationWatchTask,
+			coolingDeviceWatchTask,
+			coolingConfigurationWatchTask
 		).ConfigureAwait(false);
 	}
 
@@ -327,6 +340,18 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			return ProcessSensorRequestAsync(data, cancellationToken);
 		case ExoUiProtocolClientMessage.SensorFavorite:
 			ProcessSensorFavoriteRequest(data);
+			goto Success;
+		case ExoUiProtocolClientMessage.CoolerSetAutomatic:
+			ProcessCoolerSetAutomatic(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.CoolerSetFixed:
+			ProcessCoolerSetFixed(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.CoolerSetSoftwareCurve:
+			ProcessCoolerSetSoftwareCurve(data, cancellationToken);
+			goto Success;
+		case ExoUiProtocolClientMessage.CoolerSetHardwareCurve:
+			ProcessCoolerSetHardwareCurve(data, cancellationToken);
 			goto Success;
 		}
 	Failure:;

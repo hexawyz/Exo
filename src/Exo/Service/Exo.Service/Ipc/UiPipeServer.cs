@@ -13,6 +13,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 	internal MouseService MouseService { get; }
 	internal MonitorService MonitorService { get; }
 	internal SensorService SensorService { get; }
+	internal CoolingService CoolingService { get; }
 	internal LightingEffectMetadataService LightingEffectMetadataService { get; }
 	internal LightingService LightingService { get; }
 	internal EmbeddedMonitorService EmbeddedMonitorService { get; }
@@ -32,6 +33,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		MouseService mouseService,
 		MonitorService monitorService,
 		SensorService sensorService,
+		CoolingService coolingService,
 		LightingEffectMetadataService lightingEffectMetadataService,
 		LightingService lightingService,
 		EmbeddedMonitorService embeddedMonitorService,
@@ -47,6 +49,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		MouseService = mouseService;
 		MonitorService = monitorService;
 		SensorService = sensorService;
+		CoolingService = coolingService;
 		LightingEffectMetadataService = lightingEffectMetadataService;
 		LightingService = lightingService;
 		EmbeddedMonitorService = embeddedMonitorService;

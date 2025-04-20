@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
 using Exo.Primitives;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 

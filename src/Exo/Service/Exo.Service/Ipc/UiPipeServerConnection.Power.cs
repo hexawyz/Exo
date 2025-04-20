@@ -1,6 +1,5 @@
 using Exo.Features;
 using Exo.Primitives;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 

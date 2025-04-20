@@ -1,7 +1,7 @@
 using Exo.Settings.Ui.Services;
 
-namespace Exo.Settings.Ui.Ipc;
+namespace Exo.Service.Ipc;
 
-internal interface IServiceControl: IMenuItemInvoker, IImageService, IPowerService, IMouseService, IMonitorService, ISensorService, ILightingService, IEmbeddedMonitorService, ILightService
+internal interface IServiceControl: IMenuItemInvoker, IImageService, IPowerService, IMouseService, IMonitorService, ISensorService, ILightingService, IEmbeddedMonitorService, ILightService, ICoolingService
 {
 }

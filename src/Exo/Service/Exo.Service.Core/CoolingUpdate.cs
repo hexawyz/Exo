@@ -2,9 +2,9 @@ using Exo.Cooling.Configuration;
 
 namespace Exo.Service;
 
-internal readonly struct CoolingUpdate
+internal readonly struct CoolingUpdate(Guid deviceId, Guid coolerId, CoolingModeConfiguration coolingMode)
 {
-	public required Guid DeviceId { get; init; }
-	public required Guid CoolerId { get; init; }
-	public required CoolingModeConfiguration CoolingMode { get; init; }
+	public Guid DeviceId { get; } = deviceId;
+	public Guid CoolerId { get; } = coolerId;
+	public CoolingModeConfiguration CoolingMode { get; } = coolingMode;
 }

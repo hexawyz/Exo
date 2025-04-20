@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -10,11 +9,12 @@ using Exo.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.Features;
 using Exo.Features.Cooling;
+using Exo.Primitives;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-internal partial class CoolingService
+internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, IChangeSource<CoolingUpdate>
 {
 	[TypeId(0x74E0B7D0, 0x3CD7, 0x4B85, 0xA5, 0xD4, 0x5E, 0x5B, 0x38, 0xE8, 0xC6, 0xFC)]
 	private readonly struct PersistedCoolerInformation
@@ -125,8 +125,8 @@ internal partial class CoolingService
 
 	private readonly ConcurrentDictionary<Guid, DeviceState> _deviceStates;
 	private readonly AsyncLock _lock;
-	private ChannelWriter<CoolingDeviceInformation>[]? _changeListeners;
-	private ChannelWriter<CoolingUpdate>[]? _coolingChangeListeners;
+	private ChangeBroadcaster<CoolingDeviceInformation> _deviceChangeBroadcaster;
+	private ChangeBroadcaster<CoolingUpdate> _coolingChangeBroadcaster;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly SensorService _sensorService;
 	private readonly ILogger<CoolingService> _logger;
@@ -354,7 +354,7 @@ internal partial class CoolingService
 					}
 				}
 				await state.SetOnlineAsync(liveDeviceState, cancellationToken).ConfigureAwait(false);
-				_changeListeners.TryWrite(new CoolingDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(Array.ConvertAll(coolerDetails, x => x.Info))));
+				_deviceChangeBroadcaster.Push(new CoolingDeviceInformation(notification.DeviceInformation.Id, ImmutableCollectionsMarshal.AsImmutableArray(Array.ConvertAll(coolerDetails, x => x.Info))));
 			}
 		}
 		catch
@@ -379,40 +379,26 @@ internal partial class CoolingService
 		await state.SetOfflineAsync(default).ConfigureAwait(false);
 	}
 
-	public async IAsyncEnumerable<CoolingDeviceInformation> WatchDevicesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	async ValueTask<CoolingDeviceInformation[]?> IChangeSource<CoolingDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<CoolingDeviceInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<CoolingDeviceInformation>();
-
-		CoolingDeviceInformation[]? initialDeviceInfos = null;
+		List<CoolingDeviceInformation>? initialDeviceInfos = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			initialDeviceInfos = _deviceStates.Values.Select(state => state.CreateInformation()).ToArray();
-			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
-		}
-		try
-		{
-			foreach (var info in initialDeviceInfos)
+			foreach (var device in _deviceStates.Values)
 			{
-				yield return info;
+				(initialDeviceInfos ??= new()).Add(device.CreateInformation());
 			}
-			initialDeviceInfos = null;
-
-			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return info;
-			}
+			_deviceChangeBroadcaster.Register(writer);
 		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
-		}
+		return initialDeviceInfos?.ToArray();
 	}
 
-	public async IAsyncEnumerable<CoolingUpdate> WatchCoolingChangesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		var channel = Watcher.CreateSingleWriterChannel<CoolingUpdate>();
+	void IChangeSource<CoolingDeviceInformation>.UnregisterWatcher(ChannelWriter<CoolingDeviceInformation> writer)
+		=> _deviceChangeBroadcaster.Unregister(writer);
 
-		List<CoolingUpdate>? initialUpdates = new();
+	async ValueTask<CoolingUpdate[]?> IChangeSource<CoolingUpdate>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<CoolingUpdate> writer, CancellationToken cancellationToken)
+	{
+		List<CoolingUpdate>? initialUpdates = null;
 		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			foreach (var device in _deviceStates.Values)
@@ -421,36 +407,23 @@ internal partial class CoolingService
 				{
 					if (cooler.CreatePersistedConfiguration() is { } configuration)
 					{
-						initialUpdates.Add(new CoolingUpdate() { DeviceId = device.DeviceId, CoolerId = cooler.Information.CoolerId, CoolingMode = configuration.CoolingMode });
+						(initialUpdates ??= new()).Add(new CoolingUpdate(device.DeviceId, cooler.Information.CoolerId, configuration.CoolingMode));
 					}
 				}
 			}
-			ArrayExtensions.InterlockedAdd(ref _coolingChangeListeners, channel);
+			_coolingChangeBroadcaster.Register(writer);
 		}
-		try
-		{
-			foreach (var update in initialUpdates)
-			{
-				yield return update;
-			}
-			initialUpdates = null;
-
-			await foreach (var info in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return info;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _coolingChangeListeners, channel);
-		}
+		return initialUpdates?.ToArray();
 	}
+
+	void IChangeSource<CoolingUpdate>.UnregisterWatcher(ChannelWriter<CoolingUpdate> writer)
+		=> _coolingChangeBroadcaster.Unregister(writer);
 
 	private static CoolingControlCurveConfiguration<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
 		where TInput : struct, INumber<TInput>
 	{
 		var (initialValue, points) = controlCurve.GetData();
-		return new() { Points = points, InitialValue = initialValue };
+		return new(points, initialValue);
 	}
 
 	public async ValueTask SetAutomaticPowerAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
@@ -541,7 +514,11 @@ internal partial class CoolingService
 		if (coolerState.CreatePersistedConfiguration() is { } configuration)
 		{
 			PersistCoolingConfiguration(deviceState.CoolingConfigurationContainer, coolerState.Information.CoolerId, configuration, cancellationToken);
-			_coolingChangeListeners?.TryWrite(new() { DeviceId = deviceState.DeviceId, CoolerId = coolerState.Information.CoolerId, CoolingMode = configuration.CoolingMode });
+			var coolingChangeBroadcaster = _coolingChangeBroadcaster.GetSnapshot();
+			if (!coolingChangeBroadcaster.IsEmpty)
+			{
+				coolingChangeBroadcaster.Push(new(deviceState.DeviceId, coolerState.Information.CoolerId, configuration.CoolingMode));
+			}
 		}
 	}
 

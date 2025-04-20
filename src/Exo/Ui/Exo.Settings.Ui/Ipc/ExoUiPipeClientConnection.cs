@@ -9,6 +9,8 @@ using DeviceTools;
 using Exo.ColorFormats;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
+using Exo.Cooling;
+using Exo.Cooling.Configuration;
 using Exo.EmbeddedMonitors;
 using Exo.Features;
 using Exo.Images;
@@ -16,12 +18,11 @@ using Exo.Ipc;
 using Exo.Lighting;
 using Exo.Monitors;
 using Exo.Primitives;
-using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 using Microsoft.UI.Dispatching;
 
-namespace Exo.Settings.Ui.Ipc;
+namespace Exo.Service.Ipc;
 
 internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeClientConnection<ExoUiPipeClientConnection>, IServiceControl
 {
@@ -96,6 +97,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private PendingOperations<LightingDeviceOperationStatus> _lightingDeviceOperations;
 	private PendingOperations<EmbeddedMonitorOperationStatus> _embeddedMonitorOperations;
 	private PendingOperations<LightOperationStatus> _lightOperations;
+	private PendingOperations<CoolingOperationStatus> _coolingOperations;
 	private TaskCompletionSource<(ImageStorageOperationStatus Status, string Name)>? _imageAddTaskCompletionSource;
 	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
@@ -176,16 +178,16 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			else return ConfirmVersionAsync(data.ToImmutableArray(), data.SequenceEqual(ImmutableCollectionsMarshal.AsArray(GitCommitId)));
 #endif
 		case ExoUiProtocolServerMessage.MetadataSourcesEnumeration:
-			ProcessMetadataSource(Service.WatchNotificationKind.Enumeration, data);
+			ProcessMetadataSource(WatchNotificationKind.Enumeration, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MetadataSourcesAdd:
-			ProcessMetadataSource(Service.WatchNotificationKind.Addition, data);
+			ProcessMetadataSource(WatchNotificationKind.Addition, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MetadataSourcesRemove:
-			ProcessMetadataSource(Service.WatchNotificationKind.Removal, data);
+			ProcessMetadataSource(WatchNotificationKind.Removal, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.MetadataSourcesUpdate:
-			ProcessMetadataSource(Service.WatchNotificationKind.Update, data);
+			ProcessMetadataSource(WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemEnumeration:
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Enumeration, data);
@@ -200,16 +202,16 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ImageEnumeration:
-			ProcessImage(Service.WatchNotificationKind.Enumeration, data);
+			ProcessImage(WatchNotificationKind.Enumeration, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ImageAdd:
-			ProcessImage(Service.WatchNotificationKind.Addition, data);
+			ProcessImage(WatchNotificationKind.Addition, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ImageRemove:
-			ProcessImage(Service.WatchNotificationKind.Removal, data);
+			ProcessImage(WatchNotificationKind.Removal, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ImageUpdate:
-			ProcessImage(Service.WatchNotificationKind.Update, data);
+			ProcessImage(WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.ImageAddOperationStatus:
 			ProcessImageAddOperationStatus(data);
@@ -221,16 +223,16 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			ProcessLightingEffect(data);
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceEnumeration:
-			ProcessDevice(Service.WatchNotificationKind.Enumeration, data);
+			ProcessDevice(WatchNotificationKind.Enumeration, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceAdd:
-			ProcessDevice(Service.WatchNotificationKind.Addition, data);
+			ProcessDevice(WatchNotificationKind.Addition, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceRemove:
-			ProcessDevice(Service.WatchNotificationKind.Removal, data);
+			ProcessDevice(WatchNotificationKind.Removal, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.DeviceUpdate:
-			ProcessDevice(Service.WatchNotificationKind.Update, data);
+			ProcessDevice(WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.PowerDevice:
 			ProcessPowerDevice(data);
@@ -316,6 +318,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.SensorConfiguration:
 			ProcessSensorConfiguration(data);
 			goto Success;
+		case ExoUiProtocolServerMessage.CoolingDevice:
+			ProcessCoolingDevice(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.CoolerConfiguration:
+			ProcessCoolerConfiguration(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.CoolingDeviceOperationStatus:
+			ProcessCoolingDeviceOperationStatus(data);
+			goto Success;
 		}
 	Failure:;
 		return new(false);
@@ -349,12 +360,12 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
-	private void ProcessMetadataSource(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	private void ProcessMetadataSource(WatchNotificationKind kind, ReadOnlySpan<byte> data)
 	{
 		MetadataSourceChangeNotification notification;
-		if (kind == Service.WatchNotificationKind.Update)
+		if (kind == WatchNotificationKind.Update)
 		{
-			notification = new(Service.WatchNotificationKind.Update, []);
+			notification = new(WatchNotificationKind.Update, []);
 			goto PropagateNotification;
 		}
 		var reader = new BufferReader(data);
@@ -381,7 +392,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMenuUpdate(notification));
 	}
 
-	private void ProcessImage(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	private void ProcessImage(WatchNotificationKind kind, ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
 		var information = new ImageInformation
@@ -515,7 +526,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			};
 	}
 
-	private void ProcessDevice(Service.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	private void ProcessDevice(WatchNotificationKind kind, ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
@@ -626,7 +637,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var deviceId = reader.ReadGuid();
 		bool isConnected = reader.ReadBoolean();
 		var capabilities = (MouseCapabilities)reader.ReadByte();
-		var maximumDpi = ReadDotsPerInch(ref reader);
+		var maximumDpi = Serializer.ReadDotsPerInch(ref reader);
 		byte minimumDpiPresetCount = 0;
 		byte maximumDpiPresetCount = 0;
 		if ((capabilities & (MouseCapabilities.DpiPresets | MouseCapabilities.ConfigurableDpiPresets)) != 0)
@@ -653,7 +664,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
 		byte? activeDpiPresetIndex = reader.ReadBoolean() ? reader.ReadByte() : null;
-		var dpi = ReadDotsPerInch(ref reader);
+		var dpi = Serializer.ReadDotsPerInch(ref reader);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDpiUpdate(deviceId, activeDpiPresetIndex, dpi));
 	}
 
@@ -662,7 +673,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var reader = new BufferReader(data);
 		var deviceId = reader.ReadGuid();
 		byte? activeDpiPresetIndex = reader.ReadBoolean() ? reader.ReadByte() : null;
-		var presets = ReadDotsPerInches(ref reader);
+		var presets = Serializer.ReadDotsPerInches(ref reader);
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMouseDpiPresetsUpdate(deviceId, activeDpiPresetIndex, presets));
 	}
 
@@ -839,7 +850,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				reader.ReadGuid(),
 				(MonitorShape)reader.ReadByte(),
 				(ImageRotation)reader.ReadByte(),
-				ReadSize(ref reader),
+				Serializer.ReadSize(ref reader),
 				reader.Read<PixelFormat>(),
 				(ImageFormats)reader.Read<uint>(),
 				(EmbeddedMonitorCapabilities)reader.ReadByte(),
@@ -873,7 +884,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			reader.ReadGuid(),
 			reader.ReadGuid(),
 			reader.Read<UInt128>(),
-			ReadRectangle(ref reader)
+			Serializer.ReadRectangle(ref reader)
 		);
 
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnEmbeddedMonitorConfigurationUpdate(configuration));
@@ -1130,6 +1141,99 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		{
 		}
 		return true;
+	}
+
+	private void ProcessCoolingDevice(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var information = new CoolingDeviceInformation
+		(
+			reader.ReadGuid(),
+			ReadCoolerInformations(ref reader)
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnCoolingDeviceUpdate(information));
+
+		static ImmutableArray<CoolerInformation> ReadCoolerInformations(ref BufferReader reader)
+		{
+			uint count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var coolers = new CoolerInformation[count];
+			for (int i = 0; i < coolers.Length; i++)
+			{
+				coolers[i] = ReadCoolerInformation(ref reader);
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(coolers);
+		}
+
+		static CoolerInformation ReadCoolerInformation(ref BufferReader reader)
+			=> new
+			(
+				reader.ReadGuid(),
+				reader.ReadGuid() is var speedSensorId && speedSensorId != default ? speedSensorId : null,
+				(CoolerType)reader.ReadByte(),
+				(CoolingModes)reader.ReadByte(),
+				reader.ReadBoolean() ? ReadPowerLimits(ref reader) : null,
+				ReadGuids(ref reader)
+			);
+
+		static CoolerPowerLimits ReadPowerLimits(ref BufferReader reader)
+			=> new(reader.ReadByte(), reader.ReadBoolean());
+
+		// TODO: We should in fact surface detailed information about the sensors so that the UI can immediately provide curves in the correct format.
+		// Currently, if the actual sensor has a different data type than the one used for hardware curves, we will do a conversion, which could totally be avoided.
+		static ImmutableArray<Guid> ReadGuids(ref BufferReader reader)
+		{
+			uint count = reader.ReadVariableUInt32();
+			if (count == 0) return [];
+			var guids = new Guid[count];
+			for (int i = 0; i < guids.Length; i++)
+			{
+				guids[i] = reader.ReadGuid();
+			}
+			return ImmutableCollectionsMarshal.AsImmutableArray(guids);
+		}
+	}
+
+	private void ProcessCoolerConfiguration(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var notification = new CoolingUpdate
+		(
+			reader.ReadGuid(),
+			reader.ReadGuid(),
+			ReadCoolingMode(ref reader)
+		);
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnCoolerConfigurationUpdate(notification));
+
+		static CoolingModeConfiguration ReadCoolingMode(ref BufferReader reader)
+			=> (ConfiguredCoolingMode)reader.ReadByte() switch
+			{
+				ConfiguredCoolingMode.Automatic => new AutomaticCoolingModeConfiguration(),
+				ConfiguredCoolingMode.Fixed => new FixedCoolingModeConfiguration() { Power = reader.ReadByte() },
+				ConfiguredCoolingMode.SoftwareCurve => ReadSoftwareCurveCoolingMode(ref reader),
+				ConfiguredCoolingMode.HardwareCurve => ReadHardwareCurveCoolingMode(ref reader),
+				_ => throw new NotImplementedException()
+			};
+
+		static SoftwareCurveCoolingModeConfiguration ReadSoftwareCurveCoolingMode(ref BufferReader reader)
+			=> new() { SensorDeviceId = reader.ReadGuid(), SensorId = reader.ReadGuid(), DefaultPower = reader.ReadByte(), Curve = Serializer.ReadControlCurve(ref reader) };
+
+		static HardwareCurveCoolingModeConfiguration ReadHardwareCurveCoolingMode(ref BufferReader reader)
+			=> new() { SensorId = reader.ReadGuid(), Curve = Serializer.ReadControlCurve(ref reader) };
+	}
+
+	private void ProcessCoolingDeviceOperationStatus(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint requestId = reader.ReadVariableUInt32();
+		var status = (CoolingOperationStatus)reader.ReadByte();
+
+		_coolingOperations.TryNotifyCompletion(requestId, status);
 	}
 
 	async ValueTask IMenuItemInvoker.InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
@@ -1496,7 +1600,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(monitorId);
 			writer.Write(imageId);
-			ExoUiPipeClientConnection.Write(ref writer, cropRegion);
+			Serializer.Write(ref writer, cropRegion);
 		}
 	}
 
@@ -1800,6 +1904,133 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
+	async Task ICoolingService.SetAutomaticCoolingAsync(Guid deviceId, Guid coolerId, CancellationToken cancellationToken)
+	{
+		Task<CoolingOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _coolingOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, coolerId);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetAutomatic);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(coolerId);
+		}
+	}
+
+	async Task ICoolingService.SetFixedCoolingAsync(Guid deviceId, Guid coolerId, byte power, CancellationToken cancellationToken)
+	{
+		Task<CoolingOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _coolingOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, coolerId, power);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId, byte power)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetFixed);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(coolerId);
+			writer.Write(power);
+		}
+	}
+
+	async Task ICoolingService.SetSoftwareControlCurveCoolingAsync(Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, byte defaultPower, CoolingControlCurveConfiguration controlCurve, CancellationToken cancellationToken)
+	{
+		Task<CoolingOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _coolingOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, coolingDeviceId, coolerId, sensorDeviceId, sensorId, defaultPower, controlCurve);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, byte defaultPower, CoolingControlCurveConfiguration controlCurve)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetSoftwareCurve);
+			writer.WriteVariable(requestId);
+			writer.Write(coolingDeviceId);
+			writer.Write(coolerId);
+			writer.Write(sensorDeviceId);
+			writer.Write(sensorId);
+			writer.Write(defaultPower);
+			Serializer.Write(ref writer, controlCurve);
+		}
+	}
+
+	async Task ICoolingService.SetHardwareControlCurveCoolingAsync(Guid deviceId, Guid coolerId, Guid sensorId, CoolingControlCurveConfiguration controlCurve, CancellationToken cancellationToken)
+	{
+		Task<CoolingOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _coolingOperations.Allocate();
+			var buffer = WriteBuffer;
+			Write(buffer.Span, requestId, deviceId, coolerId, sensorId, controlCurve);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId, Guid sensorId, CoolingControlCurveConfiguration controlCurve)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetHardwareCurve);
+			writer.WriteVariable(requestId);
+			writer.Write(deviceId);
+			writer.Write(coolerId);
+			writer.Write(sensorId);
+			Serializer.Write(ref writer, controlCurve);
+		}
+	}
+
+	private static void HandleStatus(CoolingOperationStatus status)
+	{
+		switch (status)
+		{
+		case CoolingOperationStatus.Success: return;
+		case CoolingOperationStatus.InvalidArgument: throw new ArgumentException();
+		case CoolingOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		case CoolingOperationStatus.CoolerNotFound: throw new CoolerNotFoundException();
+		default: throw new InvalidOperationException();
+		}
+	}
+
 	private static void Write(ref BufferWriter writer, ImmutableArray<DotsPerInch> dpiArray)
 	{
 		if (dpiArray.IsDefaultOrEmpty)
@@ -1821,33 +2052,4 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		writer.Write(dpi.Horizontal);
 		writer.Write(dpi.Vertical);
 	}
-
-	private static ImmutableArray<DotsPerInch> ReadDotsPerInches(ref BufferReader reader)
-	{
-		uint count = reader.ReadVariableUInt32();
-		if (count == 0) return [];
-		var dpiArray = new DotsPerInch[count];
-		for (int i = 0; i < dpiArray.Length; i++)
-		{
-			dpiArray[i] = ReadDotsPerInch(ref reader);
-		}
-		return ImmutableCollectionsMarshal.AsImmutableArray(dpiArray);
-	}
-
-	private static DotsPerInch ReadDotsPerInch(ref BufferReader reader)
-		=> new(reader.Read<ushort>(), reader.Read<ushort>());
-
-	private static void Write(ref BufferWriter writer, in Rectangle rectangle)
-	{
-		writer.Write(rectangle.Left);
-		writer.Write(rectangle.Top);
-		writer.Write(rectangle.Width);
-		writer.Write(rectangle.Height);
-	}
-
-	private static Rectangle ReadRectangle(ref BufferReader reader)
-		=> new(reader.Read<int>(), reader.Read<int>(), reader.Read<int>(), reader.Read<int>());
-
-	private static Size ReadSize(ref BufferReader reader)
-		=> new(reader.Read<int>(), reader.Read<int>());
 }

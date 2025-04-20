@@ -16,6 +16,7 @@ internal sealed class UiIpcService : IHostedService
 	private readonly MouseService _mouseService;
 	private readonly MonitorService _monitorService;
 	private readonly SensorService _sensorService;
+	private readonly CoolingService _coolingService;
 	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
 	private readonly LightingService _lightingService;
 	private readonly EmbeddedMonitorService _embeddedMonitorService;
@@ -32,6 +33,7 @@ internal sealed class UiIpcService : IHostedService
 		MouseService mouseService,
 		MonitorService monitorService,
 		SensorService sensorService,
+		CoolingService coolingService,
 		LightingEffectMetadataService lightingEffectMetadataService,
 		LightingService lightingService,
 		EmbeddedMonitorService embeddedMonitorService,
@@ -47,6 +49,7 @@ internal sealed class UiIpcService : IHostedService
 		_mouseService = mouseService;
 		_monitorService = monitorService;
 		_sensorService = sensorService;
+		_coolingService = coolingService;
 		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingService = lightingService;
 		_embeddedMonitorService = embeddedMonitorService;
@@ -92,6 +95,7 @@ internal sealed class UiIpcService : IHostedService
 			_mouseService,
 			_monitorService,
 			_sensorService,
+			_coolingService,
 			_lightingEffectMetadataService,
 			_lightingService,
 			_embeddedMonitorService,

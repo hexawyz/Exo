@@ -1,7 +1,6 @@
 using System.IO.MemoryMappedFiles;
 using Exo.Memory;
 using Exo.Primitives;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 

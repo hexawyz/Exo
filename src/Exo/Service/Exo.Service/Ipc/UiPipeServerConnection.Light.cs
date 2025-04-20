@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Exo.Primitives;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 
@@ -241,7 +240,7 @@ partial class UiPipeServerConnection
 	}
 
 	private ValueTask WriteLightConfigurationStatusAsync(uint requestId, LightOperationStatus status, CancellationToken cancellationToken)
-		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.PowerDeviceOperationStatus, requestId, (byte)status, cancellationToken);
+		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.LightDeviceOperationStatus, requestId, (byte)status, cancellationToken);
 
 	private static void Write(ref BufferWriter writer, in LightDeviceInformation deviceInformation)
 	{

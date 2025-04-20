@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Exo.EmbeddedMonitors;
 using Exo.Images;
 using Exo.Primitives;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 
@@ -165,7 +164,7 @@ partial class UiPipeServerConnection
 	private void ProcessEmbeddedMonitorImage(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
 	{
 		var reader = new BufferReader(data);
-		ProcessEmbeddedMonitorImage(reader.ReadVariableUInt32(), reader.ReadGuid(), reader.ReadGuid(), reader.Read<UInt128>(), ReadRectangle(ref reader), cancellationToken);
+		ProcessEmbeddedMonitorImage(reader.ReadVariableUInt32(), reader.ReadGuid(), reader.ReadGuid(), reader.Read<UInt128>(), Serializer.ReadRectangle(ref reader), cancellationToken);
 	}
 
 	private async void ProcessEmbeddedMonitorImage(uint requestId, Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle imageRegion, CancellationToken cancellationToken)
@@ -208,7 +207,7 @@ partial class UiPipeServerConnection
 	}
 
 	private ValueTask WriteEmbeddedMonitorConfigurationStatusAsync(uint requestId, EmbeddedMonitorOperationStatus status, CancellationToken cancellationToken)
-		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.PowerDeviceOperationStatus, requestId, (byte)status, cancellationToken);
+		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.EmbeddedMonitorDeviceOperationStatus, requestId, (byte)status, cancellationToken);
 
 	private static void Write(ref BufferWriter writer, in EmbeddedMonitorDeviceInformation deviceInformation)
 	{
@@ -237,7 +236,7 @@ partial class UiPipeServerConnection
 		writer.Write(embeddedMonitorInformation.MonitorId);
 		writer.Write((byte)embeddedMonitorInformation.Shape);
 		writer.Write((byte)embeddedMonitorInformation.DefaultRotation);
-		Write(ref writer, embeddedMonitorInformation.ImageSize);
+		Serializer.Write(ref writer, embeddedMonitorInformation.ImageSize);
 		writer.Write(embeddedMonitorInformation.PixelFormat);
 		writer.Write((uint)embeddedMonitorInformation.SupportedImageFormats);
 		writer.Write((byte)embeddedMonitorInformation.Capabilities);
@@ -272,23 +271,6 @@ partial class UiPipeServerConnection
 		writer.Write(notification.MonitorId);
 		writer.Write(notification.GraphicsId);
 		writer.Write(notification.ImageId);
-		Write(ref writer, notification.ImageRegion);
+		Serializer.Write(ref writer, notification.ImageRegion);
 	}
-
-	private static void Write(ref BufferWriter writer, in Size size)
-	{
-		writer.Write(size.Width);
-		writer.Write(size.Height);
-	}
-
-	private static void Write(ref BufferWriter writer, in Rectangle rectangle)
-	{
-		writer.Write(rectangle.Left);
-		writer.Write(rectangle.Top);
-		writer.Write(rectangle.Width);
-		writer.Write(rectangle.Height);
-	}
-
-	private static Rectangle ReadRectangle(ref BufferReader reader)
-		=> new(reader.Read<int>(), reader.Read<int>(), reader.Read<int>(), reader.Read<int>());
 }

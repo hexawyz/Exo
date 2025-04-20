@@ -19,23 +19,18 @@ namespace Exo.Cooling.Configuration;
 public abstract class CoolingControlCurveConfiguration
 {
 	private protected CoolingControlCurveConfiguration() { }
+
+	public virtual byte InitialValue { get; }
 }
 
-public sealed class CoolingControlCurveConfiguration<T> : CoolingControlCurveConfiguration
+[method: JsonConstructor]
+public sealed class CoolingControlCurveConfiguration<T>(ImmutableArray<DataPoint<T, byte>> points, byte initialValue) : CoolingControlCurveConfiguration
 	where T : struct, INumber<T>
 {
-	private readonly ImmutableArray<DataPoint<T, byte>> _points = [];
-	private readonly byte _initialValue;
+	private readonly ImmutableArray<DataPoint<T, byte>> _points = points;
+	private readonly byte _initialValue = initialValue;
 
-	public required ImmutableArray<DataPoint<T, byte>> Points
-	{
-		get => _points;
-		init => _points = value.IsDefaultOrEmpty ? [] : value;
-	}
+	public ImmutableArray<DataPoint<T, byte>> Points => _points;
 
-	public required byte InitialValue
-	{
-		get => _initialValue;
-		init => _initialValue = value;
-	}
+	public override byte InitialValue => _initialValue;
 }

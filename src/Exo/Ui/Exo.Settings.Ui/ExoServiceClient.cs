@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
 using Exo.Service;
-using Exo.Settings.Ui.Ipc;
+using Exo.Service.Ipc;
 using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 
@@ -116,4 +116,10 @@ internal class ExoServiceClient : IServiceClient
 
 	void IServiceClient.OnLightConfigurationUpdate(LightChangeNotification notification)
 		=> _settingsViewModel.Devices.HandleLightConfigurationUpdate(notification);
+
+	void IServiceClient.OnCoolingDeviceUpdate(CoolingDeviceInformation coolingDevice)
+		=> _settingsViewModel.Cooling.HandleCoolingDeviceUpdate(coolingDevice);
+
+	void IServiceClient.OnCoolerConfigurationUpdate(CoolingUpdate configuration)
+		=> _settingsViewModel.Cooling.HandleCoolerConfigurationUpdate(configuration);
 }

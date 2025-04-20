@@ -32,6 +32,15 @@ public ref struct BufferWriter
 		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), 1);
 	}
 
+	// This one method is purely here for correctness, as Guids will be read using new Guid(ReadOnlySpan<byte>).
+	// In practice, code should always run on little endian systems, so it won't make a difference.
+	public void Write(Guid value)
+	{
+		if (RemainingLength < 16) throw new EndOfStreamException();
+		value.TryWriteBytes(MemoryMarshal.CreateSpan(ref _current, 16));
+		_current = ref Unsafe.AddByteOffset(ref Unsafe.AsRef(in _current), 16);
+	}
+
 	public void Write(bool value) => Write(value ? (byte)1 : (byte)0);
 
 	public void Write<T>(T value) where T : unmanaged

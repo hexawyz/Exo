@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using Exo.Contracts;
 using Exo.Contracts.Ui;
-using Exo.Service;
+using Exo.Cooling.Configuration;
 
-namespace Exo.Settings.Ui.Ipc;
+namespace Exo.Service.Ipc;
 
 internal interface IServiceClient
 {
@@ -14,11 +14,11 @@ internal interface IServiceClient
 
 	void OnMenuUpdate(MenuChangeNotification notification);
 
-	void OnImageUpdate(Service.WatchNotificationKind kind, ImageInformation information);
+	void OnImageUpdate(WatchNotificationKind kind, ImageInformation information);
 
 	void OnLightingEffectUpdate(LightingEffectInformation effect);
 
-	void OnDeviceNotification(Service.WatchNotificationKind kind, DeviceStateInformation deviceInformation);
+	void OnDeviceNotification(WatchNotificationKind kind, DeviceStateInformation deviceInformation);
 
 	void OnPowerDeviceUpdate(PowerDeviceInformation powerDevice);
 	void OnBatteryUpdate(BatteryChangeNotification batteryNotification);
@@ -45,4 +45,7 @@ internal interface IServiceClient
 
 	void OnSensorDeviceUpdate(SensorDeviceInformation sensorDevice);
 	void OnSensorDeviceConfigurationUpdate(SensorConfigurationUpdate sensorConfiguration);
+
+	void OnCoolingDeviceUpdate(CoolingDeviceInformation coolingDevice);
+	void OnCoolerConfigurationUpdate(CoolingUpdate configuration);
 }

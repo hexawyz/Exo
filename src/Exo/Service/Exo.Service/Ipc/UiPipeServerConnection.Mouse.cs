@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
-using System.Runtime.InteropServices;
 using Exo.Primitives;
-using Exo.Settings.Ui.Ipc;
 
 namespace Exo.Service.Ipc;
 
@@ -273,7 +271,7 @@ partial class UiPipeServerConnection
 	private void ProcessMouseDpiPresets(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
 	{
 		var reader = new BufferReader(data);
-		ProcessMouseDpiPresets(reader.ReadVariableUInt32(), reader.ReadGuid(), reader.ReadByte(), ReadDotsPerInches(ref reader), cancellationToken);
+		ProcessMouseDpiPresets(reader.ReadVariableUInt32(), reader.ReadGuid(), reader.ReadByte(), Serializer.ReadDotsPerInches(ref reader), cancellationToken);
 	}
 
 	private async void ProcessMouseDpiPresets(uint requestId, Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets, CancellationToken cancellationToken)
@@ -341,14 +339,14 @@ partial class UiPipeServerConnection
 	}
 
 	private ValueTask WriteMouseDeviceConfigurationStatusAsync(uint requestId, MouseDeviceOperationStatus status, CancellationToken cancellationToken)
-		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.PowerDeviceOperationStatus, requestId, (byte)status, cancellationToken);
+		=> WriteSimpleOperationStatusAsync(ExoUiProtocolServerMessage.MouseDeviceOperationStatus, requestId, (byte)status, cancellationToken);
 
 	private static void Write(ref BufferWriter writer, in MouseDeviceInformation device)
 	{
 		writer.Write(device.DeviceId);
 		writer.Write(device.IsConnected);
 		writer.Write((byte)device.Capabilities);
-		Write(ref writer, device.MaximumDpi);
+		Serializer.Write(ref writer, device.MaximumDpi);
 		if ((device.Capabilities & (MouseCapabilities.DpiPresets | MouseCapabilities.ConfigurableDpiPresets)) != 0)
 		{
 			writer.Write(device.MinimumDpiPresetCount);
@@ -381,7 +379,7 @@ partial class UiPipeServerConnection
 		{
 			writer.Write((byte)0);
 		}
-		Write(ref writer, value.Dpi);
+		Serializer.Write(ref writer, value.Dpi);
 	}
 
 	private static void Write(ref BufferWriter writer, in MouseDpiPresetsInformation dpiPresets)
@@ -396,7 +394,7 @@ partial class UiPipeServerConnection
 		{
 			writer.Write((byte)0);
 		}
-		Write(ref writer, dpiPresets.DpiPresets);
+		Serializer.Write(ref writer, dpiPresets.DpiPresets);
 	}
 
 	private static void Write(ref BufferWriter writer, in MousePollingFrequencyNotification notification)
@@ -404,41 +402,4 @@ partial class UiPipeServerConnection
 		writer.Write(notification.DeviceId);
 		writer.Write(notification.PollingFrequency);
 	}
-
-	private static void Write(ref BufferWriter writer, ImmutableArray<DotsPerInch> dpiArray)
-	{
-		if (dpiArray.IsDefaultOrEmpty)
-		{
-			writer.Write((byte)0);
-		}
-		else
-		{
-			writer.WriteVariable((uint)dpiArray.Length);
-			foreach (var dpi in dpiArray)
-			{
-				Write(ref writer, in dpi);
-			}
-		}
-	}
-
-	private static void Write(ref BufferWriter writer, in DotsPerInch dpi)
-	{
-		writer.Write(dpi.Horizontal);
-		writer.Write(dpi.Vertical);
-	}
-
-	private static ImmutableArray<DotsPerInch> ReadDotsPerInches(ref BufferReader reader)
-	{
-		uint count = reader.ReadVariableUInt32();
-		if (count == 0) return [];
-		var dpiArray = new DotsPerInch[count];
-		for (int i = 0; i < dpiArray.Length; i++)
-		{
-			dpiArray[i] = ReadDotsPerInch(ref reader);
-		}
-		return ImmutableCollectionsMarshal.AsImmutableArray(dpiArray);
-	}
-
-	private static DotsPerInch ReadDotsPerInch(ref BufferReader reader)
-		=> new(reader.Read<ushort>(), reader.Read<ushort>());
 }
