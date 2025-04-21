@@ -5,12 +5,11 @@ using System.Runtime;
 using System.Runtime.CompilerServices;
 using Exo.Configuration;
 using Exo.Discovery;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-internal class DiscoveryOrchestrator : IHostedService, IDiscoveryOrchestrator
+internal class DiscoveryOrchestrator : IDiscoveryOrchestrator
 {
 	private abstract class DiscoverySource
 	{

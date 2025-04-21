@@ -1,5 +1,6 @@
 using System.IO.Pipes;
 using Exo.Ipc;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 

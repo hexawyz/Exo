@@ -10,12 +10,11 @@ internal sealed class DynamicAssemblyDiscovery : IAssemblyDiscovery
 
 	public ImmutableArray<string> AssemblyPaths { get; }
 
-	public DynamicAssemblyDiscovery()
+	public DynamicAssemblyDiscovery(string basePath)
 	{
-		var assembly = typeof(DebugAssemblyDiscovery).Assembly;
+		var assembly = typeof(DynamicAssemblyDiscovery).Assembly;
 
-		var assemblyDirectory = Path.GetDirectoryName(assembly.Location)!;
-		var pluginDirectory = Path.GetFullPath(Path.Combine(assemblyDirectory, "plugins"));
+		var pluginDirectory = Path.GetFullPath(Path.Combine(basePath, "plugins"));
 
 		AssemblyPaths = ImmutableCollectionsMarshal.AsImmutableArray(Directory.GetFiles(pluginDirectory, "*.dll"));
 	}

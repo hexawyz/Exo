@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Ipc;
 using Exo.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 

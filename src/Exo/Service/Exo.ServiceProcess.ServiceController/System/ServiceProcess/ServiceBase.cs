@@ -594,9 +594,9 @@ namespace System.ServiceProcess
         ///       contains multiple associated services. Loads the specified services into memory so they can be
         ///       started.</para>
         /// </summary>
-        public static unsafe void Run(ServiceBase[] services)
+        public static unsafe void Run(params ReadOnlySpan<ServiceBase> services)
         {
-            if (services == null || services.Length == 0)
+            if (services.Length == 0)
                 throw new ArgumentException(SR.NoServices);
 
             IntPtr entriesPointer = Marshal.AllocHGlobal(checked((services.Length + 1) * sizeof(SERVICE_TABLE_ENTRY)));
@@ -658,20 +658,6 @@ namespace System.ServiceProcess
                 // Free the unmanaged array containing the entries.
                 Marshal.FreeHGlobal(entriesPointer);
             }
-        }
-
-        /// <summary>
-        ///    <para>Provides the main
-        ///       entry point for an executable that contains a single
-        ///       service. Loads the service into memory so it can be
-        ///       started.</para>
-        /// </summary>
-        public static void Run(ServiceBase service)
-        {
-            if (service == null)
-                throw new ArgumentException(SR.NoServices);
-
-            Run(new ServiceBase[] { service });
         }
 
         public void Stop()

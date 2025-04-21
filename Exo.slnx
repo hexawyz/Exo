@@ -107,11 +107,9 @@
     <Project Path="src/Exo/Service/Exo.Cli/Exo.Cli.csproj" />
     <Project Path="src/Exo/Service/Exo.DeviceNotifications.Tester/Exo.DeviceNotifications.Tester.csproj" />
     <Project Path="src/Exo/Service/Exo.DeviceNotifications/Exo.DeviceNotifications.csproj" />
-    <Project Path="src/Exo/Service/Exo.Extensions.Hosting.WindowsServices/Exo.Extensions.Hosting.WindowsServices.csproj" />
     <Project Path="src/Exo/Service/Exo.PowerNotifications/Exo.PowerNotifications.csproj" />
     <Project Path="src/Exo/Service/Exo.Service.Core.Tests/Exo.Service.Core.Tests.csproj" />
     <Project Path="src/Exo/Service/Exo.Service.Core/Exo.Service.Core.csproj" />
-    <Project Path="src/Exo/Service/Exo.Service.Grpc/Exo.Service.Grpc.csproj" />
     <Project Path="src/Exo/Service/Exo.Service.ImageService/Exo.Service.ImageService.csproj" />
     <Project Path="src/Exo/Service/Exo.Service/Exo.Service.csproj" />
     <Project Path="src/Exo/Service/Exo.ServiceProcess.ServiceController/Exo.ServiceProcess.ServiceController.csproj" />

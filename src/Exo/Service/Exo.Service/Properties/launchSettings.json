@@ -5,7 +5,7 @@
       "dotnetRunMessages": "true",
       "launchBrowser": false,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "EXO_LAUNCH_ENVIRONMENT": "Development"
       }
     }
   }

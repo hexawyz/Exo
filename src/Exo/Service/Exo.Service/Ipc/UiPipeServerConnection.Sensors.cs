@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Primitives;
 using Exo.Sensors;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 

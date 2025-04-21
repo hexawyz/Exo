@@ -2,10 +2,11 @@ using System.IO.Pipes;
 using System.Runtime.ExceptionServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 
-internal sealed class UiIpcService : IHostedService
+internal sealed class UiIpcService
 {
 	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
 	private readonly IAssemblyLoader _assemblyLoader;

@@ -8,6 +8,7 @@ using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Contracts;
 using Exo.Primitives;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 

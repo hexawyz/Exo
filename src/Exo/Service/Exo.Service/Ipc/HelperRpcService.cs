@@ -5,7 +5,7 @@ using System.Security.Principal;
 
 namespace Exo.Service.Ipc;
 
-internal sealed class HelperRpcService : IHostedService
+internal sealed class HelperRpcService
 {
 	private readonly OverlayNotificationService _overlayNotificationService;
 	private readonly CustomMenuService _customMenuService;
