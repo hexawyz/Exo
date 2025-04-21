@@ -157,10 +157,7 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 			{
 				try
 				{
-					using (await state.Lock.WaitAsync(default).ConfigureAwait(false))
-					{
-						await DetachDeviceStateAsync(state).ConfigureAwait(false);
-					}
+					await DetachDeviceStateAsync(state).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
