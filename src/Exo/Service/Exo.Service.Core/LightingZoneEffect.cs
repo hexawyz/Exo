@@ -1,4 +1,4 @@
-﻿using Exo.Contracts;
+using Exo.Contracts;
 
 namespace Exo.Service;
 

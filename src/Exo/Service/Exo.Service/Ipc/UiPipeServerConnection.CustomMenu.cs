@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Exo.Contracts.Ui;
 
 namespace Exo.Service.Ipc;
 
@@ -41,7 +40,7 @@ partial class UiPipeServerConnection
 					writer.Write(notification.Position);
 					writer.Write(notification.MenuItem.ItemId);
 					writer.Write((byte)notification.MenuItem.Type);
-					if (notification.MenuItem.Type is Contracts.Ui.MenuItemType.Default or Contracts.Ui.MenuItemType.SubMenu)
+					if (notification.MenuItem.Type is MenuItemType.Default or MenuItemType.SubMenu)
 					{
 						writer.WriteVariableString((notification.MenuItem as TextMenuItem)?.Text ?? "");
 					}

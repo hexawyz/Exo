@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using Exo.Contracts.Ui.Settings;
 using Exo.Metadata;
 using Exo.Primitives;
 using Exo.Service;

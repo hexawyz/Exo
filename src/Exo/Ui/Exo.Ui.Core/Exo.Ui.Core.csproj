@@ -6,8 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\Exo.Contracts.Ui\Exo.Contracts.Ui.csproj" />
-	</ItemGroup>
-
 </Project>

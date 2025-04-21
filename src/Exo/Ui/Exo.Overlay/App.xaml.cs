@@ -1,8 +1,7 @@
 using System.IO;
 using System.Threading.Channels;
-using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Overlay;
 using Exo.Ipc;
+using Exo.Service;
 using Application = System.Windows.Application;
 
 namespace Exo.Overlay;

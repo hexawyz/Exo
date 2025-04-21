@@ -1,15 +1,10 @@
-﻿using System.Runtime.Serialization;
+namespace Exo.Service;
 
-namespace Exo.Contracts.Ui;
-
-[DataContract]
 public enum MenuItemType : byte
 {
 	// A standard command item.
-	[EnumMember]
 	Default = 0,
 	// A submenu item.
-	[EnumMember]
 	SubMenu = 1,
 
 	// We probably want to enable more options.
@@ -19,6 +14,5 @@ public enum MenuItemType : byte
 	//ChoiceSubMenu = 3,
 
 	// A separator item.
-	[EnumMember]
 	Separator = 255,
 }

@@ -1,4 +1,4 @@
-namespace Exo.Contracts.Ui;
+namespace Exo.Service;
 
 public static class Constants
 {

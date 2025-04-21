@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using DeviceTools;
 using Exo.ColorFormats;
 using Exo.Contracts;
-using Exo.Contracts.Ui;
 using Exo.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.EmbeddedMonitors;
@@ -192,16 +191,16 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			ProcessMetadataSource(WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemEnumeration:
-			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Enumeration, data);
+			ProcessCustomMenu(WatchNotificationKind.Enumeration, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemAdd:
-			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Addition, data);
+			ProcessCustomMenu(WatchNotificationKind.Addition, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemRemove:
-			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Removal, data);
+			ProcessCustomMenu(WatchNotificationKind.Removal, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuItemUpdate:
-			ProcessCustomMenu(Contracts.Ui.WatchNotificationKind.Update, data);
+			ProcessCustomMenu(WatchNotificationKind.Update, data);
 			goto Success;
 		case ExoUiProtocolServerMessage.CustomMenuOperationStatus:
 			ProcessCustomMenuOperationStatus(data);
@@ -385,7 +384,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMetadataSourceNotification(notification));
 	}
 
-	private void ProcessCustomMenu(Contracts.Ui.WatchNotificationKind kind, ReadOnlySpan<byte> data)
+	private void ProcessCustomMenu(WatchNotificationKind kind, ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
 		var notification = new MenuChangeNotification()

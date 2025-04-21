@@ -2,10 +2,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
-using Exo.Contracts.Ui;
 using Exo.Service;
 using Exo.Service.Ipc;
-using Exo.Settings.Ui.Services;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -149,10 +147,10 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 
 		switch (notification.Kind)
 		{
-		case Contracts.Ui.WatchNotificationKind.Enumeration:
+		case WatchNotificationKind.Enumeration:
 			if (notification.Position != parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Initial enumeration: Menu item position out of range.");
-			goto case Contracts.Ui.WatchNotificationKind.Addition;
-		case Contracts.Ui.WatchNotificationKind.Addition:
+			goto case WatchNotificationKind.Addition;
+		case WatchNotificationKind.Addition:
 			{
 				if (notification.Position > parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Addition: Menu item position out of range.");
 				if (existingItem is not null) throw new InvalidOperationException("Addition: Duplicate item ID.");
@@ -179,7 +177,7 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 				}
 			}
 			break;
-		case Contracts.Ui.WatchNotificationKind.Removal:
+		case WatchNotificationKind.Removal:
 			{
 				if (notification.Position >= parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Removal: Menu item position out of range.");
 				if (existingItem is null) throw new InvalidOperationException("Removal: Menu item not found.");
@@ -205,7 +203,7 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 				}
 				break;
 			}
-		case Contracts.Ui.WatchNotificationKind.Update:
+		case WatchNotificationKind.Update:
 			{
 				if (notification.Position >= parentMenu.OriginalMenuItems.Count) throw new InvalidOperationException("Update: Menu item position out of range.");
 				if (existingItem is null) throw new InvalidOperationException("Update: Menu item not found.");

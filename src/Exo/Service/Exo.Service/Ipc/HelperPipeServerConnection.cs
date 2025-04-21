@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Exo.Contracts.Ui.Overlay;
 using Exo.Ipc;
 
 namespace Exo.Service.Ipc;
@@ -123,7 +122,7 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 					writer.Write(notification.Position);
 					writer.Write(notification.MenuItem.ItemId);
 					writer.Write((byte)notification.MenuItem.Type);
-					if (notification.MenuItem.Type is Contracts.Ui.MenuItemType.Default or Contracts.Ui.MenuItemType.SubMenu)
+					if (notification.MenuItem.Type is MenuItemType.Default or MenuItemType.SubMenu)
 					{
 						writer.WriteVariableString((notification.MenuItem as TextMenuItem)?.Text ?? "");
 					}

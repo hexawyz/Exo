@@ -1,9 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
-using Exo.Contracts.Ui;
 using Exo.Ipc;
-using Exo.Programming;
 using Exo.Service;
 using Exo.Service.Ipc;
 using Exo.Settings.Ui.Services;

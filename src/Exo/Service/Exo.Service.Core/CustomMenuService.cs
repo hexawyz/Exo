@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Configuration;
-using Exo.Contracts.Ui;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;

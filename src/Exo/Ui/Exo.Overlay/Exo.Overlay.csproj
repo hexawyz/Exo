@@ -22,18 +22,31 @@
   <ItemGroup>
     <None Remove="FluentSystemIcons-Resizable.ttf" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Service\Exo.Service.Core\Constants.cs" Link="Definitions\Constants.cs" />
+    <Compile Include="..\..\Service\Exo.Service.Core\MenuChangeNotification.cs" Link="Definitions\MenuChangeNotification.cs" />
+    <Compile Include="..\..\Service\Exo.Service.Core\MenuItemType.cs" Link="Definitions\MenuItemType.cs" />
+    <Compile Include="..\..\Service\Exo.Service.Core\MonitorControlProxy.cs" Link="Definitions\MonitorControlProxy.cs" />
+    <Compile Include="..\..\Service\Exo.Service.Core\OverlayNotificationKind.cs" Link="Definitions\OverlayNotificationKind.cs" />
+    <Compile Include="..\..\Service\Exo.Service.Core\OverlayRequest.cs" Link="Definitions\OverlayRequest.cs" />
+    <Compile Include="..\..\Service\Exo.Service.Core\WatchNotificationKind.cs" Link="Definitions\WatchNotificationKind.cs" />
+  </ItemGroup>
 	
 	<ItemGroup>
 		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Primitives\Exo.Primitives.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Ipc\Exo.Ipc.csproj" />
-		<ProjectReference Include="..\Exo.Contracts.Ui.Overlay\Exo.Contracts.Ui.Overlay.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>
 	  <Resource Include="FluentSystemIcons-Resizable.ttf" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Definitions\" />
 	</ItemGroup>
 
 </Project>

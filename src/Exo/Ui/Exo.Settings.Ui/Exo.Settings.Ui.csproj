@@ -85,6 +85,7 @@
 	  <Compile Include="..\..\Core\Exo.Core\Monitors\NonContinuousValueDescription.cs" Link="Definitions\NonContinuousValueDescription.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\BatteryChangeNotification.cs" Link="Definitions\BatteryChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\BrightnessCapabilities.cs" Link="Definitions\BrightnessCapabilities.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\Constants.cs" Link="Definitions\Constants.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\CoolerInformation.cs" Link="Definitions\CoolerInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\CoolerNotFoundException.cs" Link="Definitions\CoolerNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\CoolerPowerLimits.cs" Link="Definitions\CoolerPowerLimits.cs" />
@@ -110,7 +111,9 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneInformation.cs" Link="Definitions\LightingZoneInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightNotFoundException.cs" Link="Definitions\LightNotFoundException.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\MenuChangeNotification.cs" Link="Definitions\MenuChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MenuItem.cs" Link="Definitions\MenuItem.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\MenuItemType.cs" Link="Definitions\MenuItemType.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MetadataArchiveCategory.cs" Link="Definitions\MetadataArchiveCategory.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorInformation.cs" Link="Definitions\MonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\MonitorNotFoundException.cs" Link="Definitions\MonitorNotFoundException.cs" />
@@ -165,11 +168,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Exo.Contracts\Exo.Contracts.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Memory\Exo.Memory.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Metadata\Exo.Metadata.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Programming.Contracts\Exo.Programming.Contracts.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Ipc\Exo.Ipc.csproj" />
-		<ProjectReference Include="..\Exo.Contracts.Ui.Settings\Exo.Contracts.Ui.Settings.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
 	</ItemGroup>

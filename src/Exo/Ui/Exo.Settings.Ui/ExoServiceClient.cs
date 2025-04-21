@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Exo.Contracts;
-using Exo.Contracts.Ui;
 using Exo.Programming;
 using Exo.Service;
 using Exo.Service.Ipc;

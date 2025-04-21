@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Threading.Channels;
-using Exo.Contracts.Ui;
+using Exo.Service;
 
 namespace Exo.Overlay;
 

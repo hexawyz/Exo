@@ -115,9 +115,6 @@
     <Project Path="src/Exo/Service/Exo.ServiceProcess.ServiceController/Exo.ServiceProcess.ServiceController.csproj" />
   </Folder>
   <Folder Name="/Exo/Ui/" Id="d7c8b3ce-0fec-fa3b-585d-e5395570dd28">
-    <Project Path="src/Exo/Ui/Exo.Contracts.Ui.Overlay/Exo.Contracts.Ui.Overlay.csproj" />
-    <Project Path="src/Exo/Ui/Exo.Contracts.Ui.Settings/Exo.Contracts.Ui.Settings.csproj" />
-    <Project Path="src/Exo/Ui/Exo.Contracts.Ui/Exo.Contracts.Ui.csproj" />
     <Project Path="src/Exo/Ui/Exo.Overlay/Exo.Overlay.csproj" />
     <Project Path="src/Exo/Ui/Exo.Settings.Ui/Exo.Settings.Ui.csproj">
       <Platform Solution="*|Any CPU" Project="x64" />

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace Exo.Contracts.Ui.Overlay;
+namespace Exo.Service;
 
 public enum MonitorControlResponseStatus : byte
 {

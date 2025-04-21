@@ -1,5 +1,5 @@
 using System.Threading.Channels;
-using Exo.Contracts.Ui.Overlay;
+using Exo.Service;
 using Exo.Ui;
 
 namespace Exo.Overlay;

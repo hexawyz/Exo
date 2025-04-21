@@ -1,5 +1,3 @@
-using Exo.Contracts.Ui.Settings;
-
 namespace Exo.Settings.Ui.ViewModels;
 
 public sealed class DpiViewModel

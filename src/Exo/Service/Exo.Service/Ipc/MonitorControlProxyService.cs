@@ -4,7 +4,6 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Mccs;
-using Exo.Contracts.Ui.Overlay;
 
 namespace Exo.Service.Ipc;
 

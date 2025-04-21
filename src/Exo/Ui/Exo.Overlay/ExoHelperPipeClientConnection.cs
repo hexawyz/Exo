@@ -4,9 +4,8 @@ using System.IO.Pipes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
-using Exo.Contracts.Ui;
-using Exo.Contracts.Ui.Overlay;
 using Exo.Ipc;
+using Exo.Service;
 using Exo.Utils;
 
 namespace Exo.Overlay;

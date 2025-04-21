@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
-using Exo.Contracts.Ui;
 
 namespace Exo.Service;
 

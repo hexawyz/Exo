@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Input;
-using Exo.Contracts.Ui.Settings;
 using Exo.EmbeddedMonitors;
 using Exo.Images;
 using Exo.Monitors;
