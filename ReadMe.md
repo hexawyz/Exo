@@ -274,8 +274,7 @@ The product is currently split in three executables:
 
 Splitting the application this way allows to further preserve system resources, as running a settings UI should not be necessary 100% of the time.
 
-As a general principle, the service communicates with the user interfaces using GRPC through named pipes.
-The GRPC interfacing does indeed incur an overhead within the service itself, as the service has to maintain an observable state, but the service would be quite useless without any form of interface.
+As a general principle, the service communicates with the user interfaces through named pipes, using a custom protocol that is light on resources.
 
 ## Core
 
@@ -285,7 +284,7 @@ The service itself is split in different layers:
 
 * Driver layer: In order to expose features, a driver needs to be implemented for each device (or group of devices), which will expose a mostly direct mapping of hardware features of the device.
 * High level service layer: For each group of features (e.g. RGB lighting), a service will collect the matching devices and expose the features in a centralized way.
-* GRPC layer: For communication with the UI parts. The GRPC services will be a light or medium wrapping around the internal high-level services, providing UI-oriented informations.
+* Communication layer: UI-oriented features are all mapped through a custom protocol. (Actually two as there are two clients)
 * Core services: Everything that doesn't fit in the above categories
 	* Configuration service that will persist important configuration
 	* Device registry that references all known devices, connected or not
