@@ -16,7 +16,6 @@
 		<PackageReference Update="System.Threading.Channels" Version="9.0.3" />
 		<PackageReference Update="System.Threading.AccessControl" Version="9.0.3" />
 		<PackageReference Update="coverlet.collector" Version="6.0.4" />
-		<PackageReference Update="Grpc.AspNetCore.Server" Version="2.70.0" />
 		<PackageReference Update="Microsoft.Bcl.AsyncInterfaces" Version="9.0.3" />
 		<PackageReference Update="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
 		<PackageReference Update="Microsoft.CodeAnalysis.Common" Version="4.13.0" />
