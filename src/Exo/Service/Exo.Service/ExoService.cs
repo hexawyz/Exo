@@ -5,6 +5,7 @@ using Exo.Service.Ipc;
 using Exo.Services;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.EventLog;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
@@ -27,28 +28,35 @@ public class ExoService : ServiceBase
 		_isDevelopment = Environment.GetEnvironmentVariable("EXO_LAUNCH_ENVIRONMENT") == "Development";
 		_isService = WindowsServiceHelpers.IsWindowsService();
 
-		var loggerConfiguration = new LoggerConfiguration()
-			.Enrich.FromLogContext()
-			.Enrich.WithMachineName()
-			.Enrich.WithThreadId()
-			.MinimumLevel.Is(_isDevelopment ? LogEventLevel.Debug : LogEventLevel.Information)
-			.WriteTo.File
-			(
-				path: Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "logs", "log.txt")),
-				outputTemplate: @"[{Timestamp:HH:mm:ss}] [{Level}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
-				rollingInterval: RollingInterval.Day,
-				retainedFileCountLimit: 7,
-				buffered: true
-			);
-
-		if (!_isService)
+		if (_isService)
 		{
-			loggerConfiguration.WriteTo.Async(writeTo => writeTo.Console(outputTemplate: @"[{Timestamp:HH:mm:ss}] [{Level}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"));
+			_loggerFactory = new LoggerFactory([new EventLogLoggerProvider(new EventLogSettings() { SourceName = "Exo" })], new LoggerFilterOptions() { MinLevel = LogLevel.Information });
 		}
+		else
+		{
+			var loggerConfiguration = new LoggerConfiguration()
+				.Enrich.FromLogContext()
+				.Enrich.WithMachineName()
+				.Enrich.WithThreadId()
+				.MinimumLevel.Is(_isDevelopment ? LogEventLevel.Debug : LogEventLevel.Information)
+				.WriteTo.File
+				(
+					path: Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "logs", "log.txt")),
+					outputTemplate: @"[{Timestamp:HH:mm:ss}] [{Level}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
+					rollingInterval: RollingInterval.Day,
+					retainedFileCountLimit: 7,
+					buffered: true
+				);
 
-		var logger = loggerConfiguration.CreateLogger();
+			if (!_isService)
+			{
+				loggerConfiguration.WriteTo.Async(writeTo => writeTo.Console(outputTemplate: @"[{Timestamp:HH:mm:ss}] [{Level}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"));
+			}
 
-		_loggerFactory = new SerilogLoggerFactory(logger, true);
+			var logger = loggerConfiguration.CreateLogger();
+
+			_loggerFactory = new SerilogLoggerFactory(logger, true);
+		}
 		_logger = _loggerFactory.CreateLogger<ExoService>();
 		_cancellationTokenSource = new();
 

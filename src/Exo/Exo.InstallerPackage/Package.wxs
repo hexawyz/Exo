@@ -1,47 +1,49 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
-    <Package Name="Exo" Manufacturer="Hexawyz" Version="0.1.0.0" Scope="perMachine" UpgradeStrategy="majorUpgrade" UpgradeCode="07dd3181-64aa-475b-8787-b8a89e6420b5">
-        <Icon Id="Exo.ico" SourceFile="..\..\..\exo-icon.ico"/>
+	<Package Name="Exo" Manufacturer="Hexawyz" Version="0.1.0.0" Scope="perMachine" UpgradeStrategy="majorUpgrade" UpgradeCode="07dd3181-64aa-475b-8787-b8a89e6420b5">
+		<Icon Id="Exo.ico" SourceFile="..\..\..\exo-icon.ico"/>
 
-        <MediaTemplate EmbedCab="yes" />
+		<MediaTemplate EmbedCab="yes" />
 
-        <util:CloseApplication
-            Id="CloseOverlay"
-            Target="Exo.Overlay.exe"
-            CloseMessage="yes"
-            EndSessionMessage="yes"
-            RebootPrompt="no"
-            TerminateProcess="0"
-            Timeout="5"
-            Condition="Installed" />
+		<util:CloseApplication
+			Id="CloseOverlay"
+			Target="Exo.Overlay.exe"
+			CloseMessage="yes"
+			EndSessionMessage="yes"
+			RebootPrompt="no"
+			TerminateProcess="0"
+			Timeout="5"
+			Condition="Installed" />
 
-        <util:CloseApplication
-            Id="CloseUi"
-            Target="Exo.Settings.Ui.exe"
-            CloseMessage="yes"
-            EndSessionMessage="yes"
-            RebootPrompt="no"
-            TerminateProcess="0"
-            Timeout="5"
-            Condition="Installed" />
+		<util:CloseApplication
+			Id="CloseUi"
+			Target="Exo.Settings.Ui.exe"
+			CloseMessage="yes"
+			EndSessionMessage="yes"
+			RebootPrompt="no"
+			TerminateProcess="0"
+			Timeout="5"
+			Condition="Installed" />
 
-        <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="!(loc.DowngradeError)" />
+		<MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="!(loc.DowngradeError)" />
 
-        <Feature Id="Main">
-            <ComponentGroupRef Id="Exo.Service" />
-            <ComponentGroupRef Id="Exo.Overlay" />
-            <ComponentGroupRef Id="Exo.Settings.Ui" />
-        </Feature>
+		<PropertyRef Id="NETFRAMEWORK40FULLINSTALLROOTDIR64" />
+		
+		<Feature Id="Main">
+			<ComponentGroupRef Id="Exo.Service" />
+			<ComponentGroupRef Id="Exo.Overlay" />
+			<ComponentGroupRef Id="Exo.Settings.Ui" />
+		</Feature>
 
-        <CustomAction Id="ExecuteOverlay"
-            Execute="immediate"
-            Impersonate="no"
-            Return="asyncNoWait"
-            Directory="ExoOverlayDirectory"
-            ExeCommand="[#ExoOverlayExecutable]" />
+		<CustomAction Id="ExecuteOverlay"
+			Execute="immediate"
+			Impersonate="no"
+			Return="asyncNoWait"
+			Directory="ExoOverlayDirectory"
+			ExeCommand="[#ExoOverlayExecutable]" />
 
-        <InstallExecuteSequence>
+		<InstallExecuteSequence>
 			<Custom Action="override Wix4CloseApplications_$(sys.BUILDARCHSHORT)" After="InstallInitialize" />
-            <Custom Action="ExecuteOverlay" After="InstallFinalize" Condition="NOT REMOVE" />
-        </InstallExecuteSequence>
-    </Package>
+			<Custom Action="ExecuteOverlay" After="InstallFinalize" Condition="NOT REMOVE" />
+		</InstallExecuteSequence>
+	</Package>
 </Wix>

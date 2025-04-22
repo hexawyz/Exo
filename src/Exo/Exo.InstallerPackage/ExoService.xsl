@@ -25,6 +25,12 @@
                 <xsl:attribute name="KeyPath">yes</xsl:attribute>
             </xsl:element>
 
+			<xsl:element name="util:EventSource">
+				<xsl:attribute name="Name">Exo</xsl:attribute>
+				<xsl:attribute name="Log">Application</xsl:attribute>
+				<xsl:attribute name="EventMessageFile">[NETFRAMEWORK40FULLINSTALLROOTDIR64]EventLogMessages.dll</xsl:attribute>
+			</xsl:element>
+
             <xsl:element name="wix:ServiceInstall">
                 <xsl:attribute name="Id">ServiceInstaller</xsl:attribute>
                 <xsl:attribute name="DisplayName">Exo</xsl:attribute>
@@ -68,7 +74,6 @@
                 <xsl:attribute name="Stop">both</xsl:attribute>
                 <xsl:attribute name="Wait">yes</xsl:attribute>
             </xsl:element>
-
         </xsl:element>
     </xsl:template>
 
