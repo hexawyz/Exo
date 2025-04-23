@@ -177,7 +177,7 @@ public partial class KrakenDriver :
 						screenInfo.Height,
 						productId,
 						version,
-						friendlyName,
+						friendlyName ?? await hidStream.GetProductNameAsync(cancellationToken).ConfigureAwait(false) ?? "NZXT Kraken",
 						new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", serialNumber)
 					),
 					null
