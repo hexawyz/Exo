@@ -35,6 +35,9 @@ public sealed class DnsSdDriverCreationContext : DriverCreationContext
 	public string InstanceName => _instanceInformation.InstanceName;
 	/// <summary></summary>
 	public ImmutableArray<string> TextAttributes => _instanceInformation.TextAttributes;
+	/// <summary>IP Address(es) associated with the instance.</summary>
+	/// <remarks>There should generally only be one IP address.</remarks>
+	public ImmutableArray<string> IpAddresses => _instanceInformation.IpAddresses;
 
 	protected override INestedDriverRegistryProvider NestedDriverRegistryProvider => _discoverySubsystem.DriverRegistry;
 	public override ILoggerFactory LoggerFactory => _discoverySubsystem.LoggerFactory;

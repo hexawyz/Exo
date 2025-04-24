@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Net.Http.Json;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -34,11 +34,15 @@ public sealed partial class ElgatoLightDriver : Driver,
 		string hostName,
 		ushort portNumber,
 		ImmutableArray<string> textAttributes,
+		ImmutableArray<string> ipAddresses,
 		CancellationToken cancellationToken
 	)
 	{
+		// Avoid relying on the domain name, as it seems that this can sometimes fail.
+		var ipAddress = IPAddress.Parse(ipAddresses[0]);
 		// TODO: We should reuse the same message handler everywhere.
-		var httpClient = new HttpClient() { BaseAddress = new Uri($"http://{hostName}:{portNumber}/") };
+		var httpClient = new HttpClient() { BaseAddress = new Uri(ipAddress.AddressFamily == AddressFamily.InterNetworkV6 ? $"http://[{ipAddress}]:{portNumber}/" : $"http://{ipAddress}:{portNumber}/") };
+		httpClient.DefaultRequestHeaders.Host = hostName;
 
 		ElgatoAccessoryInfo accessoryInfo;
 		ElgatoLights lights;
