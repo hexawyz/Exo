@@ -99,6 +99,7 @@
 	  <Compile Include="..\..\Service\Exo.Service.Core\EmbeddedMonitorInformation.cs" Link="Definitions\EmbeddedMonitorInformation.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\ImageChangeNotification.cs" Link="Definitions\ImageChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\ImageInformation.cs" Link="Definitions\ImageInformation.cs" />
+	  <Compile Include="..\..\Service\Exo.Service.Core\ImageNotFoundException.cs" Link="Definitions\ImageNotFoundException.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightCapabilities.cs" Link="Definitions\LightCapabilities.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightChangeNotification.cs" Link="Definitions\LightChangeNotification.cs" />
 	  <Compile Include="..\..\Service\Exo.Service.Core\LightDeviceCapabilities.cs" Link="Definitions\LightDeviceCapabilities.cs" />
@@ -151,6 +152,9 @@
 		<PackageReference Include="CommunityToolkit.WinUI.Extensions" Version="8.2.250402" />
 		<PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.2.250402" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+		<PackageReference Include="Microsoft.Extensions.Logging.EventLog" />
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3179.45" IncludeAssets="None" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />

@@ -11,6 +11,7 @@ internal class DeviceViewModel : BindableObject, IDisposable
 {
 	public DeviceViewModel
 	(
+		ITypedLoggerProvider loggerProvider,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		INotificationSystem notificationSystem,
@@ -38,23 +39,23 @@ internal class DeviceViewModel : BindableObject, IDisposable
 			{
 				if (featureId == WellKnownGuids.PowerDeviceFeature)
 				{
-					PowerFeatures ??= new(this, powerService);
+					PowerFeatures ??= new(loggerProvider, this, powerService);
 				}
 				else if (featureId == WellKnownGuids.MouseDeviceFeature)
 				{
-					MouseFeatures ??= new(this, mouseService);
+					MouseFeatures ??= new(loggerProvider, this, mouseService);
 				}
 				else if (featureId == WellKnownGuids.MonitorDeviceFeature)
 				{
-					MonitorFeatures ??= new(this, metadataService, monitorService);
+					MonitorFeatures ??= new(loggerProvider, this, metadataService, monitorService);
 				}
 				else if (featureId == WellKnownGuids.LightDeviceFeature)
 				{
-					LightFeatures ??= new(this, metadataService, lightService, notificationSystem);
+					LightFeatures ??= new(loggerProvider, this, metadataService, lightService, notificationSystem);
 				}
 				else if (featureId == WellKnownGuids.EmbeddedMonitorDeviceFeature)
 				{
-					EmbeddedMonitorFeatures ??= new(this, availableImages, rasterizationScaleProvider, metadataService, embeddedMonitorService, notificationSystem);
+					EmbeddedMonitorFeatures ??= new(loggerProvider, this, availableImages, rasterizationScaleProvider, metadataService, embeddedMonitorService, notificationSystem);
 				}
 			}
 		}

@@ -1,12 +1,12 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Channels;
 using System.Windows.Input;
 using Exo.Service;
 using Exo.Settings.Ui.Converters;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -81,11 +81,15 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 
 	private readonly Commands.NavigateToDeviceCommand _navigateToDeviceCommand;
 
+	private readonly ITypedLoggerProvider _loggerProvider;
+	private readonly ILogger<DevicesViewModel> _logger;
+
 	private readonly AsyncLock _deviceArrivalLock;
 	private CancellationTokenSource? _cancellationTokenSource;
 
 	public DevicesViewModel
 	(
+		ITypedLoggerProvider loggerProvider,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		ISettingsMetadataService metadataService,
 		IRasterizationScaleProvider rasterizationScaleProvider,
@@ -93,6 +97,8 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		ICommand navigateCommand
 	)
 	{
+		_loggerProvider = loggerProvider;
+		_logger = loggerProvider.GetLogger<DevicesViewModel>();
 		_devices = new();
 		_removedDeviceIds = new();
 		_availableImages = availableImages;
@@ -133,8 +139,9 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 		{
 			await HandleDeviceNotificationAsync(kind, information, _cancellationTokenSource!.Token);
 		}
-		catch
+		catch (Exception ex)
 		{
+			_logger.DeviceNotificationError(ex);
 		}
 	}
 
@@ -149,6 +156,7 @@ internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
 				{
 					var device = new DeviceViewModel
 					(
+						_loggerProvider,
 						_availableImages,
 						_metadataService,
 						_notificationSystem,

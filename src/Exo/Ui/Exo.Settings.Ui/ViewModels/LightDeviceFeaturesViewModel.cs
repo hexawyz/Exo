@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -16,15 +17,18 @@ internal sealed class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 	private readonly Dictionary<Guid, LightChangeNotification> _pendingLightChanges;
 	private bool _isExpanded;
 	private readonly INotificationSystem _notificationSystem;
+	private readonly ILogger<LightViewModel> _lightLogger;
 
 	public LightDeviceFeaturesViewModel
 	(
+		ITypedLoggerProvider loggerProvider,
 		DeviceViewModel device,
 		ISettingsMetadataService metadataService,
 		ILightService lightService,
 		INotificationSystem notificationSystem
 	)
 	{
+		_lightLogger = loggerProvider.GetLogger<LightViewModel>();
 		_device = device;
 		_metadataService = metadataService;
 		_lightService = lightService;
@@ -79,7 +83,7 @@ internal sealed class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 			}
 			else
 			{
-				vm = new(this, lightInformation);
+				vm = new(_lightLogger, this, lightInformation);
 				_lightById.Add(lightInformation.LightId, vm);
 				_lights.Add(vm);
 			}
@@ -130,9 +134,11 @@ internal sealed class LightViewModel : BindableObject
 	private byte _liveBrightness;
 	private uint _temperature;
 	private uint _liveTemperature;
+	private readonly ILogger<LightViewModel> _logger;
 
-	public LightViewModel(LightDeviceFeaturesViewModel owner, LightInformation information)
+	public LightViewModel(ILogger<LightViewModel> logger, LightDeviceFeaturesViewModel owner, LightInformation information)
 	{
+		_logger = logger;
 		_owner = owner;
 		_lightId = information.LightId;
 		_capabilities = information.Capabilities;
@@ -328,8 +334,9 @@ internal sealed class LightViewModel : BindableObject
 		{
 			await SwitchAsync(isOn, default);
 		}
-		catch
+		catch (Exception ex)
 		{
+			_logger.LightSwitchError(DisplayName, _owner.Device.FriendlyName, ex);
 		}
 	}
 
@@ -345,8 +352,9 @@ internal sealed class LightViewModel : BindableObject
 		{
 			await SetBrightnessAsync(brightness, default);
 		}
-		catch
+		catch (Exception ex)
 		{
+			_logger.LightBrightnessError(DisplayName, _owner.Device.FriendlyName, ex);
 		}
 	}
 
@@ -361,8 +369,9 @@ internal sealed class LightViewModel : BindableObject
 		{
 			await SetTemperatureAsync(temperature, default);
 		}
-		catch
+		catch (Exception ex)
 		{
+			_logger.LightTemperatureError(DisplayName, _owner.Device.FriendlyName, ex);
 		}
 	}
 

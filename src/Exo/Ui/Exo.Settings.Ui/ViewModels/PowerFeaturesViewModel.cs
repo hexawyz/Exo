@@ -1,5 +1,6 @@
 using Exo.Service;
 using Exo.Settings.Ui.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -20,9 +21,11 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 	private byte _initialWirelessBrightness;
 	private byte _currentWirelessBrightness;
 	private bool _isExpanded;
+	private readonly ILogger<PowerFeaturesViewModel> _logger;
 
-	public PowerFeaturesViewModel(DeviceViewModel device, IPowerService powerService)
+	public PowerFeaturesViewModel(ITypedLoggerProvider loggerProvider, DeviceViewModel device, IPowerService powerService)
 	{
+		_logger = loggerProvider.GetLogger<PowerFeaturesViewModel>();
 		_device = device;
 		_powerService = powerService;
 	}
@@ -172,15 +175,36 @@ internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObjec
 	{
 		if (HasLowPowerBatteryThreshold && _currentLowPowerModeBatteryThreshold != _initialLowPowerModeBatteryThreshold)
 		{
-			await _powerService.SetLowPowerModeBatteryThresholdAsync(_device.Id, _currentLowPowerModeBatteryThreshold, cancellationToken);
+			try
+			{
+				await _powerService.SetLowPowerModeBatteryThresholdAsync(_device.Id, _currentLowPowerModeBatteryThreshold, cancellationToken);
+			}
+			catch (Exception ex)
+			{
+				_logger.PowerLowPowerModeBatteryThresholdError(_device.FriendlyName, ex);
+			}
 		}
 		if (HasIdleTimer && _currentIdleSleepDelay != _initialIdleSleepDelay)
 		{
-			await _powerService.SetIdleSleepTimerAsync(_device.Id, _currentIdleSleepDelay, cancellationToken);
+			try
+			{
+				await _powerService.SetIdleSleepTimerAsync(_device.Id, _currentIdleSleepDelay, cancellationToken);
+			}
+			catch (Exception ex)
+			{
+				_logger.PowerIdleSleepTimerError(_device.FriendlyName, ex);
+			}
 		}
 		if (HasWirelessBrightness && _currentWirelessBrightness != _initialWirelessBrightness)
 		{
-			await _powerService.SetWirelessBrightnessAsync(_device.Id, _currentWirelessBrightness, cancellationToken);
+			try
+			{
+				await _powerService.SetWirelessBrightnessAsync(_device.Id, _currentWirelessBrightness, cancellationToken);
+			}
+			catch (Exception ex)
+			{
+				_logger.PowerWirelessBrightnessError(_device.FriendlyName, ex);
+			}
 		}
 	}
 }

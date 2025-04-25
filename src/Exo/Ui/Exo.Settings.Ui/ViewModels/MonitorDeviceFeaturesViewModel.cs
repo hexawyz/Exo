@@ -158,7 +158,7 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 
 	public ICommand RefreshCommand => IRefreshable.SharedRefreshCommand;
 
-	public MonitorDeviceFeaturesViewModel(DeviceViewModel device, ISettingsMetadataService metadataService, IMonitorService monitorService)
+	public MonitorDeviceFeaturesViewModel(ITypedLoggerProvider loggerProvider, DeviceViewModel device, ISettingsMetadataService metadataService, IMonitorService monitorService)
 	{
 		_device = device;
 		_metadataService = metadataService;

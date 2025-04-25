@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Data;
 using System.IO.Pipes;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -99,7 +100,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private PendingOperations<LightOperationStatus> _lightOperations;
 	private PendingOperations<CoolingOperationStatus> _coolingOperations;
 	private PendingOperations<CustomMenuOperationStatus> _customMenuOperations;
-	private TaskCompletionSource<(ImageStorageOperationStatus Status, string Name)>? _imageAddTaskCompletionSource;
+	private TaskCompletionSource<(ImageStorageOperationStatus Status, string? Name)>? _imageAddTaskCompletionSource;
 	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
 
@@ -455,7 +456,6 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		var status = (ImageStorageOperationStatus)reader.ReadByte();
 		var sharedMemoryName = reader.ReadVariableString();
 
-		if (sharedMemoryName is null) throw new InvalidDataException();
 		if (_imageAddTaskCompletionSource is null) throw new InvalidOperationException();
 
 		_imageAddTaskCompletionSource.TrySetResult((status, sharedMemoryName));
@@ -1337,7 +1337,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	// and the Cancel or End will clear that out after running. So we know if an Add operation is started by looking at _imageAddTaskCompletionSource.
 	async Task<string> IImageService.BeginAddImageAsync(string imageName, uint length, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<(ImageStorageOperationStatus, string)> operation;
+		TaskCompletionSource<(ImageStorageOperationStatus, string?)> operation;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1354,6 +1354,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 		var (status, sharedMemoryName) = await operation.Task.ConfigureAwait(false);
 		if (status is not ImageStorageOperationStatus.Success) _imageAddTaskCompletionSource = null;
+		else if (sharedMemoryName is null) throw new InvalidDataException("The call did not return a name.");
 		HandleStatus(status);
 		return sharedMemoryName ?? throw new InvalidOperationException();
 
@@ -1374,7 +1375,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	private async Task EndOrCancelAddImage(ExoUiProtocolClientMessage message, string sharedMemoryName, CancellationToken cancellationToken)
 	{
-		TaskCompletionSource<(ImageStorageOperationStatus, string)> operation;
+		TaskCompletionSource<(ImageStorageOperationStatus, string?)> operation;
 		cancellationToken.ThrowIfCancellationRequested();
 		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
 		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
@@ -1442,8 +1443,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ImageStorageOperationStatus.Success: return;
 		case ImageStorageOperationStatus.Error: throw new Exception();
 		case ImageStorageOperationStatus.InvalidArgument: throw new ArgumentException();
-		case ImageStorageOperationStatus.ImageNotFound: throw new DeviceNotFoundException();
-		case ImageStorageOperationStatus.NameAlreadyInUse: throw new InvalidOperationException("Name already in use.");
+		case ImageStorageOperationStatus.ImageNotFound: throw new ImageNotFoundException();
+		case ImageStorageOperationStatus.NameAlreadyInUse: throw new DuplicateNameException();
 		case ImageStorageOperationStatus.ConcurrentOperation: throw new InvalidOperationException();
 		default: throw new InvalidOperationException();
 		}

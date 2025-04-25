@@ -8,6 +8,9 @@ using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Exo.Ui;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Debug;
+using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -30,17 +33,29 @@ public partial class App : Application
 
 	private static readonly UnboundedChannelOptions UnboundedChannelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false };
 
+	private Window? _window;
+	private readonly ILoggerFactory _loggerFactory;
+	private readonly ITypedLoggerProvider _loggerProvider;
+	private readonly RasterizationScaleController _rasterizationScaleController;
+	private readonly CancellationTokenSource _cancellationTokenSource;
+
 	/// <summary>
 	/// Initializes the singleton application object.  This is the first line of authored code
 	/// executed, and as such is the logical equivalent of main() or WinMain().
 	/// </summary>
 	public App()
 	{
+		_loggerFactory = System.Diagnostics.Debugger.IsAttached
+			? new LoggerFactory([new DebugLoggerProvider()], new LoggerFilterOptions() { MinLevel = LogLevel.Debug })
+			: new LoggerFactory([new EventLogLoggerProvider(new EventLogSettings() { SourceName = "Exo" })], new LoggerFilterOptions() { MinLevel = LogLevel.Information });
+
+		_loggerProvider = new TypedLoggerProvider(_loggerFactory);
+
 		_rasterizationScaleController = new();
 
 		_cancellationTokenSource = new();
 
-		Services = ConfigureServices(_rasterizationScaleController);
+		Services = ConfigureServices(_loggerProvider, _rasterizationScaleController);
 
 		InitializeComponent();
 	}
@@ -114,19 +129,17 @@ public partial class App : Application
 		_rasterizationScaleController.RasterizationScale = sender.RasterizationScale;
 	}
 
-	private Window? _window;
-	private readonly RasterizationScaleController _rasterizationScaleController;
-	private readonly CancellationTokenSource _cancellationTokenSource;
-
 	public new static App Current => (App)Application.Current;
 
 	public Window? MainWindow => _window;
 
 	public IServiceProvider Services { get; }
 
-	private static IServiceProvider ConfigureServices(IRasterizationScaleProvider rasterizationScaleProvider)
+	private static IServiceProvider ConfigureServices(ITypedLoggerProvider loggerProvider, IRasterizationScaleProvider rasterizationScaleProvider)
 	{
 		var services = new ServiceCollection();
+
+		services.AddSingleton(loggerProvider);
 
 		services.AddSingleton(sp => App.Current.MainWindow!);
 

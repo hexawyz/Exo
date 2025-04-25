@@ -18,14 +18,14 @@
 		<PackageReference Include="Serilog.Enrichers.Environment" />
 		<PackageReference Include="Serilog.Enrichers.Thread" />
 		<PackageReference Include="Serilog.Extensions.Hosting" />
+		<PackageReference Include="Serilog.Sinks.Async" />
+		<PackageReference Include="Serilog.Sinks.Console" />
+		<PackageReference Include="Serilog.Sinks.File" />
 	</ItemGroup>
 
 	<!-- These references are not used in the service itself but can be necessary for drivers. -->
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Management.Infrastructure" />
-		<PackageReference Include="Serilog.Sinks.Async" />
-		<PackageReference Include="Serilog.Sinks.Console" />
-		<PackageReference Include="Serilog.Sinks.File" />
 		<PackageReference Include="System.Reactive" />
 	</ItemGroup>
 

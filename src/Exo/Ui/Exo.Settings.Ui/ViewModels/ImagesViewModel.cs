@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.IO.MemoryMappedFiles;
 using System.Security.Cryptography;
 using System.Windows.Input;
@@ -7,6 +8,7 @@ using Exo.Memory;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -132,12 +134,14 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 	private readonly IFileOpenDialog _fileOpenDialog;
 	private readonly INotificationSystem _notificationSystem;
 	private IImageService? _imageService;
+	private readonly ILogger<ImagesViewModel> _logger;
 	private CancellationTokenSource? _cancellationTokenSource;
 
-	public ImagesViewModel(IFileOpenDialog fileOpenDialog, INotificationSystem notificationSystem)
+	public ImagesViewModel(ILogger<ImagesViewModel> logger, IFileOpenDialog fileOpenDialog, INotificationSystem notificationSystem)
 	{
 		_images = new();
 		_readOnlyImages = new(_images);
+		_logger = logger;
 		_fileOpenDialog = fileOpenDialog;
 		_notificationSystem = notificationSystem;
 		_openImageCommand = new(this);
@@ -177,6 +181,7 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 	internal void OnConnected(IImageService imageService)
 	{
 		_imageService = imageService;
+		_cancellationTokenSource = new();
 		IsNotBusy = true;
 	}
 
@@ -316,9 +321,10 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 	{
 		if (_imageService is null || _loadedImageName is null || !IsNameValid(_loadedImageName) || _loadedImageData is null) return;
 		IsNotBusy = false;
+		string imageName = _loadedImageName;
 		try
 		{
-			string sharedMemoryName = await _imageService.BeginAddImageAsync(_loadedImageName, (uint)_loadedImageData.Length, cancellationToken);
+			string sharedMemoryName = await _imageService.BeginAddImageAsync(imageName, (uint)_loadedImageData.Length, cancellationToken);
 			try
 			{
 				using (var sharedMemory = SharedMemory.Open(sharedMemoryName, (uint)_loadedImageData.Length, MemoryMappedFileAccess.Write))
@@ -339,8 +345,14 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 			NotifyPropertyChanged(ChangedProperty.LoadedImageData);
 			_addImageCommand.NotifyCanExecuteChanged();
 		}
+		catch (DuplicateNameException)
+		{
+			_logger.ImageDuplictateName(imageName);
+			_notificationSystem.PublishError("Failed to add image.", $"The name \"{imageName}\" is already in use.");
+		}
 		catch (Exception ex)
 		{
+			_logger.ImageAddError(ex);
 			_notificationSystem.PublishError(ex, $"Failed to add the image {_loadedImageName}.");
 		}
 		finally

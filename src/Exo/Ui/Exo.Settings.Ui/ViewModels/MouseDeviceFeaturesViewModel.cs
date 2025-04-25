@@ -28,7 +28,7 @@ internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindabl
 	private PollingFrequencyViewModel? _selectedPollingFrequency;
 	private bool _isExpanded;
 
-	public MouseDeviceFeaturesViewModel(DeviceViewModel device, IMouseService mouseService)
+	public MouseDeviceFeaturesViewModel(ITypedLoggerProvider loggerProvider, DeviceViewModel device, IMouseService mouseService)
 	{
 		_mouseService = mouseService;
 		_device = device;

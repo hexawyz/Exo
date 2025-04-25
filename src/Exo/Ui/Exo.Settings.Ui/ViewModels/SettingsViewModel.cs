@@ -1,9 +1,8 @@
 using System.Collections.ObjectModel;
-using System.Threading.Channels;
 using System.Windows.Input;
-using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -122,6 +121,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 
 	public SettingsViewModel
 	(
+		ITypedLoggerProvider loggerProvider,
 		ConnectionViewModel connectionViewModel,
 		IRasterizationScaleProvider rasterizationScaleProvider,
 		IEditionService editionService,
@@ -135,8 +135,8 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_goBackCommand = new(this);
 		_goForwardCommand = new(this);
 		_navigateCommand = new(this);
-		_imagesViewModel = new(fileOpenDialog, this);
-		_devicesViewModel = new(_imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
+		_imagesViewModel = new(loggerProvider.GetLogger<ImagesViewModel>(), fileOpenDialog, this);
+		_devicesViewModel = new(loggerProvider, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightsViewModel = new(_devicesViewModel);
 		_lightingViewModel = new(_devicesViewModel, _metadataService);

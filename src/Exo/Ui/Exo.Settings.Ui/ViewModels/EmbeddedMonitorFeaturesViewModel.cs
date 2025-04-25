@@ -29,6 +29,7 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 
 	public EmbeddedMonitorFeaturesViewModel
 	(
+		ITypedLoggerProvider loggerProvider,
 		DeviceViewModel device,
 		ReadOnlyObservableCollection<ImageViewModel> availableImages,
 		IRasterizationScaleProvider rasterizationScaleProvider,
