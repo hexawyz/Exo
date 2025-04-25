@@ -19,9 +19,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var uiPipeServer = (UiPipeServer)server;
 		return new
 		(
+			uiPipeServer.ConnectionLogger,
 			server,
 			stream,
-			uiPipeServer.ConnectionLogger,
 			uiPipeServer.AssemblyLoader,
 			uiPipeServer.CustomMenuService,
 			uiPipeServer.ProgrammingService,
@@ -63,9 +63,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 	private UiPipeServerConnection
 	(
+		ILogger<UiPipeServerConnection> logger,
 		PipeServer server,
 		NamedPipeServerStream stream,
-		ILogger<UiPipeServerConnection> logger,
 		IAssemblyLoader assemblyLoader,
 		CustomMenuService customMenuService,
 		ProgrammingService programmingService,
@@ -80,7 +80,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		LightingService lightingService,
 		EmbeddedMonitorService embeddedMonitorService,
 		LightService lightService
-	) : base(server, stream)
+	) : base(logger, server, stream)
 	{
 		_logger = logger;
 		_assemblyLoader = assemblyLoader;
@@ -204,9 +204,9 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 	protected override async Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken)
 	{
-		// This should act as the handshake.
 		try
 		{
+			// This should act as the handshake.
 			await SendGitCommitIdAsync(cancellationToken).ConfigureAwait(false);
 			using (var watchCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
 			{
@@ -229,10 +229,6 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 						// If the message processing does not indicate success, we can close the connection.
 						if (!await ProcessMessageAsync(buffer.Span[..count], watchCancellationTokenSource.Token).ConfigureAwait(false)) return;
 					}
-				}
-				catch (Exception ex)
-				{
-					// TODO: Log
 				}
 				finally
 				{

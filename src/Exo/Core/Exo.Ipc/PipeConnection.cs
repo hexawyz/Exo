@@ -1,5 +1,6 @@
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Ipc;
 
@@ -23,15 +24,17 @@ public abstract class PipeConnection : IAsyncDisposable
 	private PipeStream? _stream;
 	private readonly AsyncLock _lock;
 	private CancellationTokenSource? _cancellationTokenSource;
+	private readonly ILogger<PipeConnection> _logger;
 	private Task? _runTask;
 
-	private protected PipeConnection(PipeStream stream, CancellationToken ownerCancellationToken)
-		: this(GC.AllocateUninitializedArray<byte>(ReadBufferSize + WriteBufferSize, pinned: true), stream, ownerCancellationToken)
+	private protected PipeConnection(ILogger<PipeConnection> logger, PipeStream stream, CancellationToken ownerCancellationToken)
+		: this(logger, GC.AllocateUninitializedArray<byte>(ReadBufferSize + WriteBufferSize, pinned: true), stream, ownerCancellationToken)
 	{
 	}
 
-	private protected PipeConnection(byte[] buffers, PipeStream stream, CancellationToken ownerCancellationToken)
+	private protected PipeConnection(ILogger<PipeConnection> logger, byte[] buffers, PipeStream stream, CancellationToken ownerCancellationToken)
 	{
+		_logger = logger;
 		_buffers = buffers;
 		_stream = stream;
 		_lock = new();
@@ -74,7 +77,7 @@ public abstract class PipeConnection : IAsyncDisposable
 				}
 				catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
 				{
-					// TODO: Log ?
+					_logger.PipeConnectionReadError(ex);
 				}
 			}
 			finally

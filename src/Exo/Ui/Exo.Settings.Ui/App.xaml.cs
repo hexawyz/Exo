@@ -47,7 +47,7 @@ public partial class App : Application
 	{
 		_loggerFactory = System.Diagnostics.Debugger.IsAttached
 			? new LoggerFactory([new DebugLoggerProvider()], new LoggerFilterOptions() { MinLevel = LogLevel.Debug })
-			: new LoggerFactory([new EventLogLoggerProvider(new EventLogSettings() { SourceName = "Exo" })], new LoggerFilterOptions() { MinLevel = LogLevel.Information });
+			: new LoggerFactory([new EventLogLoggerProvider(new EventLogSettings() { LogName = "Exo", SourceName = "Ui" })], new LoggerFilterOptions() { MinLevel = LogLevel.Information });
 
 		_loggerProvider = new TypedLoggerProvider(_loggerFactory);
 
@@ -171,6 +171,7 @@ public partial class App : Application
 			sp => new ExoUiPipeClient
 			(
 				"Local\\Exo.Service.Ui",
+				loggerProvider.GetLogger<ExoUiPipeClientConnection>(),
 				sp.GetRequiredService<DispatcherQueue>(),
 				sp.GetRequiredService<IServiceClient>()
 			)

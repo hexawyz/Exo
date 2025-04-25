@@ -10,4 +10,8 @@
     <ProjectReference Include="..\Exo.Primitives\Exo.Primitives.csproj" />
   </ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+	</ItemGroup>
+
 </Project>

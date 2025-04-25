@@ -1,4 +1,5 @@
 using System.IO.Pipes;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Ipc;
 
@@ -6,8 +7,8 @@ namespace Exo.Ipc;
 /// <remarks>Rules are similar to the ones for <see cref="PipeClient"/>, just on the opposite side of the communication.</remarks>
 public abstract class PipeServerConnection : PipeConnection
 {
-	protected PipeServerConnection(PipeServer server, NamedPipeServerStream stream)
-		: base(stream, server.CancellationToken)
+	protected PipeServerConnection(ILogger<PipeServerConnection> logger, PipeServer server, NamedPipeServerStream stream)
+		: base(logger, stream, server.CancellationToken)
 	{
 	}
 }

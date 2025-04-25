@@ -2,6 +2,9 @@ using System.IO;
 using System.Threading.Channels;
 using Exo.Ipc;
 using Exo.Service;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Debug;
+using Microsoft.Extensions.Logging.EventLog;
 using Application = System.Windows.Application;
 
 namespace Exo.Overlay;
@@ -23,6 +26,7 @@ internal partial class App : Application
 	private readonly OverlayViewModel _overlayViewModel;
 	private NotifyIconService? _notifyIconService;
 	private MonitorControlProxy? _monitorControlProxy;
+	private readonly ILoggerFactory _loggerFactory;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 
 	public static new App Current => (App)Application.Current;
@@ -32,11 +36,15 @@ internal partial class App : Application
 	private App()
 	{
 		_cancellationTokenSource = new();
+		_loggerFactory = System.Diagnostics.Debugger.IsAttached
+			? new LoggerFactory([new DebugLoggerProvider()], new LoggerFilterOptions() { MinLevel = LogLevel.Debug })
+			: new LoggerFactory([new EventLogLoggerProvider(new EventLogSettings() { LogName = "Exo", SourceName = "Helper" })], new LoggerFilterOptions() { MinLevel = LogLevel.Information });
+
 		var channelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false };
 		var overlayRequestChannel = Channel.CreateUnbounded<OverlayRequest>(channelOptions);
 		_menuChannel = new(channelOptions);
 		_monitorControlProxyRequestChannel = new(channelOptions);
-		_client = new("Local\\Exo.Service.Helper", overlayRequestChannel, _menuChannel, _monitorControlProxyRequestChannel);
+		_client = new("Local\\Exo.Service.Helper", _loggerFactory.CreateLogger<ExoHelperPipeClientConnection>(), overlayRequestChannel, _menuChannel, _monitorControlProxyRequestChannel);
 		_overlayViewModel = new(overlayRequestChannel);
 	}
 

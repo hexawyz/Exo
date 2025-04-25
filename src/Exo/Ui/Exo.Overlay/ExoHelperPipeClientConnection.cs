@@ -7,6 +7,7 @@ using System.Threading.Channels;
 using Exo.Ipc;
 using Exo.Service;
 using Exo.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Overlay;
 
@@ -17,22 +18,25 @@ internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPip
 	public static ExoHelperPipeClientConnection Create(PipeClient<ExoHelperPipeClientConnection> client, NamedPipeClientStream stream)
 	{
 		var helperPipeClient = (ExoHelperPipeClient)client;
-		return new(client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel, helperPipeClient.MonitorControlProxyRequestChannel);
+		return new(helperPipeClient.ConnectionLogger, client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel, helperPipeClient.MonitorControlProxyRequestChannel);
 	}
 
 	private readonly ChannelWriter<OverlayRequest> _overlayRequestWriter;
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
 	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
+	private readonly ILogger<ExoHelperPipeClientConnection> _logger;
 
 	private ExoHelperPipeClientConnection
 	(
+		ILogger<ExoHelperPipeClientConnection> logger,
 		PipeClient client,
 		NamedPipeClientStream stream,
 		ChannelWriter<OverlayRequest> overlayRequestWriter,
 		ResettableChannel<MenuChangeNotification> menuChannel,
 		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
-	) : base(client, stream)
+	) : base(logger, client, stream)
 	{
+		_logger = logger;
 		_overlayRequestWriter = overlayRequestWriter;
 		_menuChannel = menuChannel;
 		_monitorControlProxyRequestChannel = monitorControlProxyRequestChannel;
@@ -49,6 +53,10 @@ internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPip
 				// If the message processing does not indicate success, we can close the connection.
 				if (!ProcessMessage(buffer.Span[..count])) return;
 			}
+		}
+		catch (Exception ex)
+		{
+
 		}
 		finally
 		{
@@ -333,6 +341,7 @@ internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPip
 
 internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperPipeClientConnection>, IMenuItemInvoker, IMonitorControlProxyResponseWriter
 {
+	internal ILogger<ExoHelperPipeClientConnection> ConnectionLogger { get; }
 	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
 	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
 	internal ResettableChannel<MonitorControlProxyRequest> MonitorControlProxyRequestChannel { get; }
@@ -340,12 +349,13 @@ internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperPipeClientConnec
 	public ExoHelperPipeClient
 	(
 		string pipeName,
+		ILogger<ExoHelperPipeClientConnection> connectionLogger,
 		ChannelWriter<OverlayRequest> overlayRequestWriter,
 		ResettableChannel<MenuChangeNotification> menuChannel,
 		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
-	) : base(pipeName, PipeTransmissionMode.Message
-	)
+	) : base(pipeName, PipeTransmissionMode.Message)
 	{
+		ConnectionLogger = connectionLogger;
 		OverlayRequestWriter = overlayRequestWriter;
 		MenuChannel = menuChannel;
 		MonitorControlProxyRequestChannel = monitorControlProxyRequestChannel;

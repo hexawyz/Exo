@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Exo.Ipc;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 
@@ -12,7 +13,7 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 	public static HelperPipeServerConnection Create(PipeServer<HelperPipeServerConnection> server, NamedPipeServerStream stream)
 	{
 		var helperPipeServer = (HelperPipeServer)server;
-		return new(server, stream, helperPipeServer.OverlayNotificationService, helperPipeServer.CustomMenuService, helperPipeServer.MonitorControlProxyService);
+		return new(helperPipeServer.ConnectionLogger, server, stream, helperPipeServer.OverlayNotificationService, helperPipeServer.CustomMenuService, helperPipeServer.MonitorControlProxyService);
 	}
 
 	private readonly OverlayNotificationService _overlayNotificationService;
@@ -22,12 +23,13 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 
 	private HelperPipeServerConnection
 	(
+		ILogger<HelperPipeServerConnection> logger,
 		PipeServer server,
 		NamedPipeServerStream stream,
 		OverlayNotificationService overlayNotificationService,
 		CustomMenuService customMenuService,
 		MonitorControlProxyService monitorControlProxyService
-	) : base(server, stream)
+	) : base(logger, server, stream)
 	{
 		_overlayNotificationService = overlayNotificationService;
 		_customMenuService = customMenuService;

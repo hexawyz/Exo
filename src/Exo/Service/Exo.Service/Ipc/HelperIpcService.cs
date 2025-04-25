@@ -2,17 +2,26 @@ using System.IO.Pipes;
 using System.Runtime.ExceptionServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 
-internal sealed class HelperRpcService
+internal sealed class HelperIpcService
 {
+	private readonly ILogger<HelperPipeServerConnection> _connectionLogger;
 	private readonly OverlayNotificationService _overlayNotificationService;
 	private readonly CustomMenuService _customMenuService;
 	private readonly MonitorControlProxyService _monitorControlProxyService;
 
-	public HelperRpcService(OverlayNotificationService overlayNotificationService, CustomMenuService customMenuService, MonitorControlProxyService monitorControlProxyService)
+	public HelperIpcService
+	(
+		ILogger<HelperPipeServerConnection> connectionLogger,
+		OverlayNotificationService overlayNotificationService,
+		CustomMenuService customMenuService,
+		MonitorControlProxyService monitorControlProxyService
+	)
 	{
+		_connectionLogger = connectionLogger;
 		_overlayNotificationService = overlayNotificationService;
 		_customMenuService = customMenuService;
 		_monitorControlProxyService = monitorControlProxyService;
@@ -44,7 +53,7 @@ internal sealed class HelperRpcService
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 			pipeSecurity.AddAccessRule(new(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), PipeAccessRights.FullControl, AccessControlType.Allow));
 		}
-		_server = new("Local\\Exo.Service.Helper", pipeSecurity, _overlayNotificationService, _customMenuService, _monitorControlProxyService);
+		_server = new("Local\\Exo.Service.Helper", pipeSecurity, _connectionLogger, _overlayNotificationService, _customMenuService, _monitorControlProxyService);
 		_server.Start();
 		return Task.CompletedTask;
 	}

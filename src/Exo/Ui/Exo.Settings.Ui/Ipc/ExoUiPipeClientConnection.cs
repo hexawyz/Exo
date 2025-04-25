@@ -21,6 +21,7 @@ using Exo.Primitives;
 using Exo.Programming;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 
 namespace Exo.Service.Ipc;
@@ -86,7 +87,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	public static ExoUiPipeClientConnection Create(PipeClient<ExoUiPipeClientConnection> client, NamedPipeClientStream stream)
 	{
 		var uiPipeClient = (ExoUiPipeClient)client;
-		return new(client, stream, uiPipeClient.DispatcherQueue, uiPipeClient.ServiceClient);
+		return new(uiPipeClient.ConnectionLogger, client, stream, uiPipeClient.DispatcherQueue, uiPipeClient.ServiceClient);
 	}
 
 	private readonly DispatcherQueue _dispatcherQueue;
@@ -106,11 +107,12 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	private ExoUiPipeClientConnection
 	(
+		ILogger<ExoUiPipeClientConnection> logger,
 		PipeClient client,
 		NamedPipeClientStream stream,
 		DispatcherQueue dispatcherQueue,
 		IServiceClient serviceClient
-	) : base(client, stream)
+	) : base(logger, client, stream)
 	{
 		_dispatcherQueue = dispatcherQueue;
 		_serviceClient = serviceClient;
@@ -127,6 +129,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				// If the message processing does not indicate success, we can close the connection.
 				if (!await ProcessMessageAsync(buffer.Span[..count]).ConfigureAwait(false)) return;
 			}
+		}
+		catch (Exception)
+		{
 		}
 		finally
 		{

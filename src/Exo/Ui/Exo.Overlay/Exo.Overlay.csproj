@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows</TargetFramework>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<PublishSingleFile>true</PublishSingleFile>
 		<!-- Sadly, it seems that AOT is still not even close to usable for WPF :(
@@ -19,20 +19,20 @@
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
 	</PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="FluentSystemIcons-Resizable.ttf" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="FluentSystemIcons-Resizable.ttf" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\..\Service\Exo.Service.Core\Constants.cs" Link="Definitions\Constants.cs" />
-    <Compile Include="..\..\Service\Exo.Service.Core\MenuChangeNotification.cs" Link="Definitions\MenuChangeNotification.cs" />
-    <Compile Include="..\..\Service\Exo.Service.Core\MenuItemType.cs" Link="Definitions\MenuItemType.cs" />
-    <Compile Include="..\..\Service\Exo.Service.Core\MonitorControlProxy.cs" Link="Definitions\MonitorControlProxy.cs" />
-    <Compile Include="..\..\Service\Exo.Service.Core\OverlayNotificationKind.cs" Link="Definitions\OverlayNotificationKind.cs" />
-    <Compile Include="..\..\Service\Exo.Service.Core\OverlayRequest.cs" Link="Definitions\OverlayRequest.cs" />
-    <Compile Include="..\..\Service\Exo.Service.Core\WatchNotificationKind.cs" Link="Definitions\WatchNotificationKind.cs" />
-  </ItemGroup>
-	
+	<ItemGroup>
+		<Compile Include="..\..\Service\Exo.Service.Core\Constants.cs" Link="Definitions\Constants.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\MenuChangeNotification.cs" Link="Definitions\MenuChangeNotification.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\MenuItemType.cs" Link="Definitions\MenuItemType.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\MonitorControlProxy.cs" Link="Definitions\MonitorControlProxy.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\OverlayNotificationKind.cs" Link="Definitions\OverlayNotificationKind.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\OverlayRequest.cs" Link="Definitions\OverlayRequest.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\WatchNotificationKind.cs" Link="Definitions\WatchNotificationKind.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.DisplayDevices\DeviceTools.DisplayDevices.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Primitives\Exo.Primitives.csproj" />
@@ -40,17 +40,19 @@
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" />
 		<PackageReference Include="Microsoft.Extensions.Logging.EventLog" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
-	  <Resource Include="FluentSystemIcons-Resizable.ttf" />
+		<Resource Include="FluentSystemIcons-Resizable.ttf" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
-	  <Folder Include="Definitions\" />
+		<Folder Include="Definitions\" />
 	</ItemGroup>
 
 </Project>

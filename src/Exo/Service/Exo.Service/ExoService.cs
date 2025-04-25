@@ -296,8 +296,9 @@ public class ExoService : ServiceBase
 			).ConfigureAwait(false);
 #endif
 
-			var helperIpcService = new HelperRpcService
+			var helperIpcService = new HelperIpcService
 			(
+				_loggerFactory.CreateLogger<HelperPipeServerConnection>(),
 				overlayNotificationService,
 				customMenuService,
 				monitorControlProxyService
