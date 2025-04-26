@@ -24,7 +24,7 @@ internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObje
 		{
 			bool wasChanged = IsChanged;
 
-			if (SetValue(ref _currentBrightness, value))
+			if (SetValue(ref _currentBrightness, value, ChangedProperty.Level))
 			{
 				OnChangeStateChange(wasChanged);
 			}
@@ -41,9 +41,10 @@ internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObje
 
 			_initialBrightness = value;
 
-			if (wasCurrentValueInitial)
+			if (wasCurrentValueInitial && _currentBrightness != value)
 			{
 				_currentBrightness = value;
+				NotifyPropertyChanged(ChangedProperty.Level);
 			}
 
 			OnChangeStateChange(wasChanged);

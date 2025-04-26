@@ -1,92 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
-    x:Class="Exo.Settings.Ui.LightSettingsControl"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+		x:Class="Exo.Settings.Ui.LightSettingsControl"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:local="using:Exo.Settings.Ui"
+		xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+		xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d">
 
-    <Grid>
-        <ItemsRepeater ItemsSource="{Binding Mode=OneWay}">
-            <ItemsRepeater.ItemTemplate>
-                <DataTemplate>
-                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource ControlCornerRadius}">
-                        <StackPanel Padding="12" Orientation="Vertical">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <ToggleButton Grid.Column="0" Margin="{StaticResource RowLabelMargin}" IsChecked="{Binding IsOn, Mode=TwoWay}">
-                                    <FontIcon Glyph="&#xE7E8;" FontSize="14" />
-                                </ToggleButton>
-                                <TextBlock Grid.Column="1" Margin="{StaticResource SmallButtonNeighborMargin}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                            </Grid>
-                            <Grid Visibility="{Binding HasBrightness, Mode=OneWay}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <FontIcon
-                                Grid.Row="0"
-                                Grid.Column="0"
-                                x:Uid="LightBrightnessLabel"
-                                Margin="{StaticResource RowContentLabelMargin}"
-                                Glyph="&#xE706;"
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Stretch" />
-                                <Slider
-                                Grid.Row="0"
-                                Grid.Column="1"
-                                Margin="{StaticResource RowContentLabelMargin}"
-                                Value="{Binding Brightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}, UpdateSourceTrigger=Explicit}"
-                                Maximum="{Binding MaximumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
-                                Minimum="{Binding MinimumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
-                                Loaded="OnSliderLoaded"
-                                HorizontalAlignment="Stretch"
-                                Style="{StaticResource BrightnessSliderStyle}">
-                                    <Slider.ThumbToolTipValueConverter>
-                                        <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumBrightness, Mode=OneTime}" />
-                                    </Slider.ThumbToolTipValueConverter>
-                                </Slider>
-                            </Grid>
-                            <Grid Visibility="{Binding HasTemperature, Mode=OneWay}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <FontIcon
-                                Grid.Row="0"
-                                Grid.Column="0"
-                                x:Uid="LightTemperatureLabel"
-                                Margin="{StaticResource RowContentLabelMargin}"
-                                Glyph="&#xE9CA;"
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Stretch" />
-                                <Slider
-                                Grid.Row="0"
-                                Grid.Column="1"
-                                Margin="{StaticResource RowContentLabelMargin}"
-                                Value="{Binding Temperature, Mode=TwoWay, Converter={StaticResource UInt32ToDoubleConverter}, UpdateSourceTrigger=Explicit}"
-                                Maximum="{Binding MaximumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
-                                Minimum="{Binding MinimumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
-                                Loaded="OnSliderLoaded"
-                                HorizontalAlignment="Stretch"
-                                Style="{StaticResource ColorTemperatureSliderStyle}"
-                                ThumbToolTipValueConverter="{StaticResource KelvinConverter}">
-                                </Slider>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                </DataTemplate>
-            </ItemsRepeater.ItemTemplate>
-            <ItemsRepeater.Layout>
-                <UniformGridLayout MinItemWidth="250" />
-            </ItemsRepeater.Layout>
-        </ItemsRepeater>
-    </Grid>
+	<Grid>
+		<ItemsRepeater ItemsSource="{Binding Mode=OneWay}">
+			<ItemsRepeater.ItemTemplate>
+				<DataTemplate>
+					<Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource ControlCornerRadius}">
+						<StackPanel Padding="12" Orientation="Vertical">
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="*" />
+								</Grid.ColumnDefinitions>
+								<ToggleButton Grid.Column="0" Margin="{StaticResource RowLabelMargin}" IsChecked="{Binding IsOn, Mode=TwoWay}">
+									<FontIcon Glyph="&#xE7E8;" FontSize="14" />
+								</ToggleButton>
+								<TextBlock Grid.Column="1" Margin="{StaticResource SmallButtonNeighborMargin}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+							</Grid>
+							<Grid Visibility="{Binding HasBrightness, Mode=OneWay}">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="*" />
+								</Grid.ColumnDefinitions>
+								<FontIcon
+									Grid.Row="0"
+									Grid.Column="0"
+									x:Uid="LightBrightnessLabel"
+									Margin="{StaticResource RowContentLabelMargin}"
+									Glyph="&#xE706;"
+									VerticalAlignment="Center"
+									HorizontalAlignment="Stretch" />
+								<Slider
+									Grid.Row="0"
+									Grid.Column="1"
+									Margin="{StaticResource RowContentLabelMargin}"
+									Value="{Binding Brightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}, UpdateSourceTrigger=Explicit}"
+									Maximum="{Binding MaximumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
+									Minimum="{Binding MinimumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
+									Loaded="OnSliderLoaded"
+									HorizontalAlignment="Stretch"
+									Style="{StaticResource BrightnessSliderStyle}">
+									<Slider.ThumbToolTipValueConverter>
+										<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumBrightness, Mode=OneTime}" />
+									</Slider.ThumbToolTipValueConverter>
+								</Slider>
+							</Grid>
+							<Grid Visibility="{Binding HasTemperature, Mode=OneWay}">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="*" />
+								</Grid.ColumnDefinitions>
+								<FontIcon
+									Grid.Row="0"
+									Grid.Column="0"
+									x:Uid="LightTemperatureLabel"
+									Margin="{StaticResource RowContentLabelMargin}"
+									Glyph="&#xE9CA;"
+									VerticalAlignment="Center"
+									HorizontalAlignment="Stretch" />
+								<Slider
+									Grid.Row="0"
+									Grid.Column="1"
+									Margin="{StaticResource RowContentLabelMargin}"
+									Value="{Binding Temperature, Mode=TwoWay, Converter={StaticResource UInt32ToDoubleConverter}, UpdateSourceTrigger=Explicit}"
+									Maximum="{Binding MaximumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
+									Minimum="{Binding MinimumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
+									Loaded="OnSliderLoaded"
+									HorizontalAlignment="Stretch"
+									Style="{StaticResource ColorTemperatureSliderStyle}"
+									ThumbToolTipValueConverter="{StaticResource KelvinConverter}">
+								</Slider>
+							</Grid>
+						</StackPanel>
+					</Border>
+				</DataTemplate>
+			</ItemsRepeater.ItemTemplate>
+			<ItemsRepeater.Layout>
+				<UniformGridLayout MinItemWidth="250" />
+			</ItemsRepeater.Layout>
+		</ItemsRepeater>
+	</Grid>
 </UserControl>

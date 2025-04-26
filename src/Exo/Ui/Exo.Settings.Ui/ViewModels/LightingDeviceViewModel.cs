@@ -195,7 +195,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		{
 			bool isChanged = ((LightingDeviceBrightnessViewModel)sender!).IsChanged;
 
-			if (isChanged != (AreZonesChanged || !IsUseUnifiedLightingChanged || !_shouldPersistChanges))
+			if (isChanged != (AreZonesChanged || IsUseUnifiedLightingChanged || _shouldPersistChanges))
 			{
 				OnChanged(isChanged);
 			}
