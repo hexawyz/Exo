@@ -298,7 +298,7 @@ partial class UiPipeServerConnection
 					goto Success;
 				}
 				await WriteSensorStartStatusAsync(streamId, SensorStartStatus.Success, cancellationToken).ConfigureAwait(false);
-				_logger.UiSensorServiceSensorWatchStart(deviceId, sensorId, streamId);
+				Logger.UiSensorServiceSensorWatchStart(deviceId, sensorId, streamId);
 				state.Start();
 			}
 		}
@@ -368,7 +368,7 @@ partial class UiPipeServerConnection
 			: base(connection, streamId)
 		{
 			_taskCompletionSource = new();
-			_task = Connection._logger.IsEnabled(LogLevel.Trace) ?
+			_task = Connection.Logger.IsEnabled(LogLevel.Trace) ?
 				WatchValuesWithLoggingAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken) :
 				WatchValuesAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken);
 		}
@@ -392,7 +392,7 @@ partial class UiPipeServerConnection
 					await foreach (var value in enumerable.ConfigureAwait(false))
 					{
 						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
-						Connection._logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+						Connection.Logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
 					}
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -410,11 +410,11 @@ partial class UiPipeServerConnection
 			}
 			catch (Exception ex)
 			{
-				Connection._logger.UiSensorServiceSensorWatchError(StreamId, ex);
+				Connection.Logger.UiSensorServiceSensorWatchError(StreamId, ex);
 			}
 			finally
 			{
-				Connection._logger.UiSensorServiceSensorWatchStop(StreamId);
+				Connection.Logger.UiSensorServiceSensorWatchStop(StreamId);
 			}
 		}
 
@@ -428,7 +428,7 @@ partial class UiPipeServerConnection
 					await foreach (var value in enumerable.ConfigureAwait(false))
 					{
 						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
-						Connection._logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+						Connection.Logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
 					}
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -446,11 +446,11 @@ partial class UiPipeServerConnection
 			}
 			catch (Exception ex)
 			{
-				Connection._logger.UiSensorServiceSensorWatchError(StreamId, ex);
+				Connection.Logger.UiSensorServiceSensorWatchError(StreamId, ex);
 			}
 			finally
 			{
-				Connection._logger.UiSensorServiceSensorWatchStop(StreamId);
+				Connection.Logger.UiSensorServiceSensorWatchStop(StreamId);
 			}
 		}
 	}

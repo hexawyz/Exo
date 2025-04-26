@@ -57,7 +57,6 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
 	private readonly Channel<SensorFavoritingRequest> _sensorFavoritingChannel;
-	private readonly ILogger<UiPipeServerConnection> _logger;
 	private string? _imageUploadImageName;
 	private SharedMemory? _imageUploadSharedMemory;
 
@@ -82,7 +81,6 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		LightService lightService
 	) : base(logger, server, stream)
 	{
-		_logger = logger;
 		_assemblyLoader = assemblyLoader;
 		_customMenuService = customMenuService;
 		_programmingService = programmingService;

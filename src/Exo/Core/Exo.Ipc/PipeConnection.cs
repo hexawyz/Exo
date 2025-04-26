@@ -58,6 +58,8 @@ public abstract class PipeConnection : IAsyncDisposable
 	protected Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, ReadBufferSize, WriteBufferSize);
 	protected AsyncLock WriteLock => _lock;
 
+	protected ILogger Logger => _logger;
+
 	internal Task StartAndGetRunTask() => _runTask = RunAsync(_cancellationTokenSource!.Token);
 
 	/// <summary>Provides the logic for running operations.</summary>
