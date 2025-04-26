@@ -139,7 +139,7 @@ internal sealed class SettingsViewModel : BindableObject, INotificationSystem
 		_devicesViewModel = new(loggerProvider, _imagesViewModel.Images, _metadataService, rasterizationScaleProvider, this, _navigateCommand);
 		_batteryDevicesViewModel = new(_devicesViewModel);
 		_lightsViewModel = new(_devicesViewModel);
-		_lightingViewModel = new(_devicesViewModel, _metadataService);
+		_lightingViewModel = new(loggerProvider, _devicesViewModel, _metadataService, this);
 		_sensorsViewModel = new(_devicesViewModel, _metadataService);
 		_favoriteSensorsViewModel = new(_sensorsViewModel);
 		_coolingViewModel = new(_devicesViewModel, _sensorsViewModel, _metadataService);

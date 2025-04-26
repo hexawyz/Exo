@@ -978,18 +978,19 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		{
 			if (deviceState.BrightnessCapabilities is null || brightness == deviceState.Brightness) return;
 
-			if (deviceState.Driver is null) return;
-
 			if (!isRestore)
 			{
 				deviceState.Brightness = brightness;
 			}
 
-			var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
-
-			if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } bf)
+			if (deviceState.Driver is not null)
 			{
-				bf.CurrentBrightness = brightness;
+				var lightingFeatures = deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>();
+
+				if (lightingFeatures.GetFeature<ILightingBrightnessFeature>() is { } bf)
+				{
+					bf.CurrentBrightness = brightness;
+				}
 			}
 		}
 

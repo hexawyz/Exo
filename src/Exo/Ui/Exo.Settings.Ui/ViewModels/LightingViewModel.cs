@@ -6,6 +6,7 @@ using Exo.Contracts;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using Microsoft.Extensions.Logging;
 using ILightingService = Exo.Settings.Ui.Services.ILightingService;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -20,14 +21,18 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
 	private readonly Dictionary<Guid, LightingDeviceConfiguration> _pendingConfigurationUpdates;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
+	private readonly ILogger<LightingDeviceViewModel> _lightingDeviceLogger;
+	private readonly INotificationSystem _notificationSystem;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 	public ILightingService? LightingService => _lightingService;
 
-	public LightingViewModel(DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService)
+	public LightingViewModel(ITypedLoggerProvider loggerProvider, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService, INotificationSystem notificationSystem)
 	{
+		_lightingDeviceLogger = loggerProvider.GetLogger<LightingDeviceViewModel>();
+		_notificationSystem = notificationSystem;
 		_devicesViewModel = devicesViewModel;
 		_metadataService = metadataService;
 		_lightingDevices = new();
@@ -98,7 +103,7 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 
 	private void OnDeviceAdded(DeviceViewModel device, LightingDeviceInformation lightingDeviceInformation)
 	{
-		var vm = new LightingDeviceViewModel(this, device, lightingDeviceInformation);
+		var vm = new LightingDeviceViewModel(_lightingDeviceLogger, this, device, lightingDeviceInformation, _notificationSystem);
 		_lightingDevices.Add(vm);
 		_lightingDeviceById[vm.Id] = vm;
 		if (_pendingConfigurationUpdates.Remove(lightingDeviceInformation.DeviceId, out var configuration))

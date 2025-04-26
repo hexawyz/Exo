@@ -13,6 +13,9 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(Level = LogLevel.Error, Message = "Failed to add an image to the library.")]
 	public static partial void ImageAddError(this ILogger logger, Exception exception);
 
+	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when applying lighting changes to {DeviceName}.")]
+	public static partial void LightingApplyError(this ILogger logger, string deviceName, Exception exception);
+
 	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when switching the light {LightName} of {DeviceName}.")]
 	public static partial void LightSwitchError(this ILogger logger, string lightName, string deviceName, Exception exception);
 

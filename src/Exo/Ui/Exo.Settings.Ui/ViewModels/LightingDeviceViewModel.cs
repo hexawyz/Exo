@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Lighting;
 using Exo.Service;
+using Exo.Settings.Ui.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -31,6 +33,9 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 
 	private readonly Commands.ApplyChangesCommand _applyChangesCommand;
 	private readonly Commands.ResetChangesCommand _resetChangesCommand;
+
+	private readonly INotificationSystem _notificationSystem;
+	private readonly ILogger<LightingDeviceViewModel> _logger;
 
 	public bool IsNotBusy => _busyZoneCount == 0;
 
@@ -106,8 +111,10 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	public ICommand ApplyChangesCommand => _applyChangesCommand;
 	public ICommand ResetChangesCommand => _resetChangesCommand;
 
-	public LightingDeviceViewModel(LightingViewModel lightingViewModel, DeviceViewModel deviceViewModel, LightingDeviceInformation lightingDeviceInformation)
+	public LightingDeviceViewModel(ILogger<LightingDeviceViewModel> logger, LightingViewModel lightingViewModel, DeviceViewModel deviceViewModel, LightingDeviceInformation lightingDeviceInformation, INotificationSystem notificationSystem)
 	{
+		_logger = logger;
+		_notificationSystem = notificationSystem;
 		_deviceViewModel = deviceViewModel;
 		LightingViewModel = lightingViewModel;
 		_applyChangesCommand = new(this);
@@ -276,8 +283,10 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 				}
 			}
 		}
-		catch
+		catch (Exception ex)
 		{
+			_notificationSystem.PublishError("Failed to apply lighting changes.", $"Applying lighting changes for device {_deviceViewModel.FriendlyName} failed: {ex.Message}");
+			_logger.LightingApplyError(_deviceViewModel.FriendlyName, ex);
 			foreach (var zone in LightingZones)
 			{
 				zone.OnAfterApplyingChangesCancellation();
