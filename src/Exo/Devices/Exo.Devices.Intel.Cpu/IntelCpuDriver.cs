@@ -10,13 +10,14 @@ using System.Threading.Tasks.Sources;
 using DeviceTools.Processors;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.Motherboards;
 using Exo.Features.Sensors;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Intel.Cpu;
 
-public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature>, ISensorsFeature, ISensorsGroupedQueryFeature
+public partial class IntelCpuDriver : Driver, IDeviceDriver<IMotherboardDeviceFeature>, IDeviceDriver<ISensorDeviceFeature>, ISensorsFeature, ISensorsGroupedQueryFeature
 {
 	private const uint Ia32ThermStatus = 0x19C;
 	private const uint MsrTemperatureTarget = 0x1A2;
@@ -219,6 +220,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	private readonly GroupedQueryValueTaskSource? _groupedQueryValueTaskSource;
 	private readonly uint _tccActivationTemperature;
 	private readonly ImmutableArray<ISensor> _sensors;
+	private readonly IDeviceFeatureSet<IMotherboardDeviceFeature> _motherboardFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly double _energyFactor;
 	private readonly double _maximumPower;
@@ -267,7 +269,6 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 		}
 		try
 		{
-
 			Sensor[] sensors;
 			MonitoringThreadState[] monitoringThreads;
 
@@ -299,6 +300,15 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 			_groupedQueryEventBlue?.Set();
 			SignalAndWaitAllThreads();
 			throw;
+		}
+		try
+		{
+			_motherboardFeatures = FeatureSet.Empty<IMotherboardDeviceFeature>();
+			//_motherboardFeatures = FeatureSet.Create<IMotherboardDeviceFeature, IMotherboardSystemManagementBusFeature>(new PawnIoIntelSystemManagementBus());
+		}
+		catch
+		{
+			_motherboardFeatures = FeatureSet.Empty<IMotherboardDeviceFeature>();
 		}
 	}
 
@@ -439,6 +449,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<ISensorDeviceFeature
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Processor;
+	IDeviceFeatureSet<IMotherboardDeviceFeature> IDeviceDriver<IMotherboardDeviceFeature>.Features => _motherboardFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
 
 	ImmutableArray<ISensor> ISensorsFeature.Sensors => _sensors;
