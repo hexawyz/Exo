@@ -150,7 +150,7 @@ public sealed class PawnIoIntelSystemManagementBus : ISystemManagementBus, IMoth
 			buffer[1] = command;
 			buffer[2] = (uint)data.Length;
 			data.Span.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.As<ulong, byte>(ref buffer[3]), data.Length));
-			_pawnIo.Execute("ioctl_i801_read_block_data\0"u8, buffer, []);
+			_pawnIo.Execute("ioctl_i801_write_block_data\0"u8, buffer, []);
 			return ValueTask.CompletedTask;
 		}
 		catch (COMException ex) when ((uint)ex.ErrorCode == ErrorNoSuchDevice)
@@ -166,7 +166,7 @@ public sealed class PawnIoIntelSystemManagementBus : ISystemManagementBus, IMoth
 			Span<ulong> buffer = stackalloc ulong[7];
 			buffer[0] = address;
 			buffer[1] = command;
-			_pawnIo.Execute("ioctl_i801_write_block_data\0"u8, buffer[..2], buffer[2..]);
+			_pawnIo.Execute("ioctl_i801_read_block_data\0"u8, buffer[..2], buffer[2..]);
 			ulong length = buffer[2];
 			if (length > 32) throw new InvalidDataException();
 			return new(MemoryMarshal.CreateSpan(ref Unsafe.As<ulong, byte>(ref buffer[3]), (int)length).ToArray());

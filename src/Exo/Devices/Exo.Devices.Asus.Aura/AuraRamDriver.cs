@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Buffers;
 using Microsoft.Extensions.Logging;
 using Exo.ColorFormats;
+using System.Runtime.CompilerServices;
 
 namespace Exo.Devices.Asus.Aura;
 
@@ -236,12 +237,14 @@ public partial class AuraRamDriver :
 		await ReadBytesAsync(smBus, address, 0x8020, buffer.AsMemory(0, 4));
 		bool isDynamic = buffer[0] != 0;
 		modules[index].HasExtendedColors = true;
-		modules[index].ColorCount = await ReadByteAsync(smBus, address, 0x1C02);
+		byte colorCount = await ReadByteAsync(smBus, address, 0x1C02);
+		modules[index].ColorCount = colorCount;
 		modules[index].Effect = isDynamic ? AuraEffect.Dynamic : (AuraEffect)buffer[1];
 		modules[index].FrameDelay = (sbyte)buffer[2];
 		modules[index].IsReversed = buffer[3] == 1;
-		await ReadBytesAsync(smBus, address, isDynamic ? (ushort)0x8100 : (ushort)0x8160, buffer.AsMemory(0, 32));
-		MemoryMarshal.Cast<byte, RgbColor>(buffer.AsSpan(0, 30)).CopyTo(modules[index].Colors);
+		var colorDataLength = colorCount * 3;
+		await ReadBytesAsync(smBus, address, isDynamic ? (ushort)0x8100 : (ushort)0x8160, buffer.AsMemory(0, colorDataLength));
+		MemoryMarshal.Cast<byte, RgbColor>(buffer.AsSpan(0, colorDataLength)).CopyTo(modules[index].Colors);
 	}
 
 	// Helper to use for debugging and dumping an Aura device memory.
@@ -257,9 +260,11 @@ public partial class AuraRamDriver :
 	}
 
 	private const byte WriteAddressCommand = 0x00;
+	private const byte ReadAddressCommand = 0x11;
 	private const byte WriteByteCommand = 0x01;
 	private const byte WriteWordCommand = 0x02;
 	private const byte WriteBlockCommand = 0x03;
+	private const byte ReadCommandBase = 0x80;
 	private const byte ReadByteCommand = 0x81;
 	private const byte ReadWordCommand = 0x82;
 	private const byte RepeatedSequenceStart = 0xA0;
@@ -267,6 +272,9 @@ public partial class AuraRamDriver :
 	// NB: No idea if endianness should be swapped on big-endian systems, but that is very unlikely to ever be a concern.
 	private static ValueTask WriteRegisterAddress(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)
 		=> smBusDriver.WriteWordAsync(deviceAddress, WriteAddressCommand, BinaryPrimitives.ReverseEndianness(registerAddress));
+
+	private static async ValueTask<ushort> ReadRegisterAddress(ISystemManagementBus smBusDriver, byte deviceAddress)
+		=> BinaryPrimitives.ReverseEndianness(await smBusDriver.ReadWordAsync(deviceAddress, ReadAddressCommand));
 
 	private static async ValueTask<byte> ReadByteAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress)
 	{
@@ -276,13 +284,25 @@ public partial class AuraRamDriver :
 
 	private static async ValueTask ReadBytesAsync(ISystemManagementBus smBusDriver, byte deviceAddress, ushort registerAddress, Memory<byte> destination)
 	{
-		if (destination.Length is 0 or > 65536) throw new ArgumentException();
+		if (destination.Length is 0 or > 32) throw new ArgumentException();
 
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
-		for (int i = 0; i < destination.Length; i++)
+		if (destination.Length == 1)
 		{
-			byte value = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
-			destination.Span[i] = value;
+			byte result = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
+			destination.Span[0] = result;
+		}
+		else if (destination.Length == 2)
+		{
+			ushort result = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
+			Unsafe.As<byte, ushort>(ref destination.Span[0]) = result;
+		}
+		else
+		{
+			// It seems like we are able to request reading blocks of data of an arbitrary size.
+			// Trying to read 32 would fail, but the sizes we actually need seem to work fine. (4 and 24)
+			var data = await smBusDriver.ReadBlockAsync(deviceAddress, (byte)(ReadCommandBase + destination.Length));
+			data.AsSpan(0, destination.Length).CopyTo(destination.Span);
 		}
 	}
 
@@ -392,7 +412,7 @@ public partial class AuraRamDriver :
 				var zone = _lightingZones[i];
 				await zone.ApplyChangesAsync(pendingChanges[i]);
 			}
-			// TODO: See if persistance also applies changes, and if yes, merge with the above loop. Otherwise, keep things this way so that changes are applied the quickest way possible.
+			// TODO: See if persistence also applies changes, and if yes, merge with the above loop. Otherwise, keep things this way so that changes are applied the quickest way possible.
 			if (shouldPersist)
 			{
 				for (int i = 0; i < _lightingZones.Length; i++)
