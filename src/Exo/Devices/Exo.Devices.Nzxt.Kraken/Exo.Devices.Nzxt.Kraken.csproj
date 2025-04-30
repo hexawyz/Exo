@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
@@ -20,6 +20,7 @@
 		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" />
+		<ProjectReference Include="..\Exo.Devices.Nzxt\Exo.Devices.Nzxt.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 
 </Project>

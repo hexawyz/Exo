@@ -88,6 +88,7 @@
     <Project Path="src/Exo/Devices/Exo.Devices.Monitors/Exo.Devices.Monitors.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.NVidia/Exo.Devices.NVidia.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Nzxt.Kraken/Exo.Devices.Nzxt.Kraken.csproj" />
+    <Project Path="src/Exo/Devices/Exo.Devices.Nzxt/Exo.Devices.Nzxt.csproj" Id="61a648b9-018d-4945-8ae5-103e7d440123" />
     <Project Path="src/Exo/Devices/Exo.Devices.Razer.Legacy/Exo.Devices.Razer.Legacy.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Razer/Exo.Devices.Razer.csproj" />
     <Project Path="src/Exo/Devices/Exo.MonitorDatabaseCompiler/Exo.MonitorDatabaseCompiler.csproj" />

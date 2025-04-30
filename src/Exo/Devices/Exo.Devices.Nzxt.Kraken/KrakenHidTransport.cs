@@ -1,8 +1,11 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Xml.Serialization;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.ColorFormats;
 
 namespace Exo.Devices.Nzxt.Kraken;
 
@@ -25,6 +28,10 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	// The message length is 64 bytes including the report ID, which indicates a specific command.
 	private const int MessageLength = 64;
 
+	private const byte LedInfoRequestMessageId = 0x20;
+	private const byte LedInfoResponseMessageId = 0x21;
+	private const byte LedAddressableRequestMessageId = 0x22;
+	private const byte LedMulticolorRequestMessageId = 0x2A;
 	private const byte ScreenSettingsRequestMessageId = 0x30;
 	private const byte ScreenSettingsResponseMessageId = 0x31;
 	private const byte ImageMemoryManagementRequestMessageId = 0x32;
@@ -37,6 +44,15 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	private const byte DeviceStatusRequestMessageId = 0x74;
 	private const byte DeviceStatusResponseMessageId = 0x75;
 	private const byte GenericResponseMessageId = 0xFF;
+
+	// Wonder what are the other functions and if similar, what are the differences
+	private const byte LedInfoGetLedFunctionId = 0x03;
+
+	private const byte LedAddressableSendBuffer1FunctionId = 0x10;
+	private const byte LedAddressableSendBuffer2FunctionId = 0x11;
+	private const byte LedAddressableApplyFunctionId = 0xa0;
+
+	private const byte LedMulticolorSetEffectFunctionId = 0x04;
 
 	private const byte ScreenSettingsGetScreenInfoFunctionId = 0x01;
 	private const byte ScreenSettingsSetBrightnessFunctionId = 0x02;
@@ -68,6 +84,9 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	// In order to support concurrent different operations, we need to have one specific TaskCompletionSource field for each operation.
 	private TaskCompletionSource? _setBrightnessTaskCompletionSource;
 	private TaskCompletionSource? _setDisplayModeTaskCompletionSource;
+	private TaskCompletionSource<ImmutableArray<ImmutableArray<byte>>>? _ledInfoRetrievalTaskCompletionSource;
+	private FunctionTaskCompletionSource? _ledAddressableTaskCompletionSource;
+	private FunctionTaskCompletionSource? _ledMulticolorTaskCompletionSource;
 	private TaskCompletionSource<ScreenInformation>? _screenInfoRetrievalTaskCompletionSource;
 	private TaskCompletionSource<DisplayModeInformation>? _displayModeRetrievalTaskCompletionSource;
 	private ImageInfoTaskCompletionSource? _imageInfoTaskCompletionSource;
@@ -103,6 +122,9 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	}
 
 	private void EnsureNotDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _cancellationTokenSource) is null, typeof(KrakenHidTransport));
+
+	public ValueTask<string?> GetProductNameAsync(CancellationToken cancellationToken)
+		=> _stream.GetProductNameAsync(cancellationToken);
 
 	private async Task ReadAsync(CancellationToken cancellationToken)
 	{
@@ -161,6 +183,205 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	}
 
 	private Memory<byte> WriteBuffer => MemoryMarshal.CreateFromPinnedArray(_buffers, MessageLength, MessageLength);
+
+	public async ValueTask<ImmutableArray<ImmutableArray<byte>>> GetLedInformationAsync(CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+
+		var tcs = new TaskCompletionSource<ImmutableArray<ImmutableArray<byte>>>(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (Interlocked.CompareExchange(ref _ledInfoRetrievalTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = LedInfoRequestMessageId;
+			buffer[1] = LedInfoGetLedFunctionId;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				PrepareRequest(buffer.Span);
+				await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+			}
+			return await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _ledInfoRetrievalTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask SetLedColorsAsync(bool isSecondHalf, byte channel, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
+		if (colors.Length > 20) throw new ArgumentException(null, nameof(colors));
+
+		byte functionId = isSecondHalf ? LedAddressableSendBuffer2FunctionId : LedAddressableSendBuffer1FunctionId;
+		var tcs = new FunctionTaskCompletionSource(functionId);
+		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte functionId, byte channel, ReadOnlySpan<RgbColor> colors)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = LedAddressableRequestMessageId;
+			buffer[1] = functionId;
+			buffer[2] = channel;
+			CopyColors(buffer[4..], colors);
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, functionId, channel, colors.Span);
+					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _ledAddressableTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask ApplyEffectAsync(byte channel, byte effectId, byte speed, byte colorCount, bool isReversed, CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
+
+		var tcs = new FunctionTaskCompletionSource(LedAddressableApplyFunctionId);
+		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, byte speed, byte colorCount, bool isReversed)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = LedAddressableRequestMessageId;
+			buffer[1] = LedAddressableApplyFunctionId;
+			buffer[2] = channel;
+			buffer[4] = effectId;
+			buffer[5] = speed;
+			buffer[7] = colorCount;
+			buffer[8] = isReversed ? (byte)1 : (byte)0;
+			buffer[10] = 0x80;
+			buffer[12] = 0x32;
+			buffer[15] = 0x01;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, channel, effectId, speed, colorCount, isReversed);
+					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..16].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _ledAddressableTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask SetMulticolorEffectAsync(byte channel, byte effectId, byte speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
+		if ((uint)(colors.Length - 1) > 7) throw new ArgumentException(null, nameof(channel));
+
+		var tcs = new FunctionTaskCompletionSource(LedMulticolorSetEffectFunctionId);
+		if (Interlocked.CompareExchange(ref _ledMulticolorTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, byte speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlySpan<RgbColor> colors)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = LedMulticolorRequestMessageId;
+			buffer[1] = LedMulticolorSetEffectFunctionId;
+			buffer[2] = channel;
+			// Unknown: Might be accessory index.
+			buffer[3] = 0x01;
+			buffer[4] = effectId;
+			buffer[5] = speed;
+			// Note that there seems to be space for at least 15 colors (for sure not 16) , but we allow only 8.
+			// Maybe more are actually supported. To be tested later.
+			CopyColors(buffer[7..31], colors);
+			buffer[55] = parameter1;
+			buffer[56] = (byte)colors.Length;
+			buffer[57] = parameter2;
+			buffer[58] = ledCount;
+			buffer[59] = 0x03;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, channel, effectId, speed, parameter1, parameter2, ledCount, colors.Span);
+					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..16].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _ledMulticolorTaskCompletionSource, null);
+		}
+	}
+
+	private static void CopyColors(Span<byte> buffer, ReadOnlySpan<RgbColor> colors)
+	{
+		// Do a manual bounds-checking here so that we can avoid that for each and every iteration later on.
+		// NB: If the color buffer is long enough, we should be able to optimize the RGB shuffling at least using AVX.
+		// Basically, we can process 11 R<->G swaps at once, with only a problem for the middle triplet that would be split across AVX channels in the wrong way.
+		// The middle triplet could be addressed with manual byte writes or some more clever logic, no idea yet.
+		// Also, processing either 10 or 11 values at once is fine either way, as there should be exactly 20 colors in the destination buffer.
+		// Only concern then is to avoid reading past the end of the buffer.
+		// TODO: the above.
+		if (buffer.Length < colors.Length * 3) throw new InvalidOperationException("Buffer too small.");
+		ref readonly byte src = ref Unsafe.As<RgbColor, byte>(ref MemoryMarshal.GetReference(colors));
+		ref byte dst = ref MemoryMarshal.GetReference(buffer);
+		for (int i = 0; i < colors.Length; i++)
+		{
+			byte r = src;
+			src = ref Unsafe.Add(ref Unsafe.AsRef(in src), 1);
+			byte g = src;
+			src = ref Unsafe.Add(ref Unsafe.AsRef(in src), 1);
+			byte b = src;
+			src = ref Unsafe.Add(ref Unsafe.AsRef(in src), 1);
+			dst = g;
+			dst = ref Unsafe.Add(ref dst, 1);
+			dst = r;
+			dst = ref Unsafe.Add(ref dst, 1);
+			dst = b;
+			dst = ref Unsafe.Add(ref dst, 1);
+		}
+	}
 
 	public async ValueTask<ScreenInformation> GetScreenInformationAsync(CancellationToken cancellationToken)
 	{
@@ -725,6 +946,9 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		case DeviceStatusResponseMessageId:
 			ProcessDeviceStatusResponse(functionId, data);
 			break;
+		case LedInfoResponseMessageId:
+			ProcessLedInformationResponse(functionId, data);
+			break;
 		case ScreenSettingsResponseMessageId:
 			ProcessScreenInformationResponse(functionId, data);
 			break;
@@ -758,6 +982,41 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			Volatile.Write(ref _lastReadingsTimestamp, (ulong)Stopwatch.GetTimestamp());
 
 			_statusRetrievalTaskCompletionSource?.TrySetResult();
+		}
+	}
+
+	private void ProcessLedInformationResponse(byte functionId, ReadOnlySpan<byte> response)
+	{
+		if (functionId == LedInfoGetLedFunctionId)
+		{
+			const int NumberOfAccessoriesPerChannel = 6;
+			byte channelCount = response[0];
+			if (channelCount > 8)
+			{
+				_ledInfoRetrievalTaskCompletionSource?.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception()));
+				return;
+			}
+			ImmutableArray<byte>[] channels;
+			if (channelCount == 0)
+			{
+				channels = [];
+			}
+			else
+			{
+				channels = new ImmutableArray<byte>[Math.Min(6, (uint)channelCount)];
+				for (int i = 0; i < channels.Length; i++)
+				{
+					int startIndex = 1 + i * NumberOfAccessoriesPerChannel;
+					int count = 0;
+					for (; count < NumberOfAccessoriesPerChannel; count++)
+					{
+						if (response[startIndex + count] == 0) break;
+					}
+					channels[i] = response.Slice(startIndex, count).ToImmutableArray();
+				}
+			}
+
+			_ledInfoRetrievalTaskCompletionSource?.TrySetResult(ImmutableCollectionsMarshal.AsImmutableArray(channels));
 		}
 	}
 
@@ -845,6 +1104,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		(
 			messageId switch
 			{
+				LedAddressableRequestMessageId => _ledAddressableTaskCompletionSource is { } tcs && tcs.FunctionId == functionId ? tcs : null,
+				LedMulticolorRequestMessageId => _ledMulticolorTaskCompletionSource is { } tcs && tcs.FunctionId == functionId ? tcs : null,
 				ScreenSettingsRequestMessageId => functionId switch
 				{
 					ScreenSettingsSetBrightnessFunctionId => _setBrightnessTaskCompletionSource,

@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Exo.ColorFormats;
 
 namespace Exo.Devices.Asus.Aura;
@@ -11,5 +11,3 @@ public partial class AuraRamDriver
 		private RgbColor _element0;
 	}
 }
-
-

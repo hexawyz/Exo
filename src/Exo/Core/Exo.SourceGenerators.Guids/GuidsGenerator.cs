@@ -209,6 +209,8 @@ public class GuidsGenerator : IIncrementalGenerator
 			sb.AppendLine("\t\tIEnumerator IEnumerable.GetEnumerator() => GetEnumerator();");
 			sb.AppendLine("\t\tIEnumerator<Guid> IEnumerable<Guid>.GetEnumerator() => GetEnumerator();");
 			sb.AppendLine("\t\t");
+			sb.AppendLine("\t\tpublic static implicit operator ReadOnlySpan<Guid>(ImmutableGuidArray array) => System.Runtime.InteropServices.MemoryMarshal.Cast<byte, Guid>(Internal.ꅔ.ꁘ.Slice(array._index * 16, array._count * 16));");
+			sb.AppendLine("\t\t");
 			sb.AppendLine("\t\tpublic struct Enumerator : IEnumerator<Guid>");
 			sb.AppendLine("\t\t{");
 			sb.AppendLine("\t\t\tprivate int _index;");
@@ -259,7 +261,8 @@ public class GuidsGenerator : IIncrementalGenerator
 
 		static void EmitClass(StringBuilder sb, string indent, ClassInfo c)
 		{
-			sb.Append(indent).Append("partial class ").AppendLine(c.Name);
+			bool isStruct = c.Name.StartsWith("struct:", StringComparison.Ordinal);
+			sb.Append(indent).Append(isStruct ? "partial struct " : "partial class ").AppendLine(isStruct ? c.Name.Substring(7) : c.Name);
 			sb.Append(indent).AppendLine("{");
 			string indent2 = indent + "\t";
 			foreach (var g in c.Guids)

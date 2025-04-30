@@ -38,6 +38,15 @@ public struct FixedArray16<T>
 #pragma warning restore IDE0044 // Add readonly modifier
 }
 
+[InlineArray(18)]
+public struct FixedArray18<T>
+	where T : unmanaged
+{
+#pragma warning disable IDE0044
+	private T _element0;
+#pragma warning restore IDE0044 // Add readonly modifier
+}
+
 [InlineArray(32)]
 public struct FixedArray32<T>
 	where T : unmanaged

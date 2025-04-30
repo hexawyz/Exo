@@ -528,25 +528,29 @@ After connecting one RGB Fan (F140RGB):
 
 ````
 20 03 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-21 03 1a0041000a 51383430353132 01 14 00 00 00 00 00 10 00 00 00 00 00 11 000000000000000000000000000000000000000000000000000000000000000000000000
+21 03 1a0041000a 51383430353132 01 14 00 00 00 00 00 10 00 00 00 00 00 11 00 00 00 00 00 00000000000000000000000000000000000000000000000000000000000000
 ````
 
 The `14` is very certainly the ID for the 140mm Fan (as it does show as what it is in CAM)
 A quick search points to this https://github.com/liquidctl/liquidctl/issues/541#issuecomment-1333035246, suggesting the following mapping:
 
-`13` F120RGB
-`14` F140RGB
+* `13` F120RGB
+* `14` F140RGB
 
 Documentation [here](https://github.com/liquidctl/liquidctl/blob/main/docs/developer/protocol/nzxt_x3-z3-2023.md) indicates that the command should be `20 01` and that `10` and `11` would indicate presence of ring and logo channels, which does not make sense here.
 I don't know what would be the reason for some devices to use `20 01` and some others `20 03`, maybe this doc is wrong or it depends on some kind of hardware version.
 
 Anyway, according to this, it would be safe to assume that `01` is indeed the number of RGB channels.
 
-In that case, I would assume that the 5 following bytes are RGB device IDs. (There seem to be space for 6 though ?)
+In that case, I would assume that the 6 following bytes are RGB device IDs. (There seem to be space for 6 though ?)
 
-From the official info from NZXT, a channel supports up to 40 leds OR 5 devices. (Unsuprising if we assume most devices would have 8 leds… But actually hmm, than one fan has 18 addressable leds 😅)
+From the official info from NZXT, a channel supports up to 40 leds OR 6 devices: https://nzxt.com/en-FR/product/rgb-and-fan-controller
+Number of accessory devices supported seem to vary a bit between devices, but it seems logical that this one would support 6 then.
 
 (I have yet to find a way to connect a second fan there. Damn you NZXT 🙁)
+
+It should be reasonable to assume that `10` and `11` actually do represent the ring and logo accessory IDs, which would always be emitted by the firmware for convenience?
+Since we only have a single channel, we would never be supposed to read those ID, meaning there wouldn't be any problem.
 
 ### Setting the Fan to different colors
 
@@ -735,7 +739,7 @@ Analysis:
 * `14` : Fast.
 * `04` : Fastest.
 
-### Banner effect
+### Marquee effect
 
 With varying speed: (Slowest to fastest)
 
@@ -786,9 +790,9 @@ Increasing the "size" up to 6:
 
 As expected, no change in the "apply" command, so it is just a color rotation. (Nice, though)
 
-### "Protection Banner" effect
+### Covering Marquee effect
 
-In order: 2 to 8 colors, then 
+In order: 2 to 8 colors, then speed, then reverse
 ````
 2a 04 01 01 04 fa 00 0000ff ff0000 000000 000000 000000 000000 000000 000000 000000000000000000000000000000000000000000000000 04 02 00 12 03 00000000
 2a 04 01 01 04 fa 00 0000ff ff0000 ff00ff 000000 000000 000000 000000 000000 000000000000000000000000000000000000000000000000 04 03 00 12 03 00000000
@@ -812,6 +816,52 @@ Byte is `06` for the "forward" direction (arrow to the right in CAM UI) and `04`
 We also do find the actual number of colors used. (I wondered if the controller was just guessing it from the empty color slots, but apaprently not) and the number of leds.
 
 Parameter that has the value `03` unknown.
+
+### Wings effect
+
+I have not yet detailed all the othe effects before this one, but most exist in at least the "simple" flavor.
+Wings seems interesting because it looks totally different.
+Upon activating it, quite a few packets are sent to the device.
+It looks as if the device was being sent explicit frames to render… Which I'm reasonably confident is the case.
+If true, that's huge. (Potential for many fun things)
+
+````
+22 10 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+22 11 01 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+22 20 01 00 04 39 00 01 000000000000000209890000000000000000000000007f00007f000000000000000000000000000000000000000000000000000000000000
+22 20 01 01 04 39 00 01 0000000000000002098900000000000000000000000032000032000000000000000000000000000000000000000000000000000000000000
+22 20 01 02 04 39 00 01 000000000000000209890000000000000000000000000c00000c000000000000000000000000000000000000000000000000000000000000
+22 20 01 03 04 39 00 05 0000000000000002098900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+22 20 01 04 04 39 00 01 000000000000000289090000000000000000000000007f00007f000000000000000000000000000000000000000000000000000000000000
+22 20 01 05 04 39 00 01 0000000000000002890900000000000000000000000032000032000000000000000000000000000000000000000000000000000000000000
+22 20 01 06 04 39 00 01 000000000000000289090000000000000000000000000c00000c000000000000000000000000000000000000000000000000000000000000
+22 20 01 07 04 39 00 05 0000000000000002890900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+22 03 01 08 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+````
+
+So this starts by clearing out the LED buffer for some reason. Maybe not necessary at all, but will need to be tested.
+
+Then, multiple instances of the command `22 20` are sent out. First parameter likely being the channel, so uninteresting.
+But we can clearly see the second parameter increasing from `00` to `07`, which is totally in line with the idea of multiple frames being uploaded.
+
+This is followed by a `22 03` command, of which the second parameter is `08`, exactly the number of (supposed) frames written.
+
+Now, the contents of the "frames" above seem a bit hard to understand, but I've come to realize that's because the initial color is blue.
+If we try white, the result seems more easily understandable:
+
+````
+22 20 01 00 04 39 00 01 00000000000000 02 09 89 00 000000 000000 000000 7f7f7f 7f7f7f 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 01 04 39 00 01 00000000000000 02 09 89 00 000000 000000 000000 323232 323232 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 02 04 39 00 01 00000000000000 02 09 89 00 000000 000000 000000 0c0c0c 0c0c0c 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 03 04 39 00 05 00000000000000 02 09 89 00 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 04 04 39 00 01 00000000000000 02 89 09 00 000000 000000 000000 7f7f7f 7f7f7f 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 05 04 39 00 01 00000000000000 02 89 09 00 000000 000000 000000 323232 323232 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 06 04 39 00 01 00000000000000 02 89 09 00 000000 000000 000000 0c0c0c 0c0c0c 000000 000000 000000 000000 000000000000000000000000000000000000
+22 20 01 07 04 39 00 05 00000000000000 02 89 09 00 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000000000000000000000000000000000
+````
+
+This at least makes the place where some colors appear clear. I've delimited places where I assume other colors could be present, but it will be hard to know for sure without doing some tests.
+
 
 ### To be continued…
 

@@ -5,15 +5,19 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
+using Exo.ColorFormats;
 using Exo.Cooling;
 using Exo.Discovery;
 using Exo.EmbeddedMonitors;
 using Exo.Features;
 using Exo.Features.Cooling;
 using Exo.Features.EmbeddedMonitors;
+using Exo.Features.Lighting;
 using Exo.Features.Monitors;
 using Exo.Features.Sensors;
 using Exo.Images;
+using Exo.Lighting;
+using Exo.Lighting.Effects;
 using Exo.Monitors;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
@@ -23,12 +27,15 @@ namespace Exo.Devices.Nzxt.Kraken;
 public partial class KrakenDriver :
 	Driver,
 	IDeviceDriver<IGenericDeviceFeature>,
+	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceDriver<ISensorDeviceFeature>,
 	IDeviceDriver<ICoolingDeviceFeature>,
 	IDeviceDriver<IMonitorDeviceFeature>,
 	IDeviceDriver<IEmbeddedMonitorDeviceFeature>,
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
+	ILightingControllerFeature,
+	ILightingDeferredChangesFeature,
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature,
 	ICoolingControllerFeature,
@@ -148,42 +155,99 @@ public partial class KrakenDriver :
 			{
 				string? serialNumber = await hidStream.GetSerialNumberAsync(cancellationToken).ConfigureAwait(false);
 				var hidTransport = new KrakenHidTransport(hidStream);
-				var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
-				var displayManager = await KrakenDisplayManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false);
-
-				await hidTransport.SetPumpPowerCurveAsync(DefaultPumpCurve, cancellationToken).ConfigureAwait(false);
-				await hidTransport.SetFanPowerCurveAsync(DefaultFanCurve, cancellationToken).ConfigureAwait(false);
-
-				// Forcefully reset the display mode if we are currently displaying an image.
-				// While it is possible to allow the current image to continue existing, disabling it is a quick and easy way to avoid memory management problems.
-				// There is generally no merit in preserving the previous image state of the device, as we sadly can't know which image is stored where.
-				// This means that restarting the service would essentially duplicate the current image in another slot. Which is kinda… stupid.
-				// We can allow that later once we have perfected the memory management and slots can be deallocated in a smarted way.
-				if (displayManager.CurrentDisplayMode.DisplayMode == KrakenDisplayMode.StoredImage)
+				// We don't need to explicitly reference the stream anymore after this and we can avoid double dispose by signaling it there.
+				// (Not that double dispose would actually cause a problem, but it is more correct to not do it)
+				hidStream = null;
+				try
 				{
-					// Counting on the fact that we would quickly update the display mode after this.
-					await displayManager.DisplayPresetVisualAsync(KrakenPresetVisual.Off, cancellationToken).ConfigureAwait(false);
-				}
+					var ledChannels = await hidTransport.GetLedInformationAsync(cancellationToken);
 
-				return new DriverCreationResult<SystemDevicePath>
-				(
-					keys,
-					new KrakenDriver
+					(byte ChannelIndex, ImmutableArray<LightingAccessoryInformation> Accessories)[] ledChannelsAccessories;
+					if (ledChannels.Length == 0)
+					{
+						ledChannelsAccessories = [];
+					}
+					else
+					{
+						ledChannelsAccessories = new (byte ChannelIndex, ImmutableArray<LightingAccessoryInformation> Accessories)[ledChannels.Length];
+						uint ledChannelCount = 0;
+						for (int i = 0; i < ledChannels.Length; i++)
+						{
+							var channel = ledChannels[i];
+							if (channel.Length > 0)
+							{
+								bool isLightingSupported = true;
+								var accessories = new LightingAccessoryInformation[channel.Length];
+								for (int j = 0; j < channel.Length; j++)
+								{
+									byte accessoryId = channel[j];
+									if (LightingAccessoryInformation.TryGet(accessoryId, out var info))
+									{
+										logger.KrakenLightingKnownAccessory(hidDeviceInterfaceName, (byte)(i + 1), (byte)(j + 1), accessoryId, info.Name);
+										accessories[j] = info;
+									}
+									else
+									{
+										logger.KrakenLightingUnknownAccessory(hidDeviceInterfaceName, (byte)(i + 1), (byte)(j + 1), accessoryId);
+										isLightingSupported = false;
+									}
+								}
+								if (isLightingSupported)
+								{
+									ledChannelsAccessories[ledChannelCount++] = ((byte)(i + 1), ImmutableCollectionsMarshal.AsImmutableArray(accessories));
+								}
+							}
+						}
+						if (ledChannelCount != (uint)ledChannelsAccessories.Length)
+						{
+							Array.Resize(ref ledChannelsAccessories, (int)ledChannelCount);
+						}
+					}
+
+					var screenInfo = await hidTransport.GetScreenInformationAsync(cancellationToken).ConfigureAwait(false);
+					var displayManager = await KrakenDisplayManager.CreateAsync(screenInfo.ImageCount, screenInfo.MemoryBlockCount, hidTransport, imageTransport, cancellationToken).ConfigureAwait(false);
+
+					await hidTransport.SetPumpPowerCurveAsync(DefaultPumpCurve, cancellationToken).ConfigureAwait(false);
+					await hidTransport.SetFanPowerCurveAsync(DefaultFanCurve, cancellationToken).ConfigureAwait(false);
+
+					// Forcefully reset the display mode if we are currently displaying an image.
+					// While it is possible to allow the current image to continue existing, disabling it is a quick and easy way to avoid memory management problems.
+					// There is generally no merit in preserving the previous image state of the device, as we sadly can't know which image is stored where.
+					// This means that restarting the service would essentially duplicate the current image in another slot. Which is kinda… stupid.
+					// We can allow that later once we have perfected the memory management and slots can be deallocated in a smarted way.
+					if (displayManager.CurrentDisplayMode.DisplayMode == KrakenDisplayMode.StoredImage)
+					{
+						// Counting on the fact that we would quickly update the display mode after this.
+						await displayManager.DisplayPresetVisualAsync(KrakenPresetVisual.Off, cancellationToken).ConfigureAwait(false);
+					}
+
+					return new DriverCreationResult<SystemDevicePath>
 					(
-						logger,
-						hidTransport,
-						displayManager,
-						screenInfo.Width,
-						screenInfo.Height,
-						productId,
-						version,
-						friendlyName ?? await hidStream.GetProductNameAsync(cancellationToken).ConfigureAwait(false) ?? "NZXT Kraken",
-						new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", serialNumber)
-					),
-					null
-				);
+						keys,
+						new KrakenDriver
+						(
+							logger,
+							hidTransport,
+							ImmutableCollectionsMarshal.AsImmutableArray(ledChannelsAccessories),
+							displayManager,
+							screenInfo.Width,
+							screenInfo.Height,
+							productId,
+							version,
+							friendlyName ?? await hidTransport.GetProductNameAsync(cancellationToken).ConfigureAwait(false) ?? "NZXT Kraken",
+							new("Kraken", topLevelDeviceName, $"{NzxtVendorId:X4}:{productId:X4}", serialNumber)
+						),
+						null
+					);
+				}
+				catch
+				{
+					await hidTransport.DisposeAsync().ConfigureAwait(false);
+					hidStream = null;
+					throw;
+				}
 			}
-			catch
+			catch when (hidStream is not null)
 			{
 				await hidStream.DisposeAsync().ConfigureAwait(false);
 				throw;
@@ -201,15 +265,22 @@ public partial class KrakenDriver :
 
 	private readonly KrakenHidTransport _hidTransport;
 	private readonly KrakenDisplayManager _displayManager;
+	private readonly LightingZone[] _lightingZones;
 	private readonly ISensor[] _sensors;
 	private readonly ICooler[] _coolers;
 	private readonly ILogger<KrakenDriver> _logger;
 
 	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
+	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 	private readonly IDeviceFeatureSet<ISensorDeviceFeature> _sensorFeatures;
 	private readonly IDeviceFeatureSet<ICoolingDeviceFeature> _coolingFeatures;
 	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 	private readonly IDeviceFeatureSet<IEmbeddedMonitorDeviceFeature> _embeddedMonitorFeatures;
+
+	private readonly ImmutableArray<EmbeddedMonitorGraphicsDescription> _embeddedMonitorGraphicsDescriptions;
+
+	private readonly byte[] _pumpCoolingCurve;
+	private readonly byte[] _fanCoolingCurve;
 
 	private byte _pumpSpeedTarget;
 	private byte _pumpState;
@@ -223,11 +294,6 @@ public partial class KrakenDriver :
 	private readonly ushort _imageWidth;
 	private readonly ushort _imageHeight;
 
-	private readonly byte[] _pumpCoolingCurve;
-	private readonly byte[] _fanCoolingCurve;
-
-	private readonly ImmutableArray<EmbeddedMonitorGraphicsDescription> _embeddedMonitorGraphicsDescriptions;
-
 	public override DeviceCategory DeviceCategory => DeviceCategory.Cooler;
 	DeviceId IDeviceIdFeature.DeviceId => DeviceId.ForUsb(NzxtVendorId, _productId, _versionNumber);
 	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
@@ -239,6 +305,7 @@ public partial class KrakenDriver :
 	EmbeddedMonitorInformation IEmbeddedMonitor.MonitorInformation => new(MonitorShape.Circle, ImageRotation.None, new(_imageWidth, _imageHeight), PixelFormat.R8G8B8X8, ImageFormats.Raw | ImageFormats.Gif, true);
 
 	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
+	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 	IDeviceFeatureSet<ISensorDeviceFeature> IDeviceDriver<ISensorDeviceFeature>.Features => _sensorFeatures;
 	IDeviceFeatureSet<ICoolingDeviceFeature> IDeviceDriver<ICoolingDeviceFeature>.Features => _coolingFeatures;
 	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
@@ -248,6 +315,7 @@ public partial class KrakenDriver :
 	(
 		ILogger<KrakenDriver> logger,
 		KrakenHidTransport transport,
+		ImmutableArray<(byte ChannelIndex, ImmutableArray<LightingAccessoryInformation> Accessories)> ledChannels,
 		KrakenDisplayManager displayManager,
 		ushort imageWidth,
 		ushort imageHeight,
@@ -276,9 +344,30 @@ public partial class KrakenDriver :
 			new(LiquidTemperatureGraphicsId, new Guid(0x5553C264, 0x35BF, 0x44BA, 0xBD, 0x23, 0x5A, 0x1B, 0xF6, 0x11, 0xF5, 0xE1)),
 			EmbeddedMonitorGraphicsDescription.CustomGraphics,
 		];
+		if (ledChannels.Length == 0)
+		{
+			_lightingZones = [];
+		}
+		else
+		{
+			var lightingZones = new List<LightingZone>();
+			foreach (var (channelId, accessories) in ledChannels)
+			{
+				for (int i = 0; i < accessories.Length; i++)
+				{
+					var accessory = accessories[i];
+					byte accessoryIndex = (byte)(i + 1);
+					lightingZones.Add(new(accessory.GetZoneId(channelId, accessoryIndex), channelId, accessoryIndex, accessory.LedCount));
+				}
+			}
+			_lightingZones = [.. lightingZones];
+		}
 		_genericFeatures = ConfigurationKey.UniqueId is not null ?
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
+		_lightingFeatures = _lightingZones.Length > 0 ?
+			FeatureSet.Create<ILightingDeviceFeature, KrakenDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this) :
+			FeatureSet.Empty<ILightingDeviceFeature>();
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, KrakenDriver, ICoolingControllerFeature>(this);
 		_monitorFeatures = FeatureSet.Create<IMonitorDeviceFeature, KrakenDriver, IMonitorBrightnessFeature>(this);
@@ -301,6 +390,17 @@ public partial class KrakenDriver :
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100);
 		await _hidTransport.SetBrightnessAsync((byte)value, cancellationToken).ConfigureAwait(false);
+	}
+
+	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZones;
+	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.NeverPersisted;
+
+	async ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
+	{
+		foreach (var zone in _lightingZones)
+		{
+			await zone.ApplyEffectAsync(_hidTransport, default).ConfigureAwait(false);
+		}
 	}
 
 	ImmutableArray<IEmbeddedMonitor> IEmbeddedMonitorControllerFeature.EmbeddedMonitors => [this];
@@ -686,5 +786,201 @@ public partial class KrakenDriver :
 
 		public bool TryGetControlCurve([NotNullWhen(true)] out IControlCurve<byte, byte>? curve)
 			=> KrakenDriver.TryGetControlCurve(_driver._pumpCoolingCurve, _driver._pumpState, out curve);
+	}
+
+	private sealed class LightingZone :
+		ILightingZone,
+		ILightingZoneEffect<DisabledEffect>,
+		ILightingZoneEffect<StaticColorEffect>,
+		ILightingZoneEffect<ColorPulseEffect>,
+		ILightingZoneEffect<VariableColorPulseEffect>
+	{
+		const byte DefaultStaticSpeed = 0x32;
+
+		// NB: Takes the speeds from CAM but insert an extra one between "normal" and "fast" in order to match the predetermined model used in Exo.
+		// CAM <=> Exo:
+		// Slower <=> Slower
+		// Slow <=> Slow
+		// Normal <=> Medium Slow
+		// <nothing> <=> Medium fast
+		// Fast <=> Fast
+		// Faster <=> Faster
+		private static ReadOnlySpan<byte> PulseSpeeds => [0x19, 0x14, 0x0f, 0xa, 0x07, 0x04];
+
+		private readonly RgbColor[] _colors;
+		private readonly Guid _zoneId;
+		private readonly byte _channelId;
+		private readonly byte _accessoryId;
+		private readonly byte _ledCount;
+		private KrakenEffect _effectId;
+		private byte _colorCount;
+		private byte _speed;
+		private byte _parameter1;
+		private byte _parameter2;
+		private bool _hasChanged;
+
+		public LightingZone(Guid zoneId, byte channelId, byte accessoryId, byte colorCount)
+		{
+			_zoneId = zoneId;
+			_channelId = channelId;
+			_accessoryId = accessoryId;
+			_ledCount = colorCount;
+			_colors = new RgbColor[Math.Max(8, (uint)colorCount)];
+			_effectId = KrakenEffect.Static;
+			_colorCount = 1;
+			_speed = 0x32;
+		}
+
+		Guid ILightingZone.ZoneId => _zoneId;
+
+		ILightingEffect ILightingZone.GetCurrentEffect()
+		{
+			switch (_effectId)
+			{
+			case KrakenEffect.Static:
+				return _colors[0] == default ? DisabledEffect.SharedInstance : new StaticColorEffect(_colors[0]);
+			case KrakenEffect.Pulse:
+				return PulseSpeeds.IndexOf(_speed) is int speedIndex && speedIndex >= 0 ? new VariableColorPulseEffect(_colors[0], (PredeterminedEffectSpeed)speedIndex) : new ColorPulseEffect(_colors[0]);
+			default:
+				throw new NotImplementedException();
+			}
+		}
+
+		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
+		{
+			if (_effectId != KrakenEffect.Static || _colorCount != 1 || _colors[0] != default || _speed != DefaultStaticSpeed || _parameter1 != 0x00 && _parameter2 != 0x00)
+			{
+				_effectId = KrakenEffect.Static;
+				_colors.AsSpan(0, _colorCount).Clear();
+				_colorCount = 1;
+				_speed = DefaultStaticSpeed;
+				_parameter1 = 0x00;
+				_parameter2 = 0x00;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
+		{
+			if (_effectId != KrakenEffect.Static || _colorCount != 1 || _colors[0] != effect.Color || _speed != DefaultStaticSpeed || _parameter1 != 0x00 && _parameter2 != 0x00)
+			{
+				_effectId = KrakenEffect.Static;
+				_colors[0] = effect.Color;
+				if (_colorCount > 1)
+				{
+					_colors.AsSpan(0, _colorCount).Clear();
+				}
+				_colorCount = 1;
+				_speed = DefaultStaticSpeed;
+				_parameter1 = 0x00;
+				_parameter2 = 0x00;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect)
+		{
+			if (_effectId != KrakenEffect.Pulse || _colorCount != 1 || _colors[0] != effect.Color || _speed != PulseSpeeds[2] || _parameter1 != 0x00 && _parameter2 != 0x08)
+			{
+				_effectId = KrakenEffect.Pulse;
+				_colors[0] = effect.Color;
+				if (_colorCount > 1)
+				{
+					_colors.AsSpan(0, _colorCount).Clear();
+				}
+				_colorCount = 1;
+				_speed = PulseSpeeds[2];
+				_parameter1 = 0x00;
+				_parameter2 = 0x08;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect)
+		{
+			if (_effectId != KrakenEffect.Pulse || _colorCount != 1 || _colors[0] != effect.Color || _speed != PulseSpeeds[2] || _parameter1 != 0x00 && _parameter2 != 0x08)
+			{
+				_effectId = KrakenEffect.Pulse;
+				_colors[0] = effect.Color;
+				if (_colorCount > 1)
+				{
+					_colors.AsSpan(0, _colorCount).Clear();
+				}
+				_colorCount = 1;
+				_speed = PulseSpeeds[(int)effect.Speed];
+				_parameter1 = 0x00;
+				_parameter2 = 0x08;
+				_hasChanged = true;
+			}
+		}
+
+		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
+		{
+			effect = default;
+			return _effectId == KrakenEffect.Static && _colorCount == 1 && _colors[0] == default && _speed == DefaultStaticSpeed && _parameter1 == 0x00 && _parameter2 == 0x00;
+		}
+
+		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect)
+		{
+			if (_effectId == KrakenEffect.Static && _colorCount == 1 && _speed == DefaultStaticSpeed && _parameter1 == 0x00 && _parameter2 == 0x00)
+			{
+				effect = new(_colors[0]);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect)
+		{
+			if (_effectId == KrakenEffect.Pulse && _colorCount == 1 && _speed == PulseSpeeds[2] && _parameter1 == 0x00 && _parameter2 == 0x08)
+			{
+				effect = new(_colors[0]);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect)
+		{
+			if (_effectId == KrakenEffect.Pulse && _colorCount == 1 && PulseSpeeds.IndexOf(_speed) is int speedIndex && speedIndex >= 0 && _parameter1 == 0x00 && _parameter2 == 0x08)
+			{
+				effect = new(_colors[0], (PredeterminedEffectSpeed)speedIndex);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		public bool HasChanged => _hasChanged;
+
+		public async Task ApplyEffectAsync(KrakenHidTransport transport, CancellationToken cancellationToken)
+		{
+			await transport.SetMulticolorEffectAsync(_channelId, (byte)_effectId, _speed, _parameter1, _parameter2, _ledCount, _colors.AsMemory(0, _colorCount), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	// Most effects have an "automatic" and an "addressable" version, so hopefully, we should be able to reference all effects using these "automatic" IDs.
+	private enum KrakenEffect
+	{
+		Static = 0x00,
+		Fade = 0x01,
+		SpectrumWave = 0x02,
+
+		// Just missing effect 3 it seems ?
+
+		CoveringMarquee = 0x04,
+		Alternating = 0x05,
+		Pulse = 0x06,
+		Breathing = 0x07,
+		Candle = 0x08,
+		StarryNight = 0x09,
+		RainbowWave = 0x0B,
+		SuperRainbow = 0x0C,
+		RainbowImpulse = 0x0D,
+		TaiChi = 0x0E,
+		LiquidCooler = 0x0F,
+		Loading = 0x10,
 	}
 }
