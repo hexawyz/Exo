@@ -138,6 +138,8 @@ public sealed unsafe class ExoArchive : IDisposable
 
 	public bool TryGetFileEntry(ReadOnlySpan<byte> key, out ExoArchiveFile file)
 	{
+		if (_entryCount == 0) goto NotFound;
+
 		ulong hash1 = XxHash3.HashToUInt64(key, 0x5649484352414F58);
 		ulong hash2 = XxHash3.HashToUInt64(key, 0);
 
@@ -161,6 +163,7 @@ public sealed unsafe class ExoArchive : IDisposable
 			if (i == referenceEntryIndex) break;
 		}
 
+	NotFound:;
 		file = default;
 		return false;
 	}
