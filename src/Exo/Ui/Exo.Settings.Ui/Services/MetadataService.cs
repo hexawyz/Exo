@@ -72,6 +72,7 @@ internal sealed class MetadataService : ISettingsMetadataService
 				break;
 			case WatchNotificationKind.Update:
 				if (_state != 1) throw new InvalidOperationException();
+				_state = 2;
 				if (_availabilitySignal is TaskCompletionSource tcs)
 				{
 					tcs.TrySetResult();
