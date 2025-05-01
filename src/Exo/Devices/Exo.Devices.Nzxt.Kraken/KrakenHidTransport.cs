@@ -302,7 +302,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask SetMulticolorEffectAsync(byte channel, byte effectId, ushort speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	public async ValueTask SetMulticolorEffectAsync(byte channel, byte effectId, ushort speed, byte flags, byte parameter2, byte ledCount, byte size, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
@@ -311,7 +311,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		var tcs = new FunctionTaskCompletionSource(LedMulticolorSetEffectFunctionId);
 		if (Interlocked.CompareExchange(ref _ledMulticolorTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
-		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, ushort speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlySpan<RgbColor> colors)
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, ushort speed, byte flags, byte parameter2, byte ledCount, byte size, ReadOnlySpan<RgbColor> colors)
 		{
 			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = LedMulticolorRequestMessageId;
@@ -321,14 +321,14 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			buffer[3] = 0x01;
 			buffer[4] = effectId;
 			LittleEndian.Write(ref buffer[5], speed);
-			// Note that there seems to be space for at least 16 colors, but we allow only 8.
+			// Note that there seems to be space for up to 16 colors, but we allow only 8.
 			// Maybe more are actually supported. To be tested later.
 			CopyColors(buffer[7..31], colors);
-			buffer[55] = parameter1;
+			buffer[55] = flags;
 			buffer[56] = (byte)colors.Length;
 			buffer[57] = parameter2;
 			buffer[58] = ledCount;
-			buffer[59] = 0x03;
+			buffer[59] = size;
 		}
 
 		var buffer = WriteBuffer;
@@ -338,7 +338,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			{
 				try
 				{
-					PrepareRequest(buffer.Span, channel, effectId, speed, parameter1, parameter2, ledCount, colors.Span);
+					PrepareRequest(buffer.Span, channel, effectId, speed, flags, parameter2, ledCount, size, colors.Span);
 					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
 				}
 				finally

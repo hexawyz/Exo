@@ -7,7 +7,7 @@ using Exo.Lighting.Effects;
 namespace Exo.Devices.Asus.Aura.Effects;
 
 /// <summary>Represents an effect where a color will move across an area following a wave pattern.</summary>
-/// <remarks>This is the monochrome, less common, version of <see cref="SpectrumWaveEffect"/>.</remarks>
+/// <remarks>This is the monochrome, less common, version of <see cref="ReversibleVariableSpectrumWaveEffect"/>.</remarks>
 [DataContract]
 [TypeId(0x2CB30144, 0x2586, 0x4780, 0x95, 0x6C, 0x43, 0x19, 0x8A, 0xF2, 0x72, 0x6F)]
 public readonly partial struct ColorWaveEffect : ISingleColorLightEffect

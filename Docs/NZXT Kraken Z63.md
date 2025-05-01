@@ -880,6 +880,10 @@ For "covering marquee", the effect direction is controlled by a change between `
 Which, if we assume that the parameter is a bit field, indicates that bit 1 (with the value `02`) actually controls the direction.
 Turns out that this does also work for the Tai Chi effect. Setting the parameter to `01` did nothing, for example, but `02` does reverse the effect.
 
+Parameter2 seems to be speed-related too ?
+Setting tit to `00` on the TaiChi effect makes it go very fast, and `10` very slow, even on the "faster" animation setting.
+Might be the delay necessary for a color transition or something like that. To be investigated more in depth later.
+
 Parameter3 is generally `03` but is used by the "alternating" effect as the size of the area.
 I would imagine that that parameter can be used similarly with other effects that have a moving animation.
 
