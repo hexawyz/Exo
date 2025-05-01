@@ -1,0 +1,22 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using Exo.ColorFormats;
+using Exo.Lighting.Effects;
+
+namespace Exo.Devices.Nzxt.LightingEffects;
+
+/// <summary>Represents color effects where the addressable zone is always evenly split between the two colors, with colors zones moving from start to end.</summary>
+[TypeId(0xD8C6DCE9, 0x2902, 0x452F, 0x91, 0x21, 0xD9, 0x6B, 0x7E, 0xED, 0x1B, 0xA0)]
+public readonly partial struct TaiChiEffect(RgbColor color1, RgbColor color2, PredeterminedEffectSpeed speed, bool isReversed) : ILightingEffect<TaiChiEffect>
+{
+	[Display(Name = "Color 1")]
+	public RgbColor Color1 { get; } = color1;
+	[Display(Name = "Color 2")]
+	public RgbColor Color2 { get; } = color2;
+	[Display(Name = "Speed")]
+	[Range(0, 5)]
+	[DefaultValue(2)]
+	public PredeterminedEffectSpeed Speed { get; } = speed;
+	[Display(Name = "Reverse")]
+	public bool IsReversed { get; } = isReversed;
+}

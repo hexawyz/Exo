@@ -7,6 +7,7 @@ using DeviceTools;
 using DeviceTools.HumanInterfaceDevices;
 using Exo.ColorFormats;
 using Exo.Cooling;
+using Exo.Devices.Nzxt.LightingEffects;
 using Exo.Discovery;
 using Exo.EmbeddedMonitors;
 using Exo.Features;
@@ -793,7 +794,8 @@ public partial class KrakenDriver :
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>,
 		ILightingZoneEffect<ColorPulseEffect>,
-		ILightingZoneEffect<VariableColorPulseEffect>
+		ILightingZoneEffect<VariableColorPulseEffect>,
+		ILightingZoneEffect<TaiChiEffect>
 	{
 		const byte DefaultStaticSpeed = 0x32;
 
@@ -805,18 +807,25 @@ public partial class KrakenDriver :
 		// <nothing> <=> Medium fast
 		// Fast <=> Fast
 		// Faster <=> Faster
-		private static ReadOnlySpan<byte> PulseSpeeds => [0x19, 0x14, 0x0f, 0xa, 0x07, 0x04];
+		private static ReadOnlySpan<ushort> PulseSpeeds => [0x19, 0x14, 0x0f, 0xa, 0x07, 0x04];
+		private static ReadOnlySpan<ushort> BreathingSpeeds => [0x28, 0x1e, 0x14, 0x0f, 0x0a, 0x04];
+		private static ReadOnlySpan<ushort> FadeSpeeds => [0x50, 0x3c, 0x28, 0x1e, 0x14, 0x0a];
+		private static ReadOnlySpan<ushort> CoveringBannerSpeeds => [0x015e, 0x012c, 0x00fa, 0x00dc, 0x0096, 0x0050];
+		private static ReadOnlySpan<ushort> TaiChiSpeeds => [0x32, 0x28, 0x1e, 0x19, 0x14, 0x0a];
 
 		private readonly RgbColor[] _colors;
 		private readonly Guid _zoneId;
+		// NB: As in most types in Exo, fields are ordered to reduce the amount of padding as much as possible.
 		private readonly byte _channelId;
 		private readonly byte _accessoryId;
 		private readonly byte _ledCount;
 		private KrakenEffect _effectId;
+		private ushort _speed;
 		private byte _colorCount;
-		private byte _speed;
 		private byte _parameter1;
 		private byte _parameter2;
+		// TODO
+		//private byte _parameter3;
 		private bool _hasChanged;
 
 		public LightingZone(Guid zoneId, byte channelId, byte accessoryId, byte colorCount)
@@ -868,7 +877,7 @@ public partial class KrakenDriver :
 				_colors[0] = effect.Color;
 				if (_colorCount > 1)
 				{
-					_colors.AsSpan(0, _colorCount).Clear();
+					_colors.AsSpan(1, _colorCount - 1).Clear();
 				}
 				_colorCount = 1;
 				_speed = DefaultStaticSpeed;
@@ -886,7 +895,7 @@ public partial class KrakenDriver :
 				_colors[0] = effect.Color;
 				if (_colorCount > 1)
 				{
-					_colors.AsSpan(0, _colorCount).Clear();
+					_colors.AsSpan(1, _colorCount - 1).Clear();
 				}
 				_colorCount = 1;
 				_speed = PulseSpeeds[2];
@@ -904,12 +913,37 @@ public partial class KrakenDriver :
 				_colors[0] = effect.Color;
 				if (_colorCount > 1)
 				{
-					_colors.AsSpan(0, _colorCount).Clear();
+					_colors.AsSpan(1, _colorCount - 1).Clear();
 				}
 				_colorCount = 1;
 				_speed = PulseSpeeds[(int)effect.Speed];
 				_parameter1 = 0x00;
 				_parameter2 = 0x08;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<TaiChiEffect>.ApplyEffect(in TaiChiEffect effect)
+		{
+			if (_effectId != KrakenEffect.TaiChi ||
+				_colorCount != 2 ||
+				_colors[0] != effect.Color1 ||
+				_colors[1] != effect.Color2 ||
+				PulseSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_parameter1 != 0x00 &&
+				_parameter2 != 0x05)
+			{
+				_effectId = KrakenEffect.TaiChi;
+				_colors[0] = effect.Color1;
+				_colors[1] = effect.Color2;
+				if (_colorCount > 2)
+				{
+					_colors.AsSpan(2, _colorCount - 2).Clear();
+				}
+				_colorCount = 2;
+				_speed = TaiChiSpeeds[(int)effect.Speed];
+				_parameter1 = effect.IsReversed ? (byte)0x02 : (byte)0x00;
+				_parameter2 = 0x05;
 				_hasChanged = true;
 			}
 		}
@@ -947,6 +981,22 @@ public partial class KrakenDriver :
 			if (_effectId == KrakenEffect.Pulse && _colorCount == 1 && PulseSpeeds.IndexOf(_speed) is int speedIndex && speedIndex >= 0 && _parameter1 == 0x00 && _parameter2 == 0x08)
 			{
 				effect = new(_colors[0], (PredeterminedEffectSpeed)speedIndex);
+				return true; 
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<TaiChiEffect>.TryGetCurrentEffect(out TaiChiEffect effect)
+		{
+			if (_effectId == KrakenEffect.TaiChi &&
+				_colorCount == 2 &&
+				TaiChiSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_parameter1 is 0x00 or 0x01 &&
+				_parameter2 == 0x05)
+			{
+				effect = new(_colors[0], _colors[1], (PredeterminedEffectSpeed)speedIndex, _parameter1 != 0);
 				return true;
 			}
 			effect = default;
@@ -959,6 +1009,7 @@ public partial class KrakenDriver :
 		{
 			await transport.SetMulticolorEffectAsync(_channelId, (byte)_effectId, _speed, _parameter1, _parameter2, _ledCount, _colors.AsMemory(0, _colorCount), cancellationToken).ConfigureAwait(false);
 		}
+
 	}
 
 	// Most effects have an "automatic" and an "addressable" version, so hopefully, we should be able to reference all effects using these "automatic" IDs.
@@ -968,7 +1019,7 @@ public partial class KrakenDriver :
 		Fade = 0x01,
 		SpectrumWave = 0x02,
 
-		// Just missing effect 3 it seems ?
+		// Missing effect 3 it seems ?
 
 		CoveringMarquee = 0x04,
 		Alternating = 0x05,
@@ -976,6 +1027,9 @@ public partial class KrakenDriver :
 		Breathing = 0x07,
 		Candle = 0x08,
 		StarryNight = 0x09,
+
+		// Missing effect 10 it seems ?
+
 		RainbowWave = 0x0B,
 		SuperRainbow = 0x0C,
 		RainbowImpulse = 0x0D,

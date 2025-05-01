@@ -256,7 +256,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask ApplyAddressableEffectAsync(byte channel, byte effectId, byte speed, byte colorCount, bool isReversed, CancellationToken cancellationToken)
+	public async ValueTask ApplyAddressableEffectAsync(byte channel, byte effectId, ushort speed, byte colorCount, bool isReversed, CancellationToken cancellationToken)
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
@@ -264,14 +264,14 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		var tcs = new FunctionTaskCompletionSource(LedAddressableApplyFunctionId);
 		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
-		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, byte speed, byte colorCount, bool isReversed)
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, ushort speed, byte colorCount, bool isReversed)
 		{
 			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = LedAddressableRequestMessageId;
 			buffer[1] = LedAddressableApplyFunctionId;
 			buffer[2] = channel;
 			buffer[4] = effectId;
-			buffer[5] = speed;
+			LittleEndian.Write(ref buffer[5], speed);
 			buffer[7] = colorCount;
 			buffer[8] = isReversed ? (byte)1 : (byte)0;
 			buffer[10] = 0x80;
@@ -302,7 +302,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask SetMulticolorEffectAsync(byte channel, byte effectId, byte speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	public async ValueTask SetMulticolorEffectAsync(byte channel, byte effectId, ushort speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
@@ -311,7 +311,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		var tcs = new FunctionTaskCompletionSource(LedMulticolorSetEffectFunctionId);
 		if (Interlocked.CompareExchange(ref _ledMulticolorTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
-		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, byte speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlySpan<RgbColor> colors)
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte effectId, ushort speed, byte parameter1, byte parameter2, byte ledCount, ReadOnlySpan<RgbColor> colors)
 		{
 			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = LedMulticolorRequestMessageId;
@@ -320,8 +320,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			// Unknown: Might be accessory index.
 			buffer[3] = 0x01;
 			buffer[4] = effectId;
-			buffer[5] = speed;
-			// Note that there seems to be space for at least 15 colors (for sure not 16) , but we allow only 8.
+			LittleEndian.Write(ref buffer[5], speed);
+			// Note that there seems to be space for at least 16 colors, but we allow only 8.
 			// Maybe more are actually supported. To be tested later.
 			CopyColors(buffer[7..31], colors);
 			buffer[55] = parameter1;

@@ -1,4 +1,6 @@
 {
+	// Lighting Effects
+	"b69df8f3-f523-47b6-aaef-019ec54e2269": { "en": "Tai Chi" },
 	// Reusing the same IDs for both zones and strings, so that it is simpler.
 	"acd27f7a-e239-4eaf-bc71-ca9dd4428b41": { "en": "Ring", "fr": "Anneau", "ja": "リング" },
 	"9ca803c7-d99d-4e0e-a428-e24cd6ac055c": { "en": "Logo", "fr": "Logo", "ja": "ロゴ" },
