@@ -588,6 +588,12 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			lock (_changeLock)
 			{
 				_lightingDeviceStates.TryAdd(notification.DeviceInformation.Id, deviceState);
+
+				// Handlers can only be added from within the lock, so we can conditionally emit the new notifications based on the needs. (Handlers can be removed at anytime)
+				var deviceInformationBroadcaster = _deviceInformationBroadcaster.GetSnapshot();
+				if (!deviceInformationBroadcaster.IsEmpty) deviceInformationBroadcaster.Push(CreateDeviceInformation(notification.DeviceInformation.Id, deviceState));
+				var deviceConfigurationBroadcaster = _deviceConfigurationBroadcaster.GetSnapshot();
+				if (!deviceConfigurationBroadcaster.IsEmpty) deviceConfigurationBroadcaster.Push(deviceState.CreateConfiguration(notification.DeviceInformation.Id));
 			}
 		}
 		else
@@ -821,7 +827,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		}
 		// Always update the effect reference. It the contents were equal, it will let us get rid of the old copy, and only keep the one that was retrieved from the cache.
 		lightingZoneState.SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2);
-
 	}
 
 	private async ValueTask ApplyRestoredChangesAsync(ILightingDeferredChangesFeature deferredChangesFeature, Guid deviceId)
