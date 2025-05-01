@@ -9,12 +9,12 @@ public readonly partial struct LightingAccessoryInformation
 		{
 		// Kraken X Ring
 		case 0x10:
-			// TODO: number od LEDs ?
-			info = new(accessoryId, 1, "Ring");
+			// Judging from CAM screenshots online, the ring should have 8 LEDs
+			info = new(accessoryId, 8, "Ring");
 			return true;
 		// Kraken X Logo
 		case 0x11:
-			// TODO: number od LEDs ?
+			// Assuming that logo is a single LED, which should be reasonable.
 			info = new(accessoryId, 1, "Logo");
 			return true;
 		case 0x13:

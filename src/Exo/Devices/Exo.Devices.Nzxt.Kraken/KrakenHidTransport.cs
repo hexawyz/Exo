@@ -256,7 +256,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask ApplyEffectAsync(byte channel, byte effectId, byte speed, byte colorCount, bool isReversed, CancellationToken cancellationToken)
+	public async ValueTask ApplyAddressableEffectAsync(byte channel, byte effectId, byte speed, byte colorCount, bool isReversed, CancellationToken cancellationToken)
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
