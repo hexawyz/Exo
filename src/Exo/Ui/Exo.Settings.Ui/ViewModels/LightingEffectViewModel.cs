@@ -39,7 +39,7 @@ internal sealed class LightingEffectViewModel
 			var property = properties[i];
 			(uint align, uint length) = property.DataType switch
 			{
-				LightingDataType.UInt8 or LightingDataType.SInt8 => (1u, 1u),
+				LightingDataType.UInt8 or LightingDataType.SInt8 or LightingDataType.EffectDirection1D => (1u, 1u),
 				LightingDataType.UInt16 or LightingDataType.SInt16 or LightingDataType.Float16 => (2u, 2u),
 				LightingDataType.UInt32 or LightingDataType.UInt32 or LightingDataType.Float32 => (4u, 4u),
 				LightingDataType.UInt64 or LightingDataType.SInt64 or LightingDataType.Float64 or LightingDataType.TimeSpan or LightingDataType.DateTime => (8u, 8u),

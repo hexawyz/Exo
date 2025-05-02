@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Lighting;
+using Exo.Lighting.Effects;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -22,6 +23,7 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 			LightingDataType.Float32 => (MemoryMarshal.Read<float>(data), 4),
 			LightingDataType.Float64 => (MemoryMarshal.Read<double>(data), 4),
 			LightingDataType.Boolean => (data[0] != 0, 1),
+			LightingDataType.EffectDirection1D => ((EffectDirection1D)data[0], 1),
 			LightingDataType.ColorGrayscale8 => (data[0], 1),
 			LightingDataType.ColorGrayscale16 => (MemoryMarshal.Read<ushort>(data), 2),
 			LightingDataType.ColorRgb24 => (Color.FromArgb(255, data[0], data[1], data[2]), 3),
@@ -49,6 +51,7 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 		case LightingDataType.Float32: writer.Write(Convert.ToSingle(value)); break;
 		case LightingDataType.Float64: writer.Write(Convert.ToDouble(value)); break;
 		case LightingDataType.Boolean: writer.Write(Convert.ToBoolean(value) ? (byte)1 : (byte)0); break;
+		case LightingDataType.EffectDirection1D: writer.Write((byte)(EffectDirection1D)value); break;
 		case LightingDataType.ColorGrayscale8: writer.Write(Convert.ToByte(value)); break;
 		case LightingDataType.ColorGrayscale16: writer.Write(Convert.ToUInt16(value)); break;
 		case LightingDataType.ColorRgb24: var rgbColor = (Color)value; writer.Write(rgbColor.R); writer.Write(rgbColor.G); writer.Write(rgbColor.B); break;
@@ -76,6 +79,7 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 			LightingDataType.Float32 => 0f,
 			LightingDataType.Float64 => 0d,
 			LightingDataType.Boolean => false,
+			LightingDataType.EffectDirection1D => EffectDirection1D.Forward,
 			LightingDataType.ColorGrayscale8 => (byte?)0,
 			LightingDataType.ColorGrayscale16 => (ushort?)0,
 			LightingDataType.ColorRgb24 or LightingDataType.ColorArgb32 => Color.FromArgb(255, 255, 255, 255),
