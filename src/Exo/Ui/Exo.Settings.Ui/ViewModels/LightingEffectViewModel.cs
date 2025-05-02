@@ -40,16 +40,16 @@ internal sealed class LightingEffectViewModel
 			var property = properties[i];
 			(uint align, uint length) = property.DataType switch
 			{
-				DataType.UInt8 or DataType.Int8 or DataType.ColorGrayscale8 => (1u, 1u),
-				DataType.UInt16 or DataType.Int16 or DataType.Float16 or DataType.ColorGrayscale16 => (2u, 2u),
-				DataType.UInt32 or DataType.UInt32 or DataType.Float32 or DataType.ColorRgbw32 or DataType.ColorArgb32 => (4u, 4u),
-				DataType.UInt64 or DataType.Int64 or DataType.Float64 or DataType.TimeSpan or DataType.DateTime => (8u, 8u),
-				DataType.Guid => (8u, 16u),
-				DataType.ColorRgb24 => (1u, 3u),
-				DataType.ArrayOfColorGrayscale8 => (1u, (uint)(property.ArrayLength ?? 1)),
-				DataType.ArrayOfColorGrayscale16 => (2u, 2 * (uint)(property.ArrayLength ?? 1)),
-				DataType.ArrayOfColorRgb24 => (1u, 3 * (uint)(property.ArrayLength ?? 1)),
-				DataType.ArrayOfColorRgbw32 or DataType.ArrayOfColorArgb32 => (4u, 4 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.UInt8 or LightingDataType.SInt8 or LightingDataType.ColorGrayscale8 => (1u, 1u),
+				LightingDataType.UInt16 or LightingDataType.SInt16 or LightingDataType.Float16 or LightingDataType.ColorGrayscale16 => (2u, 2u),
+				LightingDataType.UInt32 or LightingDataType.UInt32 or LightingDataType.Float32 or LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32 => (4u, 4u),
+				LightingDataType.UInt64 or LightingDataType.SInt64 or LightingDataType.Float64 or LightingDataType.TimeSpan or LightingDataType.DateTime => (8u, 8u),
+				LightingDataType.Guid => (8u, 16u),
+				LightingDataType.ColorRgb24 => (1u, 3u),
+				LightingDataType.ArrayOfColorGrayscale8 => (1u, (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ArrayOfColorGrayscale16 => (2u, 2 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ArrayOfColorRgb24 => (1u, 3 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ArrayOfColorRgbw32 or LightingDataType.ArrayOfColorArgb32 => (4u, 4 * (uint)(property.ArrayLength ?? 1)),
 				_ => (0u, 0u)
 			};
 			alignmentAndLengths[i] = (align, length);
@@ -81,7 +81,7 @@ internal sealed class LightingEffectViewModel
 					offset += padding;
 				}
 			}
-			if (property.DataType is DataType.ArrayOfColorRgb24)
+			if (property.DataType is LightingDataType.ArrayOfColorRgb24)
 			{
 				vm[i] = new RgbColorFixedLengthArrayPropertyViewModel(property, (int)padding);
 			}

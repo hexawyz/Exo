@@ -315,53 +315,53 @@ partial class UiPipeServerConnection
 			if (property.ArrayLength is not null) writer.WriteVariable((uint)property.ArrayLength.GetValueOrDefault());
 		}
 
-		static void WriteValue(ref BufferWriter writer, DataType dataType, object value)
+		static void WriteValue(ref BufferWriter writer, LightingDataType dataType, object value)
 		{
 			switch (dataType)
 			{
-			case DataType.UInt8:
-			case DataType.ColorGrayscale8:
+			case LightingDataType.UInt8:
+			case LightingDataType.ColorGrayscale8:
 				writer.Write((byte)value);
 				break;
-			case DataType.Int8:
+			case LightingDataType.SInt8:
 				writer.Write((byte)value);
 				break;
-			case DataType.UInt16:
+			case LightingDataType.UInt16:
 				writer.Write((ushort)value);
 				break;
-			case DataType.Int16:
+			case LightingDataType.SInt16:
 				writer.Write((short)value);
 				break;
-			case DataType.UInt32:
-			case DataType.ColorRgbw32:
-			case DataType.ColorArgb32:
+			case LightingDataType.UInt32:
+			case LightingDataType.ColorRgbw32:
+			case LightingDataType.ColorArgb32:
 				writer.Write((uint)value);
 				break;
-			case DataType.Int32:
+			case LightingDataType.SInt32:
 				writer.Write((int)value);
 				break;
-			case DataType.UInt64:
+			case LightingDataType.UInt64:
 				writer.Write((ulong)value);
 				break;
-			case DataType.Int64:
+			case LightingDataType.SInt64:
 				writer.Write((long)value);
 				break;
-			case DataType.Float16:
+			case LightingDataType.Float16:
 				writer.Write((Half)value);
 				break;
-			case DataType.Float32:
+			case LightingDataType.Float32:
 				writer.Write((float)value);
 				break;
-			case DataType.Float64:
+			case LightingDataType.Float64:
 				writer.Write((double)value);
 				break;
-			case DataType.Boolean:
+			case LightingDataType.Boolean:
 				writer.Write((bool)value);
 				break;
-			case DataType.Guid:
+			case LightingDataType.Guid:
 				writer.Write((Guid)value);
 				break;
-			case DataType.ColorRgb24:
+			case LightingDataType.ColorRgb24:
 				Serializer.Write(ref writer, (RgbColor)value);
 				break;
 			default:
@@ -369,32 +369,32 @@ partial class UiPipeServerConnection
 			}
 		}
 
-		static void WriteConstantValue(ref BufferWriter writer, DataType dataType, ulong value)
+		static void WriteConstantValue(ref BufferWriter writer, LightingDataType dataType, ulong value)
 		{
 			switch (dataType)
 			{
-			case DataType.UInt8:
+			case LightingDataType.UInt8:
 				writer.Write((byte)value);
 				break;
-			case DataType.Int8:
+			case LightingDataType.SInt8:
 				writer.Write((byte)value);
 				break;
-			case DataType.UInt16:
+			case LightingDataType.UInt16:
 				writer.Write((ushort)value);
 				break;
-			case DataType.Int16:
+			case LightingDataType.SInt16:
 				writer.Write((short)value);
 				break;
-			case DataType.UInt32:
+			case LightingDataType.UInt32:
 				writer.Write((uint)value);
 				break;
-			case DataType.Int32:
+			case LightingDataType.SInt32:
 				writer.Write((int)value);
 				break;
-			case DataType.UInt64:
+			case LightingDataType.UInt64:
 				writer.Write(value);
 				break;
-			case DataType.Int64:
+			case LightingDataType.SInt64:
 				writer.Write(value);
 				break;
 			default:

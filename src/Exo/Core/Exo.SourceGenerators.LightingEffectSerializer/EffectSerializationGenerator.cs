@@ -122,7 +122,6 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		var sb = new StringBuilder();
 
-		// TODO: We should move DataType and rename it into EffectDataType or something else. (May be used for programming features in general, but…)
 		sb.AppendLine("using Exo.Contracts;")
 			.AppendLine("using Exo.Lighting;")
 			.AppendLine("using Exo.Lighting.Effects;")
@@ -148,7 +147,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				.AppendLine("\t\t\t\t\t{")
 				.Append("\t\t\t\t\t\tName = ").Append(ToStringLiteral(member.Name)).AppendLine(",")
 				.Append("\t\t\t\t\t\tDisplayName = ").Append(ToStringLiteral(member.DisplayName)).AppendLine(",")
-				.Append("\t\t\t\t\t\tDataType = DataType.").Append(member.DataTypeName).AppendLine(",");
+				.Append("\t\t\t\t\t\tDataType = LightingDataType.").Append(member.DataTypeName).AppendLine(",");
 
 			if (member.DefaultValue is not null)
 			{
@@ -218,13 +217,13 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		switch (dataTypeName)
 		{
 		case "UInt8": sb.Append("(byte)").Append(Convert.ToByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case "Int8": sb.Append("(sbyte)").Append(Convert.ToSByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "SInt8": sb.Append("(sbyte)").Append(Convert.ToSByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
 		case "UInt16": sb.Append("(ushort)").Append(Convert.ToUInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case "Int16": sb.Append("(short)").Append(Convert.ToInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "SInt16": sb.Append("(short)").Append(Convert.ToInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
 		case "UInt32": sb.Append(Convert.ToUInt32(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
-		case "Int32": sb.Append(Convert.ToInt32(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+		case "SInt32": sb.Append(Convert.ToInt32(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
 		case "UInt64": sb.Append(Convert.ToUInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("ul"); break;
-		case "Int64": sb.Append(Convert.ToInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
+		case "SInt64": sb.Append(Convert.ToInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
 		case "Float16": sb.Append("(Half)").Append(Convert.ToSingle(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
 		case "Float32": sb.Append(Convert.ToSingle(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
 		case "Float64": sb.Append(Convert.ToDouble(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("d"); break;
@@ -539,15 +538,15 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		{
 			return memberType.MetadataName switch
 			{
-				"SByte" => "Int8",
+				"SByte" => "SInt8",
 				"Byte" => "UInt8",
-				"Int16" => "Int16",
+				"Int16" => "SInt16",
 				"UInt16" => "UInt16",
-				"Int32" => "Int32",
+				"Int32" => "SInt32",
 				"UInt32" => "UInt32",
-				"Int64" => "Int64",
+				"Int64" => "SInt64",
 				"UInt64" => "UInt64",
-				"Int128" => "Int128",
+				"Int128" => "SInt128",
 				"UInt128" => "UInt128",
 				"Half" => "Float16",
 				"Single" => "Float32",

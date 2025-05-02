@@ -99,12 +99,12 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 					var property = newProperties[index];
 					property.PropertyChanged += OnPropertyChanged;
 
-					if (property.Name == "Color" && property.DataType is DataType.ColorRgb24 or DataType.ColorArgb32)
+					if (property.Name == "Color" && property.DataType is LightingDataType.ColorRgb24 or LightingDataType.ColorArgb32)
 					{
 						_colorProperty = property;
 						colorChanged = true;
 					}
-					else if (property.Name == "Speed" && property.DataType is DataType.Int32)
+					else if (property.Name == "Speed" && property.DataType is LightingDataType.SInt32)
 					{
 						_speedProperty = property;
 					}
@@ -205,16 +205,16 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 	}
 
-	private static bool IsUInt32Compatible(DataType dataType)
+	private static bool IsUInt32Compatible(LightingDataType dataType)
 	{
 		switch (dataType)
 		{
-		case DataType.UInt8:
-		case DataType.Int8:
-		case DataType.UInt16:
-		case DataType.Int16:
-		case DataType.UInt32:
-		case DataType.Int32:
+		case LightingDataType.UInt8:
+		case LightingDataType.SInt8:
+		case LightingDataType.UInt16:
+		case LightingDataType.SInt16:
+		case LightingDataType.UInt32:
+		case LightingDataType.SInt32:
 			return true;
 		default:
 			return false;

@@ -23,7 +23,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 
 			string? name = null;
 			string? displayName = null;
-			DataType dataType = DataType.Other;
+			LightingDataType dataType = LightingDataType.Other;
 			object? defaultValue = null;
 			object? minimumValue = null;
 			object? maximumValue = null;
@@ -42,7 +42,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 					displayName = reader.GetString() ?? throw new JsonException();
 					break;
 				case nameof(dataType):
-					dataType = JsonSerializer.Deserialize<DataType>(ref reader, options);
+					dataType = JsonSerializer.Deserialize<LightingDataType>(ref reader, options);
 					break;
 				case nameof(defaultValue):
 					defaultValue = ReadValue(ref reader, dataType);
@@ -72,7 +72,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			{
 				Name = name ?? throw new JsonException("Missing required Name property."),
 				DisplayName = displayName ?? throw new JsonException("Missing required DisplayName property."),
-				DataType = dataType != DataType.Other ? dataType : throw new JsonException("Missing required DisplayName property"),
+				DataType = dataType != LightingDataType.Other ? dataType : throw new JsonException("Missing required DisplayName property"),
 				DefaultValue = defaultValue,
 				MinimumValue = minimumValue,
 				MaximumValue = maximumValue,
@@ -81,27 +81,27 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			};
 		}
 
-		private static object? ReadValue(ref Utf8JsonReader reader, DataType dataType)
+		private static object? ReadValue(ref Utf8JsonReader reader, LightingDataType dataType)
 			=> dataType switch
 			{
-				DataType.Other => throw new Exception("DataType has not been defined."),
-				DataType.UInt8 => reader.GetByte(),
-				DataType.Int8 => reader.GetSByte(),
-				DataType.UInt16 => reader.GetUInt16(),
-				DataType.Int16 => reader.GetInt16(),
-				DataType.UInt32 => reader.GetUInt32(),
-				DataType.Int32 => reader.GetInt32(),
-				DataType.UInt64 => reader.GetUInt64(),
-				DataType.Int64 => reader.GetInt64(),
-				DataType.Float16 => (Half)reader.GetSingle(),
-				DataType.Float32 => reader.GetSingle(),
-				DataType.Float64 => reader.GetDouble(),
-				DataType.Boolean => reader.GetBoolean(),
-				DataType.Guid => reader.GetGuid(),
-				DataType.TimeSpan => throw new NotImplementedException("TODO"),
-				DataType.DateTime => reader.GetDateTime(),
-				DataType.String => reader.GetString(),
-				DataType.ColorRgb24 => RgbColor.Parse(reader.GetString(), CultureInfo.InvariantCulture),
+				LightingDataType.Other => throw new Exception("DataType has not been defined."),
+				LightingDataType.UInt8 => reader.GetByte(),
+				LightingDataType.SInt8 => reader.GetSByte(),
+				LightingDataType.UInt16 => reader.GetUInt16(),
+				LightingDataType.SInt16 => reader.GetInt16(),
+				LightingDataType.UInt32 => reader.GetUInt32(),
+				LightingDataType.SInt32 => reader.GetInt32(),
+				LightingDataType.UInt64 => reader.GetUInt64(),
+				LightingDataType.SInt64 => reader.GetInt64(),
+				LightingDataType.Float16 => (Half)reader.GetSingle(),
+				LightingDataType.Float32 => reader.GetSingle(),
+				LightingDataType.Float64 => reader.GetDouble(),
+				LightingDataType.Boolean => reader.GetBoolean(),
+				LightingDataType.Guid => reader.GetGuid(),
+				LightingDataType.TimeSpan => throw new NotImplementedException("TODO"),
+				LightingDataType.DateTime => reader.GetDateTime(),
+				LightingDataType.String => reader.GetString(),
+				LightingDataType.ColorRgb24 => RgbColor.Parse(reader.GetString(), CultureInfo.InvariantCulture),
 				_ => throw new NotImplementedException(),
 			};
 
@@ -136,28 +136,28 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			writer.WriteEndObject();
 		}
 
-		private static void WriteValue(Utf8JsonWriter writer, DataType dataType, object value)
+		private static void WriteValue(Utf8JsonWriter writer, LightingDataType dataType, object value)
 		{
 			switch (dataType)
 			{
-			case DataType.Other: throw new Exception("DataType has not been defined.");
-			case DataType.UInt8: writer.WriteNumberValue((byte)value); break;
-			case DataType.Int8: writer.WriteNumberValue((sbyte)value); break;
-			case DataType.UInt16: writer.WriteNumberValue((ushort)value); break;
-			case DataType.Int16: writer.WriteNumberValue((short)value); break;
-			case DataType.UInt32: writer.WriteNumberValue((uint)value); break;
-			case DataType.Int32: writer.WriteNumberValue((int)value); break;
-			case DataType.UInt64: writer.WriteNumberValue((ulong)value); break;
-			case DataType.Int64: writer.WriteNumberValue((long)value); break;
-			case DataType.Float16: writer.WriteNumberValue((float)(Half)value); break;
-			case DataType.Float32: writer.WriteNumberValue((float)value); break;
-			case DataType.Float64: writer.WriteNumberValue((double)value); break;
-			case DataType.Boolean: writer.WriteBooleanValue((bool)value); break;
-			case DataType.Guid: writer.WriteStringValue((Guid)value); break;
-			case DataType.TimeSpan: throw new NotImplementedException("TODO");
-			case DataType.DateTime: writer.WriteStringValue((DateTime)value); break;
-			case DataType.String: writer.WriteStringValue((string)value); break;
-			case DataType.ColorRgb24: writer.WriteStringValue(((RgbColor)value).ToString()); break;
+			case LightingDataType.Other: throw new Exception("DataType has not been defined.");
+			case LightingDataType.UInt8: writer.WriteNumberValue((byte)value); break;
+			case LightingDataType.SInt8: writer.WriteNumberValue((sbyte)value); break;
+			case LightingDataType.UInt16: writer.WriteNumberValue((ushort)value); break;
+			case LightingDataType.SInt16: writer.WriteNumberValue((short)value); break;
+			case LightingDataType.UInt32: writer.WriteNumberValue((uint)value); break;
+			case LightingDataType.SInt32: writer.WriteNumberValue((int)value); break;
+			case LightingDataType.UInt64: writer.WriteNumberValue((ulong)value); break;
+			case LightingDataType.SInt64: writer.WriteNumberValue((long)value); break;
+			case LightingDataType.Float16: writer.WriteNumberValue((float)(Half)value); break;
+			case LightingDataType.Float32: writer.WriteNumberValue((float)value); break;
+			case LightingDataType.Float64: writer.WriteNumberValue((double)value); break;
+			case LightingDataType.Boolean: writer.WriteBooleanValue((bool)value); break;
+			case LightingDataType.Guid: writer.WriteStringValue((Guid)value); break;
+			case LightingDataType.TimeSpan: throw new NotImplementedException("TODO");
+			case LightingDataType.DateTime: writer.WriteStringValue((DateTime)value); break;
+			case LightingDataType.String: writer.WriteStringValue((string)value); break;
+			case LightingDataType.ColorRgb24: writer.WriteStringValue(((RgbColor)value).ToString()); break;
 			default: throw new InvalidOperationException("Unsupported DataType.");
 			}
 		}
@@ -172,7 +172,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 	public required string DisplayName { get; init; }
 
 	/// <summary>The data type of the property.</summary>
-	public required DataType DataType { get; init; }
+	public required LightingDataType DataType { get; init; }
 
 	/// <summary>The default value of the property, if any.</summary>
 	public object? DefaultValue { get; init; }

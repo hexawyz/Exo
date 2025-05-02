@@ -31,14 +31,14 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 		if (item is ScalarPropertyViewModel sp)
 			switch (sp.DataType)
 			{
-			case DataType.UInt8:
-			case DataType.Int8:
-			case DataType.UInt16:
-			case DataType.Int16:
-			case DataType.UInt32:
-			case DataType.Int32:
-			case DataType.UInt64:
-			case DataType.Int64:
+			case LightingDataType.UInt8:
+			case LightingDataType.SInt8:
+			case LightingDataType.UInt16:
+			case LightingDataType.SInt16:
+			case LightingDataType.UInt32:
+			case LightingDataType.SInt32:
+			case LightingDataType.UInt64:
+			case LightingDataType.SInt64:
 				if (sp.EnumerationValues.Count > 0)
 				{
 					if (sp.MinimumValue is not null && sp.MaximumValue is not null)
@@ -47,30 +47,30 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 				}
 				else if (sp.Name == "BrightnessLevel")
 					return BrightnessTemplate;
-				goto case DataType.Float16;
-			case DataType.Float16:
-			case DataType.Float32:
-			case DataType.Float64:
+				goto case LightingDataType.Float16;
+			case LightingDataType.Float16:
+			case LightingDataType.Float32:
+			case LightingDataType.Float64:
 				return sp.MinimumValue is not null && sp.MaximumValue is not null ? NumericRangeTemplate : NumericTemplate;
-			case DataType.Boolean:
+			case LightingDataType.Boolean:
 				return BooleanTemplate;
-			case DataType.String:
+			case LightingDataType.String:
 				return TextTemplate;
-			case DataType.TimeSpan:
+			case LightingDataType.TimeSpan:
 				return TimeSpanTemplate;
-			case DataType.DateTime:
+			case LightingDataType.DateTime:
 				return DateTimeTemplate;
-			case DataType.ColorGrayscale8:
-			case DataType.ColorGrayscale16:
+			case LightingDataType.ColorGrayscale8:
+			case LightingDataType.ColorGrayscale16:
 				return GrayscaleTemplate;
-			case DataType.ColorRgb24:
-			case DataType.ColorArgb32:
+			case LightingDataType.ColorRgb24:
+			case LightingDataType.ColorArgb32:
 				return ColorTemplate;
 			}
 		else if (item is FixedLengthArrayPropertyViewModel ap)
 			switch (ap.DataType)
 			{
-			case DataType.ArrayOfColorRgb24:
+			case LightingDataType.ArrayOfColorRgb24:
 				return ColorArrayTemplate;
 			}
 		return FallbackTemplate;

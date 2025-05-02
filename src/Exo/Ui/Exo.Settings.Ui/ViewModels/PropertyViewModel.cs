@@ -8,82 +8,82 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal abstract class PropertyViewModel : ChangeableBindableObject
 {
-	protected static (object?, int) ReadValue(DataType type, ReadOnlySpan<byte> data)
+	protected static (object?, int) ReadValue(LightingDataType type, ReadOnlySpan<byte> data)
 		=> type switch
 		{
-			DataType.UInt8 => (data[0], 1),
-			DataType.Int8 => ((sbyte)data[0], 1),
-			DataType.UInt16 => (MemoryMarshal.Read<ushort>(data), 2),
-			DataType.Int16 => (MemoryMarshal.Read<short>(data), 2),
-			DataType.UInt32 => (MemoryMarshal.Read<uint>(data), 4),
-			DataType.Int32 => (MemoryMarshal.Read<int>(data), 4),
-			DataType.UInt64 => (MemoryMarshal.Read<ulong>(data), 8),
-			DataType.Int64 => (MemoryMarshal.Read<long>(data), 8),
-			DataType.Float16 => (MemoryMarshal.Read<Half>(data), 2),
-			DataType.Float32 => (MemoryMarshal.Read<float>(data), 4),
-			DataType.Float64 => (MemoryMarshal.Read<double>(data), 4),
-			DataType.Boolean => (data[0] != 0, 1),
-			DataType.ColorGrayscale8 => (data[0], 1),
-			DataType.ColorGrayscale16 => (MemoryMarshal.Read<ushort>(data), 2),
-			DataType.ColorRgb24 => (Color.FromArgb(255, data[0], data[1], data[2]), 3),
-			DataType.ColorArgb32 => (Color.FromArgb(data[0], data[1], data[2], data[3]), 4),
-			DataType.Guid => (new Guid(data[..16]), 16),
-			DataType.String => throw new NotImplementedException("TODO"),
-			DataType.TimeSpan => throw new NotImplementedException("TODO"),
-			DataType.DateTime => throw new NotImplementedException("TODO"),
+			LightingDataType.UInt8 => (data[0], 1),
+			LightingDataType.SInt8 => ((sbyte)data[0], 1),
+			LightingDataType.UInt16 => (MemoryMarshal.Read<ushort>(data), 2),
+			LightingDataType.SInt16 => (MemoryMarshal.Read<short>(data), 2),
+			LightingDataType.UInt32 => (MemoryMarshal.Read<uint>(data), 4),
+			LightingDataType.SInt32 => (MemoryMarshal.Read<int>(data), 4),
+			LightingDataType.UInt64 => (MemoryMarshal.Read<ulong>(data), 8),
+			LightingDataType.SInt64 => (MemoryMarshal.Read<long>(data), 8),
+			LightingDataType.Float16 => (MemoryMarshal.Read<Half>(data), 2),
+			LightingDataType.Float32 => (MemoryMarshal.Read<float>(data), 4),
+			LightingDataType.Float64 => (MemoryMarshal.Read<double>(data), 4),
+			LightingDataType.Boolean => (data[0] != 0, 1),
+			LightingDataType.ColorGrayscale8 => (data[0], 1),
+			LightingDataType.ColorGrayscale16 => (MemoryMarshal.Read<ushort>(data), 2),
+			LightingDataType.ColorRgb24 => (Color.FromArgb(255, data[0], data[1], data[2]), 3),
+			LightingDataType.ColorArgb32 => (Color.FromArgb(data[0], data[1], data[2], data[3]), 4),
+			LightingDataType.Guid => (new Guid(data[..16]), 16),
+			LightingDataType.String => throw new NotImplementedException("TODO"),
+			LightingDataType.TimeSpan => throw new NotImplementedException("TODO"),
+			LightingDataType.DateTime => throw new NotImplementedException("TODO"),
 			_ => throw new NotSupportedException()
 		};
 
-	protected static void WriteValue(DataType type, object value, BinaryWriter writer)
+	protected static void WriteValue(LightingDataType type, object value, BinaryWriter writer)
 	{
 		switch (type)
 		{
-		case DataType.UInt8: writer.Write(Convert.ToByte(value)); break;
-		case DataType.Int8: writer.Write(Convert.ToSByte(value)); break;
-		case DataType.UInt16: writer.Write(Convert.ToUInt16(value)); break;
-		case DataType.Int16: writer.Write(Convert.ToInt16(value)); break;
-		case DataType.UInt32: writer.Write(Convert.ToUInt32(value)); break;
-		case DataType.Int32: writer.Write(Convert.ToInt32(value)); break;
-		case DataType.UInt64: writer.Write(Convert.ToUInt64(value)); break;
-		case DataType.Int64: writer.Write(Convert.ToInt64(value)); break;
-		case DataType.Float16: writer.Write(value is Half h ? h : (Half)Convert.ToSingle(value)); break;
-		case DataType.Float32: writer.Write(Convert.ToSingle(value)); break;
-		case DataType.Float64: writer.Write(Convert.ToDouble(value)); break;
-		case DataType.Boolean: writer.Write(Convert.ToBoolean(value) ? (byte)1 : (byte)0); break;
-		case DataType.ColorGrayscale8: writer.Write(Convert.ToByte(value)); break;
-		case DataType.ColorGrayscale16: writer.Write(Convert.ToUInt16(value)); break;
-		case DataType.ColorRgb24: var rgbColor = (Color)value; writer.Write(rgbColor.R); writer.Write(rgbColor.G); writer.Write(rgbColor.B); break;
-		case DataType.ColorArgb32: var argbColor = (Color)value; writer.Write(argbColor.A); writer.Write(argbColor.R); writer.Write(argbColor.G); writer.Write(argbColor.B); break;
-		case DataType.Guid: writer.Write(((Guid)value).ToByteArray()); break;
-		case DataType.String: writer.Write((string)value); break;
-		case DataType.TimeSpan: throw new NotImplementedException("TODO");
-		case DataType.DateTime:
+		case LightingDataType.UInt8: writer.Write(Convert.ToByte(value)); break;
+		case LightingDataType.SInt8: writer.Write(Convert.ToSByte(value)); break;
+		case LightingDataType.UInt16: writer.Write(Convert.ToUInt16(value)); break;
+		case LightingDataType.SInt16: writer.Write(Convert.ToInt16(value)); break;
+		case LightingDataType.UInt32: writer.Write(Convert.ToUInt32(value)); break;
+		case LightingDataType.SInt32: writer.Write(Convert.ToInt32(value)); break;
+		case LightingDataType.UInt64: writer.Write(Convert.ToUInt64(value)); break;
+		case LightingDataType.SInt64: writer.Write(Convert.ToInt64(value)); break;
+		case LightingDataType.Float16: writer.Write(value is Half h ? h : (Half)Convert.ToSingle(value)); break;
+		case LightingDataType.Float32: writer.Write(Convert.ToSingle(value)); break;
+		case LightingDataType.Float64: writer.Write(Convert.ToDouble(value)); break;
+		case LightingDataType.Boolean: writer.Write(Convert.ToBoolean(value) ? (byte)1 : (byte)0); break;
+		case LightingDataType.ColorGrayscale8: writer.Write(Convert.ToByte(value)); break;
+		case LightingDataType.ColorGrayscale16: writer.Write(Convert.ToUInt16(value)); break;
+		case LightingDataType.ColorRgb24: var rgbColor = (Color)value; writer.Write(rgbColor.R); writer.Write(rgbColor.G); writer.Write(rgbColor.B); break;
+		case LightingDataType.ColorArgb32: var argbColor = (Color)value; writer.Write(argbColor.A); writer.Write(argbColor.R); writer.Write(argbColor.G); writer.Write(argbColor.B); break;
+		case LightingDataType.Guid: writer.Write(((Guid)value).ToByteArray()); break;
+		case LightingDataType.String: writer.Write((string)value); break;
+		case LightingDataType.TimeSpan: throw new NotImplementedException("TODO");
+		case LightingDataType.DateTime:
 			throw new NotImplementedException("TODO");
 		}
 	}
 
-	protected static object? GetDefaultValueForType(DataType type)
+	protected static object? GetDefaultValueForType(LightingDataType type)
 		=> type switch
 		{
-			DataType.UInt8 => (byte?)0,
-			DataType.Int8 => (sbyte?)0,
-			DataType.UInt16 => (ushort?)0,
-			DataType.Int16 => (short?)0,
-			DataType.UInt32 => (uint?)0,
-			DataType.Int32 => (int?)0,
-			DataType.UInt64 => 0UL,
-			DataType.Int64 => 0L,
-			DataType.Float16 => 0f,
-			DataType.Float32 => 0f,
-			DataType.Float64 => 0d,
-			DataType.Boolean => false,
-			DataType.ColorGrayscale8 => (byte?)0,
-			DataType.ColorGrayscale16 => (ushort?)0,
-			DataType.ColorRgb24 or DataType.ColorArgb32 => Color.FromArgb(255, 255, 255, 255),
-			DataType.Guid => Guid.Empty,
-			DataType.String => null,
-			DataType.TimeSpan => TimeSpan.Zero,
-			DataType.DateTime => DateTime.UtcNow,
+			LightingDataType.UInt8 => (byte?)0,
+			LightingDataType.SInt8 => (sbyte?)0,
+			LightingDataType.UInt16 => (ushort?)0,
+			LightingDataType.SInt16 => (short?)0,
+			LightingDataType.UInt32 => (uint?)0,
+			LightingDataType.SInt32 => (int?)0,
+			LightingDataType.UInt64 => 0UL,
+			LightingDataType.SInt64 => 0L,
+			LightingDataType.Float16 => 0f,
+			LightingDataType.Float32 => 0f,
+			LightingDataType.Float64 => 0d,
+			LightingDataType.Boolean => false,
+			LightingDataType.ColorGrayscale8 => (byte?)0,
+			LightingDataType.ColorGrayscale16 => (ushort?)0,
+			LightingDataType.ColorRgb24 or LightingDataType.ColorArgb32 => Color.FromArgb(255, 255, 255, 255),
+			LightingDataType.Guid => Guid.Empty,
+			LightingDataType.String => null,
+			LightingDataType.TimeSpan => TimeSpan.Zero,
+			LightingDataType.DateTime => DateTime.UtcNow,
 			_ => throw new NotSupportedException()
 		};
 
@@ -91,7 +91,7 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 	private readonly Commands.ResetCommand _resetCommand;
 	private readonly int _paddingLength;
 
-	public DataType DataType => PropertyInformation.DataType;
+	public LightingDataType DataType => PropertyInformation.DataType;
 
 	public string Name => PropertyInformation.Name;
 

@@ -70,7 +70,7 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 		: base(propertyInformation, paddingLength)
 	{
 		var dataType = PropertyInformation.DataType;
-		if (dataType == DataType.UInt8 && propertyInformation.Name == "BrightnessLevel")
+		if (dataType == LightingDataType.UInt8 && propertyInformation.Name == "BrightnessLevel")
 		{
 			if (brightnessCapabilities is not null)
 			{
@@ -85,7 +85,7 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 			MaximumValue = PropertyInformation.MaximumValue;
 			if (PropertyInformation.DefaultValue is not null)
 			{
-				if (dataType == DataType.ColorRgb24)
+				if (dataType == LightingDataType.ColorRgb24)
 				{
 					var color = (RgbColor)PropertyInformation.DefaultValue;
 					DefaultValue = Color.FromArgb(255, color.R, color.G, color.B);
@@ -112,14 +112,14 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 						e.DisplayName,
 						dataType switch
 						{
-							DataType.UInt8 => (byte)e.Value,
-							DataType.Int8 => (sbyte)e.Value,
-							DataType.UInt16 => (ushort)e.Value,
-							DataType.Int16 => (short)e.Value,
-							DataType.UInt32 => (uint)e.Value,
-							DataType.Int32 => (int)e.Value,
-							DataType.UInt64 => e.Value,
-							DataType.Int64 => (long)e.Value,
+							LightingDataType.UInt8 => (byte)e.Value,
+							LightingDataType.SInt8 => (sbyte)e.Value,
+							LightingDataType.UInt16 => (ushort)e.Value,
+							LightingDataType.SInt16 => (short)e.Value,
+							LightingDataType.UInt32 => (uint)e.Value,
+							LightingDataType.SInt32 => (int)e.Value,
+							LightingDataType.UInt64 => e.Value,
+							LightingDataType.SInt64 => (long)e.Value,
 							_ => throw new NotSupportedException()
 						}
 					)

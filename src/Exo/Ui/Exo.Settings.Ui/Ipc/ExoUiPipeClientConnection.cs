@@ -495,7 +495,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			{
 				string name = reader.ReadVariableString() ?? "";
 				string displayName = reader.ReadVariableString() ?? "";
-				var dataType = (DataType)reader.ReadByte();
+				var dataType = (LightingDataType)reader.ReadByte();
 				var flags = (LightingEffectFlags)reader.ReadByte();
 				object? defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ? ReadValue(ref reader, dataType) : null;
 				object? minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ? ReadValue(ref reader, dataType) : null;
@@ -538,36 +538,36 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingEffectUpdate(effect));
 
-		static object ReadValue(ref BufferReader reader, DataType dataType)
+		static object ReadValue(ref BufferReader reader, LightingDataType dataType)
 			=> dataType switch
 			{
-				DataType.UInt8 or DataType.ColorGrayscale8 => reader.ReadByte(),
-				DataType.Int8 => (sbyte)reader.ReadByte(),
-				DataType.UInt16 => reader.Read<ushort>(),
-				DataType.Int16 => reader.Read<short>(),
-				DataType.UInt32 or DataType.ColorRgbw32 or DataType.ColorArgb32 => reader.Read<uint>(),
-				DataType.Int32 => reader.Read<int>(),
-				DataType.UInt64 => reader.Read<ulong>(),
-				DataType.Int64 => reader.Read<long>(),
-				DataType.Float16 => reader.Read<Half>(),
-				DataType.Float32 => reader.Read<float>(),
-				DataType.Float64 => reader.Read<double>(),
-				DataType.Boolean => reader.ReadByte(),
-				DataType.Guid => reader.ReadGuid(),
-				DataType.ColorRgb24 => Serializer.ReadRgbColor(ref reader),
+				LightingDataType.UInt8 or LightingDataType.ColorGrayscale8 => reader.ReadByte(),
+				LightingDataType.SInt8 => (sbyte)reader.ReadByte(),
+				LightingDataType.UInt16 => reader.Read<ushort>(),
+				LightingDataType.SInt16 => reader.Read<short>(),
+				LightingDataType.UInt32 or LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32 => reader.Read<uint>(),
+				LightingDataType.SInt32 => reader.Read<int>(),
+				LightingDataType.UInt64 => reader.Read<ulong>(),
+				LightingDataType.SInt64 => reader.Read<long>(),
+				LightingDataType.Float16 => reader.Read<Half>(),
+				LightingDataType.Float32 => reader.Read<float>(),
+				LightingDataType.Float64 => reader.Read<double>(),
+				LightingDataType.Boolean => reader.ReadByte(),
+				LightingDataType.Guid => reader.ReadGuid(),
+				LightingDataType.ColorRgb24 => Serializer.ReadRgbColor(ref reader),
 				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
 			};
 
-		static ulong ReadConstantValue(ref BufferReader reader, DataType dataType)
+		static ulong ReadConstantValue(ref BufferReader reader, LightingDataType dataType)
 			=> dataType switch
 			{
-				DataType.UInt8 => reader.ReadByte(),
-				DataType.Int8 => (ulong)(long)(sbyte)reader.ReadByte(),
-				DataType.UInt16 => reader.Read<ushort>(),
-				DataType.Int16 => (ulong)(long)reader.Read<short>(),
-				DataType.UInt32 => reader.Read<uint>(),
-				DataType.Int32 => (ulong)(long)reader.Read<int>(),
-				DataType.UInt64 or DataType.Int64 => reader.Read<ulong>(),
+				LightingDataType.UInt8 => reader.ReadByte(),
+				LightingDataType.SInt8 => (ulong)(long)(sbyte)reader.ReadByte(),
+				LightingDataType.UInt16 => reader.Read<ushort>(),
+				LightingDataType.SInt16 => (ulong)(long)reader.Read<short>(),
+				LightingDataType.UInt32 => reader.Read<uint>(),
+				LightingDataType.SInt32 => (ulong)(long)reader.Read<int>(),
+				LightingDataType.UInt64 or LightingDataType.SInt64 => reader.Read<ulong>(),
 				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
 			};
 	}
