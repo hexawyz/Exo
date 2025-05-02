@@ -79,6 +79,7 @@
 		<Compile Include="..\..\Core\Exo.Core\Images\Rectangle.cs" Link="Definitions\Rectangle.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Images\Size.cs" Link="Definitions\Size.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\ConfigurablePropertyInformation.cs" Link="Definitions\ConfigurablePropertyInformation.cs" />
+		<Compile Include="..\..\Core\Exo.Core\Lighting\Effects\EffectDirection1D.cs" Link="Definitions\EffectDirection1D.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\EnumerationValue.cs" Link="Definitions\EnumerationValue.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\LightingDataType.cs" Link="Definitions\LightingDataType.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\LightingEffect.cs" Link="Definitions\LightingEffect.cs" />

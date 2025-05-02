@@ -39,16 +39,15 @@ internal sealed class LightingEffectViewModel
 			var property = properties[i];
 			(uint align, uint length) = property.DataType switch
 			{
-				LightingDataType.UInt8 or LightingDataType.SInt8 or LightingDataType.ColorGrayscale8 => (1u, 1u),
-				LightingDataType.UInt16 or LightingDataType.SInt16 or LightingDataType.Float16 or LightingDataType.ColorGrayscale16 => (2u, 2u),
-				LightingDataType.UInt32 or LightingDataType.UInt32 or LightingDataType.Float32 or LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32 => (4u, 4u),
+				LightingDataType.UInt8 or LightingDataType.SInt8 => (1u, 1u),
+				LightingDataType.UInt16 or LightingDataType.SInt16 or LightingDataType.Float16 => (2u, 2u),
+				LightingDataType.UInt32 or LightingDataType.UInt32 or LightingDataType.Float32 => (4u, 4u),
 				LightingDataType.UInt64 or LightingDataType.SInt64 or LightingDataType.Float64 or LightingDataType.TimeSpan or LightingDataType.DateTime => (8u, 8u),
 				LightingDataType.Guid => (8u, 16u),
-				LightingDataType.ColorRgb24 => (1u, 3u),
-				LightingDataType.ArrayOfColorGrayscale8 => (1u, (uint)(property.ArrayLength ?? 1)),
-				LightingDataType.ArrayOfColorGrayscale16 => (2u, 2 * (uint)(property.ArrayLength ?? 1)),
-				LightingDataType.ArrayOfColorRgb24 => (1u, 3 * (uint)(property.ArrayLength ?? 1)),
-				LightingDataType.ArrayOfColorRgbw32 or LightingDataType.ArrayOfColorArgb32 => (4u, 4 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ColorGrayscale8 => (1u, (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ColorGrayscale16 => (2u, 2 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ColorRgb24 => (1u, 3 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32 => (4u, 4 * (uint)(property.ArrayLength ?? 1)),
 				_ => (0u, 0u)
 			};
 			alignmentAndLengths[i] = (align, length);
@@ -80,7 +79,7 @@ internal sealed class LightingEffectViewModel
 					offset += padding;
 				}
 			}
-			if (property.DataType is LightingDataType.ArrayOfColorRgb24)
+			if (property.ArrayLength.GetValueOrDefault() > 1)
 			{
 				vm[i] = new RgbColorFixedLengthArrayPropertyViewModel(property, (int)padding);
 			}

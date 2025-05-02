@@ -231,6 +231,17 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		case "DateTime": throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
 		case "Boolean": sb.Append(Convert.ToBoolean(defaultValue) ? "true" : "false"); break;
 		case "String": sb.Append(ToStringLiteral(Convert.ToString(defaultValue, CultureInfo.InvariantCulture))); break;
+		case "EffectDirection1D":
+			sb.Append
+			(
+				Convert.ToByte(defaultValue) switch
+				{
+					0 => "EffectDirection1D.Forward",
+					1 => "EffectDirection1D.Backward",
+					_ => throw new Exception("Invalid default value for EffectDirection1D.")
+				}
+			);
+			break;
 		case "ColorRgb24":
 			{
 				string s = defaultValue.ToString();
@@ -428,13 +439,13 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			}
 
 			// Determine the data type used for the member.
-			if (memberType is not null && memberType.TypeKind is TypeKind.Enum)
+			if (memberType is not null && memberType.TypeKind is TypeKind.Enum && !IsBuiltInEnumType(memberType))
 			{
 				enumValues = GetEnumValues(memberType);
 				memberType = memberType.EnumUnderlyingType;
 			}
 
-			if (memberType is null || memberType.TypeKind is not TypeKind.Structure)
+			if (memberType is null || memberType.TypeKind is not (TypeKind.Enum or TypeKind.Structure))
 			{
 				problems.Add(new(ProblemKind.UnsupportedDataType, member.Name));
 			}
@@ -451,7 +462,6 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 							{
 								dataType = GetDataType(elementType);
 							}
-							if (dataType is not null) dataType = "ArrayOf" + dataType;
 						}
 					}
 				}
@@ -476,7 +486,6 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		return new(typeId, effectType.ContainingNamespace.ToDisplayString(), effectType.Name, effectType.ToDisplayString(), !isEligibleForSerializationBypass, new([.. members]), new([.. problems]));
 	}
-
 	private static EquatableReadOnlyList<EnumValueInfo> GetEnumValues(INamedTypeSymbol enumType)
 		=> enumType.EnumUnderlyingType!.Name switch
 		{
@@ -531,6 +540,15 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		return new([.. values]);
 	}
 
+	private bool IsBuiltInEnumType(INamedTypeSymbol memberType)
+	{
+		if (memberType.ContainingNamespace.ToDisplayString() == "Exo.Lighting.Effects")
+		{
+			if (memberType.MetadataName == "EffectDirection1D") return true;
+		}
+		return false;
+	}
+
 	private static string? GetDataType(INamedTypeSymbol memberType)
 	{
 		if (memberType.ContainingNamespace.ToDisplayString() == "System")
@@ -564,6 +582,14 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				"RgbColor" => "ColorRgb24",
 				"RgbwColor" => "ColorRgbw32",
 				"ArgbColor" => "ColorArgb32",
+				_ => null,
+			};
+		}
+		else if (memberType.ContainingNamespace.ToDisplayString() == "Exo.Lighting.Effects")
+		{
+			return memberType.MetadataName switch
+			{
+				"EffectDirection1D" => "EffectDirection1D",
 				_ => null,
 			};
 		}

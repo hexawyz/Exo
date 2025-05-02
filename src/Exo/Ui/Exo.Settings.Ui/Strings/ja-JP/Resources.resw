@@ -396,4 +396,10 @@
   <data name="FavoriteSensorsTitleTextBlock.Text" xml:space="preserve">
     <value>センサー</value>
   </data>
+  <data name="EffectDirectionBackwardButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>逆行</value>
+  </data>
+  <data name="EffectDirectionForwardButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>順行</value>
+  </data>
 </root>

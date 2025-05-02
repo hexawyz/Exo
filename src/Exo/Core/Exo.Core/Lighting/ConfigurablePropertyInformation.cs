@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Exo.ColorFormats;
+using Exo.Lighting.Effects;
 
 namespace Exo.Lighting;
 
@@ -44,13 +45,13 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 					dataType = JsonSerializer.Deserialize<LightingDataType>(ref reader, options);
 					break;
 				case nameof(defaultValue):
-					defaultValue = ReadValue(ref reader, dataType);
+					defaultValue = ReadValue(ref reader, dataType, options);
 					break;
 				case nameof(minimumValue):
-					minimumValue = ReadValue(ref reader, dataType);
+					minimumValue = ReadValue(ref reader, dataType, options);
 					break;
 				case nameof(maximumValue):
-					maximumValue = ReadValue(ref reader, dataType);
+					maximumValue = ReadValue(ref reader, dataType, options);
 					break;
 				case nameof(enumerationValues):
 					enumerationValues = JsonSerializer.Deserialize<ImmutableArray<EnumerationValue>>(ref reader, options);
@@ -80,7 +81,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			};
 		}
 
-		private static object? ReadValue(ref Utf8JsonReader reader, LightingDataType dataType)
+		private static object? ReadValue(ref Utf8JsonReader reader, LightingDataType dataType, JsonSerializerOptions options)
 			=> dataType switch
 			{
 				LightingDataType.Other => throw new Exception("DataType has not been defined."),
@@ -100,6 +101,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 				LightingDataType.TimeSpan => throw new NotImplementedException("TODO"),
 				LightingDataType.DateTime => reader.GetDateTime(),
 				LightingDataType.String => reader.GetString(),
+				LightingDataType.EffectDirection1D => JsonSerializer.Deserialize<EffectDirection1D>(ref reader, options),
 				LightingDataType.ColorRgb24 => RgbColor.Parse(reader.GetString(), CultureInfo.InvariantCulture),
 				_ => throw new NotImplementedException(),
 			};
@@ -114,17 +116,17 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			if (value.DefaultValue is not null)
 			{
 				writer.WritePropertyName("defaultValue");
-				WriteValue(writer, value.DataType, value.DefaultValue);
+				WriteValue(writer, value.DataType, value.DefaultValue, options);
 			}
 			if (value.MinimumValue is not null)
 			{
 				writer.WritePropertyName("minimumValue");
-				WriteValue(writer, value.DataType, value.MinimumValue);
+				WriteValue(writer, value.DataType, value.MinimumValue, options);
 			}
 			if (value.MaximumValue is not null)
 			{
 				writer.WritePropertyName("maximumValue");
-				WriteValue(writer, value.DataType, value.MaximumValue);
+				WriteValue(writer, value.DataType, value.MaximumValue, options);
 			}
 			if (!value.EnumerationValues.IsDefaultOrEmpty)
 			{
@@ -135,7 +137,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			writer.WriteEndObject();
 		}
 
-		private static void WriteValue(Utf8JsonWriter writer, LightingDataType dataType, object value)
+		private static void WriteValue(Utf8JsonWriter writer, LightingDataType dataType, object value, JsonSerializerOptions options)
 		{
 			switch (dataType)
 			{
@@ -156,6 +158,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			case LightingDataType.TimeSpan: throw new NotImplementedException("TODO");
 			case LightingDataType.DateTime: writer.WriteStringValue((DateTime)value); break;
 			case LightingDataType.String: writer.WriteStringValue((string)value); break;
+			case LightingDataType.EffectDirection1D: JsonSerializer.Serialize(writer, (EffectDirection1D)value, options); break;
 			case LightingDataType.ColorRgb24: writer.WriteStringValue(((RgbColor)value).ToString()); break;
 			default: throw new InvalidOperationException("Unsupported DataType.");
 			}

@@ -1,7 +1,7 @@
-﻿namespace Exo.Lighting.Effects;
+namespace Exo.Lighting.Effects;
 
-public enum EffectDirection1D
+public enum EffectDirection1D : byte
 {
 	Forward = 0,
-	Backwards = 1,
+	Backward = 1,
 }

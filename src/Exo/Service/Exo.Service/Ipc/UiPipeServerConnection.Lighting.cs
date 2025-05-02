@@ -1,5 +1,6 @@
 using Exo.ColorFormats;
 using Exo.Lighting;
+using Exo.Lighting.Effects;
 using Exo.Primitives;
 
 namespace Exo.Service.Ipc;
@@ -359,6 +360,9 @@ partial class UiPipeServerConnection
 				break;
 			case LightingDataType.Guid:
 				writer.Write((Guid)value);
+				break;
+			case LightingDataType.EffectDirection1D:
+				writer.Write((byte)(EffectDirection1D)value);
 				break;
 			case LightingDataType.ColorRgb24:
 				Serializer.Write(ref writer, (RgbColor)value);

@@ -15,6 +15,7 @@ using Exo.Features;
 using Exo.Images;
 using Exo.Ipc;
 using Exo.Lighting;
+using Exo.Lighting.Effects;
 using Exo.Monitors;
 using Exo.Primitives;
 using Exo.Programming;
@@ -553,6 +554,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				LightingDataType.Float64 => reader.Read<double>(),
 				LightingDataType.Boolean => reader.ReadByte(),
 				LightingDataType.Guid => reader.ReadGuid(),
+				LightingDataType.EffectDirection1D => (EffectDirection1D)reader.ReadByte(),
 				LightingDataType.ColorRgb24 => Serializer.ReadRgbColor(ref reader),
 				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
 			};

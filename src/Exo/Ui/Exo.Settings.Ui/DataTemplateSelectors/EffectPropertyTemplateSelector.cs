@@ -14,6 +14,7 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 	public DataTemplate BrightnessTemplate { get; set; }
 	public DataTemplate TextTemplate { get; set; }
 	public DataTemplate GrayscaleTemplate { get; set; }
+	public DataTemplate Direction1DTemplate { get; set; }
 	public DataTemplate ColorTemplate { get; set; }
 	public DataTemplate DateTimeTemplate { get; set; }
 	public DataTemplate TimeSpanTemplate { get; set; }
@@ -60,6 +61,8 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 				return TimeSpanTemplate;
 			case LightingDataType.DateTime:
 				return DateTimeTemplate;
+			case LightingDataType.EffectDirection1D:
+				return Direction1DTemplate;
 			case LightingDataType.ColorGrayscale8:
 			case LightingDataType.ColorGrayscale16:
 				return GrayscaleTemplate;
@@ -70,7 +73,7 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 		else if (item is FixedLengthArrayPropertyViewModel ap)
 			switch (ap.DataType)
 			{
-			case LightingDataType.ArrayOfColorRgb24:
+			case LightingDataType.ColorRgb24:
 				return ColorArrayTemplate;
 			}
 		return FallbackTemplate;

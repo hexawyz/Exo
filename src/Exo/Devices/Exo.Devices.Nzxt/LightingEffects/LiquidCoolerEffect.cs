@@ -7,7 +7,7 @@ namespace Exo.Devices.Nzxt.LightingEffects;
 
 /// <summary>Represents a color effect split in two like a thermometer, where a brighter dot is moving from start to end.</summary>
 [TypeId(0x1916B46A, 0xC93C, 0x4C38, 0xAC, 0xF5, 0xAC, 0x0A, 0x0E, 0x65, 0xA7, 0xC4)]
-public readonly partial struct LiquidCoolerEffect(RgbColor color1, RgbColor color2, PredeterminedEffectSpeed speed, bool isReversed) : ILightingEffect
+public readonly partial struct LiquidCoolerEffect(RgbColor color1, RgbColor color2, PredeterminedEffectSpeed speed, EffectDirection1D direction) : ILightingEffect
 {
 	[Display(Name = "Color 1")]
 	[DefaultValue("#FF0000")]
@@ -19,6 +19,7 @@ public readonly partial struct LiquidCoolerEffect(RgbColor color1, RgbColor colo
 	[Range(0, 5)]
 	[DefaultValue(2)]
 	public PredeterminedEffectSpeed Speed { get; } = speed;
-	[Display(Name = "Reverse")]
-	public bool IsReversed { get; } = isReversed;
+	[Display(Name = "Direction")]
+	[DefaultValue(EffectDirection1D.Forward)]
+	public EffectDirection1D Direction { get; } = direction;
 }
