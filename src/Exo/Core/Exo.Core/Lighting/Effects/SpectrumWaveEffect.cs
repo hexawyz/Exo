@@ -1,5 +1,3 @@
-using System.Runtime.Serialization;
-
 namespace Exo.Lighting.Effects;
 
 /// <summary>Represents an effect where colors of the rainbow will move in a wave.</summary>
@@ -12,7 +10,6 @@ namespace Exo.Lighting.Effects;
 /// Some lighting controllers may support applying this effect across multiple zones, as if they were a single addressable lighting zone.
 /// </para>
 /// </remarks>
-[DataContract]
 [TypeId(0xB93254E0, 0xD39C, 0x40DF, 0xBF, 0x1F, 0x89, 0xD6, 0xCE, 0xB6, 0x16, 0x15)]
 public readonly partial struct SpectrumWaveEffect : ISingletonLightingEffect
 {
