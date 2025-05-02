@@ -7,7 +7,7 @@ namespace Exo.Devices.Nzxt.LightingEffects;
 
 /// <summary>Represents color effects where the addressable zone is always evenly split between the two colors, with colors zones moving from start to end.</summary>
 [TypeId(0xD8C6DCE9, 0x2902, 0x452F, 0x91, 0x21, 0xD9, 0x6B, 0x7E, 0xED, 0x1B, 0xA0)]
-public readonly partial struct TaiChiEffect(RgbColor color1, RgbColor color2, PredeterminedEffectSpeed speed, bool isReversed) : ILightingEffect<TaiChiEffect>
+public readonly partial struct TaiChiEffect(RgbColor color1, RgbColor color2, PredeterminedEffectSpeed speed, bool isReversed) : ILightingEffect
 {
 	[Display(Name = "Color 1")]
 	[DefaultValue("#FF0000")]
