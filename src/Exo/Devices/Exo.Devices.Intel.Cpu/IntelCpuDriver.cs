@@ -85,6 +85,10 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<IMotherboardDeviceFe
 				pawnIo = new PawnIo();
 				pawnIo.LoadModuleFromResource(typeof(IntelCpuDriver).Assembly, "intel_msr.bin");
 			}
+			catch (UnauthorizedAccessException)
+			{
+				throw;
+			}
 			catch
 			{
 				throw new MissingKernelDriverException(brandString);
