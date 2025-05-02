@@ -43,7 +43,7 @@ internal sealed class MouseService :
 			ProfileCount = profileCount;
 			MinimumDpiPresetCount = minimumDpiPresetCount;
 			MaximumDpiPresetCount = maximumDpiPresetCount;
-			SupportedPollingFrequencies = supportedPollingFrequencies.NotNull();
+			SupportedPollingFrequencies = supportedPollingFrequencies.IsDefaultOrEmpty ? [] : supportedPollingFrequencies;
 		}
 
 		public DotsPerInch MaximumDpi { get; }

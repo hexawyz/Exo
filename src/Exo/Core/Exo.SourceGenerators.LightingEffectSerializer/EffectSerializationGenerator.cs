@@ -122,7 +122,9 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		var sb = new StringBuilder();
 
+		// TODO: We should move DataType and rename it into EffectDataType or something else. (May be used for programming features in general, but…)
 		sb.AppendLine("using Exo.Contracts;")
+			.AppendLine("using Exo.Lighting;")
 			.AppendLine("using Exo.Lighting.Effects;")
 			.AppendLine()
 			.Append("namespace ").AppendLine(effect.Namespace).AppendLine("{")
@@ -231,6 +233,22 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		case "DateTime": throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
 		case "Boolean": sb.Append(Convert.ToBoolean(defaultValue) ? "true" : "false"); break;
 		case "String": sb.Append(ToStringLiteral(Convert.ToString(defaultValue, CultureInfo.InvariantCulture))); break;
+		case "ColorRgb24":
+			{
+				string s = defaultValue.ToString();
+				if (s.Length == 7 && s[0] == '#' && int.TryParse(s.Substring(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int color))
+				{
+					sb.Append("new global::Exo.ColorFormats.RgbColor(")
+						.Append(((byte)(color >> 16)).ToString(CultureInfo.InvariantCulture)).Append(", ")
+						.Append(((byte)(color >> 8)).ToString(CultureInfo.InvariantCulture)).Append(", ")
+						.Append(((byte)color).ToString(CultureInfo.InvariantCulture)).Append(")");
+				}
+				else
+				{
+					sb.Append("null");
+				}
+				break;
+			}
 		default: throw new NotImplementedException($"TODO: Serialization of default/min/max values of type {dataTypeName}.");
 		}
 	}

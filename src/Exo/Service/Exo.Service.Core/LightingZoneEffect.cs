@@ -1,4 +1,4 @@
-using Exo.Contracts;
+using Exo.Lighting;
 
 namespace Exo.Service;
 

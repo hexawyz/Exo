@@ -1,12 +1,13 @@
 using System.Collections.Immutable;
-using System.Runtime.Serialization;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Exo.ColorFormats;
+using Exo.Contracts;
 
-namespace Exo.Contracts;
+namespace Exo.Lighting;
 
 /// <summary>Information on a property that can be configured through the UI.</summary>
-[DataContract]
 [JsonConverter(typeof(JsonConverter))]
 public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePropertyInformation?>
 {
@@ -100,6 +101,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 				DataType.TimeSpan => throw new NotImplementedException("TODO"),
 				DataType.DateTime => reader.GetDateTime(),
 				DataType.String => reader.GetString(),
+				DataType.ColorRgb24 => RgbColor.Parse(reader.GetString(), CultureInfo.InvariantCulture),
 				_ => throw new NotImplementedException(),
 			};
 
@@ -155,55 +157,47 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			case DataType.TimeSpan: throw new NotImplementedException("TODO");
 			case DataType.DateTime: writer.WriteStringValue((DateTime)value); break;
 			case DataType.String: writer.WriteStringValue((string)value); break;
+			case DataType.ColorRgb24: writer.WriteStringValue(((RgbColor)value).ToString()); break;
 			default: throw new InvalidOperationException("Unsupported DataType.");
 			}
 		}
 	}
 
 	/// <summary>The name of the property.</summary>
-	[DataMember(Order = 1)]
 	public required string Name { get; init; }
 
 	// TODO: Replace all display name & similar stuff everywhere by a GUID that will be used for localization. Also, properties should probably have a display order.
 
 	/// <summary>The display name of the property.</summary>
-	[DataMember(Order = 2)]
 	public required string DisplayName { get; init; }
 
 	/// <summary>The data type of the property.</summary>
-	[DataMember(Order = 3)]
 	public required DataType DataType { get; init; }
 
 	/// <summary>The default value of the property, if any.</summary>
-	[DataMember(Order = 4)]
 	public object? DefaultValue { get; init; }
 
 	/// <summary>The minimum value of the property, if applicable.</summary>
-	[DataMember(Order = 5)]
 	public object? MinimumValue { get; init; }
 
 	/// <summary>The maximum value of the property, if applicable.</summary>
-	[DataMember(Order = 6)]
 	public object? MaximumValue { get; init; }
 
 	/// <summary>The unit in which numeric values are expressed, if applicable.</summary>
-	[DataMember(Order = 7)]
 	public string? Unit { get; init; }
 
 	private readonly ImmutableArray<EnumerationValue> _enumerationValues = [];
 
 	/// <summary>Determines the allowed values if the field is an enumeration.</summary>
 	// NB: Might not be very efficient to have this here, since it would be replicated for every property if the same type is reused. Let's see how critical this is later.
-	[DataMember(Order = 8)]
 	public required ImmutableArray<EnumerationValue> EnumerationValues
 	{
 		get => _enumerationValues;
-		init => _enumerationValues = value.NotNull();
+		init => _enumerationValues = value.IsDefaultOrEmpty ? [] : value;
 	}
 
 	/// <summary>The number of elements in the array, for fixed-length array data types.</summary>
 	/// <remarks>Fixed-length arrays are the only kind of array supported. The array data will be materialized into <see cref="DataValue.BytesValue"/>.</remarks>
-	[DataMember(Order = 9)]
 	public int? ArrayLength { get; init; }
 
 	public override bool Equals(object? obj) => Equals(obj as ConfigurablePropertyInformation);

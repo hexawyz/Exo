@@ -796,6 +796,7 @@ public partial class KrakenDriver :
 		ILightingZoneEffect<ColorPulseEffect>,
 		ILightingZoneEffect<VariableColorPulseEffect>,
 		ILightingZoneEffect<TaiChiEffect>,
+		ILightingZoneEffect<LiquidCoolerEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>
 	{
 		const byte DefaultStaticSpeed = 0x32;
@@ -813,6 +814,7 @@ public partial class KrakenDriver :
 		private static ReadOnlySpan<ushort> FadeSpeeds => [0x50, 0x3c, 0x28, 0x1e, 0x14, 0x0a];
 		private static ReadOnlySpan<ushort> CoveringBannerSpeeds => [0x015e, 0x012c, 0x00fa, 0x00dc, 0x0096, 0x0050];
 		private static ReadOnlySpan<ushort> TaiChiSpeeds => [0x32, 0x28, 0x1e, 0x19, 0x14, 0x0a];
+		private static ReadOnlySpan<ushort> LiquidCoolerSpeeds => [0x32, 0x28, 0x1e, 0x19, 0x14, 0x0a];
 		private static ReadOnlySpan<ushort> SpectrumWaveSpeeds => [0x015e, 0x012c, 0x00fa, 0x00dc, 0x0096, 0x0050];
 
 		private readonly RgbColor[] _colors;
@@ -846,12 +848,19 @@ public partial class KrakenDriver :
 
 		ILightingEffect ILightingZone.GetCurrentEffect()
 		{
+			int speedIndex;
 			switch (_effectId)
 			{
 			case KrakenEffect.Static:
 				return _colors[0] == default ? DisabledEffect.SharedInstance : new StaticColorEffect(_colors[0]);
+			case KrakenEffect.SpectrumWave:
+				return new ReversibleVariableSpectrumWaveEffect((speedIndex = SpectrumWaveSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0);
 			case KrakenEffect.Pulse:
-				return PulseSpeeds.IndexOf(_speed) is int speedIndex && speedIndex >= 0 ? new VariableColorPulseEffect(_colors[0], (PredeterminedEffectSpeed)speedIndex) : new ColorPulseEffect(_colors[0]);
+				return (speedIndex = PulseSpeeds.IndexOf(_speed)) >= 0 ? new VariableColorPulseEffect(_colors[0], (PredeterminedEffectSpeed)speedIndex) : new ColorPulseEffect(_colors[0]);
+			case KrakenEffect.TaiChi:
+				return new TaiChiEffect(_colors[0], _colors[1], (speedIndex = TaiChiSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0);
+			case KrakenEffect.LiquidCooler:
+				return new LiquidCoolerEffect(_colors[0], _colors[1], (speedIndex = LiquidCoolerSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0);
 			default:
 				throw new NotImplementedException();
 			}
@@ -935,7 +944,7 @@ public partial class KrakenDriver :
 				_colorCount != 2 ||
 				_colors[0] != effect.Color1 ||
 				_colors[1] != effect.Color2 ||
-				PulseSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				TaiChiSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
 				_flags != (effect.IsReversed ? (byte)0x02 : (byte)0x00) ||
 				_parameter2 != 0x05 ||
 				_size != 0x03)
@@ -949,6 +958,33 @@ public partial class KrakenDriver :
 				}
 				_colorCount = 2;
 				_speed = TaiChiSpeeds[(int)effect.Speed];
+				_flags = effect.IsReversed ? (byte)0x02 : (byte)0x00;
+				_parameter2 = 0x05;
+				_size = 0x03;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<LiquidCoolerEffect>.ApplyEffect(in LiquidCoolerEffect effect)
+		{
+			if (_effectId != KrakenEffect.LiquidCooler ||
+				_colorCount != 2 ||
+				_colors[0] != effect.Color1 ||
+				_colors[1] != effect.Color2 ||
+				LiquidCoolerSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != (effect.IsReversed ? (byte)0x02 : (byte)0x00) ||
+				_parameter2 != 0x05 ||
+				_size != 0x03)
+			{
+				_effectId = KrakenEffect.LiquidCooler;
+				_colors[0] = effect.Color1;
+				_colors[1] = effect.Color2;
+				if (_colorCount > 2)
+				{
+					_colors.AsSpan(2, _colorCount - 2).Clear();
+				}
+				_colorCount = 2;
+				_speed = LiquidCoolerSpeeds[(int)effect.Speed];
 				_flags = effect.IsReversed ? (byte)0x02 : (byte)0x00;
 				_parameter2 = 0x05;
 				_size = 0x03;
@@ -1031,6 +1067,8 @@ public partial class KrakenDriver :
 			effect = default;
 			return false;
 		}
+
+		bool ILightingZoneEffect<LiquidCoolerEffect>.TryGetCurrentEffect(out LiquidCoolerEffect effect) => throw new NotImplementedException();
 
 		bool ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.TryGetCurrentEffect(out ReversibleVariableSpectrumWaveEffect effect)
 		{

@@ -1,27 +1,15 @@
-using System.ComponentModel;
-using System.Runtime.Serialization;
-
-namespace Exo.Contracts;
+namespace Exo.Lighting;
 
 /// <summary>Represents a lighting effect.</summary>
 /// <remarks>Some common effect properties are present on the type itself, in order to avoid the overhead that would be associated with extended property values</remarks>
-[DataContract]
 [TypeId(0x04A72CE3, 0x07F1, 0x483E, 0xB4, 0x96, 0xB1, 0x2A, 0x45, 0x17, 0x79, 0x8D)]
 public sealed class LightingEffect(Guid effectId, byte[] effectData) : IEquatable<LightingEffect?>
 {
-	// For protobuf…
-	// TODO: Remove. This and the init accessors.
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete]
-	public LightingEffect() : this(default, []) { }
-
 	/// <summary>ID of the effect.</summary>
-	[DataMember(Order = 1)]
-	public Guid EffectId { get; init; } = effectId;
+	public Guid EffectId { get; } = effectId;
 
 	/// <summary>Data of the effect</summary>
-	[DataMember(Order = 2)]
-	public byte[] EffectData { get; init; } = effectData;
+	public byte[] EffectData { get; } = effectData ?? [];
 
 	public static LightingEffect? FromRaw(byte[]? data)
 	{

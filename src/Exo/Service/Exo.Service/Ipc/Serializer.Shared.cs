@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Exo.ColorFormats;
 using Exo.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.Images;
@@ -50,6 +51,16 @@ internal static class Serializer
 		writer.Write(dpi.Horizontal);
 		writer.Write(dpi.Vertical);
 	}
+
+	public static void Write(ref BufferWriter writer, in RgbColor color)
+	{
+		writer.Write(color.R);
+		writer.Write(color.G);
+		writer.Write(color.B);
+	}
+
+	public static RgbColor ReadRgbColor(ref BufferReader reader)
+		=> new(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
 
 	public static ImmutableArray<DotsPerInch> ReadDotsPerInches(ref BufferReader reader)
 	{

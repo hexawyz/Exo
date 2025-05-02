@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+using Exo.ColorFormats;
 using Exo.Contracts;
+using Exo.Lighting;
+using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -80,7 +83,22 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 		{
 			MinimumValue = PropertyInformation.MinimumValue;
 			MaximumValue = PropertyInformation.MaximumValue;
-			DefaultValue = PropertyInformation.DefaultValue ?? GetDefaultValueForType(dataType);
+			if (PropertyInformation.DefaultValue is not null)
+			{
+				if (dataType == DataType.ColorRgb24)
+				{
+					var color = (RgbColor)PropertyInformation.DefaultValue;
+					DefaultValue = Color.FromArgb(255, color.R, color.G, color.B);
+				}
+				else
+				{
+					DefaultValue = PropertyInformation.DefaultValue;
+				}
+			}
+			else
+			{
+				DefaultValue = GetDefaultValueForType(dataType);
+			}
 		}
 		EnumerationValues = PropertyInformation.EnumerationValues.IsDefaultOrEmpty ?
 			ReadOnlyCollection<EnumerationValueViewModel>.Empty :

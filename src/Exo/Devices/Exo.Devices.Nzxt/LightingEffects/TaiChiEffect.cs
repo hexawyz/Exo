@@ -10,8 +10,10 @@ namespace Exo.Devices.Nzxt.LightingEffects;
 public readonly partial struct TaiChiEffect(RgbColor color1, RgbColor color2, PredeterminedEffectSpeed speed, bool isReversed) : ILightingEffect<TaiChiEffect>
 {
 	[Display(Name = "Color 1")]
+	[DefaultValue("#FF0000")]
 	public RgbColor Color1 { get; } = color1;
 	[Display(Name = "Color 2")]
+	[DefaultValue("#0000FF")]
 	public RgbColor Color2 { get; } = color2;
 	[Display(Name = "Speed")]
 	[Range(0, 5)]

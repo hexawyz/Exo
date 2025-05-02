@@ -1,4 +1,6 @@
+using Exo.ColorFormats;
 using Exo.Contracts;
+using Exo.Lighting;
 using Exo.Primitives;
 
 namespace Exo.Service.Ipc;
@@ -358,6 +360,9 @@ partial class UiPipeServerConnection
 				break;
 			case DataType.Guid:
 				writer.Write((Guid)value);
+				break;
+			case DataType.ColorRgb24:
+				Serializer.Write(ref writer, (RgbColor)value);
 				break;
 			default:
 				throw new InvalidOperationException($"Type not supported: {dataType}.");

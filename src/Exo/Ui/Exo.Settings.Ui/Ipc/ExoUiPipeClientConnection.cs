@@ -554,6 +554,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				DataType.Float64 => reader.Read<double>(),
 				DataType.Boolean => reader.ReadByte(),
 				DataType.Guid => reader.ReadGuid(),
+				DataType.ColorRgb24 => Serializer.ReadRgbColor(ref reader),
 				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
 			};
 

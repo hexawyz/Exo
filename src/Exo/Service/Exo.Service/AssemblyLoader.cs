@@ -87,8 +87,8 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 	)
 	{
 		var result = await configurationContainer.ReadValueAsync<UsedAssemblyDetails>(cancellationToken).ConfigureAwait(false);
-		var assembliesUsedAtLeastOnce = result.Found ?
-			result.Value.UsedAssemblyNames.NotNull() :
+		var assembliesUsedAtLeastOnce = result.Found && !result.Value.UsedAssemblyNames.IsDefaultOrEmpty ?
+			result.Value.UsedAssemblyNames :
 			[];
 
 		return new(logger, configurationContainer, assemblyDiscovery, assembliesUsedAtLeastOnce, mainAssemblyPath);

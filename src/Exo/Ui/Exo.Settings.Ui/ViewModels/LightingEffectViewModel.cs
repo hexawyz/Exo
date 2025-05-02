@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
-using System.Numerics;
 using Exo.Contracts;
+using Exo.Lighting;
 
 namespace Exo.Settings.Ui.ViewModels;
 

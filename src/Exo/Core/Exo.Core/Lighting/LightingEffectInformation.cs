@@ -1,9 +1,7 @@
 using System.Collections.Immutable;
-using System.Runtime.Serialization;
 
-namespace Exo.Contracts;
+namespace Exo.Lighting;
 
-[DataContract]
 public sealed class LightingEffectInformation : IEquatable<LightingEffectInformation?>
 {
 	/// <summary>ID of the effect.</summary>
@@ -11,7 +9,6 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	/// This is the effect type ID, mandatory for all effect types.
 	/// It is used as an unique reference to the effect type, and as a key for UI localization.
 	/// </remarks>
-	[DataMember(Order = 1)]
 	public required Guid EffectId { get; init; }
 
 	private readonly ImmutableArray<ConfigurablePropertyInformation> _properties = [];
@@ -27,11 +24,10 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	/// Matching of properties that are exposed as an intrinsic is done based on name and type.
 	/// </para>
 	/// </remarks>
-	[DataMember(Order = 2)]
 	public required ImmutableArray<ConfigurablePropertyInformation> Properties
 	{
 		get => _properties;
-		init => _properties = value.NotNull();
+		init => _properties = value.IsDefaultOrEmpty ? [] : value;
 	}
 
 	public override bool Equals(object? obj) => Equals(obj as LightingEffectInformation);

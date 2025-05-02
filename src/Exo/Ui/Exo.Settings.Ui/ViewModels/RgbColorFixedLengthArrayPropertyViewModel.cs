@@ -1,4 +1,4 @@
-using Exo.Contracts;
+using Exo.Lighting;
 using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
