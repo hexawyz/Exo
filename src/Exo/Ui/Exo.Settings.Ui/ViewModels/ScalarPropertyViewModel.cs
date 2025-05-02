@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using Exo.ColorFormats;
-using Exo.Contracts;
 using Exo.Lighting;
 using Windows.UI;
 

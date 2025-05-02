@@ -1,4 +1,4 @@
-namespace Exo.Contracts;
+namespace Exo.Lighting;
 
 /// <summary>Data types used and supported for lighting effect parameters.</summary>
 public enum LightingDataType : byte

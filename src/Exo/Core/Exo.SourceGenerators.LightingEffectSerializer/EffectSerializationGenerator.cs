@@ -122,8 +122,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		var sb = new StringBuilder();
 
-		sb.AppendLine("using Exo.Contracts;")
-			.AppendLine("using Exo.Lighting;")
+		sb.AppendLine("using Exo.Lighting;")
 			.AppendLine("using Exo.Lighting.Effects;")
 			.AppendLine()
 			.Append("namespace ").AppendLine(effect.Namespace).AppendLine("{")

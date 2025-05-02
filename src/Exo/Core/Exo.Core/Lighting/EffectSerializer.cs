@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Exo.Contracts;
 using Exo.Lighting.Effects;
 using Exo.Primitives;
 

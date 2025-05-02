@@ -8,7 +8,6 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using DeviceTools;
 using Exo.ColorFormats;
-using Exo.Contracts;
 using Exo.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.EmbeddedMonitors;

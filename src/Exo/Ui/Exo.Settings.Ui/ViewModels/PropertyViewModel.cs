@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Windows.Input;
-using Exo.Contracts;
 using Exo.Lighting;
 using Windows.UI;
 

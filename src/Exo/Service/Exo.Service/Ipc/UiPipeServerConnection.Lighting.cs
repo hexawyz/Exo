@@ -1,5 +1,4 @@
 using Exo.ColorFormats;
-using Exo.Contracts;
 using Exo.Lighting;
 using Exo.Primitives;
 

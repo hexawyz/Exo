@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Exo.ColorFormats;
-using Exo.Contracts;
 
 namespace Exo.Lighting;
 

@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using Exo.Contracts;
 using Exo.Lighting;
 
 namespace Exo.Settings.Ui.ViewModels;

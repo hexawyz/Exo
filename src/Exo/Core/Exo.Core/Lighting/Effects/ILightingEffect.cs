@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Exo.Contracts;
 
 namespace Exo.Lighting.Effects;
 
