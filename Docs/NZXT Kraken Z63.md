@@ -881,7 +881,7 @@ Which, if we assume that the parameter is a bit field, indicates that bit 1 (wit
 Turns out that this does also work for the Tai Chi effect. Setting the parameter to `01` did nothing, for example, but `02` does reverse the effect.
 
 Parameter2 seems to be speed-related too ?
-Setting tit to `00` on the TaiChi effect makes it go very fast, and `10` very slow, even on the "faster" animation setting.
+Setting it to `00` on the TaiChi effect makes it go very fast, and `10` very slow, even on the "faster" animation setting.
 Might be the delay necessary for a color transition or something like that. To be investigated more in depth later.
 
 Parameter3 is generally `03` but is used by the "alternating" effect as the size of the area.
@@ -894,14 +894,14 @@ Effects:
 * `00` Static (1 color)
 * `01` Fade (1-8 colors)
 * `02` Spectrum Wave (Reversible; 0 colors but parameter set to 1)
-* `03` ?
+* `03` Marquee (Not exposed in CAM for some reason, they always prefer the addressable version of it (looks, maybe); parameters should be similar to the covering marquee effect)
 * `04` Covering Marquee (Reversible; 1-8 colors, 2 by default)
 * `05` Alternating (Reversible; Static or moving; Variable size; 2 colors)
 * `06` Impulse (1-8 colors)
 * `07` Breathing (1-8 colors)
 * `08` Candle (1 color) (This effects produces random-looking color variations that suggest the fluctuations of a candle, especially with the default color assigned from CAM, #FFA500)
 * `09` Starry Night (1 color)
-* `0a` ?
+* `0a` Blink ? (Using the speed parameters from covering marquee which are supposed to be quite slow, this is still quite fast. Maybe bad for epilleptics?)
 * `0b` Rainbow Wave (Reversible; 0 colors but parameter set to 1) (Colors will move in blocks from first to last led
 * `0c` Super Rainbow Wave (Reversible; 0 colors but parameter set to 1) (This effect is a better mix of "rainbow wave" and "spectrum wave")
 * `0d` Rainbow Impulse (Reversible; 0 colors but parameter set to 1) (More like spectrum chase ?)

@@ -1067,18 +1067,14 @@ public partial class KrakenDriver :
 		Static = 0x00,
 		Fade = 0x01,
 		SpectrumWave = 0x02,
-
-		// Missing effect 3 it seems ?
-
+		Marquee = 0x03,
 		CoveringMarquee = 0x04,
 		Alternating = 0x05,
 		Pulse = 0x06,
 		Breathing = 0x07,
 		Candle = 0x08,
 		StarryNight = 0x09,
-
-		// Missing effect 10 it seems ?
-
+		Blink = 0x0a,
 		RainbowWave = 0x0B,
 		SuperRainbow = 0x0C,
 		RainbowImpulse = 0x0D,
