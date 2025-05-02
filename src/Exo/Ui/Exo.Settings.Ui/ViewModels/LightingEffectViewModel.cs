@@ -7,7 +7,7 @@ namespace Exo.Settings.Ui.ViewModels;
 // ⚠️ This class can be instantiated on any thread. Further accesses should come from the UI thread.
 internal sealed class LightingEffectViewModel
 {
-	private readonly LightingEffectInformation _effectInformation;
+	private LightingEffectInformation _effectInformation;
 	private readonly string _displayName;
 
 	public LightingEffectViewModel(LightingEffectInformation effectInformation, string displayName)
@@ -19,6 +19,13 @@ internal sealed class LightingEffectViewModel
 	public Guid EffectId => _effectInformation.EffectId;
 
 	public string DisplayName => _displayName;
+
+	internal void OnMetadataUpdated(LightingEffectInformation effectInformation)
+	{
+		if (effectInformation.EffectId != _effectInformation.EffectId) throw new InvalidOperationException();
+
+		_effectInformation = effectInformation;
+	}
 
 	public ReadOnlyCollection<PropertyViewModel> CreatePropertyViewModels(LightingDeviceBrightnessCapabilitiesViewModel? brightnessCapabilities)
 	{

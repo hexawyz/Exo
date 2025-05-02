@@ -159,7 +159,12 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 
 	internal void CacheEffectInformation(LightingEffectInformation effectInformation)
 	{
-		if (!_effectViewModelById.ContainsKey(effectInformation.EffectId))
+		if (_effectViewModelById.TryGetValue(effectInformation.EffectId, out var vm))
+		{
+			// NB: This is imperfect. If an effect is currently selected, it won't recreate the properties.
+			vm.OnMetadataUpdated(effectInformation);
+		}
+		else
 		{
 			string? displayName = null;
 			if (_metadataService.TryGetLightingEffectMetadata("", "", effectInformation.EffectId, out var metadata))
@@ -169,10 +174,6 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 			displayName ??= string.Create(CultureInfo.InvariantCulture, $"Effect {effectInformation.EffectId:B}.");
 
 			_effectViewModelById.TryAdd(effectInformation.EffectId, new(effectInformation, displayName));
-		}
-		else
-		{
-			// TODO: Update effect information.
 		}
 	}
 
