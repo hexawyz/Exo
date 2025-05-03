@@ -263,7 +263,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 				// Process the removal of any old initial values.
 				// We reset the data for convenience when adding new items, but the main point of this is to keep the status up-to-date.
 				// Basically, if a value matching these was "unchanged", it automatically becomes "changed".
-				for (; i < _initialValueCount; i++, offset += itemSize)
+				for (; i < _initialValueCount; i++)
 				{
 					if (i < _elements.Count && _elements[(int)i] is var element)
 					{
@@ -273,6 +273,10 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 							// Update the changed value count to reflect that the value has become "changed".
 							_changedValueCount++;
 						}
+					}
+					else
+					{
+						_changedValueCount--;
 					}
 					_initialValues[i] = _defaultItemValue;
 				}
@@ -291,7 +295,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 			}
 			else
 			{
-				for (i = (uint)_elements.Count; i > elementCount; i--)
+				for (i = (uint)_elements.Count; --i >= elementCount;)
 				{
 					if (_elements.Count == PropertyInformation.MinimumElementCount)
 					{
