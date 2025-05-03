@@ -134,11 +134,11 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 		{
 			bool wasChanged = IsChanged;
 			_elements.Add(new(this, _defaultItemValue));
-			// Either we added an element catching up with the set of initial values and that's one less change,
-			// or we added an element past the set of initial values and that's an additional change.
-			if (wasChanged)
+			// Either we added an element catching up with the set of initial values and that can be one less change,
+			// or we added an element past the set of initial values and that's always an additional change.
+			if (_elements.Count <= _initialValueCount)
 			{
-				if (_elements.Count <= _initialValueCount) _changedValueCount--;
+				if (EqualityComparer<T>.Default.Equals(_defaultItemValue, _initialValues[_elements.Count - 1])) _changedValueCount--;
 			}
 			else
 			{
