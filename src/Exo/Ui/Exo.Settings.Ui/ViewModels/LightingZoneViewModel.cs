@@ -45,6 +45,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		set => SetValue(ref _isExpanded, value, ChangedProperty.IsExpanded);
 	}
 
+	// Indicate if the currently selected effect is a new one.
+	// This is especially important when the current effect and the initial effect are of the same kind, but could be different.
+	private bool _isNewEffect;
+
 	private readonly Commands.ResetCommand _resetCommand;
 	public ICommand ResetCommand => _resetCommand;
 
@@ -68,6 +72,8 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		Name = displayName;
 		DisplayOrder = displayOrder;
 	}
+
+	public override bool IsChanged => _initialEffect?.EffectId != _currentEffect?.EffectId || _isNewEffect || _changedPropertyCount != 0;
 
 	public LightingEffectViewModel? CurrentEffect
 	{
@@ -115,6 +121,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			if (isInitialEffectUpdate)
 			{
 				AssignPropertyInitialValues();
+				_isNewEffect = false;
+			}
+			else
+			{
+				_isNewEffect = true;
 			}
 
 			OnChangeStateChange(wasChanged);
@@ -154,8 +165,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			OnChangeStateChange(wasChanged, isChanged);
 		}
 	}
-
-	public override bool IsChanged => _initialEffect?.EffectId != _currentEffect?.EffectId || _changedPropertyCount != 0;
 
 	public LightingEffect? BuildEffect()
 	{
@@ -232,6 +241,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 		else if (effect?.EffectId == CurrentEffect?.EffectId)
 		{
+			_isNewEffect = false;
 			if (Properties.Count > 0)
 			{
 				AssignPropertyInitialValues();
@@ -274,7 +284,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 		else
 		{
+			bool wasChanged = IsChanged;
+			_isNewEffect = false;
 			AssignPropertyInitialValues();
+			OnChangeStateChange(wasChanged);
 		}
 	}
 
