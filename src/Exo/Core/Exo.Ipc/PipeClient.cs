@@ -18,7 +18,9 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 	private CancellationTokenSource? _cancellationTokenSource;
 	private Task _runTask;
 
+#pragma warning disable CA1416 // Validate platform compatibility
 	public PipeClient(string pipeName) : this(pipeName, PipeTransmissionMode.Message) { }
+#pragma warning restore CA1416 // Validate platform compatibility
 
 	public PipeClient(string pipeName, PipeTransmissionMode transmissionMode)
 	{

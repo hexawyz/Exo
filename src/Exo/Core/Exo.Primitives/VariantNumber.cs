@@ -36,6 +36,7 @@ public readonly struct VariantNumber
 		=> MemoryMarshal.CreateReadOnlySpan(in value._data0, 16);
 
 #pragma warning disable IDE0051
+#pragma warning disable CS0169
 	private readonly byte _data0;
 	private readonly byte _data1;
 	private readonly byte _data2;
@@ -52,6 +53,7 @@ public readonly struct VariantNumber
 	private readonly byte _dataD;
 	private readonly byte _dataE;
 	private readonly byte _dataF;
+#pragma warning restore CS0169
 #pragma warning restore IDE0051
 
 	public static implicit operator VariantNumber(byte value) => Create(value);

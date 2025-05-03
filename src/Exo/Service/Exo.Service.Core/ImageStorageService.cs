@@ -278,6 +278,7 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 		// We specify a small buffer size that should be able to hold any entry entirely.
 		// This way, entries can be written atomically.
 		// NB: From what I know, we still want to go through OS and hardware caches. What's most important is that the data is handed down to the OS as soon as possible.
+#pragma warning disable CA1416 // Validate platform compatibility
 		var logicalImageMetadataWriteStream = logicalImageMetadataFile.Create
 		(
 			FileMode.OpenOrCreate,
@@ -287,6 +288,7 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 			FileOptions.Asynchronous,
 			null
 		);
+#pragma warning restore CA1416 // Validate platform compatibility
 
 		return new(logger, imagesConfigurationContainer, imageCacheDirectory, imageCollection, imageCollectionById, logicalImageMetadata, logicalImageMetadataWriteStream);
 	}

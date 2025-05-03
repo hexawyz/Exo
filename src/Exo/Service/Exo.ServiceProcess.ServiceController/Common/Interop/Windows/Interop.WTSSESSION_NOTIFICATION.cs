@@ -10,8 +10,10 @@ internal static partial class Interop
     {
         public struct WTSSESSION_NOTIFICATION
         {
+#pragma warning disable CS0649
             public uint size;
             public uint sessionId;
+#pragma warning restore CS0649
         }
     }
 }

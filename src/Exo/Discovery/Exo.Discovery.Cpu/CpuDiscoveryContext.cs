@@ -20,11 +20,20 @@ public sealed class CpuDiscoveryContext : IComponentDiscoveryContext<SystemCpuDe
 	{
 		_discoverySubsystem = discoverySubsystem;
 		DiscoveredKeys = [ (SystemCpuDeviceKey)index ];
+		_vendorId = vendorId;
+		_processorIndex = index;
 		_factoryId = factoryId;
 	}
 
-	public async ValueTask<ComponentCreationParameters<SystemCpuDeviceKey, CpuDriverCreationContext>> PrepareForCreationAsync(CancellationToken cancellationToken)
+	public ValueTask<ComponentCreationParameters<SystemCpuDeviceKey, CpuDriverCreationContext>> PrepareForCreationAsync(CancellationToken cancellationToken)
 	{
-		return new ComponentCreationParameters<SystemCpuDeviceKey, CpuDriverCreationContext>(DiscoveredKeys, new(_discoverySubsystem, DiscoveredKeys, _vendorId, _processorIndex), [_factoryId]);
+		try
+		{
+			return new(new ComponentCreationParameters<SystemCpuDeviceKey, CpuDriverCreationContext>(DiscoveredKeys, new(_discoverySubsystem, DiscoveredKeys, _vendorId, _processorIndex), [_factoryId]));
+		}
+		catch (Exception ex)
+		{
+			return ValueTask.FromException<ComponentCreationParameters<SystemCpuDeviceKey, CpuDriverCreationContext>>(ex);
+		}
 	}
 }

@@ -18,6 +18,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 	private CancellationTokenSource? _cancellationTokenSource;
 	private Task _runTask;
 
+#pragma warning disable CA1416 // Validate platform compatibility
 	public PipeServer(string pipeName) : this(pipeName, NamedPipeServerStream.MaxAllowedServerInstances, PipeTransmissionMode.Message, null) { }
 
 	public PipeServer(string pipeName, PipeSecurity? pipeSecurity) : this(pipeName, NamedPipeServerStream.MaxAllowedServerInstances, PipeTransmissionMode.Message, pipeSecurity) { }
@@ -25,6 +26,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 	public PipeServer(string pipeName, int maxNumberOfServerInstances) : this(pipeName, maxNumberOfServerInstances, PipeTransmissionMode.Message, null) { }
 
 	public PipeServer(string pipeName, int maxNumberOfServerInstances, PipeSecurity? pipeSecurity) : this(pipeName, maxNumberOfServerInstances, PipeTransmissionMode.Message, pipeSecurity) { }
+#pragma warning restore CA1416 // Validate platform compatibility
 
 	public PipeServer(string pipeName, int maxNumberOfServerInstances, PipeTransmissionMode transmissionMode) : this(pipeName, maxNumberOfServerInstances, transmissionMode, null) { }
 
@@ -72,6 +74,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 	{
 		if (_pipeSecurity is not null)
 		{
+#pragma warning disable CA1416 // Validate platform compatibility
 			return NamedPipeServerStreamAcl.Create
 			(
 				_pipeName,
@@ -83,6 +86,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 				0,
 				_pipeSecurity
 			);
+#pragma warning restore CA1416 // Validate platform compatibility
 		}
 		else
 		{

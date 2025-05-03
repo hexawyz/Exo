@@ -72,7 +72,9 @@ public sealed class SharedMemory : IDisposable
 		ArgumentNullException.ThrowIfNull(name);
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(length, (ulong)long.MaxValue);
 
+#pragma warning disable CA1416 // Validate platform compatibility
 		return new(name, MemoryMappedFile.CreateOrOpen(name, (long)length, access), length);
+#pragma warning restore CA1416 // Validate platform compatibility
 	}
 
 	private readonly string _name;

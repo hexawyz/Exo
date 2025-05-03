@@ -42,24 +42,32 @@ internal sealed partial class SensorService
 			SensorConfigurations = sensorConfigurations;
 		}
 
-		public async Task OnDeviceArrivalAsync(bool isConnected, ImmutableArray<SensorInformation> sensors, GroupedQueryState? groupedQueryState, Dictionary<Guid, SensorState> sensorStates, CancellationToken cancellationToken)
+		public Task OnDeviceArrivalAsync(bool isConnected, ImmutableArray<SensorInformation> sensors, GroupedQueryState? groupedQueryState, Dictionary<Guid, SensorState> sensorStates, CancellationToken cancellationToken)
 		{
-			IsConnected = isConnected;
-			Sensors = sensors;
-			GroupedQueryState = groupedQueryState;
-			SensorStates = sensorStates;
-
-			var signals = _arrivalSignals;
-			if (signals is not null)
+			try
 			{
-				if (signals is TaskCompletionSource[] array)
+				IsConnected = isConnected;
+				Sensors = sensors;
+				GroupedQueryState = groupedQueryState;
+				SensorStates = sensorStates;
+
+				var signals = _arrivalSignals;
+				if (signals is not null)
 				{
-					HandleArrival(array, sensorStates);
+					if (signals is TaskCompletionSource[] array)
+					{
+						HandleArrival(array, sensorStates);
+					}
+					else
+					{
+						HandleArrival(Unsafe.As<TaskCompletionSource>(signals), sensorStates);
+					}
 				}
-				else
-				{
-					HandleArrival(Unsafe.As<TaskCompletionSource>(signals), sensorStates);
-				}
+				return Task.CompletedTask;
+			}
+			catch (Exception ex)
+			{
+				return Task.FromException(ex);
 			}
 		}
 

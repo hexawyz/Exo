@@ -79,7 +79,9 @@ public class ImageSharpNativeMemoryAllocator : MemoryAllocator
 			}
 		}
 
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
 		public unsafe override Span<T> GetSpan() => new Span<T>((T*)_pointer, _length);
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
 
 		public unsafe override MemoryHandle Pin(int elementIndex = 0)
 		{

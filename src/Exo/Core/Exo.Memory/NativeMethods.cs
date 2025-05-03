@@ -73,8 +73,10 @@ internal static unsafe class NativeMethods
 
 	public readonly struct LuidAndAttributes
 	{
+#pragma warning disable CS0649
 		public readonly Luid Luid;
 		public readonly PrivilegeAttributes Attributes;
+#pragma warning restore CS0649
 	}
 
 	public readonly struct Luid : IEquatable<Luid>

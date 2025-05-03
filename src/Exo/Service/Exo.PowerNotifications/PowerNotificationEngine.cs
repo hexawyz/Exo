@@ -640,6 +640,7 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 		{
 			_engine = engine;
 			_sink = sink;
+			_powerSettings = powerSettings;
 			engine.RegisterSuspendResumeNotification(sink);
 			if (powerSettings != PowerSettings.None)
 			{
@@ -688,7 +689,9 @@ public sealed partial class PowerNotificationEngine : IPowerNotificationService,
 
 internal readonly struct PowerBroadcastSetting
 {
+#pragma warning disable CS0649
 	public readonly Guid PowerSetting;
 	public readonly uint DataLength;
 	public readonly byte Data;
+#pragma warning restore CS0649
 }
