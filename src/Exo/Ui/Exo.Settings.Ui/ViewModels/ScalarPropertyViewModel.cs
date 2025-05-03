@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Exo.ColorFormats;
 using Exo.Lighting;
@@ -6,7 +7,7 @@ using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-// TODO: Strongly type the values
+// TODO: Strongly type the values. Sadly, current state of WinUI XAML won't make this simple, as it can't reference generic types explicitly.
 internal sealed class ScalarPropertyViewModel : PropertyViewModel
 {
 	private object? _value;
@@ -43,8 +44,27 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 		get => _value;
 		set
 		{
+			// We need to coerce the numeric data types here, as sliders will always provide us with their garbage and make everything fail.
+			object? newValue = value is null ?
+				null :
+				PropertyInformation.DataType switch
+				{
+					LightingDataType.UInt8 => Convert.ToByte(value, CultureInfo.InvariantCulture),
+					LightingDataType.SInt8 => Convert.ToSByte(value, CultureInfo.InvariantCulture),
+					LightingDataType.UInt16 => Convert.ToUInt16(value, CultureInfo.InvariantCulture),
+					LightingDataType.SInt16 => Convert.ToInt16(value, CultureInfo.InvariantCulture),
+					LightingDataType.UInt32 => Convert.ToUInt32(value, CultureInfo.InvariantCulture),
+					LightingDataType.SInt32 => Convert.ToInt32(value, CultureInfo.InvariantCulture),
+					LightingDataType.UInt64 => Convert.ToUInt64(value, CultureInfo.InvariantCulture),
+					LightingDataType.SInt64 => Convert.ToInt64(value, CultureInfo.InvariantCulture),
+					LightingDataType.Float16 => value is Half h ? h : (Half)Convert.ToSingle(value, CultureInfo.InvariantCulture),
+					LightingDataType.Float32 => Convert.ToSingle(value, CultureInfo.InvariantCulture),
+					LightingDataType.Float64 => Convert.ToDouble(value, CultureInfo.InvariantCulture),
+					LightingDataType.Boolean => Convert.ToBoolean(value, CultureInfo.InvariantCulture),
+					_ => value
+				};
 			bool wasChanged = IsChanged;
-			if (SetValue(ref _value, value, ChangedProperty.Value))
+			if (SetValue(ref _value, newValue, ChangedProperty.Value))
 			{
 				OnChangeStateChange(wasChanged);
 			}
