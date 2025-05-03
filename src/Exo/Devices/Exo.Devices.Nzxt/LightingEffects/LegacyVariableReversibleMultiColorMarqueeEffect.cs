@@ -7,9 +7,9 @@ using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Nzxt.LightingEffects;
 
-/// <summary>Represents a color effects where the zone is gradually filled with one color after another, from start to end.</summary>
-[TypeId(0x9460FD35, 0x6933, 0x42C5, 0xA8, 0xC6, 0x9A, 0x6B, 0x34, 0xEE, 0x3F, 0x3E)]
-public readonly partial struct CoveringMarqueeEffect(ImmutableArray<RgbColor> colors, PredeterminedEffectSpeed speed, EffectDirection1D direction) : ILightingEffect
+/// <summary>Represents a color effect where a block of color is moving from start to end.</summary>
+[TypeId(0x82E3BA40, 0x7557, 0x4D51, 0xAE, 0xDD, 0x9C, 0xBF, 0xA2, 0x7E, 0x10, 0x7B)]
+public readonly partial struct LegacyVariableReversibleMultiColorMarqueeEffect(ImmutableArray<RgbColor> colors, PredeterminedEffectSpeed speed, EffectDirection1D direction, byte size) : ILightingEffect
 {
 	[Display(Name = "Colors")]
 	[Array(1, 8)]
@@ -22,4 +22,8 @@ public readonly partial struct CoveringMarqueeEffect(ImmutableArray<RgbColor> co
 	[Display(Name = "Direction")]
 	[DefaultValue(EffectDirection1D.Forward)]
 	public EffectDirection1D Direction { get; } = direction;
+	[Display(Name = "Size")]
+	[Range(3, 6)]
+	[DefaultValue(3)]
+	public byte Size { get; } = size;
 }

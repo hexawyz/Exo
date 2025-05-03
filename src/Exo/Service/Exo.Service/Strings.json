@@ -295,6 +295,10 @@
 		"en": "Color Cycle",
 		"fr": "Cycle de couleurs"
 	},
+	"cc7546f7-ef4d-4346-a996-ff2c5021e1dc": {
+		"en": "Marquee",
+		"fr": "Bannière"
+	},
 	// Embedded monitor graphics
 	"2f538961-daf9-4664-87fa-22b848df0eec": {
 		"en": "Image",
