@@ -120,15 +120,16 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 			if (isInitialEffectUpdate)
 			{
-				AssignPropertyInitialValues();
 				_isNewEffect = false;
+				OnChangeStateChange(wasChanged);
+				AssignPropertyInitialValues();
 			}
 			else
 			{
 				_isNewEffect = true;
+				OnChangeStateChange(wasChanged);
 			}
 
-			OnChangeStateChange(wasChanged);
 			if (colorChanged) NotifyPropertyChanged(ChangedProperty.Color);
 		}
 	}
@@ -242,14 +243,8 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		else if (effect?.EffectId == CurrentEffect?.EffectId)
 		{
 			_isNewEffect = false;
-			if (Properties.Count > 0)
-			{
-				AssignPropertyInitialValues();
-			}
-			else
-			{
-				OnChangeStateChange(wasChanged);
-			}
+			OnChangeStateChange(wasChanged);
+			AssignPropertyInitialValues();
 		}
 
 		IsNotBusy = true;
@@ -284,10 +279,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 		else
 		{
+			// Here and in other places, we do the change state check before the effect is fully reset, because properties could also trigger such changes.
 			bool wasChanged = IsChanged;
 			_isNewEffect = false;
-			AssignPropertyInitialValues();
 			OnChangeStateChange(wasChanged);
+			AssignPropertyInitialValues();
 		}
 	}
 
