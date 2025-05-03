@@ -50,5 +50,9 @@
 	// Rainbow Pulse
 	"f26b97ab-38ee-4f7d-9318-0c67ffc16657": {
 		"nameStringId": "088cd010-0de4-42ab-96a6-534ea55875fc"
+	},
+	// Loading
+	"40e1dd95-6de2-40c3-a847-e927bfbb341c": {
+		"nameStringId": "caa7aa14-5984-480f-9c76-6b91a45459c0"
 	}
 }

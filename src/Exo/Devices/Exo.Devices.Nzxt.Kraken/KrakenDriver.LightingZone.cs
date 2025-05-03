@@ -27,7 +27,8 @@ public partial class KrakenDriver
 		ILightingZoneEffect<StarryNightEffect>,
 		ILightingZoneEffect<TaiChiEffect>,
 		ILightingZoneEffect<LiquidCoolerEffect>,
-		ILightingZoneEffect<CoveringMarqueeEffect>
+		ILightingZoneEffect<CoveringMarqueeEffect>,
+		ILightingZoneEffect<ReversibleVariableColorLoadingEffect>
 	{
 		const byte DefaultStaticSpeed = 0x32;
 		const byte DefaultSize = 0x03;
@@ -40,10 +41,12 @@ public partial class KrakenDriver
 		// <nothing> <=> Medium fast
 		// Fast <=> Fast
 		// Faster <=> Faster
-		private static ReadOnlySpan<ushort> PulseSpeeds => [0x19, 0x14, 0x0f, 0xa, 0x07, 0x04];
+		private static ReadOnlySpan<ushort> PulseSpeeds => [0x19, 0x14, 0x0f, 0x0a, 0x07, 0x04];
 		private static ReadOnlySpan<ushort> StarryNightSpeeds => PulseSpeeds;
 		private static ReadOnlySpan<ushort> BreathingSpeeds => [0x28, 0x1e, 0x14, 0x0f, 0x0a, 0x04];
 		private static ReadOnlySpan<ushort> FadeSpeeds => [0x50, 0x3c, 0x28, 0x1e, 0x14, 0x0a];
+		// Loading effect in CAM always uses speed 0x14. The values below were chosen by taking pulse timings for reference.
+		private static ReadOnlySpan<ushort> LoadingSpeeds => [0x1e, 0x19, 0x14, 0x0f, 0x07, 0x04];
 		private static ReadOnlySpan<ushort> SpectrumWaveSpeeds => [350, 300, 250, 220, 150, 80];
 		private static ReadOnlySpan<ushort> CoveringMarqueeSpeeds => SpectrumWaveSpeeds;
 		private static ReadOnlySpan<ushort> MarqueeSpeeds => SpectrumWaveSpeeds;
@@ -137,6 +140,8 @@ public partial class KrakenDriver
 				return new TaiChiEffect(_colors[0], _colors[1], (speedIndex = TaiChiSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.LiquidCooler:
 				return new LiquidCoolerEffect(_colors[0], _colors[1], (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+			case KrakenEffect.Loading:
+				return new ReversibleVariableColorLoadingEffect(_colors[0], (speedIndex = StarryNightSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			default:
 				throw new NotImplementedException();
 			}
@@ -520,6 +525,31 @@ public partial class KrakenDriver
 			}
 		}
 
+		void ILightingZoneEffect<ReversibleVariableColorLoadingEffect>.ApplyEffect(in ReversibleVariableColorLoadingEffect effect)
+		{
+			if (_effectId != KrakenEffect.Loading ||
+				_colorCount != 1 ||
+				_colors[0] != effect.Color ||
+				LoadingSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != (effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None) ||
+				_parameter2 != 0x04 ||
+				_size != DefaultSize)
+			{
+				_effectId = KrakenEffect.Loading;
+				_colors[0] = effect.Color;
+				if (_colorCount > 1)
+				{
+					_colors.AsSpan(1, _colorCount - 1).Clear();
+				}
+				_colorCount = 1;
+				_speed = LoadingSpeeds[(int)effect.Speed];
+				_flags = effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None;
+				_parameter2 = 0x04;
+				_size = DefaultSize;
+				_hasChanged = true;
+			}
+		}
+
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect)
 		{
 			effect = default;
@@ -791,6 +821,28 @@ public partial class KrakenDriver
 				effect = new
 				(
 					_colors.AsSpan(0, _colorCount).ToImmutableArray(),
+					(PredeterminedEffectSpeed)speedIndex,
+					(_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward
+				);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<ReversibleVariableColorLoadingEffect>.TryGetCurrentEffect(out ReversibleVariableColorLoadingEffect effect)
+		{
+			if (_effectId == KrakenEffect.Loading &&
+				_colorCount >= 1 &&
+				LoadingSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags is LightingEffectFlags.None or LightingEffectFlags.Reversed &&
+				_parameter2 == 0x04 &&
+				_size == DefaultSize)
+			{
+				effect = new
+				(
+					_colors[0],
 					(PredeterminedEffectSpeed)speedIndex,
 					(_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward
 				);
