@@ -4,6 +4,7 @@
 	"f5bb11ab-4c51-4169-a2a5-e3e0c058536c": { "en": "Liquid Cooler", "fr": "Refroidisseur liquide" },
 	"d6a93d44-9fc3-4a8e-8ee5-9cfdcae1f1d6": { "en": "Candle", "fr": "Bougie", "ja": "ろうそく" },
 	"090ab98e-64f1-4bef-9d53-e3fa3ea41469": { "en": "Starry Night", "fr": "Nuit étoilée", "ja": "星空の夜" },
+	"975431b8-b26b-40dc-84fb-a4c017a8ccce": { "en": "Covering Marquee", "fr": "Bannière couvrante", "ja": "覆うマーキー" },
 	// Reusing the same IDs for both zones and strings, so that it is simpler.
 	"acd27f7a-e239-4eaf-bc71-ca9dd4428b41": { "en": "Ring", "fr": "Anneau", "ja": "リング" },
 	"9ca803c7-d99d-4e0e-a428-e24cd6ac055c": { "en": "Logo", "fr": "Logo", "ja": "ロゴ" },

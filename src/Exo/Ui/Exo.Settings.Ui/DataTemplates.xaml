@@ -116,11 +116,11 @@
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 	</DataTemplate>
-	<DataTemplate x:Key="ColorArrayPropertyTemplate" x:DataType="vm:FixedLengthArrayPropertyViewModel">
-		<ItemsControl ItemsSource="{Binding Items}">
+	<DataTemplate x:Key="FixedColorArrayPropertyTemplate" x:DataType="vm:RgbColorArrayPropertyViewModel">
+		<ItemsControl ItemsSource="{Binding Elements}">
 			<ItemsControl.ItemTemplate>
-				<DataTemplate x:DataType="vm:ArrayElementViewModel">
-					<local:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay}" />
+				<DataTemplate>
+					<local:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>
 			<ItemsControl.ItemsPanel>
@@ -130,15 +130,34 @@
 			</ItemsControl.ItemsPanel>
 		</ItemsControl>
 	</DataTemplate>
+	<DataTemplate x:Key="VariableColorArrayPropertyTemplate" x:DataType="vm:RgbColorArrayPropertyViewModel">
+		<StackPanel Orientation="Horizontal">
+			<ItemsControl ItemsSource="{Binding Elements}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<local:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<StackPanel Orientation="Horizontal" />
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+			</ItemsControl>
+			<Button Margin="6,0,0,0" Command="{Binding AddCommand, Mode=OneWay}" Padding="4,2,2,1">
+				<FontIcon Glyph="&#xE710;" />
+			</Button>
+		</StackPanel>
+	</DataTemplate>
 	<DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
 		<local:ColorSwatch Color="{Binding Value, Mode=TwoWay}" HorizontalAlignment="Left" />
 	</DataTemplate>
 	<DataTemplate x:Key="Direction1DPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
 		<StackPanel Orientation="Horizontal">
-			<ToggleButton x:Uid="EffectDirectionBackwardButton" IsChecked="{Binding Value, Mode=TwoWay, Converter={StaticResource EffectDirectionToBooleanConverter}}">
+			<ToggleButton x:Uid="EffectDirectionBackwardButton" Margin="0,0,3,0" IsChecked="{Binding Value, Mode=TwoWay, Converter={StaticResource EffectDirectionToBooleanConverter}}">
 				<FontIcon Glyph="&#xE72B;" />
 			</ToggleButton>
-			<ToggleButton x:Uid="EffectDirectionForwardButton">
+			<ToggleButton x:Uid="EffectDirectionForwardButton" Margin="3,0,0,0">
 				<ToggleButton.IsChecked>
 					<Binding Path="Value" Mode="TwoWay" Converter="{StaticResource EffectDirectionToBooleanConverter}">
 						<Binding.ConverterParameter>
@@ -162,7 +181,8 @@
 		ColorTemplate="{StaticResource ColorPropertyTemplate}"
 		EnumTemplate="{StaticResource EnumPropertyTemplate}"
 		EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
-		ColorArrayTemplate="{StaticResource ColorArrayPropertyTemplate}"
+		FixedColorArrayTemplate="{StaticResource FixedColorArrayPropertyTemplate}"
+		VariableColorArrayTemplate="{StaticResource VariableColorArrayPropertyTemplate}"
 		FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />
 
 	<DataTemplate x:Key="TextMenuItemTemplate" x:DataType="vm:TextMenuMenuItemViewModel">

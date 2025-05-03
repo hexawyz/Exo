@@ -497,6 +497,17 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				string displayName = reader.ReadVariableString() ?? "";
 				var dataType = (LightingDataType)reader.ReadByte();
 				var flags = (LightingEffectFlags)reader.ReadByte();
+				uint minElementCount;
+				uint maxElementCount;
+				if ((flags & LightingEffectFlags.Array) != 0)
+				{
+					minElementCount = reader.ReadVariableUInt32();
+					maxElementCount = reader.ReadVariableUInt32();
+				}
+				else
+				{
+					minElementCount = maxElementCount = 1;
+				}
 				object? defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ? ReadValue(ref reader, dataType) : null;
 				object? minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ? ReadValue(ref reader, dataType) : null;
 				object? maximumValue = (flags & LightingEffectFlags.MaximumValue) != 0 ? ReadValue(ref reader, dataType) : null;
@@ -523,11 +534,12 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 					Name = name,
 					DisplayName = displayName,
 					DataType = dataType,
+					MinimumElementCount = minElementCount,
+					MaximumElementCount = maxElementCount,
 					DefaultValue = defaultValue,
 					MinimumValue = minimumValue,
 					MaximumValue = maximumValue,
 					EnumerationValues = ImmutableCollectionsMarshal.AsImmutableArray(enumerationValues),
-					ArrayLength = (flags & LightingEffectFlags.Array) != 0 ? (int)reader.ReadVariableUInt32() : null,
 				};
 			}
 		}

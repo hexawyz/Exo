@@ -29,9 +29,9 @@ partial class UiPipeServerConnection
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					foreach (var effectInformation in initialData)
+					foreach (var deviceInformation in initialData)
 					{
-						int length = Write(buffer.Span, effectInformation);
+						int length = Write(buffer.Span, deviceInformation);
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -46,9 +46,9 @@ partial class UiPipeServerConnection
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					while (watcher.Reader.TryRead(out var effectInformation))
+					while (watcher.Reader.TryRead(out var deviceInformation))
 					{
-						int length = Write(buffer.Span, effectInformation);
+						int length = Write(buffer.Span, deviceInformation);
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -297,8 +297,13 @@ partial class UiPipeServerConnection
 			if (property.MinimumValue is not null) flags |= LightingEffectFlags.MinimumValue;
 			if (property.MaximumValue is not null) flags |= LightingEffectFlags.MaximumValue;
 			if (!property.EnumerationValues.IsDefaultOrEmpty) flags |= LightingEffectFlags.Enum;
-			if (property.ArrayLength is not null) flags |= LightingEffectFlags.Array;
+			if (property.IsArray) flags |= LightingEffectFlags.Array;
 			writer.Write((byte)flags);
+			if (property.IsArray)
+			{
+				writer.WriteVariable(property.MinimumElementCount);
+				writer.WriteVariable(property.MaximumElementCount);
+			}
 			if (property.DefaultValue is not null) WriteValue(ref writer, property.DataType, property.DefaultValue);
 			if (property.MinimumValue is not null) WriteValue(ref writer, property.DataType, property.MinimumValue);
 			if (property.MaximumValue is not null) WriteValue(ref writer, property.DataType, property.MaximumValue);
@@ -312,7 +317,6 @@ partial class UiPipeServerConnection
 					writer.WriteVariableString(enumerationValue.Description);
 				}
 			}
-			if (property.ArrayLength is not null) writer.WriteVariable((uint)property.ArrayLength.GetValueOrDefault());
 		}
 
 		static void WriteValue(ref BufferWriter writer, LightingDataType dataType, object value)

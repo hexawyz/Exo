@@ -6,6 +6,10 @@
 		<Nullable>enable</Nullable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Include="..\Exo.Core\Lighting\LightingDataType.cs" Link="LightingDataType.cs" />
+	</ItemGroup>
 	
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.Common" PrivateAssets="all" />

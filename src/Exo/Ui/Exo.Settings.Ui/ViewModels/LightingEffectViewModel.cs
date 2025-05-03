@@ -37,6 +37,7 @@ internal sealed class LightingEffectViewModel
 		for (int i = 0; i < properties.Length; i++)
 		{
 			var property = properties[i];
+			if (property.IsVariableLengthArray) isVariableLength = true;
 			(uint align, uint length) = property.DataType switch
 			{
 				LightingDataType.UInt8 or LightingDataType.SInt8 or LightingDataType.EffectDirection1D => (1u, 1u),
@@ -44,10 +45,10 @@ internal sealed class LightingEffectViewModel
 				LightingDataType.UInt32 or LightingDataType.UInt32 or LightingDataType.Float32 => (4u, 4u),
 				LightingDataType.UInt64 or LightingDataType.SInt64 or LightingDataType.Float64 or LightingDataType.TimeSpan or LightingDataType.DateTime => (8u, 8u),
 				LightingDataType.Guid => (8u, 16u),
-				LightingDataType.ColorGrayscale8 => (1u, (uint)(property.ArrayLength ?? 1)),
-				LightingDataType.ColorGrayscale16 => (2u, 2 * (uint)(property.ArrayLength ?? 1)),
-				LightingDataType.ColorRgb24 => (1u, 3 * (uint)(property.ArrayLength ?? 1)),
-				LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32 => (4u, 4 * (uint)(property.ArrayLength ?? 1)),
+				LightingDataType.ColorGrayscale8 => (1u, property.MinimumElementCount),
+				LightingDataType.ColorGrayscale16 => (2u, 2 * property.MinimumElementCount),
+				LightingDataType.ColorRgb24 => (1u, 3 * property.MinimumElementCount),
+				LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32 => (4u, 4 * property.MinimumElementCount),
 				_ => (0u, 0u)
 			};
 			alignmentAndLengths[i] = (align, length);
@@ -79,9 +80,9 @@ internal sealed class LightingEffectViewModel
 					offset += padding;
 				}
 			}
-			if (property.ArrayLength.GetValueOrDefault() > 1)
+			if (property.IsArray)
 			{
-				vm[i] = new RgbColorFixedLengthArrayPropertyViewModel(property, (int)padding);
+				vm[i] = new RgbColorArrayPropertyViewModel(property, (int)padding);
 			}
 			else
 			{

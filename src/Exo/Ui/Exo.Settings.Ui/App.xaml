@@ -93,6 +93,7 @@
 			<lconverters:MonitorShapeToCropShapeConverter x:Key="MonitorShapeToCropShapeConverter" />
 			<lconverters:NotificationSeverityConverter x:Key="NotificationSeverityConverter" />
 			<lconverters:EffectDirectionToBooleanConverter x:Key="EffectDirectionToBooleanConverter" />
+			<lconverters:RgbColorConverter x:Key="RgbColorConverter" />
 
 			<local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,6 +8,10 @@ namespace Exo;
 
 public ref struct BufferWriter
 {
+	public static uint GetVariableLength(ushort value) => (64 - (uint)BitOperations.LeadingZeroCount(value)) / 7;
+	public static uint GetVariableLength(uint value) => (64 - (uint)BitOperations.LeadingZeroCount(value)) / 7;
+	public static uint GetVariableLength(ulong value) => (64 - (uint)BitOperations.LeadingZeroCount(value)) / 7;
+
 	private ref byte _current;
 	private readonly ref readonly byte _end;
 	private readonly ref readonly byte _start;

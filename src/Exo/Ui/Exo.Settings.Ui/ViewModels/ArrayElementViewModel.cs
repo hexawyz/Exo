@@ -1,32 +1,22 @@
-﻿using Exo.Ui;
+using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ArrayElementViewModel : BindableObject
+internal sealed class ArrayElementViewModel<T> : BindableObject
+	where T : IEquatable<T>
 {
-	private readonly FixedLengthArrayPropertyViewModel _arrayPropertyViewModel;
-	private readonly int _index;
+	private readonly ArrayPropertyViewModel<T> _arrayPropertyViewModel;
+	private T _value;
 
-	public ArrayElementViewModel(FixedLengthArrayPropertyViewModel arrayPropertyViewModel, int index)
+	public ArrayElementViewModel(ArrayPropertyViewModel<T> arrayPropertyViewModel, T initialValue)
 	{
 		_arrayPropertyViewModel = arrayPropertyViewModel;
-		_index = index;
+		_value = initialValue;
 	}
 
-	public object? Value
+	public T Value
 	{
-		get => _arrayPropertyViewModel.GetValueRef(_index);
-		set
-		{
-			ref object? storage = ref _arrayPropertyViewModel.GetValueRef(_index);
-
-			if (!_arrayPropertyViewModel.AreValuesEqual(storage, value))
-			{
-				storage = value;
-				NotifyPropertyChanged(ChangedProperty.Value);
-			}
-		}
+		get => _value;
+		set => SetValue(ref _value, value, ChangedProperty.Value);
 	}
-
-	internal void OnValueChanged() => NotifyPropertyChanged(ChangedProperty.Value);
 }

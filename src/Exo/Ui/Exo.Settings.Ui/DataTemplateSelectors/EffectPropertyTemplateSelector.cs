@@ -20,7 +20,8 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 	public DataTemplate TimeSpanTemplate { get; set; }
 	public DataTemplate EnumTemplate { get; set; }
 	public DataTemplate EnumRangeTemplate { get; set; }
-	public DataTemplate ColorArrayTemplate { get; set; }
+	public DataTemplate VariableColorArrayTemplate { get; set; }
+	public DataTemplate FixedColorArrayTemplate { get; set; }
 	public DataTemplate FallbackTemplate { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
@@ -30,6 +31,7 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 	protected override DataTemplate SelectTemplateCore(object item)
 	{
 		if (item is ScalarPropertyViewModel sp)
+		{
 			switch (sp.DataType)
 			{
 			case LightingDataType.UInt8:
@@ -70,12 +72,18 @@ internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
 			case LightingDataType.ColorArgb32:
 				return ColorTemplate;
 			}
-		else if (item is FixedLengthArrayPropertyViewModel ap)
-			switch (ap.DataType)
+		}
+		else if (item is RgbColorArrayPropertyViewModel ap)
+		{
+			if (ap.IsVariableLength)
 			{
-			case LightingDataType.ColorRgb24:
-				return ColorArrayTemplate;
+				return VariableColorArrayTemplate;
 			}
+			else
+			{
+				return FixedColorArrayTemplate;
+			}
+		}
 		return FallbackTemplate;
 	}
 }

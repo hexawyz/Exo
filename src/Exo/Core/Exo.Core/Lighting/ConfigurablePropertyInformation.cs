@@ -28,7 +28,8 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			object? minimumValue = null;
 			object? maximumValue = null;
 			ImmutableArray<EnumerationValue> enumerationValues = default;
-			int? arrayLength = null;
+			uint minimumElementCount = 1;
+			uint maximumElementCount = 1;
 			while (true)
 			{
 				string? propertyName = reader.GetString();
@@ -44,6 +45,12 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 				case nameof(dataType):
 					dataType = JsonSerializer.Deserialize<LightingDataType>(ref reader, options);
 					break;
+				case nameof(minimumElementCount):
+					minimumElementCount = reader.GetUInt32();
+					break;
+				case nameof(maximumElementCount):
+					maximumElementCount = reader.GetUInt32();
+					break;
 				case nameof(defaultValue):
 					defaultValue = ReadValue(ref reader, dataType, options);
 					break;
@@ -55,9 +62,6 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 					break;
 				case nameof(enumerationValues):
 					enumerationValues = JsonSerializer.Deserialize<ImmutableArray<EnumerationValue>>(ref reader, options);
-					break;
-				case nameof(arrayLength):
-					arrayLength = reader.GetInt32();
 					break;
 				default:
 					JsonSerializer.Deserialize<object?>(ref reader, options);
@@ -77,7 +81,8 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 				MinimumValue = minimumValue,
 				MaximumValue = maximumValue,
 				EnumerationValues = enumerationValues,
-				ArrayLength = arrayLength,
+				MinimumElementCount = minimumElementCount,
+				MaximumElementCount = maximumElementCount,
 			};
 		}
 
@@ -113,6 +118,11 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			writer.WriteString("displayName", value.DisplayName);
 			writer.WritePropertyName("dataType");
 			JsonSerializer.Serialize(writer, value.DataType, options);
+			if (value.IsArray)
+			{
+				writer.WriteNumber("minimumElementCount", value.MinimumElementCount);
+				writer.WriteNumber("maximumElementCount", value.MaximumElementCount);
+			}
 			if (value.DefaultValue is not null)
 			{
 				writer.WritePropertyName("defaultValue");
@@ -133,7 +143,6 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 				writer.WritePropertyName("enumerationValues");
 				JsonSerializer.Serialize(writer, value.EnumerationValues, options);
 			}
-			if (value.ArrayLength is not null) writer.WriteNumber("arrayLength", value.ArrayLength.GetValueOrDefault());
 			writer.WriteEndObject();
 		}
 
@@ -176,6 +185,22 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 	/// <summary>The data type of the property.</summary>
 	public required LightingDataType DataType { get; init; }
 
+	/// <summary>The minimum number of elements for this property.</summary>
+	/// <remarks>
+	/// This value must be strictly positive and never greater than <see cref="MaximumElementCount"/>.
+	/// If both <see cref="MinimumElementCount"/> and <see cref="MaximumElementCount"/> are <c>1</c> then the property is not an array.
+	/// If both are equal, the property is a fixed array. Otherwise, it is a fixed array.
+	/// </remarks>
+	public required uint MinimumElementCount { get; init; }
+
+	/// <summary>The maximum number of elements for this property.</summary>
+	/// <remarks>
+	/// This value must be strictly positive and never less than <see cref="MaximumElementCount"/>.
+	/// If both <see cref="MinimumElementCount"/> and <see cref="MaximumElementCount"/> are <c>1</c> then the property is not an array.
+	/// If both are equal, the property is a fixed array. Otherwise, it is a fixed array.
+	/// </remarks>
+	public required uint MaximumElementCount { get; init; }
+
 	/// <summary>The default value of the property, if any.</summary>
 	public object? DefaultValue { get; init; }
 
@@ -198,9 +223,9 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 		init => _enumerationValues = value.IsDefaultOrEmpty ? [] : value;
 	}
 
-	/// <summary>The number of elements in the array, for fixed-length array data types.</summary>
-	/// <remarks>Fixed-length arrays are the only kind of array supported. The array data will be materialized into <see cref="DataValue.BytesValue"/>.</remarks>
-	public int? ArrayLength { get; init; }
+	public bool IsArray => MinimumElementCount != 1 || MinimumElementCount != MaximumElementCount;
+	public bool IsVariableLengthArray => MinimumElementCount != MaximumElementCount;
+	public bool IsFixedLengthArray => MaximumElementCount != 1 && MinimumElementCount == MaximumElementCount;
 
 	public override bool Equals(object? obj) => Equals(obj as ConfigurablePropertyInformation);
 
@@ -214,7 +239,8 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			Equals(MaximumValue, other.MaximumValue) &&
 			Unit == other.Unit &&
 			EnumerationValues.SequenceEqual(other.EnumerationValues) &&
-			ArrayLength == other.ArrayLength;
+			MinimumElementCount == other.MinimumElementCount &&
+			MaximumElementCount == other.MaximumElementCount;
 
 	public override int GetHashCode()
 	{
@@ -227,7 +253,8 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 		hash.Add(MaximumValue);
 		hash.Add(Unit);
 		hash.Add(EnumerationValues.Length);
-		hash.Add(ArrayLength);
+		hash.Add(MinimumElementCount);
+		hash.Add(MaximumElementCount);
 		return hash.ToHashCode();
 	}
 
