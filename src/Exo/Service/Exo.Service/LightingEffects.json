@@ -47,6 +47,10 @@
 	"46be7d40-8a97-486c-97cd-07e931f46ab9": {
 		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906"
 	},
+	// Exo.Lighting.Effects.VariableColorBlinkEffect
+	"cb6f3794-703f-4ada-9e38-e2d050252c08": {
+		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906"
+	},
 	// Exo.Lighting.Effects.ColorFlashEffect
 	"a3f80010-5663-4ecf-9c22-036e28478b7e": {
 		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0"

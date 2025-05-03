@@ -3,6 +3,7 @@ using Exo.ColorFormats;
 using Exo.Devices.Nzxt.LightingEffects;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
+using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Nzxt.Kraken;
 
@@ -18,6 +19,7 @@ public partial class KrakenDriver
 		ILightingZoneEffect<AlternatingEffect>,
 		ILightingZoneEffect<VariableMultiColorPulseEffect>,
 		ILightingZoneEffect<VariableMultiColorBreathingEffect>,
+		ILightingZoneEffect<VariableColorBlinkEffect>,
 		ILightingZoneEffect<CandleEffect>,
 		ILightingZoneEffect<StarryNightEffect>,
 		ILightingZoneEffect<TaiChiEffect>,
@@ -47,6 +49,8 @@ public partial class KrakenDriver
 		// The timings are x2 when the alternating effect is not moving.
 		// NB: Mapping from CAM is a bit different than other effects here: Timing 600 is the one that has been inserted.
 		private static ReadOnlySpan<ushort> AlternatingBaseSpeeds => [800, 700, 600, 500, 400, 300];
+		// Blink effect is quite fast. I took the speeds of the "non-moving" alternating effect for reference, as it is similar to a blinking effect.
+		private static ReadOnlySpan<ushort> BlinkSpeeds => [1600, 1400, 1200, 1000, 800, 600];
 
 		private readonly RgbColor[] _colors;
 		private readonly Guid _zoneId;
@@ -115,6 +119,8 @@ public partial class KrakenDriver
 				return new CandleEffect(_colors[0]);
 			case KrakenEffect.StarryNight:
 				return new StarryNightEffect(_colors[0], (speedIndex = StarryNightSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow);
+			case KrakenEffect.Blink:
+				return new VariableColorBlinkEffect(_colors[0], (speedIndex = BreathingSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumFast);
 			case KrakenEffect.TaiChi:
 				return new TaiChiEffect(_colors[0], _colors[1], (speedIndex = TaiChiSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.LiquidCooler:
@@ -221,6 +227,31 @@ public partial class KrakenDriver
 				_colorCount = (byte)effect.Colors.Length;
 				_speed = BreathingSpeeds[(int)effect.Speed];
 				_flags = 0x00;
+				_parameter2 = 0x08;
+				_size = DefaultSize;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<VariableColorBlinkEffect>.ApplyEffect(in VariableColorBlinkEffect effect)
+		{
+			if (_effectId != KrakenEffect.Blink ||
+				_colorCount != 1 ||
+				_colors[0] != effect.Color ||
+				BlinkSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != 0x00 ||
+				_parameter2 != 0x08 ||
+				_size != DefaultSize)
+			{
+				_effectId = KrakenEffect.Blink;
+				_colors[0] = effect.Color;
+				if (_colorCount > 1)
+				{
+					_colors.AsSpan(1, _colorCount - 1).Clear();
+				}
+				_colorCount = 1;
+				_speed = BlinkSpeeds[(int)effect.Speed];
+				_flags = (LightingEffectFlags)0x07;
 				_parameter2 = 0x08;
 				_size = DefaultSize;
 				_hasChanged = true;
@@ -479,6 +510,23 @@ public partial class KrakenDriver
 				_size == DefaultSize)
 			{
 				effect = new(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (PredeterminedEffectSpeed)speedIndex);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<VariableColorBlinkEffect>.TryGetCurrentEffect(out VariableColorBlinkEffect effect)
+		{
+			if (_effectId == KrakenEffect.Blink &&
+				_colorCount == 1 &&
+				BlinkSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags == 0x00 &&
+				_parameter2 == 0x08 &&
+				_size == DefaultSize)
+			{
+				effect = new(_colors[0], (PredeterminedEffectSpeed)speedIndex);
 				return true;
 			}
 			effect = default;

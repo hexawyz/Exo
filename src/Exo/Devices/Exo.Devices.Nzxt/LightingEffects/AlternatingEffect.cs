@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Exo.ColorFormats;
 using Exo.Lighting.Effects;
@@ -17,7 +17,7 @@ public readonly partial struct AlternatingEffect(RgbColor color1, RgbColor color
 	public RgbColor Color2 { get; } = color2;
 	[Display(Name = "Speed")]
 	[Range(0, 5)]
-	[DefaultValue(2)]
+	[DefaultValue(3)]
 	public PredeterminedEffectSpeed Speed { get; } = speed;
 	[Display(Name = "Direction")]
 	[DefaultValue(EffectDirection1D.Forward)]
