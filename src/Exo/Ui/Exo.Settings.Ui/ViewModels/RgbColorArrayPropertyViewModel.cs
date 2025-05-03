@@ -6,7 +6,7 @@ namespace Exo.Settings.Ui.ViewModels;
 internal sealed class RgbColorArrayPropertyViewModel : ArrayPropertyViewModel<RgbColor>
 {
 	public RgbColorArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength)
-		: base(propertyInformation, paddingLength, new RgbColor(255, 255, 255))
+		: base(propertyInformation, paddingLength, propertyInformation.DefaultValue is RgbColor[] colors ? colors : null, propertyInformation.DefaultValue is RgbColor color ? color : new RgbColor(255, 255, 255))
 	{
 	}
 

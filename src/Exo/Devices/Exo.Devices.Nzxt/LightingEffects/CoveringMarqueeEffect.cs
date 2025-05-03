@@ -13,7 +13,7 @@ public readonly partial struct CoveringMarqueeEffect(ImmutableArray<RgbColor> co
 {
 	[Display(Name = "Colors")]
 	[Array(1, 8)]
-	//[DefaultValue("#0000FF,#00FF00")]
+	[DefaultValue("#0000FF,#00FF00")]
 	public ImmutableArray<RgbColor> Colors { get; } = colors;
 	[Display(Name = "Speed")]
 	[Range(0, 5)]

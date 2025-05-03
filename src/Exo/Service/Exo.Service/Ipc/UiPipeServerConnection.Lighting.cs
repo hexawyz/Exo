@@ -293,20 +293,62 @@ partial class UiPipeServerConnection
 			writer.WriteVariableString(property.DisplayName);
 			writer.Write((byte)property.DataType);
 			var flags = LightingEffectFlags.None;
-			if (property.DefaultValue is not null) flags |= LightingEffectFlags.DefaultValue;
-			if (property.MinimumValue is not null) flags |= LightingEffectFlags.MinimumValue;
-			if (property.MaximumValue is not null) flags |= LightingEffectFlags.MaximumValue;
-			if (!property.EnumerationValues.IsDefaultOrEmpty) flags |= LightingEffectFlags.Enum;
+			if (property.DefaultValue is not null)
+			{
+				flags |= LightingEffectFlags.DefaultValue;
+				if (property.IsArray && property.DefaultValue is Array) flags |= LightingEffectFlags.ArrayDefaultValue;
+			}
+			if (property.MinimumValue is not null)
+			{
+				flags |= LightingEffectFlags.MinimumValue;
+				if (property.IsArray && property.MinimumValue is Array) flags |= LightingEffectFlags.ArrayMinimumValue;
+			}
+			if (property.MaximumValue is not null)
+			{
+				flags |= LightingEffectFlags.MaximumValue;
+				if (property.IsArray && property.MaximumValue is Array) flags |= LightingEffectFlags.ArrayMaximumValue;
+			}
 			if (property.IsArray) flags |= LightingEffectFlags.Array;
+			if (!property.EnumerationValues.IsDefaultOrEmpty) flags |= LightingEffectFlags.Enum;
 			writer.Write((byte)flags);
 			if (property.IsArray)
 			{
 				writer.WriteVariable(property.MinimumElementCount);
 				writer.WriteVariable(property.MaximumElementCount);
 			}
-			if (property.DefaultValue is not null) WriteValue(ref writer, property.DataType, property.DefaultValue);
-			if (property.MinimumValue is not null) WriteValue(ref writer, property.DataType, property.MinimumValue);
-			if (property.MaximumValue is not null) WriteValue(ref writer, property.DataType, property.MaximumValue);
+			if (property.DefaultValue is not null)
+			{
+				if (property.IsArray && property.DefaultValue is Array array)
+				{
+					WriteValues(ref writer, property.DataType, array);
+				}
+				else
+				{
+					WriteValue(ref writer, property.DataType, property.DefaultValue);
+				}
+			}
+			if (property.MinimumValue is not null)
+			{
+				if (property.IsArray && property.DefaultValue is Array array)
+				{
+					WriteValues(ref writer, property.DataType, array);
+				}
+				else
+				{
+					WriteValue(ref writer, property.DataType, property.MinimumValue);
+				}
+			}
+			if (property.MaximumValue is not null)
+			{
+				if (property.IsArray && property.DefaultValue is Array array)
+				{
+					WriteValues(ref writer, property.DataType, array);
+				}
+				else
+				{
+					WriteValue(ref writer, property.DataType, property.MaximumValue);
+				}
+			}
 			if (!property.EnumerationValues.IsDefaultOrEmpty)
 			{
 				writer.WriteVariable((uint)property.EnumerationValues.Length);
@@ -370,6 +412,114 @@ partial class UiPipeServerConnection
 				break;
 			case LightingDataType.ColorRgb24:
 				Serializer.Write(ref writer, (RgbColor)value);
+				break;
+			default:
+				throw new InvalidOperationException($"Type not supported: {dataType}.");
+			}
+		}
+
+		static void WriteValues(ref BufferWriter writer, LightingDataType dataType, Array values)
+		{
+			if (values.Length == 0)
+			{
+				writer.Write((byte)0);
+				return;
+			}
+			writer.WriteVariable((uint)values.Length);
+			switch (dataType)
+			{
+			case LightingDataType.UInt8:
+			case LightingDataType.ColorGrayscale8:
+				foreach (byte value in (byte[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.SInt8:
+				foreach (sbyte value in (sbyte[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.UInt16:
+				foreach (ushort value in (ushort[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.SInt16:
+				foreach (short value in (short[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.UInt32:
+			case LightingDataType.ColorRgbw32:
+			case LightingDataType.ColorArgb32:
+				foreach (uint value in (uint[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.SInt32:
+				foreach (int value in (int[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.UInt64:
+				foreach (ulong value in (ulong[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.SInt64:
+				foreach (long value in (long[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.Float16:
+				foreach (Half value in (Half[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.Float32:
+				foreach (float value in (float[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.Float64:
+				foreach (double value in (double[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.Boolean:
+				foreach (bool value in (bool[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.Guid:
+				foreach (Guid value in (Guid[])values)
+				{
+					writer.Write(value);
+				}
+				break;
+			case LightingDataType.EffectDirection1D:
+				foreach (var value in (EffectDirection1D[])values)
+				{
+					writer.Write((byte)value);
+				}
+				break;
+			case LightingDataType.ColorRgb24:
+				foreach (var value in (RgbColor[])values)
+				{
+					Serializer.Write(ref writer, (RgbColor)value);
+				}
 				break;
 			default:
 				throw new InvalidOperationException($"Type not supported: {dataType}.");

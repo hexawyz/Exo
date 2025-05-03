@@ -508,9 +508,21 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				{
 					minElementCount = maxElementCount = 1;
 				}
-				object? defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ? ReadValue(ref reader, dataType) : null;
-				object? minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ? ReadValue(ref reader, dataType) : null;
-				object? maximumValue = (flags & LightingEffectFlags.MaximumValue) != 0 ? ReadValue(ref reader, dataType) : null;
+				object? defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ?
+					(flags & (LightingEffectFlags.Array | LightingEffectFlags.ArrayDefaultValue)) == (LightingEffectFlags.Array | LightingEffectFlags.ArrayDefaultValue) ? 
+						ReadValues(ref reader, dataType) :
+						ReadValue(ref reader, dataType) :
+					null;
+				object? minimumValue = (flags & LightingEffectFlags.MinimumValue) != 0 ?
+					(flags & (LightingEffectFlags.Array | LightingEffectFlags.ArrayMinimumValue)) == (LightingEffectFlags.Array | LightingEffectFlags.ArrayMinimumValue) ?
+						ReadValues(ref reader, dataType) :
+						ReadValue(ref reader, dataType) :
+					null;
+				object? maximumValue = (flags & LightingEffectFlags.MaximumValue) != 0 ?
+					(flags & (LightingEffectFlags.Array | LightingEffectFlags.ArrayMaximumValue)) == (LightingEffectFlags.Array | LightingEffectFlags.ArrayMaximumValue) ?
+						ReadValues(ref reader, dataType) :
+						ReadValue(ref reader, dataType) :
+					null;
 				EnumerationValue[] enumerationValues;
 				if ((flags & LightingEffectFlags.Enum) == 0)
 				{
@@ -564,12 +576,175 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				LightingDataType.Float16 => reader.Read<Half>(),
 				LightingDataType.Float32 => reader.Read<float>(),
 				LightingDataType.Float64 => reader.Read<double>(),
-				LightingDataType.Boolean => reader.ReadByte(),
+				LightingDataType.Boolean => reader.ReadBoolean(),
 				LightingDataType.Guid => reader.ReadGuid(),
 				LightingDataType.EffectDirection1D => (EffectDirection1D)reader.ReadByte(),
 				LightingDataType.ColorRgb24 => Serializer.ReadRgbColor(ref reader),
 				_ => throw new InvalidOperationException($"Type not supported: {dataType}."),
 			};
+
+		static object ReadValues(ref BufferReader reader, LightingDataType dataType)
+		{
+			uint count = reader.ReadVariableUInt32();
+
+			switch (dataType)
+			{
+			case LightingDataType.UInt8:
+			case LightingDataType.ColorGrayscale8:
+				{
+					if (count == 0) return Array.Empty<byte>();
+					var values = new byte[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.ReadByte();
+					}
+					return values;
+				}
+			case LightingDataType.SInt8:
+				{
+					if (count == 0) return Array.Empty<sbyte>();
+					var values = new sbyte[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = (sbyte)reader.ReadByte();
+					}
+					return values;
+				}
+			case LightingDataType.UInt16:
+				{
+					if (count == 0) return Array.Empty<ushort>();
+					var values = new ushort[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.Read<ushort>();
+					}
+					return values;
+				}
+			case LightingDataType.SInt16:
+				{
+					if (count == 0) return Array.Empty<short>();
+					var values = new short[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = (short)reader.Read<ushort>();
+					}
+					return values;
+				}
+			case LightingDataType.UInt32 or LightingDataType.ColorRgbw32 or LightingDataType.ColorArgb32:
+				{
+					if (count == 0) return Array.Empty<uint>();
+					var values = new uint[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.Read<uint>();
+					}
+					return values;
+				}
+			case LightingDataType.SInt32:
+				{
+					if (count == 0) return Array.Empty<int>();
+					var values = new int[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = (int)reader.Read<uint>();
+					}
+					return values;
+				}
+			case LightingDataType.UInt64:
+				{
+					if (count == 0) return Array.Empty<ulong>();
+					var values = new ulong[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.Read<ulong>();
+					}
+					return values;
+				}
+			case LightingDataType.SInt64:
+				{
+					if (count == 0) return Array.Empty<long>();
+					var values = new long[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = (long)reader.Read<ulong>();
+					}
+					return values;
+				}
+			case LightingDataType.Float16:
+				{
+					if (count == 0) return Array.Empty<Half>();
+					var values = new Half[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.Read<Half>();
+					}
+					return values;
+				}
+			case LightingDataType.Float32:
+				{
+					if (count == 0) return Array.Empty<float>();
+					var values = new float[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.Read<float>();
+					}
+					return values;
+				}
+			case LightingDataType.Float64:
+				{
+					if (count == 0) return Array.Empty<double>();
+					var values = new double[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.Read<double>();
+					}
+					return values;
+				}
+			case LightingDataType.Boolean:
+				{
+					// TODO: Read and write a bit array
+					if (count == 0) return Array.Empty<bool>();
+					var values = new bool[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.ReadBoolean();
+					}
+					return values;
+				}
+			case LightingDataType.Guid:
+				{
+					if (count == 0) return Array.Empty<Guid>();
+					var values = new Guid[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = reader.ReadGuid();
+					}
+					return values;
+				}
+			case LightingDataType.EffectDirection1D:
+				{
+					if (count == 0) return Array.Empty<EffectDirection1D>();
+					var values = new EffectDirection1D[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = (EffectDirection1D)reader.ReadByte();
+					}
+					return values;
+				}
+			case LightingDataType.ColorRgb24:
+				{
+					if (count == 0) return Array.Empty<RgbColor>();
+					var values = new RgbColor[count];
+					for (int i = 0; i < values.Length; i++)
+					{
+						values[i] = Serializer.ReadRgbColor(ref reader);
+					}
+					return values;
+				}
+			default: throw new InvalidOperationException($"Type not supported: {dataType}.");
+			}
+			;
+		}
 
 		static ulong ReadConstantValue(ref BufferReader reader, LightingDataType dataType)
 			=> dataType switch

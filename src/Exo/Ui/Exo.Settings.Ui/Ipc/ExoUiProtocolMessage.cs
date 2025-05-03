@@ -282,6 +282,9 @@ internal enum LightingEffectFlags : byte
 	MaximumValue = 0b00000100,
 	Enum = 0b00001000,
 	Array = 0b00010000,
+	ArrayDefaultValue = 0b00100000,
+	ArrayMinimumValue = 0b01000000,
+	ArrayMaximumValue = 0b10000000,
 }
 
 [Flags]

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Immutable;
+using System.Data;
 using System.Globalization;
 using System.Text;
 using Exo.Lighting;
@@ -21,6 +22,10 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		new("ESG0004", "Invalid array limits", "The member {1} of type {0} is a variable array with incorrect limits.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 		new("ESG0005", "Missing variable array limits", "The member {1} of type {0} is a variable array but limits were not specified.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 		new("ESG0006", "Variable array limits not allowed", "The member {1} of type {0} specified variable array limits while not variable array.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
+		new("ESG0007", "Invalid default value", "The member {1} of type {0} has an invalid value specified for its default value.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
+		new("ESG0008", "Invalid array default value", "The member {1} of type {0} has an invalid number of default values.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
+		new("ESG0009", "Invalid minimum value", "The member {1} of type {0} has an invalid value specified for its minimum value.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
+		new("ESG0010", "Invalid maximum value", "The member {1} of type {0} has an invalid value specified for its maximum value.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 	];
 
 	private const string EffectInterfaceTypeName = "Exo.Lighting.Effects.ILightingEffect";
@@ -155,21 +160,21 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			if (member.DefaultValue is not null)
 			{
 				sb.Append("\t\t\t\t\t\tDefaultValue = ");
-				AppendValue(sb, member.DataType, member.DefaultValue);
+				AppendValue(sb, member.DataType, member.MinimumElementCount, member.MaximumElementCount, member.DefaultValue);
 				sb.AppendLine(",");
 			}
 
 			if (member.MinimumValue is not null)
 			{
 				sb.Append("\t\t\t\t\t\tMinimumValue = ");
-				AppendValue(sb, member.DataType, member.MinimumValue);
+				AppendValue(sb, member.DataType, 1, 1, member.MinimumValue);
 				sb.AppendLine(",");
 			}
 
 			if (member.MaximumValue is not null)
 			{
 				sb.Append("\t\t\t\t\t\tMaximumValue = ");
-				AppendValue(sb, member.DataType, member.MaximumValue);
+				AppendValue(sb, member.DataType, 1, 1, member.MaximumValue);
 				sb.AppendLine(",");
 			}
 
@@ -183,8 +188,8 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			// NB: Should migrate all of this to using constructors or factory methods, so that parameters are checked.
 			//if (member.MinimumElementCount != 1 || member.MinimumElementCount != member.MaximumElementCount)
 			//{
-				sb.Append("\t\t\t\t\t\tMinimumElementCount = ").Append(member.MinimumElementCount.ToString(CultureInfo.InvariantCulture)).AppendLine(",")
-					.Append("\t\t\t\t\t\tMaximumElementCount = ").Append(member.MaximumElementCount.ToString(CultureInfo.InvariantCulture)).AppendLine(",");
+			sb.Append("\t\t\t\t\t\tMinimumElementCount = ").Append(member.MinimumElementCount.ToString(CultureInfo.InvariantCulture)).AppendLine(",")
+				.Append("\t\t\t\t\t\tMaximumElementCount = ").Append(member.MaximumElementCount.ToString(CultureInfo.InvariantCulture)).AppendLine(",");
 			//}
 			sb.AppendLine("\t\t\t\t\t},");
 		}
@@ -554,54 +559,90 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			_ => throw new Exception("Unsupported data type."),
 		};
 
-	private static void AppendValue(StringBuilder sb, LightingDataType dataType, object defaultValue)
+	private static void AppendValue(StringBuilder sb, LightingDataType dataType, int minimumElementCount, int maximumElementCount, object defaultValue)
 	{
-		switch (dataType)
+		try
 		{
-		case LightingDataType.UInt8: sb.Append("(byte)").Append(Convert.ToByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case LightingDataType.SInt8: sb.Append("(sbyte)").Append(Convert.ToSByte(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case LightingDataType.UInt16: sb.Append("(ushort)").Append(Convert.ToUInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case LightingDataType.SInt16: sb.Append("(short)").Append(Convert.ToInt16(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case LightingDataType.UInt32: sb.Append(Convert.ToUInt32(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
-		case LightingDataType.SInt32: sb.Append(Convert.ToInt32(defaultValue).ToString(CultureInfo.InvariantCulture)); break;
-		case LightingDataType.UInt64: sb.Append(Convert.ToUInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("ul"); break;
-		case LightingDataType.SInt64: sb.Append(Convert.ToInt64(defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
-		case LightingDataType.Float16: sb.Append("(Half)").Append(Convert.ToSingle(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
-		case LightingDataType.Float32: sb.Append(Convert.ToSingle(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
-		case LightingDataType.Float64: sb.Append(Convert.ToDouble(defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("d"); break;
-		case LightingDataType.Guid: throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
-		case LightingDataType.TimeSpan: throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
-		case LightingDataType.DateTime: throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
-		case LightingDataType.Boolean: sb.Append(Convert.ToBoolean(defaultValue) ? "true" : "false"); break;
-		case LightingDataType.String: sb.Append(ToStringLiteral(Convert.ToString(defaultValue, CultureInfo.InvariantCulture))); break;
-		case LightingDataType.EffectDirection1D:
-			sb.Append
-			(
-				Convert.ToByte(defaultValue) switch
-				{
-					0 => "EffectDirection1D.Forward",
-					1 => "EffectDirection1D.Backward",
-					_ => throw new Exception("Invalid default value for EffectDirection1D.")
-				}
-			);
-			break;
-		case LightingDataType.ColorRgb24:
+			if (defaultValue is Array defaultValues)
 			{
-				string s = defaultValue.ToString();
-				if (s.Length == 7 && s[0] == '#' && int.TryParse(s.Substring(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int color))
+				if (defaultValues.Length < minimumElementCount || defaultValues.Length > maximumElementCount) throw new InvalidOperationException("Invalid number of values for the default value.");
+				switch (dataType)
 				{
-					sb.Append("new global::Exo.ColorFormats.RgbColor(")
-						.Append(((byte)(color >> 16)).ToString(CultureInfo.InvariantCulture)).Append(", ")
-						.Append(((byte)(color >> 8)).ToString(CultureInfo.InvariantCulture)).Append(", ")
-						.Append(((byte)color).ToString(CultureInfo.InvariantCulture)).Append(")");
+				case LightingDataType.ColorRgb24:
+					var colors = (uint[])defaultValues;
+					sb.Append("new global::Exo.ColorFormats.RgbColor[").Append(colors.Length).Append("]");
+					if (colors.Length > 0)
+					{
+						sb.Append(" { new");
+						AppendRgbParameters(sb, colors[0]);
+						for (int i = 1; i < colors.Length; i++)
+						{
+							sb.Append(", new");
+							AppendRgbParameters(sb, colors[i]);
+						}
+						sb.Append(" }");
+					}
+					break;
+				default:
+					throw new Exception("TODO: Implement array default values for other data types.");
 				}
-				else
-				{
-					sb.Append("null");
-				}
-				break;
 			}
-		default: throw new NotImplementedException($"TODO: Serialization of default/min/max values of type {dataType}.");
+			else
+			{
+				switch (dataType)
+				{
+				case LightingDataType.UInt8: sb.Append("(byte)").Append(((byte)defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+				case LightingDataType.SInt8: sb.Append("(sbyte)").Append(((sbyte)defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+				case LightingDataType.UInt16: sb.Append("(ushort)").Append(((ushort)defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+				case LightingDataType.SInt16: sb.Append("(short)").Append(((short)defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+				case LightingDataType.UInt32: sb.Append(((uint)defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
+				case LightingDataType.SInt32: sb.Append(((int)defaultValue).ToString(CultureInfo.InvariantCulture)); break;
+				case LightingDataType.UInt64: sb.Append(((ulong)defaultValue).ToString(CultureInfo.InvariantCulture)).Append("ul"); break;
+				case LightingDataType.SInt64: sb.Append(((long)defaultValue).ToString(CultureInfo.InvariantCulture)).Append("l"); break;
+				case LightingDataType.Float16: sb.Append("(Half)").Append(((float)defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
+				case LightingDataType.Float32: sb.Append(((float)defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("f"); break;
+				case LightingDataType.Float64: sb.Append(((double)defaultValue).ToString("R", CultureInfo.InvariantCulture)).Append("d"); break;
+				case LightingDataType.Guid: throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
+				case LightingDataType.TimeSpan: throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
+				case LightingDataType.DateTime: throw new NotImplementedException("TODO: GUID default/min/max value serialization.");
+				case LightingDataType.Boolean: sb.Append(((bool)defaultValue) ? "true" : "false"); break;
+				case LightingDataType.String: sb.Append(ToStringLiteral((string)defaultValue)); break;
+				case LightingDataType.EffectDirection1D:
+					sb.Append
+					(
+						(byte)defaultValue switch
+						{
+							0 => "EffectDirection1D.Forward",
+							1 => "EffectDirection1D.Backward",
+							_ => throw new Exception("Invalid default value for EffectDirection1D.")
+						}
+					);
+					break;
+				case LightingDataType.ColorRgb24:
+					if (defaultValue is not null)
+					{
+						uint color = (uint)defaultValue;
+						sb.Append("new global::Exo.ColorFormats.RgbColor");
+						AppendRgbParameters(sb, color);
+					}
+					else
+					{
+						sb.Append("null");
+					}
+					break;
+				default: throw new NotImplementedException($"TODO: Serialization of default/min/max values of type {dataType}.");
+				}
+			}
+		}
+		catch (InvalidCastException ex)
+		{
+			throw new Exception($"{dataType}: {defaultValue.GetType()}");
+		}
+		static void AppendRgbParameters(StringBuilder sb, uint color)
+		{
+			sb.Append("(").Append((byte)(color >> 16))
+				.Append(", ").Append((byte)(color >> 8))
+				.Append(", ").Append((byte)color).Append(")");
 		}
 	}
 
@@ -858,6 +899,12 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				}
 			}
 
+			// NB: For now, we don't support arrays for min/max values, so we pass [1, 1] as array constraints.
+			// It would be possible to allow arrays there too, but let's wait until this is needed.
+			if (defaultValue is not null) defaultValue = ParseValue(member, dataType, minimumElementCount, maximumElementCount, defaultValue, problems, ValueKind.Default);
+			if (minimumValue is not null) minimumValue = ParseValue(member, dataType, 1, 1, minimumValue, problems, ValueKind.Minimum);
+			if (maximumValue is not null) maximumValue = ParseValue(member, dataType, 1, 1, maximumValue, problems, ValueKind.Maximum);
+
 			members.Add
 			(
 				new
@@ -884,6 +931,98 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		return new(typeId, effectType.ContainingNamespace.ToDisplayString(), effectType.Name, effectType.ToDisplayString(), !isEligibleForSerializationBypass, new([.. members]), new([.. problems]));
 	}
+
+	private static object? ParseValue(ISymbol member, LightingDataType? dataType, int minimumElementCount, int maximumElementCount, object value, List<ProblemInfo> problems, ValueKind kind)
+	{
+		if (value is string s && (minimumElementCount != 1 || minimumElementCount != maximumElementCount) && s.IndexOf(',') >= 0)
+		{
+			// Allow terminating the value list with a comma so that it is possible to differentiate between unique value and array of length 1.
+			if (s[s.Length - 1] == ',') s = s.Substring(0, s.Length - 1);
+
+			string[] defaultValues = s.Split([','], StringSplitOptions.None);
+			if (defaultValues.Length < minimumElementCount || defaultValues.Length > maximumElementCount)
+			{
+				problems.Add(new(ProblemKind.InvalidDefaultValue, member.Name));
+			}
+			else
+			{
+				try
+				{
+					value = dataType switch
+					{
+						LightingDataType.UInt8 => Array.ConvertAll(defaultValues, s => byte.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.SInt8 => Array.ConvertAll(defaultValues, s => sbyte.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.UInt16 => Array.ConvertAll(defaultValues, s => ushort.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.SInt16 => Array.ConvertAll(defaultValues, s => short.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.UInt32 => Array.ConvertAll(defaultValues, s => uint.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.SInt32 => Array.ConvertAll(defaultValues, s => int.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.UInt64 => Array.ConvertAll(defaultValues, s => ulong.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.SInt64 => Array.ConvertAll(defaultValues, s => ulong.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.Float16 or LightingDataType.Float32 => Array.ConvertAll(defaultValues, s => float.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.Float64 => Array.ConvertAll(defaultValues, s => double.Parse(s, CultureInfo.InvariantCulture)),
+						LightingDataType.ColorRgb24 => Array.ConvertAll(defaultValues, s => ParseRgbColor(s)),
+						_ => throw new InvalidDataException(),
+					};
+				}
+				catch
+				{
+					problems.Add(new(ProblemKind.InvalidDefaultValue, member.Name));
+				}
+			}
+		}
+		else
+		{
+			try
+			{
+				value = dataType switch
+				{
+					LightingDataType.UInt8 or LightingDataType.EffectDirection1D => (object)Convert.ToByte(value),
+					LightingDataType.SInt8 => Convert.ToSByte(value),
+					LightingDataType.UInt16 => Convert.ToUInt16(value),
+					LightingDataType.SInt16 => Convert.ToInt16(value),
+					LightingDataType.UInt32 => Convert.ToUInt32(value),
+					LightingDataType.SInt32 => Convert.ToInt32(value),
+					LightingDataType.UInt64 => Convert.ToUInt64(value),
+					LightingDataType.SInt64 => Convert.ToInt64(value),
+					LightingDataType.Float16 or LightingDataType.Float32 => Convert.ToSingle(value),
+					LightingDataType.Float64 => Convert.ToDouble(value),
+					LightingDataType.Boolean => Convert.ToBoolean(value),
+					LightingDataType.Guid => throw new Exception("TODO"),
+					LightingDataType.TimeSpan => throw new Exception("TODO"),
+					LightingDataType.DateTime => throw new Exception("TODO"),
+					LightingDataType.String => Convert.ToString(value),
+					LightingDataType.ColorRgb24 => ParseRgbColor(value.ToString()),
+					_ => throw new InvalidDataException(),
+				};
+			}
+			catch
+			{
+				problems.Add
+				(
+					new
+					(
+						kind switch
+						{
+							ValueKind.Default => ProblemKind.InvalidDefaultValue,
+							ValueKind.Minimum => ProblemKind.InvalidMinimumValue,
+							ValueKind.Maximum => ProblemKind.InvalidMaximumValue,
+							_ => throw new InvalidOperationException("Wrong value kind."),
+						},
+						member.Name
+					)
+				);
+			}
+		}
+
+		return value;
+	}
+
+	private static uint ParseRgbColor(string? s)
+	{
+		if (s is null || s.Length != 7 || s[0] != '#') throw new ArgumentException(null, nameof(s));
+		return uint.Parse(s.Substring(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+	}
+
 	private static EquatableReadOnlyList<EnumValueInfo> GetEnumValues(INamedTypeSymbol enumType)
 		=> enumType.EnumUnderlyingType!.Name switch
 		{
@@ -1003,6 +1142,17 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		InvalidArrayLimits = 4,
 		MissingArrayLimits = 5,
 		ForbiddenArrayLimits = 6,
+		InvalidDefaultValue = 7,
+		InvalidArrayDefaultValue = 8,
+		InvalidMinimumValue = 9,
+		InvalidMaximumValue = 10,
+	}
+
+	private enum ValueKind
+	{
+		Default = 0,
+		Minimum = 1,
+		Maximum = 2,
 	}
 
 	private record struct ProblemInfo

@@ -71,7 +71,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 
 	public bool IsVariableLength => PropertyInformation.IsVariableLengthArray;
 
-	public ArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength, T defaultItemValue)
+	public ArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength, T[]? initialValues, T defaultItemValue)
 		: base(propertyInformation, paddingLength)
 	{
 		if (!propertyInformation.IsArray) throw new InvalidOperationException("");
@@ -80,11 +80,18 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 		_defaultItemValue = defaultItemValue;
 		for (int i = 0; i < _initialValues.Length; i++)
 		{
-			_initialValues[i] = defaultItemValue;
-			if (i < propertyInformation.MinimumElementCount) _elements.Add(new(this, defaultItemValue));
+			if (initialValues is not null && i < initialValues.Length)
+			{
+				_elements.Add(new(this, _initialValues[i] = initialValues[i]));
+			}
+			else
+			{
+				_initialValues[i] = defaultItemValue;
+				if (i < propertyInformation.MinimumElementCount) _elements.Add(new(this, defaultItemValue));
+			}
 		}
 		_readOnlyElements = new(_elements);
-		_initialValueCount = propertyInformation.MinimumElementCount;
+		_initialValueCount = initialValues is not null ? (uint)initialValues.Length : propertyInformation.MinimumElementCount;
 		_addCommand = new(this);
 		_removeCommand = new(this);
 	}

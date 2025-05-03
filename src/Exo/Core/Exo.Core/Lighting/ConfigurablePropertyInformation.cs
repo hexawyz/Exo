@@ -52,13 +52,13 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 					maximumElementCount = reader.GetUInt32();
 					break;
 				case nameof(defaultValue):
-					defaultValue = ReadValue(ref reader, dataType, options);
+					defaultValue = ReadValueOrValues(ref reader, dataType, options);
 					break;
 				case nameof(minimumValue):
-					minimumValue = ReadValue(ref reader, dataType, options);
+					minimumValue = ReadValueOrValues(ref reader, dataType, options);
 					break;
 				case nameof(maximumValue):
-					maximumValue = ReadValue(ref reader, dataType, options);
+					maximumValue = ReadValueOrValues(ref reader, dataType, options);
 					break;
 				case nameof(enumerationValues):
 					enumerationValues = JsonSerializer.Deserialize<ImmutableArray<EnumerationValue>>(ref reader, options);
@@ -86,6 +86,15 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			};
 		}
 
+		private static object? ReadValueOrValues(ref Utf8JsonReader reader, LightingDataType dataType, JsonSerializerOptions options)
+		{
+			if (reader.TokenType == JsonTokenType.StartArray)
+			{
+				return ReadValues(ref reader, dataType, options);
+			}
+			return ReadValue(ref reader, dataType, options);
+		}
+
 		private static object? ReadValue(ref Utf8JsonReader reader, LightingDataType dataType, JsonSerializerOptions options)
 			=> dataType switch
 			{
@@ -111,6 +120,187 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 				_ => throw new NotImplementedException(),
 			};
 
+		private static object? ReadValues(ref Utf8JsonReader reader, LightingDataType dataType, JsonSerializerOptions options)
+		{
+			reader.Read();
+			switch (dataType)
+			{
+			case LightingDataType.Other: throw new Exception("DataType has not been defined.");
+			case LightingDataType.UInt8:
+				{
+					var values = new List<byte>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetByte());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.SInt8:
+				{
+					var values = new List<sbyte>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetSByte());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.UInt16:
+				{
+					var values = new List<ushort>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetUInt16());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.SInt16:
+				{
+					var values = new List<short>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetInt16());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.UInt32:
+				{
+					var values = new List<uint>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetUInt32());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.SInt32:
+				{
+					var values = new List<int>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetInt32());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.UInt64:
+				{
+					var values = new List<ulong>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetUInt64());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.SInt64:
+				{
+					var values = new List<long>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetInt64());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.Float16:
+				{
+					var values = new List<Half>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add((Half)reader.GetSingle());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.Float32:
+				{
+					var values = new List<float>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetSingle());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.Float64:
+				{
+					var values = new List<double>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetDouble());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.Boolean:
+				{
+					var values = new List<bool>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetBoolean());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.Guid:
+				{
+					var values = new List<Guid>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetGuid());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.TimeSpan: throw new NotImplementedException("TODO");
+			case LightingDataType.DateTime:
+				{
+					var values = new List<DateTime>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetDateTime());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.String:
+				{
+					var values = new List<string?>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(reader.GetString());
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.EffectDirection1D:
+				{
+					var values = new List<EffectDirection1D>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(JsonSerializer.Deserialize<EffectDirection1D>(ref reader, options));
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			case LightingDataType.ColorRgb24:
+				{
+					var values = new List<RgbColor>();
+					while (reader.TokenType != JsonTokenType.EndArray)
+					{
+						values.Add(RgbColor.Parse(reader.GetString(), CultureInfo.InvariantCulture));
+						reader.Read();
+					}
+					return values.ToArray();
+				}
+			default: throw new NotImplementedException();
+			}
+		}
+
 		public override void Write(Utf8JsonWriter writer, ConfigurablePropertyInformation value, JsonSerializerOptions options)
 		{
 			writer.WriteStartObject();
@@ -126,17 +316,38 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			if (value.DefaultValue is not null)
 			{
 				writer.WritePropertyName("defaultValue");
-				WriteValue(writer, value.DataType, value.DefaultValue, options);
+				if (value.IsArray && value.DefaultValue is Array values)
+				{
+					WriteValues(writer, value.DataType, values, options);
+				}
+				else
+				{
+					WriteValue(writer, value.DataType, value.DefaultValue, options);
+				}
 			}
 			if (value.MinimumValue is not null)
 			{
 				writer.WritePropertyName("minimumValue");
-				WriteValue(writer, value.DataType, value.MinimumValue, options);
+				if (value.IsArray && value.MinimumValue is Array values)
+				{
+					WriteValues(writer, value.DataType, values, options);
+				}
+				else
+				{
+					WriteValue(writer, value.DataType, value.MinimumValue, options);
+				}
 			}
 			if (value.MaximumValue is not null)
 			{
 				writer.WritePropertyName("maximumValue");
-				WriteValue(writer, value.DataType, value.MaximumValue, options);
+				if (value.IsArray && value.MaximumValue is Array values)
+				{
+					WriteValues(writer, value.DataType, values, options);
+				}
+				else
+				{
+					WriteValue(writer, value.DataType, value.MaximumValue, options);
+				}
 			}
 			if (!value.EnumerationValues.IsDefaultOrEmpty)
 			{
@@ -171,6 +382,120 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			case LightingDataType.ColorRgb24: writer.WriteStringValue(((RgbColor)value).ToString()); break;
 			default: throw new InvalidOperationException("Unsupported DataType.");
 			}
+		}
+
+		private static void WriteValues(Utf8JsonWriter writer, LightingDataType dataType, Array values, JsonSerializerOptions options)
+		{
+			writer.WriteStartArray();
+			switch (dataType)
+			{
+			case LightingDataType.Other: throw new Exception("DataType has not been defined.");
+			case LightingDataType.UInt8:
+				foreach (var value in (byte[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.SInt8:
+				foreach (var value in (sbyte[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.UInt16:
+				foreach (var value in (ushort[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.SInt16:
+				foreach (var value in (short[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.UInt32:
+				foreach (var value in (uint[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.SInt32:
+				foreach (var value in (int[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.UInt64:
+				foreach (var value in (ulong[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.SInt64:
+				foreach (var value in (long[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.Float16:
+				foreach (var value in (Half[])values)
+				{
+					writer.WriteNumberValue((float)value);
+				}
+				break;
+			case LightingDataType.Float32:
+				foreach (var value in (float[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.Float64:
+				foreach (var value in (double[])values)
+				{
+					writer.WriteNumberValue(value);
+				}
+				break;
+			case LightingDataType.Boolean:
+				foreach (var value in (bool[])values)
+				{
+					writer.WriteBooleanValue(value);
+				}
+				break;
+			case LightingDataType.Guid:
+				foreach (var value in (Guid[])values)
+				{
+					writer.WriteStringValue(value);
+				}
+				break;
+			case LightingDataType.TimeSpan: throw new NotImplementedException("TODO");
+			case LightingDataType.DateTime:
+				foreach (var value in (DateTime[])values)
+				{
+					writer.WriteStringValue(value);
+				}
+				break;
+			case LightingDataType.String:
+				foreach (var value in (string[])values)
+				{
+					writer.WriteStringValue(value);
+				}
+				break;
+			case LightingDataType.EffectDirection1D:
+				foreach (var value in (EffectDirection1D[])values)
+				{
+					JsonSerializer.Serialize(writer, value, options);
+				}
+				break;
+			case LightingDataType.ColorRgb24:
+				foreach (var value in (RgbColor[])values)
+				{
+					writer.WriteStringValue(value.ToString());
+				}
+				break;
+			default: throw new InvalidOperationException("Unsupported DataType.");
+			}
+			writer.WriteEndArray();
 		}
 	}
 
