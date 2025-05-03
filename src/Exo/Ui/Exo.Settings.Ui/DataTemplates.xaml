@@ -135,7 +135,21 @@
 			<ItemsControl ItemsSource="{Binding Elements}">
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<local:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*" />
+								<ColumnDefinition Width="Auto" />
+							</Grid.ColumnDefinitions>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto" />
+								<RowDefinition Height="*" />
+							</Grid.RowDefinitions>
+							<local:ColorSwatch Grid.ColumnSpan="2" Grid.RowSpan="2" Canvas.ZIndex="0" Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
+							<!-- TODO: Make a better style for the remove button. Accent is the easiest way to have it visible. This will do for now. -->
+							<Button Grid.Column="1" Canvas.ZIndex="10" Margin="0" Padding="1,0,0,0" Style="{StaticResource AccentButtonStyle}" Command="{Binding RemoveCommand, Mode=OneWay}" CommandParameter="{Binding}">
+								<FontIcon Glyph="&#xE738;" FontSize="8" />
+							</Button>
+						</Grid>
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 				<ItemsControl.ItemsPanel>

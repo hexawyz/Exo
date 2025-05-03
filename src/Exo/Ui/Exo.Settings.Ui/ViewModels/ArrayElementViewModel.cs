@@ -1,3 +1,4 @@
+using System.Windows.Input;
 using Exo.Ui;
 
 namespace Exo.Settings.Ui.ViewModels;
@@ -19,4 +20,6 @@ internal sealed class ArrayElementViewModel<T> : BindableObject
 		get => _value;
 		set => SetValue(ref _value, value, ChangedProperty.Value);
 	}
+
+	public ICommand RemoveCommand => _arrayPropertyViewModel.RemoveCommand;
 }
