@@ -8,9 +8,9 @@ namespace Exo;
 
 public ref struct BufferWriter
 {
-	public static uint GetVariableLength(ushort value) => (64 - (uint)BitOperations.LeadingZeroCount(value)) / 7;
-	public static uint GetVariableLength(uint value) => (64 - (uint)BitOperations.LeadingZeroCount(value)) / 7;
-	public static uint GetVariableLength(ulong value) => (64 - (uint)BitOperations.LeadingZeroCount(value)) / 7;
+	public static uint GetVariableLength(ushort value) => (38 - (uint)BitOperations.LeadingZeroCount(value | 1U)) / 7;
+	public static uint GetVariableLength(uint value) => (38 - (uint)BitOperations.LeadingZeroCount(value | 1U)) / 7;
+	public static uint GetVariableLength(ulong value) => (70 - (uint)BitOperations.LeadingZeroCount(value | 1U)) / 7;
 
 	private ref byte _current;
 	private readonly ref readonly byte _end;

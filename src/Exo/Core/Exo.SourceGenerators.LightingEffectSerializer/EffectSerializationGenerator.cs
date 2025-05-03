@@ -250,7 +250,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					foreach (var (elementSize, member) in variableMembers)
 					{
 						sb.AppendLine(" +")
-							.Append("\t\t\t\t(value.").Append(member.Name).Append(".IsDefault ? 0 : global::Exo.BufferWriter.GetVariableLength((uint)value.").Append(member.Name).Append(".Length) + (uint)value.").Append(member.Name).Append(".Length)");
+							.Append("\t\t\t\t(value.").Append(member.Name).Append(".IsDefault ? 0 : global::Exo.BufferWriter.GetVariableLength((uint)value.").Append(member.Name).Append(".Length) + (uint)value.").Append(member.Name).Append(".Length * Unsafe.SizeOf<").Append(GetMemberElementType(member)).Append(">())");
 					}
 					sb.AppendLine(";")
 						.AppendLine("\t\t\treturn true;");
@@ -376,34 +376,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				{
 					string indent = "\t\t\t";
 					bool isVariableArray = member.MinimumElementCount != member.MaximumElementCount;
-					string memberType = member.EnumDataTypeName is not null ?
-						member.EnumDataTypeName :
-						member.DataType switch
-						{
-							LightingDataType.UInt8 => "byte",
-							LightingDataType.SInt8 => "sbyte",
-							LightingDataType.UInt16 => "ushort",
-							LightingDataType.SInt16 => "short",
-							LightingDataType.UInt32 => "uint",
-							LightingDataType.SInt32 => "int",
-							LightingDataType.UInt64 => "ulong",
-							LightingDataType.SInt64 => "long",
-							LightingDataType.UInt128 => "global::System.UInt128",
-							LightingDataType.SInt128 => "global::System.Int128",
-							LightingDataType.Float16 => "global::System.Half",
-							LightingDataType.Float32 => "float",
-							LightingDataType.Float64 => "double",
-							LightingDataType.Boolean => "bool",
-							LightingDataType.Guid => "global::System.Guid",
-							LightingDataType.TimeSpan => "global::System.TimeSpan",
-							LightingDataType.DateTime => "global::System.DateTime",
-							LightingDataType.String => "global::System.String",
-							LightingDataType.EffectDirection1D => "global::Exo.Lighting.Effects.EffectDirection1D",
-							LightingDataType.ColorRgb24 => "global::Exo.ColorFormats.RgbColor",
-							LightingDataType.ColorRgbw32 => "global::Exo.ColorFormats.RgbwColor",
-							LightingDataType.ColorArgb32 => "global::Exo.ColorFormats.ArgbColor",
-							_ => throw new NotImplementedException($"Data type not implemented: {member.DataType}."),
-						};
+					string memberType = GetMemberElementType(member);
 					if (isVariableArray)
 					{
 						sb.Append(indent).AppendLine("count = reader.ReadVariableUInt32();")
@@ -533,6 +506,35 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		context.AddSource(effect.FullName + ".Serializer.Generated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
 	}
+
+	private static string GetMemberElementType(SerializedMemberInfo member) => member.EnumDataTypeName is not null ?
+							member.EnumDataTypeName :
+							member.DataType switch
+							{
+								LightingDataType.UInt8 => "byte",
+								LightingDataType.SInt8 => "sbyte",
+								LightingDataType.UInt16 => "ushort",
+								LightingDataType.SInt16 => "short",
+								LightingDataType.UInt32 => "uint",
+								LightingDataType.SInt32 => "int",
+								LightingDataType.UInt64 => "ulong",
+								LightingDataType.SInt64 => "long",
+								LightingDataType.UInt128 => "global::System.UInt128",
+								LightingDataType.SInt128 => "global::System.Int128",
+								LightingDataType.Float16 => "global::System.Half",
+								LightingDataType.Float32 => "float",
+								LightingDataType.Float64 => "double",
+								LightingDataType.Boolean => "bool",
+								LightingDataType.Guid => "global::System.Guid",
+								LightingDataType.TimeSpan => "global::System.TimeSpan",
+								LightingDataType.DateTime => "global::System.DateTime",
+								LightingDataType.String => "global::System.String",
+								LightingDataType.EffectDirection1D => "global::Exo.Lighting.Effects.EffectDirection1D",
+								LightingDataType.ColorRgb24 => "global::Exo.ColorFormats.RgbColor",
+								LightingDataType.ColorRgbw32 => "global::Exo.ColorFormats.RgbwColor",
+								LightingDataType.ColorArgb32 => "global::Exo.ColorFormats.ArgbColor",
+								_ => throw new NotImplementedException($"Data type not implemented: {member.DataType}."),
+							};
 
 	private static void OutputMemberVariable(StringBuilder sb, SerializedMemberInfo member)
 	{
