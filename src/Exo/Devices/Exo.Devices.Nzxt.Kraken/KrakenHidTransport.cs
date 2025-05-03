@@ -306,7 +306,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
-		if ((uint)(colors.Length - 1) > 7) throw new ArgumentException(null, nameof(channel));
+		if ((uint)colors.Length > 8) throw new ArgumentException(null, nameof(colors));
 
 		var tcs = new FunctionTaskCompletionSource(LedMulticolorSetEffectFunctionId);
 		if (Interlocked.CompareExchange(ref _ledMulticolorTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();

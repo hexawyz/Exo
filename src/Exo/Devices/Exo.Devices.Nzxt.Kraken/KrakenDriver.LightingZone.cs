@@ -21,6 +21,9 @@ public partial class KrakenDriver
 		ILightingZoneEffect<VariableMultiColorBreathingEffect>,
 		ILightingZoneEffect<VariableColorBlinkEffect>,
 		ILightingZoneEffect<CandleEffect>,
+		ILightingZoneEffect<ReversibleVariableRainbowWaveEffect>,
+		ILightingZoneEffect<ReversibleVariableSuperRainbowEffect>,
+		ILightingZoneEffect<ReversibleVariableRainbowPulseEffect>,
 		ILightingZoneEffect<StarryNightEffect>,
 		ILightingZoneEffect<TaiChiEffect>,
 		ILightingZoneEffect<LiquidCoolerEffect>,
@@ -44,6 +47,9 @@ public partial class KrakenDriver
 		private static ReadOnlySpan<ushort> SpectrumWaveSpeeds => [350, 300, 250, 220, 150, 80];
 		private static ReadOnlySpan<ushort> CoveringMarqueeSpeeds => SpectrumWaveSpeeds;
 		private static ReadOnlySpan<ushort> MarqueeSpeeds => SpectrumWaveSpeeds;
+		private static ReadOnlySpan<ushort> RainbowWaveSpeeds => SpectrumWaveSpeeds;
+		private static ReadOnlySpan<ushort> SuperRainbowSpeeds => SpectrumWaveSpeeds;
+		private static ReadOnlySpan<ushort> RainbowPulseSpeeds => SpectrumWaveSpeeds;
 		private static ReadOnlySpan<ushort> TaiChiSpeeds => [0x32, 0x28, 0x1e, 0x19, 0x14, 0x0a];
 		private static ReadOnlySpan<ushort> LiquidCoolerSpeeds => TaiChiSpeeds;
 		// The timings are x2 when the alternating effect is not moving.
@@ -121,6 +127,12 @@ public partial class KrakenDriver
 				return new StarryNightEffect(_colors[0], (speedIndex = StarryNightSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow);
 			case KrakenEffect.Blink:
 				return new VariableColorBlinkEffect(_colors[0], (speedIndex = BreathingSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumFast);
+			case KrakenEffect.RainbowWave:
+				return new ReversibleVariableRainbowWaveEffect((speedIndex = RainbowWaveSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+			case KrakenEffect.SuperRainbow:
+				return new ReversibleVariableSuperRainbowEffect((speedIndex = RainbowWaveSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+			case KrakenEffect.RainbowPulse:
+				return new ReversibleVariableRainbowPulseEffect((speedIndex = RainbowWaveSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.TaiChi:
 				return new TaiChiEffect(_colors[0], _colors[1], (speedIndex = TaiChiSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.LiquidCooler:
@@ -393,8 +405,68 @@ public partial class KrakenDriver
 			{
 				_effectId = KrakenEffect.SpectrumWave;
 				_colors.AsSpan(0, _colorCount).Clear();
-				_colorCount = 2;
+				_colorCount = 0;
 				_speed = SpectrumWaveSpeeds[(int)effect.Speed];
+				_flags = effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None;
+				_parameter2 = 0x00;
+				_size = DefaultSize;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<ReversibleVariableRainbowWaveEffect>.ApplyEffect(in ReversibleVariableRainbowWaveEffect effect)
+		{
+			if (_effectId != KrakenEffect.RainbowWave ||
+				_colorCount != 0 ||
+				RainbowWaveSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != (effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None) ||
+				_parameter2 != 0x00 ||
+				_size != DefaultSize)
+			{
+				_effectId = KrakenEffect.RainbowWave;
+				_colors.AsSpan(0, _colorCount).Clear();
+				_colorCount = 8;
+				_speed = RainbowWaveSpeeds[(int)effect.Speed];
+				_flags = effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None;
+				_parameter2 = 0x00;
+				_size = DefaultSize;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<ReversibleVariableSuperRainbowEffect>.ApplyEffect(in ReversibleVariableSuperRainbowEffect effect)
+		{
+			if (_effectId != KrakenEffect.SuperRainbow ||
+				_colorCount != 0 ||
+				SuperRainbowSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != (effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None) ||
+				_parameter2 != 0x00 ||
+				_size != DefaultSize)
+			{
+				_effectId = KrakenEffect.SuperRainbow;
+				_colors.AsSpan(0, _colorCount).Clear();
+				_colorCount = 0;
+				_speed = SuperRainbowSpeeds[(int)effect.Speed];
+				_flags = effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None;
+				_parameter2 = 0x00;
+				_size = DefaultSize;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<ReversibleVariableRainbowPulseEffect>.ApplyEffect(in ReversibleVariableRainbowPulseEffect effect)
+		{
+			if (_effectId != KrakenEffect.RainbowPulse ||
+				_colorCount != 0 ||
+				RainbowPulseSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != (effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None) ||
+				_parameter2 != 0x00 ||
+				_size != DefaultSize)
+			{
+				_effectId = KrakenEffect.RainbowPulse;
+				_colors.AsSpan(0, _colorCount).Clear();
+				_colorCount = 0;
+				_speed = RainbowPulseSpeeds[(int)effect.Speed];
 				_flags = effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None;
 				_parameter2 = 0x00;
 				_size = DefaultSize;
@@ -621,7 +693,7 @@ public partial class KrakenDriver
 				SpectrumWaveSpeeds.IndexOf(_speed) is int speedIndex &&
 				speedIndex >= 0 &&
 				_flags is LightingEffectFlags.None or LightingEffectFlags.Reversed &&
-				_parameter2 == 0x05 &&
+				_parameter2 == 0x00 &&
 				_size == DefaultSize)
 			{
 				effect = new((PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
@@ -630,6 +702,58 @@ public partial class KrakenDriver
 			effect = default;
 			return false;
 		}
+
+		bool ILightingZoneEffect<ReversibleVariableRainbowWaveEffect>.TryGetCurrentEffect(out ReversibleVariableRainbowWaveEffect effect)
+		{
+			if (_effectId == KrakenEffect.RainbowWave &&
+				_colorCount == 0 &&
+				RainbowWaveSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags is LightingEffectFlags.None or LightingEffectFlags.Reversed &&
+				_parameter2 == 0x00 &&
+				_size == DefaultSize)
+			{
+				effect = new((PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<ReversibleVariableSuperRainbowEffect>.TryGetCurrentEffect(out ReversibleVariableSuperRainbowEffect effect)
+		{
+			if (_effectId == KrakenEffect.SuperRainbow &&
+				_colorCount == 0 &&
+				SpectrumWaveSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags is LightingEffectFlags.None or LightingEffectFlags.Reversed &&
+				_parameter2 == 0x00 &&
+				_size == DefaultSize)
+			{
+				effect = new((PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<ReversibleVariableRainbowPulseEffect>.TryGetCurrentEffect(out ReversibleVariableRainbowPulseEffect effect)
+		{
+			if (_effectId == KrakenEffect.RainbowPulse &&
+				_colorCount == 0 &&
+				SpectrumWaveSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags is LightingEffectFlags.None or LightingEffectFlags.Reversed &&
+				_parameter2 == 0x00 &&
+				_size == DefaultSize)
+			{
+				effect = new((PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
 
 		bool ILightingZoneEffect<LegacyReversibleVariableMultiColorMarqueeEffect>.TryGetCurrentEffect(out LegacyReversibleVariableMultiColorMarqueeEffect effect)
 		{

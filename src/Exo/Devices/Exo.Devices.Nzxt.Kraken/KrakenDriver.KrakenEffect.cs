@@ -1,4 +1,4 @@
-﻿namespace Exo.Devices.Nzxt.Kraken;
+namespace Exo.Devices.Nzxt.Kraken;
 
 public partial class KrakenDriver
 {
@@ -15,10 +15,10 @@ public partial class KrakenDriver
 		Breathing = 0x07,
 		Candle = 0x08,
 		StarryNight = 0x09,
-		Blink = 0x0a,
+		Blink = 0x0A,
 		RainbowWave = 0x0B,
 		SuperRainbow = 0x0C,
-		RainbowImpulse = 0x0D,
+		RainbowPulse = 0x0D,
 		TaiChi = 0x0E,
 		LiquidCooler = 0x0F,
 		Loading = 0x10,
